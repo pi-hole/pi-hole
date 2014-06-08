@@ -24,3 +24,4 @@ else
 	echo "Error building the ad list, please try again."
 	exit 1
 fi
+service dnsmasq restart
