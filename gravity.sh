@@ -1,4 +1,5 @@
 #!/bin/bash
+# /usr/local/bin/gravity.sh
 
 # URL to pull list of known ad servers from
 adListURL="http://pgl.yoyo.org/adservers/serverlist.php?hostformat=dnsmasq&showintro=0&mimetype=plaintext"
