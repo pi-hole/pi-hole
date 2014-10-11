@@ -6,7 +6,11 @@ eventHorizion="/etc/dnsmasq.d/adList.conf"
 
 # Download the original URL to a text file for easier parsing
 curl -o /tmp/yoyo.txt -s http://pgl.yoyo.org/adservers/serverlist.php?hostformat=unixhosts&mimetype=plaintext
-cat /tmp/yoyo.txt | grep -v "<" | sed '/^$/d' | sed 's/\ /\\ /g' | sort > /tmp/matter.txt
+if [ -f /tmp/yoyo.txt ];then
+	cat /tmp/yoyo.txt | grep -v "<" | sed '/^$/d' | sed 's/\ /\\ /g' | sort > /tmp/matter.txt
+else
+	echo "Unable to get yoyo ad list"
+fi
 
 # Download and append other ad URLs from different sources
 curl -s http://winhelp2002.mvps.org/hosts.txt | grep -v "#" | grep -v "127.0.0.1" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' | sort >> /tmp/matter.txt
@@ -18,7 +22,8 @@ curl -s http://adblock.gjtech.net/?format=unix-hosts | grep -v "#" | sed '/^$/d'
 # Sort the aggregated results and remove any duplicates
 cat /tmp/matter.txt | sort | uniq | sed '/^$/d' > /tmp/andLight.txt
 
-# Read the file and prepend "address=/" and append the IP of the Raspberry Pi
+# Read the file, prepend "address=/", and append the IP of the Raspberry Pi
+# This creates a correctly-formatted config file
 while read fermion
 do
 	 boson=$(echo "$fermion" | tr -d '\r')
