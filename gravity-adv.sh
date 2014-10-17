@@ -7,6 +7,7 @@ eventHorizion="/etc/dnsmasq.d/adList.conf"
 # Download the original URL to a text file for easier parsing
 echo "Getting yoyo ad list..."
 curl -o /tmp/yoyo.txt -s http://pgl.yoyo.org/adservers/serverlist.php?hostformat=unixhosts&mimetype=plaintext
+sleep 10
 if [ -f /tmp/yoyo.txt ];then
 	cat /tmp/yoyo.txt | grep -v "<" | sed '/^$/d' | sed 's/\ /\\ /g' | sort > /tmp/matter.txt
 else
