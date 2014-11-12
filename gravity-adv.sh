@@ -25,6 +25,8 @@ echo "Getting malwaredomainlist ad list..."
 curl -s http://www.malwaredomainlist.com/hostslist/hosts.txt | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' | sort >> /tmp/matter.txt
 echo "Getting adblock.gjtech ad list..."
 curl -s http://adblock.gjtech.net/?format=unix-hosts | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' | sort >> /tmp/matter.txt
+echo "Getting someone who cares ad list..."
+curl -s http://someonewhocares.org/hosts/hosts | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' >> /tmp/matter.txt
 
 # Sort the aggregated results and remove any duplicates
 echo "Sorting and removing duplicates..."
