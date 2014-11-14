@@ -1,5 +1,12 @@
 #!/bin/bash
 # Block Hulu Plus ads using a Raspberry Pi
+
+# Install with this command (from the Pi):
+#
+# curl -s https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/block%20hulu%20ads/setup.sh | bash
+#
+# Or run the commands below in order
+
 # Update the Pi
 sudo apt-get update
 #sudo apt-get -y upgrade
