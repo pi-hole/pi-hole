@@ -4,7 +4,7 @@
 #
 # Install with this command (from the Pi):
 #
-# curl -s "" | bash
+# curl -s "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/automated%20install/basic-install.sh" | bash
 #
 # Or run the commands below in order
 
@@ -22,8 +22,7 @@ echo "         Automated install          "
 echo "			  --Basic-- 			  "
 echo "									  "
 echo "									  "
-echo " Press enter to continue..."
-read userReady
+sleep 2
 
 # Update the Pi
 sudo apt-get update
@@ -31,38 +30,29 @@ sudo apt-get -y upgrade
 
 # Install DNS
 sudo apt-get -y install dnsutils dnsmasq
+sudo service dnsmasq stop
 
 # Install lighttpd Web server
 sudo apt-get -y install lighttpd
 sudo chown www-data:www-data /var/www
 sudo chmod 775 /var/www
 sudo usermod -a -G www-data pi
-
-# Install minidlna
-#sudo apt-get -y install minidlna
-
-# Stop services before modifying settings
-sudo service dnsmasq stop
 sudo service lighttpd stop
-#sudo service minidlna stop
 
 # Backup original config files and download new ones
-#sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 sudo mv /var/www/index.lighttpd.html /var/www/index.lighttpd.orig
-sudo curl -o /etc/dnsmasq.conf.pihole "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"
+sudo curl -o /etc/dnsmasq.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"
 sudo curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"
 sudo mkdir /var/www/pihole
 sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/index.html"
 
-sudo curl -o /tmp/piholedns.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/enable-dns.sh"
-sudo chmod 755 /tmp/piholedns.sh
-
-sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh"
+# Download the ad list
+sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/gravity.sh"
 sudo chmod 755 /usr/local/bin/gravity.sh
 sudo /usr/local/bin/gravity.sh
 
 # Open your Pi-hole
+sudo service dnsmasq start
 sudo service lighttpd start
-#sudo service minidlna start
-sudo /tmp/piholedns.sh
