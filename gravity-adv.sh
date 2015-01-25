@@ -29,17 +29,9 @@ echo "Getting someone who cares ad list..."
 curl -s http://someonewhocares.org/hosts/hosts | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' >> /tmp/matter.txt
 
 # Sort the aggregated results and remove any duplicates
-echo "Sorting and removing duplicates..."
-cat /tmp/matter.txt | sort | uniq | sed '/^$/d' > /tmp/andLight.txt
-
-# Read the file, prepend "address=/", and append the IP of the Raspberry Pi
-# This creates a correctly-formatted config file
-while read fermion
-do
-	boson=$(echo "$fermion" | tr -d '\r')
-	echo "address=/$boson/$piholeIP" >> $eventHorizion
-	echo "Added $boson..."
-done </tmp/andLight.txt
+echo "removing duplicates and formatting to address=/<ad domain>/"$piholeIP
+cat /tmp/matter.txt | sort | uniq | sed '/^$/d' | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
+mv /tmp/andLight.txt $eventHorizion
 
 # Restart DNS
 service dnsmasq restart
