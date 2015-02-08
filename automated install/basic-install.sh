@@ -19,27 +19,29 @@ echo "                                    "
 echo "      Raspberry Pi Ad-blocker       "
 echo "									  "
 echo "         Automated install          "
-echo "			  --Basic-- 			  "
+echo "			 --Advanced-- 			  "
 echo "									  "
 echo "									  "
 sleep 2
 
-# Update the Pi
+echo "Updating the Pi..."
 sudo apt-get update
 sudo apt-get -y upgrade
 
-# Install DNS
+echo "Installing DNS..."
 sudo apt-get -y install dnsutils dnsmasq
-sudo service dnsmasq stop
 
-# Install lighttpd Web server
+echo "Installing a Web server"
 sudo apt-get -y install lighttpd
 sudo chown www-data:www-data /var/www
 sudo chmod 775 /var/www
 sudo usermod -a -G www-data pi
+
+echo "Stopping services to modify them..."
+sudo service dnsmasq stop
 sudo service lighttpd stop
 
-# Backup original config files and download new ones
+echo "Backing up original config files and downloading Pi-hole ones..."
 sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 sudo mv /var/www/index.lighttpd.html /var/www/index.lighttpd.orig
@@ -48,11 +50,17 @@ sudo curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jaco
 sudo mkdir /var/www/pihole
 sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/index.html"
 
-# Download the ad list
-sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/gravity.sh"
-sudo chmod 755 /usr/local/bin/gravity.sh
-sudo /usr/local/bin/gravity.sh
-
-# Open your Pi-hole
+echo "Turning services back on..."
 sudo service dnsmasq start
 sudo service lighttpd start
+
+echo "Locating the Pi-hole..."
+sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity-adv.sh"
+sudo chmod 755 /usr/local/bin/gravity.sh
+echo "Entering the event horizon..."
+sudo /usr/local/bin/gravity.sh
+
+echo "Restarting services..."
+sudo service dnsmasq restart
+sudo service lighttpd restart
+
