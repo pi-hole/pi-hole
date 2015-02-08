@@ -29,7 +29,7 @@ echo "Getting someone who cares ad list..."
 curl -s http://someonewhocares.org/hosts/hosts | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' >> /tmp/matter.txt
 
 # Sort the aggregated results and remove any duplicates
-<<<<<<< Updated upstream
+#<<<<<<< Updated upstream
 echo "removing duplicates and formatting to address=/<ad domain>/"$piholeIP
 cat /tmp/matter.txt | sort | uniq | sed '/^$/d' | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
 mv /tmp/andLight.txt $eventHorizion
