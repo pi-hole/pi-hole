@@ -7,6 +7,7 @@ piholeIP="127.0.0.1"
 
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
+whitelist=$HOME/whitelist.txt
 
 echo "Getting yoyo ad list..." # Approximately 2452 domains at the time of writing
 curl -s -d mimetype=plaintext -d hostformat=unixhosts http://pgl.yoyo.org/adservers/serverlist.php? | sort > /tmp/matter.txt
@@ -26,12 +27,20 @@ echo "Getting Mother of All Ad Blocks list..." # 102168 domains!! Thanks Kacy
 curl -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ http://adblock.mahakala.is/ | grep -v "#" | awk '{print $2}' | sort >> /tmp/matter.txt
 
 # Sort the aggregated results and remove any duplicates
-echo "Removing duplicates and formatting to address=/<ad domain>/"$piholeIP
-cat /tmp/matter.txt | sed $'s/\r$//' | sort | uniq | sed '/^$/d' | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
+# Remove entries from the whitelist file if it exists at the root of the current user's home folder
+if [[ -f $whitelist ]];then
+	echo "Removing duplicates, whitelisting, and formatting the list of domains..."
+	cat /tmp/matter.txt | sed $'s/\r$//' | sort | uniq | sed '/^$/d' | grep -v -x -f $whitelist | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
+	numberOfSitesWhitelisted=$(cat $whitelist | wc -l | sed 's/^[ \t]*//')
+	echo "$numberOfSitesWhitelisted domains whitelisted."
+else
+	echo "Removing duplicates and formatting the list of domains..."
+	cat /tmp/matter.txt | sed $'s/\r$//' | sort | uniq | sed '/^$/d' | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
+fi
 
-# Count how many domains were added so it can be displayed to the user
+# Count how many domains/whitelists were added so it can be displayed to the user
 numberOfAdsBlocked=$(cat /tmp/andLight.txt | wc -l | sed 's/^[ \t]*//')
-echo "$numberOfAdsBlocked ad domains added to the blacklist"
+echo "$numberOfAdsBlocked ad domains blocked."
 
 # Turn the file into a dnsmasq config file
 mv /tmp/andLight.txt $eventHorizion
