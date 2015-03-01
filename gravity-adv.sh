@@ -7,7 +7,8 @@ piholeIP="127.0.0.1"
 
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
-whitelist=$HOME/whitelist.txt
+USER_HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
+whitelist=$USER_HOME/whitelist.txt
 
 echo "Getting yoyo ad list..." # Approximately 2452 domains at the time of writing
 curl -s -d mimetype=plaintext -d hostformat=unixhosts http://pgl.yoyo.org/adservers/serverlist.php? | sort > /tmp/matter.txt
