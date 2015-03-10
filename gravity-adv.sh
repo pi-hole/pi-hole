@@ -1,5 +1,5 @@
 #!/bin/bash
-# The Pi-hole now blocks over 140,000 ad domains
+# The Pi-hole now blocks over 120,000 ad domains
 # Address to send ads to (the RPi)
 piholeIP="127.0.0.1"
 # Optionally, uncomment to automatically detect the address.  Thanks Gregg
@@ -7,7 +7,15 @@ piholeIP="127.0.0.1"
 
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
-whitelist=$HOME/whitelist.txt
+whitelist=/etc/pihole/whitelist.txt
+
+# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
+if [[ -d /etc/pihole/ ]];then
+	:
+else
+	echo "Forming pihole directory..."
+	sudo mkdir /etc/pihole
+fi
 
 echo "Getting yoyo ad list..." # Approximately 2452 domains at the time of writing
 curl -s -d mimetype=plaintext -d hostformat=unixhosts http://pgl.yoyo.org/adservers/serverlist.php? | sort > /tmp/matter.txt
@@ -43,7 +51,7 @@ numberOfAdsBlocked=$(cat /tmp/andLight.txt | wc -l | sed 's/^[ \t]*//')
 echo "$numberOfAdsBlocked ad domains blocked."
 
 # Turn the file into a dnsmasq config file
-mv /tmp/andLight.txt $eventHorizion
+sudo mv /tmp/andLight.txt $eventHorizion
 
 # Restart DNS
-service dnsmasq restart
+sudo service dnsmasq restart
