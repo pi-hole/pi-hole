@@ -8,6 +8,7 @@ piholeIP="127.0.0.1"
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
 whitelist=/etc/pihole/whitelist.txt
+blacklist=/etc/pihole/blacklist.txt
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 if [[ -d /etc/pihole/ ]];then
@@ -38,7 +39,7 @@ curl -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -
 # Remove entries from the whitelist file if it exists at the root of the current user's home folder
 if [[ -f $whitelist ]];then
 	echo "Removing duplicates, whitelisting, and formatting the list of domains..."
-	cat /tmp/matter.txt | sed $'s/\r$//' | sort | uniq | sed '/^$/d' | grep -v -x -f $whitelist | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
+	cat /tmp/matter.txt $blacklist| sed $'s/\r$//' | awk -F "." '{for(i=NF; i > 1; i--) printf "%s.", $i; print $1}' | sort | awk -F "." '{for(i=NF; i > 1; i--) printf "%s.", $i; print $1}' | uniq | sed '/^$/d' | grep -vwf $whitelist | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
 	numberOfSitesWhitelisted=$(cat $whitelist | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOfSitesWhitelisted domains whitelisted."
 else
