@@ -7,6 +7,10 @@ piholeIP="127.0.0.1"
 
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
+
+
+
+
 whitelist=/etc/pihole/whitelist.txt
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
