@@ -7,10 +7,7 @@ piholeIP="127.0.0.1"
 
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
-
-
-
-
+blacklist=/etc/pihole/blacklist.txt
 whitelist=/etc/pihole/whitelist.txt
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
@@ -37,6 +34,14 @@ echo "Getting someone who cares ad list..." # 10600
 curl -s http://someonewhocares.org/hosts/hosts | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | grep -v '^\\' | grep -v '\\$' | awk '{print $2}' | grep -v '^\\' | grep -v '\\$' | sort >> /tmp/matter.txt
 echo "Getting Mother of All Ad Blocks list..." # 102168 domains!! Thanks Kacy
 curl -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ http://adblock.mahakala.is/ | grep -v "#" | awk '{print $2}' | sort >> /tmp/matter.txt
+
+# Add entries from the local blacklist file if it exists in /etc/pihole directory
+if [[ -f $blacklist ]];then
+        echo "Getting the local blacklist from /etc/pihole directory"
+        cat /etc/pihole/blacklist.txt >> /tmp/matter.txt
+else
+        echo "No local blacklist.txt file available on /etc/pihole directory"
+fi
 
 # Sort the aggregated results and remove any duplicates
 # Remove entries from the whitelist file if it exists at the root of the current user's home folder
