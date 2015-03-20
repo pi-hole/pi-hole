@@ -4,6 +4,11 @@
 piholeIP="127.0.0.1"
 # Optionally, uncomment to automatically detect the address.  Thanks Gregg
 #piholeIP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}')
+# Below code allows to automatically detect the address with all locale
+langsys=$LANG
+LANG=en_US.utf8
+piholeIP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}')
+LANG=$langsys
 
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
