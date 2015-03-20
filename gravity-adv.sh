@@ -38,9 +38,9 @@ curl -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -
 # Add entries from the local blacklist file if it exists in /etc/pihole directory
 if [[ -f $blacklist ]];then
         echo "Getting the local blacklist from /etc/pihole directory"
-        cat /etc/pihole/blacklist.txt >> /tmp/matter.txt
+        cat $blacklist >> /tmp/matter.txt
 else
-        echo "No local blacklist.txt file available on /etc/pihole directory"
+        :
 fi
 
 # Sort the aggregated results and remove any duplicates
