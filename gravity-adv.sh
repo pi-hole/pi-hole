@@ -18,7 +18,7 @@ if [[ -d $piholeDir ]];then
 	:
 else
 	echo "Forming pihole directory..."
-	sudo mkdir piholeDir
+	sudo mkdir $piholeDir
 fi
 
 tmpDir='/tmp/'    
