@@ -3,7 +3,7 @@
 # Address to send ads to (the RPi)
 piholeIP="127.0.0.1"
 # Optionally, uncomment to automatically detect the local IP address.
-# piholeIP=$(hostname -I)
+#piholeIP=$(hostname -I)
 
 # Config file to hold URL rules
 eventHorizion="/etc/dnsmasq.d/adList.conf"
