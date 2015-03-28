@@ -5,6 +5,9 @@
 
 The Pi-hole is a DNS/Web server that will **block ads for any device**.
 
+## Coverage
+Featured on [MakeUseOf](http://www.makeuseof.com/tag/adblock-everywhere-raspberry-pi-hole-way/) and [Lifehacker](http://lifehacker.com/turn-a-raspberry-pi-into-an-ad-blocker-with-a-single-co-1686093533)!
+
 ## Automated Install
 On a clean installation of Raspbian, you can run this command to **auto-install the Pi-hole**.  Once installed, configure any device to use the Raspberry Pi as your DNS server and the ads will be blocked.
 
