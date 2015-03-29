@@ -49,6 +49,7 @@ sudo curl -o /etc/dnsmasq.conf "https://raw.githubusercontent.com/jacobsalmela/p
 sudo curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"
 sudo mkdir /var/www/pihole
 sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/index.html"
+sudo curl -o /var/www/Transparent.gif "http://upload.wikimedia.org/wikipedia/commons/c/ce/Transparent.gif"
 
 echo "Turning services back on..."
 sudo service dnsmasq start
