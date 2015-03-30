@@ -64,8 +64,9 @@ echo "Removing duplicates, whitelisting, and formatting the list of domains..."
 grep -vhE "^\s*(#|$)" $tmpAdList| 
     sed $'s/\r$//'| 
     awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}'| 
-    sort -t'.' -k1,2| uniq |  grep -vwf $tmpWhiteList |
+    sort -t'.' -k1,2| uniq |  
     awk -F. 'NR!=1&&substr($0,1,length(p))==p {next} {p=$0".";for (i=NF; i>1; --i) printf "%s.",$i;print $1}'| 
+    grep -vwf $tmpWhiteList |
     awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > $tmpConf
 numberOfSitesWhitelisted=$(cat $tmpWhiteList | wc -l | sed 's/^[ \t]*//')
 numberOfSitesBlacklisted=$(cat $tmpBlackList | wc -l | sed 's/^[ \t]*//')
