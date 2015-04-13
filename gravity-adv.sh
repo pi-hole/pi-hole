@@ -1,57 +1,107 @@
 #!/bin/bash
-# The Pi-hole now blocks over 120,000 ad domains
 # Address to send ads to (the RPi)
 piholeIP="127.0.0.1"
-# Optionally, uncomment to automatically detect the address.  Thanks Gregg
-#piholeIP=$(ifconfig eth0 | awk '/inet addr/{print substr($2,6)}')
+# Optionally, uncomment to automatically detect the local IP address.
+#piholeIP=$(hostname -I)
 
-# Config file to hold URL rules
-eventHorizion="/etc/dnsmasq.d/adList.conf"
-whitelist=/etc/pihole/whitelist.txt
+# Ad-list sources--one per line in single quotes
+sources=('http://pgl.yoyo.org/adservers/serverlist.php?='
+'http://winhelp2002.mvps.org/hosts.txt'
+'https://adaway.org/hosts.txt'
+'http://hosts-file.net/.%5Cad_servers.txt'
+'http://www.malwaredomainlist.com/hostslist/hosts.txt'
+'http://someonewhocares.org/hosts/hosts'
+'http://adblock.gjtech.net/?format=unix-hosts'
+'http://adblock.mahakala.is/')
 
-# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
-if [[ -d /etc/pihole/ ]];then
+# Variables for various stages of downloading and formatting the list
+origin=/tmp
+piholeDir=/etc/pihole
+justDomainsExtension=domains
+matter=pihole.0.matter.txt
+andLight=pihole.1.andLight.txt
+eventHorizion=pihole.2.eventHorizon.txt
+accretionDisc=/etc/dnsmasq.d/adList.conf
+blacklist=$piholeDir/blacklist.txt
+whitelist=$piholeDir/whitelist.txt
+
+# Create the Pi-Hole directory if it doesn't exist
+if [[ -d $piholeDir ]];then
 	:
 else
-	echo "Forming pihole directory..."
-	sudo mkdir /etc/pihole
+	echo "** Forming Pi-hole directory..."
+	sudo mkdir $piholeDir
 fi
 
-echo "Getting yoyo ad list..." # Approximately 2452 domains at the time of writing
-curl -s -d mimetype=plaintext -d hostformat=unixhosts http://pgl.yoyo.org/adservers/serverlist.php? | sort > /tmp/matter.txt
-echo "Getting winhelp2002 ad list..." # 12985 domains
-curl -s http://winhelp2002.mvps.org/hosts.txt | grep -v "#" | grep -v "127.0.0.1" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' | sort >> /tmp/matter.txt
-echo "Getting adaway ad list..." # 445 domains
-curl -s https://adaway.org/hosts.txt | grep -v "#" | grep -v "::1" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' | grep -v '^\\' | grep -v '\\$' | sort >> /tmp/matter.txt
-echo "Getting hosts-file ad list..." # 28050 domains
-curl -s http://hosts-file.net/.%5Cad_servers.txt | grep -v "#" | grep -v "::1" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' | grep -v '^\\' | grep -v '\\$' | sort >> /tmp/matter.txt
-echo "Getting malwaredomainlist ad list..." # 1352 domains
-curl -s http://www.malwaredomainlist.com/hostslist/hosts.txt | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $3}' | grep -v '^\\' | grep -v '\\$' | sort >> /tmp/matter.txt
-echo "Getting adblock.gjtech ad list..." # 696 domains
-curl -s http://adblock.gjtech.net/?format=unix-hosts | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | awk '{print $2}' | grep -v '^\\' | grep -v '\\$' | sort >> /tmp/matter.txt
-echo "Getting someone who cares ad list..." # 10600
-curl -s http://someonewhocares.org/hosts/hosts | grep -v "#" | sed '/^$/d' | sed 's/\ /\\ /g' | grep -v '^\\' | grep -v '\\$' | awk '{print $2}' | grep -v '^\\' | grep -v '\\$' | sort >> /tmp/matter.txt
-echo "Getting Mother of All Ad Blocks list..." # 102168 domains!! Thanks Kacy
-curl -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ http://adblock.mahakala.is/ | grep -v "#" | awk '{print $2}' | sort >> /tmp/matter.txt
+# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
+for ((i = 0; i < "${#sources[@]}"; i++))
+do
+	# Get just the domain from the URL
+	domain=$(echo "${sources[$i]}" | cut -d'/' -f3)
+	
+	# Save the file as list.#.domain
+	saveLocation=$origin/"list"."$i"."$domain"
+	
+	# Use a case statement for the domains that need extra options with the curl command.  If it doesn't need anything special, just download and format it.
+	case "$domain" in
+	
+	"pgl.yoyo.org")
+		echo "Getting $domain list...";
+		curl -s -o "$saveLocation" -d mimetype=plaintext -d hostformat=unixhosts "${sources[$i]}";
+		cat "$saveLocation" > $saveLocation.$justDomainsExtension;;
+	
+	"adblock.mahakala.is")
+		echo "Getting $domain list...";
+		curl -o "$saveLocation" -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ "${sources[$i]}";
+		cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension";;
+		
+	*) # Runs if the domain doesn't need a specialized curl command
+		echo "Getting $domain list...";
+		curl -s -o "$saveLocation" "${sources[$i]}";
+		# Remove comments and blank lines.  Print on the domain (the $2nd field)
+		cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension";;
+	
+	esac 
+done
 
-# Sort the aggregated results and remove any duplicates
-# Remove entries from the whitelist file if it exists at the root of the current user's home folder
-if [[ -f $whitelist ]];then
-	echo "Removing duplicates, whitelisting, and formatting the list of domains..."
-	cat /tmp/matter.txt | sed $'s/\r$//' | sort | uniq | sed '/^$/d' | grep -v -x -f $whitelist | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
-	numberOfSitesWhitelisted=$(cat $whitelist | wc -l | sed 's/^[ \t]*//')
-	echo "$numberOfSitesWhitelisted domains whitelisted."
+# Find all files with the .domains extension and compile them into one file
+echo "Aggregating list of domains..."
+find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; > $origin/$matter
+
+# Append entries from the blacklist file if it exists
+if [[ -f $blacklist ]];then
+		numberOf=$(cat $blacklist | wc -l | sed 's/^[ \t]*//')
+        echo "** Appending $numberOf blacklist entries..."
+		cat $blacklist >> $origin/$matter
 else
-	echo "Removing duplicates and formatting the list of domains..."
-	cat /tmp/matter.txt | sed $'s/\r$//' | sort | uniq | sed '/^$/d' | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > /tmp/andLight.txt
+        :
 fi
 
-# Count how many domains/whitelists were added so it can be displayed to the user
-numberOfAdsBlocked=$(cat /tmp/andLight.txt | wc -l | sed 's/^[ \t]*//')
-echo "$numberOfAdsBlocked ad domains blocked."
-
-# Turn the file into a dnsmasq config file
-sudo mv /tmp/andLight.txt $eventHorizion
-
-# Restart DNS
-sudo service dnsmasq restart
+function gravity_advanced()
+###########################
+	{
+	# Sort domains by TLD and remove duplicates
+	numberOf=$(cat $origin/$andLight | wc -l | sed 's/^[ \t]*//')
+	echo "$numberOf domains being pulled in by gravity..."	
+	cat $origin/$andLight | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | uniq > $origin/$eventHorizion
+	numberOf=$(cat $origin/$eventHorizion | wc -l | sed 's/^[ \t]*//')
+	echo "$numberOf unique domains trapped in the event horizon."
+	
+	# Format domain list as address=/example.com/127.0.0.1
+	echo "** Formatting domains into a dnsmasq file..."
+	cat $origin/$eventHorizion | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > $accretionDisc
+	sudo service dnsmasq restart
+	}
+	
+# Whitelist (if applicable) then remove duplicates and format for dnsmasq
+if [[ -f $whitelist ]];then
+	# Remove whitelist entries
+	numberOf=$(cat $whitelist | wc -l | sed 's/^[ \t]*//')
+	echo "** Whitelisting $numberOf domain(s)..."
+	cat $origin/$matter | grep -vwf $whitelist > $origin/$andLight
+	gravity_advanced
+	
+else
+	cat $origin/$matter > $origin/$andLight
+	gravity_advanced
+fi
