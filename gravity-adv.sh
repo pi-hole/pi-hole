@@ -20,10 +20,13 @@ piholeDir=/etc/pihole
 justDomainsExtension=domains
 matter=pihole.0.matter.txt
 andLight=pihole.1.andLight.txt
-eventHorizion=pihole.2.eventHorizon.txt
+supernova=pihole.2.supernova.txt
+eventHorizion=pihole.3.eventHorizon.txt
 accretionDisc=/etc/dnsmasq.d/adList.conf
 blacklist=$piholeDir/blacklist.txt
+latentBlacklist=$origin/latentBlacklist.txt
 whitelist=$piholeDir/whitelist.txt
+latentWhitelist=$origin/latentWhitelist.txt
 
 # Create the Pi-Hole directory if it doesn't exist
 if [[ -d $piholeDir ]];then
@@ -45,6 +48,7 @@ do
 	echo "Getting $domain list..."
 	curl -s -o "$saveLocation" -A "Mozilla/10.0" "${sources[$i]}"
 	cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension" 
+	echo "	$(cat $saveLocation.$justDomainsExtension | wc -l | sed 's/^[ \t]*//') domains found."
 done
 
 # Find all files with the .domains extension and compile them into one file
@@ -66,10 +70,12 @@ function gravity_advanced()
 	# Sort domains by TLD and remove duplicates
 	numberOf=$(cat $origin/$andLight | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOf domains being pulled in by gravity..."	
-	cat $origin/$andLight | sed $'s/\r$//' | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | uniq > $origin/$eventHorizion
+	# Remove lines with no dots (i.e. localhost, localdomain, etc)
+	echo -n "" > $origin/$supernova;for i in $origin/*.$justDomainsExtension;do grep '\.' $i >> $origin/$supernova;done
+	# Remove newlines, sort by TLD, remove duplicates
+	cat $origin/$supernova | sed $'s/\r$//' | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | uniq > $origin/$eventHorizion
 	numberOf=$(cat $origin/$eventHorizion | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOf unique domains trapped in the event horizon."
-	
 	# Format domain list as address=/example.com/127.0.0.1
 	echo "** Formatting domains into a dnsmasq file..."
 	cat $origin/$eventHorizion | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > $accretionDisc
@@ -81,7 +87,10 @@ if [[ -f $whitelist ]];then
 	# Remove whitelist entries
 	numberOf=$(cat $whitelist | wc -l | sed 's/^[ \t]*//')
 	echo "** Whitelisting $numberOf domain(s)..."
-	cat $origin/$matter | grep -vwf $whitelist > $origin/$andLight
+	# Append a "$" to the end of each line so it can be parsed out with grep -w
+	echo -n "^$" > $latentWhitelist
+	awk -F '[# \t]' 'NF>0&&$1!="" {print $1"$"}' $whitelist > $latentWhitelist
+	cat $origin/$matter | grep -vwf $latentWhitelist > $origin/$andLight
 	gravity_advanced
 	
 else
