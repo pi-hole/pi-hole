@@ -5,7 +5,7 @@ piholeIP="127.0.0.1"
 #piholeIP=$(hostname -I)
 
 # Ad-list sources--one per line in single quotes
-sources=('http://pgl.yoyo.org/adservers/serverlist.php?='
+sources=('http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype=plaintext'
 'http://winhelp2002.mvps.org/hosts.txt'
 'https://adaway.org/hosts.txt'
 'http://hosts-file.net/.%5Cad_servers.txt'
@@ -41,27 +41,10 @@ do
 	
 	# Save the file as list.#.domain
 	saveLocation=$origin/"list"."$i"."$domain"
-	
-	# Use a case statement for the domains that need extra options with the curl command.  If it doesn't need anything special, just download and format it.
-	case "$domain" in
-	
-	"pgl.yoyo.org")
-		echo "Getting $domain list...";
-		curl -s -o "$saveLocation" -d mimetype=plaintext -d hostformat=unixhosts "${sources[$i]}";
-		cat "$saveLocation" > $saveLocation.$justDomainsExtension;;
-	
-	"adblock.mahakala.is")
-		echo "Getting $domain list...";
-		curl -o "$saveLocation" -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ "${sources[$i]}";
-		cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension";;
 		
-	*) # Runs if the domain doesn't need a specialized curl command
-		echo "Getting $domain list...";
-		curl -s -o "$saveLocation" "${sources[$i]}";
-		# Remove comments and blank lines.  Print on the domain (the $2nd field)
-		cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension";;
-	
-	esac 
+	echo "Getting $domain list..."
+	curl -s -o "$saveLocation" -A "Mozilla/10.0" "${sources[$i]}"
+	cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension" 
 done
 
 # Find all files with the .domains extension and compile them into one file
@@ -83,7 +66,7 @@ function gravity_advanced()
 	# Sort domains by TLD and remove duplicates
 	numberOf=$(cat $origin/$andLight | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOf domains being pulled in by gravity..."	
-	cat $origin/$andLight | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | uniq > $origin/$eventHorizion
+	cat $origin/$andLight | sed $'s/\r$//' | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | uniq > $origin/$eventHorizion
 	numberOf=$(cat $origin/$eventHorizion | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOf unique domains trapped in the event horizon."
 	
