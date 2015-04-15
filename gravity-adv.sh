@@ -57,9 +57,9 @@ find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; > $origin/
 
 # Append entries from the blacklist file if it exists
 if [[ -f $blacklist ]];then
-		numberOf=$(cat $blacklist | wc -l | sed 's/^[ \t]*//')
-        echo "** Appending $numberOf blacklist entries..."
-		cat $blacklist >> $origin/$matter
+	numberOf=$(cat $blacklist | wc -l | sed 's/^[ \t]*//')
+	echo "** Appending $numberOf blacklist entries..."
+	cat $blacklist >> $origin/$matter
 else
         :
 fi

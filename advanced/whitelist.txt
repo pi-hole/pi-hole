@@ -1,0 +1,11 @@
+0.0.0.0
+127.0.0.1
+android
+android.localhost
+broadcasthost
+jacobsalmela.com
+local
+localhost
+localhost.localdomain
+test
+test.localhost
