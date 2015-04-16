@@ -9,3 +9,4 @@ localhost
 localhost.localdomain
 test
 test.localhost
+xkcd.com

@@ -12,10 +12,11 @@ sources=('http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype
 'http://www.malwaredomainlist.com/hostslist/hosts.txt'
 'http://someonewhocares.org/hosts/hosts'
 'http://adblock.gjtech.net/?format=unix-hosts'
-'http://adblock.mahakala.is/')
+'http://adblock.mahakala.is/'
+'http://cdn.files.trjlive.com/hosts/hosts-v8.txt')
 
 # Variables for various stages of downloading and formatting the list
-origin=/tmp
+origin=/run/shm
 piholeDir=/etc/pihole
 justDomainsExtension=domains
 matter=pihole.0.matter.txt
@@ -47,6 +48,8 @@ do
 		
 	echo "Getting $domain list..."
 	curl -s -o "$saveLocation" -A "Mozilla/10.0" "${sources[$i]}"
+	# Parse out just the domains
+	# If field 1 has a "#" and field one has a "/" and field 2 has a "#" and if the line ($0) is not empty and field 2 is not empty, print the 2nd field, which should be just the domain name
 	cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension" 
 	echo "	$(cat $saveLocation.$justDomainsExtension | wc -l | sed 's/^[ \t]*//') domains found."
 done
