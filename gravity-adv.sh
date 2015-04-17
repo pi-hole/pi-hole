@@ -37,6 +37,13 @@ else
 	sudo mkdir $piholeDir
 fi
 
+# if pipe is not empty write it into file $1
+function writeifne() 
+    {
+    read pipe || return 1
+    { printf "%s\n" "$pipe"; cat; }  > "$1"
+    }
+
 # Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
 for ((i = 0; i < "${#sources[@]}"; i++))
 do
@@ -47,10 +54,15 @@ do
 	saveLocation=$origin/"list"."$i"."$domain"
 		
 	echo "Getting $domain list..."
-	curl -s -o "$saveLocation" -A "Mozilla/10.0" "${sources[$i]}"
+	# download file only if newer
+	curl -s -z $saveLocation."$justDomainsExtension" -A "Mozilla/10.0" "${sources[$i]}" |
 	# Parse out just the domains
 	# If field 1 has a "#" and field one has a "/" and field 2 has a "#" and if the line ($0) is not empty and field 2 is not empty, print the 2nd field, which should be just the domain name
-	cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension" 
+	awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' | 
+	# remove Windows-style newlines
+	sed $'s/\r$//' |
+	# redirect output to file only if pipe is not empty
+	writeifne $saveLocation."$justDomainsExtension" 
 	echo "	$(cat $saveLocation.$justDomainsExtension | wc -l | sed 's/^[ \t]*//') domains found."
 done
 
