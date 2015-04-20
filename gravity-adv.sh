@@ -46,12 +46,21 @@ do
 	# Save the file as list.#.domain
 	saveLocation=$origin/"list"."$i"."$domain"
 		
-	echo "Getting $domain list..."
-	curl -s -o "$saveLocation" -A "Mozilla/10.0" "${sources[$i]}"
-	# Parse out just the domains
-	# If field 1 has a "#" and field one has a "/" and field 2 has a "#" and if the line ($0) is not empty and field 2 is not empty, print the 2nd field, which should be just the domain name
-	cat "$saveLocation" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' > $saveLocation."$justDomainsExtension" 
-	echo "	$(cat $saveLocation.$justDomainsExtension | wc -l | sed 's/^[ \t]*//') domains found."
+	# Download file only if newer
+	data=$(curl -s -z $saveLocation."$justDomainsExtension" -A "Mozilla/10.0" "${sources[$i]}")
+	if [ -n "$data" ];then
+        echo "Getting $domain list..."
+        echo "$data" |
+        # Parse out just the domains
+	    # If field 1 has a "#" and field one has a "/" and field 2 has a "#" and if the line ($0) is not empty and field 2 is not empty, print the 2nd field, which should be just the domain name
+	    awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' | 
+	    # Remove Windows-style newlines
+	    # Redirect output to file 
+	    sed $'s/\r$//' > $saveLocation."$justDomainsExtension" 
+	    echo "	$(cat $saveLocation.$justDomainsExtension | wc -l | sed 's/^[ \t]*//') domains found."
+    else
+        echo "Skipping $domain list because it does not have any new entry..."
+    fi
 done
 
 # Find all files with the .domains extension and compile them into one file
