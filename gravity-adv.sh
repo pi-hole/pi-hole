@@ -23,6 +23,7 @@ matter=pihole.0.matter.txt
 andLight=pihole.1.andLight.txt
 supernova=pihole.2.supernova.txt
 eventHorizion=pihole.3.eventHorizon.txt
+eyeOfTheNeedle=pihole.4.wormhole.txt
 accretionDisc=/etc/dnsmasq.d/adList.conf
 blacklist=$piholeDir/blacklist.txt
 latentBlacklist=$origin/latentBlacklist.txt
@@ -45,21 +46,28 @@ do
 	
 	# Save the file as list.#.domain
 	saveLocation=$origin/"list"."$i"."$domain"
-		
+	
+	# Check if the site is down and skip it if it is
+	httpResponse=$(curl -s -o /dev/null -w "%{http_code}" "${sources[$i]}")
+	case "$httpResponse" in
+		200) echo "$httpResponse response from $domain";;
+		4[0-9][0-9]) echo "$httpResponse response from $domain: list will NOT be downloaded.";continue;;
+		5[0-9][0-9]) echo "$httpResponse response from $domain: list will NOT be downloaded.";continue;;
+		*) echo "$httpResponse response from $domain";;
+	esac
+	
 	# Download file only if newer
 	data=$(curl -s -z $saveLocation."$justDomainsExtension" -A "Mozilla/10.0" "${sources[$i]}")
 	if [ -n "$data" ];then
         echo "Getting $domain list..."
-        echo "$data" |
         # Parse out just the domains
 	    # If field 1 has a "#" and field one has a "/" and field 2 has a "#" and if the line ($0) is not empty and field 2 is not empty, print the 2nd field, which should be just the domain name
-	    awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' | 
-	    # Remove Windows-style newlines
+		# Remove Windows-style newlines
 	    # Redirect output to file 
-	    sed $'s/\r$//' > $saveLocation."$justDomainsExtension" 
+        echo "$data" | awk '{if ($1 !~ "#" && $1 !~ "/" && $2 !~ "#" && $2 !~ "/" && $0 != "^$" && $2 != "") { print $2}}' | sed $'s/\r$//' > $saveLocation."$justDomainsExtension" 
 	    echo "	$(cat $saveLocation.$justDomainsExtension | wc -l | sed 's/^[ \t]*//') domains found."
     else
-        echo "Skipping $domain list because it does not have any new entry..."
+        echo "Skipping $domain list because it does not have any new entries..."
     fi
 done
 
@@ -84,8 +92,8 @@ function gravity_advanced()
 	echo "$numberOf domains being pulled in by gravity..."	
 	# Remove lines with no dots (i.e. localhost, localdomain, etc)
 	echo -n "" > $origin/$supernova | grep '\.' $origin/$andLight >> $origin/$supernova
-	# Remove newlines, sort by TLD, remove duplicates
-	cat $origin/$supernova | sed $'s/\r$//' | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. 'NR!=1&&substr($0,1,length(p))==p {next} {p=$0".";for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | uniq > $origin/$eventHorizion
+	# Remove newlines, sort by TLD, remove subdomains, and remove duplicates
+	cat $origin/$supernova | sed $'s/\r$//' | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. 'NR!=1&&substr($0,1,length(p))==p {next} {p=$0".";for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | awk -F. '{print $(NF-1)"."$NF}' | uniq > $origin/$eventHorizion
 	numberOf=$(cat $origin/$eventHorizion | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOf unique domains trapped in the event horizon."
 	# Format domain list as address=/example.com/127.0.0.1
