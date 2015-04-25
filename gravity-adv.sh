@@ -12,8 +12,7 @@ sources=('http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&mimetype
 'http://www.malwaredomainlist.com/hostslist/hosts.txt'
 'http://someonewhocares.org/hosts/hosts'
 'http://adblock.gjtech.net/?format=unix-hosts'
-'http://adblock.mahakala.is/'
-'http://cdn.files.trjlive.com/hosts/hosts-v8.txt')
+'http://adblock.mahakala.is/')
 
 # Variables for various stages of downloading and formatting the list
 origin=/run/shm
@@ -23,8 +22,9 @@ matter=pihole.0.matter.txt
 andLight=pihole.1.andLight.txt
 supernova=pihole.2.supernova.txt
 eventHorizion=pihole.3.eventHorizon.txt
-eyeOfTheNeedle=pihole.4.wormhole.txt
-accretionDisc=/etc/dnsmasq.d/adList.conf
+accretionDisc=pihole.4.accretionDisc.txt
+eyeOfTheNeedle=pihole.5.wormhole.txt
+adList=/etc/dnsmasq.d/adList.conf
 blacklist=$piholeDir/blacklist.txt
 latentBlacklist=$origin/latentBlacklist.txt
 whitelist=$piholeDir/whitelist.txt
@@ -93,12 +93,13 @@ function gravity_advanced()
 	# Remove lines with no dots (i.e. localhost, localdomain, etc)
 	echo -n "" > $origin/$supernova | grep '\.' $origin/$andLight >> $origin/$supernova
 	# Remove newlines, sort by TLD, remove subdomains, and remove duplicates
-	cat $origin/$supernova | sed $'s/\r$//' | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. 'NR!=1&&substr($0,1,length(p))==p {next} {p=$0".";for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | awk -F. '{print $(NF-1)"."$NF}' | uniq > $origin/$eventHorizion
+	cat $origin/$supernova | sed $'s/\r$//' | awk -F. '{for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | sort -t'.' -k1,2 | awk -F. 'NR!=1&&substr($0,1,length(p))==p {next} {p=$0".";for (i=NF; i>1; --i) printf "%s.",$i;print $1}' | uniq > $origin/$eventHorizion
 	numberOf=$(cat $origin/$eventHorizion | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOf unique domains trapped in the event horizon."
 	# Format domain list as address=/example.com/127.0.0.1
 	echo "** Formatting domains into a dnsmasq file..."
-	cat $origin/$eventHorizion | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > $accretionDisc
+	cat $origin/$eventHorizion | awk -v "IP=$piholeIP" '{sub(/\r$/,""); print "address=/"$0"/"IP}' > $origin/$accretionDisc
+	sudo cp $origin/$accretionDisc $adList
 	sudo service dnsmasq restart
 	}
 	
