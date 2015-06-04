@@ -91,7 +91,7 @@ function gravity_advanced()
 	numberOf=$(cat $origin/$andLight | wc -l | sed 's/^[ \t]*//')
 	echo "$numberOf domains being pulled in by gravity..."	
 	# Remove lines with no dots (i.e. localhost, localdomain, etc)
-	echo -n "" > $origin/$supernova | grep '\.' $origin/$andLight >> $origin/$supernova
+	echo -n "" > $origin/$supernova && grep '\.' $origin/$andLight >> $origin/$supernova
 	# Remove newlines, blank lines, sort, and remove duplicates
 	cat $origin/$supernova | sed $'s/\r$//' | sed '/^$/d' | sort | uniq > $origin/$eventHorizon
 	numberOf=$(cat $origin/$eventHorizon | wc -l | sed 's/^[ \t]*//')
