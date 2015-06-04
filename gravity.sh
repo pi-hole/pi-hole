@@ -1,5 +1,6 @@
 #!/bin/bash
 # http://pi-hole.net
+# Compiles a list of ad-serving domains by downloading them from multiple sources 
 
 # Ad-list sources--one per line in single quotes
 sources=('https://adaway.org/hosts.txt'
@@ -48,7 +49,7 @@ do
 	
 	# Use a case statement to download lists that need special cURL commands to complete properly
     case "$domain" in
-    	"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation."$justDomainsExtension" "${sources[$i]}");;
+		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation."$justDomainsExtension" "${sources[$i]}");;
 		
 		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation."$justDomainsExtension" "${sources[$i]}");;
 
@@ -58,6 +59,9 @@ do
 	if [[ -n "$data" ]];then
 		echo "Getting $domain list..."
 		# Remove comments and print only the domain name
+		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+		# This helps with that and makes it easier to read
+		# It also helps with debugging so each stage of the script can be researched more in depth
 		echo "$data" | awk 'NF {if ($1 !~ "#") print $2}' > $saveLocation."$justDomainsExtension"
 	else
 		echo "Skipping $domain list because it does not have any new entries..."
@@ -90,12 +94,12 @@ function gravity_advanced()
 	echo "** $numberOf unique domains trapped in the event horizon."
 	# Format domain list as "127.0.0.1 domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "127.0.0.1 "$0}' > $origin/$accretionDisc
-	# Put the default entries at the top of the file
+	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "127.0.0.1 "$0"\n::1 "$0}' > $origin/$accretionDisc
+	# Put the default host entries at the top of the file
 	echo "::1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "255.255.255.255 broadcasthost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "127.0.0.1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
-	sudo cp $adList $adList.orig
+	# Copy the file so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	}
 	
@@ -109,7 +113,6 @@ if [[ -f $whitelist ]];then
 	awk -F '[# \t]' 'NF>0&&$1!="" {print $1"$"}' $whitelist > $latentWhitelist
 	cat $origin/$matter | grep -vwf $latentWhitelist > $origin/$andLight
 	gravity_advanced
-	
 else
 	cat $origin/$matter > $origin/$andLight
 	gravity_advanced
