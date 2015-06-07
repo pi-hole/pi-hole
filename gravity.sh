@@ -13,7 +13,7 @@ sources=('https://adaway.org/hosts.txt'
 'http://winhelp2002.mvps.org/hosts.txt')
 
 # Variables for various stages of downloading and formatting the list
-origin=/tmp
+origin=/etc/pihole
 piholeDir=/etc/pihole
 justDomainsExtension=domains
 matter=pihole.0.matter.txt
