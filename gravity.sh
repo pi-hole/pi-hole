@@ -2,6 +2,9 @@
 # http://pi-hole.net
 # Compiles a list of ad-serving domains by downloading them from multiple sources 
 
+# This script should only be run after you have a static IP address set on the Pi
+piholeIP=$(hostname -I)
+
 # Ad-list sources--one per line in single quotes
 sources=('https://adaway.org/hosts.txt'
 'http://adblock.gjtech.net/?format=unix-hosts'
@@ -31,11 +34,11 @@ latentWhitelist=$origin/latentWhitelist.txt
 echo "** Neutrino emissions detected..."
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
-if [[ -d /etc/pihole/ ]];then
+if [[ -d $piholeDir ]];then
 	:
 else
 	echo "** Creating pihole directory..."
-	sudo mkdir /etc/pihole
+	sudo mkdir $piholeDir
 fi
 
 # Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
@@ -92,13 +95,14 @@ function gravity_advanced()
 	cat $origin/$supernova | sort | uniq > $origin/$eventHorizon
 	numberOf=$(cat $origin/$eventHorizon | wc -l | sed 's/^[ \t]*//')
 	echo "** $numberOf unique domains trapped in the event horizon."
-	# Format domain list as "127.0.0.1 domain.com"
+	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "127.0.0.1 "$0"\n::1 "$0}' > $origin/$accretionDisc
+	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
 	# Put the default host entries at the top of the file
 	echo "::1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "255.255.255.255 broadcasthost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "127.0.0.1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
+	echo "127.0.0.1 raspberrypi" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	# Copy the file so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	}
