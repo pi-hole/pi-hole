@@ -18,18 +18,19 @@ echo " |_|   |_|      |_| |_|\___/|_|\___| "
 echo "                                    "
 echo "      Raspberry Pi Ad-blocker       "
 echo "									  "
-echo "         Automated install          "
-echo "			 --Advanced-- 			  "
+echo "Set a static IP before running this!"
+echo "			             			  "
+echo "	    Press Enter when ready        "
 echo "									  "
-echo "									  "
-sleep 2
+read
 
 echo "Updating the Pi..."
 sudo apt-get update
 sudo apt-get -y upgrade
 
 echo "Installing DNS..."
-sudo apt-get -y install dnsutils dnsmasq
+sudo apt-get -y install dnsmasq
+sudo update-rc.d dnsmasq enable
 
 echo "Installing a Web server"
 sudo apt-get -y install lighttpd
@@ -48,19 +49,16 @@ sudo mv /var/www/index.lighttpd.html /var/www/index.lighttpd.orig
 sudo curl -o /etc/dnsmasq.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"
 sudo curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"
 sudo mkdir /var/www/pihole
-sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/index.html"
-
-echo "Turning services back on..."
-sudo service dnsmasq start
-sudo service lighttpd start
+sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"
 
 echo "Locating the Pi-hole..."
-sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity-adv.sh"
+sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh"
+sudo curl -o /usr/local/bin/chronometer.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/scripts/chronometer.sh"
 sudo chmod 755 /usr/local/bin/gravity.sh
+sudo chmod 755 /usr/local/bin/chronometer.sh
+
 echo "Entering the event horizon..."
 sudo /usr/local/bin/gravity.sh
 
-echo "Restarting services..."
-sudo service dnsmasq restart
-sudo service lighttpd restart
-
+echo "Restarting..."
+sudo shutdown -r now
