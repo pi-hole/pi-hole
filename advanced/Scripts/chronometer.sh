@@ -1,6 +1,6 @@
 #!/bin/bash
 # Infinite loop that can be used to display ad domains on a Pi touch screen
-# It will continually display ads that are blocked in real time on the screen
+# Continually watch the log file and display ad domains that are blocked being blocked
 # Set the pi user to log in automatically and add run this script from .bashrc
 clear
 echo ""
@@ -13,10 +13,7 @@ echo "        Internet Ads   "
 echo ""
 echo "     http://pi-hole.net"
 echo ""
-echo "  Pi-hole IP: $(ifconfig eth0 | awk '/inet addr/ {print $2}' | cut -d':' -f2)"
-echo ""
-echo "Ads blocked will show up once"
-echo "you set your DNS server."
-echo ""
+echo "     $(ifconfig eth0 | awk '/inet addr/ {print $2}' | cut -d':' -f2)"
 sleep 7
+# Look for only the entries that contain /etc/hosts, indicating the domain was found to be an advertisement
 tail -f /var/log/daemon.log | awk '/\/etc\/hosts/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/hosts") print $7; else;}'
