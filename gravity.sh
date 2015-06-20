@@ -19,7 +19,7 @@ sources=('https://adaway.org/hosts.txt'
 adList=/etc/hosts
 origin=/etc/pihole
 piholeDir=/etc/pihole
-if [ -f $piholeDir/pihole.conf ]; then
+if [[ -f $piholeDir/pihole.conf ]]; then
 	. $piholeDir/pihole.conf
 fi
 
