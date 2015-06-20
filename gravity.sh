@@ -16,8 +16,13 @@ sources=('https://adaway.org/hosts.txt'
 'http://winhelp2002.mvps.org/hosts.txt')
 
 # Variables for various stages of downloading and formatting the list
+adList=/etc/hosts
 origin=/etc/pihole
 piholeDir=/etc/pihole
+if [[ -f $piholeDir/pihole.conf ]]; then
+	. $piholeDir/pihole.conf
+fi
+
 justDomainsExtension=domains
 matter=pihole.0.matter.txt
 andLight=pihole.1.andLight.txt
@@ -25,7 +30,6 @@ supernova=pihole.2.supernova.txt
 eventHorizon=pihole.3.eventHorizon.txt
 accretionDisc=pihole.4.accretionDisc.txt
 eyeOfTheNeedle=pihole.5.wormhole.txt
-adList=/etc/hosts
 blacklist=$piholeDir/blacklist.txt
 latentBlacklist=$origin/latentBlacklist.txt
 whitelist=$piholeDir/whitelist.txt
