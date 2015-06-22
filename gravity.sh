@@ -77,13 +77,13 @@ done
 
 # Find all files with the .domains extension and compile them into one file
 echo "** Aggregating list of domains..."
-find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; > $origin/$matter
+find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $origin/$matter
 
 # Append blacklist entries if they exist
 if [[ -f $blacklist ]];then
         numberOf=$(cat $blacklist | wc -l | sed 's/^[ \t]*//')
         echo "** Blacklisting $numberOf domain(s)..."
-        cat $blacklist >> /tmp/matter.txt
+        cat $blacklist >> $origin/$matter
 else
         :
 fi
