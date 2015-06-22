@@ -83,7 +83,7 @@ find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\
 if [[ -f $blacklist ]];then
         numberOf=$(cat $blacklist | wc -l | sed 's/^[ \t]*//')
         echo "** Blacklisting $numberOf domain(s)..."
-        cat $blacklist >> /tmp/matter.txt
+        cat $blacklist >> $origin/$matter
 else
         :
 fi
