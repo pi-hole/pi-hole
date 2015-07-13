@@ -19,10 +19,9 @@ sources=('https://adaway.org/hosts.txt'
 adList=/etc/hosts
 origin=/etc/pihole
 piholeDir=/etc/pihole
-if [[ -f $piholeDir/pihole.conf ]]; then
+if [[ -f $piholeDir/pihole.conf ]];then
 	. $piholeDir/pihole.conf
 fi
-
 justDomainsExtension=domains
 matter=pihole.0.matter.txt
 andLight=pihole.1.andLight.txt
@@ -55,7 +54,7 @@ do
 	saveLocation=$origin/"list"."$i"."$domain"
 	
 	# Use a case statement to download lists that need special cURL commands to complete properly
-    case "$domain" in
+	case "$domain" in
 		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation."$justDomainsExtension" "${sources[$i]}");;
 		
 		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation."$justDomainsExtension" "${sources[$i]}");;
@@ -75,7 +74,7 @@ do
 	fi
 done
 
-# Find all files with the .domains extension and compile them into one file
+# Find all files with the .domains extension and compile them into one file and remove CRs
 echo "** Aggregating list of domains..."
 find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $origin/$matter
 
@@ -106,7 +105,7 @@ function gravity_advanced()
 	echo "::1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "255.255.255.255 broadcasthost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "127.0.0.1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
-	echo "127.0.0.1 raspberrypi" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
+	echo "127.0.0.1 $(hostname)" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	# Copy the file so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	}
