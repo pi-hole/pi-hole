@@ -17,6 +17,16 @@ On a clean installation of Raspbian, you can run this command to **auto-install 
 ## Gravity
 The [gravity.sh](https://github.com/jacobsalmela/pi-hole/blob/master/gravity.sh) does most of the magic.  The script pulls in ad domains from many sources and compiles them into a single list of [over 900,000 entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0).
 
+##  Custom Config File
+If you want to use your own variables for the gravity script (i.e. storing the files in a different location) and don't want to have to change them every time there is an update to the script, create a file called `/etc/pihole/pihole.conf`. In it, you should add your own variables in a similar fashion as shown below:
+
+```
+origin=/var/run/pihole
+adList=/etc/dnsmasq.d/adList
+```
+
+See [this PR](https://github.com/jacobsalmela/pi-hole/pull/20) for more details.
+
 ## Whitelist and blacklist
 You can add a `whitelist.txt` or `blacklist.txt` in `/etc/pihole/` and the script will apply those files automatically.
 
