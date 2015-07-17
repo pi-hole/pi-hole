@@ -106,8 +106,9 @@ function gravity_advanced()
 	echo "255.255.255.255 broadcasthost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "127.0.0.1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
 	echo "127.0.0.1 $(hostname)" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
-	# Copy the file so dnsmasq can use it
+	# Copy the file over as /etc/hosts so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
+	kill -HUP $(pidof dnsmasq)
 	}
 	
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
