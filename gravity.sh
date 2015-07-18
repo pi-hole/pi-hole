@@ -80,7 +80,7 @@ find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\
 
 # Append blacklist entries if they exist
 if [[ -f $blacklist ]];then
-        numberOf=$(cat $blacklist | wc -l | sed 's/^[ \t]*//')
+        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         echo "** Blacklisting $numberOf domain(s)..."
         cat $blacklist >> $origin/$matter
 else
@@ -90,13 +90,13 @@ fi
 function gravity_advanced()
 ###########################
 	{
-	numberOf=$(cat $origin/$andLight | wc -l | sed 's/^[ \t]*//')
+	numberOf=$(cat $origin/$andLight | sed '/^\s*$/d' | wc -l)
 	echo "** $numberOf domains being pulled in by gravity..."	
 	# Remove carriage returns and preceding whitespace
 	cat $origin/$andLight | sed $'s/\r$//' | sed '/^\s*$/d' > $origin/$supernova
 	# Sort and remove duplicates
 	cat $origin/$supernova | sort | uniq > $origin/$eventHorizon
-	numberOf=$(cat $origin/$eventHorizon | wc -l | sed 's/^[ \t]*//')
+	numberOf=$(cat $origin/$eventHorizon | sed '/^\s*$/d' | wc -l)
 	echo "** $numberOf unique domains trapped in the event horizon."
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
@@ -114,7 +114,7 @@ function gravity_advanced()
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
 if [[ -f $whitelist ]];then
 	# Remove whitelist entries
-	numberOf=$(cat $whitelist | wc -l | sed 's/^[ \t]*//')
+	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
 	echo "** Whitelisting $numberOf domain(s)..."
 	# Append a "$" to the end of each line so it can be parsed out with grep -w
 	echo -n "^$" > $latentWhitelist
