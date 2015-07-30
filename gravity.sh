@@ -16,7 +16,7 @@ sources=('https://adaway.org/hosts.txt'
 'http://winhelp2002.mvps.org/hosts.txt')
 
 # Variables for various stages of downloading and formatting the list
-adList=/etc/hosts
+adList=/etc/pihole/gravity.list
 origin=/etc/pihole
 piholeDir=/etc/pihole
 if [[ -f $piholeDir/pihole.conf ]];then
@@ -101,12 +101,7 @@ function gravity_advanced()
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
 	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
-	# Put the default host entries at the top of the file
-	echo "::1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
-	echo "255.255.255.255 broadcasthost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
-	echo "127.0.0.1 localhost" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
-	echo "127.0.0.1 $(hostname)" | cat - $origin/$accretionDisc > $origin/latent.$accretionDisc && mv $origin/latent.$accretionDisc $origin/$accretionDisc
-	# Copy the file over as /etc/hosts so dnsmasq can use it
+	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
 	}
