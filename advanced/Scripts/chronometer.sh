@@ -11,7 +11,7 @@ do
 	uptime | cut -d' ' -f11-
 	echo "-------------------------------"
 	# Uncomment to continually read the log file and display the current domain being blocked
-	#tail -f /var/log/pihole.log | awk '/\/etc\/hosts/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/hosts") print $7; else;}'
+	#tail -f /var/log/pihole.log | awk '/\/etc\/hosts/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
 	
 	today=$(date "+%b %e")
 	todaysQueryCount=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ {print $7}' | wc -l)
