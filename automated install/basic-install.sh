@@ -66,7 +66,7 @@ sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacob
 
 echo "Locating the Pi-hole..."
 sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh"
-sudo curl -o /usr/local/bin/chronometer.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/scripts/chronometer.sh"
+sudo curl -o /usr/local/bin/chronometer.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh"
 sudo chmod 755 /usr/local/bin/gravity.sh
 sudo chmod 755 /usr/local/bin/chronometer.sh
 
