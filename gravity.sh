@@ -101,6 +101,9 @@ function gravity_advanced()
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
 	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
+        # remove corrupt lines (like ..com)
+        echo "** Deleting invalid entries..."
+        sed -i '/\.\./d' $origin/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
