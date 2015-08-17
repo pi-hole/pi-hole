@@ -69,6 +69,8 @@ do
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
 		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' > $saveLocation."$justDomainsExtension"
+		# replace domains that have two dots (..com) with one dot and let duplicate removal sort out any duplicate domains
+		sed -i -e 's/\.\./\./g' $saveLocation."$justDomainsExtension"
 	else
 		echo "Skipping $domain list because it does not have any new entries..."
 	fi
@@ -101,9 +103,6 @@ function gravity_advanced()
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
 	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
-        # remove corrupt lines (like ..com)
-        echo "** Deleting invalid entries..."
-        sed -i '/\.\./d' $origin/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
