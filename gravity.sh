@@ -80,11 +80,11 @@ find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\
 
 # Append blacklist entries if they exist
 if [[ -f $blacklist ]];then
-        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
-        echo "** Blacklisting $numberOf domain(s)..."
-        cat $blacklist >> $origin/$matter
+	numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
+	echo "** Blacklisting $numberOf domain(s)..."
+	cat $blacklist >> $origin/$matter
 else
-        :
+	:
 fi
 
 function gravity_advanced()
