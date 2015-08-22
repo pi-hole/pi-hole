@@ -51,15 +51,15 @@ do
 	domain=$(echo "${sources[$i]}" | cut -d'/' -f3)
 	
 	# Save the file as list.#.domain
-	saveLocation=$origin/"list"."$i"."$domain"
+	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
 	
 	# Use a case statement to download lists that need special cURL commands to complete properly
 	case "$domain" in
-		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation."$justDomainsExtension" "${sources[$i]}");;
+		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation "${sources[$i]}");;
 		
-		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation."$justDomainsExtension" "${sources[$i]}");;
+		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation "${sources[$i]}");;
 
-		*) data=$(curl -s -z $saveLocation."$justDomainsExtension" -A "Mozilla/10.0" "${sources[$i]}");;
+		*) data=$(curl -s -z $saveLocation -A "Mozilla/10.0" "${sources[$i]}");;
 	esac
 	
 	if [[ -n "$data" ]];then
@@ -68,7 +68,7 @@ do
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
-		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' > $saveLocation."$justDomainsExtension"
+		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' > $saveLocation
 	else
 		echo "Skipping $domain list because it does not have any new entries..."
 	fi
