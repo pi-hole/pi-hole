@@ -47,19 +47,20 @@ fi
 # Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
 for ((i = 0; i < "${#sources[@]}"; i++))
 do
+	url=${sources[$i]}
 	# Get just the domain from the URL
-	domain=$(echo "${sources[$i]}" | cut -d'/' -f3)
+	domain=$(echo "$url" | cut -d'/' -f3)
 	
 	# Save the file as list.#.domain
 	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
 	
 	# Use a case statement to download lists that need special cURL commands to complete properly
 	case "$domain" in
-		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation "${sources[$i]}");;
+		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation $url);;
 		
-		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation "${sources[$i]}");;
+		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation $url);;
 
-		*) data=$(curl -s -z $saveLocation -A "Mozilla/10.0" "${sources[$i]}");;
+		*) data=$(curl -s -z $saveLocation -A "Mozilla/10.0" $url);;
 	esac
 	
 	if [[ -n "$data" ]];then
