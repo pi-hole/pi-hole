@@ -113,13 +113,21 @@ function gravity_advanced()
 if [[ -f $whitelist ]];then
 	# Remove whitelist entries
 	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
-	echo "** Whitelisting $numberOf domain(s)..."
+	plural=; [[ "$numberOf" != "1" ]] && plural=s
+	echo "** Whitelisting $numberOf domain${plural}..."
 	# Append a "$" to the end of each line so it can be parsed out with grep -w
-	echo -n "^$" > $latentWhitelist
 	awk -F '[# \t]' 'NF>0&&$1!="" {print $1"$"}' $whitelist > $latentWhitelist
-	cat $origin/$matter | grep -vwf $latentWhitelist > $origin/$andLight
-	gravity_advanced
 else
-	cat $origin/$matter > $origin/$andLight
-	gravity_advanced
+	rm $latentWhitelist
 fi
+
+# Prevent our sources from being pulled into the hole
+plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
+echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
+for url in ${sources[@]}
+do
+	echo "$url" | awk -F '/' '{print $3"$"}' >> $latentWhitelist
+done
+grep -vwf $latentWhitelist $origin/$matter > $origin/$andLight
+
+gravity_advanced
