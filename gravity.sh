@@ -54,6 +54,7 @@ do
 	# Save the file as list.#.domain
 	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
 	
+		echo -n "Getting $domain list... "
 	# Use a case statement to download lists that need special cURL commands to complete properly
 	case "$domain" in
 		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation $url);;
@@ -64,15 +65,15 @@ do
 	esac
 	
 	if [[ -n "$data" ]];then
-		echo "Getting $domain list..."
 		# Remove comments and print only the domain name
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
 		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' | \
 			sed -e 's/^[. \t]*//' -e 's/\.\.\+/./g' -e 's/[. \t]*$//' > $saveLocation
+		echo "Done."
 	else
-		echo "Skipping $domain list because it does not have any new entries..."
+		echo "Skipping list because it does not have any new entries."
 	fi
 done
 
