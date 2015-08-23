@@ -69,7 +69,8 @@ do
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
-		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' > $saveLocation
+		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' | \
+			sed -e 's/^[. \t]*//' -e 's/\.\.\+/./g' -e 's/[. \t]*$//' > $saveLocation
 	else
 		echo "Skipping $domain list because it does not have any new entries..."
 	fi
