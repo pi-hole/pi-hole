@@ -115,8 +115,10 @@ if [[ -f $whitelist ]];then
 	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
 	plural=; [[ "$numberOf" != "1" ]] && plural=s
 	echo "** Whitelisting $numberOf domain${plural}..."
-	# Append a "$" to the end of each line so it can be parsed out with grep -w
-	awk -F '[# \t]' 'NF>0&&$1!="" {print $1"$"}' $whitelist > $latentWhitelist
+	# Append a "$" to the end, prepend a "^" to the beginning, and
+	# replace "." with "\." of each line to turn each entry into a
+	# regexp so it can be parsed out with grep -x
+	awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
 else
 	rm $latentWhitelist
 fi
@@ -126,8 +128,9 @@ plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
 echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
 for url in ${sources[@]}
 do
-	echo "$url" | awk -F '/' '{print $3"$"}' >> $latentWhitelist
+	echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
 done
-grep -vwf $latentWhitelist $origin/$matter > $origin/$andLight
+
+grep -vxf $latentWhitelist $origin/$matter > $origin/$andLight
 
 gravity_advanced
