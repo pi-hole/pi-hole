@@ -44,6 +44,31 @@ else
 	sudo mkdir $piholeDir
 fi
 
+# Add additional swap to prevent the "Error fork: unable to allocate memory" message:  https://github.com/jacobsalmela/pi-hole/issues/37
+function createSwapFile()
+#########################
+	{
+	echo "** Creating more swap space to accomodate large solar masses..."
+	sudo dphys-swapfile swapoff
+	sudo curl -s -o /etc/dphys-swapfile https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dphys-swapfile
+	sudo dphys-swapfile setup
+	sudo dphys-swapfile swapon
+	}
+	
+if [[ -f /etc/dphys-swapfile ]];then
+	swapSize=$(cat /etc/dphys-swapfile | grep -m1 CONF_SWAPSIZE | cut -d'=' -f2)
+	if [[ $swapSize != 500 ]];then
+		mv /etc/dphys-swapfile /etc/dphys-swapfile.orig
+		echo "** Current swap size is $swapSize"
+		createSwapFile
+	else
+		:
+	fi
+else
+	echo "** No swap file found.  Creating one..."
+	createSwapFile
+fi
+
 # Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
 for ((i = 0; i < "${#sources[@]}"; i++))
 do
