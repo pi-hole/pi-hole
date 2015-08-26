@@ -94,6 +94,8 @@ do
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
 		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' > $saveLocation."$justDomainsExtension"
+		# replace domains that have two dots (..com) with one dot and let duplicate removal sort out any duplicate domains
+		sed -i -e 's/\.\./\./g' $saveLocation."$justDomainsExtension"
 	else
 		echo "Skipping $domain list because it does not have any new entries..."
 	fi
