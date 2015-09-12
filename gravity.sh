@@ -115,8 +115,8 @@ do
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
-        awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $tmpfile | \
-            sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
+		awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $tmpfile | \
+			sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
 		echo "Done."
 	else
 		echo "Skipping list because it does not have any new entries."
@@ -135,28 +135,31 @@ if [[ -r $blacklist ]];then
 	numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
 	echo "** Blacklisting $numberOf domain(s)..."
 	cat $blacklist >> $origin/$matter
-else
-	:
 fi
 
-function gravity_advanced()
 ###########################
-	{
-	numberOf=$(cat $origin/$andLight | sed '/^\s*$/d' | wc -l)
+function gravity_advanced() {
+
+	numberOf=$(wc -l $origin/$andLight)
 	echo "** $numberOf domains being pulled in by gravity..."	
+
 	# Remove carriage returns and preceding whitespace
-	cat $origin/$andLight | sed $'s/\r$//' | sed '/^\s*$/d' > $origin/$supernova
+	# not really needed anymore?
+	cp $origin/$andLight $origin/$supernova 
+
 	# Sort and remove duplicates
-	cat $origin/$supernova | sort | uniq > $origin/$eventHorizon
-	numberOf=$(cat $origin/$eventHorizon | sed '/^\s*$/d' | wc -l)
+	sort -u  $origin/$supernova > $origin/$eventHorizon
+	numberOf=$(wc -l $origin/$eventHorizon)
 	echo "** $numberOf unique domains trapped in the event horizon."
+
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
+	awk '{print "'"$piholeIP"'" $1}' $origin/$eventHorizon > $origin/$accretionDisc
+
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
-	}
+}
 	
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
 if [[ -r $whitelist ]];then
@@ -164,6 +167,7 @@ if [[ -r $whitelist ]];then
 	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
 	plural=; [[ "$numberOf" != "1" ]] && plural=s
 	echo "** Whitelisting $numberOf domain${plural}..."
+
 	# Append a "$" to the end, prepend a "^" to the beginning, and
 	# replace "." with "\." of each line to turn each entry into a
 	# regexp so it can be parsed out with grep -x
@@ -180,6 +184,7 @@ do
 	echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
 done
 
+# Remove whitelist entries from deduped list
 grep -vxf $latentWhitelist $origin/$matter > $origin/$andLight
 
 gravity_advanced
