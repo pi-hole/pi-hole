@@ -92,7 +92,7 @@ do
 			;;
 		
 		"pgl.yoyo.org") 
-			cmd="curl -s -d mimetype=plaintext -d hostformat=hosts"
+			cmd="curl -d mimetype=plaintext -d hostformat=hosts"
 			;;
 
 		# Default is a simple curl request
