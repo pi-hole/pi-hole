@@ -19,9 +19,6 @@ sources=('https://adaway.org/hosts.txt'
 adList=/etc/pihole/gravity.list
 origin=/etc/pihole
 piholeDir=/etc/pihole
-if [[ -f $piholeDir/pihole.conf ]];then
-	. $piholeDir/pihole.conf
-fi
 justDomainsExtension=domains
 matter=pihole.0.matter.txt
 andLight=pihole.1.andLight.txt
@@ -33,6 +30,13 @@ blacklist=$piholeDir/blacklist.txt
 latentBlacklist=$origin/latentBlacklist.txt
 whitelist=$piholeDir/whitelist.txt
 latentWhitelist=$origin/latentWhitelist.txt
+
+# After setting defaults, check if there's local overrides
+if [[ -r $piholeDir/pihole.conf ]];then
+    echo "** Local calibration requested..."
+	. $piholeDir/pihole.conf
+fi
+
 
 echo "** Neutrino emissions detected..."
 
@@ -55,7 +59,11 @@ function createSwapFile()
 	sudo dphys-swapfile swapon
 	}
 	
-if [[ -f /etc/dphys-swapfile ]];then
+
+if [[ -z "$noSwap" ]]; then
+    # if $noSwap is set, don't do anything
+    :
+elif [[ -f /etc/dphys-swapfile ]];then
 	swapSize=$(cat /etc/dphys-swapfile | grep -m1 CONF_SWAPSIZE | cut -d'=' -f2)
 	if [[ $swapSize != 500 ]];then
 		mv /etc/dphys-swapfile /etc/dphys-swapfile.orig
