@@ -78,28 +78,52 @@ do
 	
 	# Save the file as list.#.domain
 	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
-	
-		echo -n "Getting $domain list... "
-	# Use a case statement to download lists that need special cURL commands to complete properly
-	case "$domain" in
-		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation $url);;
-		
-		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation $url);;
 
-		*) data=$(curl -s -z $saveLocation -A "Mozilla/10.0" $url);;
-	esac
+	agent="Mozilla/10.0"
 	
-	if [[ -n "$data" ]];then
+	echo -n "Getting $domain list... "
+
+	# Use a case statement to download lists that need special cURL commands 
+	# to complete properly and reset the user agent when required
+	case "$domain" in
+		"adblock.mahakala.is") 
+			agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+			cmd="curl -e http://forum.xda-developers.com/"
+			;;
+		
+		"pgl.yoyo.org") 
+			cmd="curl -s -d mimetype=plaintext -d hostformat=hosts"
+			;;
+
+		# Default is a simple curl request
+		*) cmd="curl"
+	esac
+
+	# tmp file, so we don't have to store the (long!) lists in RAM
+	tmpfile=`mktemp`
+	timeCheck=""
+	if [ -r $saveLocation ]; then 
+		timeCheck="-z $saveLocation"
+	fi
+	CMD="$cmd -s $timeCheck -A '$agent' $url > $tmpfile"
+	echo "running [$CMD]"
+	$cmd -s $timeCheck -A "$agent" $url > $tmpfile
+
+	
+	if [[ -s "$tmpfile" ]];then
 		# Remove comments and print only the domain name
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
-		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' | \
+		awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' $tmpfile | \
 			sed -e 's/^[. \t]*//' -e 's/\.\.\+/./g' -e 's/[. \t]*$//' | grep "\." > $saveLocation
 		echo "Done."
 	else
 		echo "Skipping list because it does not have any new entries."
 	fi
+
+	# cleanup
+	rm -f $tmpfile
 done
 
 # Find all files with the .domains extension and compile them into one file and remove CRs
