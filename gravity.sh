@@ -131,7 +131,7 @@ echo "** Aggregating list of domains..."
 find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $origin/$matter
 
 # Append blacklist entries if they exist
-if [[ -f $blacklist ]];then
+if [[ -r $blacklist ]];then
 	numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
 	echo "** Blacklisting $numberOf domain(s)..."
 	cat $blacklist >> $origin/$matter
@@ -159,7 +159,7 @@ function gravity_advanced()
 	}
 	
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
-if [[ -f $whitelist ]];then
+if [[ -r $whitelist ]];then
 	# Remove whitelist entries
 	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
 	plural=; [[ "$numberOf" != "1" ]] && plural=s
