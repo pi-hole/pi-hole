@@ -60,7 +60,7 @@ function createSwapFile()
 	}
 	
 
-if [[ -z "$noSwap" ]]; then
+if [[ -n "$noSwap" ]]; then
     # if $noSwap is set, don't do anything
     :
 elif [[ -f /etc/dphys-swapfile ]];then
