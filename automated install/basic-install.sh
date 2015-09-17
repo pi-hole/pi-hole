@@ -23,6 +23,7 @@ echo "Set a static IP before running this!"
 echo "			             			  "
 echo "	    Press Enter when ready        "
 echo "									  "
+echo " totootototo"
 read
 
 pihole_gitsource="https://raw.githubusercontent.com/mospaeda/pi-hole/master/"
