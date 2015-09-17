@@ -8,7 +8,7 @@
 #
 # Or run the commands below in order
 
-pihole_gitsource=https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/
+pihole_gitsource="https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/"
 
 clear
 echo "  _____ _        _           _      "
