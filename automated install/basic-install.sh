@@ -8,7 +8,6 @@
 #
 # Or run the commands below in order
 
-pihole_gitsource="https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/"
 
 clear
 echo "  _____ _        _           _      "
@@ -25,6 +24,8 @@ echo "			             			  "
 echo "	    Press Enter when ready        "
 echo "									  "
 read
+
+pihole_gitsource="https://raw.githubusercontent.com/mospaeda/pi-hole/master/"
 
 if [[ -f /etc/dnsmasq.d/adList.conf ]];then
 	echo "Original Pi-hole detected.  Initiating sub space transport..."
