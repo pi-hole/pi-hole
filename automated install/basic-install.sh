@@ -43,6 +43,8 @@ sudo apt-get -y upgrade
 
 echo "Installing tools..."
 sudo apt-get -y install bc
+sudo apt-get -y install toilet
+
 
 echo "Installing DNS..."
 sudo apt-get -y install dnsmasq
