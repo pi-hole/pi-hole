@@ -5,8 +5,8 @@
 # This script should only be run after you have a static IP address set on the Pi
 piholeIP="$1"
 
-if [[ "$piholeIP" == "" ]]; then
-        piholeIP=$(hostname -I)    
+if [ -n "$piholeIP"]; then
+        piholeIP=$(hostname -I|xargs)        
 fi
 
 
@@ -133,7 +133,7 @@ function gravity_advanced()
 	echo "** $numberOf unique domains trapped in the event horizon."
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP "'" $0}' > $origin/$accretionDisc
+	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP	"'" $0}' > $origin/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
