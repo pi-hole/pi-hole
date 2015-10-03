@@ -5,7 +5,7 @@
 # This script should only be run after you have a static IP address set on the Pi
 piholeIP="$1"
 
-if [ -n "$piholeIP"]; then
+if [[ -n "$piholeIP" ]]; then
         piholeIP=$(hostname -I|xargs)        
 fi
 
