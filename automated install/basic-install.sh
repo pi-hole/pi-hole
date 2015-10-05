@@ -42,6 +42,7 @@ sudo apt-get update
 sudo apt-get -y upgrade
 
 echo "Installing tools..."
+sudo apt-get -y install dnsutils
 sudo apt-get -y install bc
 sudo apt-get -y install toilet
 
