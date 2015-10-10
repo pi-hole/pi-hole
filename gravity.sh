@@ -3,7 +3,8 @@
 # Compiles a list of ad-serving domains by downloading them from multiple sources
 
 # This script should only be run after you have a static IP address set on the Pi
-piholeIP=$(hostname -I)
+piholeIPv4=$(ip addr show | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}' | sed '/^\s*$/d' | grep -v "127.0.0.1")
+piholeIPv6=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
 
 # Ad-list sources--one per line in single quotes
 sources=('https://adaway.org/hosts.txt'
