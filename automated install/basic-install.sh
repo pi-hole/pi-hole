@@ -27,12 +27,12 @@ read
 if [[ -f /etc/dnsmasq.d/adList.conf ]];then
 	echo "Original Pi-hole detected.  Initiating sub space transport..."
 	sudo mkdir -p /etc/pihole/original/
-	mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
-	mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
-	mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
-	mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
-	mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
-	mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
+	sudo mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
+	sudo mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
+	sudo mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
+	sudo mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
+	sudo mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
+	sudo mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
 else
 	:
 fi
@@ -40,6 +40,11 @@ fi
 echo "Updating the Pi..."
 sudo apt-get update
 sudo apt-get -y upgrade
+
+echo "Installing tools..."
+sudo apt-get -y install dnsutils
+sudo apt-get -y install bc
+sudo apt-get -y install toilet
 
 echo "Installing DNS..."
 sudo apt-get -y install dnsmasq
