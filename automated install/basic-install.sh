@@ -78,5 +78,16 @@ sudo chmod 755 /usr/local/bin/chronometer.sh
 echo "Entering the event horizon..."
 sudo /usr/local/bin/gravity.sh
 
+echo "Autoupdate script installation..."
+crontab -l > /tmp/mycron
+if grep -qi '\<gravity\>' /tmp/mycron
+then
+   echo "Autoupdate already configured"
+else
+   echo "0 * * * * sudo /usr/local/bin/gravity.sh" >> /tmp/mycron
+   crontab /tmp/mycron
+fi
+rm /tmp/mycron
+
 echo "Restarting..."
 sudo shutdown -r now
