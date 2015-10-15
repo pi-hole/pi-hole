@@ -82,9 +82,9 @@ echo "Autoupdate script installation..."
 crontab -l > /tmp/mycron
 if grep -qi '\<gravity\>' /tmp/mycron
 then
-   echo "Autoupdate already configured"
+   echo "Autoupdate already configured."
 else
-   echo "0 * * * * sudo /usr/local/bin/gravity.sh" >> /tmp/mycron
+   echo "@weekly sudo /usr/local/bin/gravity.sh" >> /tmp/mycron
    crontab /tmp/mycron
 fi
 rm /tmp/mycron
