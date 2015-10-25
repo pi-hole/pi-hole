@@ -86,28 +86,52 @@ do
 	
 	# Save the file as list.#.domain
 	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
-	
-		echo -n "Getting $domain list... "
-	# Use a case statement to download lists that need special cURL commands to complete properly
-	case "$domain" in
-		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation $url);;
-		
-		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation $url);;
 
-		*) data=$(curl -s -z $saveLocation -A "Mozilla/10.0" $url);;
-	esac
+	agent="Mozilla/10.0"
 	
-	if [[ -n "$data" ]];then
+	echo -n "Getting $domain list... "
+
+	# Use a case statement to download lists that need special cURL commands 
+	# to complete properly and reset the user agent when required
+	case "$domain" in
+		"adblock.mahakala.is") 
+			agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+			cmd="curl -e http://forum.xda-developers.com/"
+			;;
+		
+		"pgl.yoyo.org") 
+			cmd="curl -d mimetype=plaintext -d hostformat=hosts"
+			;;
+
+		# Default is a simple curl request
+		*) cmd="curl"
+	esac
+
+	# tmp file, so we don't have to store the (long!) lists in RAM
+	tmpfile=`mktemp`
+	timeCheck=""
+	if [ -r $saveLocation ]; then 
+		timeCheck="-z $saveLocation"
+	fi
+	CMD="$cmd -s $timeCheck -A '$agent' $url > $tmpfile"
+	echo "running [$CMD]"
+	$cmd -s $timeCheck -A "$agent" $url > $tmpfile
+
+	
+	if [[ -s "$tmpfile" ]];then
 		# Remove comments and print only the domain name
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
-		echo "$data" | awk 'NF {if ($1 !~ "#") { if (NF>1) {print $2} else {print $1}}}' | \
-			sed -e 's/^[. \t]*//' -e 's/\.\.\+/./g' -e 's/[. \t]*$//' | grep "\." > $saveLocation
+		awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $tmpfile | \
+			sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
 		echo "Done."
 	else
 		echo "Skipping list because it does not have any new entries."
 	fi
+
+	# cleanup
+	rm -f $tmpfile
 done
 
 # Find all files with the .domains extension and compile them into one file and remove CRs
@@ -115,39 +139,43 @@ echo "** Aggregating list of domains..."
 find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $origin/$matter
 
 # Append blacklist entries if they exist
-if [[ -f $blacklist ]];then
+if [[ -r $blacklist ]];then
 	numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
 	echo "** Blacklisting $numberOf domain(s)..."
 	cat $blacklist >> $origin/$matter
-else
-	:
 fi
 
-function gravity_advanced()
 ###########################
-	{
-	numberOf=$(cat $origin/$andLight | sed '/^\s*$/d' | wc -l)
+function gravity_advanced() {
+
+	numberOf=$(wc -l $origin/$andLight)
 	echo "** $numberOf domains being pulled in by gravity..."	
+
 	# Remove carriage returns and preceding whitespace
-	cat $origin/$andLight | sed $'s/\r$//' | sed '/^\s*$/d' > $origin/$supernova
+	# not really needed anymore?
+	cp $origin/$andLight $origin/$supernova 
+
 	# Sort and remove duplicates
-	cat $origin/$supernova | sort | uniq > $origin/$eventHorizon
-	numberOf=$(cat $origin/$eventHorizon | sed '/^\s*$/d' | wc -l)
+	sort -u  $origin/$supernova > $origin/$eventHorizon
+	numberOf=$(wc -l $origin/$eventHorizon)
 	echo "** $numberOf unique domains trapped in the event horizon."
+
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
+	awk '{print "'"$piholeIP"'" $1}' $origin/$eventHorizon > $origin/$accretionDisc
+
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
-	}
+}
 	
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
-if [[ -f $whitelist ]];then
+if [[ -r $whitelist ]];then
 	# Remove whitelist entries
 	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
 	plural=; [[ "$numberOf" != "1" ]] && plural=s
 	echo "** Whitelisting $numberOf domain${plural}..."
+
 	# Append a "$" to the end, prepend a "^" to the beginning, and
 	# replace "." with "\." of each line to turn each entry into a
 	# regexp so it can be parsed out with grep -x
@@ -164,6 +192,7 @@ do
 	echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
 done
 
+# Remove whitelist entries from deduped list
 grep -vxf $latentWhitelist $origin/$matter > $origin/$andLight
 
 gravity_advanced
