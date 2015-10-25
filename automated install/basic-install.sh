@@ -79,4 +79,4 @@ echo "Entering the event horizon..."
 sudo /usr/local/bin/gravity.sh
 
 echo "Restarting..."
-sudo shutdown -r now
+sudo reboot
