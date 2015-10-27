@@ -51,9 +51,10 @@ sudo apt-get -y install dnsmasq
 sudo update-rc.d dnsmasq enable
 
 echo "Installing a Web server"
-sudo apt-get -y install lighttpd
-sudo chown www-data:www-data /var/www
-sudo chmod 775 /var/www
+sudo apt-get -y install lighttpd php5-common php5-cgi php5
+sudo mkdir /var/www/html
+sudo chown www-data:www-data /var/www/html
+sudo chmod 775 /var/www/html
 sudo usermod -a -G www-data pi
 
 echo "Stopping services to modify them..."
@@ -63,11 +64,21 @@ sudo service lighttpd stop
 echo "Backing up original config files and downloading Pi-hole ones..."
 sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-sudo mv /var/www/index.lighttpd.html /var/www/index.lighttpd.orig
+sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
 sudo curl -o /etc/dnsmasq.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"
 sudo curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"
-sudo mkdir /var/www/pihole
-sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"
+sudo lighty-enable-mod fastcgi fastcgi-php
+sudo mkdir /var/www/html/pihole
+sudo curl -o /var/www/html/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"
+
+echo "Installing the Web interface..."
+sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
+sudo unzip /var/www/master.zip -d /var/www/html/
+sudo mv /var/www/html/AdminLTE-master /var/www/html/admin
+sudo rm /var/www/master.zip 2>/dev/null
+sudo touch /var/log/pihole.log
+sudo chmod 644 /var/log/pihole.log
+sudo chown dnsmasq:root /var/log/pihole.log
 
 echo "Locating the Pi-hole..."
 sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh"
