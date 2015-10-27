@@ -71,6 +71,15 @@ sudo lighty-enable-mod fastcgi fastcgi-php
 sudo mkdir /var/www/html/pihole
 sudo curl -o /var/www/html/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"
 
+echo "Installing the Web interface..."
+sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
+sudo unzip /var/www/master.zip -d /var/www/html/
+sudo mv /var/www/AdminLTE-master /var/www/html/admin
+sudo rm /var/www/master.zip 2>/dev/null
+sudo touch /var/log/pihole.log
+sudo chmod 644 /var/log/pihole.log
+sudo chown dnsmasq:root /var/log/pihole.log
+
 echo "Locating the Pi-hole..."
 sudo curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh"
 sudo curl -o /usr/local/bin/chronometer.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh"
