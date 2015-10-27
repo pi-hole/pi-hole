@@ -1,6 +1,6 @@
 #!/bin/bash
 # http://pi-hole.net
-# Compiles a list of ad-serving domains by downloading them from multiple sources 
+# Compiles a list of ad-serving domains by downloading them from multiple sources
 
 # This script should only be run after you have a static IP address set on the Pi
 piholeIP=$(hostname -I)
@@ -58,7 +58,7 @@ function createSwapFile()
 	sudo dphys-swapfile setup
 	sudo dphys-swapfile swapon
 	}
-	
+
 
 if [[ -n "$noSwap" ]]; then
     # if $noSwap is set, don't do anything
@@ -83,20 +83,20 @@ do
 	url=${sources[$i]}
 	# Get just the domain from the URL
 	domain=$(echo "$url" | cut -d'/' -f3)
-	
+
 	# Save the file as list.#.domain
 	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
-	
+
 		echo -n "Getting $domain list... "
 	# Use a case statement to download lists that need special cURL commands to complete properly
 	case "$domain" in
 		"adblock.mahakala.is") data=$(curl -s -A 'Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0' -e http://forum.xda-developers.com/ -z $saveLocation $url);;
-		
+
 		"pgl.yoyo.org") data=$(curl -s -d mimetype=plaintext -d hostformat=hosts -z $saveLocation $url);;
 
 		*) data=$(curl -s -z $saveLocation -A "Mozilla/10.0" $url);;
 	esac
-	
+
 	if [[ -n "$data" ]];then
 		# Remove comments and print only the domain name
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
@@ -127,7 +127,7 @@ function gravity_advanced()
 ###########################
 	{
 	numberOf=$(cat $origin/$andLight | sed '/^\s*$/d' | wc -l)
-	echo "** $numberOf domains being pulled in by gravity..."	
+	echo "** $numberOf domains being pulled in by gravity..."
 	# Remove carriage returns and preceding whitespace
 	cat $origin/$andLight | sed $'s/\r$//' | sed '/^\s*$/d' > $origin/$supernova
 	# Sort and remove duplicates
@@ -141,7 +141,7 @@ function gravity_advanced()
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
 	}
-	
+
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
 if [[ -f $whitelist ]];then
 	# Remove whitelist entries
