@@ -64,7 +64,7 @@ sudo service lighttpd stop
 echo "Backing up original config files and downloading Pi-hole ones..."
 sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-sudo mv /var/www/index.lighttpd.html /var/www/index.lighttpd.orig
+sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
 sudo curl -o /etc/dnsmasq.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"
 sudo curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"
 sudo lighty-enable-mod fastcgi fastcgi-php
@@ -74,7 +74,7 @@ sudo curl -o /var/www/html/pihole/index.html "https://raw.githubusercontent.com/
 echo "Installing the Web interface..."
 sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
 sudo unzip /var/www/master.zip -d /var/www/html/
-sudo mv /var/www/AdminLTE-master /var/www/html/admin
+sudo mv /var/www/html/AdminLTE-master /var/www/html/admin
 sudo rm /var/www/master.zip 2>/dev/null
 sudo touch /var/log/pihole.log
 sudo chmod 644 /var/log/pihole.log
