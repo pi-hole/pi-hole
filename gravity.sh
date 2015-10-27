@@ -3,13 +3,12 @@
 # Compiles a list of ad-serving domains by downloading them from multiple sources
 
 # This script should only be run after you have a static IP address set on the Pi
-piholeIPv4=$(ip addr show | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}' | sed '/^\s*$/d' | grep -v "127.0.0.1")
-piholeIPv6=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
+piholeIP=$(hostname -I)
 
 # Ad-list sources--one per line in single quotes
 sources=('https://adaway.org/hosts.txt'
 'http://adblock.gjtech.net/?format=unix-hosts'
-'http://adblock.mahakala.is/'
+#'http://adblock.mahakala.is/'
 'http://hosts-file.net/.%5Cad_servers.txt'
 'http://www.malwaredomainlist.com/hostslist/hosts.txt'
 'http://pgl.yoyo.org/adservers/serverlist.php?'
@@ -137,7 +136,7 @@ function gravity_advanced()
 	echo "** $numberOf unique domains trapped in the event horizon."
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIPv4 "'" $0"\n""'"$piholeIPv6 "'" $0}' > $origin/$accretionDisc
+	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
