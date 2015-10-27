@@ -51,7 +51,7 @@ sudo apt-get -y install dnsmasq
 sudo update-rc.d dnsmasq enable
 
 echo "Installing a Web server"
-sudo apt-get -y install lighttpd
+sudo apt-get -y install lighttpd php5-common php5-cgi php5
 sudo chown www-data:www-data /var/www
 sudo chmod 775 /var/www
 sudo usermod -a -G www-data pi
@@ -66,6 +66,7 @@ sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 sudo mv /var/www/index.lighttpd.html /var/www/index.lighttpd.orig
 sudo curl -o /etc/dnsmasq.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"
 sudo curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"
+sudo lighty-enable-mod fastcgi fastcgi-php
 sudo mkdir /var/www/pihole
 sudo curl -o /var/www/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"
 
