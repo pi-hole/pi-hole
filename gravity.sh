@@ -5,6 +5,11 @@
 # This script should only be run after you have a static IP address set on the Pi
 piholeIP=$(hostname -I)
 
+#Checks if the script is being run as root and sets sudo accordingly
+SUDO=''
+if (( $EUID !=0 )); then SUDO='sudo'
+fi
+
 # Ad-list sources--one per line in single quotes
 sources=('https://adaway.org/hosts.txt'
 'http://adblock.gjtech.net/?format=unix-hosts'
@@ -45,7 +50,7 @@ if [[ -d $piholeDir ]];then
 	:
 else
 	echo "** Creating pihole directory..."
-	sudo mkdir $piholeDir
+	$SUDO mkdir $piholeDir
 fi
 
 # Add additional swap to prevent the "Error fork: unable to allocate memory" message:  https://github.com/jacobsalmela/pi-hole/issues/37
@@ -53,10 +58,10 @@ function createSwapFile()
 #########################
 	{
 	echo "** Creating more swap space to accomodate large solar masses..."
-	sudo dphys-swapfile swapoff
-	sudo curl -s -o /etc/dphys-swapfile https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dphys-swapfile
-	sudo dphys-swapfile setup
-	sudo dphys-swapfile swapon
+	$SUDO dphys-swapfile swapoff
+	$SUDO curl -s -o /etc/dphys-swapfile https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dphys-swapfile
+	$SUDO dphys-swapfile setup
+	$SUDO dphys-swapfile swapon
 	}
 
 
@@ -138,7 +143,7 @@ function gravity_advanced()
 	echo "** Formatting domains into a HOSTS file..."
 	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-	sudo cp $origin/$accretionDisc $adList
+	$SUDO cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
 	}
 
