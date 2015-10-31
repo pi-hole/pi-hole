@@ -27,7 +27,10 @@ IPv4mask=$(ifconfig | awk -F':' '/inet addr/ && !/127.0.0.1/ {print $4}')
 IPv4gw=$(ip route show | awk '/default\ via/ {print $3}')
 
 # IPv6 support to be added later
-IPv6addr=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
+#IPv6addr=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
+
+ethernetDevice="eth0"
+dhcpcdFile=/etc/dhcpcd.conf
 
 ####### FUCNTIONS ##########
 backupLegacyPihole()
@@ -46,6 +49,15 @@ else
 fi
 }
 
+set_static_ip()
+{
+# Append these lines to /etc/dhcpcd.conf to enable a static IP
+echo "interface $ethernetDevice
+static ip_address=$IPv4addr/24
+static routers=$IPv4gw
+static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
+}
+
 ######## SCRIPT ############
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
@@ -59,7 +71,7 @@ whiptail --msgbox --backtitle "Initating network interface" --title "Static IP N
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 
 # Ask if the user wannts to use DHCP settings as their static IP
-if (whiptail --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
+if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
 
 							IP address:    $IPv4addr
 							Subnet mask:   $IPv4mask
@@ -90,7 +102,7 @@ else
 				if [[ $? = 0 ]];then
 						echo "Your static IPv4 gateway:    $IPv4gw"
 						# Give the user a chance to review their settings before moving on
-						if (whiptail --title "Static IP Address" --yesno "Are these settings correct?
+						if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
 							IP address:    $IPv4addr
 							Subnet mask:   $IPv4mask
 							Gateway:       $IPv4gw" $r $c)then
@@ -125,6 +137,8 @@ else
 	done
 # End the if statement for DHCP vs. static
 fi
+# Set the static address
+set_static_ip
 
 # These are the commands to actually install the Pi-hole
 # This is pretty ugly, but it works to present a nice front-end
@@ -186,11 +200,11 @@ $percent
 Step $i of $n: ${echoes[$k]}
 XXX
 EOF
+
 # Execute the command in the background (hidden from the user, not actually a background process)
-#${echoes[$k]}
-${commands[${echoes[$k]}]}
-sleep 1
+${commands[${echoes[$k]}]} > /dev/null 2>&1
 done
+
 # As the loop is progressing, the output is sent to whiptail to be displayed to the user
 ) |
 whiptail --title "Opening your Pi-hole..." --gauge "Please wait..." $r $c 0
