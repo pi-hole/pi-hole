@@ -54,7 +54,7 @@ function createSwapFile()
 	{
 	echo "** Creating more swap space to accomodate large solar masses..."
 	sudo dphys-swapfile swapoff
-	sudo curl -s -o /etc/dphys-swapfile https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dphys-swapfile
+	sudo echo "CONF_SWAPSIZE=500" > /etc/dphys-swapfile
 	sudo dphys-swapfile setup
 	sudo dphys-swapfile swapon
 	}
