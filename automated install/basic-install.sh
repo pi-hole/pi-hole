@@ -205,7 +205,7 @@ XXX
 EOF
 
 # Execute the command in the background (hidden from the user, not actually a background process)
-${commands[${echoes[$k]}]} > $instalLogLoc 2>&1
+${commands[${echoes[$k]}]} > $tmpLog 2>&1
 done
 sudo mv $tmpLog $instalLogLoc$instalLogLoc
 
