@@ -10,6 +10,7 @@
 # curl -L install.pi-hole.net | bash
 
 ######## VARIABLES #########
+tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 
 # Get the screen size in case we need a full-screen message and so we can display a dialog that is sized nicely
@@ -206,6 +207,7 @@ EOF
 # Execute the command in the background (hidden from the user, not actually a background process)
 ${commands[${echoes[$k]}]} > $instalLogLoc 2>&1
 done
+sudo mv $tmpLog $instalLogLoc$instalLogLoc
 
 # As the loop is progressing, the output is sent to whiptail to be displayed to the user
 ) |
