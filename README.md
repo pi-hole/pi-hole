@@ -60,4 +60,7 @@ A technical and detailed description can be found [here](http://jacobsalmela.com
 ## Other Operating Systems
 This script will work for other UNIX-like systems with some slight **modifications**.  As long as you can install `dnsmasq` and a Webserver, it should work OK.  The automated install only works for a clean install of Raspiban right now since that is how the project originated.
 
+### Examples Of The Pi-hole On Other Operating Systems
+- [Sky-Hole](http://dlaa.me/blog/post/skyhole)
+
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "AdminLTE Presentation")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate")
