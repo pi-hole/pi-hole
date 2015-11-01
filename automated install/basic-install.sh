@@ -168,7 +168,7 @@ commands["Enabling PHP"]="sudo lighty-enable-mod fastcgi fastcgi-php"; echoes+=(
 commands["Making a directory for the Web interface"]="sudo mkdir /var/www/html/pihole"; echoes+=( "Making a directory for the Web interface" )
 commands["Installing a blank HTML page to take place of ads"]="sudo curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"; echoes+=( "Installing a blank HTML page to take place of ads" )
 commands["Downloading the Pi-hole dashboard"]="sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip"; echoes+=( "Downloading the Pi-hole dashboard" )
-commands["Unpacking the dashboard"]="sudo unzip /var/www/master.zip -d /var/www/html/"; echoes+=( "Unpacking the dashboard" )
+commands["Unpacking the dashboard"]="sudo unzip -o /var/www/master.zip -d /var/www/html/"; echoes+=( "Unpacking the dashboard" )
 commands["Renaming the dashboard"]="sudo mv /var/www/html/AdminLTE-master /var/www/html/admin"; echoes+=( "Renaming the dashboard" )
 commands["Cleaning up the dashboard temp files"]="sudo rm /var/www/master.zip 2>/dev/null"; echoes+=( "Cleaning up the dashboard temp files" )
 commands["Creating a log file for the Pi-hole"]="sudo touch /var/log/pihole.log"; echoes+=( "Creating a log file for the Pi-hole" )
