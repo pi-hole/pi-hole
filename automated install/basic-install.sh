@@ -174,7 +174,7 @@ commands["Cleaning up the dashboard temp files"]="sudo rm /var/www/master.zip 2>
 commands["Creating a log file for the Pi-hole"]="sudo touch /var/log/pihole.log"; echoes+=( "Creating a log file for the Pi-hole" )
 commands["chmodding the log file"]="sudo chmod 644 /var/log/pihole.log"; echoes+=( "chmodding the log file" )
 commands["chowning the log file so stats can be displayed"]="sudo chown dnsmasq:root /var/log/pihole.log"; echoes+=( "chowning the log file so stats can be displayed" )
-commands["Initating sub-space transport of gravity"]="sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh"; echoes+=( "Initating sub-space transport of gravity" )
+commands["Initating sub-space transport of gravity"]="sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/installation/gravity.sh"; echoes+=( "Initating sub-space transport of gravity" )
 commands["Initating sub-space transport of chronometer"]="sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh"; echoes+=( "Initating sub-space transport of chronometer" )
 commands["chmodding gravity"]="sudo chmod 755 /usr/local/bin/gravity.sh"; echoes+=( "chmodding gravity" )
 commands["chmodding the chronometer"]="sudo chmod 755 /usr/local/bin/chronometer.sh"; echoes+=( "chmodding the chronometer" )
