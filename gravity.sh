@@ -27,7 +27,6 @@ eventHorizon=pihole.3.eventHorizon.txt
 accretionDisc=pihole.4.accretionDisc.txt
 eyeOfTheNeedle=pihole.5.wormhole.txt
 blacklist=$piholeDir/blacklist.txt
-latentBlacklist=$origin/latentBlacklist.txt
 whitelist=$piholeDir/whitelist.txt
 latentWhitelist=$origin/latentWhitelist.txt
 
@@ -136,7 +135,7 @@ function gravity_advanced()
 	echo "** $numberOf unique domains trapped in the event horizon."
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"'" $0}' > $origin/$accretionDisc
+	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $origin/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
