@@ -9,7 +9,7 @@ piholeIP=$(hostname -I)
 sources=('https://adaway.org/hosts.txt'
 'http://adblock.gjtech.net/?format=unix-hosts'
 #'http://adblock.mahakala.is/'
-'http://hosts-file.net/.%5Cad_servers.txt'
+'http://hosts-file.net/ad_servers.txt'
 'http://www.malwaredomainlist.com/hostslist/hosts.txt'
 'http://pgl.yoyo.org/adservers/serverlist.php?'
 'http://someonewhocares.org/hosts/hosts'
