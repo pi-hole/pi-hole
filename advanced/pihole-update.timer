@@ -1,0 +1,11 @@
+[Unit]
+Description=Raspberry Pi Ad Blocker
+
+[Timer]
+# Time to wait after boot
+OnBootSec=10min
+# Time to wait for ongoing script executions
+OnUnitActiveSec=1w
+
+[Install]
+WantedBy=timers.target
