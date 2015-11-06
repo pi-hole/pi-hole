@@ -25,8 +25,13 @@ echo "									  "
 read
 
 #Checks if the script is being run as root and sets sudo accordingly
-SUDO=''
-if (( $EUID !=0 )); then SUDO='sudo'
+echo "Checking if running as root..."
+if (( $EUID==0 )); then SUDO=''
+echo "WE ARE ROOT!"
+elif [ $(dpkg-query -s -f='${Status}' sudo 2>/dev/null | grep -c "ok installed") -eq 1 ]; then SUDO='sudo' 
+echo "sudo IS installed... setting SUDO to sudo!"
+else echo "Sudo NOT found AND not ROOT! Must run script as root!"
+exit 1
 fi
 
 if [[ -f /etc/dnsmasq.d/adList.conf ]];then
