@@ -1,0 +1,6 @@
+[Unit]
+Description=Raspberry Pi Ad Blocker
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gravity.sh
