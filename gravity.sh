@@ -75,7 +75,8 @@ do
 		*) cmd="curl"
 	esac
 
-	# tmp file, so we don't have to store the (long!) lists in RAM
+    echo "Narrowing the annular confinment beam..."
+    # Create a tmp file so we don't have to store the (long!) lists in RAM
 	patternBuffer=$(mktemp)
 	heisenbergCompensator=""
 	if [[ -r $saveLocation ]]; then
