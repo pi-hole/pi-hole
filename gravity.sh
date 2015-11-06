@@ -94,7 +94,7 @@ do
 			sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
 		echo "Done."
 	else
-		echo "Skipping list because it does not have any new entries."
+		echo "Skipping pattern because transporter logic detected no changes..."
 	fi
 
 	# cleanup
@@ -116,7 +116,7 @@ fi
 function gravity_advanced() {
 
 	numberOf=$(wc -l $origin/$andLight)
-	echo "** $numberOf $origin/$andLight domains being pulled in by gravity..."	
+	echo "** $numberOf domains being pulled in by gravity..."	
 
 	# Remove carriage returns and preceding whitespace
 	# not really needed anymore?
