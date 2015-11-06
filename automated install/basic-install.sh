@@ -179,7 +179,7 @@ commands["Initating sub-space transport of chronometer"]="sudo curl -o /usr/loca
 commands["chmodding gravity"]="sudo chmod 755 /usr/local/bin/gravity.sh"; echoes+=( "chmodding gravity" )
 commands["chmodding the chronometer"]="sudo chmod 755 /usr/local/bin/chronometer.sh"; echoes+=( "chmodding the chronometer" )
 commands["Entering the event horizion"]="sudo /usr/local/bin/gravity.sh"; echoes+=( "Entering the event horizion" )
-commands["Rebooting"]="sudo reboot"; echoes+=( "Rebooting" )
+commands["Rebooting"]="sudo service networking restart"; echoes+=( "Restarting networking..." )
 
 # Everything in the parentheses is part of displaying the progress bar
 (
