@@ -82,7 +82,6 @@ do
 		heisenbergCompensator="-z $saveLocation"
 	fi
 	CMD="$cmd -s $heisenbergCompensator -A '$agent' $url > $patternBuffer"
-	echo "** Engaging pattern transference..."
 	$cmd -s $heisenbergCompensator -A "$agent" $url > $patternBuffer
 
 
