@@ -1,6 +1,6 @@
 #!/bin/bash
 # http://pi-hole.net
-# Compiles a list of ad-serving domains by downloading them from multiple sources 
+# Compiles a list of ad-serving domains by downloading them from multiple sources
 
 # This script should only be run after you have a static IP address set on the Pi
 piholeIP=$(hostname -I)
@@ -8,8 +8,8 @@ piholeIP=$(hostname -I)
 # Ad-list sources--one per line in single quotes
 sources=('https://adaway.org/hosts.txt'
 'http://adblock.gjtech.net/?format=unix-hosts'
-'http://adblock.mahakala.is/'
-'http://hosts-file.net/.%5Cad_servers.txt'
+#'http://adblock.mahakala.is/'
+'http://hosts-file.net/ad_servers.txt'
 'http://www.malwaredomainlist.com/hostslist/hosts.txt'
 'http://pgl.yoyo.org/adservers/serverlist.php?'
 'http://someonewhocares.org/hosts/hosts'
@@ -19,9 +19,6 @@ sources=('https://adaway.org/hosts.txt'
 adList=/etc/pihole/gravity.list
 origin=/etc/pihole
 piholeDir=/etc/pihole
-if [[ -f $piholeDir/pihole.conf ]];then
-	. $piholeDir/pihole.conf
-fi
 justDomainsExtension=domains
 matter=pihole.0.matter.txt
 andLight=pihole.1.andLight.txt
@@ -30,10 +27,14 @@ eventHorizon=pihole.3.eventHorizon.txt
 accretionDisc=pihole.4.accretionDisc.txt
 eyeOfTheNeedle=pihole.5.wormhole.txt
 blacklist=$piholeDir/blacklist.txt
-latentBlacklist=$origin/latentBlacklist.txt
 whitelist=$piholeDir/whitelist.txt
 latentWhitelist=$origin/latentWhitelist.txt
 
+# After setting defaults, check if there's local overrides
+if [[ -r $piholeDir/pihole.conf ]];then
+    echo "** Local calibration requested..."
+	. $piholeDir/pihole.conf
+fi
 echo "** Neutrino emissions detected..."
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
@@ -44,54 +45,29 @@ else
 	sudo mkdir $piholeDir
 fi
 
-# Add additional swap to prevent the "Error fork: unable to allocate memory" message:  https://github.com/jacobsalmela/pi-hole/issues/37
-function createSwapFile()
-#########################
-	{
-	echo "** Creating more swap space to accomodate large solar masses..."
-	sudo dphys-swapfile swapoff
-	sudo curl -s -o /etc/dphys-swapfile https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dphys-swapfile
-	sudo dphys-swapfile setup
-	sudo dphys-swapfile swapon
-	}
-	
-if [[ -f /etc/dphys-swapfile ]];then
-	swapSize=$(cat /etc/dphys-swapfile | grep -m1 CONF_SWAPSIZE | cut -d'=' -f2)
-	if [[ $swapSize != 500 ]];then
-		mv /etc/dphys-swapfile /etc/dphys-swapfile.orig
-		echo "** Current swap size is $swapSize"
-		createSwapFile
-	else
-		:
-	fi
-else
-	echo "** No swap file found.  Creating one..."
-	createSwapFile
-fi
-
 # Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
 for ((i = 0; i < "${#sources[@]}"; i++))
 do
 	url=${sources[$i]}
 	# Get just the domain from the URL
 	domain=$(echo "$url" | cut -d'/' -f3)
-	
+
 	# Save the file as list.#.domain
 	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
 
 	agent="Mozilla/10.0"
-	
+
 	echo -n "Getting $domain list... "
 
-	# Use a case statement to download lists that need special cURL commands 
+	# Use a case statement to download lists that need special cURL commands
 	# to complete properly and reset the user agent when required
 	case "$domain" in
-		"adblock.mahakala.is") 
+		"adblock.mahakala.is")
 			agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
 			cmd="curl -e http://forum.xda-developers.com/"
 			;;
-		
-		"pgl.yoyo.org") 
+
+		"pgl.yoyo.org")
 			cmd="curl -d mimetype=plaintext -d hostformat=hosts"
 			;;
 
@@ -100,30 +76,29 @@ do
 	esac
 
 	# tmp file, so we don't have to store the (long!) lists in RAM
-	tmpfile=`mktemp`
-	timeCheck=""
-	if [ -r $saveLocation ]; then 
-		timeCheck="-z $saveLocation"
+	patternBuffer=$(mktemp)
+	heisenbergCompensator=""
+	if [[ -r $saveLocation ]]; then
+		heisenbergCompensator="-z $saveLocation"
 	fi
-	CMD="$cmd -s $timeCheck -A '$agent' $url > $tmpfile"
-	echo "running [$CMD]"
-	$cmd -s $timeCheck -A "$agent" $url > $tmpfile
+	CMD="$cmd -s $heisenbergCompensator -A '$agent' $url > $patternBuffer"
+	$cmd -s $heisenbergCompensator -A "$agent" $url > $patternBuffer
 
-	
-	if [[ -s "$tmpfile" ]];then
+
+	if [[ -s "$patternBuffer" ]];then
 		# Remove comments and print only the domain name
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
-		awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $tmpfile | \
+		awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $patternBuffer | \
 			sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
 		echo "Done."
 	else
-		echo "Skipping list because it does not have any new entries."
+		echo "Skipping pattern because transporter logic detected no changes..."
 	fi
 
-	# cleanup
-	rm -f $tmpfile
+	# Cleanup
+	rm -f $patternBuffer
 done
 
 # Find all files with the .domains extension and compile them into one file and remove CRs
@@ -140,16 +115,16 @@ fi
 ###########################
 function gravity_advanced() {
 
-	numberOf=$(wc -l $origin/$andLight)
-	echo "** $numberOf domains being pulled in by gravity..."	
+	numberOf=$(wc -l < $origin/$andLight)
+	echo "** $numberOf domains being pulled in by gravity..."
 
 	# Remove carriage returns and preceding whitespace
 	# not really needed anymore?
-	cp $origin/$andLight $origin/$supernova 
+	cp $origin/$andLight $origin/$supernova
 
 	# Sort and remove duplicates
 	sort -u  $origin/$supernova > $origin/$eventHorizon
-	numberOf=$(wc -l $origin/$eventHorizon)
+	numberOf=$(wc -l < $origin/$eventHorizon)
 	echo "** $numberOf unique domains trapped in the event horizon."
 
 	# Format domain list as "192.168.x.x domain.com"
@@ -160,7 +135,7 @@ function gravity_advanced() {
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
 }
-	
+
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
 if [[ -r $whitelist ]];then
 	# Remove whitelist entries
