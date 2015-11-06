@@ -76,9 +76,9 @@ do
 	esac
 
 	# tmp file, so we don't have to store the (long!) lists in RAM
-	patternBuffer=`mktemp`
+	patternBuffer=$(mktemp)
 	heisenbergCompensator=""
-	if [ -r $saveLocation ]; then
+	if [[ -r $saveLocation ]]; then
 		heisenbergCompensator="-z $saveLocation"
 	fi
 	CMD="$cmd -s $heisenbergCompensator -A '$agent' $url > $patternBuffer"
@@ -97,7 +97,7 @@ do
 		echo "Skipping pattern because transporter logic detected no changes..."
 	fi
 
-	# cleanup
+	# Cleanup
 	rm -f $patternBuffer
 done
 
