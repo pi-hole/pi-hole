@@ -44,31 +44,6 @@ else
 	sudo mkdir $piholeDir
 fi
 
-# Add additional swap to prevent the "Error fork: unable to allocate memory" message:  https://github.com/jacobsalmela/pi-hole/issues/37
-function createSwapFile()
-#########################
-	{
-	echo "** Creating more swap space to accomodate large solar masses..."
-	sudo dphys-swapfile swapoff
-	sudo curl -s -o /etc/dphys-swapfile https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dphys-swapfile
-	sudo dphys-swapfile setup
-	sudo dphys-swapfile swapon
-	}
-	
-if [[ -f /etc/dphys-swapfile ]];then
-	swapSize=$(cat /etc/dphys-swapfile | grep -m1 CONF_SWAPSIZE | cut -d'=' -f2)
-	if [[ $swapSize != 500 ]];then
-		mv /etc/dphys-swapfile /etc/dphys-swapfile.orig
-		echo "** Current swap size is $swapSize"
-		createSwapFile
-	else
-		:
-	fi
-else
-	echo "** No swap file found.  Creating one..."
-	createSwapFile
-fi
-
 # Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
 for ((i = 0; i < "${#sources[@]}"; i++))
 do
@@ -100,22 +75,22 @@ do
 	esac
 
 	# tmp file, so we don't have to store the (long!) lists in RAM
-	tmpfile=`mktemp`
-	timeCheck=""
+	patternBuffer=`mktemp`
+	heisenbergCompensator=""
 	if [ -r $saveLocation ]; then 
-		timeCheck="-z $saveLocation"
+		heisenbergCompensator="-z $saveLocation"
 	fi
-	CMD="$cmd -s $timeCheck -A '$agent' $url > $tmpfile"
-	echo "running [$CMD]"
-	$cmd -s $timeCheck -A "$agent" $url > $tmpfile
+	CMD="$cmd -s $heisenbergCompensator -A '$agent' $url > $patternBuffer"
+	echo "** Engaging pattern transference..."
+	$cmd -s $heisenbergCompensator -A "$agent" $url > $patternBuffer
 
 	
-	if [[ -s "$tmpfile" ]];then
+	if [[ -s "$patternBuffer" ]];then
 		# Remove comments and print only the domain name
 		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 		# This helps with that and makes it easier to read
 		# It also helps with debugging so each stage of the script can be researched more in depth
-		awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $tmpfile | \
+		awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $patternBuffer | \
 			sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
 		echo "Done."
 	else
@@ -123,7 +98,7 @@ do
 	fi
 
 	# cleanup
-	rm -f $tmpfile
+	rm -f $patternBuffer
 done
 
 # Find all files with the .domains extension and compile them into one file and remove CRs
@@ -141,7 +116,7 @@ fi
 function gravity_advanced() {
 
 	numberOf=$(wc -l $origin/$andLight)
-	echo "** $numberOf domains being pulled in by gravity..."	
+	echo "** $numberOf $origin/$andLight domains being pulled in by gravity..."	
 
 	# Remove carriage returns and preceding whitespace
 	# not really needed anymore?
@@ -166,7 +141,7 @@ if [[ -r $whitelist ]];then
 	# Remove whitelist entries
 	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
 	plural=; [[ "$numberOf" != "1" ]] && plural=s
-	echo "** Whitelisting $numberOf domain${plural}..."
+	echo "** Whitelisting $numberOf $whitelist domain${plural}..."
 
 	# Append a "$" to the end, prepend a "^" to the beginning, and
 	# replace "." with "\." of each line to turn each entry into a
