@@ -115,7 +115,7 @@ fi
 ###########################
 function gravity_advanced() {
 
-	numberOf=$(wc -l $origin/$andLight)
+	numberOf=$(wc -l < $origin/$andLight)
 	echo "** $numberOf domains being pulled in by gravity..."	
 
 	# Remove carriage returns and preceding whitespace
@@ -124,7 +124,7 @@ function gravity_advanced() {
 
 	# Sort and remove duplicates
 	sort -u  $origin/$supernova > $origin/$eventHorizon
-	numberOf=$(wc -l $origin/$eventHorizon)
+	numberOf=$(wc -l < $origin/$eventHorizon)
 	echo "** $numberOf unique domains trapped in the event horizon."
 
 	# Format domain list as "192.168.x.x domain.com"
