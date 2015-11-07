@@ -24,7 +24,6 @@ columns=$(stty -a | tr \; \\012 | egrep 'columns' | cut -d' ' -f3)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
-# Get the current network settings
 IPv4addr=$(ip -4 addr show | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}' | sed '/^\s*$/d' | grep -v "127.0.0.1")
 IPv4mask=$(ifconfig | awk -F':' '/inet addr/ && !/127.0.0.1/ {print $4}')
 IPv4gw=$(ip route show | awk '/default\ via/ {print $3}')
@@ -164,6 +163,8 @@ commands["Backing up the lighttpd config file"]="sudo mv /etc/lighttpd/lighttpd.
 commands["Backing up the default Web page"]="sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig"; echoes+=( "Backing up the default Web page" )
 commands["Installing the dnsmasq config file"]="sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"; echoes+=( "Installing the dnsmasq config file" )
 commands["Installing the lighttpd config file"]="sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"; echoes+=( "Installing the lighttpd config file" )
+commands["Initating auto-pilot"]="sudo mv /etc/crontab /etc/crontab.orig"; echoes+=( "Initiating auto-pilot" )
+commands["Engaging auto-pilot"]="curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron"; echoes+=( "Engaging auto-pilot" )
 commands["Enabling PHP"]="sudo lighty-enable-mod fastcgi fastcgi-php"; echoes+=( "Enabling PHP" )
 commands["Making a directory for the Web interface"]="sudo mkdir /var/www/html/pihole"; echoes+=( "Making a directory for the Web interface" )
 commands["Installing a blank HTML page to take place of ads"]="sudo curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"; echoes+=( "Installing a blank HTML page to take place of ads" )
@@ -182,7 +183,7 @@ commands["Entering the event horizion"]="sudo /usr/local/bin/gravity.sh"; echoes
 commands["Rebooting"]="sudo service networking restart"; echoes+=( "Restarting networking..." )
 
 # Everything in the parentheses is part of displaying the progress bar
-(
+#(
 # Get total number of commands to be run from the array
 n=${#commands[*]};
 # Set counter to increase every time a loop completes
@@ -205,10 +206,10 @@ XXX
 EOF
 
 # Execute the command in the background (hidden from the user, not actually a background process)
-${commands[${echoes[$k]}]} > $tmpLog 2>&1
+${commands[${echoes[$k]}]} | tee $tmpLog
+clear
 done
 sudo mv $tmpLog $instalLogLoc$instalLogLoc
 
 # As the loop is progressing, the output is sent to whiptail to be displayed to the user
-) |
-whiptail --title "Opening your Pi-hole..." --gauge "Please wait..." $r $c 0
+#) |whiptail --title "Opening your Pi-hole..." --gauge "Please wait..." $r $c 0
