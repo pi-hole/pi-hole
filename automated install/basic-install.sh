@@ -186,3 +186,12 @@ installPihole | tee $tmpLog
 
 # Move the log file into /etc/pihole for storage
 sudo mv $tmpLog $instalLogLoc
+
+whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using this IP: $IPv4addr.
+
+The networking service will restart after you close this dialog.  If you are using SSH, you may need to reconnect." $r $c
+
+# Start the services and restart networking
+sudo service dnsmasq start
+sudo service lighttpd start
+sudo ifdown eth0;sudo ifup eth0
