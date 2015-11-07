@@ -60,6 +60,44 @@ static routers=$IPv4gw
 static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
 }
 
+installPihole()
+{
+sudo apt-get update
+sudo apt-get -y upgrade
+sudo apt-get -y install dnsutils bc toilet
+sudo apt-get -y install dnsmasq
+sudo apt-get -y install lighttpd php5-common php5-cgi php5
+sudo mkdir /var/www/html
+sudo chown www-data:www-data /var/www/html
+sudo chmod 775 /var/www/html
+sudo usermod -a -G www-data pi
+sudo service dnsmasq stop
+sudo service lighttpd stop
+sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
+sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+sudo mv /etc/crontab /etc/crontab.orig
+sudo curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+sudo lighty-enable-mod fastcgi fastcgi-php
+sudo mkdir /var/www/html/pihole
+sudo curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
+sudo unzip -o /var/www/master.zip -d /var/www/html/
+sudo mv /var/www/html/AdminLTE-master /var/www/html/admin
+sudo rm /var/www/master.zip 2>/dev/null
+sudo touch /var/log/pihole.log
+sudo chmod 644 /var/log/pihole.log
+sudo chown dnsmasq:root /var/log/pihole.log
+sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/installation/gravity.sh
+sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
+sudo chmod 755 /usr/local/bin/gravity.sh
+sudo chmod 755 /usr/local/bin/chronometer.sh
+sudo /usr/local/bin/gravity.sh
+sudo service networking restart
+}
+
 ######## SCRIPT ############
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
@@ -139,77 +177,12 @@ else
 	done
 # End the if statement for DHCP vs. static
 fi
+
 # Set the static address
 set_static_ip
 
-# These are the commands to actually install the Pi-hole
-# This is pretty ugly, but it works to present a nice front-end
-# http://stackoverflow.com/questions/29161323/how-to-keep-associative-array-order-in-bash
-# Maybe it would be better to just show the command output instead of the progress bar
-declare -A commands;      declare -a echoes;
-commands["Updating"]="sudo apt-get update"; echoes+=( "Updating" )
-commands["Upgrading"]="sudo apt-get -y upgrade"; echoes+=( "Upgrading" )
-commands["Installing chronomoter tools"]="sudo apt-get -y install dnsutils bc toilet"; echoes+=( "Installing chronomoter tools" )
-commands["Installing a DNS server"]="sudo apt-get -y install dnsmasq"; echoes+=( "Installing a DNS server" )
-commands["Instaling a Web server and PHP"]="sudo apt-get -y install lighttpd php5-common php5-cgi php5"; echoes+=( "Instaling a Web server and PHP" )
-commands["Making an HTML folder"]="sudo mkdir /var/www/html"; echoes+=( "Making an HTML folder" )
-commands["chowning the Web server"]="sudo chown www-data:www-data /var/www/html"; echoes+=( "chowning the Web server" )
-commands["chmodding the Web server"]="sudo chmod 775 /var/www/html"; echoes+=( "chmodding the Web server" )
-commands["Giving pi access to the Web server"]="sudo usermod -a -G www-data pi"; echoes+=( "Giving pi access to the Web server" )
-commands["Stopping dnsmasq to modify it"]="sudo service dnsmasq stop"; echoes+=( "Stopping dnsmasq to modify it" )
-commands["Stopping lighttpd to modify it"]="sudo service lighttpd stop"; echoes+=( "Stopping lighttpd to modify it" )
-commands["Backing up the dnsmasq config file"]="sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig"; echoes+=( "Backing up the dnsmasq config file" )
-commands["Backing up the lighttpd config file"]="sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig"; echoes+=( "Backing up the lighttpd config file" )
-commands["Backing up the default Web page"]="sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig"; echoes+=( "Backing up the default Web page" )
-commands["Installing the dnsmasq config file"]="sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"; echoes+=( "Installing the dnsmasq config file" )
-commands["Installing the lighttpd config file"]="sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"; echoes+=( "Installing the lighttpd config file" )
-commands["Initating auto-pilot"]="sudo mv /etc/crontab /etc/crontab.orig"; echoes+=( "Initiating auto-pilot" )
-commands["Engaging auto-pilot"]="curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron"; echoes+=( "Engaging auto-pilot" )
-commands["Enabling PHP"]="sudo lighty-enable-mod fastcgi fastcgi-php"; echoes+=( "Enabling PHP" )
-commands["Making a directory for the Web interface"]="sudo mkdir /var/www/html/pihole"; echoes+=( "Making a directory for the Web interface" )
-commands["Installing a blank HTML page to take place of ads"]="sudo curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"; echoes+=( "Installing a blank HTML page to take place of ads" )
-commands["Downloading the Pi-hole dashboard"]="sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip"; echoes+=( "Downloading the Pi-hole dashboard" )
-commands["Unpacking the dashboard"]="sudo unzip -o /var/www/master.zip -d /var/www/html/"; echoes+=( "Unpacking the dashboard" )
-commands["Renaming the dashboard"]="sudo mv /var/www/html/AdminLTE-master /var/www/html/admin"; echoes+=( "Renaming the dashboard" )
-commands["Cleaning up the dashboard temp files"]="sudo rm /var/www/master.zip 2>/dev/null"; echoes+=( "Cleaning up the dashboard temp files" )
-commands["Creating a log file for the Pi-hole"]="sudo touch /var/log/pihole.log"; echoes+=( "Creating a log file for the Pi-hole" )
-commands["chmodding the log file"]="sudo chmod 644 /var/log/pihole.log"; echoes+=( "chmodding the log file" )
-commands["chowning the log file so stats can be displayed"]="sudo chown dnsmasq:root /var/log/pihole.log"; echoes+=( "chowning the log file so stats can be displayed" )
-commands["Initating sub-space transport of gravity"]="sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/installation/gravity.sh"; echoes+=( "Initating sub-space transport of gravity" )
-commands["Initating sub-space transport of chronometer"]="sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh"; echoes+=( "Initating sub-space transport of chronometer" )
-commands["chmodding gravity"]="sudo chmod 755 /usr/local/bin/gravity.sh"; echoes+=( "chmodding gravity" )
-commands["chmodding the chronometer"]="sudo chmod 755 /usr/local/bin/chronometer.sh"; echoes+=( "chmodding the chronometer" )
-commands["Entering the event horizion"]="sudo /usr/local/bin/gravity.sh"; echoes+=( "Entering the event horizion" )
-commands["Rebooting"]="sudo service networking restart"; echoes+=( "Restarting networking..." )
+# Install and log everything to a file
+installPihole | tee $tmpLog
 
-# Everything in the parentheses is part of displaying the progress bar
-#(
-# Get total number of commands to be run from the array
-n=${#commands[*]};
-# Set counter to increase every time a loop completes
-i=0
-
-# For each item in the array
-for k in "${!echoes[@]}"
-do
-
-# Calculate the overall progress
-percent=$(( 100*(++i)/n ))
-
-# Update dialog box using the value of each key in the array
-# Show the percentage and the echo messages from the array
-cat <<EOF
-XXX
-$percent
-Step $i of $n: ${echoes[$k]}
-XXX
-EOF
-
-# Execute the command in the background (hidden from the user, not actually a background process)
-${commands[${echoes[$k]}]} | tee $tmpLog
-clear
-done
-sudo mv $tmpLog $instalLogLoc$instalLogLoc
-
-# As the loop is progressing, the output is sent to whiptail to be displayed to the user
-#) |whiptail --title "Opening your Pi-hole..." --gauge "Please wait..." $r $c 0
+# Move the log file into /etc/pihole for storage
+sudo mv $tmpLog $instalLogLoc
