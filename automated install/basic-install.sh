@@ -71,6 +71,12 @@ sudo lighty-enable-mod fastcgi fastcgi-php
 sudo mkdir /var/www/html/pihole
 sudo curl -o /var/www/html/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"
 
+echo "Configuration of interface..."
+echo "Which interface do you want to use ? (default eth0)"
+read interface
+interface=${interface:-eth0}
+sudo sed -i -e "s/interface=eth0/interface=$interface/g" /etc/dnsmasq.conf
+
 echo "Installing the Web interface..."
 sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
 sudo unzip /var/www/master.zip -d /var/www/html/
