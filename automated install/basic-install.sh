@@ -200,7 +200,7 @@ fi
 setStaticIPv4()
 {
 # Append these lines to /etc/dhcpcd.conf to enable a static IP
-echo "interface $ethernetDevice
+echo "interface $piholeInterface
 static ip_address=$IPv4addr/24
 static routers=$IPv4gw
 static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
@@ -295,5 +295,12 @@ Your Pi will restart when you close this dialog.  If you are using SSH, reconnec
 
 The install log is in /etc/phole." $r $c
 
-
-sudo reboot
+# If the current IP address equals the desired address, no change is needed
+if [[ $IPv4addr = "$(cat /tmp/piholeIP)" ]];then
+	# So just start the services
+	echo "sudo service dnsmasq start"
+	echo "sudo service lighttpd start"
+else
+	# Restart to apply the new static IP address
+	echo "sudo reboot"
+fi
