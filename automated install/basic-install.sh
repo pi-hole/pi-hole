@@ -282,7 +282,7 @@ whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Co
 
 If you didn't use DHCP settings as your new static address, the Pi will restart after this dialog.  If you are using SSH, you may need to reconnect using the IP address above.
 
-The install log is in /etc/phole." $r $c
+The install log is in /etc/pihole." $r $c
 
 # If a custom address was set, restart
 if [[ "$rebootNeeded" = true ]];then
