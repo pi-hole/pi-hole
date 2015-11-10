@@ -63,6 +63,40 @@ whiptail --msgbox --backtitle "Initating network interface" --title "Static IP N
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
+chooseInterface()
+{
+# Turn the available interfaces into an array so it can be used with a whiptail dialog
+interfacesArray=()
+while read -r line
+do
+interfacesArray+=("$line" "available" "OFF")
+done <<< "$availableInterfaces"
+
+# Find out how many interfaces are available to choose from
+interfaceCount=$(echo "$availableInterfaces" | wc -l)
+chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
+chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
+for desiredInterface in $chooseInterfaceOptions
+do
+	piholeInterface=$desiredInterface
+	# case $chooseInterfaceOptions in
+	# 	eth0)
+	# 		echo "Ethernet"
+	# 		useIPv4=true
+	# 		;;
+	# 	IPv6)
+	# 		echo "IPv6 selected."
+	# 		useIPv6=true
+	# 		;;
+	# esac
+	# chosenInterface="$desiredInterface"
+	# echo "$desiredInterface"
+	echo "Chosen: $piholeInterface"
+done
+
+
+}
+
 use4andor6()
 {
 # Let use select IPv4 and/or IPv6
@@ -79,11 +113,16 @@ do
 			useIPv4=true
             ;;
         IPv6)
-            echo "IPv6 selected."
+			echo "IPv6 selected."
 			useIPv6=true
             ;;
     esac
 done
+}
+
+useIPv6dialog()
+{
+whiptail --msgbox --backtitle "Coming soon..." --title "IPv6 not yet supported" "I need your help for IPv6.  Consider donating at: http://pi-hole.net/donate" $r $c
 }
 
 
@@ -215,6 +254,8 @@ welcomeDialogs
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
 
+chooseInterface
+
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
 
@@ -224,22 +265,23 @@ if [[ "$useIPv4" = true ]];then
 	getStaticIPv4Settings
 	setStaticIPv4
 else
+	useIPv4=false
 	echo "IPv4 will NOT be used."
 fi
 
 # Decide is IPv6 will be used
 if [[ "$useIPv6" = true ]];then
-	whiptail --msgbox --backtitle "Coming soon..." --title "IPv6 not yet supported" "I need your help.  Consider donating at:
-
-															http://pi-hole.net/donate" $r $c
-	echo "Using IPv6"
+	# If only IPv6 is selected, exit because it is not supported yet
+	if [[ "$useIPv6" = true ]] && [[ "$useIPv4" = false ]];then
+		useIPv6dialog
+		exit
+	else
+		useIPv6dialog
+	fi
 else
-	whiptail --msgbox --backtitle "Coming soon..." --title "IPv6 not yet supported" "I need your help.  Consider donating at:
-
-															http://pi-hole.net/donate" $r $c
+	useIPv6=false
 	echo "IPv6 will NOT be used."
 fi
-
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
