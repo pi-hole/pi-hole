@@ -69,7 +69,7 @@ chooseInterface()
 interfacesArray=()
 while read -r line
 do
-interfacesArray+=("$line" "available" "OFF")
+interfacesArray+=("$line" "available" "ON")
 done <<< "$availableInterfaces"
 
 # Find out how many interfaces are available to choose from
@@ -79,22 +79,8 @@ chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1
 for desiredInterface in $chooseInterfaceOptions
 do
 	piholeInterface=$desiredInterface
-	# case $chooseInterfaceOptions in
-	# 	eth0)
-	# 		echo "Ethernet"
-	# 		useIPv4=true
-	# 		;;
-	# 	IPv6)
-	# 		echo "IPv6 selected."
-	# 		useIPv6=true
-	# 		;;
-	# esac
-	# chosenInterface="$desiredInterface"
-	# echo "$desiredInterface"
-	echo "Chosen: $piholeInterface"
+	echo "Using interface: $piholeInterface"
 done
-
-
 }
 
 use4andor6()
@@ -125,7 +111,6 @@ useIPv6dialog()
 whiptail --msgbox --backtitle "Coming soon..." --title "IPv6 not yet supported" "I need your help for IPv6.  Consider donating at: http://pi-hole.net/donate" $r $c
 }
 
-
 getStaticIPv4Settings()
 {
 # Ask if the user wannts to use DHCP settings as their static IP
@@ -142,6 +127,8 @@ if (whiptail --backtitle "Calibrating network interface" --title "Static IP Addr
 	It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
 	# Nothing else to do since the variables are already set above
 else
+	# Since a custom address will be used, restart at the end of the script to apply the new changes
+	rebootNeeded=true
 	# Otherwise, we need to ask the user to input their desired settings.
 	# Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
 	# Start a loop to let the user enter their information with the chance to go back and edit it if necessary
@@ -240,6 +227,7 @@ sudo chown dnsmasq:root /var/log/pihole.log
 sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/installation/gravity.sh
 sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
 sudo curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
+sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
 sudo chmod 755 /usr/local/bin/gravity.sh
 sudo chmod 755 /usr/local/bin/chronometer.sh
 sudo chmod 755 /usr/local/bin/whitelist.sh
@@ -254,6 +242,7 @@ welcomeDialogs
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
 
+# Find interfaces and let the user choose one
 chooseInterface
 
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
@@ -280,7 +269,7 @@ if [[ "$useIPv6" = true ]];then
 	fi
 else
 	useIPv6=false
-	echo "IPv6 will NOT be used."
+	echo "IPv6 will NOT be used.  Consider a donation at pi-hole.net/donate"
 fi
 
 # Install and log everything to a file
@@ -291,16 +280,16 @@ sudo mv $tmpLog $instalLogLoc
 
 whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using this IP: $IPv4addr.
 
-Your Pi will restart when you close this dialog.  If you are using SSH, reconnect using the IP address above.
+If you didn't use DHCP settings as your new static address, the Pi will restart after this dialog.  If you are using SSH, you may need to reconnect using the IP address above.
 
 The install log is in /etc/phole." $r $c
 
-# If the current IP address equals the desired address, no change is needed
-if [[ $IPv4addr = "$(cat /tmp/piholeIP)" ]];then
-	# So just start the services
-	echo "sudo service dnsmasq start"
-	echo "sudo service lighttpd start"
-else
+# If a custom address was set, restart
+if [[ "$rebootNeeded" = true ]];then
 	# Restart to apply the new static IP address
-	echo "sudo reboot"
+	sudo reboot
+else
+	# If not, just start the services since the address will stay the same
+	sudo service dnsmasq start
+	sudo service lighttpd start
 fi
