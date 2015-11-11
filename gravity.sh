@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # http://pi-hole.net
 # Compiles a list of ad-serving domains by downloading them from multiple sources
 
