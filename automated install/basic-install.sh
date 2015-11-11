@@ -231,8 +231,8 @@ sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/
 sudo chmod 755 /usr/local/bin/gravity.sh
 sudo chmod 755 /usr/local/bin/chronometer.sh
 sudo chmod 755 /usr/local/bin/whitelist.sh
+sudo chmod 755 /usr/local/bin/piholeLogFlush.sh
 sudo /usr/local/bin/gravity.sh
-sudo service networking restart
 }
 
 ######## SCRIPT ############
