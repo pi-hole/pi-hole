@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # http://pi-hole.net
 # Compiles a list of ad-serving domains by downloading them from multiple sources
-
-# This script should only be run after you have a static IP address set on the Pi
-piholeIP=$(hostname -I)
+piholeIPfile=/tmp/piholeIP
+if [[ -f $piholeIPfile ]];then
+    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
+    piholeIP=$(cat $piholeIPfile)
+    rm $piholeIPfile
+else
+    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+    piholeIP=$(ip -4 addr show | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}' | sed '/^\s*$/d' | grep -v "127.0.0.1")
+fi
 
 # Ad-list sources--one per line in single quotes
+# The mahakala source is commented out due to many users having issues with it blocking legitimate domains.  Uncomment at your own risk
 sources=('https://adaway.org/hosts.txt'
 'http://adblock.gjtech.net/?format=unix-hosts'
 #'http://adblock.mahakala.is/'
@@ -129,8 +136,7 @@ function gravity_advanced() {
 
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	awk '{print "'"$piholeIP"'" $1}' $origin/$eventHorizon > $origin/$accretionDisc
-
+	cat $origin/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $origin/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	sudo cp $origin/$accretionDisc $adList
 	kill -HUP $(pidof dnsmasq)
