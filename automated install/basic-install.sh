@@ -69,6 +69,7 @@ whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "T
 
 # Explain the need for a static address
 whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
@@ -124,12 +125,15 @@ getStaticIPv4Settings()
 {
 # Ask if the user wannts to use DHCP settings as their static IP
 if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
+
 								IP address:    $IPv4addr
 								Subnet mask:   $IPv4mask
 								Gateway:       $IPv4gw" $r $c) then
 	# If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
 	whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
+
 	If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
+
 	It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
 	# Nothing else to do since the variables are already set above
 else
@@ -285,7 +289,9 @@ installPihole | tee $tmpLog
 $SUDO mv $tmpLog $instalLogLoc
 
 whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using this IP: $IPv4addr.
+
 If you didn't use DHCP settings as your new static address, the Pi will restart after this dialog.  If you are using SSH, you may need to reconnect using the IP address above.
+
 The install log is in /etc/pihole." $r $c
 
 # If a custom address was set, restart
