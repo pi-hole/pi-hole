@@ -113,6 +113,7 @@ do
 
         # Save the file as list.#.domain
         saveLocation=$piholeDir/list.$i.$domain.$justDomainsExtension
+        activeDomains[$i]=$saveLocation
 
         agent="Mozilla/10.0"
 
@@ -140,9 +141,13 @@ done
 # Schwarzchild - aggregate domains to one list and add blacklisted domains
 function gravity_Schwarzchild() {
 
-# Find all files with the .domains extension and compile them into one file and remove CRs
+# Find all active domains and compile them into one file and remove CRs
 echo "** Aggregating list of domains..."
-find $piholeDir/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $piholeDir/$matter
+truncate -s 0 $piholeDir/$matter
+for i in "${activeDomains[@]}"
+do
+   cat $i |tr -d '\r' >> $piholeDir/$matter
+done
 
 # Append blacklist entries if they exist
 if [[ -r $blacklist ]];then
