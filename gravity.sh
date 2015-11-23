@@ -42,6 +42,10 @@ if [[ -r $piholeDir/pihole.conf ]];then
     echo "** Local calibration requested..."
         . $piholeDir/pihole.conf
 fi
+###########################
+# collapse - begin formation of pihole
+function gravity_collapse() {
+
 echo "** Neutrino emissions detected..."
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
@@ -55,46 +59,42 @@ else
         echo "** Creating pihole directory..."
         mkdir $piholeDir
 fi
-
-###########################
-# patternCheck - check to see if curl downloaded any new files, and then process those
-# files so they are in host format.
-function gravity_patternCheck() {
-        patternBuffer=$1
-        # check if the patternbuffer is a non-zero length file
-        if [[ -s "$patternBuffer" ]];then
-                # Remove comments and print only the domain name
-                # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
-                # This helps with that and makes it easier to read
-                # It also helps with debugging so each stage of the script can be researched more in depth
-                awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $patternBuffer | \
-                        sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
-                echo "Done."
-        else
-                # curl didn't download any host files, probably because of the date check
-                echo "Transporter logic detected no changes, pattern skipped..."
-        fi
 }
 
-        # Use a case statement to download lists that need special cURL commands
-        # to complete properly and reset the user agent when required
-        case "$domain" in
-                "adblock.mahakala.is")
-                        agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
-                        cmd_ext="-e http://forum.xda-developers.com/"
-                        ;;
+# spinup - main gravity function
+function gravity_spinup() {
 
-                "pgl.yoyo.org")
-                        cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
-                        ;;
+# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
+for ((i = 0; i < "${#sources[@]}"; i++))
+do
+        url=${sources[$i]}
+        # Get just the domain from the URL
+# Whitelist (if applicable) domains
+if [[ -r $whitelist ]];then
+        # Remove whitelist entries
+        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
+        plural=; [[ "$numberOf" != "1" ]] && plural=s
+        echo "** Whitelisting $numberOf domain${plural}..."
 
-                # Default is a simple request
-                *) cmd_ext=""
-        esac
-        gravity_transport $url $cmd_ext $agent
+        # Append a "$" to the end, prepend a "^" to the beginning, and
+        # replace "." with "\." of each line to turn each entry into a
+        # regexp so it can be parsed out with grep -x
+        awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
+else
+        rm $latentWhitelist
+fi
+
+# Prevent our sources from being pulled into the hole
+plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
+echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
+for url in ${sources[@]}
+do
+        echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
 done
-        # Compress files to singularity and white/blacklist
-        gravity_Schwarzchild
+
+# Remove whitelist entries from list
+grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
+
 }
 
 function gravity_advanced() {
@@ -120,5 +120,6 @@ function gravity_advanced() {
 }
 
 gravity_spinup
-
+gravity_transport
+gravity_Schwartzchild
 gravity_advanced
