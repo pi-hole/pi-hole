@@ -46,36 +46,35 @@ echo "** Neutrino emissions detected..."
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 if [[ -d $piholeDir ]];then
-        :
+        # Temporary hack to allow non-root access to pihole directory
+        # Will update later, needed for existing installs, new installs should
+        # create this directory as non-root
+        sudo chmod 777 $piholeDir
+        find "$piholeDir" -type f -exec sudo chmod 666 {} \;
 else
         echo "** Creating pihole directory..."
-        sudo mkdir $piholeDir
+        mkdir $piholeDir
 fi
 
-# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
-for ((i = 0; i < "${#sources[@]}"; i++))
-do
-        url=${sources[$i]}
-        # Get just the domain from the URL
-        domain=$(echo "$url" | cut -d'/' -f3)
+###########################
+function gravity_patterncheck() {
 
-        # Save the file as list.#.domain
-        saveLocation=$piholeDir/list.$i.$domain.$justDomainsExtension
+        patternBuffer=$1
 
-        agent="Mozilla/10.0"
-
-        echo -n "Getting $domain list... "
-
-        # Use a case statement to download lists that need special cURL commands
-        # to complete properly and reset the user agent when required
-        case "$domain" in
-                "adblock.mahakala.is")
-                        agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
-                        cmd_ext="-e http://forum.xda-developers.com/"
-                        ;;
-
-                "pgl.yoyo.org")
-        echo "** $numberOf domains being pulled in by gravity..."
+        # check if the patternbuffer is a non-zero length file
+        if [[ -s "$patternBuffer" ]];then
+                # Remove comments and print only the domain name
+                # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+                # This helps with that and makes it easier to read
+                # It also helps with debugging so each stage of the script can be researched more in depth
+                awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $patternBuffer | \
+                        sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
+                echo "Done."
+        else
+                # curl didn't download any host files, probably because of the date check
+                echo "Transporter logic detected no changes, pattern skipped..."
+        fi
+}
 
         # Remove carriage returns and preceding whitespace
         # not really needed anymore?
@@ -90,9 +89,11 @@ do
         echo "** Formatting domains into a HOSTS file..."
         cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
         # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-        sudo cp $piholeDir/$accretionDisc $adList
-        kill -HUP $(pidof dnsmasq)
+        cp $piholeDir/$accretionDisc $adList
+        sudo kill -HUP $(pidof dnsmasq)
 }
+
+gravity_spinup
 
 # Whitelist (if applicable) then remove duplicates and format for dnsmasq
 if [[ -r $whitelist ]];then
