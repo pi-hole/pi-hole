@@ -1,11 +1,21 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015 by Jacob Salmela GPL 2.0
+# Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
 # Compiles a list of ad-serving domains by downloading them from multiple sources
-
-# This script should only be run after you have a static IP address set on the Pi
-piholeIP=$(hostname -I)
+piholeIPfile=/tmp/piholeIP
+if [[ -f $piholeIPfile ]];then
+    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
+    piholeIP=$(cat $piholeIPfile)
+    rm $piholeIPfile
+else
+    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+    piholeIP=$(ip -4 addr show | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}' | sed '/^\s*$/d' | grep -v "127.0.0.1" | (head -n1))
+fi
 
 # Ad-list sources--one per line in single quotes
+# The mahakala source is commented out due to many users having issues with it blocking legitimate domains.  Uncomment at your own risk
 sources=('https://adaway.org/hosts.txt'
 'http://adblock.gjtech.net/?format=unix-hosts'
 #'http://adblock.mahakala.is/'
@@ -16,139 +26,144 @@ sources=('https://adaway.org/hosts.txt'
 'http://winhelp2002.mvps.org/hosts.txt')
 
 # Variables for various stages of downloading and formatting the list
-adList=/etc/pihole/gravity.list
-origin=/etc/pihole
-piholeDir=/etc/pihole
-justDomainsExtension=domains
-matter=pihole.0.matter.txt
-andLight=pihole.1.andLight.txt
-supernova=pihole.2.supernova.txt
-eventHorizon=pihole.3.eventHorizon.txt
-accretionDisc=pihole.4.accretionDisc.txt
-eyeOfTheNeedle=pihole.5.wormhole.txt
+basename=pihole
+piholeDir=/etc/$basename
+adList=$piholeDir/gravity.list
 blacklist=$piholeDir/blacklist.txt
 whitelist=$piholeDir/whitelist.txt
-latentWhitelist=$origin/latentWhitelist.txt
+latentWhitelist=$piholeDir/latentWhitelist.txt
+justDomainsExtension=domains
+matter=$basename.0.matter.txt
+andLight=$basename.1.andLight.txt
+supernova=$basename.2.supernova.txt
+eventHorizon=$basename.3.eventHorizon.txt
+accretionDisc=$basename.4.accretionDisc.txt
+eyeOfTheNeedle=$basename.5.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
     echo "** Local calibration requested..."
-	. $piholeDir/pihole.conf
+        . $piholeDir/pihole.conf
 fi
+###########################
+# collapse - begin formation of pihole
+function gravity_collapse() {
 echo "** Neutrino emissions detected..."
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 if [[ -d $piholeDir ]];then
-	:
+        # Temporary hack to allow non-root access to pihole directory
+        # Will update later, needed for existing installs, new installs should
+        # create this directory as non-root
+        sudo chmod 777 $piholeDir
+        find "$piholeDir" -type f -exec sudo chmod 666 {} \;
 else
-	echo "** Creating pihole directory..."
-	sudo mkdir $piholeDir
+        echo "** Creating pihole directory..."
+        mkdir $piholeDir
 fi
+}
+
+# patternCheck - check to see if curl downloaded any new files, and then process those
+# files so they are in host format.
+function gravity_patternCheck() {
+        patternBuffer=$1
+        # check if the patternbuffer is a non-zero length file
+        if [[ -s "$patternBuffer" ]];then
+                # Some of the blocklists are copyright, they need to be downloaded
+                # and stored as is. They can be processed for content after they
+                # have been saved.
+                cp $patternBuffer $saveLocation
+                echo "Done."
+        else
+                # curl didn't download any host files, probably because of the date check
+                echo "Transporter logic detected no changes, pattern skipped..."
+        fi
+}
+
+# transport - curl the specified url with any needed command extentions, then patternCheck
+function gravity_transport() {
+        url=$1
+        cmd_ext=$2
+        agent=$3
+        # tmp file, so we don't have to store the (long!) lists in RAM
+        patternBuffer=$(mktemp)
+        heisenbergCompensator=""
+        if [[ -r $saveLocation ]]; then
+                # if domain has been saved, add file for date check to only download newer
+                heisenbergCompensator="-z $saveLocation"
+        fi
+        # Silently curl url
+        curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
+
+        gravity_patternCheck $patternBuffer
+
+        # Cleanup
+        rm -f $patternBuffer
+
+}
+# spinup - main gravity function
+function gravity_spinup() {
 
 # Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
 for ((i = 0; i < "${#sources[@]}"; i++))
 do
-	url=${sources[$i]}
-	# Get just the domain from the URL
-	domain=$(echo "$url" | cut -d'/' -f3)
+        url=${sources[$i]}
+        # Get just the domain from the URL
+        domain=$(echo "$url" | cut -d'/' -f3)
 
-	# Save the file as list.#.domain
-	saveLocation=$origin/list.$i.$domain.$justDomainsExtension
+        # Save the file as list.#.domain
+        saveLocation=$piholeDir/list.$i.$domain.$justDomainsExtension
 
-	agent="Mozilla/10.0"
+        agent="Mozilla/10.0"
 
-	echo -n "Getting $domain list... "
+        echo -n "Getting $domain list... "
 
-	# Use a case statement to download lists that need special cURL commands
-	# to complete properly and reset the user agent when required
-	case "$domain" in
-		"adblock.mahakala.is")
-			agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
-			cmd="curl -e http://forum.xda-developers.com/"
-			;;
+        # Use a case statement to download lists that need special cURL commands
+        # to complete properly and reset the user agent when required
+        case "$domain" in
+                "adblock.mahakala.is")
+                        agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+                        cmd_ext="-e http://forum.xda-developers.com/"
+                        ;;
 
-		"pgl.yoyo.org")
-			cmd="curl -d mimetype=plaintext -d hostformat=hosts"
-			;;
+                "pgl.yoyo.org")
+                        cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
+                        ;;
 
-		# Default is a simple curl request
-		*) cmd="curl"
-	esac
-
-	# tmp file, so we don't have to store the (long!) lists in RAM
-	patternBuffer=$(mktemp)
-	heisenbergCompensator=""
-	if [[ -r $saveLocation ]]; then
-		heisenbergCompensator="-z $saveLocation"
-	fi
-	CMD="$cmd -s $heisenbergCompensator -A '$agent' $url > $patternBuffer"
-	$cmd -s $heisenbergCompensator -A "$agent" $url > $patternBuffer
-
-
-	if [[ -s "$patternBuffer" ]];then
-		# Remove comments and print only the domain name
-		# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
-		# This helps with that and makes it easier to read
-		# It also helps with debugging so each stage of the script can be researched more in depth
-		awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $patternBuffer | \
-			sed -nr -e 's/\.{2,}/./g' -e '/\./p' > $saveLocation
-		echo "Done."
-	else
-		echo "Skipping pattern because transporter logic detected no changes..."
-	fi
-
-	# Cleanup
-	rm -f $patternBuffer
+                # Default is a simple request
+                *) cmd_ext=""
+        esac
+        gravity_transport $url $cmd_ext $agent
 done
+}
+
+# Schwarzchild - aggregate domains to one list, and then white/blacklist unified list
+function gravity_Schwarzchild() {
 
 # Find all files with the .domains extension and compile them into one file and remove CRs
 echo "** Aggregating list of domains..."
-find $origin/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $origin/$matter
+find $piholeDir/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $piholeDir/$matter
 
 # Append blacklist entries if they exist
 if [[ -r $blacklist ]];then
-	numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
-	echo "** Blacklisting $numberOf domain(s)..."
-	cat $blacklist >> $origin/$matter
+        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
+        echo "** Blacklisting $numberOf domain(s)..."
+        cat $blacklist >> $piholeDir/$matter
 fi
 
-###########################
-function gravity_advanced() {
-
-	numberOf=$(wc -l < $origin/$andLight)
-	echo "** $numberOf domains being pulled in by gravity..."
-
-	# Remove carriage returns and preceding whitespace
-	# not really needed anymore?
-	cp $origin/$andLight $origin/$supernova
-
-	# Sort and remove duplicates
-	sort -u  $origin/$supernova > $origin/$eventHorizon
-	numberOf=$(wc -l < $origin/$eventHorizon)
-	echo "** $numberOf unique domains trapped in the event horizon."
-
-	# Format domain list as "192.168.x.x domain.com"
-	echo "** Formatting domains into a HOSTS file..."
-	awk '{print "'"$piholeIP"'" $1}' $origin/$eventHorizon > $origin/$accretionDisc
-
-	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-	sudo cp $origin/$accretionDisc $adList
-	kill -HUP $(pidof dnsmasq)
-}
-
-# Whitelist (if applicable) then remove duplicates and format for dnsmasq
+# Whitelist (if applicable) domains
 if [[ -r $whitelist ]];then
-	# Remove whitelist entries
-	numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
-	plural=; [[ "$numberOf" != "1" ]] && plural=s
-	echo "** Whitelisting $numberOf domain${plural}..."
+        # Remove whitelist entries
+        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
+        plural=; [[ "$numberOf" != "1" ]] && plural=s
+        echo "** Whitelisting $numberOf domain${plural}..."
 
-	# Append a "$" to the end, prepend a "^" to the beginning, and
-	# replace "." with "\." of each line to turn each entry into a
-	# regexp so it can be parsed out with grep -x
-	awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
+        # Append a "$" to the end, prepend a "^" to the beginning, and
+        # replace "." with "\." of each line to turn each entry into a
+        # regexp so it can be parsed out with grep -x
+        awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
 else
-	rm $latentWhitelist
+        rm $latentWhitelist
 fi
 
 # Prevent our sources from being pulled into the hole
@@ -156,10 +171,39 @@ plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
 echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
 for url in ${sources[@]}
 do
-	echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
+        echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
 done
 
-# Remove whitelist entries from deduped list
-grep -vxf $latentWhitelist $origin/$matter > $origin/$andLight
+# Remove whitelist entries from list
+grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
 
+}
+
+function gravity_advanced() {
+
+        numberOf=$(wc -l < $piholeDir/$andLight)
+        echo "** $numberOf domains being pulled in by gravity..."
+
+        # Remove comments and print only the domain name
+        # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+        # This helps with that and makes it easier to read
+        # It also helps with debugging so each stage of the script can be researched more in depth
+        awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$andLight | \
+                        sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
+
+        # Sort and remove duplicates
+        sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
+        numberOf=$(wc -l < $piholeDir/$eventHorizon)
+        echo "** $numberOf unique domains trapped in the event horizon."
+
+        # Format domain list as "192.168.x.x domain.com"
+        echo "** Formatting domains into a HOSTS file..."
+        cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
+        # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
+        cp $piholeDir/$accretionDisc $adList
+        sudo kill -HUP $(pidof dnsmasq)
+}
+
+gravity_spinup
+gravity_Schwarzchild
 gravity_advanced
