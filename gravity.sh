@@ -57,10 +57,10 @@ else
 fi
 
 ###########################
-function gravity_patterncheck() {
-
+# patternCheck - check to see if curl downloaded any new files, and then process those
+# files so they are in host format.
+function gravity_patternCheck() {
         patternBuffer=$1
-
         # check if the patternbuffer is a non-zero length file
         if [[ -s "$patternBuffer" ]];then
                 # Remove comments and print only the domain name
@@ -75,6 +75,32 @@ function gravity_patterncheck() {
                 echo "Transporter logic detected no changes, pattern skipped..."
         fi
 }
+
+        # Use a case statement to download lists that need special cURL commands
+        # to complete properly and reset the user agent when required
+        case "$domain" in
+                "adblock.mahakala.is")
+                        agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+                        cmd_ext="-e http://forum.xda-developers.com/"
+                        ;;
+
+                "pgl.yoyo.org")
+                        cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
+                        ;;
+
+                # Default is a simple request
+                *) cmd_ext=""
+        esac
+        gravity_transport $url $cmd_ext $agent
+done
+        # Compress files to singularity and white/blacklist
+        gravity_Schwarzchild
+}
+
+function gravity_advanced() {
+
+        numberOf=$(wc -l < $piholeDir/$andLight)
+        echo "** $numberOf domains being pulled in by gravity..."
 
         # Remove carriage returns and preceding whitespace
         # not really needed anymore?
@@ -94,31 +120,5 @@ function gravity_patterncheck() {
 }
 
 gravity_spinup
-
-# Whitelist (if applicable) then remove duplicates and format for dnsmasq
-if [[ -r $whitelist ]];then
-        # Remove whitelist entries
-        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
-        plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo "** Whitelisting $numberOf domain${plural}..."
-
-        # Append a "$" to the end, prepend a "^" to the beginning, and
-        # replace "." with "\." of each line to turn each entry into a
-        # regexp so it can be parsed out with grep -x
-        awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
-else
-        rm $latentWhitelist
-fi
-
-# Prevent our sources from being pulled into the hole
-plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
-echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
-for url in ${sources[@]}
-do
-        echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
-done
-
-# Remove whitelist entries from deduped list
-grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
 
 gravity_advanced
