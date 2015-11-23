@@ -137,7 +137,7 @@ do
 done
 }
 
-# Schwarzchild - aggregate domains to one list, and then white/blacklist unified list
+# Schwarzchild - aggregate domains to one list and add blacklisted domains
 function gravity_Schwarzchild() {
 
 # Find all files with the .domains extension and compile them into one file and remove CRs
@@ -150,6 +150,9 @@ if [[ -r $blacklist ]];then
         echo "** Blacklisting $numberOf domain(s)..."
         cat $blacklist >> $piholeDir/$matter
 fi
+}
+
+function gravity_pulsar() {
 
 # Whitelist (if applicable) domains
 if [[ -r $whitelist ]];then
@@ -176,7 +179,6 @@ done
 
 # Remove whitelist entries from list
 grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
-
 }
 
 function gravity_unique() {
@@ -194,9 +196,6 @@ function gravity_hostFormat() {
 }
 function gravity_advanced() {
 
-        numberOf=$(wc -l < $piholeDir/$andLight)
-        echo "** $numberOf domains being pulled in by gravity..."
-
         # Remove comments and print only the domain name
         # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
         # This helps with that and makes it easier to read
@@ -204,11 +203,16 @@ function gravity_advanced() {
         awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$andLight | \
                         sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 
+        numberOf=$(wc -l < $piholeDir/$supernova)
+        echo "** $numberOf domains being pulled in by gravity..."
+        gravity_unique
+
         sudo kill -HUP $(pidof dnsmasq)
 }
 
 gravity_spinup
 gravity_Schwarzchild
-gravity_unique
+gravity_pulsar
 gravity_hostFormat
 gravity_advanced
+
