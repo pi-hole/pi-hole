@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015 by Jacob Salmela GPL 2.0
+# Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
 # Compiles a list of ad-serving domains by downloading them from multiple sources
 piholeIPfile=/tmp/piholeIP
@@ -45,7 +48,6 @@ fi
 ###########################
 # collapse - begin formation of pihole
 function gravity_collapse() {
-
 echo "** Neutrino emissions detected..."
 
 # Create the pihole resource directory if it doesn't exist.  Future files will be stored here
@@ -61,6 +63,44 @@ else
 fi
 }
 
+# patternCheck - check to see if curl downloaded any new files, and then process those
+# files so they are in host format.
+function gravity_patternCheck() {
+        patternBuffer=$1
+        # check if the patternbuffer is a non-zero length file
+        if [[ -s "$patternBuffer" ]];then
+                # Some of the blocklists are copyright, they need to be downloaded
+                # and stored as is. They can be processed for content after they
+                # have been saved.
+                cp $patternBuffer $saveLocation
+                echo "Done."
+        else
+                # curl didn't download any host files, probably because of the date check
+                echo "Transporter logic detected no changes, pattern skipped..."
+        fi
+}
+
+# transport - curl the specified url with any needed command extentions, then patternCheck
+function gravity_transport() {
+        url=$1
+        cmd_ext=$2
+        agent=$3
+        # tmp file, so we don't have to store the (long!) lists in RAM
+        patternBuffer=$(mktemp)
+        heisenbergCompensator=""
+        if [[ -r $saveLocation ]]; then
+                # if domain has been saved, add file for date check to only download newer
+                heisenbergCompensator="-z $saveLocation"
+        fi
+        # Silently curl url
+        curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
+
+        gravity_patternCheck $patternBuffer
+
+        # Cleanup
+        rm -f $patternBuffer
+
+}
 # spinup - main gravity function
 function gravity_spinup() {
 
@@ -69,6 +109,48 @@ for ((i = 0; i < "${#sources[@]}"; i++))
 do
         url=${sources[$i]}
         # Get just the domain from the URL
+        domain=$(echo "$url" | cut -d'/' -f3)
+
+        # Save the file as list.#.domain
+        saveLocation=$piholeDir/list.$i.$domain.$justDomainsExtension
+
+        agent="Mozilla/10.0"
+
+        echo -n "Getting $domain list... "
+
+        # Use a case statement to download lists that need special cURL commands
+        # to complete properly and reset the user agent when required
+        case "$domain" in
+                "adblock.mahakala.is")
+                        agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+                        cmd_ext="-e http://forum.xda-developers.com/"
+                        ;;
+
+                "pgl.yoyo.org")
+                        cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
+                        ;;
+
+                # Default is a simple request
+                *) cmd_ext=""
+        esac
+        gravity_transport $url $cmd_ext $agent
+done
+}
+
+# Schwarzchild - aggregate domains to one list, and then white/blacklist unified list
+function gravity_Schwarzchild() {
+
+# Find all files with the .domains extension and compile them into one file and remove CRs
+echo "** Aggregating list of domains..."
+find $piholeDir/ -type f -name "*.$justDomainsExtension" -exec cat {} \; | tr -d '\r' > $piholeDir/$matter
+
+# Append blacklist entries if they exist
+if [[ -r $blacklist ]];then
+        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
+        echo "** Blacklisting $numberOf domain(s)..."
+        cat $blacklist >> $piholeDir/$matter
+fi
+
 # Whitelist (if applicable) domains
 if [[ -r $whitelist ]];then
         # Remove whitelist entries
@@ -102,9 +184,12 @@ function gravity_advanced() {
         numberOf=$(wc -l < $piholeDir/$andLight)
         echo "** $numberOf domains being pulled in by gravity..."
 
-        # Remove carriage returns and preceding whitespace
-        # not really needed anymore?
-        cp $piholeDir/$andLight $piholeDir/$supernova
+        # Remove comments and print only the domain name
+        # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+        # This helps with that and makes it easier to read
+        # It also helps with debugging so each stage of the script can be researched more in depth
+        awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$andLight | \
+                        sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 
         # Sort and remove duplicates
         sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
@@ -120,6 +205,5 @@ function gravity_advanced() {
 }
 
 gravity_spinup
-gravity_transport
-gravity_Schwartzchild
+gravity_Schwarzchild
 gravity_advanced
