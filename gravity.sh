@@ -210,6 +210,7 @@ function gravity_advanced() {
         sudo kill -HUP $(pidof dnsmasq)
 }
 
+gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
 gravity_pulsar
