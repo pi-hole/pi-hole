@@ -179,6 +179,19 @@ grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
 
 }
 
+function gravity_unique() {
+        # Sort and remove duplicates
+        sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
+        numberOf=$(wc -l < $piholeDir/$eventHorizon)
+        echo "** $numberOf unique domains trapped in the event horizon."
+}
+function gravity_hostFormat() {
+        # Format domain list as "192.168.x.x domain.com"
+        echo "** Formatting domains into a HOSTS file..."
+        cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
+        # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
+        cp $piholeDir/$accretionDisc $adList
+}
 function gravity_advanced() {
 
         numberOf=$(wc -l < $piholeDir/$andLight)
@@ -191,19 +204,11 @@ function gravity_advanced() {
         awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$andLight | \
                         sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 
-        # Sort and remove duplicates
-        sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
-        numberOf=$(wc -l < $piholeDir/$eventHorizon)
-        echo "** $numberOf unique domains trapped in the event horizon."
-
-        # Format domain list as "192.168.x.x domain.com"
-        echo "** Formatting domains into a HOSTS file..."
-        cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
-        # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-        cp $piholeDir/$accretionDisc $adList
         sudo kill -HUP $(pidof dnsmasq)
 }
 
 gravity_spinup
 gravity_Schwarzchild
+gravity_unique
+gravity_hostFormat
 gravity_advanced
