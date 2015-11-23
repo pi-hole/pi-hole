@@ -63,5 +63,6 @@ This script will work for other UNIX-like systems with some slight **modificatio
 
 ### Examples Of The Pi-hole On Other Operating Systems
 - [Sky-Hole](http://dlaa.me/blog/post/skyhole)
+- [Pi-hole in the Cloud!](http://blog.codybunch.com/2015/07/28/Pi-Hole-in-the-cloud/)
 
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "AdminLTE Presentation")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate")
