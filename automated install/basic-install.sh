@@ -214,15 +214,15 @@ sudo rm /var/www/master.zip 2>/dev/null
 sudo touch /var/log/pihole.log
 sudo chmod 644 /var/log/pihole.log
 sudo chown dnsmasq:root /var/log/pihole.log
-sudo curl -o /usr/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
-sudo curl -o /usr/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
-sudo curl -o /usr/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
-sudo curl -o /usr/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
-sudo chmod 755 /usr/bin/gravity.sh
-sudo chmod 755 /usr/bin/chronometer.sh
-sudo chmod 755 /usr/bin/whitelist.sh
-sudo chmod 755 /usr/bin/piholeLogFlush.sh
-sudo /usr/bin/gravity.sh
+sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
+sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
+sudo curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
+sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
+sudo chmod 755 /usr/local/bin/gravity.sh
+sudo chmod 755 /usr/local/bin/chronometer.sh
+sudo chmod 755 /usr/local/bin/whitelist.sh
+sudo chmod 755 /usr/local/bin/piholeLogFlush.sh
+sudo /usr/local/bin/gravity.sh
 }
 
 ######## SCRIPT ############
