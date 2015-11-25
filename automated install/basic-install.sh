@@ -128,8 +128,6 @@ if (whiptail --backtitle "Calibrating network interface" --title "Static IP Addr
 	It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
 	# Nothing else to do since the variables are already set above
 else
-	# Since a custom address will be used, restart at the end of the script to apply the new changes
-	rebootNeeded=true
 	# Otherwise, we need to ask the user to input their desired settings.
 	# Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
 	# Start a loop to let the user enter their information with the chance to go back and edit it if necessary
@@ -180,7 +178,8 @@ setStaticIPv4()
 echo "interface $piholeInterface
 static ip_address=$IPv4addr
 static routers=$IPv4gw
-static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
+static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null 
+sudo ip addr replace dev $piholeInterface $IPv4addr
 }
 
 installPihole()
@@ -274,12 +273,5 @@ If you didn't use DHCP settings as your new static address, the Pi will restart 
 
 The install log is in /etc/pihole." $r $c
 
-# If a custom address was set, restart
-if [[ "$rebootNeeded" = true ]];then
-	# Restart to apply the new static IP address
-	sudo reboot
-else
-	# If not, just start the services since the address will stay the same
-	sudo service dnsmasq start
-	sudo service lighttpd start
-fi
+sudo service dnsmasq start
+sudo service lighttpd start
