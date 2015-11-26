@@ -178,7 +178,7 @@ setStaticIPv4()
 echo "interface $piholeInterface
 static ip_address=$IPv4addr
 static routers=$IPv4gw
-static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null 
+static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
 sudo ip addr replace dev $piholeInterface $IPv4addr
 }
 
@@ -269,7 +269,7 @@ sudo mv $tmpLog $instalLogLoc
 
 whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using this IP: $IPv4addr.
 
-If you didn't use DHCP settings as your new static address, the Pi will restart after this dialog.  If you are using SSH, you may need to reconnect using the IP address above.
+If you set a new IP address, it should work fine, but you may want to reboot the Pi at some point.
 
 The install log is in /etc/pihole." $r $c
 
