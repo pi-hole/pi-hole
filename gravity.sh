@@ -51,7 +51,7 @@ fi
 ###########################
 # collapse - begin formation of pihole
 function gravity_collapse() {
-echo "** Neutrino emissions detected..."
+	echo "** Neutrino emissions detected..."
 
 	# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 	if [[ -d $piholeDir ]];then
@@ -66,8 +66,7 @@ echo "** Neutrino emissions detected..."
 	fi
 }
 
-# patternCheck - check to see if curl downloaded any new files, and then process those
-# files so they are in host format.
+# patternCheck - check to see if curl downloaded any new files.
 function gravity_patternCheck() {
 	patternBuffer=$1
 	# check if the patternbuffer is a non-zero length file
@@ -83,7 +82,7 @@ function gravity_patternCheck() {
 	fi
 }
 
-# transport - curl the specified url with any needed command extentions, then patternCheck
+# transport - curl the specified url with any needed command extentions
 function gravity_transport() {
 	url=$1
 	cmd_ext=$2
@@ -109,9 +108,9 @@ function gravity_transport() {
 # spinup - main gravity function
 function gravity_spinup() {
 
-# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and blank lines
-for ((i = 0; i < "${#sources[@]}"; i++))
-do
+	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
+	for ((i = 0; i < "${#sources[@]}"; i++))
+	do
         url=${sources[$i]}
         # Get just the domain from the URL
         domain=$(echo "$url" | cut -d'/' -f3)
@@ -139,8 +138,8 @@ do
                 # Default is a simple request
                 *) cmd_ext=""
         esac
-        gravity_transport $url $cmd_ext $agent
-done
+        gravity_transport $url $cmd_ext $agent	
+	done
 }
 
 # Schwarzchild - aggregate domains to one list and add blacklisted domains
@@ -155,6 +154,7 @@ function gravity_Schwarzchild() {
 	done
 }
 
+# Pulsar - White/blacklist application
 function gravity_pulsar() {
 	
 	# Append blacklist entries if they exist
@@ -192,25 +192,26 @@ function gravity_pulsar() {
 }
 
 function gravity_unique() {
-        # Sort and remove duplicates
-        sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
-        numberOf=$(wc -l < $piholeDir/$eventHorizon)
-        echo "** $numberOf unique domains trapped in the event horizon."
+	# Sort and remove duplicates
+	sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
+	numberOf=$(wc -l < $piholeDir/$eventHorizon)
+	echo "** $numberOf unique domains trapped in the event horizon."
 }
 
 function gravity_hostFormat() {
-        # Format domain list as "192.168.x.x domain.com"
-        echo "** Formatting domains into a HOSTS file..."
-        cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
-        # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-        cp $piholeDir/$accretionDisc $adList
+	# Format domain list as "192.168.x.x domain.com"
+	echo "** Formatting domains into a HOSTS file..."
+	cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
+	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
+	cp $piholeDir/$accretionDisc $adList
 }
 
+# blackbody - remove any remnant files from script processes
 function gravity_blackbody() {
 	# Loop through list files	
 	for file in $piholeDir/*.$justDomainsExtension
 	do
-		# If list is active then leave it (noop) else rm the list
+		# If list is in active array then leave it (noop) else rm the list
 		if [[ " ${activeDomains[@]} " =~ " ${file} " ]]; then
 			:
 		else
@@ -220,19 +221,19 @@ function gravity_blackbody() {
 }
 
 function gravity_advanced() {
+	# Remove comments and print only the domain name
+	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+	# This helps with that and makes it easier to read
+	# It also helps with debugging so each stage of the script can be researched more in depth
+	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$andLight | \
+		sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 
-        # Remove comments and print only the domain name
-        # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
-        # This helps with that and makes it easier to read
-        # It also helps with debugging so each stage of the script can be researched more in depth
-        awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$andLight | \
-                        sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
+	numberOf=$(wc -l < $piholeDir/$supernova)
+	echo "** $numberOf domains being pulled in by gravity..."
 
-        numberOf=$(wc -l < $piholeDir/$supernova)
-        echo "** $numberOf domains being pulled in by gravity..."
-        gravity_unique
-
-        sudo kill -HUP $(pidof dnsmasq)
+	gravity_unique
+	
+	sudo kill -HUP $(pidof dnsmasq)
 }
 
 gravity_collapse
