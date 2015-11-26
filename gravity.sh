@@ -145,7 +145,7 @@ function gravity_Schwarzchild() {
 echo "** Aggregating list of domains..."
 truncate -s 0 $piholeDir/$matter
 for i in "${activeDomains[@]}"
-do
+do	
    cat $i |tr -d '\r' >> $piholeDir/$matter
 done
 
@@ -199,6 +199,16 @@ function gravity_hostFormat() {
         # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
         cp $piholeDir/$accretionDisc $adList
 }
+function gravity_blackbody() {
+		for file in $piholeDir/*.$justDomainsExtension
+		do
+			if [[ " ${activeDomains[@]} " =~ " ${file} " ]]; then
+				:
+			else
+				rm -f $file
+			fi
+		done
+}
 function gravity_advanced() {
 
         # Remove comments and print only the domain name
@@ -221,4 +231,4 @@ gravity_Schwarzchild
 gravity_pulsar
 gravity_hostFormat
 gravity_advanced
-
+gravity_blackbody
