@@ -73,10 +73,10 @@ function gravity_patternCheck() {
                 # and stored as is. They can be processed for content after they
                 # have been saved.
                 cp $patternBuffer $saveLocation
-                echo "Done."
+                echo "List updated, transport successful..."
         else
                 # curl didn't download any host files, probably because of the date check
-                echo "Transporter logic detected no changes, pattern skipped..."
+                echo "No changes detected, transport skipped..."
         fi
 }
 
@@ -117,7 +117,7 @@ do
 
         agent="Mozilla/10.0"
 
-        echo -n "Getting $domain list... "
+        echo -n "  Getting $domain list: "
 
         # Use a case statement to download lists that need special cURL commands
         # to complete properly and reset the user agent when required
