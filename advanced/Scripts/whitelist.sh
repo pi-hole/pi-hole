@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ ! -f /etc/pihole/whitelist.txt ]];then
+    touch /etc/pihole/whitelist.txt
+fi
+
 if [ $# = 0 ]; then
     echo "Immediately whitelists one or more domains."
     echo "Usage: whitelist.sh domain1 [domain2 ...]"
@@ -29,7 +33,7 @@ done
 # Now report on and remove matched domains
 if [ "$combopattern" != "" ]; then
   echo "Modifying hosts file..."
-  
+
   # Construct pattern to match entry in hosts file.
   # This consists of one or more IP addresses followed by the domain name.
   pattern=$(echo $combopattern | awk -F '[# \t]' '{printf "%s", "^(([0-9]+\.){3}[0-9]+ +)+("$1")$"}')
