@@ -1,7 +1,8 @@
 #!/bin/bash
-
-if [[ ! -f /etc/pihole/whitelist.txt ]];then
-    touch /etc/pihole/whitelist.txt
+whitelist=/etc/pihole/whitelist.txt
+adList=/etc/pihole/gravity.list
+if [[ ! -f $whitelist ]];then
+    touch $whitelist
 fi
 
 if [[ $# = 0 ]]; then
@@ -25,8 +26,8 @@ do
     combopattern="$combopattern$basicpattern"
 
     # Also add the domain to the whitelist but only if it's not already present
-    grep -E -q "^$basicpattern$" /etc/pihole/whitelist.txt \
-    || echo "$var" >> /etc/pihole/whitelist.txt
+    grep -E -q "^$basicpattern$" $whitelist \
+    || echo "$var" >> $whitelist
   fi
 done
 
@@ -39,8 +40,8 @@ if [[ "$combopattern" != "" ]]; then
   pattern=$(echo $combopattern | awk -F '[# \t]' '{printf "%s", "^(([0-9]+\.){3}[0-9]+ +)+("$1")$"}')
 
   # Output what will be removed and then actually remove
-  sed -r -n 's/'"$pattern"'/  Removed: \3/p' /etc/pihole/gravity.list
-  sed -r -i '/'"$pattern"'/d' /etc/pihole/gravity.list
+  sed -r -n 's/'"$pattern"'/  Removed: \3/p' $adList
+  sed -r -i '/'"$pattern"'/d' $adList
 
   echo "** $# domain(s) whitelisted."
   # Force dnsmasq to reload /etc/pihole/gravity.list
