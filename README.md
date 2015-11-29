@@ -1,10 +1,11 @@
 # Automated Install
 
 1. Install Raspbian 
-2. Set a **static** IP address
-3. Run the command below
+2. Run the command below
 
-```curl -L install.pi-hole.net | bash```
+### ```curl -L install.pi-hole.net | bash```
+
+![Pi-hole automated installation](http://i.imgur.com/Un7lBlj.png)
 
 Once installed, **configure any device to use the Raspberry Pi as its DNS server and the ads will be blocked**.  You can also configure your router's DHCP options to assign the Pi as clients DNS server so they do not need to do it manually.  
 
