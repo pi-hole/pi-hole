@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
 # by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
@@ -24,9 +24,11 @@ columns=$(stty -a | tr \; \\012 | egrep 'columns' | cut -d' ' -f3)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
-IPv4addr=$(ip -4 addr show | awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}' | sed '/^\s*$/d' | grep -v "127.0.0.1")
-IPv4mask=$(ifconfig | awk -F':' '/inet addr/ && !/127.0.0.1/ {print $4}')
-IPv4gw=$(ip route show | awk '/default\ via/ {print $3}')
+# Find IP used to route to outside world
+IPv4info=$(ip route get 8.8.8.8)
+IPv4dev=$(echo $IPv4info| awk '{print $5}')
+IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
+IPv4gw=$(echo $IPv4info | awk '{print $3}')
 
 # IPv6 support to be added later
 #IPv6eui64=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
@@ -195,7 +197,6 @@ getStaticIPv4Settings()
 if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
 
 								IP address:    $IPv4addr
-								Subnet mask:   $IPv4mask
 								Gateway:       $IPv4gw" $r $c) then
 	# If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
 	whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
@@ -205,8 +206,6 @@ if (whiptail --backtitle "Calibrating network interface" --title "Static IP Addr
 	It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
 	# Nothing else to do since the variables are already set above
 else
-	# Since a custom address will be used, restart at the end of the script to apply the new changes
-	rebootNeeded=true
 	# Otherwise, we need to ask the user to input their desired settings.
 	# Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
 	# Start a loop to let the user enter their information with the chance to go back and edit it if necessary
@@ -216,22 +215,17 @@ else
 	IPv4addr=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" $r $c $IPv4addr 3>&1 1>&2 2>&3)
 	if [[ $? = 0 ]];then
     	echo "Your static IPv4 address:    $IPv4addr"
-		# Ask for the subnet mask
-		IPv4mask=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 netmask" --inputbox "Enter your desired IPv4 subnet mask" $r $c $IPv4mask 3>&1 1>&2 2>&3)
-		if [[ $? = 0 ]];then
-			echo "Your static IPv4 netmask:    $IPv4mask"
-			# Ask for the gateway
+		# Ask for the gateway
 			IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" $r $c $IPv4gw 3>&1 1>&2 2>&3)
 			if [[ $? = 0 ]];then
 				echo "Your static IPv4 gateway:    $IPv4gw"
 				# Give the user a chance to review their settings before moving on
 				if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
 					IP address:    $IPv4addr
-					Subnet mask:   $IPv4mask
 					Gateway:       $IPv4gw" $r $c)then
 					# If the settings are correct, then we need to set the piholeIP
 					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script
-					echo $IPv4addr > /tmp/piholeIP
+					echo ${IPv4addr%/*} > /tmp/piholeIP
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
 				else
@@ -245,12 +239,6 @@ else
 				exit
 			fi
 		else
-			# Cancelling subnet mask settings window
-			ipSettingsCorrect=False
-			echo "User canceled."
-			exit
-		fi
-	else
 		# Cancelling IPv4 settings window
 		ipSettingsCorrect=False
 		echo "User canceled."
@@ -266,9 +254,10 @@ setStaticIPv4()
 {
 # Append these lines to /etc/dhcpcd.conf to enable a static IP
 echo "interface $piholeInterface
-static ip_address=$IPv4addr/24
+static ip_address=$IPv4addr
 static routers=$IPv4gw
 static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
+sudo ip addr replace dev $piholeInterface $IPv4addr
 }
 
 installPihole()
@@ -358,10 +347,11 @@ sudo mv $tmpLog $instalLogLoc
 
 whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using this IP: $IPv4addr.
 
-If you didn't use DHCP settings as your new static address, the Pi will restart after this dialog.  If you are using SSH, you may need to reconnect using the IP address above.
+If you set a new IP address, it should work fine, but you may want to reboot the Pi at some point.
 
 The install log is in /etc/pihole." $r $c
 
+<<<<<<< HEAD
 # If a custom address was set, restart
 if [[ "$rebootNeeded" = true ]];then
 	# Restart to apply the new static IP address
@@ -371,4 +361,8 @@ else
 	sudo service dnsmasq start
 	sudo service lighttpd start
 fi
+>>>>>>> refs/remotes/jacobsalmela/master
+=======
+sudo service dnsmasq start
+sudo service lighttpd start
 >>>>>>> refs/remotes/jacobsalmela/master
