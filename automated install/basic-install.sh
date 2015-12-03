@@ -82,6 +82,7 @@ for desiredInterface in $chooseInterfaceOptions
 do
 	piholeInterface=$desiredInterface
 	echo "Using interface: $piholeInterface"
+	echo ${piholeInterface} > /tmp/piholeINT
 done
 }
 
@@ -195,6 +196,7 @@ sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
 sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+sudo sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 }
 
 stopServices(){
