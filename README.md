@@ -49,11 +49,11 @@ The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashb
 If you want to use your own variables for the gravity script (i.e. storing the files in a different location) and don't want to have to change them every time there is an update to the script, create a file called `/etc/pihole/pihole.conf`. In it, you should add your own variables in a similar fashion as shown below:
 
 ```
-origin=/var/run/pihole
+piholeDir=/var/run/pihole
 adList=/etc/dnsmasq.d/adList
 ```
 
-See [this PR](https://github.com/jacobsalmela/pi-hole/pull/20) for more details.
+See the [Wiki](https://github.com/jacobsalmela/pi-hole/wiki/Customization) entry for more details.
 
 ### How It Works
 A technical and detailed description can be found [here](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0)!
