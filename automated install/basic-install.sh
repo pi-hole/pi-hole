@@ -34,7 +34,7 @@ IPv4gw=$(echo $IPv4info | awk '{print $3}')
 #IPv6eui64=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
 #IPv6linkLocal=$(ip addr show | awk '/inet/ && /scope\ link/ && /fe80/ {print $2}' | cut -d'/' -f1)
 
-availableInterfaces=$(ip link show | awk -F' ' '/[0-9]: [a-z]/ {print $2}' | grep -v "lo" | cut -d':' -f1)
+availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
 ####### FUCNTIONS ##########
