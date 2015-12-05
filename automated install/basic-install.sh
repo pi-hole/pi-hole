@@ -34,6 +34,27 @@ IPv4gw=$(echo $IPv4info | awk '{print $3}')
 #IPv6eui64=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
 #IPv6linkLocal=$(ip addr show | awk '/inet/ && /scope\ link/ && /fe80/ {print $2}' | cut -d'/' -f1)
 
+<<<<<<< HEAD
+#Checks if the script is being run as root and sets sudo accordingly
+echo "Checking if running as root..."
+if (( $EUID==0 )); then SUDO=''
+echo "WE ARE ROOT!"
+elif [ $(dpkg-query -s -f='${Status}' sudo 2>/dev/null | grep -c "ok installed") -eq 1 ]; then SUDO='sudo' 
+echo "sudo IS installed... setting SUDO to sudo!"
+else echo "Sudo NOT found AND not ROOT! Must run script as root!"
+exit 1
+fi
+
+if [[ -f /etc/dnsmasq.d/adList.conf ]];then
+	echo "Original Pi-hole detected.  Initiating sub space transport..."
+	$SUDO mkdir -p /etc/pihole/original/
+	$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
+	$SUDO mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
+=======
 availableInterfaces=$(ip link show | awk -F' ' '/[0-9]: [a-z]/ {print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
@@ -49,11 +70,68 @@ if [[ -f /etc/dnsmasq.d/adList.conf ]];then
 	sudo mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
 	sudo mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
 	sudo mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
+>>>>>>> refs/remotes/jacobsalmela/master
 else
 	:
 fi
 }
 
+<<<<<<< HEAD
+echo "Updating the Pi..."
+$SUDO apt-get update
+$SUDO apt-get -y upgrade
+
+echo "Installing tools..."
+$SUDO apt-get -y install dnsutils
+$SUDO apt-get -y install bc
+$SUDO apt-get -y install toilet
+
+echo "Installing DNS..."
+$SUDO apt-get -y install dnsmasq
+$SUDO update-rc.d dnsmasq enable
+
+echo "Installing a Web server"
+$SUDO apt-get -y install lighttpd php5-common php5-cgi php5
+$SUDO mkdir /var/www/html
+$SUDO chown www-data:www-data /var/www/html
+$SUDO chmod 775 /var/www/html
+$SUDO usermod -a -G www-data pi
+
+echo "Stopping services to modify them..."
+$SUDO service dnsmasq stop
+$SUDO service lighttpd stop
+
+echo "Backing up original config files and downloading Pi-hole ones..."
+$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+$SUDO curl -o /etc/dnsmasq.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf"
+$SUDO curl -o /etc/lighttpd/lighttpd.conf "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf"
+$SUDO lighty-enable-mod fastcgi fastcgi-php
+$SUDO mkdir /var/www/html/pihole
+$SUDO curl -o /var/www/html/pihole/index.html "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html"
+
+echo "Installing the Web interface..."
+$SUDO wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
+$SUDO unzip /var/www/master.zip -d /var/www/html/
+$SUDO mv /var/www/html/AdminLTE-master /var/www/html/admin
+$SUDO rm /var/www/master.zip 2>/dev/null
+$SUDO touch /var/log/pihole.log
+$SUDO chmod 644 /var/log/pihole.log
+$SUDO chown dnsmasq:root /var/log/pihole.log
+
+echo "Locating the Pi-hole..."
+$SUDO curl -o /usr/local/bin/gravity.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh"
+$SUDO curl -o /usr/local/bin/chronometer.sh "https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh"
+$SUDO chmod 755 /usr/local/bin/gravity.sh
+$SUDO chmod 755 /usr/local/bin/chronometer.sh
+
+echo "Entering the event horizon..."
+$SUDO /usr/local/bin/gravity.sh
+
+echo "Restarting..."
+$SUDO reboot
+=======
 welcomeDialogs()
 {
 # Display the welcome dialog
@@ -273,5 +351,18 @@ If you set a new IP address, it should work fine, but you may want to reboot the
 
 The install log is in /etc/pihole." $r $c
 
+<<<<<<< HEAD
+# If a custom address was set, restart
+if [[ "$rebootNeeded" = true ]];then
+	# Restart to apply the new static IP address
+	sudo reboot
+else
+	# If not, just start the services since the address will stay the same
+	sudo service dnsmasq start
+	sudo service lighttpd start
+fi
+>>>>>>> refs/remotes/jacobsalmela/master
+=======
 sudo service dnsmasq start
 sudo service lighttpd start
+>>>>>>> refs/remotes/jacobsalmela/master

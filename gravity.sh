@@ -17,6 +17,16 @@ else
 	piholeIP=${piholeIPCIDR%/*}
 fi
 
+#Checks if the script is being run as root and sets sudo accordingly
+echo "Checking if running as root..."
+if (( $EUID==0 )); then SUDO=''
+echo "WE ARE ROOT!"
+elif [ $(dpkg-query -s -f='${Status}' sudo 2>/dev/null | grep -c "ok installed") -eq 1 ]; then SUDO='sudo' 
+echo "sudo IS installed... setting SUDO to sudo!"
+else echo "Sudo is NOT found AND not ROOT! Must run script as root!"
+exit 1
+fi
+
 # Ad-list sources--one per line in single quotes
 # The mahakala source is commented out due to many users having issues with it blocking legitimate domains.
 # Uncomment at your own risk
@@ -47,7 +57,20 @@ eyeOfTheNeedle=$basename.5.wormhole.txt
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
     echo "** Local calibration requested..."
+<<<<<<< HEAD
+	. $piholeDir/pihole.conf
+fi
+echo "** Neutrino emissions detected..."
+
+# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
+if [[ -d $piholeDir ]];then
+	:
+else
+	echo "** Creating pihole directory..."
+	$SUDO mkdir $piholeDir
+=======
         . $piholeDir/pihole.conf
+>>>>>>> refs/remotes/jacobsalmela/master
 fi
 
 ###########################
@@ -205,7 +228,12 @@ function gravity_hostFormat() {
 	echo "** Formatting domains into a HOSTS file..."
 	cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
+<<<<<<< HEAD
+	$SUDO cp $origin/$accretionDisc $adList
+	kill -HUP $(pidof dnsmasq)
+=======
 	cp $piholeDir/$accretionDisc $adList
+>>>>>>> refs/remotes/jacobsalmela/master
 }
 
 # blackbody - remove any remnant files from script processes
@@ -238,6 +266,9 @@ function gravity_advanced() {
 	sudo kill -s -HUP $(pidof dnsmasq)
 }
 
+<<<<<<< HEAD
+gravity_advanced
+=======
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
@@ -245,3 +276,4 @@ gravity_pulsar
 gravity_advanced
 gravity_hostFormat
 gravity_blackbody
+>>>>>>> refs/remotes/jacobsalmela/master
