@@ -92,7 +92,6 @@ cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
 options=(IPv4 "Block ads over IPv4" on
          IPv6 "Block ads over IPv4" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-clear
 for choice in $choices
 do
     case $choice in
@@ -179,6 +178,7 @@ echo "interface $piholeInterface
 static ip_address=$IPv4addr
 static routers=$IPv4gw
 static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
+echo "Setting IP to $IPv4addr.  You may need to restart after the install is complete."
 sudo ip addr replace dev $piholeInterface $IPv4addr
 }
 
@@ -200,6 +200,7 @@ sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
 sudo mv /etc/crontab /etc/crontab.orig
 sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
+sudo sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
 sudo mv /etc/crontab /etc/crontab.orig
 sudo curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
