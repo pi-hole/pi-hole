@@ -1,4 +1,6 @@
-# Automated Install
+# Automated Install 
+#### Designed For Raspberry Pi B, B+, 2,
+##### and Zero (with an Ethernet adapter)
 
 1. Install Raspbian 
 2. Run the command below
@@ -11,12 +13,10 @@ Once installed, **configure any device to use the Raspberry Pi as its DNS server
 
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "AdminLTE Presentation")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate")
 
-# Raspberry Pi Ad Blocker 
-**A black hole for ads, hence Pi-hole**
+# How Does It Work?
+**Watch the 60-second video below to get a quick overview**
 
-![Pi-hole](http://i.imgur.com/wd5ltCU.png)
-
-The Pi-hole is a DNS/Web server that will **block ads for any device on your network**.
+[![Pi-hole exlplained](http://i.imgur.com/wd5ltCU.png)](https://vimeo.com/135965232)
 
 ## Coverage
 
