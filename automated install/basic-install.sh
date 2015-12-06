@@ -237,11 +237,6 @@ sudo mv /etc/crontab /etc/crontab.orig
 sudo curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
 }
 
-installPiLog(){
-sudo touch /var/log/pihole.log
-sudo chmod 644 /var/log/pihole.log
-sudo chown dnsmasq:root /var/log/pihole.log
-}
 installPihole()
 {
 installDependencies
@@ -255,7 +250,6 @@ installConfigs
 installWebAdmin
 installPiholeWeb
 installCron
-installPiLog
 sudo /usr/local/bin/gravity.sh
 }
 
