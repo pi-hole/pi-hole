@@ -12,7 +12,7 @@ if [[ -f $piholeIPfile ]];then
     rm $piholeIPfile
 else
     # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-	IPv4dev=$(ip route get 8.8.8.8 | awk '{print $5}')
+	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
 	piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}') | awk 'END {print}')
 	piholeIP=${piholeIPCIDR%/*}
 fi
