@@ -93,7 +93,6 @@ cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
 options=(IPv4 "Block ads over IPv4" on
          IPv6 "Block ads over IPv4" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-clear
 for choice in $choices
 do
     case $choice in
@@ -172,15 +171,23 @@ done
 fi
 }
 
-
-setStaticIPv4()
-{
-# Append these lines to /etc/dhcpcd.conf to enable a static IP
+setDHCPCD(){
+# Append these lines to dhcpcd.conf to enable a static IP
 echo "interface $piholeInterface
 static ip_address=$IPv4addr
 static routers=$IPv4gw
 static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
-sudo ip addr replace dev $piholeInterface $IPv4addr
+}
+
+setStaticIPv4(){
+if grep -q $IPv4addr $dhcpcdFile; then
+	# address already set, noop
+	:
+else
+	setDHCPCD
+	sudo ip addr replace dev $piholeInterface $IPv4addr
+	echo "Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+fi
 }
 
 installScripts(){
