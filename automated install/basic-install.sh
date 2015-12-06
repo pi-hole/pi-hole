@@ -34,7 +34,7 @@ IPv4gw=$(echo $IPv4info | awk '{print $3}')
 #IPv6eui64=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
 #IPv6linkLocal=$(ip addr show | awk '/inet/ && /scope\ link/ && /fe80/ {print $2}' | cut -d'/' -f1)
 
-availableInterfaces=$(ip link show | awk -F' ' '/[0-9]: [a-z]/ {print $2}' | grep -v "lo" | cut -d':' -f1)
+availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
 ####### FUCNTIONS ##########
@@ -82,6 +82,7 @@ for desiredInterface in $chooseInterfaceOptions
 do
 	piholeInterface=$desiredInterface
 	echo "Using interface: $piholeInterface"
+	echo ${piholeInterface} > /tmp/piholeINT
 done
 }
 
@@ -182,46 +183,72 @@ echo "Setting IP to $IPv4addr.  You may need to restart after the install is com
 sudo ip addr replace dev $piholeInterface $IPv4addr
 }
 
-installPihole()
-{
+installScripts(){
+sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
+sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
+sudo curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
+sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
+sudo chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,piholeLogFlush}.sh
+}
+
+installConfigs(){
+sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
+sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+sudo sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
+}
+
+stopServices(){
+sudo service dnsmasq stop || true
+sudo service lighttpd stop || true
+}
+
+installDependencies(){
 sudo apt-get update
 sudo apt-get -y upgrade
 sudo apt-get -y install dnsutils bc toilet
 sudo apt-get -y install dnsmasq
 sudo apt-get -y install lighttpd php5-common php5-cgi php5
-sudo mkdir /var/www/html
-sudo chown www-data:www-data /var/www/html
-sudo chmod 775 /var/www/html
-sudo usermod -a -G www-data pi
-sudo service dnsmasq stop
-sudo service lighttpd stop
-sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-sudo mv /etc/crontab /etc/crontab.orig
-sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
-sudo sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
-sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
-sudo mv /etc/crontab /etc/crontab.orig
-sudo curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
-sudo lighty-enable-mod fastcgi fastcgi-php
-sudo mkdir /var/www/html/pihole
-sudo curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+}
+
+installWebAdmin(){
 sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
-sudo unzip -o /var/www/master.zip -d /var/www/html/
+sudo unzip -oq /var/www/master.zip -d /var/www/html/
 sudo mv /var/www/html/AdminLTE-master /var/www/html/admin
 sudo rm /var/www/master.zip 2>/dev/null
+}
+
+installPiholeWeb(){
+sudo mkdir /var/www/html/pihole
+sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+sudo curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+}
+
+installCron(){
+sudo mv /etc/crontab /etc/crontab.orig
+sudo curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+}
+
+installPiLog(){
 sudo touch /var/log/pihole.log
 sudo chmod 644 /var/log/pihole.log
 sudo chown dnsmasq:root /var/log/pihole.log
-sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
-sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
-sudo curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
-sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
-sudo chmod 755 /usr/local/bin/gravity.sh
-sudo chmod 755 /usr/local/bin/chronometer.sh
-sudo chmod 755 /usr/local/bin/whitelist.sh
-sudo chmod 755 /usr/local/bin/piholeLogFlush.sh
+}
+installPihole()
+{
+installDependencies
+stopServices
+sudo chown www-data:www-data /var/www/html
+sudo chmod 775 /var/www/html
+sudo usermod -a -G www-data pi
+sudo lighty-enable-mod fastcgi fastcgi-php
+installScripts
+installConfigs
+installWebAdmin
+installPiholeWeb
+installCron
+installPiLog
 sudo /usr/local/bin/gravity.sh
 }
 
