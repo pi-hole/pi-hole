@@ -1,0 +1,21 @@
+=head1 NAME
+
+Gravity - A Raspberry Pi based Ad Blocker.
+
+=head1 DESCRIPTION
+
+Gravity is a script that downloads ad hosting domain name lists and formats
+them for use with a domain name server to block ads.
+
+=head1 BUGS
+
+Please report any bugs to the bug tracker at https://github.com/jacobsalmela/pi-hole
+
+=head1 AUTHORS
+
+B<gravity> was written by Jacob Salmela <adblock@pi-hole.net>. This manual page was 
+written by Dan Schaper <dschaper@ganymeade.com>.
+
+Both are released under the GNU General Public License, version 2 or later.
+
+=cut
