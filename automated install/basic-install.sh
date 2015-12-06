@@ -25,10 +25,9 @@ r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
 # Find IP used to route to outside world
-IPv4info=$(ip route get 8.8.8.8)
-IPv4dev=$(echo $IPv4info| awk '{print $5}')
-IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
-IPv4gw=$(echo $IPv4info | awk '{print $3}')
+IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 
 # IPv6 support to be added later
 #IPv6eui64=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
