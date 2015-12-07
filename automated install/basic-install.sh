@@ -186,8 +186,6 @@ static routers=$IPv4gw
 static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
 }
 
-<<<<<<< HEAD
-=======
 setStaticIPv4(){
 if grep -q $IPv4addr $dhcpcdFile; then
 	# address already set, noop
@@ -199,7 +197,6 @@ else
 fi
 }
 
->>>>>>> b261e046bb6a8a2c7f2301ff6a9d37aa70e898fd
 installScripts(){
 sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
 sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
@@ -213,10 +210,7 @@ sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
 sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
-<<<<<<< HEAD
-=======
 sudo sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
->>>>>>> b261e046bb6a8a2c7f2301ff6a9d37aa70e898fd
 }
 
 stopServices(){
