@@ -32,16 +32,15 @@ r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
 # Find IP used to route to outside world
-IPv4info=$(ip route get 8.8.8.8)
-IPv4dev=$(echo $IPv4info| awk '{print $5}')
-IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
-IPv4gw=$(echo $IPv4info | awk '{print $3}')
+IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 
 # IPv6 support to be added later
 #IPv6eui64=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
 #IPv6linkLocal=$(ip addr show | awk '/inet/ && /scope\ link/ && /fe80/ {print $2}' | cut -d'/' -f1)
 
-availableInterfaces=$(ip link show | awk -F' ' '/[0-9]: [a-z]/ {print $2}' | grep -v "lo" | cut -d':' -f1)
+availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
 ####### FUCNTIONS ##########
@@ -89,6 +88,7 @@ for desiredInterface in $chooseInterfaceOptions
 do
 	piholeInterface=$desiredInterface
 	echo "Using interface: $piholeInterface"
+	echo ${piholeInterface} > /tmp/piholeINT
 done
 }
 
@@ -99,7 +99,6 @@ cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
 options=(IPv4 "Block ads over IPv4" on
          IPv6 "Block ads over IPv4" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-clear
 for choice in $choices
 do
     case $choice in
@@ -179,17 +178,28 @@ done
 fi
 }
 
-
-setStaticIPv4()
-{
-# Append these lines to /etc/dhcpcd.conf to enable a static IP
+setDHCPCD(){
+# Append these lines to dhcpcd.conf to enable a static IP
 echo "interface $piholeInterface
 static ip_address=$IPv4addr
 static routers=$IPv4gw
 static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
-sudo ip addr replace dev $piholeInterface $IPv4addr
 }
 
+<<<<<<< HEAD
+=======
+setStaticIPv4(){
+if grep -q $IPv4addr $dhcpcdFile; then
+	# address already set, noop
+	:
+else
+	setDHCPCD
+	sudo ip addr replace dev $piholeInterface $IPv4addr
+	echo "Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+fi
+}
+
+>>>>>>> b261e046bb6a8a2c7f2301ff6a9d37aa70e898fd
 installScripts(){
 sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
 sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
@@ -203,6 +213,10 @@ sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
 sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+<<<<<<< HEAD
+=======
+sudo sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
+>>>>>>> b261e046bb6a8a2c7f2301ff6a9d37aa70e898fd
 }
 
 stopServices(){
@@ -236,11 +250,6 @@ sudo mv /etc/crontab /etc/crontab.orig
 sudo curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
 }
 
-installPiLog(){
-sudo touch /var/log/pihole.log
-sudo chmod 644 /var/log/pihole.log
-sudo chown dnsmasq:root /var/log/pihole.log
-}
 installPihole()
 {
 installDependencies
@@ -254,7 +263,6 @@ installConfigs
 installWebAdmin
 installPiholeWeb
 installCron
-installPiLog
 sudo /usr/local/bin/gravity.sh
 }
 

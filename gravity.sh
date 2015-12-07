@@ -17,9 +17,9 @@ if [[ -f $piholeIPfile ]];then
     rm $piholeIPfile
 else
     # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-	IPv4dev=$(ip route get 8.8.8.8 | awk '{print $5}')
-	piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
-	piholeIP=${piholeIPCIDR%/*}   
+	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+	piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+	piholeIP=${piholeIPCIDR%/*}
 fi
 
 # Ad-list sources--one per line in single quotes
@@ -94,7 +94,7 @@ function gravity_transport() {
 	url=$1
 	cmd_ext=$2
 	agent=$3
-	
+
 	# tmp file, so we don't have to store the (long!) lists in RAM
 	patternBuffer=$(mktemp)
 	heisenbergCompensator=""
@@ -145,7 +145,7 @@ function gravity_spinup() {
                 # Default is a simple request
                 *) cmd_ext=""
         esac
-        gravity_transport $url $cmd_ext $agent	
+        gravity_transport $url $cmd_ext $agent
 	done
 }
 
@@ -156,14 +156,14 @@ function gravity_Schwarzchild() {
 	echo "** Aggregating list of domains..."
 	truncate -s 0 $piholeDir/$matter
 	for i in "${activeDomains[@]}"
-	do	
+	do
    		cat $i |tr -d '\r' >> $piholeDir/$matter
 	done
 }
 
 # Pulsar - White/blacklist application
 function gravity_pulsar() {
-	
+
 	# Append blacklist entries if they exist
 	if [[ -r $blacklist ]];then
         numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
@@ -183,11 +183,11 @@ function gravity_pulsar() {
         # regexp so it can be parsed out with grep -x
         awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
 	else
-        rm $latentWhitelist
+        rm $latentWhitelist >/dev/null
 	fi
 
 	# Prevent our sources from being pulled into the hole
-	plural=; [[ "${#sources[@]}" != "1" ]] && plural=s	
+	plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
 	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
 	for url in ${sources[@]}
 	do
@@ -215,7 +215,7 @@ function gravity_hostFormat() {
 
 # blackbody - remove any remnant files from script processes
 function gravity_blackbody() {
-	# Loop through list files	
+	# Loop through list files
 	for file in $piholeDir/*.$justDomainsExtension
 	do
 		# If list is in active array then leave it (noop) else rm the list
@@ -239,14 +239,14 @@ function gravity_advanced() {
 	echo "** $numberOf domains being pulled in by gravity..."
 
 	gravity_unique
-	
-	sudo kill -HUP $(pidof dnsmasq)
+
+	sudo kill -s -HUP $(pidof dnsmasq)
 }
 
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
 gravity_pulsar
-gravity_hostFormat
 gravity_advanced
+gravity_hostFormat
 gravity_blackbody
