@@ -3,6 +3,13 @@
 # by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 #
+# (c) 2015 by Jacob Salmela
+# This file is part of Pi-hole.
+#
+# Pi-hole is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
 # pi-hole.net/donate
 #
 # Install with this command (from your Pi):
@@ -147,6 +154,7 @@ else
 					# If the settings are correct, then we need to set the piholeIP
 					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script
 					echo ${IPv4addr%/*} > /tmp/piholeIP
+					echo $piholeInterface > /tmp/piholeINT
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
 				else
