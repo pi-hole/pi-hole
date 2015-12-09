@@ -9,21 +9,47 @@
 
 whitelist=/etc/pihole/whitelist.txt
 adList=/etc/pihole/gravity.list
+webInterfaceEchos=/tmp/whitelistEchoFile
+
 if [[ ! -f $whitelist ]];then
     touch $whitelist
 fi
 
+formatEchoes()
+{
+if [[ "$(whoami)" = "www-data" ]];then
+    echo "$1" >> $webInterfaceEchos
+else
+    echo "$1"
+fi
+}
+
 if [[ $# = 0 ]]; then
+    # echoes go to a file for showing in the Web interface
     echo "Immediately whitelists one or more domains."
     echo "Usage: whitelist.sh domain1 [domain2 ...]"
+    if [[ "$(whoami)" = "www-data" ]];then
+        formatEchoes "Enter one or more space-separated FQDN."
+        # If the user is www-data, the script is probably being called from the Web interface
+        # Since the Web interface only displays the last echo in the script (I'm still a n00b with PHP)
+        webInterfaceDisplay=$(cat $webInterfaceEchos)
+        # The last echo needs to be delimited by a semi-colon so I translate newlines into semi-colons so it displays properly
+        # Someone better in PHP might be able to come up with a better solution, but this is a highly-requested feature
+        # This is also used later in the script, too
+        echo "$webInterfaceDisplay" | tr "\n" ";"
+    fi
 fi
 
 combopattern=""
 
+# Overwrite any previously existing file so the output is always correct
+echo "" > $webInterfaceEchos
+
 # For each argument passed to this script
 for var in "$@"
 do
-  echo "Whitelisting $var..."
+  # Start appending the echoes into the file for display in the Web interface later
+  formatEchoes "Whitelisting $var..."
 
   # Construct basic pattern to match domain name.
   basicpattern=$(echo $var | awk -F '[# \t]' 'NF>0&&$1!="" {print ""$1""}' | sed 's/\./\\./g')
@@ -41,7 +67,7 @@ done
 
 # Now report on and remove matched domains
 if [[ "$combopattern" != "" ]]; then
-  echo "Modifying hosts file..."
+  formatEchoes "Modifying hosts file..."
 
   # Construct pattern to match entry in hosts file.
   # This consists of one or more IP addresses followed by the domain name.
@@ -51,7 +77,13 @@ if [[ "$combopattern" != "" ]]; then
   sed -r -n 's/'"$pattern"'/  Removed: \3/p' $adList
   sed -r -i '/'"$pattern"'/d' $adList
 
-  echo "** $# domain(s) whitelisted."
+  formatEchoes "** $# domain(s) whitelisted."
+
+  # Only echo the semi-colon delimited echoes if the user running the script is www-data (meaning it is run the from Web interface)
+  if [[ "$(whoami)" = "www-data" ]];then
+      webInterfaceDisplay=$(cat $webInterfaceEchos)
+      echo "$webInterfaceDisplay" | tr "\n" ";"
+  fi
   # Force dnsmasq to reload /etc/pihole/gravity.list
   kill -HUP $(pidof dnsmasq)
 fi
