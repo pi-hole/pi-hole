@@ -239,6 +239,7 @@ function gravity_advanced() {
 	echo "** $numberOf domains being pulled in by gravity..."
 
 	gravity_unique
+    find "$piholeDir" -type f -exec sudo chmod 666 {} \;
 
 	sudo kill -s -HUP $(pidof dnsmasq)
 }
