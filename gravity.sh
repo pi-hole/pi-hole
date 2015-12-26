@@ -240,7 +240,7 @@ function gravity_advanced() {
 
 	gravity_unique
 
-	sudo kill -s -HUP $(pidof dnsmasq)
+	sudo kill -HUP $(pidof dnsmasq)
 }
 
 gravity_collapse
