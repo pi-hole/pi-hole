@@ -18,7 +18,13 @@ Once installed, **configure any device to use the Raspberry Pi as its DNS server
 
 [![Pi-hole exlplained](http://i.imgur.com/wd5ltCU.png)](https://vimeo.com/135965232)
 
-## Coverage
+## Video Coverage
+
+### TekThing
+
+Pi-hole is mentioned at the two minute mark
+
+[![Pi-hole on TekThing](http://img.youtube.com/vi/8Co59HU2gY0/0.jpg)](https://youtu.be/8Co59HU2gY0?t=2m)
 
 ### Security Now! Podcast
 Pi-hole is mentioned at 100 minutes and 26 seconds (the link brings you right there)
@@ -26,7 +32,16 @@ Pi-hole is mentioned at 100 minutes and 26 seconds (the link brings you right th
 
 ### Tech Blogs
 
-Featured on [MakeUseOf](http://www.makeuseof.com/tag/adblock-everywhere-raspberry-pi-hole-way/) and [Lifehacker](http://lifehacker.com/turn-a-raspberry-pi-into-an-ad-blocker-with-a-single-co-1686093533)!
+Pi-hole has been written about on:
+
+- [Medium](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d)
+- [MakeUseOf](http://www.makeuseof.com/tag/adblock-everywhere-raspberry-pi-hole-way/)
+- [Lifehacker](http://lifehacker.com/turn-a-raspberry-pi-into-an-ad-blocker-with-a-single-co-1686093533)!
+
+## Partnering With Optimal.com
+
+Pi-hole will be teaming up with [Rob Leathern's subscription service to avoid ads](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d).  This service is unique and will help content-creators and publishers [still make money from visitors who are using an ad ablocker](http://techcrunch.com/2015/12/17/the-new-optimal/).
+
 
 ## Technical Details
 
