@@ -183,7 +183,7 @@ function gravity_pulsar() {
         # regexp so it can be parsed out with grep -x
         awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
 	else
-        rm $latentWhitelist >/dev/null
+        rm $latentWhitelist 2>/dev/null
 	fi
 
 	# Prevent our sources from being pulled into the hole
