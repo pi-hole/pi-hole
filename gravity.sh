@@ -239,8 +239,13 @@ function gravity_advanced() {
 	echo "** $numberOf domains being pulled in by gravity..."
 
 	gravity_unique
+}
 
-	sudo kill -s -HUP $(pidof dnsmasq)
+function gravity_reload() {
+	# Reload hosts file
+	
+	echo "** Refresh lists in dnsmasq..."
+	sudo kill -HUP $(pidof dnsmasq)
 }
 
 gravity_collapse
@@ -250,3 +255,4 @@ gravity_pulsar
 gravity_advanced
 gravity_hostFormat
 gravity_blackbody
+gravity_reload
