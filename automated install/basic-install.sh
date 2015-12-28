@@ -97,7 +97,7 @@ use4andor6()
 # Let use select IPv4 and/or IPv6
 cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
 options=(IPv4 "Block ads over IPv4" on
-         IPv6 "Block ads over IPv4" off)
+         IPv6 "Block ads over IPv6" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 for choice in $choices
 do
