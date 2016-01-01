@@ -36,10 +36,6 @@ IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1
 IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
 IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 
-# IPv6 support to be added later
-#IPv6eui64=$(ip addr show | awk '/scope\ global/ && /ff:fe/ {print $2}' | cut -d'/' -f1)
-#IPv6linkLocal=$(ip addr show | awk '/inet/ && /scope\ link/ && /fe80/ {print $2}' | cut -d'/' -f1)
-
 availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
@@ -64,6 +60,9 @@ welcomeDialogs()
 {
 # Display the welcome dialog
 whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "This installer will transform your Raspberry Pi into a network-wide ad blocker!" $r $c
+
+# Support for a part-time dev
+whiptail --msgbox --backtitle "Plea" --title "Free and open source" "The Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" $r $c
 
 # Explain the need for a static address
 whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
@@ -116,7 +115,9 @@ done
 
 useIPv6dialog()
 {
-whiptail --msgbox --backtitle "Coming soon..." --title "IPv6 not yet supported" "I need your help for IPv6.  Consider donating at: http://pi-hole.net/donate" $r $c
+piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+whiptail --msgbox --backtitle "IPv6..." --title "$piholeIPv6 will be used to block ads." $r $c
+sudo touch /etc/pihole/.useIPv6
 }
 
 getStaticIPv4Settings()
@@ -263,6 +264,17 @@ installCron
 sudo /usr/local/bin/gravity.sh
 }
 
+displayFinalMessage(){
+	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
+
+						$IPv4addr
+						$piholeIPv6
+
+	If you set a new IP address, you should restart the Pi.
+
+	The install log is in /etc/pihole." $r $c
+}
+
 ######## SCRIPT ############
 # Start the installer
 welcomeDialogs
@@ -288,16 +300,10 @@ fi
 
 # Decide is IPv6 will be used
 if [[ "$useIPv6" = true ]];then
-	# If only IPv6 is selected, exit because it is not supported yet
-	if [[ "$useIPv6" = true ]] && [[ "$useIPv4" = false ]];then
-		useIPv6dialog
-		exit
-	else
-		useIPv6dialog
-	fi
+	useIPv6dialog
 else
 	useIPv6=false
-	echo "IPv6 will NOT be used.  Consider a donation at pi-hole.net/donate"
+	echo "IPv6 will NOT be used."
 fi
 
 # Install and log everything to a file
@@ -306,11 +312,7 @@ installPihole | tee $tmpLog
 # Move the log file into /etc/pihole for storage
 sudo mv $tmpLog $instalLogLoc
 
-whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using this IP: $IPv4addr.
-
-If you set a new IP address, it should work fine, but you may want to reboot the Pi at some point.
-
-The install log is in /etc/pihole." $r $c
+displayFinalMessage
 
 sudo service dnsmasq start
 sudo service lighttpd start
