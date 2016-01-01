@@ -116,7 +116,8 @@ done
 useIPv6dialog()
 {
 piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-whiptail --msgbox --backtitle "IPv6..." --title "$piholeIPv6 will be used to block ads." $r $c
+whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
+sudo mkdir -p /etc/pihole/
 sudo touch /etc/pihole/.useIPv6
 }
 
@@ -270,9 +271,9 @@ displayFinalMessage(){
 						$IPv4addr
 						$piholeIPv6
 
-	If you set a new IP address, you should restart the Pi.
+If you set a new IP address, you should restart the Pi.
 
-	The install log is in /etc/pihole." $r $c
+The install log is in /etc/pihole." $r $c
 }
 
 ######## SCRIPT ############
@@ -301,6 +302,8 @@ fi
 # Decide is IPv6 will be used
 if [[ "$useIPv6" = true ]];then
 	useIPv6dialog
+	echo "Using IPv6."
+	echo "Your IPv6 address is: $piholeIPv6"
 else
 	useIPv6=false
 	echo "IPv6 will NOT be used."
