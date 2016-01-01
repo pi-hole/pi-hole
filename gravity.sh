@@ -13,10 +13,6 @@
 piholeIPfile=/tmp/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 if [[ -f $piholeIPfile ]];then
-  if [[ -f $piholeIPv6file ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-  fi
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
     piholeIP=$(cat $piholeIPfile)
     rm $piholeIPfile
@@ -25,6 +21,11 @@ else
     IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
     piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
     piholeIP=${piholeIPCIDR%/*}
+fi
+
+if [[ -f $piholeIPv6file ]];then
+    # If the file exists, then the user previously chose to use IPv6 in the automated installer
+    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
 # Ad-list sources--one per line in single quotes
