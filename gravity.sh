@@ -243,9 +243,17 @@ function gravity_advanced() {
 
 function gravity_reload() {
 	# Reload hosts file
-	
 	echo "** Refresh lists in dnsmasq..."
-	sudo kill -HUP $(pidof dnsmasq)
+
+	dnsmasqPid=$(pidof dnsmasq)
+
+	if [[ $dnsmasqPid ]]; then
+		# service already running - reload config
+		sudo kill -HUP $dnsmasqPid
+	else
+		# service not running, start it up
+		sudo service dnsmasq start
+	fi
 }
 
 gravity_collapse
