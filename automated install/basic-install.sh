@@ -20,12 +20,9 @@
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 
-# Get the screen size in case we need a full-screen message and so we can display a dialog that is sized nicely
-screenSize=$(stty -a | tr \; \\012 | egrep 'rows|columns' | cut '-d ' -f3)
-
 # Find the rows and columns
-rows=$(stty -a | tr \; \\012 | egrep 'rows' | cut -d' ' -f3)
-columns=$(stty -a | tr \; \\012 | egrep 'columns' | cut -d' ' -f3)
+rows=$(tput lines)
+columns=$(tput cols)
 
 # Divide by two so the dialogs take up half of the screen, which looks nice.
 r=$(( rows / 2 ))
