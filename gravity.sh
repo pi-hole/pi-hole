@@ -11,15 +11,21 @@
 # (at your option) any later version.
 
 piholeIPfile=/tmp/piholeIP
+piholeIPv6file=/etc/pihole/.useIPv6
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
     piholeIP=$(cat $piholeIPfile)
     rm $piholeIPfile
 else
     # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-	piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
-	piholeIP=${piholeIPCIDR%/*}
+    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+    piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+    piholeIP=${piholeIPCIDR%/*}
+fi
+
+if [[ -f $piholeIPv6file ]];then
+    # If the file exists, then the user previously chose to use IPv6 in the automated installer
+    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
 # Ad-list sources--one per line in single quotes
@@ -208,7 +214,13 @@ function gravity_unique() {
 function gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
+  # If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
+  if [[ -n $piholeIPv6 ]];then
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' > $piholeDir/$accretionDisc
+  else
+    # Otherwise, just create gravity.list as normal using IPv4
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' > $piholeDir/$accretionDisc
+  fi
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp $piholeDir/$accretionDisc $adList
 }
