@@ -74,9 +74,16 @@ chooseInterface()
 {
 # Turn the available interfaces into an array so it can be used with a whiptail dialog
 interfacesArray=()
+firstloop=1
+
 while read -r line
 do
-interfacesArray+=("$line" "available" "ON")
+mode="OFF"
+if [[ $firstloop -eq 1 ]]; then
+  firstloop=0
+  mode="ON"
+fi
+interfacesArray+=("$line" "available" "$mode")
 done <<< "$availableInterfaces"
 
 # Find out how many interfaces are available to choose from
