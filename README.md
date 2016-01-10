@@ -67,6 +67,12 @@ A basic read-only API can be accessed at `/admin/api.php`. It returns the follow
 
 ![Web](http://i.imgur.com/m114SCn.png)
 
+## Real-time Statistics
+
+You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj).  This is accomplished via [`chronometer.sh`](https://github.com/jacobsalmela/pi-hole/blob/master/advanced/Scripts/chronometer.sh).
+
+![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
+
 ## Help
 - See the [Wiki](https://github.com/jacobsalmela/pi-hole/wiki/Customization) entry for more details
 - There is also an [FAQ section on pi-hole.net](http://pi-hole.net)
