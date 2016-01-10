@@ -28,6 +28,9 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 - [Lifehacker: Turn Your Pi Into An Ad Blocker With A Single Command](http://lifehacker.com/turn-a-raspberry-pi-into-an-ad-blocker-with-a-single-co-1686093533)!
 - [Pi-hole on TekThing](https://youtu.be/8Co59HU2gY0?t=2m)
 - [Pi-hole on Security Now! Podcast](http://www.youtube.com/watch?v=p7-osq_y8i8&t=100m26s)
+- [Foolish Tech Show](https://youtu.be/bYyena0I9yc?t=2m4s)
+- [Pi-hole on Ubuntu](http://www.boyter.org/2015/12/pi-hole-ubuntu-14-04/)
+- [Catchpoint: iOS 9 Ad Blocking](http://blog.catchpoint.com/2015/09/14/ad-blocking-apple/)
 
 ## Partnering With Optimal.com
 
@@ -35,7 +38,7 @@ Pi-hole will be teaming up with [Rob Leathern's subscription service to avoid ad
 
 ## Technical Details
 
-The Pi-hole is an **advertising-aware DNS/Web server**.  If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
+The Pi-hole is an **advertising-aware DNS/Web server**.  If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.  You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
 
 A more detailed explanation of the installation can be found [here](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0).
 
@@ -49,6 +52,18 @@ You can add a `whitelist.txt` or `blacklist.txt` in `/etc/pihole/` and the scrip
 The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings.  You can find it at:
 
 `http://192.168.1.x/admin/index.php`
+
+### API
+
+A basic read-only API can be accessed at `/admin/api.php`. It returns the following JSON:
+```JSON
+{
+	"domains_being_blocked": "136708",
+	"dns_queries_today": "18108",
+	"ads_blocked_today": "14648",
+	"ads_percentage_today": 80.892423238348
+}
+```
 
 ![Web](http://i.imgur.com/m114SCn.png)
 
