@@ -47,6 +47,9 @@ if [[ -d /etc/pihole ]];then
 	sudo mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
 	sudo mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
 	sudo mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
+        for confs in `ls /etc/dnsmasq.d/`; do
+            sudo mv /etc/dnsmasq.d/$conf /etc/pihole/original/$conf.$(date "+%Y-%m-%d")
+        done
 else
 	:
 fi
