@@ -39,7 +39,7 @@ dhcpcdFile=/etc/dhcpcd.conf
 ####### FUCNTIONS ##########
 backupLegacyPihole()
 {
-if [[ -f /etc/dnsmasq.d/adList.conf ]];then
+if [[ -d /etc/pihole ]];then
 	echo "Original Pi-hole detected.  Initiating sub space transport"
 	sudo mkdir -p /etc/pihole/original/
 	sudo mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
