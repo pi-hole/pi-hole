@@ -42,7 +42,6 @@ backupLegacyPihole()
 if [[ -d /etc/pihole ]];then
 	echo "Original Pi-hole detected.  Initiating sub space transport"
 	sudo mkdir -p /etc/pihole/original/
-	sudo mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
 	sudo mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
 	sudo mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
 	sudo mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
