@@ -23,7 +23,8 @@ apt-get -y remove --purge lighttpd php5-common php5-cgi php5
 # be removed. if the web directory is empty after removing
 # these files, then the parent html folder can be removed.
 rm -rf /var/www/html/admin
-rm -rf /var/www/html/pihold
+rm -rf /var/www/html/pihole
+rm /var/www/html/index.lighttpd.orig
 if [ ! "$(ls -A /var/www/html)" ]; then
     rm -rf /var/www/html
 fi
