@@ -8,20 +8,25 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+# Must be root to uninstall
+if [[ $EUID -ne 0 ]]; then
+   echo "ERROR: You must run this script as a root user" 
+   exit 1
+fi
 
 ######### SCRIPT ###########
-sudo apt-get -y remove --purge dnsutils bc toilet
-sudo apt-get -y remove --purge dnsmasq
-sudo apt-get -y remove --purge lighttpd php5-common php5-cgi php5
-sudo rm -rf /var/www/html
-sudo rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-sudo rm /etc/crontab
-sudo mv /etc/crontab.orig /etc/crontab
-sudo rm /etc/dnsmasq.conf
-sudo rm -rf /etc/lighttpd/
-sudo rm /var/log/pihole.log
-sudo rm /usr/local/bin/gravity.sh
-sudo rm /usr/local/bin/chronometer.sh
-sudo rm /usr/local/bin/whitelist.sh
-sudo rm /usr/local/bin/piholeLogFlush.sh
-sudo rm -rf /etc/pihole/
+apt-get -y remove --purge dnsutils bc toilet
+apt-get -y remove --purge dnsmasq
+apt-get -y remove --purge lighttpd php5-common php5-cgi php5
+rm -rf /var/www/html
+rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+rm /etc/crontab
+mv /etc/crontab.orig /etc/crontab
+rm /etc/dnsmasq.conf
+rm -rf /etc/lighttpd/
+rm /var/log/pihole.log
+rm /usr/local/bin/gravity.sh
+rm /usr/local/bin/chronometer.sh
+rm /usr/local/bin/whitelist.sh
+rm /usr/local/bin/piholeLogFlush.sh
+rm -rf /etc/pihole/
