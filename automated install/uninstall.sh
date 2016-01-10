@@ -20,8 +20,23 @@ apt-get -y remove --purge dnsmasq
 apt-get -y remove --purge lighttpd php5-common php5-cgi php5
 rm -rf /var/www/html
 rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-rm /etc/crontab
-mv /etc/crontab.orig /etc/crontab
+
+# attempt to preserve backwards compatibility with older versions
+# to gaurentee no additional changes were made to /etc/crontab after
+# the installation of pihole, /etc/crontab.pihole should be permanently
+# preserved.
+# @TODO: debugging statement alerting user of this.
+if [ -f /etc/crontab.orig ]; then
+	mv /etc/crontab /etc/crontab.pihole
+	mv /etc/crontab.orig /etc/crontab
+	service cron restart
+fi
+
+# attempt to preserve backwards compatibility with older versions
+if [ -f /etc/cron.d/pihole ]; then
+	rm /etc/cron.d/pihole
+fi
+
 rm /etc/dnsmasq.conf
 rm -rf /etc/lighttpd/
 rm /var/log/pihole.log

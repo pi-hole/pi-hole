@@ -255,8 +255,11 @@ curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobs
 }
 
 installCron(){
-mv /etc/crontab /etc/crontab.orig
-curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+
+# in most cases, cron should pickup pihole automatically but to avoid
+# any edge cases, the service should be restarted.
+service cron restart
 }
 
 installPihole()
