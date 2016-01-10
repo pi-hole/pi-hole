@@ -9,10 +9,11 @@
 # (at your option) any later version.
 
 # Must be root to uninstall
-if [[ $EUID -ne 0 ]]; then
-   echo "ERROR: You must run this script as a root user" 
-   exit 1
+if [[ $EUID -ne 0  ]]; then
+    sudo bash "$0" "$@"
+    exit $?
 fi
+
 
 ######### SCRIPT ###########
 apt-get -y remove --purge dnsutils bc toilet
