@@ -18,7 +18,16 @@ fi
 apt-get -y remove --purge dnsutils bc toilet
 apt-get -y remove --purge dnsmasq
 apt-get -y remove --purge lighttpd php5-common php5-cgi php5
-rm -rf /var/www/html
+
+# only web directories/files that are created by pihole should
+# be removed. if the web directory is empty after removing
+# these files, then the parent html folder can be removed.
+rm -rf /var/www/html/admin
+rm -rf /var/www/html/pihold
+if [ ! "$(ls -A /var/www/html)" ]; then
+    rm -rf /var/www/html
+fi
+
 rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 
 # attempt to preserve backwards compatibility with older versions
