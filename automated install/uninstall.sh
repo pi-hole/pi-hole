@@ -8,20 +8,51 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+# Must be root to uninstall
+if [[ $EUID -ne 0  ]]; then
+    sudo bash "$0" "$@"
+    exit $?
+fi
+
 
 ######### SCRIPT ###########
-sudo apt-get -y remove --purge dnsutils bc toilet
-sudo apt-get -y remove --purge dnsmasq
-sudo apt-get -y remove --purge lighttpd php5-common php5-cgi php5
-sudo rm -rf /var/www/html
-sudo rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-sudo rm /etc/crontab
-sudo mv /etc/crontab.orig /etc/crontab
-sudo rm /etc/dnsmasq.conf
-sudo rm -rf /etc/lighttpd/
-sudo rm /var/log/pihole.log
-sudo rm /usr/local/bin/gravity.sh
-sudo rm /usr/local/bin/chronometer.sh
-sudo rm /usr/local/bin/whitelist.sh
-sudo rm /usr/local/bin/piholeLogFlush.sh
-sudo rm -rf /etc/pihole/
+apt-get -y remove --purge dnsutils bc toilet
+apt-get -y remove --purge dnsmasq
+apt-get -y remove --purge lighttpd php5-common php5-cgi php5
+
+# only web directories/files that are created by pihole should
+# be removed. if the web directory is empty after removing
+# these files, then the parent html folder can be removed.
+rm -rf /var/www/html/admin
+rm -rf /var/www/html/pihole
+rm /var/www/html/index.lighttpd.orig
+if [ ! "$(ls -A /var/www/html)" ]; then
+    rm -rf /var/www/html
+fi
+
+rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+
+# attempt to preserve backwards compatibility with older versions
+# to gaurentee no additional changes were made to /etc/crontab after
+# the installation of pihole, /etc/crontab.pihole should be permanently
+# preserved.
+# @TODO: debugging statement alerting user of this.
+if [ -f /etc/crontab.orig ]; then
+	mv /etc/crontab /etc/crontab.pihole
+	mv /etc/crontab.orig /etc/crontab
+	service cron restart
+fi
+
+# attempt to preserve backwards compatibility with older versions
+if [ -f /etc/cron.d/pihole ]; then
+	rm /etc/cron.d/pihole
+fi
+
+rm /etc/dnsmasq.conf
+rm -rf /etc/lighttpd/
+rm /var/log/pihole.log
+rm /usr/local/bin/gravity.sh
+rm /usr/local/bin/chronometer.sh
+rm /usr/local/bin/whitelist.sh
+rm /usr/local/bin/piholeLogFlush.sh
+rm -rf /etc/pihole/
