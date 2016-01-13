@@ -89,9 +89,10 @@ chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface"
 chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
 for desiredInterface in $chooseInterfaceOptions
 do
-	piholeInterface=$desiredInterface
-	echo "Using interface: $piholeInterface"
-	echo ${piholeInterface} > /tmp/piholeINT
+        IPv4dev=$desiredInterface
+        IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+        echo "Using interface: $IPv4dev"
+        echo ${IPv4dev} > /tmp/piholeINT
 done
 }
 
