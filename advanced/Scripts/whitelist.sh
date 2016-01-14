@@ -52,6 +52,16 @@ if [[ "$combopattern" != "" ]]; then
   sed -r -i '/'"$pattern"'/d' $adList
 
   echo "** $# domain(s) whitelisted."
-  # Force dnsmasq to reload /etc/pihole/gravity.list
-  kill -HUP $(pidof dnsmasq)
+  # Reload hosts file
+	echo "** Refresh lists in dnsmasq..."
+
+	dnsmasqPid=$(pidof dnsmasq)
+
+	if [[ $dnsmasqPid ]]; then
+		# service already running - reload config
+		sudo kill -HUP $dnsmasqPid
+	else
+		# service not running, start it up
+		sudo service dnsmasq start
+	fi
 fi
