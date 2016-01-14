@@ -49,10 +49,10 @@ whitelist=$piholeDir/whitelist.txt
 latentWhitelist=$piholeDir/latentWhitelist.txt
 justDomainsExtension=domains
 matterandlight=$basename.0.matterandlight.txt
-supernova=$basename.2.supernova.txt
-eventHorizon=$basename.3.eventHorizon.txt
-accretionDisc=$basename.4.accretionDisc.txt
-eyeOfTheNeedle=$basename.5.wormhole.txt
+supernova=$basename.1.supernova.txt
+eventHorizon=$basename.2.eventHorizon.txt
+accretionDisc=$basename.3.accretionDisc.txt
+eyeOfTheNeedle=$basename.4.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
@@ -166,15 +166,17 @@ function gravity_Schwarzchild() {
 	done
 }
 
-# Pulsar - White/blacklist application
-function gravity_pulsar() {
 
+function gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	if [[ -r $blacklist ]];then
         numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         echo "** Blacklisting $numberOf domain(s)..."
         cat $blacklist >> $piholeDir/$matterandlight
 	fi
+}
+
+function gravity_Whitelist() {
 
 	# Whitelist (if applicable) domains
 	if [[ -r $whitelist ]];then
@@ -240,12 +242,13 @@ function gravity_blackbody() {
 }
 
 function gravity_advanced() {
+
+
 	# Remove comments and print only the domain name
 	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 	# This helps with that and makes it easier to read
 	# It also helps with debugging so each stage of the script can be researched more in depth
-	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | \
-		sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
+	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 
 	numberOf=$(wc -l < $piholeDir/$supernova)
 	echo "** $numberOf domains being pulled in by gravity..."
@@ -272,8 +275,9 @@ function gravity_reload() {
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
+gravity_Blacklist
 gravity_advanced
 gravity_hostFormat
 gravity_blackbody
-gravity_pulsar
+gravity_Whitelist
 gravity_reload
