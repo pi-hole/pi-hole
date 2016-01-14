@@ -48,8 +48,7 @@ blacklist=$piholeDir/blacklist.txt
 whitelist=$piholeDir/whitelist.txt
 latentWhitelist=$piholeDir/latentWhitelist.txt
 justDomainsExtension=domains
-matter=$basename.0.matter.txt
-andLight=$basename.1.andLight.txt
+matterandlight=$basename.0.matterandlight.txt
 supernova=$basename.2.supernova.txt
 eventHorizon=$basename.3.eventHorizon.txt
 accretionDisc=$basename.4.accretionDisc.txt
@@ -160,10 +159,10 @@ function gravity_Schwarzchild() {
 
 	# Find all active domains and compile them into one file and remove CRs
 	echo "** Aggregating list of domains..."
-	truncate -s 0 $piholeDir/$matter
+	truncate -s 0 $piholeDir/$matterandlight
 	for i in "${activeDomains[@]}"
 	do
-   		cat $i |tr -d '\r' >> $piholeDir/$matter
+   		cat $i |tr -d '\r' >> $piholeDir/$matterandlight
 	done
 }
 
@@ -174,7 +173,7 @@ function gravity_pulsar() {
 	if [[ -r $blacklist ]];then
         numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         echo "** Blacklisting $numberOf domain(s)..."
-        cat $blacklist >> $piholeDir/$matter
+        cat $blacklist >> $piholeDir/$matterandlight
 	fi
 
 	# Whitelist (if applicable) domains
@@ -183,11 +182,10 @@ function gravity_pulsar() {
         numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo "** Whitelisting $numberOf domain${plural}..."
-
-        # Append a "$" to the end, prepend a "^" to the beginning, and
+                
         # replace "." with "\." of each line to turn each entry into a
         # regexp so it can be parsed out with grep -x
-        awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
+        awk -F '[# \t]' 'NF>0&&$1!="" {print $1}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
 	else
         rm $latentWhitelist 2>/dev/null
 	fi
@@ -195,13 +193,15 @@ function gravity_pulsar() {
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
 	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
+	
 	for url in ${sources[@]}
 	do
-        echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
+        echo "$url" | awk -F '/' '{print $3}'  | sed 's/\./\\./g' >> $latentWhitelist
 	done
-
-	# Remove whitelist entries from list
-	grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
+	
+	#remove whitelist entries from gravity.list
+	awk -F':' '{ print $1 }' latentWhitelist.txt | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' gravity.list
+		
 }
 
 function gravity_unique() {
@@ -244,7 +244,7 @@ function gravity_advanced() {
 	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 	# This helps with that and makes it easier to read
 	# It also helps with debugging so each stage of the script can be researched more in depth
-	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matter | \
+	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | \
 		sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 
 	numberOf=$(wc -l < $piholeDir/$supernova)
@@ -269,52 +269,14 @@ function gravity_reload() {
 }
 
 function pulsarNew(){
-	# Append blacklist entries if they exist
-	if [[ -r $blacklist ]];then
-        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
-        echo "** Blacklisting $numberOf domain(s)..."
-        cat $blacklist >> $piholeDir/$matter
-	fi
-
-	# Whitelist (if applicable) domains
-	if [[ -r $whitelist ]];then
-        # Remove whitelist entries
-        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
-        plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo "** Whitelisting $numberOf domain${plural}..."
-
-        # Append a "$" to the end, prepend a "^" to the beginning, and
-        # replace "." with "\." of each line to turn each entry into a
-        # regexp so it can be parsed out with grep -x
-        awk -F '[# \t]' 'NF>0&&$1!="" {print $1}' $whitelist > $latentWhitelist
-	else
-        rm $latentWhitelist 2>/dev/null
-	fi
-
-	# Prevent our sources from being pulled into the hole
-	plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
-	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
-	for url in ${sources[@]}
-	do
-        echo "$url" | awk -F '/' '{print $3}'  >> $latentWhitelist
-	done
 	
-	while read p; do
-  echo "Removing $p from gravity.list"
-  perl -i -ne'print unless /[^.]'$p'(?!.)/;' gravity.list
-  done <$latentWhitelist
-	
-
-	# Remove whitelist entries from list
-	#grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
 }
 
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
-#gravity_pulsar
 gravity_advanced
 gravity_hostFormat
 gravity_blackbody
-pulsarNew
+gravity_pulsar
 gravity_reload
