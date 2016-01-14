@@ -200,7 +200,7 @@ function gravity_pulsar() {
 	done
 	
 	#remove whitelist entries from gravity.list
-	awk -F':' '{ print $1 }' latentWhitelist.txt | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' gravity.list
+	awk -F':' '{ print $1 }' $latentWhitelist | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' gravity.list
 		
 }
 
@@ -268,9 +268,6 @@ function gravity_reload() {
 	fi
 }
 
-function pulsarNew(){
-	
-}
 
 gravity_collapse
 gravity_spinup
