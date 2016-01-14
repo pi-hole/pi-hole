@@ -7,10 +7,11 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-whitelist=/etc/pihole/whitelist.txt
+whiteList=/etc/pihole/whitelist.txt
 adList=/etc/pihole/gravity.list
-if [[ ! -f $whitelist ]];then
-    touch $whitelist
+latentWhitelist=/etc/pihole/latentWhitelist.txt
+if [[ ! -f $whiteList ]];then
+    touch $whiteList
 fi
 
 if [[ $# = 0 ]]; then
@@ -18,50 +19,29 @@ if [[ $# = 0 ]]; then
     echo "Usage: whitelist.sh domain1 [domain2 ...]"
 fi
 
-combopattern=""
-
-# For each argument passed to this script
+latentPattern=""
+boolA=false
+boolB=false
 for var in "$@"
 do
-  echo "Whitelisting $var..."
-
-  # Construct basic pattern to match domain name.
-  basicpattern=$(echo $var | awk -F '[# \t]' 'NF>0&&$1!="" {print ""$1""}' | sed 's/\./\\./g')
-
-  if [[ "$basicpattern" != "" ]]; then
-    # Add to the combination pattern that will be used below
-    if [[ "$combopattern" != "" ]]; then combopattern="$combopattern|"; fi
-    combopattern="$combopattern$basicpattern"
-
-    # Also add the domain to the whitelist but only if it's not already present
-    grep -E -q "^$basicpattern$" $whitelist \
-    || echo "$var" >> $whitelist
-  fi
+		bool=false;
+    echo "Whitelisting $var..."
+    #add to whitelist.txt if it is not already there
+    grep -Ex -q "$var" $whiteList || boolB=true
+    if $boolB; then
+        echo $var >> $whiteList
+        #add to latentwhitelist.txt. Double-check it's not already there
+        latentPattern=$(echo $var | sed 's/\./\\./g')
+        grep -Ex -q "$latentPattern" $whiteList || echo $latentPattern >> $latentWhitelist
+        boolA=true;
+    else
+        echo "$var Already in whitelist.txt"
+    fi
 done
 
-# Now report on and remove matched domains
-if [[ "$combopattern" != "" ]]; then
-  echo "Modifying hosts file..."
-
-  # Construct pattern to match entry in hosts file.
-  # This consists of one or more IP addresses followed by the domain name.
-  pattern=$(echo $combopattern | awk -F '[# \t]' '{printf "%s", "^(([0-9]+\.){3}[0-9]+ +)+("$1")$"}')
-
-  # Output what will be removed and then actually remove
-  sed -r -n 's/'"$pattern"'/  Removed: \3/p' $adList
-  sed -r -i '/'"$pattern"'/d' $adList
-
-  echo "** $# domain(s) whitelisted."
-  # Reload hosts file
-	echo "** Refresh lists in dnsmasq..."
-
-	dnsmasqPid=$(pidof dnsmasq)
-
-	if [[ $dnsmasqPid ]]; then
-		# service already running - reload config
-		sudo kill -HUP $dnsmasqPid
-	else
-		# service not running, start it up
-		sudo service dnsmasq start
-	fi
+if $boolA; then
+    echo "New domains added to whitelist. Running gravity.sh"
+    /usr/local/bin/gravity.sh
+else
+	echo "No need to update Hosts list, given domains already in whitelist"
 fi
