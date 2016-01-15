@@ -58,7 +58,7 @@ function HandleOther(){
 }
 
 function PopBlacklistFile(){
-	#check whitelist file exists, and if not, create it
+	#check blacklist file exists, and if not, create it
 	if [[ ! -f $blacklist ]];then
   	  touch $blacklist
 	fi	
