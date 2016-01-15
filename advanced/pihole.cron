@@ -19,8 +19,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Pi-hole: Parse the log file before it is flushed and save the stats to a database
 #          This will be used for a historical view of your Pi-hole's performance
-#50 11  * * *   root    /usr/local/bin/dailyLog.sh
+#50 23  * * *   root    /usr/local/bin/dailyLog.sh
 
 # Pi-hole: Flush the log daily at 11:58 so it doesn't get out of control
 #          Stats will be viewable in the Web interface thanks to the cron job above
-58 11   * * *   root    /usr/local/bin/piholeLogFlush.sh
+58 23   * * *   root    /usr/local/bin/piholeLogFlush.sh
