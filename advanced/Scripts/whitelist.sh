@@ -7,83 +7,174 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+if [[ $# = 0 ]]; then
+    echo "Immediately whitelists one or more domains in the hosts file"
+    echo " "
+    echo "Usage: whitelist.sh domain1 [domain2 ...]"
+    echo "  "
+    echo "Options:"
+    echo "  -d, --delmode		Remove domains from the whitelist"
+    echo "  -nr, --noreload	Update Whitelist without refreshing dnsmasq"
+    echo "  -f, --force		Force updating of the hosts files, even if there are no changes"
+    
+    exit 1
+fi
+
+#globals
 whitelist=/etc/pihole/whitelist.txt
 adList=/etc/pihole/gravity.list
-webInterfaceEchos=/tmp/whitelistEchoFile
+reload=true
+addmode=true
+force=false
+versbose=true
+domList=()
+domToRemoveList=()
 
-if [[ ! -f $whitelist ]];then
-    touch $whitelist
+piholeIPfile=/tmp/piholeIP
+piholeIPv6file=/etc/pihole/.useIPv6
+
+# Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+piholeIP=${piholeIPCIDR%/*}
+
+modifyHost=false
+
+
+if [[ -f $piholeIPv6file ]];then
+    # If the file exists, then the user previously chose to use IPv6 in the automated installer
+    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-formatEchoes()
-{
-if [[ "$(whoami)" = "www-data" ]];then
-    echo "$1" >> $webInterfaceEchos
-else
-    echo "$1"
-fi
+
+function HandleOther(){	
+  #check validity of domain
+	validDomain=$(echo $1 | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
+	
+	if [ -z "$validDomain" ]; then
+		echo $1 is not a valid argument or domain name
+	else	  
+	  domList=("${domList[@]}" $validDomain)
+	fi
 }
 
-if [[ $# = 0 ]]; then
-    # echoes go to a file for showing in the Web interface
-    echo "Immediately whitelists one or more domains."
-    echo "Usage: whitelist.sh domain1 [domain2 ...]"
-    if [[ "$(whoami)" = "www-data" ]];then
-        formatEchoes "Enter one or more space-separated FQDN."
-        # If the user is www-data, the script is probably being called from the Web interface
-        # Since the Web interface only displays the last echo in the script (I'm still a n00b with PHP)
-        webInterfaceDisplay=$(cat $webInterfaceEchos)
-        # The last echo needs to be delimited by a semi-colon so I translate newlines into semi-colons so it displays properly
-        # Someone better in PHP might be able to come up with a better solution, but this is a highly-requested feature
-        # This is also used later in the script, too
-        echo "$webInterfaceDisplay" | tr "\n" ";"
+function PopWhitelistFile(){
+	#check whitelist file exists, and if not, create it
+	if [[ ! -f $whitelist ]];then
+  	  touch $whitelist
+	fi	
+	for dom in "${domList[@]}"
+	do	  
+	  if $addmode; then
+	  	AddDomain $dom
+	  else
+	    RemoveDomain $dom
+	  fi
+	done
+}
+
+function AddDomain(){
+#| sed 's/\./\\./g'
+	bool=false
+	grep -Ex -q "$1" $whitelist || bool=true
+	if $bool; then
+	  #domain not found in the whitelist file, add it!
+	  if $versbose; then
+	  echo "** Adding $1 to whitelist file"
+	  fi
+		echo $1 >> $whitelist
+		modifyHost=true
+	else
+		if $versbose; then
+			echo "** $1 already whitelisted! No need to add"
+		fi
+	fi
+}
+
+function RemoveDomain(){
+  
+  bool=false
+  grep -Ex -q "$1" $whitelist || bool=true
+  if $bool; then
+  	#Domain is not in the whitelist file, no need to Remove
+  	if $versbose; then
+  	echo "** $1 is NOT whitelisted! No need to remove"
+  	fi
+  else
+    #Domain is in the whitelist file, add to a temporary array and remove from whitelist file
+    if $versbose; then
+    echo "** Un-whitelisting $dom..."
     fi
-fi
+    domToRemoveList=("${domToRemoveList[@]}" $1)
+    modifyHost=true	  	
+  fi  	
+}
 
-combopattern=""
+function ModifyHostFile(){	
+	 if $addmode; then
+	    #remove domains in  from hosts file
+	    if [[ -r $whitelist ]];then
+        # Remove whitelist entries
+        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
+        plural=; [[ "$numberOf" != "1" ]] && plural=s
+        echo "** Whitelisting a total of $numberOf domain${plural}..."	   
+	  	  awk -F':' '{ print $1 }' $whitelist | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
+	  	fi
+	  else
+	    #we need to add the removed domains to the hosts file
+	    for rdom in "${domToRemoveList[@]}"
+	    do
+	    	if [[ -n $piholeIPv6 ]];then
+	    	  echo "**Blacklisting $rdom on IPv4 and IPv6"
+	    	  echo $rdom | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
+	      else
+	        echo "**Blacklisting $rdom on IPv4"
+	      	echo $rdom | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
+	      fi	      	      
+	      echo $rdom| sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $whitelist
+	    done
+	  fi	
+}
 
-# Overwrite any previously existing file so the output is always correct
-echo "" > $webInterfaceEchos
+function Reload() {
+	# Reload hosts file
+	echo "** Refresh lists in dnsmasq..."
+	dnsmasqPid=$(pidof dnsmasq)
 
-# For each argument passed to this script
+	if [[ $dnsmasqPid ]]; then
+		# service already running - reload config
+		sudo kill -HUP $dnsmasqPid
+	else
+		# service not running, start it up
+		sudo service dnsmasq start
+	fi
+}
+
+###################################################
+
 for var in "$@"
 do
-  # Start appending the echoes into the file for display in the Web interface later
-  formatEchoes "Whitelisting $var..."
-
-  # Construct basic pattern to match domain name.
-  basicpattern=$(echo $var | awk -F '[# \t]' 'NF>0&&$1!="" {print ""$1""}' | sed 's/\./\\./g')
-
-  if [[ "$basicpattern" != "" ]]; then
-    # Add to the combination pattern that will be used below
-    if [[ "$combopattern" != "" ]]; then combopattern="$combopattern|"; fi
-    combopattern="$combopattern$basicpattern"
-
-    # Also add the domain to the whitelist but only if it's not already present
-    grep -E -q "^$basicpattern$" $whitelist \
-    || echo "$var" >> $whitelist
-  fi
+  case "$var" in
+    "-nr"| "--noreload"  ) reload=false;;        			
+    "-d" | "--delmode"   ) addmode=false;;
+    "-f" | "--force"     ) force=true;;
+    "-q" | "--quiet"     ) versbose=false;;  			
+    *                    ) HandleOther $var;;
+  esac
 done
 
-# Now report on and remove matched domains
-if [[ "$combopattern" != "" ]]; then
-  formatEchoes "Modifying hosts file..."
+PopWhitelistFile
 
-  # Construct pattern to match entry in hosts file.
-  # This consists of one or more IP addresses followed by the domain name.
-  pattern=$(echo $combopattern | awk -F '[# \t]' '{printf "%s", "^(([0-9]+\.){3}[0-9]+ +)+("$1")$"}')
+if $modifyHost || $force; then
+	echo "** Modifying Hosts File"
+	ModifyHostFile
+else
+  if $versbose; then
+	echo "** No changes need to be made"
+	exit 1
+	fi
+fi
 
-  # Output what will be removed and then actually remove
-  sed -r -n 's/'"$pattern"'/  Removed: \3/p' $adList
-  sed -r -i '/'"$pattern"'/d' $adList
-
-  formatEchoes "** $# domain(s) whitelisted."
-
-  # Only echo the semi-colon delimited echoes if the user running the script is www-data (meaning it is run the from Web interface)
-  if [[ "$(whoami)" = "www-data" ]];then
-      webInterfaceDisplay=$(cat $webInterfaceEchos)
-      echo "$webInterfaceDisplay" | tr "\n" ";"
-  fi
-  # Force dnsmasq to reload /etc/pihole/gravity.list
-  kill -HUP $(pidof dnsmasq)
+if $reload; then
+	Reload
 fi
