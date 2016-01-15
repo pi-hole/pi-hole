@@ -169,27 +169,23 @@ function gravity_Schwarzchild() {
 
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
-	if [[ -r $blacklist ]];then
-        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
-        echo "** Blacklisting $numberOf domain(s)..."
-        cat $blacklist >> $piholeDir/$matterandlight
-	fi
+	blacklist.sh -f -nr -q
 }
 
 function gravity_Whitelist() {
 
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
-	echo "** Whitelisting ${sources[@]} ad list source${plural}..."
+	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
 	
 	urls=()
 	for url in ${sources[@]}
 	do
-        tmp=$(echo "$url" | awk -F '/' '{print $3}'  | sed 's/\./\\./g')
+        tmp=$(echo "$url" | awk -F '/' '{print $3}')
         urls=("${urls[@]}" $tmp)
 	done
 	
-	whitelist.sh -f -dr ${urls[@]}
+	whitelist.sh -f -nr -q ${urls[@]}
 
 		
 }
