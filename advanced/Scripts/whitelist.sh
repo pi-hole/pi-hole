@@ -10,6 +10,10 @@
 if [[ $# = 0 ]]; then
     echo "Immediately whitelists one or more domains in the hosts file"
     echo "Usage: whitelist.sh domain1 [domain2 ...]"
+    echo "Options:"
+    echo "  -d, --delmode				Remove domains from the whitelist"
+    echo "  -nr, --noreload			Update Whitelist without refreshing dnsmasq
+    
     exit 1
 fi
 
