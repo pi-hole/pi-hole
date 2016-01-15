@@ -9,10 +9,13 @@
 
 if [[ $# = 0 ]]; then
     echo "Immediately whitelists one or more domains in the hosts file"
+    echo " "
     echo "Usage: whitelist.sh domain1 [domain2 ...]"
+    echo "  "
     echo "Options:"
-    echo "  -d, --delmode				Remove domains from the whitelist"
-    echo "  -nr, --noreload			Update Whitelist without refreshing dnsmasq
+    echo "  -d, --delmode		Remove domains from the whitelist"
+    echo "  -nr, --noreload	Update Whitelist without refreshing dnsmasq"
+    echo "  -f, --force		Force updating of the hosts files, even if there are no changes"
     
     exit 1
 fi
@@ -22,6 +25,8 @@ whitelist=/etc/pihole/whitelist.txt
 adList=/etc/pihole/gravity.list
 reload=true
 addmode=true
+force=false
+versbose=true
 domList=()
 domToRemoveList=()
 
@@ -74,11 +79,15 @@ function AddDomain(){
 	grep -Ex -q "$1" $whitelist || bool=true
 	if $bool; then
 	  #domain not found in the whitelist file, add it!
+	  if $versbose; then
 	  echo "** Adding $1 to whitelist file"
+	  fi
 		echo $1 >> $whitelist
 		modifyHost=true
 	else
-		echo "** $1 already whitelisted! No need to add"
+		if $versbose; then
+			echo "** $1 already whitelisted! No need to add"
+		fi
 	fi
 }
 
@@ -88,10 +97,14 @@ function RemoveDomain(){
   grep -Ex -q "$1" $whitelist || bool=true
   if $bool; then
   	#Domain is not in the whitelist file, no need to Remove
+  	if $versbose; then
   	echo "** $1 is NOT whitelisted! No need to remove"
+  	fi
   else
     #Domain is in the whitelist file, add to a temporary array and remove from whitelist file
+    if $versbose; then
     echo "** Un-whitelisting $dom..."
+    fi
     domToRemoveList=("${domToRemoveList[@]}" $1)
     modifyHost=true	  	
   fi  	
@@ -144,19 +157,23 @@ for var in "$@"
 do
   case "$var" in
     "-nr"| "--noreload"  ) reload=false;;        			
-    "-d" | "--delmode"   ) addmode=false;;  			
+    "-d" | "--delmode"   ) addmode=false;;
+    "-f" | "--force"     ) force=true;;
+    "-q" | "--quiet"     ) versbose=false;;  			
     *                    ) HandleOther $var;;
   esac
 done
 
 PopWhitelistFile
 
-if $modifyHost; then
+if $modifyHost || $force; then
 	echo "** Modifying Hosts File"
 	ModifyHostFile
 else
+  if $versbose; then
 	echo "** No changes need to be made"
 	exit 1
+	fi
 fi
 
 if $reload; then
