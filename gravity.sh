@@ -172,8 +172,8 @@ function gravity_Blacklist(){
 	blacklist.sh -f -nr -q
 }
 
-function gravity_Whitelist() {
 
+function gravity_Whitelist() {
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
 	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
@@ -243,7 +243,6 @@ function gravity_advanced() {
 function gravity_reload() {
 	# Reload hosts file
 	echo "** Refresh lists in dnsmasq..."
-
 	dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ $dnsmasqPid ]]; then

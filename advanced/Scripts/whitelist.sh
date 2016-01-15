@@ -139,7 +139,6 @@ function ModifyHostFile(){
 function Reload() {
 	# Reload hosts file
 	echo "** Refresh lists in dnsmasq..."
-
 	dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ $dnsmasqPid ]]; then
