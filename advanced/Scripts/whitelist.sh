@@ -16,7 +16,7 @@ if [[ $# = 0 ]]; then
     echo "  -d, --delmode		Remove domains from the whitelist"
     echo "  -nr, --noreload	Update Whitelist without refreshing dnsmasq"
     echo "  -f, --force		Force updating of the hosts files, even if there are no changes"
-    
+    echo "  -q, --quiet		output is less verbose"
     exit 1
 fi
 

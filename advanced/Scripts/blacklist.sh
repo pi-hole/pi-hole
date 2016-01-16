@@ -9,12 +9,14 @@
 
 if [[ $# = 0 ]]; then
     echo "Immediately blacklists one or more domains in the hosts file"
+    echo " "
     echo "Usage: blacklist.sh domain1 [domain2 ...]"
+    echo "  "
     echo "Options:"
-    echo "  -d, --delmode				Remove domains from the blacklist"
+    echo "  -d, --delmode		Remove domains from the blacklist"
     echo "  -nr, --noreload	Update blacklist without refreshing dnsmasq"
     echo "  -f, --force		Force updating of the hosts files, even if there are no changes"
-    
+    echo "  -q, --quiet		output is less verbose"
     exit 1
 fi
 
