@@ -209,7 +209,8 @@ sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jac
 sudo curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
 sudo curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/blacklist.sh
 sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
-sudo chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush}.sh
+sudo curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
+sudo chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 }
 
 installConfigs(){
@@ -231,6 +232,7 @@ sudo apt-get -y upgrade
 sudo apt-get -y install dnsutils bc toilet
 sudo apt-get -y install dnsmasq
 sudo apt-get -y install lighttpd php5-common php5-cgi php5
+sudo apt-get -y install git
 }
 
 installWebAdmin(){
