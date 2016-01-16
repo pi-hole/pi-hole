@@ -260,8 +260,7 @@ $SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/
 }
 
 installCron(){
-$SUDO mv /etc/crontab /etc/crontab.orig
-$SUDO curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+$SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
 }
 
 installPihole()
