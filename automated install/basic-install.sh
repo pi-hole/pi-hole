@@ -229,7 +229,7 @@ sudo service lighttpd stop || true
 installDependencies(){
 sudo apt-get update
 sudo apt-get -y upgrade
-sudo apt-get -y install dnsutils bc toilet
+sudo apt-get -y install dnsutils bc toilet figlet
 sudo apt-get -y install dnsmasq
 sudo apt-get -y install lighttpd php5-common php5-cgi php5
 sudo apt-get -y install git
