@@ -17,6 +17,14 @@
 # curl -L install.pi-hole.net | bash
 
 ######## VARIABLES #########
+if [[ $EUID -eq 0 ]];then
+	echo "You are root."
+else
+	echo "sudo will be used for the install."
+	export SUDO="sudo"
+fi
+
+
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 
@@ -41,13 +49,13 @@ backupLegacyPihole()
 {
 if [[ -f /etc/dnsmasq.d/adList.conf ]];then
 	echo "Original Pi-hole detected.  Initiating sub space transport"
-	sudo mkdir -p /etc/pihole/original/
-	sudo mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
-	sudo mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
-	sudo mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
-	sudo mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
-	sudo mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
-	sudo mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
+	$SUDO mkdir -p /etc/pihole/original/
+	$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
+	$SUDO mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
 else
 	:
 fi
@@ -121,8 +129,8 @@ useIPv6dialog()
 {
 piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
-sudo mkdir -p /etc/pihole/
-sudo touch /etc/pihole/.useIPv6
+$SUDO mkdir -p /etc/pihole/
+$SUDO touch /etc/pihole/.useIPv6
 }
 
 getStaticIPv4Settings()
@@ -189,7 +197,7 @@ setDHCPCD(){
 echo "interface $piholeInterface
 static ip_address=$IPv4addr
 static routers=$IPv4gw
-static domain_name_servers=$IPv4gw" | sudo tee -a $dhcpcdFile >/dev/null
+static domain_name_servers=$IPv4gw" | $SUDO tee -a $dhcpcdFile >/dev/null
 }
 
 setStaticIPv4(){
@@ -198,78 +206,78 @@ if grep -q $IPv4addr $dhcpcdFile; then
 	:
 else
 	setDHCPCD
-	sudo ip addr replace dev $piholeInterface $IPv4addr
+	$SUDO ip addr replace dev $piholeInterface $IPv4addr
 	echo "Setting IP to $IPv4addr.  You may need to restart after the install is complete."
 fi
 }
 
 installScripts(){
-sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
-sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
-sudo curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
-sudo curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/blacklist.sh
-sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
-sudo curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
-sudo chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
+$SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
+$SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
+$SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
+$SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/blacklist.sh
+$SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
+$SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
+$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 }
 
 installConfigs(){
-sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-sudo mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-sudo curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
-sudo curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
-sudo sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
+$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
+$SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 }
 
 stopServices(){
-sudo service dnsmasq stop || true
-sudo service lighttpd stop || true
+$SUDO service dnsmasq stop || true
+$SUDO service lighttpd stop || true
 }
 
 installDependencies(){
-sudo apt-get update
-sudo apt-get -y upgrade
-sudo apt-get -y install dnsutils bc toilet figlet
-sudo apt-get -y install dnsmasq
-sudo apt-get -y install lighttpd php5-common php5-cgi php5
-sudo apt-get -y install git
+$SUDO apt-get update
+$SUDO apt-get -y upgrade
+$SUDO apt-get -y install dnsutils bc toilet figlet
+$SUDO apt-get -y install dnsmasq
+$SUDO apt-get -y install lighttpd php5-common php5-cgi php5
+$SUDO apt-get -y install git
 }
 
 installWebAdmin(){
-sudo wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
-sudo unzip -oq /var/www/master.zip -d /var/www/html/
-sudo mv /var/www/html/AdminLTE-master /var/www/html/admin
-sudo rm /var/www/master.zip 2>/dev/null
-sudo touch /var/log/pihole.log
-sudo chmod 644 /var/log/pihole.log
-sudo chown dnsmasq:root /var/log/pihole.log
+$SUDO wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
+$SUDO unzip -oq /var/www/master.zip -d /var/www/html/
+$SUDO mv /var/www/html/AdminLTE-master /var/www/html/admin
+$SUDO rm /var/www/master.zip 2>/dev/null
+$SUDO touch /var/log/pihole.log
+$SUDO chmod 644 /var/log/pihole.log
+$SUDO chown dnsmasq:root /var/log/pihole.log
 }
 
 installPiholeWeb(){
-sudo mkdir /var/www/html/pihole
-sudo mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-sudo curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+$SUDO mkdir /var/www/html/pihole
+$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
 }
 
 installCron(){
-sudo mv /etc/crontab /etc/crontab.orig
-sudo curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+$SUDO mv /etc/crontab /etc/crontab.orig
+$SUDO curl -o /etc/crontab https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
 }
 
 installPihole()
 {
 installDependencies
 stopServices
-sudo chown www-data:www-data /var/www/html
-sudo chmod 775 /var/www/html
-sudo usermod -a -G www-data pi
-sudo lighty-enable-mod fastcgi fastcgi-php
+$SUDO chown www-data:www-data /var/www/html
+$SUDO chmod 775 /var/www/html
+$SUDO usermod -a -G www-data pi
+$SUDO lighty-enable-mod fastcgi fastcgi-php
 installScripts
 installConfigs
 installWebAdmin
 installPiholeWeb
 installCron
-sudo /usr/local/bin/gravity.sh
+$SUDO /usr/local/bin/gravity.sh
 }
 
 displayFinalMessage(){
@@ -320,9 +328,9 @@ fi
 installPihole | tee $tmpLog
 
 # Move the log file into /etc/pihole for storage
-sudo mv $tmpLog $instalLogLoc
+$SUDO mv $tmpLog $instalLogLoc
 
 displayFinalMessage
 
-sudo service dnsmasq start
-sudo service lighttpd start
+$SUDO service dnsmasq start
+$SUDO service lighttpd start
