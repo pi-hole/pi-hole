@@ -169,6 +169,7 @@ function gravity_Schwarzchild() {
 
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
+<<<<<<< HEAD
 	if [[ -r $blacklist ]];then
         numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         echo "** Blacklisting $numberOf domain(s)..."
@@ -191,11 +192,18 @@ function gravity_Whitelist() {
 	else
         rm $latentWhitelist 2>/dev/null
 	fi
+=======
+	blacklist.sh -f -nr -q
+}
 
+>>>>>>> upstream/master
+
+function gravity_Whitelist() {
 	# Prevent our sources from being pulled into the hole
-	plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
+	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
 	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
 	
+<<<<<<< HEAD
 	for url in ${sources[@]}
 	do
         echo "$url" | awk -F '/' '{print $3}'  | sed 's/\./\\./g' >> $latentWhitelist
@@ -203,6 +211,17 @@ function gravity_Whitelist() {
 	
 	#remove whitelist entries from gravity.list
 	awk -F':' '{ print $1 }' $latentWhitelist | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
+=======
+	urls=()
+	for url in ${sources[@]}
+	do
+        tmp=$(echo "$url" | awk -F '/' '{print $3}')
+        urls=("${urls[@]}" $tmp)
+	done
+	
+	whitelist.sh -f -nr -q ${urls[@]}
+
+>>>>>>> upstream/master
 		
 }
 
@@ -259,7 +278,6 @@ function gravity_advanced() {
 function gravity_reload() {
 	# Reload hosts file
 	echo "** Refresh lists in dnsmasq..."
-
 	dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ $dnsmasqPid ]]; then
@@ -275,9 +293,16 @@ function gravity_reload() {
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
+<<<<<<< HEAD
 gravity_Blacklist
+=======
+>>>>>>> upstream/master
 gravity_advanced
 gravity_hostFormat
 gravity_blackbody
 gravity_Whitelist
+<<<<<<< HEAD
+=======
+gravity_Blacklist
+>>>>>>> upstream/master
 gravity_reload
