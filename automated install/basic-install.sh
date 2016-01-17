@@ -220,6 +220,14 @@ fi
 }
 
 installScripts(){
+<<<<<<< HEAD
+sudo curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
+sudo curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
+sudo curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
+sudo curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/blacklist.sh
+sudo curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
+sudo chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush}.sh
+=======
 $SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
 $SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
 $SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
@@ -227,6 +235,7 @@ $SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jaco
 $SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
 $SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
 $SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
+>>>>>>> upstream/master
 }
 
 installConfigs(){

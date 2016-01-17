@@ -169,15 +169,49 @@ function gravity_Schwarzchild() {
 
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
+<<<<<<< HEAD
+	if [[ -r $blacklist ]];then
+        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
+        echo "** Blacklisting $numberOf domain(s)..."
+        cat $blacklist >> $piholeDir/$matterandlight
+	fi
+}
+
+function gravity_Whitelist() {
+
+	# Whitelist (if applicable) domains
+	if [[ -r $whitelist ]];then
+        # Remove whitelist entries
+        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
+        plural=; [[ "$numberOf" != "1" ]] && plural=s
+        echo "** Whitelisting $numberOf domain${plural}..."
+                
+        # replace "." with "\." of each line to turn each entry into a
+        # regexp so it can be parsed out with grep -x
+        awk -F '[# \t]' 'NF>0&&$1!="" {print $1}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
+	else
+        rm $latentWhitelist 2>/dev/null
+	fi
+=======
 	blacklist.sh -f -nr -q
 }
 
+>>>>>>> upstream/master
 
 function gravity_Whitelist() {
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
 	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
 	
+<<<<<<< HEAD
+	for url in ${sources[@]}
+	do
+        echo "$url" | awk -F '/' '{print $3}'  | sed 's/\./\\./g' >> $latentWhitelist
+	done
+	
+	#remove whitelist entries from gravity.list
+	awk -F':' '{ print $1 }' $latentWhitelist | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
+=======
 	urls=()
 	for url in ${sources[@]}
 	do
@@ -187,6 +221,7 @@ function gravity_Whitelist() {
 	
 	whitelist.sh -f -nr -q ${urls[@]}
 
+>>>>>>> upstream/master
 		
 }
 
@@ -258,9 +293,16 @@ function gravity_reload() {
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
+<<<<<<< HEAD
+gravity_Blacklist
+=======
+>>>>>>> upstream/master
 gravity_advanced
 gravity_hostFormat
 gravity_blackbody
 gravity_Whitelist
+<<<<<<< HEAD
+=======
 gravity_Blacklist
+>>>>>>> upstream/master
 gravity_reload
