@@ -112,7 +112,7 @@ function displayHelp(){
  echo "Displays stats about your piHole!"
     echo " "
     echo "Usage: chronometer.sh [optional:-j]"
-    echo "Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds
+    echo "Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
     echo "  "
     echo "Options:"
     echo "  -j, --json		output stats as JSON formatted string"
