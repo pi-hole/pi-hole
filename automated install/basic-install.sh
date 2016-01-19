@@ -245,7 +245,7 @@ $SUDO service lighttpd stop || true
 installDependencies(){
 $SUDO apt-get update
 $SUDO apt-get -y upgrade
-$SUDO apt-get -y install dnsutils bc toilet figlet
+$SUDO apt-get -y install dnsutils bc toilet figlet unzip
 $SUDO apt-get -y install dnsmasq
 $SUDO apt-get -y install lighttpd php5-common php5-cgi php5
 $SUDO apt-get -y install git
