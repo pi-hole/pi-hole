@@ -49,7 +49,7 @@ A more detailed explanation of the installation can be found [here](http://jacob
 The [gravity.sh](https://github.com/jacobsalmela/pi-hole/blob/master/gravity.sh) does most of the magic.  The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/jacobsalmela/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)).
 
 ## Whitelist and blacklist
-You can add a `whitelist.txt` or `blacklist.txt` in `/etc/pihole/` and the script will apply those files automatically.  Put one domain per line.
+Domains can be whitelisted and blacklisted using two pre-installed scripts. See [the wiki page](https://github.com/jacobsalmela/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
 
 ## Web Interface
 The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings.  You can find it at:
@@ -64,16 +64,16 @@ A basic read-only API can be accessed at `/admin/api.php`. It returns the follow
 	"domains_being_blocked": "136708",
 	"dns_queries_today": "18108",
 	"ads_blocked_today": "14648",
-	"ads_percentage_today": 80.892423238348
+	"ads_percentage_today": "80.89"
 }
 ```
+The same output can be acheived on the CLI by running `chronometer.sh -j`
 
 ![Web](http://i.imgur.com/m114SCn.png)
 
 ## Real-time Statistics
 
 You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj).  This is accomplished via [`chronometer.sh`](https://github.com/jacobsalmela/pi-hole/blob/master/advanced/Scripts/chronometer.sh).
-
 ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
 
 ## Help
