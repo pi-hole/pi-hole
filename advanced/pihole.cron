@@ -1,1 +1,15 @@
-@weekly sudo /usr/local/bin/gravity.sh
+# Pi-hole: Update the ad sources once a week on Sunday at 01:59
+#          Download any updates from the ad lists
+59 1    * * 7   root    /usr/local/bin/gravity.sh
+
+# Pi-hole: Update the Web interface shortly after gravity runs
+#          This should also update the version number if it is changed in the dashboard repo
+30 2    * * 7   root    /usr/local/bin/updateDashboard.sh
+
+# Pi-hole: Parse the log file before it is flushed and save the stats to a database
+#          This will be used for a historical view of your Pi-hole's performance
+#50 23  * * *   root    /usr/local/bin/dailyLog.sh
+
+# Pi-hole: Flush the log daily at 11:58 so it doesn't get out of control
+#          Stats will be viewable in the Web interface thanks to the cron job above
+58 23   * * *   root    /usr/local/bin/piholeLogFlush.sh

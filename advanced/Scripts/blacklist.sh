@@ -8,20 +8,20 @@
 # (at your option) any later version.
 
 if [[ $# = 0 ]]; then
-    echo "Immediately whitelists one or more domains in the hosts file"
+    echo "Immediately blacklists one or more domains in the hosts file"
     echo " "
-    echo "Usage: whitelist.sh domain1 [domain2 ...]"
+    echo "Usage: blacklist.sh domain1 [domain2 ...]"
     echo "  "
     echo "Options:"
-    echo "  -d, --delmode		Remove domains from the whitelist"
-    echo "  -nr, --noreload	Update Whitelist without refreshing dnsmasq"
+    echo "  -d, --delmode		Remove domains from the blacklist"
+    echo "  -nr, --noreload	Update blacklist without refreshing dnsmasq"
     echo "  -f, --force		Force updating of the hosts files, even if there are no changes"
     echo "  -q, --quiet		output is less verbose"
     exit 1
 fi
 
 #globals
-whitelist=/etc/pihole/whitelist.txt
+blacklist=/etc/pihole/blacklist.txt
 adList=/etc/pihole/gravity.list
 reload=true
 addmode=true
@@ -29,6 +29,7 @@ force=false
 versbose=true
 domList=()
 domToRemoveList=()
+
 
 piholeIPfile=/tmp/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
@@ -58,10 +59,10 @@ function HandleOther(){
 	fi
 }
 
-function PopWhitelistFile(){
-	#check whitelist file exists, and if not, create it
-	if [[ ! -f $whitelist ]];then
-  	  touch $whitelist
+function PopBlacklistFile(){
+	#check blacklist file exists, and if not, create it
+	if [[ ! -f $blacklist ]];then
+  	  touch $blacklist
 	fi	
 	for dom in "${domList[@]}"
 	do	  
@@ -76,17 +77,17 @@ function PopWhitelistFile(){
 function AddDomain(){
 #| sed 's/\./\\./g'
 	bool=false
-	grep -Ex -q "$1" $whitelist || bool=true
+	grep -Ex -q "$1" $blacklist || bool=true
 	if $bool; then
-	  #domain not found in the whitelist file, add it!
+	  #domain not found in the blacklist file, add it!
 	  if $versbose; then
-	  echo "** Adding $1 to whitelist file"
+	  echo "** Adding $1 to blacklist file"
 	  fi
-		echo $1 >> $whitelist
+		echo $1 >> $blacklist
 		modifyHost=true
 	else
-		if $versbose; then
-			echo "** $1 already whitelisted! No need to add"
+	if $versbose; then
+		echo "** $1 already blacklisted! No need to add"
 		fi
 	fi
 }
@@ -94,51 +95,52 @@ function AddDomain(){
 function RemoveDomain(){
   
   bool=false
-  grep -Ex -q "$1" $whitelist || bool=true
+  grep -Ex -q "$1" $blacklist || bool=true
   if $bool; then
-  	#Domain is not in the whitelist file, no need to Remove
+  	#Domain is not in the blacklist file, no need to Remove
   	if $versbose; then
-  	echo "** $1 is NOT whitelisted! No need to remove"
+  	echo "** $1 is NOT blacklisted! No need to remove"
   	fi
   else
-    #Domain is in the whitelist file, add to a temporary array and remove from whitelist file
+    #Domain is in the blacklist file, add to a temporary array
     if $versbose; then
-    echo "** Un-whitelisting $dom..."
+    echo "** Un-blacklisting $dom..."
     fi
-    domToRemoveList=("${domToRemoveList[@]}" $1)
+    domToRemoveList=("${domToRemoveList[@]}" $1)    
     modifyHost=true	  	
   fi  	
 }
 
 function ModifyHostFile(){	
 	 if $addmode; then
-	    #remove domains in  from hosts file
-	    if [[ -r $whitelist ]];then
-        # Remove whitelist entries
-        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
+	    #add domains to the hosts file
+	    if [[ -r $blacklist ]];then
+	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo "** Whitelisting a total of $numberOf domain${plural}..."	   
-	  	  awk -F':' '{ print $1 }' $whitelist | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
+        echo "** blacklisting a total of $numberOf domain${plural}..."	   		    
+	    	if [[ -n $piholeIPv6 ]];then	    	  
+	    	  cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
+	      else	        
+	      	cat $blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
+	      fi		    
+		   
 	  	fi
 	  else
-	    #we need to add the removed domains to the hosts file
-	    for rdom in "${domToRemoveList[@]}"
-	    do
-	    	if [[ -n $piholeIPv6 ]];then
-	    	  echo "**Blacklisting $rdom on IPv4 and IPv6"
-	    	  echo $rdom | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
-	      else
-	        echo "**Blacklisting $rdom on IPv4"
-	      	echo $rdom | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
-	      fi	      	      
-	      echo $rdom| sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $whitelist
-	    done
-	  fi	
+
+	  for dom in "${domToRemoveList[@]}"
+		do	  
+	      #we need to remove the domains from the blacklist file and the host file	     
+	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList  
+	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $blacklist
+		done	  
+		fi
+	  
 }
 
 function Reload() {
 	# Reload hosts file
 	echo "** Refresh lists in dnsmasq..."
+
 	dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ $dnsmasqPid ]]; then
@@ -163,7 +165,7 @@ do
   esac
 done
 
-PopWhitelistFile
+PopBlacklistFile
 
 if $modifyHost || $force; then
 	echo "** Modifying Hosts File"
@@ -171,8 +173,8 @@ if $modifyHost || $force; then
 else
   if $versbose; then
 	echo "** No changes need to be made"
-	exit 1
 	fi
+	exit 1
 fi
 
 if $reload; then
