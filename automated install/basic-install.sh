@@ -271,6 +271,15 @@ installCron(){
 $SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
 }
 
+tidyEtcPihole()
+{
+if ls /etc/pihole/list* 1> /dev/null 2>&1; then
+    echo "Cleaning up previous install"
+    $SUDO rm /etc/pihole/list.*
+fi
+
+}
+
 installPihole()
 {
 installDependencies
@@ -284,6 +293,7 @@ installConfigs
 installWebAdmin
 installPiholeWeb
 installCron
+tidyEtcPihole
 $SUDO /usr/local/bin/gravity.sh
 }
 
