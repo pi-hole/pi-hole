@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015 by Jacob Salmela GPL 2.0
+# (c) 2015 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
 # Compiles a list of ad-serving domains by downloading them from multiple sources
+#
+# Pi-hole is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
 
 piholeIPfile=/tmp/piholeIP
+piholeIPv6file=/etc/pihole/.useIPv6
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
     piholeIP=$(cat $piholeIPfile)
     rm $piholeIPfile
 else
     # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-	piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
-	piholeIP=${piholeIPCIDR%/*}
+    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+    piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+    piholeIP=${piholeIPCIDR%/*}
+fi
+
+if [[ -f $piholeIPv6file ]];then
+    # If the file exists, then the user previously chose to use IPv6 in the automated installer
+    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
 # Ad-list sources--one per line in single quotes
@@ -37,12 +48,11 @@ blacklist=$piholeDir/blacklist.txt
 whitelist=$piholeDir/whitelist.txt
 latentWhitelist=$piholeDir/latentWhitelist.txt
 justDomainsExtension=domains
-matter=$basename.0.matter.txt
-andLight=$basename.1.andLight.txt
-supernova=$basename.2.supernova.txt
-eventHorizon=$basename.3.eventHorizon.txt
-accretionDisc=$basename.4.accretionDisc.txt
-eyeOfTheNeedle=$basename.5.wormhole.txt
+matterandlight=$basename.0.matterandlight.txt
+supernova=$basename.1.supernova.txt
+eventHorizon=$basename.2.eventHorizon.txt
+accretionDisc=$basename.3.accretionDisc.txt
+eyeOfTheNeedle=$basename.4.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
@@ -149,48 +159,35 @@ function gravity_Schwarzchild() {
 
 	# Find all active domains and compile them into one file and remove CRs
 	echo "** Aggregating list of domains..."
-	truncate -s 0 $piholeDir/$matter
+	truncate -s 0 $piholeDir/$matterandlight
 	for i in "${activeDomains[@]}"
 	do
-   		cat $i |tr -d '\r' >> $piholeDir/$matter
+   		cat $i |tr -d '\r' >> $piholeDir/$matterandlight
 	done
 }
 
-# Pulsar - White/blacklist application
-function gravity_pulsar() {
 
+function gravity_Blacklist(){
 	# Append blacklist entries if they exist
-	if [[ -r $blacklist ]];then
-        numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
-        echo "** Blacklisting $numberOf domain(s)..."
-        cat $blacklist >> $piholeDir/$matter
-	fi
+	blacklist.sh -f -nr -q
+}
 
-	# Whitelist (if applicable) domains
-	if [[ -r $whitelist ]];then
-        # Remove whitelist entries
-        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
-        plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo "** Whitelisting $numberOf domain${plural}..."
 
-        # Append a "$" to the end, prepend a "^" to the beginning, and
-        # replace "." with "\." of each line to turn each entry into a
-        # regexp so it can be parsed out with grep -x
-        awk -F '[# \t]' 'NF>0&&$1!="" {print "^"$1"$"}' $whitelist | sed 's/\./\\./g' > $latentWhitelist
-	else
-        rm $latentWhitelist >/dev/null
-	fi
-
+function gravity_Whitelist() {
 	# Prevent our sources from being pulled into the hole
-	plural=; [[ "${#sources[@]}" != "1" ]] && plural=s
+	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
 	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
+	
+	urls=()
 	for url in ${sources[@]}
 	do
-        echo "$url" | awk -F '/' '{print "^"$3"$"}' | sed 's/\./\\./g' >> $latentWhitelist
+        tmp=$(echo "$url" | awk -F '/' '{print $3}')
+        urls=("${urls[@]}" $tmp)
 	done
+	
+	whitelist.sh -f -nr -q ${urls[@]}
 
-	# Remove whitelist entries from list
-	grep -vxf $latentWhitelist $piholeDir/$matter > $piholeDir/$andLight
+		
 }
 
 function gravity_unique() {
@@ -203,7 +200,13 @@ function gravity_unique() {
 function gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "** Formatting domains into a HOSTS file..."
-	cat $piholeDir/$eventHorizon | awk '{sub(/\r$/,""); print "'"$piholeIP"' " $0}' > $piholeDir/$accretionDisc
+  # If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
+  if [[ -n $piholeIPv6 ]];then
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' > $piholeDir/$accretionDisc
+  else
+    # Otherwise, just create gravity.list as normal using IPv4
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' > $piholeDir/$accretionDisc
+  fi
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp $piholeDir/$accretionDisc $adList
 }
@@ -223,25 +226,41 @@ function gravity_blackbody() {
 }
 
 function gravity_advanced() {
+
+
 	# Remove comments and print only the domain name
 	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 	# This helps with that and makes it easier to read
 	# It also helps with debugging so each stage of the script can be researched more in depth
-	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$andLight | \
-		sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
+	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 
 	numberOf=$(wc -l < $piholeDir/$supernova)
 	echo "** $numberOf domains being pulled in by gravity..."
 
 	gravity_unique
-
-	sudo kill -s -HUP $(pidof dnsmasq)
 }
+
+function gravity_reload() {
+	# Reload hosts file
+	echo "** Refresh lists in dnsmasq..."
+	dnsmasqPid=$(pidof dnsmasq)
+
+	if [[ $dnsmasqPid ]]; then
+		# service already running - reload config
+		sudo kill -HUP $dnsmasqPid
+	else
+		# service not running, start it up
+		sudo service dnsmasq start
+	fi
+}
+
 
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
-gravity_pulsar
 gravity_advanced
 gravity_hostFormat
 gravity_blackbody
+gravity_Whitelist
+gravity_Blacklist
+gravity_reload
