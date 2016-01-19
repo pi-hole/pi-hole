@@ -103,12 +103,18 @@ done <<< "$availableInterfaces"
 interfaceCount=$(echo "$availableInterfaces" | wc -l)
 chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
+if [[ $chooseInterfaceOptions ]];then
 for desiredInterface in $chooseInterfaceOptions
 do
 	piholeInterface=$desiredInterface
 	echo "Using interface: $piholeInterface"
 	echo ${piholeInterface} > /tmp/piholeINT
 done
+else
+	# Exit if user cancels
+	echo "Cancelling installation."
+	exit
+fi
 }
 
 use4andor6()
