@@ -252,7 +252,7 @@ $SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLo
 
 installConfigs(){
 $SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-$SUDO curl -o /etc/dnsmasq.conf/01-pihole.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/01-pihole.conf
+$SUDO curl -o /etc/dnsmasq.d/01-pihole.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/01-pihole.conf
 $SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
 $SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
 $SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
