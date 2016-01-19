@@ -200,6 +200,27 @@ done
 fi
 }
 
+setDNS()
+{
+DNSChoseCmd=(whiptail --separate-output --radiolist "Select DNS Servers" $r $c 2)
+DNSChooseOptions=(Google "Use Google's DNS Servers" on
+		  DynDNS "Use DynDNS's DNS Servers" off)
+DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+
+case $DNSchoices in
+	Google)
+		echo "Google selected."
+		piholeDNS1="8.8.8.8"
+		piholeDNS2="8.8.4.4"
+		;;
+	DynDNS)
+		echo "DynDNS selected."
+		piholeDNS1="208.67.222.222"
+		piholeDNS2="208.67.220.220"
+		;;
+esac
+}
+
 setDHCPCD(){
 # Append these lines to dhcpcd.conf to enable a static IP
 echo "interface $piholeInterface
@@ -234,6 +255,8 @@ $SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 $SUDO curl -o /etc/dnsmasq.conf/01-pihole.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/01-pihole.conf
 $SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
 $SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
+$SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
+$SUDO sed -i "s/@DNS2@/$piholeDNS2/" /etc/dnsmasq.d/01-pihole.conf
 }
 
 stopServices(){
@@ -329,6 +352,9 @@ else
 	useIPv6=false
 	echo "IPv6 will NOT be used."
 fi
+
+#Decide what upstream DNS Servers to use
+setDNS
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
