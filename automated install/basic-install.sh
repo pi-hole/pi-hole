@@ -252,35 +252,41 @@ $SUDO apt-get -y install git
 }
 
 installWebAdmin(){
+$SUDO echo " "
 if [ -d "/var/www/html/admin" ]; then	
   $SUDO rm -rf /var/www/html/admin
 fi
 if [ -d "/var/www/html/AdminLTE-master" ]; then
   $SUDO rm -rf /var/www/html/AdminLTE-master
 fi
-$SUDO echo ":::Downloading and installing latest WebAdmin files..."
+$SUDO echo "::: Downloading and installing latest WebAdmin files..."
 $SUDO wget -nv https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
 $SUDO unzip -oq /var/www/master.zip -d /var/www/html/
 $SUDO mv /var/www/html/AdminLTE-master /var/www/html/admin
 $SUDO rm /var/www/master.zip 2>/dev/null
-$SUDO echo ":::...Done."
+$SUDO echo "::: ...Done."
 
-$SUDO echo ":::Creating log file and changing owner to dnsmasq..."
-if [ ! -f /var/log/pihole.log ]; then		
-    $SUDO touch /var/log/pihole.log
-		$SUDO chmod 644 /var/log/pihole.log
-		$SUDO chown dnsmasq:root /var/log/pihole.log
-		$SUDO echo ":::...Done."
+$SUDO echo "::: Creating log file and changing owner to dnsmasq..."
+if [ ! -f /var/log/pihole.log ]; then
+	$SUDO touch /var/log/pihole.log
+	$SUDO chmod 644 /var/log/pihole.log
+	$SUDO chown dnsmasq:root /var/log/pihole.log
+	$SUDO echo "::: ...Done."
 else
-	  $SUDO echo ":::No need to create, already exists!"
+	$SUDO echo "::: No need to create, already exists!"
 fi
 
 }
 
 installPiholeWeb(){
-$SUDO mkdir /var/www/html/pihole
-$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+$SUDO echo " "
+if [ -d "/var/www/html/pihole" ]; then	
+  $SUDO echo "::: Existing pihole custom page detected, not overwriting"
+else
+	$SUDO mkdir /var/www/html/pihole
+	$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+fi
 }
 
 installCron(){
