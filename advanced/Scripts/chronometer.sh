@@ -15,6 +15,7 @@ gravity="/etc/pihole/gravity.list"
 today=$(date "+%b %e")
 
 function CalcBlockedDomains(){
+	CheckIPv6
 	if [ -e "$gravity" ]; then
 		#Are we IPV6 or IPV4?
 		if [[ -n $piholeIPv6 ]];then
@@ -66,7 +67,6 @@ function outputJSON(){
 	CalcblockedToday
 	CalcPercentBlockedToday
 	
-	CheckIPv6
 	CalcBlockedDomains
 	
 	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
