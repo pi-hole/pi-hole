@@ -294,7 +294,7 @@ installWebAdmin
 installPiholeWeb
 installCron
 tidyEtcPihole
-$SUDO /usr/local/bin/gravity.sh
+/usr/local/bin/gravity.sh
 }
 
 displayFinalMessage(){
