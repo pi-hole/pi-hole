@@ -21,13 +21,13 @@
 if [[ $EUID -eq 0 ]];then
 	echo "You are root."
 else
-	echo "sudo will be used for the install."
+	echo "::: sudo will be used for the install."
   # Check if it is actually installed
   # If it isn't, exit because the install cannot complete
   if [[ $(dpkg-query -s sudo) ]];then
 		export SUDO="sudo"
   else
-		echo "Please install sudo or run this as root."
+		echo "::: Please install sudo or run this as root."
     exit 1
   fi
 fi
@@ -53,6 +53,23 @@ availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -
 dhcpcdFile=/etc/dhcpcd.conf
 
 ####### FUCNTIONS ##########
+###All creddit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
+spinner()
+{
+    local pid=$1
+    local delay=0.001
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
+
 backupLegacyPihole()
 {
 if [[ -f /etc/dnsmasq.d/adList.conf ]];then
@@ -106,7 +123,7 @@ chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1
 for desiredInterface in $chooseInterfaceOptions
 do
 	piholeInterface=$desiredInterface
-	echo "Using interface: $piholeInterface"
+	echo "::: Using interface: $piholeInterface"
 	echo ${piholeInterface} > /tmp/piholeINT
 done
 }
@@ -121,16 +138,34 @@ choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 for choice in $choices
 do
     case $choice in
-        IPv4)
-            echo "IPv4 selected."
-			useIPv4=true
-            ;;
-        IPv6)
-			echo "IPv6 selected."
-			useIPv6=true
-            ;;
+        IPv4)useIPv4=true;;
+        IPv6)useIPv6=true;;
     esac
-done
+done    
+    if [ $useIPv4 ] && [ ! $useIPv6 ]; then
+     	getStaticIPv4Settings
+			setStaticIPv4	
+			echo "::: Using IPv4 on $IPv4addr" 
+			echo "::: IPv6 will NOT be used."			
+    fi
+    if [ ! $useIPv4 ] && [ $useIPv6 ]; then
+    	useIPv6dialog
+    	echo "::: IPv4 will NOT be used."
+    	echo "::: Using IPv6 on $piholeIPv6"
+    fi
+    if [ $useIPv4 ] && [  $useIPv6 ]; then    	
+    	getStaticIPv4Settings
+			setStaticIPv4
+			useIPv6dialog	
+			echo "::: Using IPv4 on $IPv4addr"
+    	echo "::: Using IPv6 on $piholeIPv6"
+    fi
+    if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
+    	echo "::: Cannot continue, neither IPv4 or IPv6 selected"
+    	echo "::: Exiting"
+    	exit 1
+    fi
+	
 }
 
 useIPv6dialog()
@@ -220,6 +255,9 @@ fi
 }
 
 installScripts(){
+$SUDO echo " "
+$SUDO echo "::: Installing scripts..."
+#$SUDO rm /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 $SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
 $SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
 $SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
@@ -227,40 +265,59 @@ $SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jaco
 $SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
 $SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
 $SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
+$SUDO echo "::: ...done."
 }
 
 installConfigs(){
+$SUDO echo " "
+$SUDO echo "::: Installing configs..."
 $SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 $SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 $SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
 $SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
 $SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
+$SUDO echo "::: ...done."
 }
 
 stopServices(){
+$SUDO echo " "
+$SUDO echo "::: Stopping services..."
 $SUDO service dnsmasq stop || true
 $SUDO service lighttpd stop || true
+$SUDO echo "::: ...done."
 }
 
 installDependencies(){
-$SUDO apt-get update
-$SUDO apt-get -y upgrade
-$SUDO apt-get -y install dnsutils bc toilet figlet
-$SUDO apt-get -y install dnsmasq
-$SUDO apt-get -y install lighttpd php5-common php5-cgi php5
-$SUDO apt-get -y install git
+$SUDO echo " "
+$SUDO echo "::: Updating apt-get package list"
+$SUDO apt-get -qq update & spinner $!
+$SUDO echo "::: Upgrading apt-get packages"
+$SUDO apt-get -yqq upgrade & spinner $!
+$SUDO echo "::: ...done."
+$SUDO echo "::: installing dnsutils, bc, toilet, and figlet..."
+$SUDO apt-get -yqq install dnsutils bc toilet figlet & spinner $!
+$SUDO echo "::: ...done."
+$SUDO echo "::: Installing dnsmasq..."
+$SUDO apt-get -yqq install dnsmasq & spinner $!
+$SUDO echo "::: ...done."
+$SUDO echo "::: Installing lighttpd, php5-common, php5-cgi, and php5..."
+$SUDO apt-get -yqq install lighttpd php5-common php5-cgi php5 & spinner $!
+$SUDO echo "::: ...done."
+$SUDO echo "::: Installing git..."
+$SUDO apt-get -yqq install git & spinner $!
+$SUDO echo "::: ...done."
 }
 
 installWebAdmin(){
 $SUDO echo " "
+$SUDO echo "::: Downloading and installing latest WebAdmin files..."
 if [ -d "/var/www/html/admin" ]; then	
   $SUDO rm -rf /var/www/html/admin
 fi
 if [ -d "/var/www/html/AdminLTE-master" ]; then
   $SUDO rm -rf /var/www/html/AdminLTE-master
 fi
-$SUDO echo "::: Downloading and installing latest WebAdmin files..."
-$SUDO wget -nv https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
+$SUDO wget -nv https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip & spinner $!
 $SUDO unzip -oq /var/www/master.zip -d /var/www/html/
 $SUDO mv /var/www/html/AdminLTE-master /var/www/html/admin
 $SUDO rm /var/www/master.zip 2>/dev/null
@@ -270,37 +327,47 @@ $SUDO echo "::: Creating log file and changing owner to dnsmasq..."
 if [ ! -f /var/log/pihole.log ]; then
 	$SUDO touch /var/log/pihole.log
 	$SUDO chmod 644 /var/log/pihole.log
-	$SUDO chown dnsmasq:root /var/log/pihole.log
-	$SUDO echo "::: ...Done."
+	$SUDO chown dnsmasq:root /var/log/pihole.log	
 else
 	$SUDO echo "::: No need to create, already exists!"
 fi
+$SUDO echo "::: ...done."
 
 }
 
 installPiholeWeb(){
 $SUDO echo " "
+$SUDO echo "::: Downloading and installing pihole custom index page..."
 if [ -d "/var/www/html/pihole" ]; then	
-  $SUDO echo "::: Existing pihole custom page detected, not overwriting"
-else
+  $SUDO echo "::: Existing page detected, not overwriting"
+else  
 	$SUDO mkdir /var/www/html/pihole
 	$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html	
 fi
+$SUDO echo "::: ...done."
 }
 
 installCron(){
+$SUDO echo " "
+$SUDO echo "::: Downloading latest Cron script..."
 $SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+$SUDO echo "::: ...done."
 }
 
-tidyEtcPihole()
+runGravity()
 {
+$SUDO echo " "
+$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
 if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-    echo "Cleaning up previous install"
+    echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
     $SUDO rm /etc/pihole/list.*
 fi
-
+#Don't run as SUDO, this was causing issues
+/usr/local/bin/gravity.sh
+$SUDO echo "::: ...done."
 }
+
 
 installPihole()
 {
@@ -315,8 +382,8 @@ installConfigs
 installWebAdmin
 installPiholeWeb
 installCron
-tidyEtcPihole
-/usr/local/bin/gravity.sh
+runGravity
+
 }
 
 displayFinalMessage(){
@@ -343,25 +410,6 @@ chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
 
-# Decide is IPv4 will be used
-if [[ "$useIPv4" = true ]];then
-	echo "Using IPv4"
-	getStaticIPv4Settings
-	setStaticIPv4
-else
-	useIPv4=false
-	echo "IPv4 will NOT be used."
-fi
-
-# Decide is IPv6 will be used
-if [[ "$useIPv6" = true ]];then
-	useIPv6dialog
-	echo "Using IPv6."
-	echo "Your IPv6 address is: $piholeIPv6"
-else
-	useIPv6=false
-	echo "IPv6 will NOT be used."
-fi
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
