@@ -103,34 +103,41 @@ done <<< "$availableInterfaces"
 interfaceCount=$(echo "$availableInterfaces" | wc -l)
 chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
+if [[ $chooseInterfaceOptions ]];then
 for desiredInterface in $chooseInterfaceOptions
 do
 	piholeInterface=$desiredInterface
 	echo "Using interface: $piholeInterface"
 	echo ${piholeInterface} > /tmp/piholeINT
 done
+else
+	# Exit if user cancels
+	echo "Cancelling installation."
+	exit
+fi
 }
 
 use4andor6()
 {
 # Let use select IPv4 and/or IPv6
 cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
+
 options=(IPv4 "Block ads over IPv4" on
          IPv6 "Block ads over IPv6" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-for choice in $choices
-do
+if [[ $choices ]];then
+	for choice in $choices
+	do
     case $choice in
-        IPv4)
-            echo "IPv4 selected."
-			useIPv4=true
-            ;;
-        IPv6)
-			echo "IPv6 selected."
-			useIPv6=true
-            ;;
+        IPv4) useIPv4=true;;
+        IPv6) useIPv6=true;;
     esac
-done
+	done
+else
+	# Exit if user cancels
+	echo "Cancelling installation."
+	exit
+fi
 }
 
 useIPv6dialog()

@@ -177,17 +177,17 @@ function gravity_Whitelist() {
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
 	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
-	
+
 	urls=()
 	for url in ${sources[@]}
 	do
         tmp=$(echo "$url" | awk -F '/' '{print $3}')
         urls=("${urls[@]}" $tmp)
 	done
-	
+
 	whitelist.sh -f -nr -q ${urls[@]}
 
-		
+
 }
 
 function gravity_unique() {
