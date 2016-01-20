@@ -83,6 +83,13 @@ whiptail --msgbox --backtitle "Initating network interface" --title "Static IP N
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
+chooseUser()
+{
+# Choose user to be added to the www-data group
+wwwUser=$(whoami)
+wwwUser=$(whiptail --backtitle "www-data User" --title "Main user account" --inputbox "Enter the main user for this device (current user displayed)" $r $c $wwwUser 3>&1 1>&2 2>&3)
+}
+
 chooseInterface()
 {
 # Turn the available interfaces into an array so it can be used with a whiptail dialog
@@ -286,7 +293,7 @@ installDependencies
 stopServices
 $SUDO chown www-data:www-data /var/www/html
 $SUDO chmod 775 /var/www/html
-$SUDO usermod -a -G www-data pi
+$SUDO usermod -a -G www-data $wwwUser
 $SUDO lighty-enable-mod fastcgi fastcgi-php
 installScripts
 installConfigs
