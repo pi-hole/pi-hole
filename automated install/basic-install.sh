@@ -252,13 +252,29 @@ $SUDO apt-get -y install git
 }
 
 installWebAdmin(){
-$SUDO wget https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
+if [ -d "/var/www/html/admin" ]; then	
+  $SUDO rm -rf /var/www/html/admin
+fi
+if [ -d "/var/www/html/AdminLTE-master" ]; then
+  $SUDO rm -rf /var/www/html/AdminLTE-master
+fi
+$SUDO echo ":::Downloading and installing latest WebAdmin files..."
+$SUDO wget -nv https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip
 $SUDO unzip -oq /var/www/master.zip -d /var/www/html/
 $SUDO mv /var/www/html/AdminLTE-master /var/www/html/admin
 $SUDO rm /var/www/master.zip 2>/dev/null
-$SUDO touch /var/log/pihole.log
-$SUDO chmod 644 /var/log/pihole.log
-$SUDO chown dnsmasq:root /var/log/pihole.log
+$SUDO echo ":::...Done."
+
+$SUDO echo ":::Creating log file and changing owner to dnsmasq..."
+if [ ! -f /var/log/pihole.log ]; then		
+    $SUDO touch /var/log/pihole.log
+		$SUDO chmod 644 /var/log/pihole.log
+		$SUDO chown dnsmasq:root /var/log/pihole.log
+		$SUDO echo ":::...Done."
+else
+	  $SUDO echo ":::No need to create, already exists!"
+fi
+
 }
 
 installPiholeWeb(){
