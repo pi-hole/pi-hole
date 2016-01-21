@@ -103,19 +103,24 @@ In the next section, you can choose to use your current network settings (DHCP) 
 chooseInterface()
 {
 # Turn the available interfaces into an array so it can be used with a whiptail dialog
-interfacesArray=()
-firstloop=1
+if [[ $chooseInterfaceOptions ]];then
+	interfacesArray=()
+	firstloop=1
 
-while read -r line
-do
-mode="OFF"
-if [[ $firstloop -eq 1 ]]; then
-  firstloop=0
-  mode="ON"
+	while read -r line
+	do
+		mode="OFF"
+		if [[ $firstloop -eq 1 ]]; then
+  		firstloop=0
+  		mode="ON"
+		fi
+		interfacesArray+=("$line" "available" "$mode")
+	done <<< "$availableInterfaces"
+else
+	# Exit if user cancels
+	echo "Cancelling installation."
+	exit
 fi
-interfacesArray+=("$line" "available" "$mode")
-done <<< "$availableInterfaces"
-
 # Find out how many interfaces are available to choose from
 interfaceCount=$(echo "$availableInterfaces" | wc -l)
 chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
@@ -135,28 +140,34 @@ cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
 options=(IPv4 "Block ads over IPv4" on
          IPv6 "Block ads over IPv6" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+if [[ $choices ]];then
 for choice in $choices
 do
     case $choice in
         IPv4)useIPv4=true;;
         IPv6)useIPv6=true;;
     esac
-done    
+done
+else
+	# Exit if user cancels
+	echo "Cancelling installation."
+	exit
+fi
     if [ $useIPv4 ] && [ ! $useIPv6 ]; then
      	getStaticIPv4Settings
-			setStaticIPv4	
-			echo "::: Using IPv4 on $IPv4addr" 
-			echo "::: IPv6 will NOT be used."			
+			setStaticIPv4
+			echo "::: Using IPv4 on $IPv4addr"
+			echo "::: IPv6 will NOT be used."
     fi
     if [ ! $useIPv4 ] && [ $useIPv6 ]; then
     	useIPv6dialog
     	echo "::: IPv4 will NOT be used."
     	echo "::: Using IPv6 on $piholeIPv6"
     fi
-    if [ $useIPv4 ] && [  $useIPv6 ]; then    	
+    if [ $useIPv4 ] && [  $useIPv6 ]; then
     	getStaticIPv4Settings
 			setStaticIPv4
-			useIPv6dialog	
+			useIPv6dialog
 			echo "::: Using IPv4 on $IPv4addr"
     	echo "::: Using IPv6 on $piholeIPv6"
     fi
@@ -165,7 +176,7 @@ done
     	echo "::: Exiting"
     	exit 1
     fi
-	
+
 }
 
 useIPv6dialog()
@@ -311,7 +322,7 @@ $SUDO echo "::: ...done."
 installWebAdmin(){
 $SUDO echo " "
 $SUDO echo "::: Downloading and installing latest WebAdmin files..."
-if [ -d "/var/www/html/admin" ]; then	
+if [ -d "/var/www/html/admin" ]; then
   $SUDO rm -rf /var/www/html/admin
 fi
 if [ -d "/var/www/html/AdminLTE-master" ]; then
@@ -327,7 +338,7 @@ $SUDO echo "::: Creating log file and changing owner to dnsmasq..."
 if [ ! -f /var/log/pihole.log ]; then
 	$SUDO touch /var/log/pihole.log
 	$SUDO chmod 644 /var/log/pihole.log
-	$SUDO chown dnsmasq:root /var/log/pihole.log	
+	$SUDO chown dnsmasq:root /var/log/pihole.log
 else
 	$SUDO echo "::: No need to create, already exists!"
 fi
@@ -338,12 +349,12 @@ $SUDO echo "::: ...done."
 installPiholeWeb(){
 $SUDO echo " "
 $SUDO echo "::: Downloading and installing pihole custom index page..."
-if [ -d "/var/www/html/pihole" ]; then	
+if [ -d "/var/www/html/pihole" ]; then
   $SUDO echo "::: Existing page detected, not overwriting"
-else  
+else
 	$SUDO mkdir /var/www/html/pihole
 	$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html	
+	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
 fi
 $SUDO echo "::: ...done."
 }
