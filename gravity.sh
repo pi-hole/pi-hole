@@ -10,8 +10,24 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+# Run this script as root or under sudo
+if [[ $EUID -eq 0 ]];then
+	echo "You are root."
+else
+	echo "::: sudo will be used for the install."
+  # Check if it is actually installed
+  # If it isn't, exit because the install cannot complete
+  if [[ $(dpkg-query -s sudo) ]];then
+		export SUDO="sudo"
+  else
+		echo "::: Please install sudo or run this as root."
+    exit 1
+  fi
+fi
+
 piholeIPfile=/tmp/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
+
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
     piholeIP=$(cat $piholeIPfile)
@@ -70,8 +86,8 @@ function gravity_collapse() {
         # Temporary hack to allow non-root access to pihole directory
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
-        sudo chmod 777 $piholeDir
-        find "$piholeDir" -type f -exec sudo chmod 666 {} \;
+        $SUDO chmod 777 $piholeDir
+        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \;
 	else
         echo "** Creating pihole directory..."
         mkdir $piholeDir
@@ -247,10 +263,10 @@ function gravity_reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		sudo kill -HUP $dnsmasqPid
+		$SUDO kill -HUP $dnsmasqPid
 	else
 		# service not running, start it up
-		sudo service dnsmasq start
+		$SUDO service dnsmasq start
 	fi
 }
 
