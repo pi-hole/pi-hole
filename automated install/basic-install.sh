@@ -52,8 +52,8 @@ IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
-####### FUCNTIONS ##########
-###All creddit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
+####### FUNCTIONS ##########
+###All credit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
 spinner()
 {
     local pid=$1
@@ -178,7 +178,7 @@ $SUDO touch /etc/pihole/.useIPv6
 
 getStaticIPv4Settings()
 {
-# Ask if the user wannts to use DHCP settings as their static IP
+# Ask if the user wants to use DHCP settings as their static IP
 if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
 
 								IP address:    $IPv4addr
