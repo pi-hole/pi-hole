@@ -40,7 +40,7 @@ function CalcQueriesToday(){
 
 function CalcblockedToday(){
 	if [ -e "$piLog" ] && [ -e "$gravity" ];then
-		blockedToday=$(cat $piLog | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
+		blockedToday=$(cat $piLog | grep "$today" | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
 	else
 		blockedToday="Err."
 	fi
@@ -85,13 +85,6 @@ function normalChrono(){
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
 		
-		#uncomment next 4 lines to use original query count calculation
-		#today=$(date "+%b %e")
-		#todaysQueryCount=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ {print $7}' | wc -l)
-		#todaysQueryCountV4=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[A\]/ {print $7}' | wc -l)
-		#todaysQueryCountV6=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[AAAA\]/ {print $7}' | wc -l)
-				
-		
 		CalcQueriesToday
 		CalcblockedToday
 		CalcPercentBlockedToday
@@ -99,10 +92,8 @@ function normalChrono(){
 		CalcBlockedDomains
 		
 		echo "Blocking:      $blockedDomainsTotal"
-		#below commented line does not add up to todaysQueryCount
-		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
 		echo "Queries:       $queriesToday" #same total calculation as dashboard
-	  echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
+	  	echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
 		
 		sleep 5
 	done
