@@ -16,21 +16,6 @@
 #
 # curl -L install.pi-hole.net | bash
 
-######## FIRST CHECK ########
-# Must be root to install
-if [[ $EUID -eq 0 ]];then
-	echo "You are root."
-else
-	echo "::: sudo will be used for the install."
-	# Check if it is actually installed
-	# If it isn't, exit because the install cannot complete
-	if [[ $(dpkg-query -s sudo) ]];then
-		export SUDO="sudo"
-	else
-		echo "::: Please install sudo or run this as root."
-		exit 1
-	fi
-fi
 ######## VARIABLES #########
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
@@ -56,6 +41,29 @@ IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 
 availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
+
+######## FIRST CHECK ########
+# Must be root to install
+if [[ $EUID -eq 0 ]];then
+	echo "You are root."
+else
+	echo "::: sudo will be used for the install."
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		export SUDO="sudo"
+	else
+		echo "::: Please install sudo or run this as root."
+		exit 1
+	fi
+fi
+
+if [ -f "/etc/dnsmasq.d/01-pihole.conf" ]; then
+		#Likely an existing install
+		upgrade=true
+	else
+	  upgrade=false
+fi
 
 ####### FUNCTIONS ##########
 ###All credit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
@@ -129,7 +137,7 @@ chooseInterface(){
 	done
 }
 
-<<<<<<< HEAD
+
 use4andor6(){
 	# Let use select IPv4 and/or IPv6
 	cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
@@ -166,13 +174,6 @@ use4andor6(){
 		echo "::: Exiting"
 		exit 1
 	fi
-=======
-useIPv6dialog()
-{
-piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
-$SUDO touch /etc/pihole/.useIPv6
->>>>>>> upstream/development
 }
 
 useIPv6dialog(){
@@ -368,7 +369,7 @@ runGravity(){
 }
 
 checkForAndInstallDependencies(){
-	if [ -d "/var/www/html/admin" ]; then
+	if [ upgrade ]; then
 		#Likely an existing install, no need to apt-get update
 		echo "::: Previous installation detected"
 	else
@@ -378,25 +379,6 @@ checkForAndInstallDependencies(){
 		$SUDO apt-get -yqq upgrade & spinner $!
 	fi
 }
-
-<<<<<<< HEAD
-=======
-installPihole()
-{
-installDependencies
-stopServices
-$SUDO mkdir -p /etc/pihole/
-$SUDO chown www-data:www-data /var/www/html
-$SUDO chmod 775 /var/www/html
-$SUDO usermod -a -G www-data pi
-$SUDO lighty-enable-mod fastcgi fastcgi-php
-installScripts
-installConfigs
-installWebAdmin
-installPiholeWeb
-installCron
-runGravity
->>>>>>> upstream/development
 
 installPihole(){
 	installDependencies
