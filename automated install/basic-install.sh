@@ -129,6 +129,7 @@ chooseInterface(){
 	done
 }
 
+<<<<<<< HEAD
 use4andor6(){
 	# Let use select IPv4 and/or IPv6
 	cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
@@ -165,6 +166,13 @@ use4andor6(){
 		echo "::: Exiting"
 		exit 1
 	fi
+=======
+useIPv6dialog()
+{
+piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
+$SUDO touch /etc/pihole/.useIPv6
+>>>>>>> upstream/development
 }
 
 useIPv6dialog(){
@@ -371,6 +379,24 @@ checkForAndInstallDependencies(){
 	fi
 }
 
+<<<<<<< HEAD
+=======
+installPihole()
+{
+installDependencies
+stopServices
+$SUDO mkdir -p /etc/pihole/
+$SUDO chown www-data:www-data /var/www/html
+$SUDO chmod 775 /var/www/html
+$SUDO usermod -a -G www-data pi
+$SUDO lighty-enable-mod fastcgi fastcgi-php
+installScripts
+installConfigs
+installWebAdmin
+installPiholeWeb
+installCron
+runGravity
+>>>>>>> upstream/development
 
 installPihole(){
 	installDependencies
