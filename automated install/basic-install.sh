@@ -257,13 +257,12 @@ fi
 installScripts(){
 $SUDO echo " "
 $SUDO echo "::: Installing scripts..."
-#$SUDO rm /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
-$SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
-$SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
-$SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
-$SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/blacklist.sh
-$SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
-$SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
+$SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/gravity.sh
+$SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/chronometer.sh
+$SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/whitelist.sh
+$SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/blacklist.sh
+$SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
+$SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/updateDashboard.sh
 $SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 $SUDO echo "::: ...done."
 }
@@ -273,8 +272,8 @@ $SUDO echo " "
 $SUDO echo "::: Installing configs..."
 $SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 $SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
-$SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/dnsmasq.conf
+$SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/lighttpd.conf
 $SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 $SUDO echo "::: ...done."
 }
@@ -343,7 +342,7 @@ if [ -d "/var/www/html/pihole" ]; then
 else  
 	$SUDO mkdir /var/www/html/pihole
 	$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html	
+	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/index.html	
 fi
 $SUDO echo "::: ...done."
 }
@@ -351,7 +350,7 @@ $SUDO echo "::: ...done."
 installCron(){
 $SUDO echo " "
 $SUDO echo "::: Downloading latest Cron script..."
-$SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+$SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/pihole.cron
 $SUDO echo "::: ...done."
 }
 
