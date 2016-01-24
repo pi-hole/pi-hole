@@ -267,14 +267,26 @@ $SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLo
 $SUDO echo "::: ...done."
 }
 
+versionCheckDNSmasq()
+{
+# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+dnsFile="/etc/dnsmasq.conf"
+dnsSearch="addn-hosts=/etc/pihole/gravity.list"
+
+if grep -q $dnsSearch $dnsFile; then
+	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+	$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf.original
+fi
+$SUDO curl -o /etc/dnsmasq.d/01-pihole.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/01-pihole.conf
+$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
+}
+
 installConfigs(){
 $SUDO echo " "
 $SUDO echo "::: Installing configs..."
-$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+versionCheckDNSmasq
 $SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
 $SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
-$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 $SUDO echo "::: ...done."
 }
 
