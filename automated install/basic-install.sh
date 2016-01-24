@@ -263,6 +263,7 @@ setStaticIPv4(){
 }
 
 installScripts(){
+<<<<<<< HEAD
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing scripts..."
 	$SUDO cp /etc/.pihole/gravity.sh /usr/local/bin/gravity.sh	
@@ -284,6 +285,29 @@ installConfigs(){
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf 
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 	$SUDO echo " done."
+=======
+$SUDO echo " "
+$SUDO echo "::: Installing scripts..."
+$SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/gravity.sh
+$SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/chronometer.sh
+$SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/whitelist.sh
+$SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/blacklist.sh
+$SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
+$SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/updateDashboard.sh
+$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
+$SUDO echo "::: ...done."
+}
+
+installConfigs(){
+$SUDO echo " "
+$SUDO echo "::: Installing configs..."
+$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/dnsmasq.conf
+$SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/lighttpd.conf
+$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
+$SUDO echo "::: ...done."
+>>>>>>> master
 }
 
 stopServices(){
@@ -422,6 +446,7 @@ CreateLogFile(){
 }
 
 installPiholeWeb(){
+<<<<<<< HEAD
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing pihole custom index page..."
 	if [ -d "/var/www/html/pihole" ]; then
@@ -440,6 +465,25 @@ installCron(){
 	$SUDO echo -n "::: Installing latest Cron script..."
 	$SUDO cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
 	$SUDO echo " done!"
+=======
+$SUDO echo " "
+$SUDO echo "::: Downloading and installing pihole custom index page..."
+if [ -d "/var/www/html/pihole" ]; then	
+  $SUDO echo "::: Existing page detected, not overwriting"
+else  
+	$SUDO mkdir /var/www/html/pihole
+	$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/index.html	
+fi
+$SUDO echo "::: ...done."
+}
+
+installCron(){
+$SUDO echo " "
+$SUDO echo "::: Downloading latest Cron script..."
+$SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/pihole.cron
+$SUDO echo "::: ...done."
+>>>>>>> master
 }
 
 runGravity(){

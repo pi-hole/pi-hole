@@ -17,6 +17,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 [![Pi-hole exlplained](http://i.imgur.com/qNybJDX.png)](https://vimeo.com/135965232)
 
 ## Pi-hole Projects
+- [Pi-hole Chrome extension](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([open source](https://github.com/packtloss/pihole-extension))
 - [Go Bananas for CHiP-hole ad blocking](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
 - [Sky-Hole](http://dlaa.me/blog/post/skyhole)
 - [Pi-hole in the Cloud!](http://blog.codybunch.com/2015/07/28/Pi-Hole-in-the-cloud/)
@@ -46,10 +47,10 @@ The Pi-hole is an **advertising-aware DNS/Web server**.  If an ad domain is quer
 A more detailed explanation of the installation can be found [here](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0).
 
 ## Gravity
-The [gravity.sh](https://github.com/jacobsalmela/pi-hole/blob/master/gravity.sh) does most of the magic.  The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/jacobsalmela/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)).
+The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic.  The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)).
 
 ## Whitelist and blacklist
-Domains can be whitelisted and blacklisted using two pre-installed scripts. See [the wiki page](https://github.com/jacobsalmela/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
+Domains can be whitelisted and blacklisted using two pre-installed scripts. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
 
 ## Web Interface
 The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings.  You can find it at:
@@ -73,11 +74,11 @@ The same output can be acheived on the CLI by running `chronometer.sh -j`
 
 ## Real-time Statistics
 
-You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj).  This is accomplished via [`chronometer.sh`](https://github.com/jacobsalmela/pi-hole/blob/master/advanced/Scripts/chronometer.sh).
+You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj).  This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh).
 ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
 
 ## Help
-- See the [Wiki](https://github.com/jacobsalmela/pi-hole/wiki/Customization) entry for more details
+- See the [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization) entry for more details
 - There is also an [FAQ section on pi-hole.net](http://pi-hole.net)
 
 ## Other Operating Systems
