@@ -228,7 +228,7 @@ function gravity_Whitelist() {
 	do
         tmp=$(echo "$url" | awk -F '/' '{print $3}')
         urls=("${urls[@]}" $tmp)
-	done & spinner $!
+	done
 	echo " done!"
 	
 	echo -n "::: Running whitelist script to update HOSTS file...."
