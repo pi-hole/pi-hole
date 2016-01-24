@@ -46,7 +46,7 @@ dhcpcdFile=/etc/dhcpcd.conf
 # Must be root to install
 echo ":::"
 if [[ $EUID -eq 0 ]];then
-	echo "You are root."
+	echo "::: You are root."
 else
 	echo "::: sudo will be used for the install."
 	# Check if it is actually installed
