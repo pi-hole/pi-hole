@@ -12,7 +12,7 @@
 
 # Run this script as root or under sudo
 if [[ $EUID -eq 0 ]];then
-	echo "You are root."
+	echo "::: You are root."
 else
 	echo "::: sudo will be used."
   # Check if it is actually installed
@@ -72,14 +72,30 @@ eyeOfTheNeedle=$basename.4.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
-    echo "** Local calibration requested..."
+    echo "::: Local calibration requested..."
         . $piholeDir/pihole.conf
 fi
 
+
+spinner(){
+        local pid=$1
+        local delay=0.001
+        local spinstr='/-\|'
+
+        spin='-\|/'
+        i=0
+        while kill -0 $pid 2>/dev/null
+        do
+                i=$(( (i+1) %4 ))
+                printf "\b${spin:$i:1}"
+                sleep .1
+        done
+        printf "\b"
+}
 ###########################
 # collapse - begin formation of pihole
 function gravity_collapse() {
-	echo "** Neutrino emissions detected..."
+	echo -n "::: Neutrino emissions detected..."
 
 	# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 	if [[ -d $piholeDir ]];then
@@ -87,10 +103,12 @@ function gravity_collapse() {
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
         $SUDO chmod 777 $piholeDir
-        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \;
+        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
+        echo "."
 	else
-        echo "** Creating pihole directory..."
-        mkdir $piholeDir
+        echo -n "::: Creating pihole directory..."
+        mkdir $piholeDir & spinner $!
+        echo " done!"
 	fi
 }
 
@@ -103,10 +121,10 @@ function gravity_patternCheck() {
 		# and stored as is. They can be processed for content after they
 		# have been saved.
 		cp $patternBuffer $saveLocation
-		echo "List updated, transport successful..."
+		echo " List updated, transport successful!"
 	else
 		# curl didn't download any host files, probably because of the date check
-		echo "No changes detected, transport skipped..."
+		echo " No changes detected, transport skipped!"
 	fi
 }
 
@@ -125,9 +143,9 @@ function gravity_transport() {
 	fi
 
 	# Silently curl url
-	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
+	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer 
 	# Check for list updates
-	gravity_patternCheck $patternBuffer
+	gravity_patternCheck $patternBuffer 
 
 	# Cleanup
 	rm -f $patternBuffer
@@ -135,7 +153,7 @@ function gravity_transport() {
 
 # spinup - main gravity function
 function gravity_spinup() {
-
+  echo "::: "
 	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
 	for ((i = 0; i < "${#sources[@]}"; i++))
 	do
@@ -149,7 +167,7 @@ function gravity_spinup() {
 
         agent="Mozilla/10.0"
 
-        echo -n "  Getting $domain list: "
+        echo -n "::: Getting $domain list..."
 
         # Use a case statement to download lists that need special cURL commands
         # to complete properly and reset the user agent when required
@@ -172,50 +190,69 @@ function gravity_spinup() {
 
 # Schwarzchild - aggregate domains to one list and add blacklisted domains
 function gravity_Schwarzchild() {
-
+  echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
-	echo "** Aggregating list of domains..."
-	truncate -s 0 $piholeDir/$matterandlight
+	echo -n "::: Aggregating list of domains..."
+	truncate -s 0 $piholeDir/$matterandlight & spinner $! 
 	for i in "${activeDomains[@]}"
 	do
    		cat $i |tr -d '\r' >> $piholeDir/$matterandlight
 	done
+	echo " done!"
+	
 }
 
 
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
-	blacklist.sh -f -nr -q
+	echo -n "::: Running blacklist script to update HOSTS file...."
+	blacklist.sh -f -nr -q > /dev/null & spinner $!
+	
+	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
+	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
+  echo " $numBlacklisted domain${plural} blacklisted!"
+  
+	
 }
 
 
 function gravity_Whitelist() {
+  echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
-	echo "** Whitelisting ${#sources[@]} ad list source${plural}..."
+	echo -n "::: Adding ${#sources[@]} ad list source${plural} to the whitelist..."
 	
 	urls=()
 	for url in ${sources[@]}
 	do
         tmp=$(echo "$url" | awk -F '/' '{print $3}')
         urls=("${urls[@]}" $tmp)
-	done
+	done & spinner $!
+	echo " done!"
 	
-	whitelist.sh -f -nr -q ${urls[@]}
-
+	echo -n "::: Running whitelist script to update HOSTS file...."
+	whitelist.sh -f -nr -q ${urls[@]} > /dev/null & spinner $!
+		
+	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
+	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
+  echo " $numWhitelisted domain${plural} whitelisted!"
+  
+  
 		
 }
 
 function gravity_unique() {
 	# Sort and remove duplicates
-	sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
+	echo -n "::: Removing duplicate domains...."
+	sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon  & spinner $!
+	echo " done!"
 	numberOf=$(wc -l < $piholeDir/$eventHorizon)
-	echo "** $numberOf unique domains trapped in the event horizon."
+	echo "::: $numberOf unique domains trapped in the event horizon."
 }
 
 function gravity_hostFormat() {
-	# Format domain list as "192.168.x.x domain.com"
-	echo "** Formatting domains into a HOSTS file..."
+  # Format domain list as "192.168.x.x domain.com"
+	echo "::: Formatting domains into a HOSTS file..."
   # If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
   if [[ -n $piholeIPv6 ]];then
     cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' > $piholeDir/$accretionDisc
@@ -248,26 +285,31 @@ function gravity_advanced() {
 	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 	# This helps with that and makes it easier to read
 	# It also helps with debugging so each stage of the script can be researched more in depth
-	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
-
+	echo -n "::: Formatting list of domains to remove comments...."
+	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova & spinner $!
+  echo " done!"
+  
 	numberOf=$(wc -l < $piholeDir/$supernova)
-	echo "** $numberOf domains being pulled in by gravity..."
-
+	echo "::: $numberOf domains being pulled in by gravity..."
+    
 	gravity_unique
+  
 }
 
 function gravity_reload() {
 	# Reload hosts file
-	echo "** Refresh lists in dnsmasq..."
+	echo ":::"
+	echo -n "::: Refresh lists in dnsmasq..."
 	dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		$SUDO kill -HUP $dnsmasqPid
+		$SUDO kill -HUP $dnsmasqPid & spinner $!
 	else
 		# service not running, start it up
-		$SUDO service dnsmasq start
+		$SUDO service dnsmasq start & spinner $!
 	fi
+	echo " done!"
 }
 
 
