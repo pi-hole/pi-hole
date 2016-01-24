@@ -85,7 +85,7 @@ spinner(){
 
         spin='-\|/'
         i=0
-        while kill -0 $pid 2>/dev/null
+        while $SUDO kill -0 $pid 2>/dev/null
         do
                 i=$(( (i+1) %4 ))
                 printf "\b${spin:$i:1}"
