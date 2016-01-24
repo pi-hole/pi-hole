@@ -103,19 +103,24 @@ In the next section, you can choose to use your current network settings (DHCP) 
 chooseInterface()
 {
 # Turn the available interfaces into an array so it can be used with a whiptail dialog
-interfacesArray=()
-firstloop=1
+if [[ $chooseInterfaceOptions ]];then
+	interfacesArray=()
+	firstloop=1
 
-while read -r line
-do
-mode="OFF"
-if [[ $firstloop -eq 1 ]]; then
-  firstloop=0
-  mode="ON"
+	while read -r line
+	do
+		mode="OFF"
+		if [[ $firstloop -eq 1 ]]; then
+  		firstloop=0
+  		mode="ON"
+		fi
+		interfacesArray+=("$line" "available" "$mode")
+	done <<< "$availableInterfaces"
+else
+	# Exit if user cancels
+	echo "Cancelling installation."
+	exit
 fi
-interfacesArray+=("$line" "available" "$mode")
-done <<< "$availableInterfaces"
-
 # Find out how many interfaces are available to choose from
 interfaceCount=$(echo "$availableInterfaces" | wc -l)
 chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
@@ -135,28 +140,34 @@ cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
 options=(IPv4 "Block ads over IPv4" on
          IPv6 "Block ads over IPv6" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+if [[ $choices ]];then
 for choice in $choices
 do
     case $choice in
         IPv4)useIPv4=true;;
         IPv6)useIPv6=true;;
     esac
-done    
+done
+else
+	# Exit if user cancels
+	echo "Cancelling installation."
+	exit
+fi
     if [ $useIPv4 ] && [ ! $useIPv6 ]; then
      	getStaticIPv4Settings
-			setStaticIPv4	
-			echo "::: Using IPv4 on $IPv4addr" 
-			echo "::: IPv6 will NOT be used."			
+			setStaticIPv4
+			echo "::: Using IPv4 on $IPv4addr"
+			echo "::: IPv6 will NOT be used."
     fi
     if [ ! $useIPv4 ] && [ $useIPv6 ]; then
     	useIPv6dialog
     	echo "::: IPv4 will NOT be used."
     	echo "::: Using IPv6 on $piholeIPv6"
     fi
-    if [ $useIPv4 ] && [  $useIPv6 ]; then    	
+    if [ $useIPv4 ] && [  $useIPv6 ]; then
     	getStaticIPv4Settings
 			setStaticIPv4
-			useIPv6dialog	
+			useIPv6dialog
 			echo "::: Using IPv4 on $IPv4addr"
     	echo "::: Using IPv6 on $piholeIPv6"
     fi
@@ -165,7 +176,7 @@ done
     	echo "::: Exiting"
     	exit 1
     fi
-	
+
 }
 
 useIPv6dialog()
@@ -257,12 +268,12 @@ installScripts(){
 $SUDO echo " "
 $SUDO echo "::: Installing scripts..."
 #$SUDO rm /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
-$SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
-$SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
-$SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
-$SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/blacklist.sh
-$SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
-$SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
+$SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/gravity.sh
+$SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/chronometer.sh
+$SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/whitelist.sh
+$SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/blacklist.sh
+$SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
+$SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Scripts/updateDashboard.sh
 $SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 $SUDO echo "::: ...done."
 }
@@ -272,8 +283,8 @@ $SUDO echo " "
 $SUDO echo "::: Installing configs..."
 $SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 $SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
-$SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/dnsmasq.conf
+$SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/lighttpd.conf
 $SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 $SUDO echo "::: ...done."
 }
@@ -310,13 +321,13 @@ $SUDO echo "::: ...done."
 installWebAdmin(){
 $SUDO echo " "
 $SUDO echo "::: Downloading and installing latest WebAdmin files..."
-if [ -d "/var/www/html/admin" ]; then	
+if [ -d "/var/www/html/admin" ]; then
   $SUDO rm -rf /var/www/html/admin
 fi
 if [ -d "/var/www/html/AdminLTE-master" ]; then
   $SUDO rm -rf /var/www/html/AdminLTE-master
 fi
-$SUDO wget -nv https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip & spinner $!
+$SUDO wget -nv https://github.com/pi-hole/AdminLTE/archive/master.zip -O /var/www/master.zip & spinner $!
 $SUDO unzip -oq /var/www/master.zip -d /var/www/html/
 $SUDO mv /var/www/html/AdminLTE-master /var/www/html/admin
 $SUDO rm /var/www/master.zip 2>/dev/null
@@ -326,7 +337,7 @@ $SUDO echo "::: Creating log file and changing owner to dnsmasq..."
 if [ ! -f /var/log/pihole.log ]; then
 	$SUDO touch /var/log/pihole.log
 	$SUDO chmod 644 /var/log/pihole.log
-	$SUDO chown dnsmasq:root /var/log/pihole.log	
+	$SUDO chown dnsmasq:root /var/log/pihole.log
 else
 	$SUDO echo "::: No need to create, already exists!"
 fi
@@ -337,12 +348,12 @@ $SUDO echo "::: ...done."
 installPiholeWeb(){
 $SUDO echo " "
 $SUDO echo "::: Downloading and installing pihole custom index page..."
-if [ -d "/var/www/html/pihole" ]; then	
+if [ -d "/var/www/html/pihole" ]; then
   $SUDO echo "::: Existing page detected, not overwriting"
-else  
+else
 	$SUDO mkdir /var/www/html/pihole
 	$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html	
+	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/index.html
 fi
 $SUDO echo "::: ...done."
 }
@@ -350,7 +361,7 @@ $SUDO echo "::: ...done."
 installCron(){
 $SUDO echo " "
 $SUDO echo "::: Downloading latest Cron script..."
-$SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
+$SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/pihole.cron
 $SUDO echo "::: ...done."
 }
 
