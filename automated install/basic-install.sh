@@ -298,10 +298,10 @@ checkForDependencies(){
  		echo ":::"
     #update package lists
     echo -n "::: Updating package list before install...."
-    #$SUDO apt-get -qq update & spinner $!
+    $SUDO apt-get -qq update & spinner $!
     echo " done!"
     echo -n "::: Upgrading installed apt-get packages...."
-    #$SUDO apt-get -y -qq upgrade & spinner $!
+    $SUDO apt-get -y -qq upgrade & spinner $!
     echo " done!"
     
     echo ":::" 
@@ -423,6 +423,7 @@ runGravity(){
 	#Don't run as SUDO, this was causing issues
 	/usr/local/bin/gravity.sh
 	$SUDO echo "::: ...done."
+	echo ":::"
 }
 
 
