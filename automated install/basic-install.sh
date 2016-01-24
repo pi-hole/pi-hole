@@ -44,6 +44,7 @@ dhcpcdFile=/etc/dhcpcd.conf
 
 ######## FIRST CHECK ########
 # Must be root to install
+echo ":::"
 if [[ $EUID -eq 0 ]];then
 	echo "You are root."
 else
@@ -298,10 +299,10 @@ checkForDependencies(){
  		echo ":::"
     #update package lists
     echo -n "::: Updating package list before install...."
-    $SUDO apt-get -qq update & spinner $!
+    $SUDO apt-get -qq update > /dev/null & spinner $!
     echo " done!"
     echo -n "::: Upgrading installed apt-get packages...."
-    $SUDO apt-get -y -qq upgrade & spinner $!
+    $SUDO apt-get -y -qq upgrade > /dev/null & spinner $!
     echo " done!"
     
     echo ":::" 
@@ -326,55 +327,51 @@ checkForDependencies(){
 getGitFiles(){
   
   echo ":::"
-	dirToCheck=$piholeFilesDir
-	echo -n "::: Checking for existing base files..."
-	if ! is_repo; then
-				echo -n " Not found! Getting files from github...."
-				repoToClone=$piholeGitUrl
-        make_repo
-        echo " done!"
-  else
-  		echo -n " Existing files found. Grabbing latest...."
-  		update_repo
-  		echo " done!"
+	echo "::: Checking for existing base files..."
+	if is_repo $piholeFilesDir; then				
+        make_repo $piholeFilesDir $piholeGitUrl        
+  else  		
+  		update_repo $piholeFilesDir  		
   fi
 
-  echo ":::"
-  dirToCheck=$webInterfaceDir
-  echo -n "::: Checking for existing web interface..."
-  if ! is_repo; then
-  		echo -n " Not found! Getting files from github...."
-  		repoToClone=$webInterfaceGitUrl
-  		make_repo
-  		echo " done!"
+  echo ":::"  
+  echo "::: Checking for existing web interface..."
+  if is_repo $webInterfaceDir; then  		
+  		make_repo $webInterfaceDir $webInterfaceGitUrl  		
   else
-  		echo -n " Existing files found. Grabbing latest..."
-  		update_repo
-  		echo " done!"
+  		update_repo $webInterfaceDir
+  		
   fi
 
 }
 
 is_repo() {
+		echo -n ":::     Checking $1 is a repo..."
     # if the directory does not have a .git folder 
     # it is not a repo
-    if [ ! -d "$dirToCheck/.git" ]; then
+    if [ -d "$1/.git" ]; then
+    		echo " OK!"
         return 1
     fi
+    echo " not found!!"
     return 0
+    
 }
 
 make_repo() {
     # remove the non-repod interface and clone the interface
-    
-    $SUDO rm -rf $dirToCheck
-    $SUDO git clone -q "$repoToClone" "$dirToCheck" > /dev/null & spinner $!
+    echo -n ":::    Cloning $2 into $1..."
+    $SUDO rm -rf $1
+    $SUDO git clone -q "$2" "$1" > /dev/null & spinner $!
+    echo " done!"
 }
 
 update_repo() {
     # pull the latest commits
-    cd "$dirToCheck"
+    echo -n ":::     Updating repo in $1..."
+    cd "$1"
     $SUDO git pull -q > /dev/null & spinner $!
+    echo " done!"
 }
 
 
