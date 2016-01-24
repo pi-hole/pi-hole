@@ -11,6 +11,7 @@
 # (at your option) any later version.
 
 # Run this script as root or under sudo
+echo ":::"
 if [[ $EUID -eq 0 ]];then
 	echo "::: You are root."
 else
