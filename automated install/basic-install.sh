@@ -293,8 +293,8 @@ $SUDO apt-get -qq update & spinner $!
 $SUDO echo "::: Upgrading apt-get packages"
 $SUDO apt-get -yqq upgrade & spinner $!
 $SUDO echo "::: ...done."
-$SUDO echo "::: installing dnsutils, bc, toilet, and figlet..."
-$SUDO apt-get -yqq install dnsutils bc toilet figlet & spinner $!
+$SUDO echo "::: installing dnsutils, bc, toilet, unzip, and figlet..."
+$SUDO apt-get -yqq install dnsutils bc toilet unzip figlet & spinner $!
 $SUDO echo "::: ...done."
 $SUDO echo "::: Installing dnsmasq..."
 $SUDO apt-get -yqq install dnsmasq & spinner $!
