@@ -296,14 +296,24 @@ stopServices(){
 
 
 checkForDependencies(){
- 		echo ":::"
-    #update package lists
-    echo -n "::: Updating package list before install...."
-    $SUDO apt-get -qq update > /dev/null & spinner $!
-    echo " done!"
-    echo -n "::: Upgrading installed apt-get packages...."
-    $SUDO apt-get -y -qq upgrade > /dev/null & spinner $!
-    echo " done!"
+ 		echo ":::" 		
+ 		#Check to see if apt-get update has already been run today
+ 		timestamp=$(stat -c %Y /var/cache/apt/)
+ 		timestampAsDate=$(date -d @$timestamp "+%b %e")
+ 		today=$(date "+%b %e")
+ 		
+ 		if [ ! "$today" == "$timestampAsDate" ]; then 		
+	    #update package lists
+	    echo -n "::: Updating package list before install...."
+	    $SUDO apt-get -qq update > /dev/null & spinner $!
+	    echo " done!"
+	    echo -n "::: Upgrading installed apt-get packages...."
+	    $SUDO apt-get -y -qq upgrade > /dev/null & spinner $!
+	    echo " done!"
+    else
+    	echo "::: Apt-get update already run today, any more would be overkill..."    
+    fi
+    
     
     echo ":::" 
     echo "::: Checking dependencies:"
