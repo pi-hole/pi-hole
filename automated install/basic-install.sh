@@ -20,10 +20,10 @@
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 
-WEB_INTERFACE_GIT_URL="https://github.com/jacobsalmela/AdminLTE.git"
-WEB_INTERFACE_DIR="/var/www/html/admin"
-PIHOLE_GIT_URL="https://github.com/jacobsalmela/AdminLTE.git"
-PIHOLE_FILES_DIR="/var/www/html/admin"
+webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
+webInterfaceDir="/var/www/html/admin"
+piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+piholeFilesDir="/etc/.pihole"
 
 
 # Find the rows and columns
@@ -68,18 +68,22 @@ fi
 ####### FUNCTIONS ##########
 ###All credit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
 spinner(){
-	local pid=$1
-	local delay=0.001
-	local spinstr='/-\|'
-	while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
-	local temp=${spinstr#?}
-	printf " [%c]  " "$spinstr"
-	local spinstr=$temp${spinstr%"$temp"}
-	sleep $delay
-	printf "\b\b\b\b\b\b"
-	done
-	printf "    \b\b\b\b"
+        local pid=$1
+        local delay=0.001
+        local spinstr='/-\|'
+
+        spin='-\|/'
+        i=0
+        while kill -0 $pid 2>/dev/null
+        do
+                i=$(( (i+1) %4 ))
+                printf "\b${spin:$i:1}"
+                sleep .1
+        done
+        printf "\b"
 }
+
+
 
 
 backupLegacyPihole(){
@@ -258,106 +262,159 @@ setStaticIPv4(){
 }
 
 installScripts(){
-	$SUDO echo " "
-	$SUDO echo "::: Installing scripts..."
-	$SUDO curl -o /usr/local/bin/gravity.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/gravity.sh
-	$SUDO curl -o /usr/local/bin/chronometer.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/chronometer.sh
-	$SUDO curl -o /usr/local/bin/whitelist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/whitelist.sh
-	$SUDO curl -o /usr/local/bin/blacklist.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/blacklist.sh
-	$SUDO curl -o /usr/local/bin/piholeLogFlush.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/piholeLogFlush.sh
-	$SUDO curl -o /usr/local/bin/updateDashboard.sh https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/Scripts/updateDashboard.sh
+	$SUDO echo ":::"
+	$SUDO echo -n "::: Installing scripts..."
+	$SUDO cp /etc/.pihole/gravity.sh /usr/local/bin/gravity.sh	
+	$SUDO cp /etc/.pihole/advanced/Scripts/chronometer.sh /usr/local/bin/chronometer.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/whitelist.sh /usr/local/bin/whitelist.sh 
+	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh 
+	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh 
+	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh 
 	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
-	$SUDO echo "::: ...done."
+	$SUDO echo " done."
 }
 
 installConfigs(){
-	$SUDO echo " "
-	$SUDO echo "::: Installing configs..."
+	$SUDO echo ":::"
+	$SUDO echo -n "::: Installing configs..."
 	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-	$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
-	$SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
+	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf 
+	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf 
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
-	$SUDO echo "::: ...done."
+	$SUDO echo " done."
 }
 
 stopServices(){
-	$SUDO echo " "
-	$SUDO echo "::: Stopping services..."
-	$SUDO service dnsmasq stop || true
-	$SUDO service lighttpd stop || true
-	$SUDO echo "::: ...done."
+	$SUDO echo ":::"
+	$SUDO echo -n "::: Stopping services..."
+	$SUDO service dnsmasq stop & spinner $! || true 
+	$SUDO service lighttpd stop & spinner $! || true 
+	$SUDO echo " done."
 }
 
-installDependencies(){
-	$SUDO echo " "
-	$SUDO echo "::: Updating apt-get package list"
-	$SUDO apt-get -qq update & spinner $!
-	$SUDO echo "::: Upgrading apt-get packages"
-	$SUDO apt-get -yqq upgrade & spinner $!
-	$SUDO echo "::: ...done."
-	$SUDO echo "::: installing dnsutils, bc, toilet, and figlet..."
-	$SUDO apt-get -yqq install dnsutils bc toilet figlet & spinner $!
-	$SUDO echo "::: ...done."
-	$SUDO echo "::: Installing dnsmasq..."
-	$SUDO apt-get -yqq install dnsmasq & spinner $!
-	$SUDO echo "::: ...done."
-	$SUDO echo "::: Installing lighttpd, php5-common, php5-cgi, and php5..."
-	$SUDO apt-get -yqq install lighttpd php5-common php5-cgi php5 & spinner $!
-	$SUDO echo "::: ...done."
-	$SUDO echo "::: Installing git..."
-	$SUDO apt-get -yqq install git & spinner $!
-	$SUDO echo "::: ...done."
+
+checkForDependencies(){
+ 		echo ":::"
+    #update package lists
+    echo -n "::: Updating package list before install...."
+    #$SUDO apt-get -qq update & spinner $!
+    echo " done!"
+    echo -n "::: Upgrading installed apt-get packages...."
+    #$SUDO apt-get -y -qq upgrade & spinner $!
+    echo " done!"
+    
+    echo ":::" 
+    echo "::: Checking dependencies:"
+
+    dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+    for i in "${dependencies[@]}"
+    do
+       :
+      echo -n ":::    Checking for $i..."
+      if [ $(dpkg-query -W -f='${Status}' $i 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
+          echo -n " Not found! Installing...."
+          apt-get -y -qq install $i > /dev/null  & spinner $!
+          echo " done!"
+      else
+          echo " already installed!"
+      fi
+    done
+
 }
 
-installWebAdmin(){
-	$SUDO echo " "
-	$SUDO echo "::: Downloading and installing latest WebAdmin files..."
-	if [ -d "/var/www/html/admin" ]; then
-		$SUDO rm -rf /var/www/html/admin
-	fi
-	if [ -d "/var/www/html/AdminLTE-master" ]; then
-		$SUDO rm -rf /var/www/html/AdminLTE-master
-	fi
-	$SUDO wget -nv https://github.com/jacobsalmela/AdminLTE/archive/master.zip -O /var/www/master.zip & spinner $!
-	$SUDO unzip -oq /var/www/master.zip -d /var/www/html/
-	$SUDO mv /var/www/html/AdminLTE-master /var/www/html/admin
-	$SUDO rm /var/www/master.zip 2>/dev/null
-	$SUDO echo "::: ...Done."
-	
-	$SUDO echo "::: Creating log file and changing owner to dnsmasq..."
+getGitFiles(){
+  
+  echo ":::"
+	dirToCheck=$piholeFilesDir
+	echo -n "::: Checking for existing base files..."
+	if ! is_repo; then
+				echo -n " Not found! Getting files from github...."
+				repoToClone=$piholeGitUrl
+        make_repo
+        echo " done!"
+  else
+  		echo -n " Existing files found. Grabbing latest...."
+  		update_repo
+  		echo " done!"
+  fi
+
+  echo ":::"
+  dirToCheck=$webInterfaceDir
+  echo -n "::: Checking for existing web interface..."
+  if ! is_repo; then
+  		echo -n " Not found! Getting files from github...."
+  		repoToClone=$webInterfaceGitUrl
+  		make_repo
+  		echo " done!"
+  else
+  		echo -n " Existing files found. Grabbing latest..."
+  		update_repo
+  		echo " done!"
+  fi
+
+}
+
+is_repo() {
+    # if the directory does not have a .git folder 
+    # it is not a repo
+    if [ ! -d "$dirToCheck/.git" ]; then
+        return 1
+    fi
+    return 0
+}
+
+make_repo() {
+    # remove the non-repod interface and clone the interface
+    
+    $SUDO rm -rf $dirToCheck
+    $SUDO git clone -q "$repoToClone" "$dirToCheck" > /dev/null & spinner $!
+}
+
+update_repo() {
+    # pull the latest commits
+    cd "$dirToCheck"
+    $SUDO git pull -q > /dev/null & spinner $!
+}
+
+
+CreateLogFile(){
+	echo ":::"
+	$SUDO  echo -n "::: Creating log file and changing owner to dnsmasq..."
 	if [ ! -f /var/log/pihole.log ]; then
 		$SUDO touch /var/log/pihole.log
 		$SUDO chmod 644 /var/log/pihole.log
 		$SUDO chown dnsmasq:root /var/log/pihole.log
+		$SUDO echo " done!"
 	else
-		$SUDO echo "::: No need to create, already exists!"
+		$SUDO  echo " already exists!"
 	fi
-	$SUDO echo "::: ...done."
+	
 }
 
 installPiholeWeb(){
-	$SUDO echo " "
-	$SUDO echo "::: Downloading and installing pihole custom index page..."
+	$SUDO echo ":::"
+	$SUDO echo -n "::: Installing pihole custom index page..."
 	if [ -d "/var/www/html/pihole" ]; then
-		$SUDO echo "::: Existing page detected, not overwriting"
+		$SUDO echo " Existing page detected, not overwriting"
 	else
 		$SUDO mkdir /var/www/html/pihole
 		$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-		$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
+		$SUDO cp /etc/.pihole/advanced/index.html /var/www/html/pihole/index.html
+		$SUDO echo " done!"
 	fi
-	$SUDO echo "::: ...done."
+	
 }
 
 installCron(){
-	$SUDO echo " "
-	$SUDO echo "::: Downloading latest Cron script..."
-	$SUDO curl -o /etc/cron.d/pihole https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.cron
-	$SUDO echo "::: ...done."
+	$SUDO echo ":::"
+	$SUDO echo -n "::: Installing latest Cron script..."
+	$SUDO cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
+	$SUDO echo " done!"
 }
 
 runGravity(){
-	$SUDO echo " "
+	$SUDO echo ":::"
 	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
 		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
@@ -368,28 +425,21 @@ runGravity(){
 	$SUDO echo "::: ...done."
 }
 
-checkForAndInstallDependencies(){
-	if [ upgrade ]; then
-		#Likely an existing install, no need to apt-get update
-		echo "::: Previous installation detected"
-	else
-		echo "::: First time install, updating package list"
-		$SUDO apt-get -qq update & spinner $!
-		echo "::: Upgrading installed apt-get packages"
-		$SUDO apt-get -yqq upgrade & spinner $!
-	fi
-}
 
 installPihole(){
-	installDependencies
+	checkForDependencies # done
 	stopServices
+	
 	$SUDO chown www-data:www-data /var/www/html
 	$SUDO chmod 775 /var/www/html
 	$SUDO usermod -a -G www-data pi
-	$SUDO lighty-enable-mod fastcgi fastcgi-php
+	$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	
+	getGitFiles	
 	installScripts
 	installConfigs
-	installWebAdmin
+	#installWebAdmin
+	CreateLogFile
 	installPiholeWeb
 	installCron
 	runGravity
@@ -417,7 +467,7 @@ chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
 
-checkForAndInstallDependencies
+
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
