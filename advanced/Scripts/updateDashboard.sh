@@ -11,7 +11,7 @@
 # @TODO: add git as requirement to basic-install.sh
 #
 
-WEB_INTERFACE_GIT_URL="https://github.com/jacobsalmela/AdminLTE.git"
+WEB_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 WEB_INTERFACE_DIR="/var/www/html/admin"
 
 main() {
