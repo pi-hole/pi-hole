@@ -76,7 +76,7 @@ if [[ -f /etc/dnsmasq.d/adList.conf ]];then
 	echo "Original Pi-hole detected.  Initiating sub space transport"
 	$SUDO mkdir -p /etc/pihole/original/
 	$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
-	$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
+	$SUDO mv /etc/dnsmasq.d/01-pihole.conf /etc/pihole/original/01-pihole.conf.$(date "+%Y-%m-%d")
 	$SUDO mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
 	$SUDO mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
@@ -253,6 +253,27 @@ else
 fi
 }
 
++setDNS()
+ +{
+ +DNSChoseCmd=(whiptail --separate-output --radiolist "Select DNS Servers" $r $c 2)
+ +DNSChooseOptions=(Google "Use Google's DNS Servers" on
+ +		  DynDNS "Use DynDNS's DNS Servers" off)
+ +DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+ +
+ +case $DNSchoices in
+ +	Google)
+ +		echo "Google selected."
+ +		piholeDNS1="8.8.8.8"
+ +		piholeDNS2="8.8.4.4"
+ +		;;
+ +	DynDNS)
+ +		echo "DynDNS selected."
+ +		piholeDNS1="208.67.222.222"
+ +		piholeDNS2="208.67.220.220"
+ +		;;
+ +esac
+ +}
+
 installScripts(){
 $SUDO echo " "
 $SUDO echo "::: Installing scripts..."
@@ -267,14 +288,28 @@ $SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLo
 $SUDO echo "::: ...done."
 }
 
+versionCheckDNSmasq()
+{
+# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+dnsFile="/etc/dnsmasq.conf"
+dnsSearch="addn-hosts=/etc/pihole/gravity.list"
+
+if grep -q $dnsSearch $dnsFile; then
+	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+	$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf.original
+fi
+$SUDO curl -o /etc/dnsmasq.d/01-pihole.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/01-pihole.conf
+$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
+$SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
++$SUDO sed -i "s/@DNS2@/$piholeDNS2/" /etc/dnsmasq.d/01-pihole.conf
+}
+
 installConfigs(){
 $SUDO echo " "
 $SUDO echo "::: Installing configs..."
-$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+versionCheckDNSmasq
 $SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-$SUDO curl -o /etc/dnsmasq.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/dnsmasq.conf
 $SUDO curl -o /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/lighttpd.conf
-$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 $SUDO echo "::: ...done."
 }
 
@@ -410,6 +445,8 @@ chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
 
+# Decide what upstream DNS Servers to use
+setDNS
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
