@@ -324,7 +324,7 @@ checkForDependencies(){
       echo -n ":::    Checking for $i..."
       if [ $(dpkg-query -W -f='${Status}' $i 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
           echo -n " Not found! Installing...."
-          apt-get -y -qq install $i > /dev/null  & spinner $!
+          $SUDO apt-get -y -qq install $i > /dev/null  & spinner $!
           echo " done!"
       else
           echo " already installed!"
