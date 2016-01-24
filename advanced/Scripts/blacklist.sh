@@ -81,13 +81,14 @@ function AddDomain(){
 	if $bool; then
 	  #domain not found in the blacklist file, add it!
 	  if $versbose; then
-	  echo "** Adding $1 to blacklist file"
+	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
 		echo $1 >> $blacklist
 		modifyHost=true
+		echo " done!"
 	else
 	if $versbose; then
-		echo "** $1 already blacklisted! No need to add"
+		echo "::: $1 already exists in blacklist.txt! No need to add"
 		fi
 	fi
 }
@@ -99,12 +100,12 @@ function RemoveDomain(){
   if $bool; then
   	#Domain is not in the blacklist file, no need to Remove
   	if $versbose; then
-  	echo "** $1 is NOT blacklisted! No need to remove"
+  	echo "::: $1 is NOT blacklisted! No need to remove"
   	fi
   else
     #Domain is in the blacklist file, add to a temporary array
     if $versbose; then
-    echo "** Un-blacklisting $dom..."
+    echo "::: Un-blacklisting $dom..."
     fi
     domToRemoveList=("${domToRemoveList[@]}" $1)    
     modifyHost=true	  	
@@ -117,7 +118,8 @@ function ModifyHostFile(){
 	    if [[ -r $blacklist ]];then
 	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo "** blacklisting a total of $numberOf domain${plural}..."	   		    
+        echo ":::"
+        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."	   		    
 	    	if [[ -n $piholeIPv6 ]];then	    	  
 	    	  cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
 	      else	        
@@ -126,12 +128,18 @@ function ModifyHostFile(){
 		   
 	  	fi
 	  else
-
+		
+		echo ":::"
 	  for dom in "${domToRemoveList[@]}"
 		do	  
 	      #we need to remove the domains from the blacklist file and the host file	     
+				echo "::: $dom"
+				echo -n ":::    removing from HOSTS file..."
 	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList  
+	      echo " done!"
+	      echo -n ":::    removing from blackist.txt..."
 	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $blacklist
+	      echo " done!"
 		done	  
 		fi
 	  
@@ -139,7 +147,8 @@ function ModifyHostFile(){
 
 function Reload() {
 	# Reload hosts file
-	echo "** Refresh lists in dnsmasq..."
+	echo ":::"
+	echo -n "::: Refresh lists in dnsmasq..."
 
 	dnsmasqPid=$(pidof dnsmasq)
 
@@ -150,6 +159,7 @@ function Reload() {
 		# service not running, start it up
 		sudo service dnsmasq start
 	fi
+	echo " done!"
 }
 
 ###################################################
@@ -167,12 +177,11 @@ done
 
 PopBlacklistFile
 
-if $modifyHost || $force; then
-	echo "** Modifying Hosts File"
+if $modifyHost || $force; then	
 	ModifyHostFile
 else
   if $versbose; then
-	echo "** No changes need to be made"
+	echo "::: No changes need to be made"
 	fi
 	exit 1
 fi
