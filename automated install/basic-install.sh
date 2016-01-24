@@ -141,22 +141,22 @@ do
         IPv4)useIPv4=true;;
         IPv6)useIPv6=true;;
     esac
-done    
+done
     if [ $useIPv4 ] && [ ! $useIPv6 ]; then
      	getStaticIPv4Settings
-			setStaticIPv4	
-			echo "::: Using IPv4 on $IPv4addr" 
-			echo "::: IPv6 will NOT be used."			
+			setStaticIPv4
+			echo "::: Using IPv4 on $IPv4addr"
+			echo "::: IPv6 will NOT be used."
     fi
     if [ ! $useIPv4 ] && [ $useIPv6 ]; then
     	useIPv6dialog
     	echo "::: IPv4 will NOT be used."
     	echo "::: Using IPv6 on $piholeIPv6"
     fi
-    if [ $useIPv4 ] && [  $useIPv6 ]; then    	
+    if [ $useIPv4 ] && [  $useIPv6 ]; then
     	getStaticIPv4Settings
 			setStaticIPv4
-			useIPv6dialog	
+			useIPv6dialog
 			echo "::: Using IPv4 on $IPv4addr"
     	echo "::: Using IPv6 on $piholeIPv6"
     fi
@@ -165,7 +165,7 @@ done
     	echo "::: Exiting"
     	exit 1
     fi
-	
+
 }
 
 useIPv6dialog()
@@ -299,8 +299,15 @@ $SUDO echo "::: ...done."
 $SUDO echo "::: Installing dnsmasq..."
 $SUDO apt-get -yqq install dnsmasq & spinner $!
 $SUDO echo "::: ...done."
-$SUDO echo "::: Installing lighttpd, php5-common, php5-cgi, and php5..."
-$SUDO apt-get -yqq install lighttpd php5-common php5-cgi php5 & spinner $!
+$SUDO echo "::: Installing lighttpd, php5-common, php5-cgi, php5, and php5-mysql..."
+$SUDO apt-get -yqq install lighttpd php5-common php5-cgi php5 php5-mysql & spinner $!
+$SUDO echo "::: ...done."
+$SUDO echo "::: Installing mysql-server..."
+# Lets mysql-server be isntalled without prompting for a password creation
+# Must be run before mysql-server is installed
+echo mysql-server mysql-server/root_password password raspberry | sudo debconf-set-selections
+echo mysql-server mysql-server/root_password_again password raspberry | sudo debconf-set-selections
+$SUDO apt-get -yqq mysql-server & spinner $!
 $SUDO echo "::: ...done."
 $SUDO echo "::: Installing git..."
 $SUDO apt-get -yqq install git & spinner $!
@@ -310,7 +317,7 @@ $SUDO echo "::: ...done."
 installWebAdmin(){
 $SUDO echo " "
 $SUDO echo "::: Downloading and installing latest WebAdmin files..."
-if [ -d "/var/www/html/admin" ]; then	
+if [ -d "/var/www/html/admin" ]; then
   $SUDO rm -rf /var/www/html/admin
 fi
 if [ -d "/var/www/html/AdminLTE-master" ]; then
@@ -326,7 +333,7 @@ $SUDO echo "::: Creating log file and changing owner to dnsmasq..."
 if [ ! -f /var/log/pihole.log ]; then
 	$SUDO touch /var/log/pihole.log
 	$SUDO chmod 644 /var/log/pihole.log
-	$SUDO chown dnsmasq:root /var/log/pihole.log	
+	$SUDO chown dnsmasq:root /var/log/pihole.log
 else
 	$SUDO echo "::: No need to create, already exists!"
 fi
@@ -337,12 +344,12 @@ $SUDO echo "::: ...done."
 installPiholeWeb(){
 $SUDO echo " "
 $SUDO echo "::: Downloading and installing pihole custom index page..."
-if [ -d "/var/www/html/pihole" ]; then	
+if [ -d "/var/www/html/pihole" ]; then
   $SUDO echo "::: Existing page detected, not overwriting"
-else  
+else
 	$SUDO mkdir /var/www/html/pihole
 	$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html	
+	$SUDO curl -o /var/www/html/pihole/index.html https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/index.html
 fi
 $SUDO echo "::: ...done."
 }
