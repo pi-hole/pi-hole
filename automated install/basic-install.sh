@@ -70,12 +70,10 @@ fi
 ###All credit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
 spinner(){
         local pid=$1
-        local delay=0.001
-        local spinstr='/-\|'
 
         spin='-\|/'
         i=0
-        while kill -0 $pid 2>/dev/null
+        while $SUDO kill -0 $pid 2>/dev/null
         do
                 i=$(( (i+1) %4 ))
                 printf "\b${spin:$i:1}"
@@ -324,7 +322,7 @@ checkForDependencies(){
       echo -n ":::    Checking for $i..."
       if [ $(dpkg-query -W -f='${Status}' $i 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
           echo -n " Not found! Installing...."
-          $SUDO apt-get -y -qq install $i > /dev/null  & spinner $!
+          $SUDO apt-get -y -qq install $i > /dev/null & spinner $!
           echo " done!"
       else
           echo " already installed!"
