@@ -418,9 +418,11 @@ runGravity(){
 		$SUDO rm /etc/pihole/list.*
 	fi
 	#Don't run as SUDO, this was causing issues
-	/usr/local/bin/gravity.sh
-	$SUDO echo "::: ...done."
+	echo "::: Running gravity.sh"
 	echo ":::"
+	
+	/usr/local/bin/gravity.sh
+	
 }
 
 
