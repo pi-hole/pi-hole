@@ -346,7 +346,7 @@ getGitFiles(){
 }
 
 is_repo() {
-		echo -n ":::     Checking $1 is a repo..."
+		echo -n ":::    Checking $1 is a repo..."
     # if the directory does not have a .git folder 
     # it is not a repo
     if [ -d "$1/.git" ]; then
