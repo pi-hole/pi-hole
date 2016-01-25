@@ -260,6 +260,19 @@ setStaticIPv4(){
 	fi
 }
 
++versionCheckDNSmasq(){
+	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+	dnsFile="/etc/dnsmasq.conf"
+	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
+	
+	if grep -q $dnsSearch $dnsFile; then
+		$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+		$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+	fi
+	$SUDO cp /etc/.pihole/advanced/01-pihole.conf /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
+}
+
 installScripts(){
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing scripts..."
@@ -276,11 +289,9 @@ installScripts(){
 installConfigs(){
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing configs..."
-	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+	versionCheckDNSmasq
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf 
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf 
-	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 	$SUDO echo " done."
 }
 
