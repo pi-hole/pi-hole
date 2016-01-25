@@ -315,7 +315,7 @@ checkForDependencies(){
 			read answer
 			
 			case "$answer" in
-    		[yY][eE][sS]|[yY]  )  echo "::: Continuing!;;
+    		[yY][eE][sS]|[yY]  )  echo "::: Continuing!";;
    		  *                  )  echo "::: Quitting install, please run 'curl -L install.pi-hole.net | bash' after updating packages!"
               								exit 0;;
 			esac 			
