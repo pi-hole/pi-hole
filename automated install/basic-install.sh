@@ -260,6 +260,26 @@ setStaticIPv4(){
 	fi
 }
 
+setDNS(){
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select DNS Servers" $r $c 2)
+	DNSChooseOptions=(Google "Use Google's DNS Servers" on
+					  DynDNS "Use DynDNS's DNS Servers" off)
+	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+
+	case $DNSchoices in
+		Google)
+			echo "Google selected."
+			piholeDNS1="8.8.8.8"
+			piholeDNS2="8.8.4.4"
+			;;
+		DynDNS)
+			echo "DynDNS selected."
+			piholeDNS1="208.67.222.222"
+			piholeDNS2="208.67.220.220"
+			;;
+	esac
+}
+
 +versionCheckDNSmasq(){
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
 	dnsFile="/etc/dnsmasq.conf"
@@ -271,6 +291,8 @@ setStaticIPv4(){
 	fi
 	$SUDO cp /etc/.pihole/advanced/01-pihole.conf /etc/dnsmasq.d/01-pihole.conf
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@DNS2@/$piholeDNS2/" /etc/dnsmasq.d/01-pihole.conf
 }
 
 installScripts(){
@@ -484,7 +506,8 @@ chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
 
-
+# Decide what upstream DNS Servers to use
+setDNS
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
