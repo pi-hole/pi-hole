@@ -310,7 +310,16 @@ checkForDependencies(){
 			echo "::: Please consider running 'sudo apt-get update', followed by 'sudo apt-get upgrade'"
 			echo "::: after pi-hole has finished installing."
 			echo ":::"
-			echo "::: Continuing with pi-hole installation..."
+			#add in a prompt to give users the option to quit installation or continue
+			echo -n "::: Would you like to continue with the pi-hole installation? (Y/n):"
+			read answer
+			
+			case "$answer" in
+    		[yY][eE][sS]|[yY]  )  echo "::: Continuing!;;
+   		  *                  )  echo "::: Quitting install, please run 'curl -L install.pi-hole.net | bash' after updating packages!"
+              								exit 0;;
+			esac 			
+			
 		else
 		  echo "::: Your pi is up to date! Continuing with pi-hole installation..."
 		fi    
