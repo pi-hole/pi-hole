@@ -305,7 +305,7 @@ checkForDependencies(){
  		updatesToInstall=$(sudo apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst) & spinner $!
  		echo " done!"
 		
-		if [ updatesToInstall > 0 ]; then
+		if [ $updatesToInstall > 0 ]; then
 			echo "::: There are $updatesToInstall updates availible for your pi!"
 			echo "::: Please consider running 'sudo apt-get update', followed by 'sudo apt-get upgrade'"
 			echo "::: after pi-hole has finished installing."
