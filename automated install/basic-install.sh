@@ -282,12 +282,22 @@ setDNS(){
 
 versionCheckDNSmasq(){
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
-	dnsFile="/etc/dnsmasq.conf"
+	dnsFile1="/etc/dnsmasq.conf"
+	dnsFile2="/etc/dnsmasq.conf"
 	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
 	
-	if grep -q $dnsSearch $dnsFile; then
-		$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-		$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+	# Check dnsmasq.conf for pihole magic
+	if grep -q $dnsSearch $dnsFile1; then
+		# If true, Check dnsmasq.conf.orig for pihole magic
+		if grep -q $dnsSearch $dnsFile1; then
+			# If true, use advanced/dnsmasq.conf.original
+			$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+			$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+		else
+			# If false, mv original file back
+			$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+		fi
+	# If false, This is a fresh install
 	fi
 	$SUDO cp /etc/.pihole/advanced/01-pihole.conf /etc/dnsmasq.d/01-pihole.conf
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
