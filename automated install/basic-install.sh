@@ -280,7 +280,7 @@ setDNS(){
 	esac
 }
 
-+versionCheckDNSmasq(){
+versionCheckDNSmasq(){
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
 	dnsFile="/etc/dnsmasq.conf"
 	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
