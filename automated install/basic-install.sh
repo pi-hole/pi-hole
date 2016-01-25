@@ -308,7 +308,7 @@ checkForDependencies(){
 		if [ updatesToInstall > 0 ]; then
 			echo "::: There are $updatesToInstall updates availible for your pi!"
 			echo "::: Please consider running 'sudo apt-get update', followed by 'sudo apt-get upgrade'"
-			echo "::: after pi-hole has finished installing.
+			echo "::: after pi-hole has finished installing."
 			echo ":::"
 			echo "::: Continuing with pi-hole installation..."
 		else
