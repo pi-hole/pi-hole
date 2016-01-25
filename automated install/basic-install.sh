@@ -283,7 +283,7 @@ setDNS(){
 versionCheckDNSmasq(){
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
 	dnsFile1="/etc/dnsmasq.conf"
-	dnsFile2="/etc/dnsmasq.conf"
+	dnsFile2="/etc/dnsmasq.conf.orig"
 	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
 	
 	# Check dnsmasq.conf for pihole magic
