@@ -293,24 +293,27 @@ stopServices(){
 }
 
 checkForDependencies(){
- 		echo ":::" 		
- 		#Check to see if apt-get update has already been run today
- 		timestamp=$(stat -c %Y /var/cache/apt/)
- 		timestampAsDate=$(date -d @$timestamp "+%b %e")
+ 		
+ 		#Running apt-get update/upgrade with minimal output can cause some issues with
+ 		#requiring user input (e.g password for phpmyadmin see #218)
+ 		#We'll change the logic up here, to check to see if there are any updates availible and
+ 		# if so, advise the user to run apt-get update/upgrade at their own discretion
+ 		
  		today=$(date "+%b %e")
  		
- 		if [ ! "$today" == "$timestampAsDate" ]; then 		
-	    #update package lists
-	    echo -n "::: Updating package list before install...."
-	    $SUDO apt-get -qq update > /dev/null & spinner $!
-	    echo " done!"
-	    echo -n "::: Upgrading installed apt-get packages...."
-	    $SUDO apt-get -y -qq upgrade > /dev/null & spinner $!
-	    echo " done!"
-    else
-    	echo "::: Apt-get update already run today, any more would be overkill..."    
-    fi
-    
+ 		echo -n "::: Checking apt-get for upgraded packages...."
+ 		updatesToInstall=$(sudo apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst) & spinner $!
+ 		echo " done!"
+		
+		if [ updatesToInstall > 0 ]; then
+			echo "::: There are $updatesToInstall updates availible for your pi!"
+			echo "::: Please consider running 'sudo apt-get update', followed by 'sudo apt-get upgrade'"
+			echo "::: after pi-hole has finished installing.
+			echo ":::"
+			echo "::: Continuing with pi-hole installation..."
+		else
+		  echo "::: Your pi is up to date! Continuing with pi-hole installation..."
+		fi    
     
     echo ":::" 
     echo "::: Checking dependencies:"
