@@ -300,11 +300,12 @@ checkForDependencies(){
  		# if so, advise the user to run apt-get update/upgrade at their own discretion
  		
  		today=$(date "+%b %e")
- 		
+ 		echo ":::"
  		echo -n "::: Checking apt-get for upgraded packages...."
  		updatesToInstall=$(sudo apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst) & spinner $!
  		echo " done!"
 		
+		echo ":::"
 		if [ $updatesToInstall > 0 ]; then
 			echo "::: There are $updatesToInstall updates availible for your pi!"
 			echo "::: Please consider running 'sudo apt-get update', followed by 'sudo apt-get upgrade'"
