@@ -90,7 +90,7 @@ backupLegacyPihole(){
 		echo "Original Pi-hole detected.  Initiating sub space transport"
 		$SUDO mkdir -p /etc/pihole/original/
 		$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
-		$SUDO mv /etc/dnsmasq.d/01-pihole.conf /etc/pihole/original/dnsmasq.d/01-pihole.conf.$(date "+%Y-%m-%d")
+		$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
 		$SUDO mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
 		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
 		$SUDO mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
