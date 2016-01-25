@@ -56,7 +56,7 @@ sources=('https://adaway.org/hosts.txt'
 'http://pgl.yoyo.org/adservers/serverlist.php?'
 'http://someonewhocares.org/hosts/hosts'
 'http://winhelp2002.mvps.org/hosts.txt'
- 'http://mirror1.malwaredomains.com/files/justdomains')
+'http://mirror1.malwaredomains.com/files/justdomains')
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
