@@ -431,6 +431,16 @@ runGravity(){
 	
 }
 
+setUser(){
+	# Check if user pihole exists and create if not
+	echo "::: Checking if user 'pihole' exists..."
+	if id -u pihole > /dev/null 2>&1; then
+		echo "::: User 'pihole' already exists"
+	else
+        echo "::: User 'pihole' doesn't exist.  Creating..."
+		$SUDO useradd -r -s /usr/sbin/nologin pihole
+	fi
+}
 
 installPihole(){
 	checkForDependencies # done
@@ -438,7 +448,7 @@ installPihole(){
 	
 	$SUDO chown www-data:www-data /var/www/html
 	$SUDO chmod 775 /var/www/html
-	$SUDO usermod -a -G www-data pi
+	$SUDO usermod -a -G www-data pihole
 	$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
 	
 	getGitFiles	
