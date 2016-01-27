@@ -330,10 +330,13 @@ checkForDependencies(){
 		if [[ $updatesToInstall -eq "0" ]]; then
 			echo "::: Your pi is up to date! Continuing with pi-hole installation..."
 		else
+		  abort=true
 			echo "::: There are $updatesToInstall updates availible for your pi!"
 			echo "::: Please run 'sudo apt-get upgrade' before continuing with installation"			
 			echo ":::"
 			echo "::: Quitting install, please run 'curl -L install.pi-hole.net | bash' after updating packages!"
+			echo ":::"
+			
 			exit
 			#add in a prompt to give users the option to quit installation or continue
 			#echo -n "::: Would you like to continue with the pi-hole installation? (Y/n):"
@@ -515,6 +518,7 @@ installPihole | tee $tmpLog
 $SUDO mv $tmpLog $instalLogLoc
 
 displayFinalMessage
-
 $SUDO service dnsmasq start
 $SUDO service lighttpd start
+
+
