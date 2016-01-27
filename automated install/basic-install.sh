@@ -16,7 +16,9 @@
 #
 # curl -L install.pi-hole.net | bash
 
+$SUDO mkdir -p /etc/pihole/
 ######## VARIABLES #########
+
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 
@@ -34,7 +36,9 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
+
 # Find IP used to route to outside world
+
 IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
 IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
 IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
@@ -182,7 +186,7 @@ use4andor6(){
 useIPv6dialog(){
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
-	$SUDO mkdir -p /etc/pihole/
+	
 	$SUDO touch /etc/pihole/.useIPv6
 }
 
