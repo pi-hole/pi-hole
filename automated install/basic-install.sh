@@ -59,33 +59,32 @@ else
 	fi
 fi
 
+# Is this if statement used anymore?
 if [ -f "/etc/dnsmasq.d/01-pihole.conf" ]; then
-		#Likely an existing install
+		# Likely an existing install
 		upgrade=true
 	else
-	  upgrade=false
+		upgrade=false
 fi
 
 ####### FUNCTIONS ##########
 ###All credit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
-spinner(){
-        local pid=$1
+spinner() {
+	local pid=$1
 
-        spin='-\|/'
-        i=0
-        while $SUDO kill -0 $pid 2>/dev/null
-        do
-                i=$(( (i+1) %4 ))
-                printf "\b${spin:$i:1}"
-                sleep .1
-        done
-        printf "\b"
+	spin='-\|/'
+	i=0
+	while $SUDO kill -0 $pid 2>/dev/null
+	do
+		i=$(( (i+1) %4 ))
+		printf "\b${spin:$i:1}"
+		sleep .1
+	done
+	printf "\b"
 }
 
-
-
-
-backupLegacyPihole(){
+backupLegacyPihole() {
+	# This function detects and backups the pi-hole v1 files.  It will not do anything to the current version files.
 	if [[ -f /etc/dnsmasq.d/adList.conf ]];then
 		echo "Original Pi-hole detected.  Initiating sub space transport"
 		$SUDO mkdir -p /etc/pihole/original/
@@ -100,7 +99,7 @@ backupLegacyPihole(){
 	fi
 }
 
-welcomeDialogs(){
+welcomeDialogs() {
 	# Display the welcome dialog
 	whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "This installer will transform your Raspberry Pi into a network-wide ad blocker!" $r $c
 	
@@ -112,8 +111,8 @@ welcomeDialogs(){
 	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
-chooseInterface(){
-# Turn the available interfaces into an array so it can be used with a whiptail dialog
+chooseInterface() {
+	# Turn the available interfaces into an array so it can be used with a whiptail dialog
 	interfacesArray=()
 	firstloop=1
 	
@@ -141,7 +140,7 @@ chooseInterface(){
 }
 
 
-use4andor6(){
+use4andor6() {
 	# Let use select IPv4 and/or IPv6
 	cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
 	options=(IPv4 "Block ads over IPv4" on
@@ -179,14 +178,15 @@ use4andor6(){
 	fi
 }
 
-useIPv6dialog(){
+useIPv6dialog() {
+	# Show the IPv6 address used for blocking
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
 	$SUDO mkdir -p /etc/pihole/
 	$SUDO touch /etc/pihole/.useIPv6
 }
 
-getStaticIPv4Settings(){
+getStaticIPv4Settings() {
 	# Ask if the user wants to use DHCP settings as their static IP
 	if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
 									IP address:    $IPv4addr
@@ -241,15 +241,16 @@ getStaticIPv4Settings(){
 	fi
 }
 
-setDHCPCD(){
-	#Append these lines to dhcpcd.conf to enable a static IP
+setDHCPCD() {
+	# Append these lines to dhcpcd.conf to enable a static IP
 	echo "interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
 	static domain_name_servers=$IPv4gw" | $SUDO tee -a $dhcpcdFile >/dev/null
 }
 
-setStaticIPv4(){
+setStaticIPv4() {
+	# Tries to set the IPv4 address
 	if grep -q $IPv4addr $dhcpcdFile; then
 		# address already set, noop
 		:
@@ -260,7 +261,8 @@ setStaticIPv4(){
 	fi
 }
 
-installScripts(){
+installScripts() {
+	# Install the scripts from /etc/.pihole to their various locations
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing scripts..."
 	$SUDO cp /etc/.pihole/gravity.sh /usr/local/bin/gravity.sh	
@@ -273,7 +275,8 @@ installScripts(){
 	$SUDO echo " done."
 }
 
-installConfigs(){
+installConfigs() {
+	# Install the configs from /etc/.pihole to their various locations
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing configs..."
 	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
@@ -284,7 +287,8 @@ installConfigs(){
 	$SUDO echo " done."
 }
 
-stopServices(){
+stopServices() {
+	# Stop dnsmasq and lighttpd
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
 	$SUDO service dnsmasq stop & spinner $! || true 
@@ -292,14 +296,14 @@ stopServices(){
 	$SUDO echo " done."
 }
 
-checkForDependencies(){
- 		echo ":::" 		
- 		#Check to see if apt-get update has already been run today
- 		timestamp=$(stat -c %Y /var/cache/apt/)
- 		timestampAsDate=$(date -d @$timestamp "+%b %e")
- 		today=$(date "+%b %e")
- 		
- 		if [ ! "$today" == "$timestampAsDate" ]; then 		
+checkForDependencies() {
+ 	echo ":::" 		
+ 	#Check to see if apt-get update has already been run today
+ 	timestamp=$(stat -c %Y /var/cache/apt/)
+ 	timestampAsDate=$(date -d @$timestamp "+%b %e")
+ 	today=$(date "+%b %e")
+
+ 	if [ ! "$today" == "$timestampAsDate" ]; then 		
 	    #update package lists
 	    echo -n "::: Updating package list before install...."
 	    $SUDO apt-get -qq update > /dev/null & spinner $!
@@ -308,64 +312,59 @@ checkForDependencies(){
 	    $SUDO apt-get -y -qq upgrade > /dev/null & spinner $!
 	    echo " done!"
     else
-    	echo "::: Apt-get update already run today, any more would be overkill..."    
+		echo "::: Apt-get update already run today, any more would be overkill..."    
     fi
-    
-    
+	
     echo ":::" 
     echo "::: Checking dependencies:"
 
-    dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
-    for i in "${dependencies[@]}"
-    do
-       :
-      echo -n ":::    Checking for $i..."
-      if [ $(dpkg-query -W -f='${Status}' $i 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-          echo -n " Not found! Installing...."
-          $SUDO apt-get -y -qq install $i > /dev/null & spinner $!
-          echo " done!"
-      else
-          echo " already installed!"
-      fi
-    done
+	dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+	for i in "${dependencies[@]}"
+	do
+	:
+		echo -n ":::    Checking for $i..."
+		if [ $(dpkg-query -W -f='${Status}' $i 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			$SUDO apt-get -y -qq install $i > /dev/null & spinner $!
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
+	done
 }
 
-getGitFiles(){
-  
-  echo ":::"
+getGitFiles() {
+	# Setup git repos for base files and web admin
+	echo ":::"
 	echo "::: Checking for existing base files..."
 	if is_repo $piholeFilesDir; then				
-        make_repo $piholeFilesDir $piholeGitUrl        
-  else  		
-  		update_repo $piholeFilesDir  		
-  fi
+		make_repo $piholeFilesDir $piholeGitUrl        
+	else
+		update_repo $piholeFilesDir  		
+	fi
 
-  echo ":::"  
-  echo "::: Checking for existing web interface..."
-  if is_repo $webInterfaceDir; then  		
-  		make_repo $webInterfaceDir $webInterfaceGitUrl  		
-  else
-  		update_repo $webInterfaceDir
-  		
-  fi
-
+	echo ":::"  
+	echo "::: Checking for existing web interface..."
+	if is_repo $webInterfaceDir; then  		
+		make_repo $webInterfaceDir $webInterfaceGitUrl  		
+	else
+		update_repo $webInterfaceDir
+	fi
 }
 
 is_repo() {
-		echo -n ":::    Checking $1 is a repo..."
-    # if the directory does not have a .git folder 
-    # it is not a repo
+	# If the directory does not have a .git folder it is not a repo
+	echo -n ":::    Checking $1 is a repo..."
     if [ -d "$1/.git" ]; then
     		echo " OK!"
         return 1
     fi
     echo " not found!!"
     return 0
-    
 }
 
 make_repo() {
-    # remove the non-repod interface and clone the interface
+    # Remove the non-repod interface and clone the interface
     echo -n ":::    Cloning $2 into $1..."
     $SUDO rm -rf $1
     $SUDO git clone -q "$2" "$1" > /dev/null & spinner $!
@@ -373,7 +372,7 @@ make_repo() {
 }
 
 update_repo() {
-    # pull the latest commits
+    # Pull the latest commits
     echo -n ":::     Updating repo in $1..."
     cd "$1"
     $SUDO git pull -q > /dev/null & spinner $!
@@ -381,7 +380,8 @@ update_repo() {
 }
 
 
-CreateLogFile(){
+CreateLogFile() {
+	# Create logfiles if necessary
 	echo ":::"
 	$SUDO  echo -n "::: Creating log file and changing owner to dnsmasq..."
 	if [ ! -f /var/log/pihole.log ]; then
@@ -391,11 +391,11 @@ CreateLogFile(){
 		$SUDO echo " done!"
 	else
 		$SUDO  echo " already exists!"
-	fi
-	
+	fi	
 }
 
-installPiholeWeb(){
+installPiholeWeb() {
+	# Install the web interface
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing pihole custom index page..."
 	if [ -d "/var/www/html/pihole" ]; then
@@ -406,17 +406,18 @@ installPiholeWeb(){
 		$SUDO cp /etc/.pihole/advanced/index.html /var/www/html/pihole/index.html
 		$SUDO echo " done!"
 	fi
-	
 }
 
-installCron(){
+installCron() {
+	# Install the cron job
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing latest Cron script..."
 	$SUDO cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
 	$SUDO echo " done!"
 }
 
-runGravity(){
+runGravity() {
+	# Rub gravity.sh to build blacklists
 	$SUDO echo ":::"
 	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
@@ -426,13 +427,13 @@ runGravity(){
 	#Don't run as SUDO, this was causing issues
 	echo "::: Running gravity.sh"
 	echo ":::"
-	
+
 	/usr/local/bin/gravity.sh
-	
 }
 
 
-installPihole(){
+installPihole() {
+	# Install base files and web interface
 	checkForDependencies # done
 	stopServices
 	
@@ -451,8 +452,9 @@ installPihole(){
 	runGravity
 }
 
-displayFinalMessage(){
-whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
+displayFinalMessage() {
+	# Final completion message to user
+	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
 $IPv4addr
 $piholeIPv6
@@ -483,5 +485,6 @@ $SUDO mv $tmpLog $instalLogLoc
 
 displayFinalMessage
 
+# Start services
 $SUDO service dnsmasq start
 $SUDO service lighttpd start
