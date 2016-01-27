@@ -331,7 +331,7 @@ function gravity_reload() {
 	echo " done!"
 }
 
-
+$SUDO cp -o /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
