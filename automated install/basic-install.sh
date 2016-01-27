@@ -334,8 +334,8 @@ checkForDependencies(){
 			echo "::: Please consider running 'sudo apt-get upgrade' before continuing with installation"			
 			echo ":::"
 			#add in a prompt to give users the option to quit installation or continue
-			echo -n "::: Would you like to continue with the pi-hole installation? (Y/n):"
-			read answer
+			#echo -n "::: Would you like to continue with the pi-hole installation? (Y/n):"
+			read -p "::: Would you like to continue with the pi-hole installation? (Y/n):" answer
 			
 			case "$answer" in
     		[yY][eE][sS]|[yY]  )  echo "::: Continuing!";;
