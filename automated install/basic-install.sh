@@ -431,10 +431,9 @@ installCron(){
 
 runGravity(){
 	$SUDO echo ":::"
-	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
+	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."	
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
-		$SUDO cp -o /etc/.pihole/adlists.default /etc/pihole/adlists.default
+		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"		
 		$SUDO rm /etc/pihole/list.*
 	fi
 	#Don't run as SUDO, this was causing issues
