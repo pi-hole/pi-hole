@@ -306,7 +306,9 @@ checkForDependencies(){
  		echo " done!"
 		
 		echo ":::"
-		if [ $updatesToInstall > 0 ]; then
+		if [[ $updatesToInstall -eq 0 ]]; then
+			echo "::: Your pi is up to date! Continuing with pi-hole installation..."
+		else
 			echo "::: There are $updatesToInstall updates availible for your pi!"
 			echo "::: Please consider running 'sudo apt-get update', followed by 'sudo apt-get upgrade'"
 			echo "::: after pi-hole has finished installing."
@@ -319,10 +321,7 @@ checkForDependencies(){
     		[yY][eE][sS]|[yY]  )  echo "::: Continuing!";;
    		  *                  )  echo "::: Quitting install, please run 'curl -L install.pi-hole.net | bash' after updating packages!"
               								exit 0;;
-			esac 			
-			
-		else
-		  echo "::: Your pi is up to date! Continuing with pi-hole installation..."
+			esac 
 		fi    
     
     echo ":::" 
