@@ -55,7 +55,8 @@ sources=('https://adaway.org/hosts.txt'
 'http://www.malwaredomainlist.com/hostslist/hosts.txt'
 'http://pgl.yoyo.org/adservers/serverlist.php?'
 'http://someonewhocares.org/hosts/hosts'
-'http://winhelp2002.mvps.org/hosts.txt')
+'http://winhelp2002.mvps.org/hosts.txt'
+'http://mirror1.malwaredomains.com/files/justdomains')
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
@@ -256,10 +257,15 @@ function gravity_hostFormat() {
 	echo "::: Formatting domains into a HOSTS file..."
   # If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
   if [[ -n $piholeIPv6 ]];then
-    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' > $piholeDir/$accretionDisc
+  	#Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
+    echo -e "$piholeIP Pi-Hole.IsWorking.OK \n$piholeIPv6 Pi-Hole.IsWorking.OK" > $piholeDir/$accretionDisc
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
+    
   else
-    # Otherwise, just create gravity.list as normal using IPv4
-    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' > $piholeDir/$accretionDisc
+      # Otherwise, just create gravity.list as normal using IPv4
+      #Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
+    echo -e "$piholeIP Pi-Hole.IsWorking.OK" > $piholeDir/$accretionDisc
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
   fi
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp $piholeDir/$accretionDisc $adList

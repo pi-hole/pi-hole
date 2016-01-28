@@ -16,7 +16,9 @@
 #
 # curl -L install.pi-hole.net | bash
 
+
 ######## VARIABLES #########
+
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 
@@ -34,7 +36,9 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
+
 # Find IP used to route to outside world
+
 IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
 IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
 IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
@@ -59,7 +63,7 @@ else
 	fi
 fi
 
-if [ -f "/etc/dnsmasq.d/01-pihole.conf" ]; then
+if [ -d "/etc/pihole" ]; then
 		#Likely an existing install
 		upgrade=true
 	else
@@ -182,7 +186,7 @@ use4andor6(){
 useIPv6dialog(){
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
-	$SUDO mkdir -p /etc/pihole/
+	
 	$SUDO touch /etc/pihole/.useIPv6
 }
 
@@ -256,7 +260,9 @@ setStaticIPv4(){
 	else
 		setDHCPCD
 		$SUDO ip addr replace dev $piholeInterface $IPv4addr
-		echo "Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+		echo ":::"
+		echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+		echo ":::"
 	fi
 }
 
@@ -269,7 +275,7 @@ installScripts(){
 	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh 
 	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh 
 	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh 
-	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
+	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh	
 	$SUDO echo " done."
 }
 
@@ -293,24 +299,41 @@ stopServices(){
 }
 
 checkForDependencies(){
- 		echo ":::" 		
+ 		
+ 		#Running apt-get update/upgrade with minimal output can cause some issues with
+ 		#requiring user input (e.g password for phpmyadmin see #218)
+ 		#We'll change the logic up here, to check to see if there are any updates availible and
+ 		# if so, advise the user to run apt-get update/upgrade at their own discretion
+ 		
+ 		
  		#Check to see if apt-get update has already been run today
+ 		# it needs to have been run at least once on new installs!
+ 		
  		timestamp=$(stat -c %Y /var/cache/apt/)
  		timestampAsDate=$(date -d @$timestamp "+%b %e")
  		today=$(date "+%b %e")
  		
  		if [ ! "$today" == "$timestampAsDate" ]; then 		
 	    #update package lists
-	    echo -n "::: Updating package list before install...."
-	    $SUDO apt-get -qq update > /dev/null & spinner $!
+	    echo ":::"
+	    echo -n "::: apt-get update has not been run today. Running now..."
+	    $SUDO apt-get -qq update & spinner $!
 	    echo " done!"
-	    echo -n "::: Upgrading installed apt-get packages...."
-	    $SUDO apt-get -y -qq upgrade > /dev/null & spinner $!
-	    echo " done!"
-    else
-    	echo "::: Apt-get update already run today, any more would be overkill..."    
-    fi
-    
+	  fi 		
+ 		
+ 		echo ":::" 
+ 		echo -n "::: Checking apt-get for upgraded packages...."
+ 		updatesToInstall=$(sudo apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
+ 		echo " done!"
+				
+		echo ":::"
+		if [[ $updatesToInstall -eq "0" ]]; then
+			echo "::: Your pi is up to date! Continuing with pi-hole installation..."
+		else		 
+			echo "::: There are $updatesToInstall updates availible for your pi!"
+			echo "::: We recommend you run 'sudo apt-get upgrade' after installing Pi-Hole! "			
+			echo ":::"
+		fi    
     
     echo ":::" 
     echo "::: Checking dependencies:"
@@ -445,7 +468,7 @@ setUser(){
 installPihole(){
 	checkForDependencies # done
 	stopServices
-	
+	$SUDO mkdir -p /etc/pihole/
 	$SUDO chown www-data:www-data /var/www/html
 	$SUDO chmod 775 /var/www/html
 	$SUDO usermod -a -G www-data pihole
@@ -474,6 +497,7 @@ The install log is in /etc/pihole." $r $c
 
 ######## SCRIPT ############
 # Start the installer
+$SUDO mkdir -p /etc/pihole/
 welcomeDialogs
 
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
@@ -483,8 +507,6 @@ chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
 
-
-
 # Install and log everything to a file
 installPihole | tee $tmpLog
 
@@ -492,6 +514,5 @@ installPihole | tee $tmpLog
 $SUDO mv $tmpLog $instalLogLoc
 
 displayFinalMessage
-
 $SUDO service dnsmasq start
 $SUDO service lighttpd start
