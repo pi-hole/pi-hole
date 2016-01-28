@@ -96,7 +96,12 @@ backupLegacyPihole(){
 		$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
 		$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
 		$SUDO mv /etc/resolv.conf /etc/pihole/original/resolv.conf.$(date "+%Y-%m-%d")
-		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
+		if [[ -f /etc/lighttpd/lighttpd.conf ]]; then
+			$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf.$(date "+%Y-%m-%d")
+		fi
+		if [[ -f /etc/nginx/conf.d/nginx-pi-hole.conf ]]; then
+			$SUDO mv /etc/nginx/conf.d/nginx-pi-hole.conf /etc/pihole/original/nginx-pi-hole.conf.$(date "+%Y-%m-%d")
+		fi
 		$SUDO mv /var/www/pihole/index.html /etc/pihole/original/index.html.$(date "+%Y-%m-%d")
 		$SUDO mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh.$(date "+%Y-%m-%d")
 	else
@@ -107,12 +112,12 @@ backupLegacyPihole(){
 welcomeDialogs(){
 	# Display the welcome dialog
 	whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "This installer will transform your Raspberry Pi into a network-wide ad blocker!" $r $c
-	
+
 	# Support for a part-time dev
 	whiptail --msgbox --backtitle "Plea" --title "Free and open source" "The Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" $r $c
-	
+
 	# Explain the need for a static address
-	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.	
+	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
@@ -120,7 +125,7 @@ chooseInterface(){
 # Turn the available interfaces into an array so it can be used with a whiptail dialog
 	interfacesArray=()
 	firstloop=1
-	
+
 	while read -r line
 	do
 		mode="OFF"
@@ -130,12 +135,12 @@ chooseInterface(){
 		fi
 		interfacesArray+=("$line" "available" "$mode")
 	done <<< "$availableInterfaces"
-	
+
 	# Find out how many interfaces are available to choose from
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-	
+
 	for desiredInterface in $chooseInterfaceOptions
 	do
 		piholeInterface=$desiredInterface
@@ -144,6 +149,22 @@ chooseInterface(){
 	done
 }
 
+chooseWebserver(){
+	webserversArray=()
+	webserversArray+=("lighttpd" "recommended if not sure, or building a standalone configuration" "ON")
+	webserversArray+=("nginx" "for advanced users building custom solutions" "OFF")
+
+	# Find out how many interfaces are available to choose from
+	chooseWebserverCmd=(whiptail --separate-output --radiolist "Choose a Webserver" $r $c 2)
+	chooseWebserverOptions=$("${chooseWebserverCmd[@]}" "${webserversArray[@]}" 2>&1 >/dev/tty)
+
+	for desiredWebserver in $chooseWebserverOptions
+	do
+		piholeWebserver=$desiredWebserver
+		echo "::: Using webserver: $piholeWebserver"
+		echo ${piholeWebserver} > /tmp/piholeWEB
+	done
+}
 
 use4andor6(){
 	# Let use select IPv4 and/or IPv6
@@ -186,7 +207,7 @@ use4andor6(){
 useIPv6dialog(){
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." $r $c
-	
+
 	$SUDO touch /etc/pihole/.useIPv6
 }
 
@@ -269,13 +290,13 @@ setStaticIPv4(){
 installScripts(){
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing scripts..."
-	$SUDO cp /etc/.pihole/gravity.sh /usr/local/bin/gravity.sh	
+	$SUDO cp /etc/.pihole/gravity.sh /usr/local/bin/gravity.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/chronometer.sh /usr/local/bin/chronometer.sh
-	$SUDO cp /etc/.pihole/advanced/Scripts/whitelist.sh /usr/local/bin/whitelist.sh 
-	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh 
-	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh 
-	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh 
-	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh	
+	$SUDO cp /etc/.pihole/advanced/Scripts/whitelist.sh /usr/local/bin/whitelist.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh
+	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 	$SUDO echo " done."
 }
 
@@ -283,9 +304,15 @@ installConfigs(){
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing configs..."
 	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf 
-	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf 
+	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf
+	if [ $piholeWebserver == 'lighttpd' ]; then
+		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+		$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
+	fi
+	if [ $piholeWebserver == 'nginx' ]; then
+		$SUDO cp /etc/.pihole/advanced/nginx-pi-hole.conf /etc/nginx/conf.d/nginx-pi-hole.conf
+		$SUDO rm /etc/nginx/sites-enabled/default
+	fi
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 	$SUDO echo " done."
 }
@@ -293,52 +320,77 @@ installConfigs(){
 stopServices(){
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
-	$SUDO service dnsmasq stop & spinner $! || true 
-	$SUDO service lighttpd stop & spinner $! || true 
+	$SUDO service dnsmasq stop & spinner $! || true
+	if [ $piholeWebserver == 'lighttpd' ]; then
+		$SUDO service lighttpd stop & spinner $! || true
+	fi
+	if [ $piholeWebserver == 'nginx' ]; then
+		$SUDO service nginx stop & spinner $! || true
+	fi
 	$SUDO echo " done."
 }
 
 checkForDependencies(){
- 		
+
  		#Running apt-get update/upgrade with minimal output can cause some issues with
  		#requiring user input (e.g password for phpmyadmin see #218)
  		#We'll change the logic up here, to check to see if there are any updates availible and
  		# if so, advise the user to run apt-get update/upgrade at their own discretion
- 		
- 		
+
+
  		#Check to see if apt-get update has already been run today
  		# it needs to have been run at least once on new installs!
- 		
+
  		timestamp=$(stat -c %Y /var/cache/apt/)
  		timestampAsDate=$(date -d @$timestamp "+%b %e")
  		today=$(date "+%b %e")
- 		
- 		if [ ! "$today" == "$timestampAsDate" ]; then 		
+
+ 		if [ ! "$today" == "$timestampAsDate" ]; then
 	    #update package lists
 	    echo ":::"
 	    echo -n "::: apt-get update has not been run today. Running now..."
 	    $SUDO apt-get -qq update & spinner $!
 	    echo " done!"
-	  fi 		
- 		
- 		echo ":::" 
+	  fi
+
+ 		echo ":::"
  		echo -n "::: Checking apt-get for upgraded packages...."
  		updatesToInstall=$(sudo apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
  		echo " done!"
-				
+
 		echo ":::"
 		if [[ $updatesToInstall -eq "0" ]]; then
 			echo "::: Your pi is up to date! Continuing with pi-hole installation..."
-		else		 
+		else
 			echo "::: There are $updatesToInstall updates availible for your pi!"
-			echo "::: We recommend you run 'sudo apt-get upgrade' after installing Pi-Hole! "			
+			echo "::: We recommend you run 'sudo apt-get upgrade' after installing Pi-Hole! "
 			echo ":::"
-		fi    
-    
-    echo ":::" 
+		fi
+
+    echo ":::"
     echo "::: Checking dependencies:"
 
-    dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+    dependencies=( dnsutils bc toilet figlet dnsmasq git curl unzip wget )
+    if [ $piholeWebserver == 'lighttpd' ]; then
+        dependencies+=( lighttpd php5-cgi )
+        if [ $(dpkg-query -W -f='${Status}' nginx 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+            echo -n ":::    Lighttpd selected, but nginx found! Uninstalling...."
+            $SUDO apt-get -y -qq remove nginx > /dev/null & spinner $!
+            $SUDO apt-get -y -qq autoremove > /dev/null & spinner $!
+            echo " done!"
+        fi
+    fi
+    if [ $piholeWebserver == 'nginx' ]; then
+        dependencies+=( nginx php5-fpm )
+        if [ $(dpkg-query -W -f='${Status}' lighttpd 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+            echo -n ":::    Nginx selected, but lighttpd found! Uninstalling...."
+            $SUDO apt-get -y -qq remove lighttpd > /dev/null & spinner $!
+            $SUDO apt-get -y -qq autoremove > /dev/null & spinner $!
+            echo " done!"
+        fi
+    fi
+    dependencies+=( php5-common php5 )
+
     for i in "${dependencies[@]}"
     do
        :
@@ -354,29 +406,29 @@ checkForDependencies(){
 }
 
 getGitFiles(){
-  
+
   echo ":::"
 	echo "::: Checking for existing base files..."
-	if is_repo $piholeFilesDir; then				
-        make_repo $piholeFilesDir $piholeGitUrl        
-  else  		
-  		update_repo $piholeFilesDir  		
+	if is_repo $piholeFilesDir; then
+        make_repo $piholeFilesDir $piholeGitUrl
+  else
+  		update_repo $piholeFilesDir
   fi
 
-  echo ":::"  
+  echo ":::"
   echo "::: Checking for existing web interface..."
-  if is_repo $webInterfaceDir; then  		
-  		make_repo $webInterfaceDir $webInterfaceGitUrl  		
+  if is_repo $webInterfaceDir; then
+  		make_repo $webInterfaceDir $webInterfaceGitUrl
   else
   		update_repo $webInterfaceDir
-  		
+
   fi
 
 }
 
 is_repo() {
 		echo -n ":::    Checking $1 is a repo..."
-    # if the directory does not have a .git folder 
+    # if the directory does not have a .git folder
     # it is not a repo
     if [ -d "$1/.git" ]; then
     		echo " OK!"
@@ -384,7 +436,7 @@ is_repo() {
     fi
     echo " not found!!"
     return 0
-    
+
 }
 
 make_repo() {
@@ -415,7 +467,7 @@ CreateLogFile(){
 	else
 		$SUDO  echo " already exists!"
 	fi
-	
+
 }
 
 installPiholeWeb(){
@@ -425,11 +477,16 @@ installPiholeWeb(){
 		$SUDO echo " Existing page detected, not overwriting"
 	else
 		$SUDO mkdir /var/www/html/pihole
-		$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+		if [ $piholeWebserver == 'lighttpd' ]; then
+				$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+		fi
+		if [ $piholeWebserver == 'nginx' ]; then
+				$SUDO mv /var/www/html/index.nginx-debian.html /var/www/html/index.nginx-debian.orig
+		fi
 		$SUDO cp /etc/.pihole/advanced/index.html /var/www/html/pihole/index.html
 		$SUDO echo " done!"
 	fi
-	
+
 }
 
 installCron(){
@@ -449,9 +506,9 @@ runGravity(){
 	#Don't run as SUDO, this was causing issues
 	echo "::: Running gravity.sh"
 	echo ":::"
-	
+
 	/usr/local/bin/gravity.sh
-	
+
 }
 
 
@@ -462,9 +519,11 @@ installPihole(){
 	$SUDO chown www-data:www-data /var/www/html
 	$SUDO chmod 775 /var/www/html
 	$SUDO usermod -a -G www-data pi
-	$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
-	
-	getGitFiles	
+	if [ $piholeWebserver == 'lighttpd' ]; then
+		$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	fi
+
+	getGitFiles
 	installScripts
 	installConfigs
 	#installWebAdmin
@@ -494,6 +553,8 @@ welcomeDialogs
 backupLegacyPihole
 # Find interfaces and let the user choose one
 chooseInterface
+# Let the user decide which webserver they prefer
+chooseWebserver
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
 
@@ -505,4 +566,9 @@ $SUDO mv $tmpLog $instalLogLoc
 
 displayFinalMessage
 $SUDO service dnsmasq start
-$SUDO service lighttpd start
+if [ $piholeWebserver == 'lighttpd' ]; then
+    $SUDO service lighttpd start
+fi
+if [ $piholeWebserver == 'nginx' ]; then
+    $SUDO service nginx start
+fi

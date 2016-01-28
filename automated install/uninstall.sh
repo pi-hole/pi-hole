@@ -25,15 +25,24 @@ fi
 
 
 ######### SCRIPT ###########
+if [ $(dpkg-query -W -f='${Status}' lighttpd 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+    $SUDO apt-get -y remove --purge lighttpd php5-cli
+fi
+if [ $(dpkg-query -W -f='${Status}' nginx 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+    $SUDO apt-get -y remove --purge nginx php5-fpm
+fi
+
 $SUDO apt-get -y remove --purge dnsutils bc toilet
 $SUDO apt-get -y remove --purge dnsmasq
-$SUDO apt-get -y remove --purge lighttpd php5-common php5-cgi php5
+$SUDO apt-get -y remove --purge php5-common php5
+$SUDO apt-get -y autoremove --purge
 
 # Only web directories/files that are created by pihole should be removed.
 echo "Removing the Pi-hole Web server files..."
 $SUDO rm -rf /var/www/html/admin
 $SUDO rm -rf /var/www/html/pihole
 $SUDO rm /var/www/html/index.lighttpd.orig
+$SUDO rm /var/www/html/index.nginx-debian.orig
 
 # If the web directory is empty after removing these files, then the parent html folder can be removed.
 if [[ ! "$(ls -A /var/www/html)" ]]; then
@@ -63,6 +72,7 @@ fi
 echo "Removing config files and scripts..."
 $SUDO rm /etc/dnsmasq.conf
 $SUDO rm -rf /etc/lighttpd/
+$SUDO rm -rf /etc/nginx/
 $SUDO rm /var/log/pihole.log
 $SUDO rm /usr/local/bin/gravity.sh
 $SUDO rm /usr/local/bin/chronometer.sh
