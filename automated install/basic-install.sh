@@ -286,7 +286,7 @@ installConfigs(){
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf 
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
-   $SUDO cp /etc/.pihole/version.txt /etc/pihole/version.txt
+	$SUDO cp /etc/.pihole/version.txt /etc/pihole/version.txt
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 	$SUDO echo " done."
 }
