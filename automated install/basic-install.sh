@@ -287,11 +287,7 @@ installConfigs() {
 	$SUDO echo -n "::: Installing configs..."
 	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-<<<<<<< HEAD
-	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf 
-=======
 	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf
->>>>>>> CBH/Bugfix/Formatting
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 	$SUDO echo " done."
