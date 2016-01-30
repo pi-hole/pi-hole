@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Completely uninstalls the Pi-hole
-# (c) 2015 by Jacob Salmela
-# This file is part of Pi-hole.
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Completely uninstalls Pi-hole
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
