@@ -32,7 +32,7 @@ function CalcBlockedDomains(){
 
 function CalcQueriesToday(){
 	if [ -e "$piLog" ];then
-		queriesToday=$(cat "$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
+		queriesToday=$(cat "$piLog" | awk '/query/ {print $6}' | wc -l)
 	else
 		queriesToday="Err."
 	fi
