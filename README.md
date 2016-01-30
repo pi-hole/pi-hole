@@ -26,6 +26,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 - [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 
 ## Coverage
+- [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
 - [The Defrag Show - MSDN/Channel 9](https://channel9.msdn.com/Shows/The-Defrag-Show/Defrag-Endoscope-USB-Camera-The-Final-HoloLens-Vote-Adblock-Pi-and-more?WT.mc_id=dlvr_twitter_ch9#time=20m39s)
 - [MacObserver Podcast 585](http://www.macobserver.com/tmo/podcast/macgeekgab-585)
 - [Medium: Block All Ads For $53](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d)
