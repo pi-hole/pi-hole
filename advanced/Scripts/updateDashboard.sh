@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Updates the Pi-hole web interface
 #
-# this script will update the pihole web interface files.
-#
-# if this is the first time running this script after an 
-# existing installation, the existing web interface files
-# will be removed and replaced with the latest master
-# branch from github. subsequent executions of this script
-# will pull the latest version of the web interface.
-#
-# @TODO: add git as requirement to basic-install.sh
-#
+# Pi-hole is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
 
 WEB_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 WEB_INTERFACE_DIR="/var/www/html/admin"
