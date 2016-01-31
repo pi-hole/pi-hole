@@ -317,6 +317,38 @@ installConfigs(){
 	$SUDO echo " done."
 }
 
+installNginx(){
+	currentNginxIsUpToDate=$(dpkg --compare-versions $(dpkg -l | grep nginx | grep 'ii' | head -n 1 | awk '{print $3}') ge-nl 1.7.5  2> /dev/null && echo '0' || echo '1')
+	minimumNginxVersionAvailable=$(dpkg --compare-versions $(apt-cache madison nginx | awk '{print $3}' | sort -V | tail -n 1) ge-nl 1.7.5 && echo '0' || echo '1')
+	installNginxFromTesting=1
+
+	echo -n ":::    Checking for nginx..."
+		if [ $(dpkg-query -W -f='${Status}' nginx 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			if [ $minimumNginxVersionAvailable -eq 0 ]; then
+				$SUDO apt-get -y -qq install nginx > /dev/null & spinner $!
+				echo " done!"
+			else
+				installNginxFromTesting=0
+			fi
+		else
+			echo -n " already installed"
+			if [ $currentNginxIsUpToDate -eq 0 ]; then
+				echo "!"
+			else
+				echo -n " (but version is too old)! Installing..."
+				installNginxFromTesting=0
+			fi
+		fi
+
+		if [ $installNginxFromTesting -eq 0 ]; then
+			$SUDO cat /etc/apt/sources.list | grep deb | grep main | grep -vE '^\s*#' | sed -E 's@(stretch|wheezy|jessie)(-staging)?@testing@g' >> /etc/apt/sources.list
+			$SUDO apt-get -y -qq update & spinner $!
+			$SUDO apt-get -y -qq -t testing install nginx > /dev/null & spinner $!
+			echo " done!"
+		fi
+}
+
 stopServices(){
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
@@ -381,13 +413,14 @@ checkForDependencies(){
         fi
     fi
     if [ $piholeWebserver == 'nginx' ]; then
-        dependencies+=( nginx php5-fpm )
+        dependencies+=( php5-fpm )
         if [ $(dpkg-query -W -f='${Status}' lighttpd 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
             echo -n ":::    Nginx selected, but lighttpd found! Uninstalling...."
             $SUDO apt-get -y -qq remove lighttpd > /dev/null & spinner $!
             $SUDO apt-get -y -qq autoremove > /dev/null & spinner $!
             echo " done!"
         fi
+        installNginx
     fi
     dependencies+=( php5-common php5 )
 
@@ -478,10 +511,10 @@ installPiholeWeb(){
 	else
 		$SUDO mkdir /var/www/html/pihole
 		if [ $piholeWebserver == 'lighttpd' ]; then
-				$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+				$SUDO cp /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
 		fi
 		if [ $piholeWebserver == 'nginx' ]; then
-				$SUDO mv /var/www/html/index.nginx-debian.html /var/www/html/index.nginx-debian.orig
+				$SUDO cp /var/www/html/index.nginx-debian.html /var/www/html/index.nginx-debian.orig
 		fi
 		$SUDO cp /etc/.pihole/advanced/index.html /var/www/html/pihole/index.html
 		$SUDO echo " done!"
