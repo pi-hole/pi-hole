@@ -293,19 +293,26 @@ versionCheckDNSmasq(){
 	dnsFile2="/etc/dnsmasq.conf.orig"
 	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
 	
-	# Check dnsmasq.conf for pihole magic
-	if grep -q $dnsSearch $dnsFile1; then
-		# If true, Check dnsmasq.conf.orig for pihole magic
+	# Check if /etc/dnsmasq.conf exists
+	if [ -d "/etc/dnsmasq.conf" ]; then
+		# If true, Check dnsmasq.conf for pihole magic
 		if grep -q $dnsSearch $dnsFile1; then
-			# If true, use advanced/dnsmasq.conf.original
-			$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-			$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
-		else
-			# If false, mv original file back
-			$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+			# If true, Check dnsmasq.conf.orig for pihole magic
+			if grep -q $dnsSearch $dnsFile2; then
+				# If true, use advanced/dnsmasq.conf.original
+				$SUDO mv -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+				$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+			else
+				# If false, mv original file back
+				$SUDO mv -f /etc/dnsmasq.conf.orig /etc/dnsmasq.conf
+			fi
+		# If false, This is a fresh install
 		fi
-	# If false, This is a fresh install
+	else
+		# If false, use advanced/dnsmasq.conf.original
+		$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
 	fi
+	
 	$SUDO cp /etc/.pihole/advanced/01-pihole.conf /etc/dnsmasq.d/01-pihole.conf
 	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
 	$SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
