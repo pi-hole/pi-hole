@@ -90,7 +90,7 @@ spinner() {
 backupLegacyPihole() {
 	# This function detects and backups the pi-hole v1 files.  It will not do anything to the current version files.
 	if [[ -f /etc/dnsmasq.d/adList.conf ]];then
-		echo "Original Pi-hole detected.  Initiating sub space transport"
+		echo "::: Original Pi-hole detected.  Initiating sub space transport"
 		$SUDO mkdir -p /etc/pihole/original/
 		$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
 		$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
@@ -134,13 +134,18 @@ chooseInterface() {
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-
-	for desiredInterface in $chooseInterfaceOptions
-	do
+	if [[ $? = 0 ]];then
+		for desiredInterface in $chooseInterfaceOptions
+		do
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
 		echo ${piholeInterface} > /tmp/piholeINT
-	done
+		done
+	else
+		echo "::: Cancel selected, exiting...."
+		exit 1
+	fi
+	
 }
 
 
@@ -150,34 +155,40 @@ use4andor6() {
 	options=(IPv4 "Block ads over IPv4" on
 	IPv6 "Block ads over IPv6" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-	for choice in $choices
-	do
-		case $choice in
-		IPv4	)		useIPv4=true;;
-		IPv6	)		useIPv6=true;;
-		esac
-	done
-	if [ $useIPv4 ] && [ ! $useIPv6 ]; then
-		getStaticIPv4Settings
-		setStaticIPv4
-		echo "::: Using IPv4 on $IPv4addr"
-		echo "::: IPv6 will NOT be used."
-	fi
-	if [ ! $useIPv4 ] && [ $useIPv6 ]; then
-		useIPv6dialog
-		echo "::: IPv4 will NOT be used."
-		echo "::: Using IPv6 on $piholeIPv6"
-	fi
-	if [ $useIPv4 ] && [  $useIPv6 ]; then
-		getStaticIPv4Settings
-		setStaticIPv4
-		useIPv6dialog
-		echo "::: Using IPv4 on $IPv4addr"
-		echo "::: Using IPv6 on $piholeIPv6"
-	fi
-	if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
-		echo "::: Cannot continue, neither IPv4 or IPv6 selected"
-		echo "::: Exiting"
+	if [[ $? = 0 ]];then
+		for choice in $choices
+		do
+			case $choice in
+			IPv4	)		useIPv4=true;;
+			IPv6	)		useIPv6=true;;
+			esac
+		done
+		
+		if [ $useIPv4 ] && [ ! $useIPv6 ]; then
+			getStaticIPv4Settings
+			setStaticIPv4
+			echo "::: Using IPv4 on $IPv4addr"
+			echo "::: IPv6 will NOT be used."
+		fi
+		if [ ! $useIPv4 ] && [ $useIPv6 ]; then
+			useIPv6dialog
+			echo "::: IPv4 will NOT be used."
+			echo "::: Using IPv6 on $piholeIPv6"
+		fi
+		if [ $useIPv4 ] && [  $useIPv6 ]; then
+			getStaticIPv4Settings
+			setStaticIPv4
+			useIPv6dialog
+			echo "::: Using IPv4 on $IPv4addr"
+			echo "::: Using IPv6 on $piholeIPv6"
+		fi
+		if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
+			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
+			echo "::: Exiting"
+			exit 1
+		fi
+	else
+		echo "::: Cancel selected. Exiting..."
 		exit 1
 	fi
 }
@@ -209,11 +220,11 @@ getStaticIPv4Settings() {
 			# Ask for the IPv4 address
 			IPv4addr=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" $r $c $IPv4addr 3>&1 1>&2 2>&3)
 			if [[ $? = 0 ]];then
-				echo "Your static IPv4 address:    $IPv4addr"
+				echo "::: Your static IPv4 address:    $IPv4addr"
 				# Ask for the gateway
 				IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" $r $c $IPv4gw 3>&1 1>&2 2>&3)
 				if [[ $? = 0 ]];then
-					echo "Your static IPv4 gateway:    $IPv4gw"
+					echo "::: Your static IPv4 gateway:    $IPv4gw"
 					# Give the user a chance to review their settings before moving on
 					if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
 							IP address:    $IPv4addr
@@ -231,14 +242,14 @@ getStaticIPv4Settings() {
 				else
 					# Cancelling gateway settings window
 					ipSettingsCorrect=False
-					echo "User canceled."
-					exit
+					echo "::: Cancel selected. Exiting..."
+					exit 1
 				fi
 			else
 				# Cancelling IPv4 settings window
 				ipSettingsCorrect=False
-				echo "User canceled."
-				exit
+				echo "::: Cancel selected. Exiting..."
+				exit 1
 			fi
 		done
 	# End the if statement for DHCP vs. static
@@ -247,7 +258,7 @@ getStaticIPv4Settings() {
 
 setDHCPCD() {
 	# Append these lines to dhcpcd.conf to enable a static IP
-	echo "interface $piholeInterface
+	echo "::: interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
 	static domain_name_servers=$IPv4gw" | $SUDO tee -a $dhcpcdFile >/dev/null
@@ -272,19 +283,23 @@ setDNS(){
 	DNSChooseOptions=(Google "Use Google's DNS Servers" on
 					  DynDNS "Use DynDNS's DNS Servers" off)
 	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
-
-	case $DNSchoices in
-		Google)
-			echo "Google selected."
-			piholeDNS1="8.8.8.8"
-			piholeDNS2="8.8.4.4"
-			;;
-		DynDNS)
-			echo "DynDNS selected."
-			piholeDNS1="208.67.222.222"
-			piholeDNS2="208.67.220.220"
-			;;
-	esac
+	if [[ $? = 0 ]];then
+		case $DNSchoices in
+			Google)
+				echo "::: Using Google DNS servers."
+				piholeDNS1="8.8.8.8"
+				piholeDNS2="8.8.4.4"
+				;;
+			DynDNS)
+				echo "::: Using DynDNS servers."
+				piholeDNS1="208.67.222.222"
+				piholeDNS2="208.67.220.220"
+				;;
+		esac
+	else
+		echo "::: Cancel selected. Exiting..."
+		exit 1
+	fi
 }
 
 versionCheckDNSmasq(){
