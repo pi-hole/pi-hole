@@ -1,3 +1,14 @@
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Updates ad sources every week
+#
+# Pi-hole is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
 # Pi-hole: Update the ad sources once a week on Sunday at 01:59
 #          Download any updates from the ad lists
 59 1    * * 7   root    /usr/local/bin/gravity.sh
