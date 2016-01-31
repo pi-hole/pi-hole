@@ -29,6 +29,9 @@ fi
 piholeIPfile=/tmp/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
+adListFile=/etc/pihole/adlists.list
+adListDefault=/etc/pihole/adlists.default
+
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
     piholeIP=$(cat $piholeIPfile)
@@ -45,18 +48,8 @@ if [[ -f $piholeIPv6file ]];then
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-# Ad-list sources--one per line in single quotes
-# The mahakala source is commented out due to many users having issues with it blocking legitimate domains.
-# Uncomment at your own risk
-sources=('https://adaway.org/hosts.txt'
-'http://adblock.gjtech.net/?format=unix-hosts'
-#'http://adblock.mahakala.is/'
-'http://hosts-file.net/ad_servers.txt'
-'http://www.malwaredomainlist.com/hostslist/hosts.txt'
-'http://pgl.yoyo.org/adservers/serverlist.php?'
-'http://someonewhocares.org/hosts/hosts'
-'http://winhelp2002.mvps.org/hosts.txt'
-'http://mirror1.malwaredomains.com/files/justdomains')
+
+
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
@@ -97,7 +90,26 @@ spinner(){
 ###########################
 # collapse - begin formation of pihole
 function gravity_collapse() {
-	echo -n "::: Neutrino emissions detected..."
+	echo "::: Neutrino emissions detected..."
+	echo ":::"
+	#Decide if we're using a custom ad block list, or defaults.
+	if [ -f $adListFile ]; then
+		#custom file found, use this instead of default
+		echo -n "::: Custom adList file detected. Reading..."
+		sources=()
+		while read -a line; do
+			sources+=($line)
+		done < $adListFile
+		echo " done!"	
+	else
+		#no custom file found, use defaults!
+		echo -n "::: No custom adlist file detected, reading from default file..."
+				sources=()
+		while read -a line; do
+			sources+=($line)
+		done < $adListDefault
+		echo " done!"	
+	fi	
 
 	# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 	if [[ -d $piholeDir ]];then
@@ -319,7 +331,7 @@ function gravity_reload() {
 	echo " done!"
 }
 
-
+$SUDO cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
