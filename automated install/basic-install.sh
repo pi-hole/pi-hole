@@ -267,6 +267,58 @@ setStaticIPv4() {
 	fi
 }
 
+setDNS(){
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select DNS Servers" $r $c 2)
+	DNSChooseOptions=(Google "Use Google's DNS Servers" on
+					  DynDNS "Use DynDNS's DNS Servers" off)
+	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+
+	case $DNSchoices in
+		Google)
+			echo "Google selected."
+			piholeDNS1="8.8.8.8"
+			piholeDNS2="8.8.4.4"
+			;;
+		DynDNS)
+			echo "DynDNS selected."
+			piholeDNS1="208.67.222.222"
+			piholeDNS2="208.67.220.220"
+			;;
+	esac
+}
+
+versionCheckDNSmasq(){
+	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+	dnsFile1="/etc/dnsmasq.conf"
+	dnsFile2="/etc/dnsmasq.conf.orig"
+	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
+	
+	# Check if /etc/dnsmasq.conf exists
+	if [ -d "/etc/dnsmasq.conf" ]; then
+		# If true, Check dnsmasq.conf for pihole magic
+		if grep -q $dnsSearch $dnsFile1; then
+			# If true, Check dnsmasq.conf.orig for pihole magic
+			if grep -q $dnsSearch $dnsFile2; then
+				# If true, use advanced/dnsmasq.conf.original
+				$SUDO mv -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+				$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+			else
+				# If false, mv original file back
+				$SUDO mv -f /etc/dnsmasq.conf.orig /etc/dnsmasq.conf
+			fi
+		# If false, This is a fresh install
+		fi
+	else
+		# If false, use advanced/dnsmasq.conf.original
+		$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+	fi
+	
+	$SUDO cp /etc/.pihole/advanced/01-pihole.conf /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@DNS2@/$piholeDNS2/" /etc/dnsmasq.d/01-pihole.conf
+}
+
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	$SUDO echo ":::"
@@ -285,11 +337,9 @@ installConfigs() {
 	# Install the configs from /etc/.pihole to their various locations
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing configs..."
-	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+	versionCheckDNSmasq
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
-	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 	$SUDO echo " done."
 }
 
@@ -494,6 +544,9 @@ backupLegacyPihole
 chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
+
+# Decide what upstream DNS Servers to use
+setDNS
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
