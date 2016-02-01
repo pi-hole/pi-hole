@@ -279,9 +279,9 @@ setStaticIPv4() {
 }
 
 setDNS(){
-	DNSChoseCmd=(whiptail --separate-output --radiolist "Select DNS Servers" $r $c 2)
-	DNSChooseOptions=(Google "Use Google's DNS Servers" on
-					  DynDNS "Use DynDNS's DNS Servers" off)
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 2)
+	DNSChooseOptions=(Google "" on
+					  OpenDNS "" off)
 	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
 		case $DNSchoices in
@@ -290,8 +290,8 @@ setDNS(){
 				piholeDNS1="8.8.8.8"
 				piholeDNS2="8.8.4.4"
 				;;
-			DynDNS)
-				echo "::: Using DynDNS servers."
+			OpenDNS)
+				echo "::: Using OpenDNS servers."
 				piholeDNS1="208.67.222.222"
 				piholeDNS2="208.67.220.220"
 				;;
