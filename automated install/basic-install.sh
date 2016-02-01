@@ -90,7 +90,7 @@ spinner() {
 backupLegacyPihole() {
 	# This function detects and backups the pi-hole v1 files.  It will not do anything to the current version files.
 	if [[ -f /etc/dnsmasq.d/adList.conf ]];then
-		echo "Original Pi-hole detected.  Initiating sub space transport"
+		echo "::: Original Pi-hole detected.  Initiating sub space transport"
 		$SUDO mkdir -p /etc/pihole/original/
 		$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf.$(date "+%Y-%m-%d")
 		$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf.$(date "+%Y-%m-%d")
@@ -134,13 +134,18 @@ chooseInterface() {
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-
-	for desiredInterface in $chooseInterfaceOptions
-	do
+	if [[ $? = 0 ]];then
+		for desiredInterface in $chooseInterfaceOptions
+		do
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
 		echo ${piholeInterface} > /tmp/piholeINT
-	done
+		done
+	else
+		echo "::: Cancel selected, exiting...."
+		exit 1
+	fi
+	
 }
 
 
@@ -150,34 +155,40 @@ use4andor6() {
 	options=(IPv4 "Block ads over IPv4" on
 	IPv6 "Block ads over IPv6" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-	for choice in $choices
-	do
-		case $choice in
-		IPv4	)		useIPv4=true;;
-		IPv6	)		useIPv6=true;;
-		esac
-	done
-	if [ $useIPv4 ] && [ ! $useIPv6 ]; then
-		getStaticIPv4Settings
-		setStaticIPv4
-		echo "::: Using IPv4 on $IPv4addr"
-		echo "::: IPv6 will NOT be used."
-	fi
-	if [ ! $useIPv4 ] && [ $useIPv6 ]; then
-		useIPv6dialog
-		echo "::: IPv4 will NOT be used."
-		echo "::: Using IPv6 on $piholeIPv6"
-	fi
-	if [ $useIPv4 ] && [  $useIPv6 ]; then
-		getStaticIPv4Settings
-		setStaticIPv4
-		useIPv6dialog
-		echo "::: Using IPv4 on $IPv4addr"
-		echo "::: Using IPv6 on $piholeIPv6"
-	fi
-	if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
-		echo "::: Cannot continue, neither IPv4 or IPv6 selected"
-		echo "::: Exiting"
+	if [[ $? = 0 ]];then
+		for choice in $choices
+		do
+			case $choice in
+			IPv4	)		useIPv4=true;;
+			IPv6	)		useIPv6=true;;
+			esac
+		done
+		
+		if [ $useIPv4 ] && [ ! $useIPv6 ]; then
+			getStaticIPv4Settings
+			setStaticIPv4
+			echo "::: Using IPv4 on $IPv4addr"
+			echo "::: IPv6 will NOT be used."
+		fi
+		if [ ! $useIPv4 ] && [ $useIPv6 ]; then
+			useIPv6dialog
+			echo "::: IPv4 will NOT be used."
+			echo "::: Using IPv6 on $piholeIPv6"
+		fi
+		if [ $useIPv4 ] && [  $useIPv6 ]; then
+			getStaticIPv4Settings
+			setStaticIPv4
+			useIPv6dialog
+			echo "::: Using IPv4 on $IPv4addr"
+			echo "::: Using IPv6 on $piholeIPv6"
+		fi
+		if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
+			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
+			echo "::: Exiting"
+			exit 1
+		fi
+	else
+		echo "::: Cancel selected. Exiting..."
 		exit 1
 	fi
 }
@@ -209,11 +220,11 @@ getStaticIPv4Settings() {
 			# Ask for the IPv4 address
 			IPv4addr=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" $r $c $IPv4addr 3>&1 1>&2 2>&3)
 			if [[ $? = 0 ]];then
-				echo "Your static IPv4 address:    $IPv4addr"
+				echo "::: Your static IPv4 address:    $IPv4addr"
 				# Ask for the gateway
 				IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" $r $c $IPv4gw 3>&1 1>&2 2>&3)
 				if [[ $? = 0 ]];then
-					echo "Your static IPv4 gateway:    $IPv4gw"
+					echo "::: Your static IPv4 gateway:    $IPv4gw"
 					# Give the user a chance to review their settings before moving on
 					if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
 							IP address:    $IPv4addr
@@ -231,14 +242,14 @@ getStaticIPv4Settings() {
 				else
 					# Cancelling gateway settings window
 					ipSettingsCorrect=False
-					echo "User canceled."
-					exit
+					echo "::: Cancel selected. Exiting..."
+					exit 1
 				fi
 			else
 				# Cancelling IPv4 settings window
 				ipSettingsCorrect=False
-				echo "User canceled."
-				exit
+				echo "::: Cancel selected. Exiting..."
+				exit 1
 			fi
 		done
 	# End the if statement for DHCP vs. static
@@ -247,7 +258,7 @@ getStaticIPv4Settings() {
 
 setDHCPCD() {
 	# Append these lines to dhcpcd.conf to enable a static IP
-	echo "interface $piholeInterface
+	echo "::: interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
 	static domain_name_servers=$IPv4gw" | $SUDO tee -a $dhcpcdFile >/dev/null
@@ -265,6 +276,62 @@ setStaticIPv4() {
 		echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
 		echo ":::"
 	fi
+}
+
+setDNS(){
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 2)
+	DNSChooseOptions=(Google "" on
+					  OpenDNS "" off)
+	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+	if [[ $? = 0 ]];then
+		case $DNSchoices in
+			Google)
+				echo "::: Using Google DNS servers."
+				piholeDNS1="8.8.8.8"
+				piholeDNS2="8.8.4.4"
+				;;
+			OpenDNS)
+				echo "::: Using OpenDNS servers."
+				piholeDNS1="208.67.222.222"
+				piholeDNS2="208.67.220.220"
+				;;
+		esac
+	else
+		echo "::: Cancel selected. Exiting..."
+		exit 1
+	fi
+}
+
+versionCheckDNSmasq(){
+	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+	dnsFile1="/etc/dnsmasq.conf"
+	dnsFile2="/etc/dnsmasq.conf.orig"
+	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
+	
+	# Check if /etc/dnsmasq.conf exists
+	if [ -d "/etc/dnsmasq.conf" ]; then
+		# If true, Check dnsmasq.conf for pihole magic
+		if grep -q $dnsSearch $dnsFile1; then
+			# If true, Check dnsmasq.conf.orig for pihole magic
+			if grep -q $dnsSearch $dnsFile2; then
+				# If true, use advanced/dnsmasq.conf.original
+				$SUDO mv -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+				$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+			else
+				# If false, mv original file back
+				$SUDO mv -f /etc/dnsmasq.conf.orig /etc/dnsmasq.conf
+			fi
+		# If false, This is a fresh install
+		fi
+	else
+		# If false, use advanced/dnsmasq.conf.original
+		$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
+	fi
+	
+	$SUDO cp /etc/.pihole/advanced/01-pihole.conf /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/@DNS2@/$piholeDNS2/" /etc/dnsmasq.d/01-pihole.conf
 }
 
 installScripts() {
@@ -285,11 +352,9 @@ installConfigs() {
 	# Install the configs from /etc/.pihole to their various locations
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing configs..."
-	$SUDO mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+	versionCheckDNSmasq
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-	$SUDO cp /etc/.pihole/advanced/dnsmasq.conf /etc/dnsmasq.conf
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
-	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.conf
 	$SUDO echo " done."
 }
 
@@ -438,9 +503,9 @@ installCron() {
 runGravity() {
 	# Rub gravity.sh to build blacklists
 	$SUDO echo ":::"
-	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
+	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."	
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
+		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"		
 		$SUDO rm /etc/pihole/list.*
 	fi
 	#Don't run as SUDO, this was causing issues
@@ -494,6 +559,9 @@ backupLegacyPihole
 chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
+
+# Decide what upstream DNS Servers to use
+setDNS
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
