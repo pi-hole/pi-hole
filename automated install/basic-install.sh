@@ -331,7 +331,7 @@ versionCheckDNSmasq(){
       echo " done."
   fi
   
-  echo ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
+  echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   $SUDO cp $newFileToInstall $newFileFinalLocation
   echo " done."
   $SUDO sed -i "s/@INT@/$piholeInterface/" $newFileFinalLocation
