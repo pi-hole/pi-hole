@@ -331,8 +331,9 @@ versionCheckDNSmasq(){
       echo " done."
   fi
   
-  echo ":::    copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf"
+  echo ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   $SUDO cp $newFileToInstall $newFileFinalLocation
+  echo " done."
   $SUDO sed -i "s/@INT@/$piholeInterface/" $newFileFinalLocation
   $SUDO sed -i "s/@DNS1@/$piholeDNS1/" $newFileFinalLocation
   $SUDO sed -i "s/@DNS2@/$piholeDNS2/" $newFileFinalLocation
@@ -355,11 +356,10 @@ installScripts() {
 installConfigs() {
 	# Install the configs from /etc/.pihole to their various locations
 	$SUDO echo ":::"
-	$SUDO echo -n "::: Installing configs..."
+	$SUDO echo "::: Installing configs..."
 	versionCheckDNSmasq
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
-	$SUDO echo " done."
 }
 
 stopServices() {
