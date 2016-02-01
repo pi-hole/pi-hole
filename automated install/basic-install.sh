@@ -303,35 +303,39 @@ setDNS(){
 }
 
 versionCheckDNSmasq(){
-	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
-	dnsFile1="/etc/dnsmasq.conf"
-	dnsFile2="/etc/dnsmasq.conf.orig"
-	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
-	
-	# Check if /etc/dnsmasq.conf exists
-	if [ -d "/etc/dnsmasq.conf" ]; then
-		# If true, Check dnsmasq.conf for pihole magic
-		if grep -q $dnsSearch $dnsFile1; then
-			# If true, Check dnsmasq.conf.orig for pihole magic
-			if grep -q $dnsSearch $dnsFile2; then
-				# If true, use advanced/dnsmasq.conf.original
-				$SUDO mv -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
-				$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
-			else
-				# If false, mv original file back
-				$SUDO mv -f /etc/dnsmasq.conf.orig /etc/dnsmasq.conf
-			fi
-		# If false, This is a fresh install
-		fi
-	else
-		# If false, use advanced/dnsmasq.conf.original
-		$SUDO cp /etc/.pihole/advanced/dnsmasq.conf.original /etc/dnsmasq.conf
-	fi
-	
-	$SUDO cp /etc/.pihole/advanced/01-pihole.conf /etc/dnsmasq.d/01-pihole.conf
-	$SUDO sed -i "s/@INT@/$piholeInterface/" /etc/dnsmasq.d/01-pihole.conf
-	$SUDO sed -i "s/@DNS1@/$piholeDNS1/" /etc/dnsmasq.d/01-pihole.conf
-	$SUDO sed -i "s/@DNS2@/$piholeDNS2/" /etc/dnsmasq.d/01-pihole.conf
+  # Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+  dnsFile1="/etc/dnsmasq.conf"
+  dnsFile2="/etc/dnsmasq.conf.orig"
+  dnsSearch="addn-hosts=/etc/pihole/gravity.list"
+  
+  defaultFile="/etc/.pihole/advanced/dnsmasq.conf.original"
+  newFileToInstall="/etc/.pihole/advanced/01-pihole.conf"
+  newFileFinalLocation="/etc/dnsmasq.d/01-pihole.conf"
+  
+  if [ -f $dnsFile1 ]; then
+      echo -n ":::    Existing dnsmasq.conf found..."
+      if grep -q $dnsSearch $dnsFile1; then
+          echo " it is from a previous pi-hole install."
+          echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
+          $SUDO mv -f $dnsFile1 $dnsFile2
+          echo " done."
+          echo -n ":::    Restoring default dnsmasq.conf..."
+          $SUDO cp $defaultFile $dnsFile1
+          echo " done."
+      else
+        echo " it is not a pi-hole file, leaving alone!"        
+      fi
+  else
+      echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
+      $SUDO cp $defaultFile $dnsFile1
+      echo " done."
+  fi
+  
+  echo ":::    copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf"
+  $SUDO cp $newFileToInstall $newFileFinalLocation
+  $SUDO sed -i "s/@INT@/$piholeInterface/" $newFileFinalLocation
+  $SUDO sed -i "s/@DNS1@/$piholeDNS1/" $newFileFinalLocation
+  $SUDO sed -i "s/@DNS2@/$piholeDNS2/" $newFileFinalLocation
 }
 
 installScripts() {
