@@ -1,5 +1,5 @@
 # Automated Install 
-##### Designed For Raspberry Pi B, B+, 2, and Zero (with an Ethernet adapter)
+##### Designed For Raspberry Pi A+, B, B+, 2, and Zero (with an Ethernet adapter)
 
 1. Install Raspbian 
 2. Run the command below
