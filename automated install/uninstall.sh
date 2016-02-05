@@ -42,8 +42,8 @@ if [[ ! "$(ls -A /var/www/html)" ]]; then
     $SUDO rm -rf /var/www/html
 fi
 
-echo "Removing dnsmasq config files..."
-$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+echo "::: Removing dnsmasq config files..."
+$SUDO rm /etc/dnsmasq.d/01-pihole.conf
 
 # Attempt to preserve backwards compatibility with older versions
 # to guarantee no additional changes were made to /etc/crontab after
