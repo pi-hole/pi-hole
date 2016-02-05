@@ -32,10 +32,16 @@ $SUDO apt-get -y remove --purge dnsmasq
 $SUDO apt-get -y remove --purge lighttpd php5-common php5-cgi php5
 
 # Only web directories/files that are created by pihole should be removed.
-echo "Removing the Pi-hole Web server files..."
+echo -n "::: Removing the Pi-hole Web server files..."
 $SUDO rm -rf /var/www/html/admin
 $SUDO rm -rf /var/www/html/pihole
 $SUDO rm /var/www/html/index.lighttpd.orig
+echo " done."
+
+echo ":::"
+echo -n "::: Removing PiHole Git Directory..."
+$SUDO rm -rf /etc/.pihole
+echo " done."
 
 # If the web directory is empty after removing these files, then the parent html folder can be removed.
 if [[ ! "$(ls -A /var/www/html)" ]]; then
