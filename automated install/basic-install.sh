@@ -584,5 +584,5 @@ echo ":::     $piholeIPv6"
 echo ":::"
 echo "::: If you set a new IP address, you should restart the Pi."
 echo "::: "
-echo "::: The install log is in /etc/pihole.log"
+echo "::: The install log is located at: /etc/pihole/install.log"
 
