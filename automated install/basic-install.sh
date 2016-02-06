@@ -571,6 +571,18 @@ $SUDO mv $tmpLog $instalLogLoc
 
 displayFinalMessage
 
+echo -n "::: Restarting services..."
 # Start services
 $SUDO service dnsmasq start
 $SUDO service lighttpd start
+echo " done."
+
+echo ":::"
+echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
+echo ":::     $IPv4addr"
+echo ":::     $piholeIPv6"
+echo ":::"
+echo "::: If you set a new IP address, you should restart the Pi."
+echo "::: "
+echo "::: The install log is in /etc/pihole.log"
+
