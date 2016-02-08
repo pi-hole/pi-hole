@@ -393,7 +393,7 @@ checkForDependencies() {
 	  fi
 		echo ":::"
 		echo -n "::: Checking apt-get for upgraded packages...."
-		updatesToInstall=$(sudo apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
+		updatesToInstall=$($SUDO apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
 		echo " done!"
 		echo ":::"
 		if [[ $updatesToInstall -eq "0" ]]; then
