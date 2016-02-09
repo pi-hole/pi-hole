@@ -1,10 +1,17 @@
 # Automated Install 
-##### Designed For Raspberry Pi B, B+, 2, and Zero (with an Ethernet adapter)
+##### Designed For Raspberry Pi A+, B, B+, 2, and Zero (with an Ethernet adapter)
 
 1. Install Raspbian 
 2. Run the command below
 
 ### ```curl -L install.pi-hole.net | bash```
+
+#### Alternative Semi-Automated install ####
+```
+wget -O basic-install.sh install.pi-hole.net
+chmod +x basic-install.sh
+./basic-install.sh
+```
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration.  Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
