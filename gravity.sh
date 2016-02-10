@@ -321,6 +321,8 @@ function gravity_reload() {
 	echo -n "::: Refresh lists in dnsmasq..."
 	dnsmasqPid=$(pidof dnsmasq)
 
+    find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
+
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
 		$SUDO kill -HUP $dnsmasqPid & spinner $!
