@@ -148,6 +148,12 @@ chooseInterface() {
 	
 }
 
+cleanupIPv6() {
+	# Removes IPv6 indicator file if we are not using IPv6
+	if [ -f "/etc/pihole/.useIPv6" ] && [ ! $useIPv6 ]; then
+		rm /etc/pihole/.useIPv6
+	fi
+}
 
 use4andor6() {
 	# Let use select IPv4 and/or IPv6
@@ -187,6 +193,7 @@ use4andor6() {
 			echo "::: Exiting"
 			exit 1
 		fi
+		cleanupIPv6
 	else
 		echo "::: Cancel selected. Exiting..."
 		exit 1
