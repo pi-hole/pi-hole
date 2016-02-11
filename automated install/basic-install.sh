@@ -145,9 +145,7 @@ chooseInterface() {
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
-	
 }
-
 
 use4andor6() {
 	# Let use select IPv4 and/or IPv6
@@ -303,40 +301,40 @@ setDNS(){
 }
 
 versionCheckDNSmasq(){
-  # Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
-  dnsFile1="/etc/dnsmasq.conf"
-  dnsFile2="/etc/dnsmasq.conf.orig"
-  dnsSearch="addn-hosts=/etc/pihole/gravity.list"
-  
-  defaultFile="/etc/.pihole/advanced/dnsmasq.conf.original"
-  newFileToInstall="/etc/.pihole/advanced/01-pihole.conf"
-  newFileFinalLocation="/etc/dnsmasq.d/01-pihole.conf"
-  
-  if [ -f $dnsFile1 ]; then
-      echo -n ":::    Existing dnsmasq.conf found..."
-      if grep -q $dnsSearch $dnsFile1; then
-          echo " it is from a previous pi-hole install."
-          echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
-          $SUDO mv -f $dnsFile1 $dnsFile2
-          echo " done."
-          echo -n ":::    Restoring default dnsmasq.conf..."
-          $SUDO cp $defaultFile $dnsFile1
-          echo " done."
-      else
-        echo " it is not a pi-hole file, leaving alone!"        
-      fi
-  else
-      echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
-      $SUDO cp $defaultFile $dnsFile1
-      echo " done."
-  fi
-  
-  echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
-  $SUDO cp $newFileToInstall $newFileFinalLocation
-  echo " done."
-  $SUDO sed -i "s/@INT@/$piholeInterface/" $newFileFinalLocation
-  $SUDO sed -i "s/@DNS1@/$piholeDNS1/" $newFileFinalLocation
-  $SUDO sed -i "s/@DNS2@/$piholeDNS2/" $newFileFinalLocation
+	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+	dnsFile1="/etc/dnsmasq.conf"
+	dnsFile2="/etc/dnsmasq.conf.orig"
+	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
+	
+	defaultFile="/etc/.pihole/advanced/dnsmasq.conf.original"
+	newFileToInstall="/etc/.pihole/advanced/01-pihole.conf"
+	newFileFinalLocation="/etc/dnsmasq.d/01-pihole.conf"
+	
+	if [ -f $dnsFile1 ]; then
+		echo -n ":::    Existing dnsmasq.conf found..."
+		if grep -q $dnsSearch $dnsFile1; then
+			echo " it is from a previous pi-hole install."
+			echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
+			$SUDO mv -f $dnsFile1 $dnsFile2
+			echo " done."
+			echo -n ":::    Restoring default dnsmasq.conf..."
+			$SUDO cp $defaultFile $dnsFile1
+			echo " done."
+		else
+			echo " it is not a pi-hole file, leaving alone!"
+		fi
+	else
+		echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
+		$SUDO cp $defaultFile $dnsFile1
+		echo " done."
+	fi
+	
+	echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
+	$SUDO cp $newFileToInstall $newFileFinalLocation
+	echo " done."
+	$SUDO sed -i "s/@INT@/$piholeInterface/" $newFileFinalLocation
+	$SUDO sed -i "s/@DNS1@/$piholeDNS1/" $newFileFinalLocation
+	$SUDO sed -i "s/@DNS2@/$piholeDNS2/" $newFileFinalLocation
 }
 
 installScripts() {
@@ -385,27 +383,27 @@ checkForDependencies() {
 	today=$(date "+%b %e")
 
 	if [ ! "$today" == "$timestampAsDate" ]; then
-	    #update package lists
-	    echo ":::"
-	    echo -n "::: apt-get update has not been run today. Running now..."
-	    $SUDO apt-get -qq update & spinner $!
-	    echo " done!"
-	  fi
+		#update package lists
 		echo ":::"
-		echo -n "::: Checking apt-get for upgraded packages...."
-		updatesToInstall=$($SUDO apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
+		echo -n "::: apt-get update has not been run today. Running now..."
+		$SUDO apt-get -qq update & spinner $!
 		echo " done!"
+	fi
+	echo ":::"
+	echo -n "::: Checking apt-get for upgraded packages...."
+	updatesToInstall=$($SUDO apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
+	echo " done!"
+	echo ":::"
+	if [[ $updatesToInstall -eq "0" ]]; then
+		echo "::: Your pi is up to date! Continuing with pi-hole installation..."
+	else
+		echo "::: There are $updatesToInstall updates availible for your pi!"
+		echo "::: We recommend you run 'sudo apt-get upgrade' after installing Pi-Hole! "
 		echo ":::"
-		if [[ $updatesToInstall -eq "0" ]]; then
-			echo "::: Your pi is up to date! Continuing with pi-hole installation..."
-		else
-			echo "::: There are $updatesToInstall updates availible for your pi!"
-			echo "::: We recommend you run 'sudo apt-get upgrade' after installing Pi-Hole! "
-			echo ":::"
-		fi
-    echo ":::"
-    echo "::: Checking dependencies:"
-
+	fi
+	echo ":::"
+	echo "::: Checking dependencies:"
+	
 	dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
 	for i in "${dependencies[@]}"
 	do
@@ -443,30 +441,29 @@ getGitFiles() {
 is_repo() {
 	# If the directory does not have a .git folder it is not a repo
 	echo -n ":::    Checking $1 is a repo..."
-    if [ -d "$1/.git" ]; then
-    		echo " OK!"
-        return 1
-    fi
-    echo " not found!!"
-    return 0
+	if [ -d "$1/.git" ]; then
+		echo " OK!"
+		return 1
+	fi
+	echo " not found!!"
+	return 0
 }
 
 make_repo() {
-    # Remove the non-repod interface and clone the interface
-    echo -n ":::    Cloning $2 into $1..."
-    $SUDO rm -rf $1
-    $SUDO git clone -q "$2" "$1" > /dev/null & spinner $!
-    echo " done!"
+	# Remove the non-repod interface and clone the interface
+	echo -n ":::    Cloning $2 into $1..."
+	$SUDO rm -rf $1
+	$SUDO git clone -q "$2" "$1" > /dev/null & spinner $!
+	echo " done!"
 }
 
 update_repo() {
-    # Pull the latest commits
-    echo -n ":::     Updating repo in $1..."
-    cd "$1"
-    $SUDO git pull -q > /dev/null & spinner $!
-    echo " done!"
+	# Pull the latest commits
+	echo -n ":::     Updating repo in $1..."
+	cd "$1"
+	$SUDO git pull -q > /dev/null & spinner $!
+	echo " done!"
 }
-
 
 CreateLogFile() {
 	# Create logfiles if necessary
@@ -507,9 +504,9 @@ installCron() {
 runGravity() {
 	# Rub gravity.sh to build blacklists
 	$SUDO echo ":::"
-	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."	
+	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"		
+		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
 		$SUDO rm /etc/pihole/list.*
 	fi
 	#Don't run as SUDO, this was causing issues
@@ -518,7 +515,6 @@ runGravity() {
 
 	/usr/local/bin/gravity.sh
 }
-
 
 installPihole() {
 	# Install base files and web interface
