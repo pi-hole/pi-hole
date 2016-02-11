@@ -198,7 +198,7 @@ function gravity_spinup() {
                 # Default is a simple request
                 *) cmd_ext=""
         esac
-        gravity_transport $url $cmd_ext $agent
+        gravity_transport "$url" "$cmd_ext" "$agent"
 	done
 }
 
