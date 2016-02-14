@@ -18,6 +18,21 @@
 
 
 ######## VARIABLES #########
+# First get the .vars file that will be needed to process the rest of the script
+curl -o /tmp/pihole.vars https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.vars
+chmod 755 /tmp/pihole.vars
+source /tmp/pihole.vars
+
+# Make ure the Pi-hole directory exists before proceeding
+$SUDO mkdir -p $piholeDir 2>/dev/null
+
+# Make a symlink in /etc
+$SUDO ln -s $piholeDir /etc/pihole 2>/dev/null
+
+# Download a permanent copy of the sources file now that the Pi-hole dir exists
+$SUDO curl -o /usr/local/etc/pihole/pihole.vars https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/advanced/pihole.vars
+
+# The other variables below are just needed for the install and don't need to be permanent
 
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
@@ -111,7 +126,7 @@ welcomeDialogs() {
 	whiptail --msgbox --backtitle "Plea" --title "Free and open source" "The Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" $r $c
 
 	# Explain the need for a static address
-	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.	
+	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
@@ -145,7 +160,7 @@ chooseInterface() {
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
-	
+
 }
 
 
@@ -163,7 +178,7 @@ use4andor6() {
 			IPv6	)		useIPv6=true;;
 			esac
 		done
-		
+
 		if [ $useIPv4 ] && [ ! $useIPv6 ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
@@ -307,11 +322,11 @@ versionCheckDNSmasq(){
   dnsFile1="/etc/dnsmasq.conf"
   dnsFile2="/etc/dnsmasq.conf.orig"
   dnsSearch="addn-hosts=/etc/pihole/gravity.list"
-  
+
   defaultFile="/etc/.pihole/advanced/dnsmasq.conf.original"
   newFileToInstall="/etc/.pihole/advanced/01-pihole.conf"
   newFileFinalLocation="/etc/dnsmasq.d/01-pihole.conf"
-  
+
   if [ -f $dnsFile1 ]; then
       echo -n ":::    Existing dnsmasq.conf found..."
       if grep -q $dnsSearch $dnsFile1; then
@@ -323,14 +338,14 @@ versionCheckDNSmasq(){
           $SUDO cp $defaultFile $dnsFile1
           echo " done."
       else
-        echo " it is not a pi-hole file, leaving alone!"        
+        echo " it is not a pi-hole file, leaving alone!"
       fi
   else
       echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
       $SUDO cp $defaultFile $dnsFile1
       echo " done."
   fi
-  
+
   echo ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   $SUDO cp $newFileToInstall $newFileFinalLocation
   echo " done."
@@ -507,9 +522,9 @@ installCron() {
 runGravity() {
 	# Rub gravity.sh to build blacklists
 	$SUDO echo ":::"
-	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."	
+	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"		
+		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
 		$SUDO rm /etc/pihole/list.*
 	fi
 	#Don't run as SUDO, this was causing issues
@@ -589,4 +604,3 @@ echo ":::"
 echo "::: If you set a new IP address, you should restart the Pi."
 echo "::: "
 echo "::: The install log is located at: /etc/pihole/install.log"
-
