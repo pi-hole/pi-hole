@@ -68,7 +68,7 @@ do
     elif [[ "$status" == "RFC1918" ]]; then
         echo -e "\tFailed - $name resolves to a non-routable address ($ip)"
     elif [[ "$status" == "empty" ]]; then
-        echo -e"\tFailed - $name could not be resolved ($ip)"
+        echo -e "\tFailed - $name could not be resolved ($ip)"
     else
         echo -e "\tSuccess - $name resolves to a public IP address ($ip)"
     fi
@@ -84,7 +84,7 @@ do
     elif [[ "$status" == "RFC1918" ]]; then
         echo -e "\tFailed - $name resolves to a non-routable address ($ip)"
     elif [[ "$status" == "empty" ]]; then
-        echo -e"\tFailed - $name could not be resolved ($ip)"
+        echo -e "\tFailed - $name could not be resolved ($ip)"
     else
         echo -e "\tSuccess - $name resolves to a public IP address ($ip)"
     fi
@@ -100,7 +100,7 @@ do
     elif [[ "$status" == "RFC1918" ]]; then
         echo -e "\tVerify - $name resolves to a non-routable address that is not your pi-hole server ($ip)"
     elif [[ "$status" == "empty" ]]; then
-        echo -e"\tFailed - $name could not be resolved ($ip)"
+        echo -e "\tFailed - $name could not be resolved ($ip)"
     else
         echo -e "\tFailed - $name resolves to a public IP address ($ip)"
     fi
