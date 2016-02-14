@@ -21,6 +21,8 @@ verifyHostAddress() {
         status="pi-hole IP"
     elif [[ $ip =~ (^127\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.) ]]; then
         status="RFC1918"
+    elif [[ "$ip" == "" ]]; then
+        status="empty"
     else
         status=$ip
     fi
@@ -65,6 +67,8 @@ do
         echo -e "\tFailed - $name resolves to your pi-hole ($piholeIP)"
     elif [[ "$status" == "RFC1918" ]]; then
         echo -e "\tFailed - $name resolves to a non-routable address ($ip)"
+    elif [[ "$status" == "empty" ]]; then
+        echo -e"\tFailed - $name could not be resolved ($ip)"
     else
         echo -e "\tSuccess - $name resolves to a public IP address ($ip)"
     fi
@@ -79,6 +83,8 @@ do
         echo -e "\tFailed - $name resolves to your pi-hole ($piholeIP)"
     elif [[ "$status" == "RFC1918" ]]; then
         echo -e "\tFailed - $name resolves to a non-routable address ($ip)"
+    elif [[ "$status" == "empty" ]]; then
+        echo -e"\tFailed - $name could not be resolved ($ip)"
     else
         echo -e "\tSuccess - $name resolves to a public IP address ($ip)"
     fi
@@ -93,6 +99,8 @@ do
         echo -e "\tSuccess - $name resolves to your pi-hole ($ip)"
     elif [[ "$status" == "RFC1918" ]]; then
         echo -e "\tVerify - $name resolves to a non-routable address that is not your pi-hole server ($ip)"
+    elif [[ "$status" == "empty" ]]; then
+        echo -e"\tFailed - $name could not be resolved ($ip)"
     else
         echo -e "\tFailed - $name resolves to a public IP address ($ip)"
     fi
