@@ -31,6 +31,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 - [unRaid-hole](https://github.com/spants/unraidtemplates/blob/master/Spants/unRaid-hole.xml#L13)--[Repo and more info](http://lime-technology.com/forum/index.php?PHPSESSID=c0eae3e5ef7e521f7866034a3336489d&topic=38486.0)
 - [Pi-hole on/off button](http://thetimmy.silvernight.org/pages/endisbutton/)
 - [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
+- [Docker Pi-hole x86](https://hub.docker.com/r/diginc/pi-hole/)
 
 ## Coverage
 - [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
