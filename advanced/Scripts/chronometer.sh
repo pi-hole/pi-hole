@@ -51,9 +51,13 @@ function CalcblockedToday(){
 
 function CalcPercentBlockedToday(){
 	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
-		#scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-		percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)		
-		percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")		
+		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
+		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
+			percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)
+			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")
+		else
+			percentBlockedToday=0
+		fi
 	fi
 }
 
