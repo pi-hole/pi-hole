@@ -15,7 +15,7 @@ goodListNames="google-public-dns-a.google.com google-public-dns-b.google.com"
 # Accepts 1 argument which is a host to resolve.
 verifyHostAddress() {
     status=""
-    ip=`nslookup $1 192.168.100.122 | grep ^"Address:" | tail -1 | cut -d: -f2 | sed 's/ //g'`
+    ip=`nslookup $1 | grep ^"Address:" | tail -1 | cut -d: -f2 | sed 's/ //g'`
 
     if [[ $ip == $piholeIP ]]; then
         status="pi-hole IP"
