@@ -115,6 +115,20 @@ welcomeDialogs() {
 	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
+
+verifyFreeDiskSpace() {
+    # 25MB is the minimum space needed (20MB install + 5MB one day of logs.)
+    requiredFreeBytes=25600
+
+    existingFreeBytes=`df -lkP / | awk '{print $4}' | tail -1`
+
+    if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then
+        whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $requiredFreeBytes Bytes.\nYou only have $existingFreeBytes Free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" $r $c
+        exit 1
+    fi
+}
+
+
 chooseInterface() {
 	# Turn the available interfaces into an array so it can be used with a whiptail dialog
 	interfacesArray=()
@@ -148,6 +162,12 @@ chooseInterface() {
 	
 }
 
+cleanupIPv6() {
+	# Removes IPv6 indicator file if we are not using IPv6
+	if [ -f "/etc/pihole/.useIPv6" ] && [ ! $useIPv6 ]; then
+		rm /etc/pihole/.useIPv6
+	fi
+}
 
 use4andor6() {
 	# Let use select IPv4 and/or IPv6
@@ -187,6 +207,7 @@ use4andor6() {
 			echo "::: Exiting"
 			exit 1
 		fi
+		cleanupIPv6
 	else
 		echo "::: Cancel selected. Exiting..."
 		exit 1
@@ -557,6 +578,9 @@ The install log is in /etc/pihole." $r $c
 $SUDO mkdir -p /etc/pihole/
 welcomeDialogs
 
+# Verify there is enough disk space for the install
+verifyFreeDiskSpace
+
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
 # Find interfaces and let the user choose one
@@ -575,6 +599,18 @@ $SUDO mv $tmpLog $instalLogLoc
 
 displayFinalMessage
 
+echo -n "::: Restarting services..."
 # Start services
 $SUDO service dnsmasq start
 $SUDO service lighttpd start
+echo " done."
+
+echo ":::"
+echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
+echo ":::     $IPv4addr"
+echo ":::     $piholeIPv6"
+echo ":::"
+echo "::: If you set a new IP address, you should restart the Pi."
+echo "::: "
+echo "::: The install log is located at: /etc/pihole/install.log"
+

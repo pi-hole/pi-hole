@@ -31,6 +31,8 @@ piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
+whitelistScript=/usr/local/bin/whitelist.sh
+blacklistScript=/usr/local/bin/blacklist.sh
 
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
@@ -198,7 +200,7 @@ function gravity_spinup() {
                 # Default is a simple request
                 *) cmd_ext=""
         esac
-        gravity_transport $url $cmd_ext $agent
+        gravity_transport "$url" "$cmd_ext" "$agent"
 	done
 }
 
@@ -220,7 +222,7 @@ function gravity_Schwarzchild() {
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
-	blacklist.sh -f -nr -q > /dev/null & spinner $!
+	$blacklistScript -f -nr -q > /dev/null & spinner $!
 	
 	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
@@ -245,7 +247,7 @@ function gravity_Whitelist() {
 	echo " done!"
 	
 	echo -n "::: Running whitelist script to update HOSTS file...."
-	whitelist.sh -f -nr -q ${urls[@]} > /dev/null & spinner $!
+	$whitelistScript -f -nr -q ${urls[@]} > /dev/null & spinner $!
 		
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
