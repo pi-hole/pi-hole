@@ -317,17 +317,17 @@ setDNS(){
 				piholeDNS2="208.67.220.220"
 				;;
 			Level3)
-				echo "::: Using OpenDNS servers."
+				echo "::: Using Level3 servers."
 				piholeDNS1="4.2.2.1"
 				piholeDNS2="4.2.2.2"
 				;;
 			Norton ConnectSafe)
-				echo "::: Using OpenDNS servers."
+				echo "::: Using Norton servers."
 				piholeDNS1="199.85.126.10"
 				piholeDNS2="199.85.127.10"
 				;;
 			Comodo Secure DNS)
-				echo "::: Using OpenDNS servers."
+				echo "::: Using Comodo servers."
 				piholeDNS1="8.26.56.26"
 				piholeDNS2="8.20.247.20"
 				;;
