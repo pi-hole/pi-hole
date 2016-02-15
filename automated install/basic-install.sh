@@ -302,7 +302,10 @@ setStaticIPv4() {
 setDNS(){
 	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 2)
 	DNSChooseOptions=(Google "" on
-					  OpenDNS "" off)
+					  OpenDNS "" off
+					  Level3 "" off
+                                          Norton "" off
+                                          Comodo "" off)
 	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
 		case $DNSchoices in
