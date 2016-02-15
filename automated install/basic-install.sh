@@ -321,13 +321,13 @@ setDNS(){
 				piholeDNS1="4.2.2.1"
 				piholeDNS2="4.2.2.2"
 				;;
-			Norton ConnectSafe)
-				echo "::: Using Norton servers."
+			NortonConnectSafe)
+				echo "::: Using Norton ConnectSafe servers."
 				piholeDNS1="199.85.126.10"
 				piholeDNS2="199.85.127.10"
 				;;
-			Comodo Secure DNS)
-				echo "::: Using Comodo servers."
+			ComodoSecure DNS)
+				echo "::: Using Comodo Secure  servers."
 				piholeDNS1="8.26.56.26"
 				piholeDNS2="8.20.247.20"
 				;;
