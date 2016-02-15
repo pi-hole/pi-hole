@@ -300,7 +300,7 @@ setStaticIPv4() {
 }
 
 setDNS(){
-	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 2)
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 5)
 	DNSChooseOptions=(Google "" on
 					  OpenDNS "" off
 					  Level3 "" off
