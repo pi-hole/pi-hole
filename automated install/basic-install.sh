@@ -115,6 +115,20 @@ welcomeDialogs() {
 	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
+
+verifyFreeDiskSpace() {
+    # 25MB is the minimum space needed (20MB install + 5MB one day of logs.)
+    requiredFreeBytes=25600
+
+    existingFreeBytes=`df -lkP / | awk '{print $4}' | tail -1`
+
+    if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then
+        whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $requiredFreeBytes Bytes.\nYou only have $existingFreeBytes Free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" $r $c
+        exit 1
+    fi
+}
+
+
 chooseInterface() {
 	# Turn the available interfaces into an array so it can be used with a whiptail dialog
 	interfacesArray=()
@@ -286,9 +300,12 @@ setStaticIPv4() {
 }
 
 setDNS(){
-	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 3)
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 6)
 	DNSChooseOptions=(Google "" on
 					  OpenDNS "" off
+					  Level3 "" off
+					  Norton "" off
+					  Comodo "" off)
 					  Other "" off)
 	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
@@ -302,6 +319,21 @@ setDNS(){
 				echo "::: Using OpenDNS servers."
 				piholeDNS1="208.67.222.222"
 				piholeDNS2="208.67.220.220"
+				;;
+			Level3)
+				echo "::: Using Level3 servers."
+				piholeDNS1="4.2.2.1"
+				piholeDNS2="4.2.2.2"
+				;;
+			Norton)
+				echo "::: Using Norton ConnectSafe servers."
+				piholeDNS1="199.85.126.10"
+				piholeDNS2="199.85.127.10"
+				;;
+			Comodo)
+				echo "::: Using Comodo Secure servers."
+				piholeDNS1="8.26.56.26"
+				piholeDNS2="8.20.247.20"
 				;;
             Other)
                 until [[ $DNSSettingsCorrect = True ]]
@@ -399,7 +431,7 @@ stopServices() {
 	# Stop dnsmasq and lighttpd
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
-	$SUDO service dnsmasq stop & spinner $! || true
+	#$SUDO service dnsmasq stop & spinner $! || true
 	$SUDO service lighttpd stop & spinner $! || true
 	$SUDO echo " done."
 }
@@ -590,6 +622,9 @@ The install log is in /etc/pihole." $r $c
 $SUDO mkdir -p /etc/pihole/
 welcomeDialogs
 
+# Verify there is enough disk space for the install
+verifyFreeDiskSpace
+
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
 # Find interfaces and let the user choose one
@@ -610,7 +645,7 @@ displayFinalMessage
 
 echo -n "::: Restarting services..."
 # Start services
-$SUDO service dnsmasq start
+$SUDO service dnsmasq restart
 $SUDO service lighttpd start
 echo " done."
 
