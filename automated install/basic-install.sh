@@ -300,9 +300,12 @@ setStaticIPv4() {
 }
 
 setDNS(){
-	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 2)
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider" $r $c 5)
 	DNSChooseOptions=(Google "" on
-					  OpenDNS "" off)
+					  OpenDNS "" off
+					  Level3 "" off
+                                          Norton "" off
+                                          Comodo "" off)
 	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
 		case $DNSchoices in
@@ -315,6 +318,21 @@ setDNS(){
 				echo "::: Using OpenDNS servers."
 				piholeDNS1="208.67.222.222"
 				piholeDNS2="208.67.220.220"
+				;;
+			Level3)
+				echo "::: Using Level3 servers."
+				piholeDNS1="4.2.2.1"
+				piholeDNS2="4.2.2.2"
+				;;
+			Norton)
+				echo "::: Using Norton ConnectSafe servers."
+				piholeDNS1="199.85.126.10"
+				piholeDNS2="199.85.127.10"
+				;;
+			Comodo)
+				echo "::: Using Comodo Secure servers."
+				piholeDNS1="8.26.56.26"
+				piholeDNS2="8.20.247.20"
 				;;
 		esac
 	else
@@ -387,7 +405,7 @@ stopServices() {
 	# Stop dnsmasq and lighttpd
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
-	$SUDO service dnsmasq stop & spinner $! || true
+	#$SUDO service dnsmasq stop & spinner $! || true
 	$SUDO service lighttpd stop & spinner $! || true
 	$SUDO echo " done."
 }
@@ -601,7 +619,7 @@ displayFinalMessage
 
 echo -n "::: Restarting services..."
 # Start services
-$SUDO service dnsmasq start
+$SUDO service dnsmasq restart
 $SUDO service lighttpd start
 echo " done."
 
