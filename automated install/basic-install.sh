@@ -305,7 +305,7 @@ setDNS(){
 					  OpenDNS "" off
 					  Level3 "" off
 					  Norton "" off
-					  Comodo "" off)
+					  Comodo "" off
 					  Other "" off)
 	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
@@ -339,12 +339,15 @@ setDNS(){
                 until [[ $DNSSettingsCorrect = True ]]
                 do
                     piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s)" $r $c "8.8.8.8, 8.8.4.4" 3>&1 1>&2 2>&3)
-                    piholeDNS1=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
-                    piholeDNS2=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
+					if [[ $? = 0 ]];then
+						piholeDNS1=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
+						piholeDNS2=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
+					else
+						echo "::: Cancel selected, exiting...."
+						exit 1
+					fi
 
-                    if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?
-							DNS Server 1:   $piholeDNS1
-                            DNS Server 2:   $piholeDNS2" $r $c) then
+                    if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c) then
 							DNSSettingsCorrect=True
 					else
 						# If the settings are wrong, the loop continues
