@@ -120,7 +120,7 @@ verifyFreeDiskSpace() {
     # 25MB is the minimum space needed (20MB install + 5MB one day of logs.)
     requiredFreeBytes=25600
 
-    existingFreeBytes=`df -lkP / | awk '{print $4}' | tail -1`
+    existingFreeBytes=`df -lkP | awk '{print $4}' | tail -1`
 
     if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then
         whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $requiredFreeBytes Bytes.\nYou only have $existingFreeBytes Free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" $r $c
