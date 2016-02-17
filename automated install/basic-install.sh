@@ -395,12 +395,12 @@ versionCheckDNSmasq(){
   $SUDO cp $newFileToInstall $newFileFinalLocation
   echo " done."
   $SUDO sed -i "s/@INT@/$piholeInterface/" $newFileFinalLocation
-  if [[ "$piholDNS1" != "" ]]; then
+  if [[ "$piholeDNS1" != "" ]]; then
     $SUDO sed -i "s/@DNS1@/$piholeDNS1/" $newFileFinalLocation
   else
     $SUDO sed -i '/^server=@DNS1@/d' $newFileFinalLocation
   fi
-  if [[ "$piholDNS2" != "" ]]; then
+  if [[ "$piholeDNS2" != "" ]]; then
     $SUDO sed -i "s/@DNS2@/$piholeDNS2/" $newFileFinalLocation
   else
     $SUDO sed -i '/^server=@DNS2@/d' $newFileFinalLocation
