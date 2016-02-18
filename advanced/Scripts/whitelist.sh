@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# (c) 2015 by Jacob Salmela
-# This file is part of Pi-hole.
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Whitelists domains
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,7 +55,7 @@ function HandleOther(){
 	validDomain=$(echo $1 | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	
 	if [ -z "$validDomain" ]; then
-		echo $1 is not a valid argument or domain name
+		echo "::: $1 is not a valid argument or domain name"
 	else	  
 	  domList=("${domList[@]}" $validDomain)
 	fi
@@ -76,17 +79,21 @@ function PopWhitelistFile(){
 function AddDomain(){
 #| sed 's/\./\\./g'
 	bool=false
+	
 	grep -Ex -q "$1" $whitelist || bool=true
 	if $bool; then
 	  #domain not found in the whitelist file, add it!
 	  if $versbose; then
-	  echo "** Adding $1 to whitelist file"
+		echo -n "::: Adding $1 to whitelist.txt..."
 	  fi
-		echo $1 >> $whitelist
+	  echo $1 >> $whitelist
 		modifyHost=true
+		if $versbose; then
+	  	echo " done!"
+	  fi
 	else
 		if $versbose; then
-			echo "** $1 already whitelisted! No need to add"
+			echo "::: $1 already exists in whitelist.txt, no need to add!"
 		fi
 	fi
 }
@@ -98,13 +105,13 @@ function RemoveDomain(){
   if $bool; then
   	#Domain is not in the whitelist file, no need to Remove
   	if $versbose; then
-  	echo "** $1 is NOT whitelisted! No need to remove"
+  	echo "::: $1 is NOT whitelisted! No need to remove"
   	fi
   else
     #Domain is in the whitelist file, add to a temporary array and remove from whitelist file
-    if $versbose; then
-    echo "** Un-whitelisting $dom..."
-    fi
+    #if $versbose; then
+    #echo "::: Un-whitelisting $dom..."
+    #fi
     domToRemoveList=("${domToRemoveList[@]}" $1)
     modifyHost=true	  	
   fi  	
@@ -115,30 +122,46 @@ function ModifyHostFile(){
 	    #remove domains in  from hosts file
 	    if [[ -r $whitelist ]];then
         # Remove whitelist entries
-        numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
+				numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo "** Whitelisting a total of $numberOf domain${plural}..."	   
-	  	  awk -F':' '{ print $1 }' $whitelist | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
+        echo ":::"
+        echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
+        awk -F':' '{print $1}' $whitelist | while read line; do echo "$piholeIP $line"; done > /etc/pihole/whitelist.tmp
+        awk -F':' '{print $1}' $whitelist | while read line; do echo "$piholeIPv6 $line"; done >> /etc/pihole/whitelist.tmp
+        echo "l" >> /etc/pihole/whitelist.tmp
+        grep -F -x -v -f /etc/pihole/whitelist.tmp /etc/pihole/gravity.list > /etc/pihole/gravity.tmp        
+        rm /etc/pihole/gravity.list
+        mv /etc/pihole/gravity.tmp /etc/pihole/gravity.list
+        rm /etc/pihole/whitelist.tmp
+        echo " done!"
+	  	  
 	  	fi
 	  else
 	    #we need to add the removed domains to the hosts file
+	    echo ":::"
+	    echo "::: Modifying HOSTS file to un-whitelist domains..."
 	    for rdom in "${domToRemoveList[@]}"
-	    do
+	    do	      
 	    	if [[ -n $piholeIPv6 ]];then
-	    	  echo "**Blacklisting $rdom on IPv4 and IPv6"
+	    	  echo -n ":::    Un-whitelisting $rdom on IPv4 and IPv6..."
 	    	  echo $rdom | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
+	    	  echo " done!"
 	      else
-	        echo "**Blacklisting $rdom on IPv4"
+	        echo -n ":::    Un-whitelisting $rdom on IPv4"
 	      	echo $rdom | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
-	      fi	      	      
+	      	echo " done!"
+	      fi
+	      echo -n ":::        Removing $rdom from whitelist.txt..."
 	      echo $rdom| sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $whitelist
+	      echo " done!"
 	    done
 	  fi	
 }
 
 function Reload() {
 	# Reload hosts file
-	echo "** Refresh lists in dnsmasq..."
+	echo ":::"
+	echo -n "::: Refresh lists in dnsmasq..."
 	dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ $dnsmasqPid ]]; then
@@ -148,6 +171,7 @@ function Reload() {
 		# service not running, start it up
 		sudo service dnsmasq start
 	fi
+	echo " done!"
 }
 
 ###################################################
@@ -166,11 +190,11 @@ done
 PopWhitelistFile
 
 if $modifyHost || $force; then
-	echo "** Modifying Hosts File"
-	ModifyHostFile
+	 ModifyHostFile
 else
   if $versbose; then
-	echo "** No changes need to be made"
+  echo ":::"
+	echo "::: No changes need to be made"
 	exit 1
 	fi
 fi
