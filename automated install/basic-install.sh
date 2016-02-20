@@ -304,7 +304,7 @@ setStaticIPv4() {
 }
 
 setDNS(){
-	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom" $r $c 6)
+	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." $r $c 6)
 	DNSChooseOptions=(Google "" on
 					  OpenDNS "" off
 					  Level3 "" off
@@ -342,7 +342,15 @@ setDNS(){
 			Custom)
 				until [[ $DNSSettingsCorrect = True ]]
 				do
-					piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s)" $r $c "8.8.8.8, 8.8.4.4" 3>&1 1>&2 2>&3)
+					if [ ! $piholeDNS1 ]; then
+						prePopulate=""
+					elif [ $piholeDNS1 ] && [ ! $piholeDNS2 ]; then
+						prePopulate="$piholeDNS1"
+					elif [ $piholeDNS1 ] && [ $piholeDNS2 ]; then
+						prePopulate="$piholeDNS1, $piholeDNS2"
+					fi
+					
+					piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" $r $c "$prePopulate" 3>&1 1>&2 2>&3)
 					if [[ $? = 0 ]];then
 						piholeDNS1=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
 						piholeDNS2=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
