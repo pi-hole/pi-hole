@@ -121,7 +121,7 @@ verifyFreeDiskSpace() {
 	requiredFreeBytes=25600
 	
 	existingFreeBytes=`df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1`    	
-	if ! [[ "$existingFreeBytes" =~ ^([0-9])*$ ]]; then       
+	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then       
 		existingFreeBytes=`df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1`		
 	fi
 	
