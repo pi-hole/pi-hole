@@ -558,6 +558,7 @@ installPihole() {
 	# Install base files and web interface
 	checkForDependencies # done
 	stopServices
+	setUser
 	$SUDO mkdir -p /etc/pihole/
 	$SUDO chown www-data:www-data /var/www/html
 	$SUDO chmod 775 /var/www/html
@@ -567,7 +568,6 @@ installPihole() {
 	getGitFiles
 	installScripts
 	installConfigs
-	#installWebAdmin
 	CreateLogFile
 	installPiholeWeb
 	installCron
