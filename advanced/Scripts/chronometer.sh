@@ -88,6 +88,7 @@ function normalChrono(){
 		echo "        $(ifconfig eth0 | awk '/inet addr/ {print $2}' | cut -d':' -f2)"
 		echo ""
 		uptime | cut -d' ' -f11-
+		uptime -p
 		echo "-------------------------------"
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
