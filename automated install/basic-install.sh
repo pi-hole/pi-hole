@@ -304,6 +304,23 @@ setStaticIPv4() {
 	fi
 }
 
+function valid_ip()
+{
+	local  ip=$1
+	local  stat=1
+	
+	if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+		OIFS=$IFS
+		IFS='.'
+		ip=($ip)
+		IFS=$OIFS
+		[[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+		&& ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+		stat=$?
+	fi
+	return $stat
+}
+
 setDNS(){
 	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." $r $c 6)
 	DNSChooseOptions=(Google "" on
@@ -343,9 +360,16 @@ setDNS(){
 			Custom)
 				until [[ $DNSSettingsCorrect = True ]]
 				do
+					
+					strInvalid="Invalid"
+				
 					if [ ! $piholeDNS1 ]; then
-						prePopulate=""
-					elif [ $piholeDNS1 ] && [ ! $piholeDNS2 ]; then
+						if [ ! $piholeDNS2 ]; then
+							prePopulate=""
+						else
+							prePopulate=", $piholeDNS2"
+						fi
+					elif  [ $piholeDNS1 ] && [ ! $piholeDNS2 ]; then
 						prePopulate="$piholeDNS1"
 					elif [ $piholeDNS1 ] && [ $piholeDNS2 ]; then
 						prePopulate="$piholeDNS1, $piholeDNS2"
@@ -355,16 +379,39 @@ setDNS(){
 					if [[ $? = 0 ]];then
 						piholeDNS1=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
 						piholeDNS2=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
+						
+						if ! valid_ip $piholeDNS1 || [ ! $piholeDNS1 ]; then
+							piholeDNS1=$strInvalid
+						fi
+												
+						if ! valid_ip $piholeDNS2 && [ $piholeDNS2 ]; then
+							piholeDNS2=$strInvalid
+						fi
+						
 					else
 						echo "::: Cancel selected, exiting...."
 						exit 1
 					fi
-
-					if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c) then
-							DNSSettingsCorrect=True
-					else
-						# If the settings are wrong, the loop continues
+					
+					if [ $piholeDNS1 == $strInvalid ] || [ $piholeDNS2 == $strInvalid ]; then
+						whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c						
+						
+						if [ $piholeDNS1 == $strInvalid ]; then
+							piholeDNS1=""
+						fi
+						
+						if [ $piholeDNS2 == $strInvalid ]; then
+							piholeDNS2=""
+						fi
+						
 						DNSSettingsCorrect=False
+					else					
+						if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c) then
+								DNSSettingsCorrect=True
+						else
+							# If the settings are wrong, the loop continues
+							DNSSettingsCorrect=False
+						fi
 					fi
 				done
 				;;
