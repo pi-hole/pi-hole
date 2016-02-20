@@ -125,7 +125,8 @@ verifyFreeDiskSpace() {
 		existingFreeBytes=`df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1`		
 	fi
 	
-	if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then        
+	if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then
+		whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $requiredFreeBytes Bytes.\nYou only have $existingFreeBytes Free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" $r $c
 		echo "$existingFreeBytes is less than $requiredFreeBytes"
 		echo "Insufficient free space, exiting..."
 		exit 1
