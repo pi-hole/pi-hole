@@ -100,7 +100,12 @@ function gravity_collapse() {
 		echo -n "::: Custom adList file detected. Reading..."
 		sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListFile
 		echo " done!"	
 	else
@@ -108,7 +113,12 @@ function gravity_collapse() {
 		echo -n "::: No custom adlist file detected, reading from default file..."
 				sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListDefault
 		echo " done!"	
 	fi	
@@ -318,10 +328,18 @@ function gravity_advanced() {
 }
 
 function gravity_reload() {
+	#Clear no longer needed files...
+	echo ":::"
+	echo -n "::: Cleaning up un-needed files..."
+	$SUDO rm /etc/pihole/pihole.*
+	echo " done!"
+	
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
 	dnsmasqPid=$(pidof dnsmasq)
+
+    find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
