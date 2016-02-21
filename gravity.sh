@@ -100,7 +100,12 @@ function gravity_collapse() {
 		echo -n "::: Custom adList file detected. Reading..."
 		sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListFile
 		echo " done!"	
 	else
@@ -108,7 +113,12 @@ function gravity_collapse() {
 		echo -n "::: No custom adlist file detected, reading from default file..."
 				sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListDefault
 		echo " done!"	
 	fi	
