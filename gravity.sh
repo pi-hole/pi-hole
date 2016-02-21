@@ -328,6 +328,12 @@ function gravity_advanced() {
 }
 
 function gravity_reload() {
+	#Clear no longer needed files...
+	echo ":::"
+	echo -n "::: Cleaning up un-needed files..."
+	$SUDO rm /etc/pihole/pihole.*
+	echo " done!"
+	
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
