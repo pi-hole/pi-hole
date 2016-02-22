@@ -25,6 +25,7 @@ https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
 http://hosts-file.net/ad_servers.txt
 
 # Mahakala list. Has been known to block legitimage domains including the entire .com range.
+# Warning: Due to the sheer size of this list, the web admin console will be unresponsive.
 #http://adblock.mahakala.is/
 
 # ADZHOSTS list. Has been known to block legitimate domains
