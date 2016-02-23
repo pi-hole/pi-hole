@@ -31,6 +31,8 @@ piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
+whitelistScript=/usr/local/bin/whitelist.sh
+blacklistScript=/usr/local/bin/blacklist.sh
 
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
@@ -98,7 +100,12 @@ function gravity_collapse() {
 		echo -n "::: Custom adList file detected. Reading..."
 		sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListFile
 		echo " done!"	
 	else
@@ -106,7 +113,12 @@ function gravity_collapse() {
 		echo -n "::: No custom adlist file detected, reading from default file..."
 				sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListDefault
 		echo " done!"	
 	fi	
@@ -198,7 +210,7 @@ function gravity_spinup() {
                 # Default is a simple request
                 *) cmd_ext=""
         esac
-        gravity_transport $url $cmd_ext $agent
+        gravity_transport "$url" "$cmd_ext" "$agent"
 	done
 }
 
@@ -220,7 +232,7 @@ function gravity_Schwarzchild() {
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
-	blacklist.sh -f -nr -q > /dev/null & spinner $!
+	$blacklistScript -f -nr -q > /dev/null & spinner $!
 	
 	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
@@ -245,7 +257,7 @@ function gravity_Whitelist() {
 	echo " done!"
 	
 	echo -n "::: Running whitelist script to update HOSTS file...."
-	whitelist.sh -f -nr -q ${urls[@]} > /dev/null & spinner $!
+	$whitelistScript -f -nr -q ${urls[@]} > /dev/null & spinner $!
 		
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
@@ -316,10 +328,18 @@ function gravity_advanced() {
 }
 
 function gravity_reload() {
+	#Clear no longer needed files...
+	echo ":::"
+	echo -n "::: Cleaning up un-needed files..."
+	$SUDO rm /etc/pihole/pihole.*
+	echo " done!"
+	
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
 	dnsmasqPid=$(pidof dnsmasq)
+
+    find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config

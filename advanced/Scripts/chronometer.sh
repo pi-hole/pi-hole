@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# (c) 2015 by Jacob Salmela
-# This file is part of Pi-hole.
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Calculates stats and displays to an LCD
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,9 +51,13 @@ function CalcblockedToday(){
 
 function CalcPercentBlockedToday(){
 	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
-		#scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-		percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)		
-		percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")		
+		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
+		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
+			percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)
+			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")
+		else
+			percentBlockedToday=0
+		fi
 	fi
 }
 
@@ -81,6 +88,7 @@ function normalChrono(){
 		echo "        $(ifconfig eth0 | awk '/inet addr/ {print $2}' | cut -d':' -f2)"
 		echo ""
 		uptime | cut -d' ' -f11-
+		uptime -p
 		echo "-------------------------------"
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
