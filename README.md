@@ -93,4 +93,4 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 - There is also an [FAQ section on pi-hole.net](http://pi-hole.net)
 
 ## Other Operating Systems
-This script will work for other UNIX-like systems with some slight **modifications**.  As long as you can install `dnsmasq` and a Webserver, it should work OK.  The automated install only works for a clean install of Raspiban right now since that is how the project originated.
+This script will work for other UNIX-like systems with some slight **modifications**.  As long as you can install `dnsmasq` and a Webserver, it should work OK.  The automated install is only for a clean install of a Debian based system, such as the Raspberry Pi.
