@@ -192,9 +192,13 @@ use4andor6() {
 		done
 		
         if [ $useIPv4 ]; then
-			getStaticIPv4Settings
-			setStaticIPv4
-			echo "::: Using IPv4 on $IPv4addr"
+            if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno "Do you wish to reconfigure your IPv4 settings?  (If you have not changed these before on this Pi then choose yes.)
+                                        IPv4 address:    $IPv4addr
+                                        Gateway:         $IPv4gw" $r $c) then
+                getStaticIPv4Settings
+                setStaticIPv4
+            fi
+            echo "::: Using IPv4 on $IPv4addr"
         else
             echo "::: Using IPv6 on $piholeIPv6"
         fi
