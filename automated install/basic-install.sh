@@ -43,7 +43,9 @@ IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1
 IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
 IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 
-availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
+# All interfaces, including interface "labels"
+# i.e. multiple IPs on one physical interface.
+availableInterfaces=$(ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d')
 dhcpcdFile=/etc/dhcpcd.conf
 
 ######## FIRST CHECK ########
