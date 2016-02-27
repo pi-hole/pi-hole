@@ -37,9 +37,7 @@ r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
 
-# All interfaces, including single physical interfaces with multiple IPs / "labels".
-# While deprecated, ifconfig seems to differentiate between labels better than ip does.
-availableInterfaces=$(ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d')
+availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
 ######## FIRST CHECK ########
@@ -149,23 +147,48 @@ chooseInterface() {
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-	if [[ $? = 0 ]];then
-		for desiredInterface in $chooseInterfaceOptions
-		do
+	if [[ ! ($? = 0) ]];then
+		echo "::: Cancel selected, exiting...."
+		exit 1
+	fi
+	
+	for desiredInterface in $chooseInterfaceOptions
+	do
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
 		echo ${piholeInterface} > /tmp/piholeINT
 		
-		# Get interface information
-		# Again: While deprecated, ifconfig seems to differentiate between labels better than ip does.
+		# Get interface address information
 		IPv4dev=$desiredInterface
-		IPv4addr=$($SUDO ifconfig "$IPv4dev" | grep 'inet addr:' | cut -d: -f2 | cut -d" " -f1)
+		IPv4addresses=$($SUDO ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
 		IPv4gw=$($SUDO ip route show dev "$IPv4dev" | awk '/default/ {print $3}')
-		done
-	else
-		echo "::: Cancel selected, exiting...."
-		exit 1
-	fi
+		
+		# Turn IPv4 addresses into an array so it can be used with a whiptail dialog
+		IPv4Array=()
+		firstloop=1
+
+		while read -r line
+		do
+			mode="OFF"
+			if [[ $firstloop -eq 1 ]]; then
+				firstloop=0
+				mode="ON"
+			IPv4Array+=("$line" "available" "$mode")
+			fi
+		done <<< "$IPv4addresses"
+		
+		# Find out how many IP addresses are available to choose from
+		IPv4Count=$(echo "$IPv4addresses" | wc -l)
+		chooseIPv4Cmd=(whiptail --separate-output --radiolist "Choose an IPv4 address on this interface." $r $c $IPv4Count)
+		IPv4addr=$("${chooseIPv4Cmd[@]}" "${IPv4Array[@]}" 2>&1 >/dev/tty)
+		
+		if [[ ! ($? = 0) ]];then
+			echo "::: Cancel selected, exiting...."
+			exit 1
+		fi
+		
+		
+	done
 	
 }
 
