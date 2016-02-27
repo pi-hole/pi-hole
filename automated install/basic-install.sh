@@ -191,25 +191,25 @@ use4andor6() {
 			esac
 		done
 		
-        if [ $useIPv4 ]; then
-            if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno "Do you wish to reconfigure your IPv4 settings?  (If you have not changed these before on this Pi then choose yes.)
-                                        IPv4 address:    $IPv4addr
-                                        Gateway:         $IPv4gw" $r $c) then
-                getStaticIPv4Settings
-                setStaticIPv4
-            fi
-            echo "::: Using IPv4 on $IPv4addr"
-        else
-            echo "::: Using IPv6 on $piholeIPv6"
-        fi
-        
-        if [ $useIPv6 ]; then
-            useIPv6dialog
-            echo "::: Using IPv6 on $piholeIPv6"
-        else
-            echo "::: IPv6 will NOT be used."
-        fi
-        
+		if [ $useIPv4 ]; then
+			if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno "Do you wish to reconfigure your IPv4 settings?  (If you have not changed these before on this Pi then choose yes.)
+										IPv4 address:    $IPv4addr
+										Gateway:         $IPv4gw" $r $c) then
+				getStaticIPv4Settings
+				setStaticIPv4
+			fi
+			echo "::: Using IPv4 on $IPv4addr"
+		else
+			echo "::: Using IPv6 on $piholeIPv6"
+		fi
+		
+		if [ $useIPv6 ]; then
+			useIPv6dialog
+			echo "::: Using IPv6 on $piholeIPv6"
+		else
+			echo "::: IPv6 will NOT be used."
+		fi
+		
 		if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
 			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
 			echo "::: Exiting"
