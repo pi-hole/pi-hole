@@ -37,14 +37,8 @@ r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
 
-# Find IP used to route to outside world
-
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
-IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
-
-# All interfaces, including interface "labels"
-# i.e. multiple IPs on one physical interface.
+# All interfaces, including single physical interfaces with multiple IPs / "labels".
+# While deprecated, ifconfig seems to differentiate between labels better than ip does.
 availableInterfaces=$(ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d')
 dhcpcdFile=/etc/dhcpcd.conf
 
@@ -161,6 +155,12 @@ chooseInterface() {
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
 		echo ${piholeInterface} > /tmp/piholeINT
+		
+		# Get interface information
+		# Again: While deprecated, ifconfig seems to differentiate between labels better than ip does.
+		IPv4dev=$desiredInterface
+		IPv4addr=$($SUDO ifconfig "$IPv4dev" | grep 'inet addr:' | cut -d: -f2 | cut -d" " -f1)
+		IPv4gw=$($SUDO ip route show dev "$IPv4dev" | awk '/default/ {print $3}')
 		done
 	else
 		echo "::: Cancel selected, exiting...."
