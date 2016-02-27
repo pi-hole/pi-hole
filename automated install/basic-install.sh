@@ -173,8 +173,8 @@ chooseInterface() {
 			if [[ $firstloop -eq 1 ]]; then
 				firstloop=0
 				mode="ON"
-			IPv4Array+=("$line" "available" "$mode")
 			fi
+			IPv4Array+=("$line" "available" "$mode")
 		done <<< "$IPv4addresses"
 		
 		# Find out how many IP addresses are available to choose from
