@@ -23,7 +23,7 @@ tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
-webInterfaceDir="/var/www/html/admin"
+
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 piholeFilesDir="/etc/.pihole"
 
@@ -304,6 +304,24 @@ setStaticIPv4() {
 	fi
 }
 
+function chooseWebServer() {
+	chooseWebServerCmd=(whiptail --separate-output --radiolist "pi-hole can automatically configure the lighttpd web server for you.  Alternatively you can manually configure a web server yourself." $r $c 2)
+	chooseWebServerOptions=(lighttpd "" on
+							Manual "" off)
+	webServer=$("${chooseWebServerCmd[@]}" "${chooseWebServerOptions[@]}" 2>&1 >/dev/tty)
+	case $webServer in
+		lighttpd)
+			echo "::: Using lighttpd web server."
+			webRoot="/var/www/html"
+			;;
+		Manual)
+			echo "::: Using manual web server configuration."
+			webRoot=$(whiptail --backtitle "Web Root" --title "Web Root" --inputbox "Enter your website root path." $r $c "/var/www/html" 3>&1 1>&2 2>&3)
+			;;
+	esac
+	webInterfaceDir="${webRoot}/admin"
+}
+
 function valid_ip()
 {
 	local  ip=$1
@@ -486,8 +504,11 @@ installConfigs() {
 	$SUDO echo ":::"
 	$SUDO echo "::: Installing configs..."
 	versionCheckDNSmasq
-	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
+	if [[ "$webServer" = "lighttpd" ]]
+	then
+		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+		$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
+	fi
 }
 
 stopServices() {
@@ -495,8 +516,11 @@ stopServices() {
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
 	#$SUDO service dnsmasq stop & spinner $! || true
-	$SUDO service lighttpd stop & spinner $! || true
-	$SUDO echo " done."
+	if [[ "$webServer" = "lighttpd" ]]
+	then
+		$SUDO service lighttpd stop & spinner $! || true
+		$SUDO echo " done."
+	fi
 }
 
 checkForDependencies() {
@@ -534,7 +558,11 @@ checkForDependencies() {
     echo ":::"
     echo "::: Checking dependencies:"
 
-	dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+	dependencies=( dnsutils bc toilet figlet dnsmasq php5-common php5-cgi php5 git curl unzip wget )
+	if [[ "$webServer" = "lighttpd" ]]
+	then
+		dependencies=( "${dependencies[@]}" "lighttpd" )
+	fi
 	for i in "${dependencies[@]}"
 	do
 	:
@@ -614,12 +642,15 @@ installPiholeWeb() {
 	# Install the web interface
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Installing pihole custom index page..."
-	if [ -d "/var/www/html/pihole" ]; then
+	if [ -d "${webRoot}/pihole" ]; then
 		$SUDO echo " Existing page detected, not overwriting"
 	else
-		$SUDO mkdir /var/www/html/pihole
-		$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-		$SUDO cp /etc/.pihole/advanced/index.html /var/www/html/pihole/index.html
+		$SUDO mkdir "${webRoot}/pihole"
+		if [[ "$webServer" = "lighttpd" ]]
+		then
+			$SUDO mv "${webRoot}/index.lighttpd.html" "${webRoot}/index.lighttpd.orig"
+		fi
+		$SUDO cp /etc/.pihole/advanced/index.html "${webRoot}/pihole/index.html"
 		$SUDO echo " done!"
 	fi
 }
@@ -664,10 +695,17 @@ installPihole() {
 	stopServices
 	setUser
 	$SUDO mkdir -p /etc/pihole/
-	$SUDO chown www-data:www-data /var/www/html
-	$SUDO chmod 775 /var/www/html
+	if [[ ! ( -d "$webRoot") ]]
+	then
+		$SUDO mkdir -p "${webRoot}/pihole"
+	fi
+	$SUDO chown www-data:www-data "${webRoot}"
+	$SUDO chmod 775 "${webRoot}"
 	$SUDO usermod -a -G www-data pihole
-	$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	if [[ "$webServer" = "lighttpd" ]]
+	then
+		$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	fi
 
 	getGitFiles
 	installScripts
@@ -704,6 +742,9 @@ backupLegacyPihole
 chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
 use4andor6
+
+# Let the user decide if they want to use lighttpd or manually configure their web server.
+chooseWebServer
 
 # Decide what upstream DNS Servers to use
 setDNS
