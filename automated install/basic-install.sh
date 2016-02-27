@@ -760,7 +760,10 @@ displayFinalMessage
 echo -n "::: Restarting services..."
 # Start services
 $SUDO service dnsmasq restart
-$SUDO service lighttpd start
+if [[ "$webServer" = "lighttpd" ]]
+then
+	$SUDO service lighttpd start
+fi
 echo " done."
 
 echo ":::"
