@@ -191,24 +191,21 @@ use4andor6() {
 			esac
 		done
 		
-		if [ $useIPv4 ] && [ ! $useIPv6 ]; then
+        if [ $useIPv4 ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
 			echo "::: Using IPv4 on $IPv4addr"
-			echo "::: IPv6 will NOT be used."
-		fi
-		if [ ! $useIPv4 ] && [ $useIPv6 ]; then
-			useIPv6dialog
-			echo "::: IPv4 will NOT be used."
-			echo "::: Using IPv6 on $piholeIPv6"
-		fi
-		if [ $useIPv4 ] && [  $useIPv6 ]; then
-			getStaticIPv4Settings
-			setStaticIPv4
-			useIPv6dialog
-			echo "::: Using IPv4 on $IPv4addr"
-			echo "::: Using IPv6 on $piholeIPv6"
-		fi
+        else
+            echo "::: Using IPv6 on $piholeIPv6"
+        fi
+        
+        if [ $useIPv6 ]; then
+            useIPv6dialog
+            echo "::: Using IPv6 on $piholeIPv6"
+        else
+            echo "::: IPv6 will NOT be used."
+        fi
+        
 		if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
 			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
 			echo "::: Exiting"
