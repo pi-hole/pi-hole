@@ -306,7 +306,7 @@ setStaticIPv4() {
 
 function chooseWebServer() {
 	# Allow the user to choose the web server they wish to use.
-	chooseWebServerCmd=(whiptail --separate-output --radiolist "Pi-hole will automatically configure the lighttpd web server for you.  Alternatively, if you prefer, pi-hole can use a web server that you have previously manually configured yourself.\n\n(If you are unsure, choose lighttpd.)" $r $c 2)
+	chooseWebServerCmd=(whiptail --separate-output --radiolist "Pi-hole will automatically configure the lighttpd web server for you.\n\nAlternatively, if you prefer, pi-hole can use a web server that you have previously manually configured yourself.\n\n(If you are unsure, choose lighttpd.)" $r $c 2)
 	chooseWebServerOptions=(lighttpd "" on
 							Manual "" off)
 	webServer=$("${chooseWebServerCmd[@]}" "${chooseWebServerOptions[@]}" 2>&1 >/dev/tty)
