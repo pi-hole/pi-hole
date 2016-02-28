@@ -306,10 +306,14 @@ setStaticIPv4() {
 
 function chooseWebServer() {
 	# Allow the user to choose the web server they wish to use.
-	chooseWebServerCmd=(whiptail --separate-output --radiolist "pi-hole will automatically configure the lighttpd web server for you.  Alternatively, if you prefer, pi-hole can use a web server that you have previously manually configured yourself.\n\n(If you are unsure, choose lighttpd.)" $r $c 2)
+	chooseWebServerCmd=(whiptail --separate-output --radiolist "Pi-hole will automatically configure the lighttpd web server for you.  Alternatively, if you prefer, pi-hole can use a web server that you have previously manually configured yourself.\n\n(If you are unsure, choose lighttpd.)" $r $c 2)
 	chooseWebServerOptions=(lighttpd "" on
 							Manual "" off)
 	webServer=$("${chooseWebServerCmd[@]}" "${chooseWebServerOptions[@]}" 2>&1 >/dev/tty)
+	if [[ ! ($? = 0) ]]; then
+		echo "::: Cancel selected, exiting...."
+		exit 1
+	fi
 	case $webServer in
 		lighttpd)
 			echo "::: Using lighttpd web server."
@@ -317,7 +321,7 @@ function chooseWebServer() {
 			;;
 		Manual)
 			echo "::: Using manual web server configuration."
-			webRoot=$(whiptail --backtitle "Web Root" --title "Web Root" --inputbox "Enter the root path of the website you have manually configured for the pi-hole." $r $c "/var/www/html" 3>&1 1>&2 2>&3)
+			webRoot=$(whiptail --backtitle "Web Root" --title "Web Root" --inputbox "Enter the root path of the website you have manually configured for Pi-hole." $r $c "/var/www/html" 3>&1 1>&2 2>&3)
 			;;
 	esac
 	webInterfaceDir="${webRoot}/admin"
@@ -560,6 +564,7 @@ checkForDependencies() {
     echo "::: Checking dependencies:"
 
 	dependencies=( dnsutils bc toilet figlet dnsmasq php5-common php5-cgi php5 git curl unzip wget )
+	# Add lighttpd to the list if required.
 	if [[ "$webServer" = "lighttpd" ]]
 	then
 		dependencies=( "${dependencies[@]}" "lighttpd" )
