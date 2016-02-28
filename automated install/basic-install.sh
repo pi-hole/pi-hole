@@ -226,7 +226,7 @@ use4andor6() {
 			fi
 			echo "::: Using IPv4 on $IPv4addr"
 		else
-			echo "::: Using IPv6 on $piholeIPv6"
+			echo "::: IPv4 will NOT be used."
 		fi
 		
 		if [ $useIPv6 ]; then
