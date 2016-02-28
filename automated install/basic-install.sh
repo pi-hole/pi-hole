@@ -147,7 +147,7 @@ chooseInterface() {
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-	if [[ ! ($? = 0) ]];then
+	if [[ ! ($? = 0) ]]; then
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
@@ -179,7 +179,7 @@ chooseInterface() {
 		
 		# Find out how many IP addresses are available to choose from
 		IPv4Count=$(echo "$IPv4addresses" | wc -l)
-		chooseIPv4Cmd=(whiptail --separate-output --radiolist "Choose an IPv4 address on this interface." $r $c $IPv4Count)
+		chooseIPv4Cmd=(whiptail --separate-output --radiolist "Choose an IPv4 address on this interface.\n\n(If you are unsure, leave it as the default.)" $r $c $IPv4Count)
 		IPv4addr=$("${chooseIPv4Cmd[@]}" "${IPv4Array[@]}" 2>&1 >/dev/tty)
 		
 		if [[ ! ($? = 0) ]];then
@@ -215,9 +215,12 @@ use4andor6() {
 		done
 		
 		if [ $useIPv4 ]; then
-			if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno "Do you wish to reconfigure your IPv4 settings?  (If you have not changed these before on this Pi then choose yes.)
+			if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno --defaultno "Have you already configured a static IPv4 address on your Raspberry Pi as desired?\n\n(If you are unsure, choose No.)  \n\nCurrent settings:
 										IPv4 address:    $IPv4addr
-										Gateway:         $IPv4gw" $r $c) then
+										Gateway:         $IPv4gw" $r $c)
+			then
+				echo "::: Leaving IPv4 settings as is."
+			else
 				getStaticIPv4Settings
 				setStaticIPv4
 			fi
