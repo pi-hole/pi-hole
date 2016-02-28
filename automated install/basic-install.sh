@@ -305,7 +305,8 @@ setStaticIPv4() {
 }
 
 function chooseWebServer() {
-	chooseWebServerCmd=(whiptail --separate-output --radiolist "pi-hole can automatically configure the lighttpd web server for you.  Alternatively you can manually configure a web server yourself." $r $c 2)
+	# Allow the user to choose the web server they wish to use.
+	chooseWebServerCmd=(whiptail --separate-output --radiolist "pi-hole will automatically configure the lighttpd web server for you.  Alternatively, if you prefer, pi-hole can use a web server that you have previously manually configured yourself.\n\n(If you are unsure, choose lighttpd.)" $r $c 2)
 	chooseWebServerOptions=(lighttpd "" on
 							Manual "" off)
 	webServer=$("${chooseWebServerCmd[@]}" "${chooseWebServerOptions[@]}" 2>&1 >/dev/tty)
@@ -316,7 +317,7 @@ function chooseWebServer() {
 			;;
 		Manual)
 			echo "::: Using manual web server configuration."
-			webRoot=$(whiptail --backtitle "Web Root" --title "Web Root" --inputbox "Enter your website root path." $r $c "/var/www/html" 3>&1 1>&2 2>&3)
+			webRoot=$(whiptail --backtitle "Web Root" --title "Web Root" --inputbox "Enter the root path of the website you have manually configured for the pi-hole." $r $c "/var/www/html" 3>&1 1>&2 2>&3)
 			;;
 	esac
 	webInterfaceDir="${webRoot}/admin"
