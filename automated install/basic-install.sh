@@ -660,11 +660,11 @@ setUser(){
 
 setPassword() {
 	# Password needed to authorize changes to lists from admin page
-	pass = $(whiptail --passwordbox "Please enter a password to secure your Pi-hole web interface." 10 50 3>&1 1>&2 2>&3)
+	pass=$(whiptail --passwordbox "Please enter a password to secure your Pi-hole web interface." 10 50 3>&1 1>&2 2>&3)
 	
 	if [ $? = 0 ]; then
 		# Entered password
-		echo pass > /etc/pihole/password.txt
+		echo $pass > /etc/pihole/password.txt
 	else
 		echo "::: Cancel selected, exiting...."
 		exit 1
