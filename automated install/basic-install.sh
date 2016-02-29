@@ -152,7 +152,6 @@ chooseInterface() {
 		do
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
-		echo ${piholeInterface} > /tmp/piholeINT
 		done
 	else
 		echo "::: Cancel selected, exiting...."
@@ -219,6 +218,9 @@ use4andor6() {
 										Gateway:         $IPv4gw" $r $c)
 			then
 				echo "::: Leaving IPv4 settings as is."
+				# Saving the IP and interface to a file for future use by other scripts (gravity.sh, whitelist.sh, etc.)
+				echo ${IPv4addr%/*} > /etc/pihole/piholeIP
+				echo $piholeInterface > /etc/pihole/piholeINT
 			else
 				getStaticIPv4Settings
 				setStaticIPv4
@@ -284,9 +286,9 @@ getStaticIPv4Settings() {
 							IP address:    $IPv4addr
 							Gateway:       $IPv4gw" $r $c)then
 							# If the settings are correct, then we need to set the piholeIP
-							# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script
-							echo ${IPv4addr%/*} > /tmp/piholeIP
-							echo $piholeInterface > /tmp/piholeINT
+							# Saving the IP and interface to a file for future use by other scripts (gravity.sh, whitelist.sh, etc.)
+							echo ${IPv4addr%/*} > /etc/pihole/piholeIP
+							echo $piholeInterface > /etc/pihole/piholeINT
 							# After that's done, the loop ends and we move on
 							ipSettingsCorrect=True
 					else
