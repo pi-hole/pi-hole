@@ -147,17 +147,17 @@ chooseInterface() {
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" $r $c $interfaceCount)
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-	if [[ ! ($? = 0) ]]; then
-		echo "::: Cancel selected, exiting...."
-		exit 1
-	fi
-	
-	for desiredInterface in $chooseInterfaceOptions
-	do
+	if [[ $? = 0 ]];then
+		for desiredInterface in $chooseInterfaceOptions
+		do
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
 		echo ${piholeInterface} > /tmp/piholeINT
-	done
+		done
+	else
+		echo "::: Cancel selected, exiting...."
+		exit 1
+	fi
 	
 }
 
