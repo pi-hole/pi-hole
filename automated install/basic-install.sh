@@ -157,37 +157,6 @@ chooseInterface() {
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
 		echo ${piholeInterface} > /tmp/piholeINT
-		
-		# Get interface address information
-		IPv4dev=$desiredInterface
-		IPv4addresses=$($SUDO ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
-		IPv4gw=$($SUDO ip route show dev "$IPv4dev" | awk '/default/ {print $3}')
-		
-		# Turn IPv4 addresses into an array so it can be used with a whiptail dialog
-		IPv4Array=()
-		firstloop=1
-
-		while read -r line
-		do
-			mode="OFF"
-			if [[ $firstloop -eq 1 ]]; then
-				firstloop=0
-				mode="ON"
-			fi
-			IPv4Array+=("$line" "available" "$mode")
-		done <<< "$IPv4addresses"
-		
-		# Find out how many IP addresses are available to choose from
-		IPv4Count=$(echo "$IPv4addresses" | wc -l)
-		chooseIPv4Cmd=(whiptail --separate-output --radiolist "Choose an IPv4 address on this interface.\n\n(If you are unsure, leave it as the default.)" $r $c $IPv4Count)
-		IPv4addr=$("${chooseIPv4Cmd[@]}" "${IPv4Array[@]}" 2>&1 >/dev/tty)
-		
-		if [[ ! ($? = 0) ]];then
-			echo "::: Cancel selected, exiting...."
-			exit 1
-		fi
-		
-		
 	done
 	
 }
@@ -215,7 +184,37 @@ use4andor6() {
 		done
 		
 		if [ $useIPv4 ]; then
-			if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno --defaultno "Have you already configured a static IPv4 address on your Raspberry Pi as desired?\n\n(If you are unsure, choose No.)  \n\nCurrent settings:
+			
+			# Get interface address information
+			IPv4dev=$piholeInterface
+			IPv4addresses=$($SUDO ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
+			IPv4gw=$($SUDO ip route show dev "$IPv4dev" | awk '/default/ {print $3}')
+			
+			# Turn IPv4 addresses into an array so it can be used with a whiptail dialog
+			IPv4Array=()
+			firstloop=1
+
+			while read -r line
+			do
+				mode="OFF"
+				if [[ $firstloop -eq 1 ]]; then
+					firstloop=0
+					mode="ON"
+				fi
+				IPv4Array+=("$line" "available" "$mode")
+			done <<< "$IPv4addresses"
+			
+			# Find out how many IP addresses are available to choose from
+			IPv4Count=$(echo "$IPv4addresses" | wc -l)
+			chooseIPv4Cmd=(whiptail --separate-output --radiolist "Choose an IPv4 address on this interface.\n\n(If you are unsure, leave it as the default.)" $r $c $IPv4Count)
+			IPv4addr=$("${chooseIPv4Cmd[@]}" "${IPv4Array[@]}" 2>&1 >/dev/tty)
+			
+			if [[ ! ($? = 0) ]];then
+				echo "::: Cancel selected, exiting...."
+				exit 1
+			fi
+		
+			if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno --defaultno "We have found the following details for the IPv4 address you have selected. Have you already configured this as a static IPv4 address as desired?\n\n(If you are unsure, choose No.)  \n\nCurrent settings:
 										IPv4 address:    $IPv4addr
 										Gateway:         $IPv4gw" $r $c)
 			then
