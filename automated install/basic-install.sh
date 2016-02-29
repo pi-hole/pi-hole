@@ -36,6 +36,9 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
+piholeINTfile=/etc/pihole/piholeINT
+piholeIPfile=/etc/pihole/piholeIP
+piholeIPv6file=/etc/pihole/.useIPv6
 
 availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
@@ -219,8 +222,8 @@ use4andor6() {
 			then
 				echo "::: Leaving IPv4 settings as is."
 				# Saving the IP and interface to a file for future use by other scripts (gravity.sh, whitelist.sh, etc.)
-				echo ${IPv4addr%/*} > /etc/pihole/piholeIP
-				echo $piholeInterface > /etc/pihole/piholeINT
+				echo ${IPv4addr%/*} > "${piholeIPfile}"
+				echo $piholeInterface > "${piholeINTfile}"
 			else
 				getStaticIPv4Settings
 				setStaticIPv4
@@ -287,8 +290,8 @@ getStaticIPv4Settings() {
 							Gateway:       $IPv4gw" $r $c)then
 							# If the settings are correct, then we need to set the piholeIP
 							# Saving the IP and interface to a file for future use by other scripts (gravity.sh, whitelist.sh, etc.)
-							echo ${IPv4addr%/*} > /etc/pihole/piholeIP
-							echo $piholeInterface > /etc/pihole/piholeINT
+							echo ${IPv4addr%/*} > "${piholeIPfile}"
+							echo $piholeInterface > "${piholeINTfile}"
 							# After that's done, the loop ends and we move on
 							ipSettingsCorrect=True
 					else
