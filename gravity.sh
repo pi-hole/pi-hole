@@ -35,14 +35,16 @@ adListDefault=/etc/pihole/adlists.default
 whitelistScript=/usr/local/bin/whitelist.sh
 blacklistScript=/usr/local/bin/blacklist.sh
 
+echo ":::"
+
 # Know which interface we are using.
 if [[ -f $piholeINTfile ]]; then
     # This file should normally exist - it was saved as part of the install.
     IPv4dev=$(cat $piholeINTfile)
 else
     # If it doesn't, we err on the side of working with the majority of setups and detect the most likely interface.
+    echo "::: Warning: ${piholeINTfile} is missing.  Auto detecting interface."
     IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    echo "::: Warning: ${piholeINTfile} is missing.  Using interface ${IPv4dev}."
 fi
 
 # Know which IPv4 address we are using.
@@ -52,10 +54,13 @@ if [[ -f $piholeIPfile ]];then
 else
     # If it doesn't, we err on the side of working with the majority of setups and detect the most likely IPv4 address,
     # which is the first one we find belonging to the given interface.
+    echo "::: Warning: ${piholeIPfile} is missing.  Auto detecting IP address."
     piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | head -n 1)
     piholeIP=${piholeIPCIDR%/*}
-    echo "::: Warning: ${piholeIPfile} is missing.  Using IPv4 address ${piholeIP}."
 fi
+
+echo "::: Large gravitational pull detected at ${piholeIP} (${IPv4dev})."
+echo ":::"
 
 if [[ -f $piholeIPv6file ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
