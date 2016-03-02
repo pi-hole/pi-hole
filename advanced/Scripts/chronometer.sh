@@ -10,6 +10,28 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+# Check if pihole user, and if not then rerun with sudo.
+echo ":::"
+runninguser=$(whoami)
+if [[ "$runninguser" = "pihole"  ]];then
+	echo "::: You are pihole user."
+	# Older versions of Pi-hole set $SUDO="sudo" and prefixed commands with it,
+	# rather than rerunning as sudo. Just in case it turns up by accident, 
+	# explicitly set the $SUDO variable to an empty string.
+	SUDO=""
+else
+	echo "::: sudo will be used."
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		echo "::: Running sudo -u pihole $@"
+		sudo -u pihole "$@"
+		exit $?
+	else
+		echo "::: Please install sudo."
+	exit 1
+	fi
+fi
 
 #Functions##############################################################################################################
 piLog="/var/log/pihole.log"

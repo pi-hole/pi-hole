@@ -93,6 +93,13 @@ spinner() {
 	printf "\b"
 }
 
+mkpiholeDir() {
+	# Create the pihole config directory with pihole as the group owner with rw permissions.
+	mkdir -p /etc/pihole/
+	chown --recursive root:pihole /etc/pihole
+	chmod --recursive ug=rwX,o=rX /etc/pihole
+}
+
 backupLegacyPihole() {
 	# This function detects and backups the pi-hole v1 files.  It will not do anything to the current version files.
 	if [[ -f /etc/dnsmasq.d/adList.conf ]];then
@@ -481,9 +488,11 @@ installScripts() {
 	cp /etc/.pihole/advanced/Scripts/chronometer.sh /usr/local/bin/chronometer.sh
 	cp /etc/.pihole/advanced/Scripts/whitelist.sh /usr/local/bin/whitelist.sh
 	cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh
+	cp /etc/.pihole/advanced/Scripts/piholeReloadServices.sh /usr/local/bin/piholeReloadServices.sh
+	cp /etc/.pihole/advanced/Scripts/piholeSetPermissions.sh /usr/local/bin/piholeSetPermissions.sh
 	cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh
 	cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh
-	chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
+	chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeReloadServices,piholeSetPermissions,piholeLogFlush,updateDashboard}.sh
 	echo " done."
 }
 
@@ -664,6 +673,16 @@ setUser(){
 	fi
 }
 
+installSudoersFile() {
+	# Install the file in /etc/sudoers.d that defines what commands
+	# and scripts the pihole user can elevate to root with sudo.
+	sudoersFile='/etc/sudoers.d/pihole'
+	sudoersContent="pihole	ALL=(ALL:ALL) NOPASSWD: /usr/local/bin/piholeReloadServices.sh /usr/local/bin/piholeSetPermissions.sh"
+	echo "$sudoersContent" > "$sudoersFile"
+	# chmod as per /etc/sudoers.d/README
+	chmod 0440 "$sudoersFile"
+}
+
 installPihole() {
 	# Install base files and web interface
 	checkForDependencies # done
@@ -677,6 +696,7 @@ installPihole() {
 
 	getGitFiles
 	installScripts
+	installSudoersFile
 	installConfigs
 	CreateLogFile
 	installPiholeWeb
@@ -698,7 +718,7 @@ The install log is in /etc/pihole." $r $c
 
 ######## SCRIPT ############
 # Start the installer
-mkdir -p /etc/pihole/
+mkpiholeDir
 welcomeDialogs
 
 # Verify there is enough disk space for the install

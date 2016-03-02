@@ -23,6 +23,29 @@ if [[ $# = 0 ]]; then
     exit 1
 fi
 
+# Check if pihole user, and if not then rerun with sudo.
+echo ":::"
+runninguser=$(whoami)
+if [[ "$runninguser" = "pihole"  ]];then
+	echo "::: You are pihole user."
+	# Older versions of Pi-hole set $SUDO="sudo" and prefixed commands with it,
+	# rather than rerunning as sudo. Just in case it turns up by accident, 
+	# explicitly set the $SUDO variable to an empty string.
+	SUDO=""
+else
+	echo "::: sudo will be used."
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		echo "::: Running sudo -u pihole $@"
+		sudo -u pihole "$@"
+		exit $?
+	else
+		echo "::: Please install sudo."
+	exit 1
+	fi
+fi
+
 #globals
 blacklist=/etc/pihole/blacklist.txt
 adList=/etc/pihole/gravity.list
@@ -153,15 +176,11 @@ function Reload() {
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
 
-	dnsmasqPid=$(pidof dnsmasq)
-
-	if [[ $dnsmasqPid ]]; then
-		# service already running - reload config
-		sudo kill -HUP $dnsmasqPid
-	else
-		# service not running, start it up
-		sudo service dnsmasq start
-	fi
+	# Reloading services requires root.
+	# The installer should have created a file in sudoers.d to allow pihole user
+	# to run piholeReloadServices.sh as root with sudo without a password
+	sudo --non-interactive /usr/local/bin/piholeReloadServices.sh
+	
 	echo " done!"
 }
 

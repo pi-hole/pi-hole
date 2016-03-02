@@ -71,10 +71,13 @@ fi
 
 echo "Removing config files and scripts..."
 rm /etc/dnsmasq.conf
+rm /etc/sudoers.d/pihole
 rm -rf /etc/lighttpd/
 rm /var/log/pihole.log
 rm /usr/local/bin/gravity.sh
 rm /usr/local/bin/chronometer.sh
 rm /usr/local/bin/whitelist.sh
+rm /usr/local/bin/piholeReloadServices.sh
+rm /usr/local/bin/piholeSetPermissions.sh
 rm /usr/local/bin/piholeLogFlush.sh
 rm -rf /etc/pihole/
