@@ -30,8 +30,8 @@ else
 	# Check if it is actually installed
 	# If it isn't, exit because the install cannot complete
 	if [[ $(dpkg-query -s sudo) ]];then
-		echo "::: Running sudo $@"
-		sudo "$@"
+		echo "::: Running sudo $0 $@"
+		sudo "$0" "$@"
 		exit $?
 	else
 		echo "::: Please install sudo or run this script as root."
