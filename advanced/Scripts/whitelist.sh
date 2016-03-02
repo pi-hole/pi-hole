@@ -37,8 +37,8 @@ else
 	# Check if it is actually installed
 	# If it isn't, exit because the install cannot complete
 	if [[ $(dpkg-query -s sudo) ]];then
-		echo "::: Running sudo -u pihole $@"
-		sudo -u pihole "$@"
+		echo "::: Running sudo -u pihole $0 $@"
+		sudo -u pihole "$0" "$@"
 		exit $?
 	else
 		echo "::: Please install sudo."
