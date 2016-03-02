@@ -80,4 +80,5 @@ rm /usr/local/bin/whitelist.sh
 rm /usr/local/bin/piholeReloadServices.sh
 rm /usr/local/bin/piholeSetPermissions.sh
 rm /usr/local/bin/piholeLogFlush.sh
+rm /usr/local/bin/updateDashboard.sh
 rm -rf /etc/pihole/
