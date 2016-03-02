@@ -677,7 +677,7 @@ installSudoersFile() {
 	# Install the file in /etc/sudoers.d that defines what commands
 	# and scripts the pihole user can elevate to root with sudo.
 	sudoersFile='/etc/sudoers.d/pihole'
-	sudoersContent="pihole	ALL=(ALL:ALL) NOPASSWD: /usr/local/bin/piholeReloadServices.sh /usr/local/bin/piholeSetPermissions.sh"
+	sudoersContent="pihole	ALL=(ALL:ALL) NOPASSWD: /usr/local/bin/piholeReloadServices.sh, /usr/local/bin/piholeSetPermissions.sh"
 	echo "$sudoersContent" > "$sudoersFile"
 	# chmod as per /etc/sudoers.d/README
 	chmod 0440 "$sudoersFile"
