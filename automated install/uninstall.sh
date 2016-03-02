@@ -10,40 +10,47 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-# Must be root to uninstall
+# Check if root, and if not then rerun with sudo.
+echo ":::"
 if [[ $EUID -eq 0 ]];then
-	echo "You are root."
+	echo "::: You are root."
+	# Older versions of Pi-hole set $SUDO="sudo" and prefixed commands with it,
+	# rather than rerunning as sudo. Just in case it turns up by accident, 
+	# explicitly set the $SUDO variable to an empty string.
+	SUDO=""
 else
-	echo "sudo will be used for the install."
-  # Check if it is actually installed
-  # If it isn't, exit because the unnstall cannot complete
-  if [[ $(dpkg-query -s sudo) ]];then
-		export SUDO="sudo"
-  else
-    echo "Please install sudo or run this as root."
-    exit 1
-  fi
+	echo "::: sudo will be used."
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		echo "::: Running sudo $@"
+		sudo "$@"
+		exit $?
+	else
+		echo "::: Please install sudo or run this script as root."
+	exit 1
+	fi
 fi
 
 
 ######### SCRIPT ###########
-$SUDO apt-get -y remove --purge dnsutils bc toilet
-$SUDO apt-get -y remove --purge dnsmasq
-$SUDO apt-get -y remove --purge lighttpd php5-common php5-cgi php5
+apt-get -y remove --purge dnsutils bc toilet
+apt-get -y remove --purge dnsmasq
+apt-get -y remove --purge lighttpd php5-common php5-cgi php5
 
 # Only web directories/files that are created by pihole should be removed.
 echo "Removing the Pi-hole Web server files..."
-$SUDO rm -rf /var/www/html/admin
-$SUDO rm -rf /var/www/html/pihole
-$SUDO rm /var/www/html/index.lighttpd.orig
+rm -rf /var/www/html/admin
+rm -rf /var/www/html/pihole
+rm /var/www/html/index.lighttpd.orig
 
 # If the web directory is empty after removing these files, then the parent html folder can be removed.
 if [[ ! "$(ls -A /var/www/html)" ]]; then
-    $SUDO rm -rf /var/www/html
+    rm -rf /var/www/html
 fi
 
 echo "Removing dnsmasq config files..."
-$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 
 # Attempt to preserve backwards compatibility with older versions
 # to guarantee no additional changes were made to /etc/crontab after
@@ -51,23 +58,23 @@ $SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 # preserved.
 if [[ -f /etc/crontab.orig ]]; then
   echo "Initial Pi-hole cron detected.  Restoring the default system cron..."
-	$SUDO mv /etc/crontab /etc/crontab.pihole
-	$SUDO mv /etc/crontab.orig /etc/crontab
-	$SUDO service cron restart
+	mv /etc/crontab /etc/crontab.pihole
+	mv /etc/crontab.orig /etc/crontab
+	service cron restart
 fi
 
 # Attempt to preserve backwards compatibility with older versions
 if [[ -f /etc/cron.d/pihole ]];then
   echo "Removing cron.d/pihole..."
-	$SUDO rm /etc/cron.d/pihole
+	rm /etc/cron.d/pihole
 fi
 
 echo "Removing config files and scripts..."
-$SUDO rm /etc/dnsmasq.conf
-$SUDO rm -rf /etc/lighttpd/
-$SUDO rm /var/log/pihole.log
-$SUDO rm /usr/local/bin/gravity.sh
-$SUDO rm /usr/local/bin/chronometer.sh
-$SUDO rm /usr/local/bin/whitelist.sh
-$SUDO rm /usr/local/bin/piholeLogFlush.sh
-$SUDO rm -rf /etc/pihole/
+rm /etc/dnsmasq.conf
+rm -rf /etc/lighttpd/
+rm /var/log/pihole.log
+rm /usr/local/bin/gravity.sh
+rm /usr/local/bin/chronometer.sh
+rm /usr/local/bin/whitelist.sh
+rm /usr/local/bin/piholeLogFlush.sh
+rm -rf /etc/pihole/
