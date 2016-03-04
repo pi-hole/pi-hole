@@ -18,6 +18,11 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 ## Pi-hole Is Free, But Powered By Your Donations
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate")
 
+## Catch us out on the net:
+Twitter: [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+
+reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
+
 ## How Does It Work?
 **Watch the 60-second video below to get a quick overview**
 
