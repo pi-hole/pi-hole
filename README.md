@@ -20,6 +20,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Catch us out on the net:
 Twitter: @The_Pi_Hole
+
 reddit: /r/pihole
 
 ## How Does It Work?
