@@ -17,7 +17,7 @@ SUDO=""
 
 function rerun_root() {
 	# Check if root, and if not then rerun with sudo.
-	# The parent script should pass its $0 and $@ to this function's $1 and $2
+	# The parent script should pass its $0 and $@ to this function.
 	echo ":::"
 	if [[ $EUID -eq 0 ]];then
 		echo "::: You are root."
@@ -26,8 +26,8 @@ function rerun_root() {
 		# Check if it is actually installed
 		# If it isn't, exit because the install cannot complete
 		if [[ $(dpkg-query -s sudo) ]];then
-			echo "::: Running sudo $1 $2"
-			sudo "$1" "$2"
+			echo "::: Running sudo $@"
+			sudo "$@"
 			exit $?
 		else
 			echo "::: Please install sudo."
@@ -38,7 +38,7 @@ function rerun_root() {
 
 function rerun_pihole() {
 	# Check if pihole user, and if not then rerun with sudo.
-	# The parent script should pass its $0 and $@ to this function's $1 and $2
+	# The parent script should pass its $0 and $@ to this function.
 	echo ":::"
 	runninguser=$(whoami)
 	if [[ "$runninguser" = "pihole"  ]];then
@@ -48,8 +48,8 @@ function rerun_pihole() {
 		# Check if it is actually installed
 		# If it isn't, exit because the install cannot complete
 		if [[ $(dpkg-query -s sudo) ]];then
-			echo "::: Running sudo -u pihole $1 $2"
-			sudo -u pihole "$1" "$2"
+			echo "::: Running sudo -u pihole $@"
+			sudo -u pihole "$@"
 			exit $?
 		else
 			echo "::: Please install sudo."
