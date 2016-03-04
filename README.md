@@ -74,6 +74,8 @@ The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashb
 
 `http://192.168.1.x/admin/index.php`
 
+![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/rTlLYPh.png)
+
 ### API
 
 A basic read-only API can be accessed at `/admin/api.php`. It returns the following JSON:
