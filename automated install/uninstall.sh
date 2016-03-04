@@ -82,3 +82,4 @@ rm /usr/local/bin/piholeSetPermissions.sh
 rm /usr/local/bin/piholeLogFlush.sh
 rm /usr/local/bin/updateDashboard.sh
 rm -rf /etc/pihole/
+rm -rf /usr/local/include/pihole
