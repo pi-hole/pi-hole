@@ -15,21 +15,6 @@ source /usr/local/include/pihole/piholeInclude
 rerun_root "$0" "$@"
 
 ############ FUNCTIONS ###########
-# Run this script as root or under sudo
-echo ":::"
-if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
-else
-	echo "::: sudo will be used."
-  # Check if it is actually installed
-  # If it isn't, exit because the install cannot complete
-  if [[ $(dpkg-query -s sudo) ]];then
-		export SUDO="sudo"
-  else
-		echo "::: Please install sudo or run this script as root."
-    exit 1
-  fi
-fi
 
 # Borrowed from adafruit-pitft-helper < borrowed from raspi-config
 # https://github.com/adafruit/Adafruit-PiTFT-Helper/blob/master/adafruit-pitft-helper#L324-L334
