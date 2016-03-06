@@ -73,9 +73,9 @@ function outputJSON(){
 	CalcQueriesToday
 	CalcblockedToday
 	CalcPercentBlockedToday
-	
+
 	CalcBlockedDomains
-	
+
 	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
 }
 
@@ -92,26 +92,26 @@ function normalChrono(){
 		echo "-------------------------------"
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
-		
+
 		#uncomment next 4 lines to use original query count calculation
 		#today=$(date "+%b %e")
 		#todaysQueryCount=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ {print $7}' | wc -l)
 		#todaysQueryCountV4=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[A\]/ {print $7}' | wc -l)
 		#todaysQueryCountV6=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[AAAA\]/ {print $7}' | wc -l)
-				
-		
+
+
 		CalcQueriesToday
 		CalcblockedToday
 		CalcPercentBlockedToday
-		
+
 		CalcBlockedDomains
-		
+
 		echo "Blocking:      $blockedDomainsTotal"
 		#below commented line does not add up to todaysQueryCount
 		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
 		echo "Queries:       $queriesToday" #same total calculation as dashboard
 	  echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
-		
+
 		sleep 5
 	done
 }
@@ -125,7 +125,7 @@ function displayHelp(){
     echo "Options:"
     echo "  -j, --json		output stats as JSON formatted string"
     echo "  -h, --help	display this help text"
-    
+
     exit 1
 }
 
@@ -137,7 +137,7 @@ for var in "$@"
 do
   case "$var" in
     "-j" | "--json"  ) outputJSON;;
-    "-h" | "--help"  ) displayHelp;;        			
+    "-h" | "--help"  ) displayHelp;;
     *                ) exit 1;;
   esac
 done

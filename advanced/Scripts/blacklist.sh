@@ -51,13 +51,13 @@ if [[ -f $piholeIPv6file ]];then
 fi
 
 
-function HandleOther(){	
+function HandleOther(){
   #check validity of domain
 	validDomain=$(echo $1 | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
-	
+
 	if [ -z "$validDomain" ]; then
 		echo $1 is not a valid argument or domain name
-	else	  
+	else
 	  domList=("${domList[@]}" $validDomain)
 	fi
 }
@@ -66,9 +66,9 @@ function PopBlacklistFile(){
 	#check blacklist file exists, and if not, create it
 	if [[ ! -f $blacklist ]];then
   	  touch $blacklist
-	fi	
+	fi
 	for dom in "${domList[@]}"
-	do	  
+	do
 	  if $addmode; then
 	  	AddDomain $dom
 	  else
@@ -97,7 +97,7 @@ function AddDomain(){
 }
 
 function RemoveDomain(){
-  
+
   bool=false
   grep -Ex -q "$1" $blacklist || bool=true
   if $bool; then
@@ -110,42 +110,42 @@ function RemoveDomain(){
     if $versbose; then
     echo "::: Un-blacklisting $dom..."
     fi
-    domToRemoveList=("${domToRemoveList[@]}" $1)    
-    modifyHost=true	  	
-  fi  	
+    domToRemoveList=("${domToRemoveList[@]}" $1)
+    modifyHost=true
+  fi
 }
 
-function ModifyHostFile(){	
+function ModifyHostFile(){
 	 if $addmode; then
 	    #add domains to the hosts file
 	    if [[ -r $blacklist ]];then
 	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
-        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."	   		    
-	    	if [[ -n $piholeIPv6 ]];then	    	  
+        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
+	    	if [[ -n $piholeIPv6 ]];then
 	    	  cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
-	      else	        
+	      else
 	      	cat $blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
-	      fi		    
-		   
+	      fi
+
 	  	fi
 	  else
-		
+
 		echo ":::"
 	  for dom in "${domToRemoveList[@]}"
-		do	  
-	      #we need to remove the domains from the blacklist file and the host file	     
+		do
+	      #we need to remove the domains from the blacklist file and the host file
 				echo "::: $dom"
 				echo -n ":::    removing from HOSTS file..."
-	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList  
+	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
 	      echo " done!"
 	      echo -n ":::    removing from blackist.txt..."
 	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $blacklist
 	      echo " done!"
-		done	  
+		done
 		fi
-	  
+
 }
 
 function Reload() {
@@ -170,17 +170,17 @@ function Reload() {
 for var in "$@"
 do
   case "$var" in
-    "-nr"| "--noreload"  ) reload=false;;        			
+    "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
-    "-q" | "--quiet"     ) versbose=false;;  			
+    "-q" | "--quiet"     ) versbose=false;;
     *                    ) HandleOther $var;;
   esac
 done
 
 PopBlacklistFile
 
-if $modifyHost || $force; then	
+if $modifyHost || $force; then
 	ModifyHostFile
 else
   if $versbose; then
