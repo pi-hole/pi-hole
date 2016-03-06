@@ -111,7 +111,7 @@ welcomeDialogs() {
 	whiptail --msgbox --backtitle "Plea" --title "Free and open source" "The Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" $r $c
 
 	# Explain the need for a static address
-	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.	
+	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
@@ -119,12 +119,12 @@ welcomeDialogs() {
 verifyFreeDiskSpace() {
 	# 25MB is the minimum space needed (20MB install + 5MB one day of logs.)
 	requiredFreeBytes=51200
-	
-	existingFreeBytes=`df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1`    	
-	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then       
-		existingFreeBytes=`df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1`		
+
+	existingFreeBytes=`df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1`
+	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then
+		existingFreeBytes=`df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1`
 	fi
-	
+
 	if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then
 		whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $requiredFreeBytes Bytes.\nYou only have $existingFreeBytes Free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" $r $c
 		echo "$existingFreeBytes is less than $requiredFreeBytes"
@@ -164,7 +164,7 @@ chooseInterface() {
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
-	
+
 }
 
 cleanupIPv6() {
@@ -188,7 +188,7 @@ use4andor6() {
 			IPv6	)		useIPv6=true;;
 			esac
 		done
-		
+
 		if [ $useIPv4 ] && [ ! $useIPv6 ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
@@ -308,7 +308,7 @@ function valid_ip()
 {
 	local  ip=$1
 	local  stat=1
-	
+
 	if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
 		OIFS=$IFS
 		IFS='.'
@@ -360,9 +360,9 @@ setDNS(){
 			Custom)
 				until [[ $DNSSettingsCorrect = True ]]
 				do
-					
+
 					strInvalid="Invalid"
-				
+
 					if [ ! $piholeDNS1 ]; then
 						if [ ! $piholeDNS2 ]; then
 							prePopulate=""
@@ -374,38 +374,38 @@ setDNS(){
 					elif [ $piholeDNS1 ] && [ $piholeDNS2 ]; then
 						prePopulate="$piholeDNS1, $piholeDNS2"
 					fi
-					
+
 					piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" $r $c "$prePopulate" 3>&1 1>&2 2>&3)
 					if [[ $? = 0 ]];then
 						piholeDNS1=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
 						piholeDNS2=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
-						
+
 						if ! valid_ip $piholeDNS1 || [ ! $piholeDNS1 ]; then
 							piholeDNS1=$strInvalid
 						fi
-												
+
 						if ! valid_ip $piholeDNS2 && [ $piholeDNS2 ]; then
 							piholeDNS2=$strInvalid
 						fi
-						
+
 					else
 						echo "::: Cancel selected, exiting...."
 						exit 1
 					fi
-					
+
 					if [[ $piholeDNS1 == $strInvalid ]] || [[ $piholeDNS2 == $strInvalid ]]; then
-						whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c						
-						
+						whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c
+
 						if [[ $piholeDNS1 == $strInvalid ]]; then
 							piholeDNS1=""
 						fi
-						
+
 						if [[ $piholeDNS2 == $strInvalid ]]; then
 							piholeDNS2=""
 						fi
-						
+
 						DNSSettingsCorrect=False
-					else					
+					else
 						if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c) then
 								DNSSettingsCorrect=True
 						else
@@ -427,11 +427,11 @@ versionCheckDNSmasq(){
   dnsFile1="/etc/dnsmasq.conf"
   dnsFile2="/etc/dnsmasq.conf.orig"
   dnsSearch="addn-hosts=/etc/pihole/gravity.list"
-  
+
   defaultFile="/etc/.pihole/advanced/dnsmasq.conf.original"
   newFileToInstall="/etc/.pihole/advanced/01-pihole.conf"
   newFileFinalLocation="/etc/dnsmasq.d/01-pihole.conf"
-  
+
   if [ -f $dnsFile1 ]; then
       echo -n ":::    Existing dnsmasq.conf found..."
       if grep -q $dnsSearch $dnsFile1; then
@@ -443,14 +443,14 @@ versionCheckDNSmasq(){
           $SUDO cp $defaultFile $dnsFile1
           echo " done."
       else
-        echo " it is not a pi-hole file, leaving alone!"        
+        echo " it is not a pi-hole file, leaving alone!"
       fi
   else
       echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
       $SUDO cp $defaultFile $dnsFile1
       echo " done."
   fi
-  
+
   echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   $SUDO cp $newFileToInstall $newFileFinalLocation
   echo " done."
@@ -635,9 +635,9 @@ installCron() {
 runGravity() {
 	# Rub gravity.sh to build blacklists
 	$SUDO echo ":::"
-	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."	
+	$SUDO echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"		
+		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
 		$SUDO rm /etc/pihole/list.*
 	fi
 	#Don't run as SUDO, this was causing issues
@@ -661,7 +661,7 @@ setUser(){
 setPassword() {
 	# Password needed to authorize changes to lists from admin page
 	pass=$(whiptail --passwordbox "Please enter a password to secure your Pi-hole web interface." 10 50 3>&1 1>&2 2>&3)
-	
+
 	if [ $? = 0 ]; then
 		# Entered password
 		echo $pass > /etc/pihole/password.txt
