@@ -30,8 +30,8 @@ http://hosts-file.net/ad_servers.txt
 # ADZHOSTS list. Has been known to block legitimate domains
 #http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt
 
-# Windows 10 telemetry list - warning this one may block windows update
-#https://raw.githubusercontent.com/crazy-max/HostsWindowsBlocker/master/hosts.txt
+# Windows 10 telemetry list
+#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/hostsBlockWindowsSpy.txt
 
 # Securemecca.com list - Also blocks "adult" sites (pornography/gambling etc)
 #http://securemecca.com/Downloads/hosts.txt
