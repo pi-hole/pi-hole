@@ -39,6 +39,9 @@ http://hosts-file.net/ad_servers.txt
 # Quidsup's tracker list
 https://raw.githubusercontent.com/quidsup/notrack/master/trackers.txt
 
+# Block the BBC News website Breaking News banner
+#https://raw.githubusercontent.com/BreakingTheNews/BreakingTheNews.github.io/master/hosts
+
 
 # Untested Lists:
 #https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
