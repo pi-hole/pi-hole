@@ -1,5 +1,5 @@
 # Automated Install 
-##### Designed For Raspberry Pi A+, B, B+, 2, and Zero (with an Ethernet adapter)
+##### Designed For Raspberry Pi A+, B, B+, 2, and Zero (with an Ethernet/Wi-Fi adapter)
 
 1. Install Raspbian 
 2. Run the command below
@@ -17,6 +17,11 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Pi-hole Is Free, But Powered By Your Donations
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate")
+
+## Catch us out on the net:
+Twitter: [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+
+reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
 
 ## How Does It Work?
 **Watch the 60-second video below to get a quick overview**
@@ -36,6 +41,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 - [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 
 ## Coverage
+- [Pi-hole on Adafruit's blog](https://blog.adafruit.com/2016/03/04/pi-hole-is-a-black-hole-for-internet-ads-piday-raspberrypi-raspberry_pi/)
 - [The Defrag Show - MSDN/Channel 9](https://channel9.msdn.com/Shows/The-Defrag-Show/Defrag-Endoscope-USB-Camera-The-Final-HoloLens-Vote-Adblock-Pi-and-more?WT.mc_id=dlvr_twitter_ch9#time=20m39s)
 - [MacObserver Podcast 585](http://www.macobserver.com/tmo/podcast/macgeekgab-585)
 - [Medium: Block All Ads For $53](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d)
@@ -67,6 +73,8 @@ Domains can be whitelisted and blacklisted using two pre-installed scripts. See 
 The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings.  You can find it at:
 
 `http://192.168.1.x/admin/index.php`
+
+![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/rTlLYPh.png)
 
 ### API
 
