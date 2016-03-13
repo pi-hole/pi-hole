@@ -1,10 +1,17 @@
-# Automated Install 
-##### Designed For Raspberry Pi B, B+, 2, and Zero (with an Ethernet adapter)
+# Automated Install
+##### Designed For Raspberry Pi A+, B, B+, 2, Zero (with an Ethernet adapter), and also works on most Debian based distros!
 
-1. Install Raspbian 
+1. Install Raspbian on Raspberry Pi variants or a Debian based distribution on other hardware or virtual machines
 2. Run the command below
 
 ### ```curl -L install.pi-hole.net | bash```
+
+#### Alternative Semi-Automated install ####
+```
+wget -O basic-install.sh install.pi-hole.net
+chmod +x basic-install.sh
+./basic-install.sh
+```
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration.  Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
@@ -17,6 +24,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 [![Pi-hole exlplained](http://i.imgur.com/qNybJDX.png)](https://vimeo.com/135965232)
 
 ## Pi-hole Projects
+- [x86 Docker container that runs Pi-hole](https://hub.docker.com/r/diginc/pi-hole/)
 - [Pi-hole Chrome extension](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([open source](https://github.com/packtloss/pihole-extension))
 - [Go Bananas for CHiP-hole ad blocking](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
 - [Sky-Hole](http://dlaa.me/blog/post/skyhole)

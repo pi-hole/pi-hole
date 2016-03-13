@@ -31,6 +31,8 @@ piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
+whitelistScript=/usr/local/bin/whitelist.sh
+blacklistScript=/usr/local/bin/blacklist.sh
 
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
@@ -98,18 +100,28 @@ function gravity_collapse() {
 		echo -n "::: Custom adList file detected. Reading..."
 		sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListFile
-		echo " done!"	
+		echo " done!"
 	else
 		#no custom file found, use defaults!
 		echo -n "::: No custom adlist file detected, reading from default file..."
 				sources=()
 		while read -a line; do
-			sources+=($line)
+			#Do not read commented out or blank lines
+			if [[ $line = \#* ]] || [[ ! $line ]]; then
+				echo "" > /dev/null
+			else
+				sources+=($line)
+			fi
 		done < $adListDefault
-		echo " done!"	
-	fi	
+		echo " done!"
+	fi
 
 	# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 	if [[ -d $piholeDir ]];then
@@ -157,9 +169,9 @@ function gravity_transport() {
 	fi
 
 	# Silently curl url
-	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer 
+	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
 	# Check for list updates
-	gravity_patternCheck $patternBuffer 
+	gravity_patternCheck $patternBuffer
 
 	# Cleanup
 	rm -f $patternBuffer
@@ -198,7 +210,7 @@ function gravity_spinup() {
                 # Default is a simple request
                 *) cmd_ext=""
         esac
-        gravity_transport $url $cmd_ext $agent
+        gravity_transport "$url" "$cmd_ext" "$agent"
 	done
 }
 
@@ -207,26 +219,26 @@ function gravity_Schwarzchild() {
   echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
-	truncate -s 0 $piholeDir/$matterandlight & spinner $! 
+	truncate -s 0 $piholeDir/$matterandlight & spinner $!
 	for i in "${activeDomains[@]}"
 	do
    		cat $i |tr -d '\r' >> $piholeDir/$matterandlight
 	done
 	echo " done!"
-	
+
 }
 
 
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
-	blacklist.sh -f -nr -q > /dev/null & spinner $!
-	
+	$blacklistScript -f -nr -q > /dev/null & spinner $!
+
 	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
   echo " $numBlacklisted domain${plural} blacklisted!"
-  
-	
+
+
 }
 
 
@@ -235,7 +247,7 @@ function gravity_Whitelist() {
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
 	echo -n "::: Adding ${#sources[@]} ad list source${plural} to the whitelist..."
-	
+
 	urls=()
 	for url in ${sources[@]}
 	do
@@ -243,16 +255,16 @@ function gravity_Whitelist() {
         urls=("${urls[@]}" $tmp)
 	done
 	echo " done!"
-	
+
 	echo -n "::: Running whitelist script to update HOSTS file...."
-	whitelist.sh -f -nr -q ${urls[@]} > /dev/null & spinner $!
-		
+	$whitelistScript -f -nr -q ${urls[@]} > /dev/null & spinner $!
+
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
   echo " $numWhitelisted domain${plural} whitelisted!"
-  
-  
-		
+
+
+
 }
 
 function gravity_unique() {
@@ -272,7 +284,7 @@ function gravity_hostFormat() {
   	#Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
     echo -e "$piholeIP Pi-Hole.IsWorking.OK \n$piholeIPv6 Pi-Hole.IsWorking.OK" > $piholeDir/$accretionDisc
     cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
-    
+
   else
       # Otherwise, just create gravity.list as normal using IPv4
       #Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
@@ -307,19 +319,27 @@ function gravity_advanced() {
 	echo -n "::: Formatting list of domains to remove comments...."
 	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova & spinner $!
   echo " done!"
-  
+
 	numberOf=$(wc -l < $piholeDir/$supernova)
 	echo "::: $numberOf domains being pulled in by gravity..."
-    
+
 	gravity_unique
-  
+
 }
 
 function gravity_reload() {
+	#Clear no longer needed files...
+	echo ":::"
+	echo -n "::: Cleaning up un-needed files..."
+	$SUDO rm /etc/pihole/pihole.*
+	echo " done!"
+
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
 	dnsmasqPid=$(pidof dnsmasq)
+
+    find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
