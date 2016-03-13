@@ -10,6 +10,9 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+source /usr/local/include/pihole/piholeInclude
+
+rerun_pihole "$0" "$@"
 
 #Functions##############################################################################################################
 piLog="/var/log/pihole.log"

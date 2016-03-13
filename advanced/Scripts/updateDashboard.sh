@@ -10,6 +10,10 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+source /usr/local/include/pihole/piholeInclude
+
+rerun_pihole "$0" "$@"
+
 WEB_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 WEB_INTERFACE_DIR="/var/www/html/admin"
 
@@ -22,12 +26,6 @@ main() {
 }
 
 prerequisites() {
-
-    # must be root to update
-    if [[ $EUID -ne 0 ]]; then
-        sudo bash "$0" "$@"
-        exit $?
-    fi
 
     # web interface must already exist. this is a (lazy)
     # check to make sure pihole is actually installed.

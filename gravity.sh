@@ -10,20 +10,27 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-# Run this script as root or under sudo
+# Check if pihole user, and if not then rerun with sudo.
 echo ":::"
-if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
+runninguser=$(whoami)
+if [[ "$runninguser" = "pihole"  ]];then
+	echo "::: You are pihole user."
+	# Older versions of Pi-hole set $SUDO="sudo" and prefixed commands with it,
+	# rather than rerunning as sudo. Just in case it turns up by accident, 
+	# explicitly set the $SUDO variable to an empty string.
+	SUDO=""
 else
 	echo "::: sudo will be used."
-  # Check if it is actually installed
-  # If it isn't, exit because the install cannot complete
-  if [[ $(dpkg-query -s sudo) ]];then
-		export SUDO="sudo"
-  else
-		echo "::: Please install sudo or run this script as root."
-    exit 1
-  fi
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		echo "::: Running sudo -u pihole $0 $@"
+		sudo -u pihole "$0" "$@"
+		exit $?
+	else
+		echo "::: Please install sudo."
+	exit 1
+	fi
 fi
 
 piholeIPfile=/tmp/piholeIP
@@ -81,7 +88,7 @@ spinner(){
 
         spin='-\|/'
         i=0
-        while $SUDO kill -0 $pid 2>/dev/null
+        while kill -0 $pid 2>/dev/null
         do
                 i=$(( (i+1) %4 ))
                 printf "\b${spin:$i:1}"
@@ -125,17 +132,18 @@ function gravity_collapse() {
 
 	# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
 	if [[ -d $piholeDir ]];then
-        # Temporary hack to allow non-root access to pihole directory
-        # Will update later, needed for existing installs, new installs should
-        # create this directory as non-root
-        $SUDO chmod 777 $piholeDir
-        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
         echo "."
 	else
         echo -n "::: Creating pihole directory..."
         mkdir $piholeDir & spinner $!
         echo " done!"
 	fi
+	# Still not the best, but slightly more elegent hack than chmod 777.
+	# Run script to give the pihole group permissions to the pihole directory.
+	# This requires root.
+	# The installer should have created a file in sudoers.d to allow pihole user
+	# to run piholeSetPermissions.sh as root with sudo without a password
+	sudo --non-interactive /usr/local/bin/piholeSetPermissions.sh
 }
 
 # patternCheck - check to see if curl downloaded any new files.
@@ -331,27 +339,22 @@ function gravity_reload() {
 	#Clear no longer needed files...
 	echo ":::"
 	echo -n "::: Cleaning up un-needed files..."
-	$SUDO rm /etc/pihole/pihole.*
+	rm /etc/pihole/pihole.*
 	echo " done!"
 	
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
-	dnsmasqPid=$(pidof dnsmasq)
-
-    find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
-
-	if [[ $dnsmasqPid ]]; then
-		# service already running - reload config
-		$SUDO kill -HUP $dnsmasqPid & spinner $!
-	else
-		# service not running, start it up
-		$SUDO service dnsmasq start & spinner $!
-	fi
+	
+	# Reloading services requires root.
+	# The installer should have created a file in sudoers.d to allow pihole user
+	# to run piholeReloadServices.sh as root with sudo without a password
+	sudo --non-interactive /usr/local/bin/piholeReloadServices.sh
+	
 	echo " done!"
 }
 
-$SUDO cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild

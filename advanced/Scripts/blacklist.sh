@@ -23,6 +23,10 @@ if [[ $# = 0 ]]; then
     exit 1
 fi
 
+source /usr/local/include/pihole/piholeInclude
+
+rerun_pihole "$0" "$@"
+
 #globals
 blacklist=/etc/pihole/blacklist.txt
 adList=/etc/pihole/gravity.list
@@ -153,15 +157,11 @@ function Reload() {
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
 
-	dnsmasqPid=$(pidof dnsmasq)
-
-	if [[ $dnsmasqPid ]]; then
-		# service already running - reload config
-		sudo kill -HUP $dnsmasqPid
-	else
-		# service not running, start it up
-		sudo service dnsmasq start
-	fi
+	# Reloading services requires root.
+	# The installer should have created a file in sudoers.d to allow pihole user
+	# to run piholeReloadServices.sh as root with sudo without a password
+	sudo --non-interactive /usr/local/bin/piholeReloadServices.sh
+	
 	echo " done!"
 }
 

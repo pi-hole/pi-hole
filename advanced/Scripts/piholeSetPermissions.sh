@@ -3,7 +3,7 @@
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
-# Flushes /var/log/pihole.log
+# Sets permissions to pihole files and directories
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,4 +14,5 @@ source /usr/local/include/pihole/piholeInclude
 
 rerun_root "$0" "$@"
 
-truncate -s 0 /var/log/pihole.log
+chown --recursive root:pihole /etc/pihole
+chmod --recursive ug=rwX,o=rX /etc/pihole
