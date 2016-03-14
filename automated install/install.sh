@@ -10,21 +10,15 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+# Get files, as they might have changed
+curl -o $HOME/piholeInstall/pihole.var https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/pihole.var
+curl -o $HOME/piholeInstall/pihole.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/pihole.funcs
+curl -o $HOME/piholeInstall/install.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/install.funcs
+curl -o $HOME/piholeInstall/git.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/git.funcs
 
-#Check if we have the function and variable files
-if [ ! -f /etc/pihole/pihole.var ]; then
-	curl -o $HOME/piholeInstall/pihole.vars https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/automated%20install/pihole.vars
-	source $HOME/piholeInstall/pihole.var
-else
-	source /etc/pihole/pihole.var
-fi
-
-if [ ! -f /etc/pihole/pihole.funcs ]; then
-	curl -o $HOME/piholeInstall/pihole.funcs https://raw.githubusercontent.com/jacobsalmela/pi-hole/master/automated%20install/pihole.funcs
-	source $HOME/piholeInstall/pihole.funcs
-else
-	source /etc/pihole/pihole.funcs
-fi
+source $HOME/piholeInstall/pihole.funcs
+source $HOME/piholeInstall/install.funcs
+source $HOME/piholeInstall/git.funcs
 
 ###########Begin Script
 RootCheck
@@ -33,7 +27,7 @@ if [ ! -d /etc/pihole ];then
 	$SUDO mkdir -p /etc/pihole/
 fi
 
-#Display the welcom dialogs
+#Display the welcome dialogs
 welcomeDialogs
 
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way

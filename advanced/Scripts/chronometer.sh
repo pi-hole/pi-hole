@@ -10,18 +10,16 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+source /etc/pihole/Functions/pihole.var
 
 #Functions##############################################################################################################
-piLog="/var/log/pihole.log"
-gravity="/etc/pihole/gravity.list"
-
 today=$(date "+%b %e")
 
 function CalcBlockedDomains(){
 	CheckIPv6
-	if [ -e "$gravity" ]; then
+	if [ -e adList ]; then
 		#Are we IPV6 or IPV4?
-		if [[ -n $piholeIPv6 ]];then
+		if [[ IPv6 ]];then
 			#We are IPV6
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
@@ -42,7 +40,7 @@ function CalcQueriesToday(){
 }
 
 function CalcblockedToday(){
-	if [ -e "$piLog" ] && [ -e "$gravity" ];then
+	if [ -e "$piLog" ] && [ -e adList ];then
 		blockedToday=$(cat $piLog | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
 	else
 		blockedToday="Err."
@@ -62,10 +60,9 @@ function CalcPercentBlockedToday(){
 }
 
 function CheckIPv6(){
-	piholeIPv6file="/etc/pihole/.useIPv6"
-	if [[ -f $piholeIPv6file ]];then
+	if [[ -f piholeIPv6file ]];then
 	    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-	    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+	    IPv6=true
 	fi
 }
 
