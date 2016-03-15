@@ -619,7 +619,7 @@ installPiholeWeb() {
 	else
 		$SUDO mkdir /var/www/html/pihole
 		$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-		$SUDO cp /etc/.pihole/advanced/index.html /var/www/html/pihole/index.html
+		$SUDO cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
 		$SUDO echo " done!"
 	fi
 }
