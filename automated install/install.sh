@@ -11,14 +11,19 @@
 # (at your option) any later version.
 
 # Get files, as they might have changed
-curl -o $HOME/piholeInstall/pihole.var https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/pihole.var
-curl -o $HOME/piholeInstall/pihole.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/pihole.funcs
-curl -o $HOME/piholeInstall/install.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/install.funcs
-curl -o $HOME/piholeInstall/git.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/Functions/git.funcs
+if [ ! -d /tmp/piholeInstall ]; then
+	mkdir -p /tmp/piholeInstall
+fi
 
-source $HOME/piholeInstall/pihole.funcs
-source $HOME/piholeInstall/install.funcs
-source $HOME/piholeInstall/git.funcs
+curl -o /tmp/piholeInstall/pihole.var https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/pihole.var
+#curl -o /tmp/piholeInstall/pihole.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/pihole.funcs
+curl -o /tmp/piholeInstall/install.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/install.funcs
+curl -o /tmp/piholeInstall/git.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/git.funcs
+
+source /tmp/piholeInstall/pihole.var
+source /tmp/piholeInstall/pihole.funcs
+source /tmp/piholeInstall/install.funcs
+source /tmp/piholeInstall/git.funcs
 
 ###########Begin Script
 RootCheck
@@ -27,7 +32,7 @@ if [ ! -d /etc/pihole ];then
 	$SUDO mkdir -p /etc/pihole/
 fi
 
-#Display the welcome dialogs
+# Display the welcome dialogs
 welcomeDialogs
 
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
