@@ -4,11 +4,11 @@
 1. Install Raspbian 
 2. Run the command below
 
-### ```curl -L install.pi-hole.net | bash```
+### ```curl -L https://install.pi-hole.net | bash```
 
 #### Alternative Semi-Automated install ####
 ```
-wget -O basic-install.sh install.pi-hole.net
+wget -O basic-install.sh https://install.pi-hole.net
 chmod +x basic-install.sh
 ./basic-install.sh
 ```
