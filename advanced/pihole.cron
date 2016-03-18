@@ -9,6 +9,10 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+# Pi-hole: Check if Pi-hole needs to be updated. Check once a week on Monday at 01:59
+#          New releases often come out on Sunday, so checking the next day should be effective.
+59 1    * * 7   root    /usr/local/bin/updatePihole
+
 # Pi-hole: Update the ad sources once a week on Sunday at 01:59
 #          Download any updates from the ad lists
 59 1    * * 7   root    /usr/local/bin/gravity.sh
