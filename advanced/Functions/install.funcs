@@ -273,6 +273,7 @@ installScripts() {
 	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh
+	$SUDO cp -R /etc/.pihole/advanced/Functions /etc/pihole/
 	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 	$SUDO echo " done."
 }
@@ -343,6 +344,25 @@ checkForDependencies() {
 			echo " already installed!"
 		fi
 	done
+}
+
+getGitFiles() {
+	# Setup git repos for base files and web admin
+	echo ":::"
+	echo "::: Checking for existing base files..."
+	if is_repo $piholeFilesDir; then
+		make_repo $piholeFilesDir $piholeGitUrl
+	else
+		update_repo $piholeFilesDir
+	fi
+
+	echo ":::"
+	echo "::: Checking for existing web interface..."
+	if is_repo $webInterfaceDir; then
+		make_repo $webInterfaceDir $webInterfaceGitUrl
+	else
+		update_repo $webInterfaceDir
+	fi
 }
 
 CreateLogFile() {
