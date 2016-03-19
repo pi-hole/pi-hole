@@ -15,20 +15,15 @@ if [ ! -d /tmp/piholeInstall ]; then
 	mkdir -p /tmp/piholeInstall
 fi
 
-#curl -o /tmp/piholeInstall/pihole.var https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/pihole.var
-#curl -o /tmp/piholeInstall/pihole.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/pihole.funcs
-#curl -o /tmp/piholeInstall/install.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/install.funcs
-#curl -o /tmp/piholeInstall/git.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/git.funcs
+curl -o /tmp/piholeInstall/pihole.var https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/pihole.var
+curl -o /tmp/piholeInstall/pihole.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/pihole.funcs
+curl -o /tmp/piholeInstall/install.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/install.funcs
+curl -o /tmp/piholeInstall/git.funcs https://raw.githubusercontent.com/pi-hole/pi-hole/ExportVariables/advanced/Functions/git.funcs
 
-#source /tmp/piholeInstall/pihole.var
-#source /tmp/piholeInstall/pihole.funcs
-#source /tmp/piholeInstall/install.funcs
-#source /tmp/piholeInstall/git.funcs
-
-source /etc/.pihole/advanced/Functions/pihole.var
-source /etc/.pihole/advanced/Functions/pihole.funcs
-source /etc/.pihole/advanced/Functions/install.funcs
-source /etc/.pihole/advanced/Functions/git.funcs
+source /tmp/piholeInstall/pihole.var
+source /tmp/piholeInstall/pihole.funcs
+source /tmp/piholeInstall/install.funcs
+source /tmp/piholeInstall/git.funcs
 
 ###########Begin Script
 RootCheck
