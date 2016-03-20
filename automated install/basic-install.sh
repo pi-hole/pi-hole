@@ -117,8 +117,8 @@ welcomeDialogs() {
 
 
 verifyFreeDiskSpace() {
-	# 25MB is the minimum space needed (20MB install + 5MB one day of logs.)
-	requiredFreeBytes=51200
+	# 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
+	requiredFreeBytes=5000000
 	
 	existingFreeBytes=`df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1`    	
 	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then       
