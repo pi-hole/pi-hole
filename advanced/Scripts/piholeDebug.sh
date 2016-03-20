@@ -3,7 +3,7 @@
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
-# Flushes /var/log/pihole.log
+# Generates pihole_debug.log in /var/log/ to be used for troubleshooting.
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
