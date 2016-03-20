@@ -138,13 +138,25 @@ function dumpPiHoleLog {
 }
 
 function finalWrites {
+	# Write the 01-pihole.conf from /etc/dnsmasq.d/ to the debug log
+	echo "Writing 01-pihole.conf to debug log..."
+	echo "############### 01-pihole.conf ###############" >> $DEBUG_LOG
+	PIHOLECONFFILE="/etc/dnsmasq.d/01-pihole.conf"
+	if [ -e "$PIHOLECONFFILE" ]
+	then
+		cat "$PIHOLECONFFILE" >> $DEBUG_LOG
+		echo >> $DEBUG_LOG
+	else
+		echo "No 01-pihole.conf file found!" >> $DEBUG_LOG
+		echo "No 01-pihole.conf file found"
+	fi
 	# Write the gravity.list after the user is finished capturing the pihole.log output
 	echo "Writing gravity.list to debug log..."
 	echo "############### gravity.list ###############" >> $DEBUG_LOG
 	GRAVITYFILE="/etc/pihole/gravity.list"
 	if [ -e "$GRAVITYFILE" ]
 	then
-		cat /etc/pihole/gravity.list >> $DEBUG_LOG
+		cat "$GRAVITYFILE" >> $DEBUG_LOG
 		echo >> $DEBUG_LOG
 	else
 		echo "No gravity.list file found!" >> $DEBUG_LOG
