@@ -100,8 +100,10 @@ if [ -e "$DNSMASQFILE" ]
 then
 	#cat $DNSMASQFILE >> $DEBUG_LOG
 	while read -r line; do
-		[[ "$line" =~ ^#.*$ ]] && continue
-		echo "$line" >> $DEBUG_LOG
+		if [ ! -z "$line" ]; then
+			[[ "$line" =~ ^#.*$ ]] && continue
+			echo "$line" >> $DEBUG_LOG
+        fi
 	done < "$DNSMASQFILE"
 	echo >> $DEBUG_LOG
 else
@@ -117,8 +119,10 @@ if [ -e "$PIHOLECONFFILE" ]
 then
 	#cat "$PIHOLECONFFILE" >> $DEBUG_LOG
 	while read -r line; do
-		[[ "$line" =~ ^#.*$ ]] && continue
-		echo "$line" >> $DEBUG_LOG
+		if [ ! -z "$line" ]; then
+			[[ "$line" =~ ^#.*$ ]] && continue
+			echo "$line" >> $DEBUG_LOG
+        fi
 	done < "$PIHOLECONFFILE"
 	echo >> $DEBUG_LOG
 else
@@ -134,8 +138,10 @@ if [ -e "$LIGHTTPDFILE" ]
 then
 	#cat "$PIHOLECONFFILE" >> $DEBUG_LOG
 	while read -r line; do
-		[[ "$line" =~ ^#.*$ ]] && continue
-		echo "$line" >> $DEBUG_LOG
+		if [ ! -z "$line" ]; then
+			[[ "$line" =~ ^#.*$ ]] && continue
+			echo "$line" >> $DEBUG_LOG
+        fi
 	done < "$LIGHTTPDFILE"
 	echo >> $DEBUG_LOG
 else
