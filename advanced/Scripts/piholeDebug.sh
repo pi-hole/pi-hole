@@ -25,16 +25,17 @@ WHITELISTFILE="/etc/pihole/whitelist.txt"
 BLACKLISTFILE="/etc/pihole/blacklist.txt"
 ADLISTSFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
+WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 
 ######## FIRST CHECK ########
 # Must be root to debug
-if [[ $EUID -eq 0 ]];then
+if [[ $EUID -eq 0 ]]; then
 	echo "You are root... Beginning debug!"
 else
 	echo "sudo will be used for debugging."
 	# Check if sudo is actually installed
-	if [[ $(dpkg-query -s sudo) ]];then
+	if [[ $(dpkg-query -s sudo) ]]; then
 		export SUDO="sudo"
 	else
 		echo "Please install sudo or run this as root."
@@ -43,8 +44,7 @@ else
 fi
 
 # Ensure the file exists, create if not, clear if exists.
-if [ ! -f "$DEBUG_LOG" ] 
-then
+if [ ! -f "$DEBUG_LOG" ]; then
 	$SUDO touch $DEBUG_LOG
 	$SUDO chmod 644 $DEBUG_LOG
 	$SUDO chown "$USER":root $DEBUG_LOG
@@ -54,11 +54,21 @@ fi
 
 ### Private functions exist here ###
 function compareWhitelist {
+	if [ ! -f "$WHITELISTMATCHES" ]; then
+		$SUDO touch $WHITELISTMATCHES
+		$SUDO chmod 644 $WHITELISTMATCHES
+		$SUDO chown "$USER":root $WHITELISTMATCHES
+	else
+		truncate -s 0 $WHITELISTMATCHES
+	fi
+
 	echo "#######################################" >> $DEBUG_LOG
 	echo "######## Whitelist Comparison #########" >> $DEBUG_LOG
 	echo "#######################################" >> $DEBUG_LOG
 	while read -r line; do
-		grep -w ".* $line$" "$GRAVITYFILE" >> $DEBUG_LOG
+		TMP=$(grep -w ".* $line$" "$GRAVITYFILE")
+		echo "$TMP" >> $DEBUG_LOG
+		echo "$TMP"	>> $WHITELISTMATCHES
 	done < "$WHITELISTFILE"
 	echo >> $DEBUG_LOG
 }
@@ -74,7 +84,28 @@ function compareBlacklist {
 }
 
 function testNslookup {
-	# TODO: This will pull a non-matched entry from gravity.list to compare with the nslookup against Google's NS.
+	TESTURL=""
+	echo "#######################################" >> $DEBUG_LOG
+	echo "############ NSLookup Test ############" >> $DEBUG_LOG
+	echo "#######################################" >> $DEBUG_LOG
+	# Find a blocked url that has not been whitelisted.
+	while read -r line; do
+		CUTURL=$("$line" | cut -d " " -f2-)
+		if [ "$CUTURL" != "Pi-Hole.IsWorking.OK" ]; then
+			while read -r line2; do
+				CUTURL2=$("$line2" | cut -d " " -f2-)
+				if [ "$CUTURL" != "$CUTURL2" ]; then
+					TESTURL="$CUTURL"
+				fi
+			done < "WHITELISTMATCHES"
+		fi
+	done < "GRAVITYFILE"
+
+	echo "NSLOOKUP of $TESTURL from PiHole:" >> $DEBUG_LOG
+	echo nslookup "$TESTURL" >> $DEBUG_LOG
+	echo >> $DEBUG_LOG
+	echo "NSLOOKUP of $TESTURL from 8.8.8.8:" >> $DEBUG_LOG
+	echo nslookup "$TESTURL" 8.8.8.8 >> $DEBUG_LOG
 	echo >> $DEBUG_LOG
 }
 
@@ -91,6 +122,9 @@ GATEWAY_CHECK=$(ping -q -w 1 -c 1 "$(ip r | grep default | cut -d ' ' -f 3)" > /
 echo "Gateway check:" >> $DEBUG_LOG
 echo "$GATEWAY_CHECK" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
+
+# Test the nslookup here
+testNslookup
 
 echo "Writing dnsmasq.conf to debug log..."
 echo "#######################################" >> $DEBUG_LOG
