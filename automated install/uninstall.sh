@@ -27,9 +27,9 @@ fi
 
 
 ######### SCRIPT ###########
-read -p "Do you wish to purge PiHole's dependencies from your OS?" -n 1 -r
-ehco "WARNING: This is destructive if run on any non-Debian based OS"
+echo "WARNING: This is destructive if run on any non-Debian based OS"
 echo "(SAFE TO RUN ON RASPBIAN)"
+read -p "Do you wish to purge PiHole's dependencies from your OS?" -n 1 -r
 echo
 if [[ $REPLY =~ ^{Yy]$ ]]; then
 	$SUDO apt-get -y remove --purge dnsutils bc toilet
