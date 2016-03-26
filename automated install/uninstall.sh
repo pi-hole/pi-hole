@@ -34,7 +34,10 @@ function removeAndPurge {
 
 	# Remove dependency config files
 	echo "Removing dnsmasq config files..."
-	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig &> /dev/null
+	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+
+	# Call removeNoPurge to remove PiHole specific files
+	removeNoPurge
 }
 
 function removeNoPurge {
@@ -45,8 +48,10 @@ function removeNoPurge {
 	$SUDO rm /var/www/html/index.lighttpd.orig &> /dev/null
 
 	# If the web directory is empty after removing these files, then the parent html folder can be removed.
-	if [[ ! "$(ls -A /var/www/html)" ]]; then
-    		$SUDO rm -rf /var/www/html &> /dev/null
+	if [ -d "/var/www/html" ]; then
+		if [[ ! "$(ls -A /var/www/html)" ]]; then
+    			$SUDO rm -rf /var/www/html &> /dev/null
+		fi
 	fi
 
 	# Attempt to preserve backwards compatibility with older versions
@@ -73,7 +78,10 @@ function removeNoPurge {
 	$SUDO rm /usr/local/bin/chronometer.sh &> /dev/null
 	$SUDO rm /usr/local/bin/whitelist.sh &> /dev/null
 	$SUDO rm /usr/local/bin/piholeLogFlush.sh &> /dev/null
+	$SUDO rm /usr/local/bin/piholeDebug.sh &> /dev/null
+	$SUDO rm -rf /var/log/*pihole* &> /dev/null
 	$SUDO rm -rf /etc/pihole/ &> /dev/null
+	$SUDO rm -rf /etc/.pihole/ &> /dev/null
 
 }
 

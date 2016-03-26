@@ -72,19 +72,19 @@ fi
 # fi
 
 ####### FUNCTIONS ##########
-###All credit for the below function goes to http://fitnr.com/showing-a-bash-spinner.html
-spinner() {
-	local pid=$1
-
-	spin='-\|/'
-	i=0
-	while $SUDO kill -0 "$pid" 2>/dev/null
-	do
-		i=$(( (i+1) %4 ))
-		printf "\b%s" "{$spin:$i:1}"
-		sleep .1
-	done
-	printf "\b"
+spinner()
+{
+    local pid=$1
+    local delay=0.75
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
 }
 
 backupLegacyPihole() {
