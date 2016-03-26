@@ -27,9 +27,16 @@ fi
 
 
 ######### SCRIPT ###########
-$SUDO apt-get -y remove --purge dnsutils bc toilet
-$SUDO apt-get -y remove --purge dnsmasq
-$SUDO apt-get -y remove --purge lighttpd php5-common php5-cgi php5
+read -p "Do you wish to purge PiHole's dependencies from your OS?\n WARNING: This is destructive if run on any non-Debian based OS \n(SAFE TO RUN ON RASPBIAN)" -n 1 -r
+echo
+if [[ $REPLY =~ ^{Yy]$ ]]; then
+	$SUDO apt-get -y remove --purge dnsutils bc toilet
+	$SUDO apt-get -y remove --purge dnsmasq
+	$SUDO apt-get -y remove --purge lighttpd php5-common php5-cgi php5
+	
+	echo "Removing dnsmasq config files..."
+	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
+fi
 
 # Only web directories/files that are created by pihole should be removed.
 echo "Removing the Pi-hole Web server files..."
@@ -41,9 +48,6 @@ $SUDO rm /var/www/html/index.lighttpd.orig
 if [[ ! "$(ls -A /var/www/html)" ]]; then
     $SUDO rm -rf /var/www/html
 fi
-
-echo "Removing dnsmasq config files..."
-$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig
 
 # Attempt to preserve backwards compatibility with older versions
 # to guarantee no additional changes were made to /etc/crontab after
@@ -63,7 +67,6 @@ if [[ -f /etc/cron.d/pihole ]];then
 fi
 
 echo "Removing config files and scripts..."
-$SUDO rm /etc/dnsmasq.conf
 $SUDO rm -rf /etc/lighttpd/
 $SUDO rm /var/log/pihole.log
 $SUDO rm /usr/local/bin/gravity.sh
