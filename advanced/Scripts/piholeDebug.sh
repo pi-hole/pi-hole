@@ -67,8 +67,10 @@ function compareWhitelist {
 	echo "#######################################" >> $DEBUG_LOG
 	while read -r line; do
 		TMP=$(grep -w ".* $line$" "$GRAVITYFILE")
-		echo "$TMP" >> $DEBUG_LOG
-		echo "$TMP"	>> $WHITELISTMATCHES
+		if [ ! -z "$TMP" ]; then
+			echo "$TMP" >> $DEBUG_LOG
+			echo "$TMP"	>> $WHITELISTMATCHES
+		fi
 	done < "$WHITELISTFILE"
 	echo >> $DEBUG_LOG
 }
@@ -78,34 +80,39 @@ function compareBlacklist {
 	echo "######## Blacklist Comparison #########" >> $DEBUG_LOG
 	echo "#######################################" >> $DEBUG_LOG
 	while read -r line; do
-		grep -w ".* $line$" "$GRAVITYFILE" >> $DEBUG_LOG
+		if [ ! -z "$line" ]; then
+			grep -w ".* $line$" "$GRAVITYFILE" >> $DEBUG_LOG
+		fi
 	done < "$BLACKLISTFILE"
 	echo >> $DEBUG_LOG
 }
 
 function testNslookup {
-	TESTURL=""
+	TESTURL="doubleclick.com"
 	echo "#######################################" >> $DEBUG_LOG
 	echo "############ NSLookup Test ############" >> $DEBUG_LOG
 	echo "#######################################" >> $DEBUG_LOG
 	# Find a blocked url that has not been whitelisted.
-	while read -r line; do
-		CUTURL=$("$line" | cut -d " " -f2-)
-		if [ "$CUTURL" != "Pi-Hole.IsWorking.OK" ]; then
-			while read -r line2; do
-				CUTURL2=$("$line2" | cut -d " " -f2-)
-				if [ "$CUTURL" != "$CUTURL2" ]; then
-					TESTURL="$CUTURL"
-				fi
-			done < "WHITELISTMATCHES"
-		fi
-	done < "GRAVITYFILE"
+	if [ -s "$WHITELISTMATCHES" ]; then
+		while read -r line; do
+			CUTURL=${line#*" "}
+			if [ "$CUTURL" != "Pi-Hole.IsWorking.OK" ]; then
+				while read -r line2; do
+					CUTURL2=${line2#*" "}
+					if [ "$CUTURL" != "$CUTURL2" ]; then
+						TESTURL="$CUTURL"
+						break 2
+					fi
+				done < "$WHITELISTMATCHES"
+			fi
+		done < "$GRAVITYFILE"
+	fi
 
 	echo "NSLOOKUP of $TESTURL from PiHole:" >> $DEBUG_LOG
-	echo nslookup "$TESTURL" >> $DEBUG_LOG
+	nslookup "$TESTURL" >> $DEBUG_LOG
 	echo >> $DEBUG_LOG
 	echo "NSLOOKUP of $TESTURL from 8.8.8.8:" >> $DEBUG_LOG
-	echo nslookup "$TESTURL" 8.8.8.8 >> $DEBUG_LOG
+	nslookup "$TESTURL" 8.8.8.8 >> $DEBUG_LOG
 	echo >> $DEBUG_LOG
 }
 
@@ -124,6 +131,8 @@ echo "$GATEWAY_CHECK" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
 
 # Test the nslookup here
+compareWhitelist
+compareBlacklist
 testNslookup
 
 echo "Writing dnsmasq.conf to debug log..."
@@ -199,7 +208,6 @@ fi
 # Write the hostname output to compare against entries in /etc/hosts, which is logged next
 echo "Hostname of this pihole is: " >> $DEBUG_LOG
 hostname >> $DEBUG_LOG
-echo >> $DEBUG_LOG
 
 echo "Writing hosts file to debug log..."
 echo "#######################################" >> $DEBUG_LOG
@@ -215,7 +223,6 @@ else
 fi
 
 ### PiHole application specific logging ###
-# Write Pi-Hole logs to debug log
 echo "Writing whitelist to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "############## Whitelist ##############" >> $DEBUG_LOG
