@@ -477,8 +477,7 @@ installScripts() {
 	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh
-	$SUDO cp /etc/.pihole/advanced/Scripts/piholeDebug.sh /usr/local/bin/piholeDebug.sh
-	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,piholeDebug}.sh
+	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
 	$SUDO echo " done."
 }
 
