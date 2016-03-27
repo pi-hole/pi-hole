@@ -31,14 +31,14 @@ WHITELISTMATCHES="/tmp/whitelistmatches.list"
 ######## FIRST CHECK ########
 # Must be root to debug
 if [[ $EUID -eq 0 ]]; then
-	echo "You are root... Beginning debug!"
+	echo "::: You are root... Beginning debug!"
 else
-	echo "sudo will be used for debugging."
+	echo "::: Sudo will be used for debugging."
 	# Check if sudo is actually installed
 	if [[ $(dpkg-query -s sudo) ]]; then
 		export SUDO="sudo"
 	else
-		echo "Please install sudo or run this as root."
+		echo "::: Please install sudo or run this as root."
 		exit 1
 	fi
 fi
@@ -119,7 +119,7 @@ function testNslookup {
 ### Check Pi internet connections ###
 # Log the IP addresses of this Pi
 IPADDR=$(ifconfig | perl -nle 's/dr:(\S+)/print $1/e')
-echo "Writing local IPs to debug log"
+echo "::: Writing local IPs to debug log"
 echo "IP Addresses of this Pi:" >> $DEBUG_LOG
 echo "$IPADDR" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
@@ -135,7 +135,7 @@ compareWhitelist
 compareBlacklist
 testNslookup
 
-echo "Writing dnsmasq.conf to debug log..."
+echo "::: Writing dnsmasq.conf to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "############### Dnsmasq ###############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -151,10 +151,10 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No dnsmasq.conf file found!" >> $DEBUG_LOG
-	echo "No dnsmasq.conf file found!"
+	printf ":::\tNo dnsmasq.conf file found!\n"
 fi
 
-echo "Writing 01-pihole.conf to debug log..."
+echo "::: Writing 01-pihole.conf to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "########### 01-pihole.conf ############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -170,10 +170,10 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No 01-pihole.conf file found!" >> $DEBUG_LOG
-	echo "No 01-pihole.conf file found"
+	echo ":::	No 01-pihole.conf file found\n"
 fi
 
-echo "Writing lighttpd.conf to debug log..."
+echo "::: Writing lighttpd.conf to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "############ lighttpd.conf ############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -189,10 +189,10 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No lighttpd.conf file found!" >> $DEBUG_LOG
-	echo "No lighttpd.conf file found"
+	printf ":::\tNo lighttpd.conf file found\n"
 fi
 
-echo "Writing size of gravity.list to debug log..."
+echo "::: Writing size of gravity.list to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "############ gravity.list #############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -202,14 +202,14 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No gravity.list file found!" >> $DEBUG_LOG
-	echo "No gravity.list file found"
+	printf ":::\tNo gravity.list file found\n"
 fi
 
 # Write the hostname output to compare against entries in /etc/hosts, which is logged next
 echo "Hostname of this pihole is: " >> $DEBUG_LOG
 hostname >> $DEBUG_LOG
 
-echo "Writing hosts file to debug log..."
+echo "::: Writing hosts file to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "################ Hosts ################" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -219,11 +219,11 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No hosts file found!" >> $DEBUG_LOG
-	echo "No hosts file found!"
+	printf ":::\tNo hosts file found!\n"
 fi
 
 ### PiHole application specific logging ###
-echo "Writing whitelist to debug log..."
+echo "::: Writing whitelist to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "############## Whitelist ##############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -233,10 +233,10 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No whitelist.txt file found!" >> $DEBUG_LOG
-	echo "No whitelist.txt file found!"
+	printf ":::\tNo whitelist.txt file found!\n"
 fi
 
-echo "Writing blacklist to debug log..."
+echo "::: Writing blacklist to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "############## Blacklist ##############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -246,10 +246,10 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No blacklist.txt file found!" >> $DEBUG_LOG
-	echo "No blacklist.txt file found!"
+	printf ":::\tNo blacklist.txt file found!\n"
 fi
 
-echo "Writing adlists.list to debug log..."
+echo "::: Writing adlists.list to debug log..."
 echo "#######################################" >> $DEBUG_LOG
 echo "############ adlists.list #############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
@@ -259,14 +259,14 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No adlists.list file found!" >> $DEBUG_LOG
-	echo "No adlists.list file found!"
+	printf ":::\tNo adlists.list file found!\n"
 fi
 
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 function dumpPiHoleLog {
 	trap '{ echo -e "\nFinishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo -e "Writing current pihole traffic to debug log...\nTry loading any/all sites that you are having trouble with now... (Press ctrl+C to finish)"
+	echo -e "::: Writing current pihole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
 	echo "#######################################" >> $DEBUG_LOG
 	echo "############# pihole.log ##############" >> $DEBUG_LOG
 	echo "#######################################" >> $DEBUG_LOG
@@ -278,13 +278,13 @@ function dumpPiHoleLog {
 		done
 	else
 		echo "No pihole.log file found!" >> $DEBUG_LOG
-		echo "No pihole.log file found!"
+		printf ":::\tNo pihole.log file found!\n"
 	fi
 }
 
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
-	echo "Finshed debugging!"
+	echo "::: Finshed debugging!"
 }
 trap finalWork EXIT
 
