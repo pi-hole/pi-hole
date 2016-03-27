@@ -14,7 +14,7 @@
 if [[ $EUID -eq 0 ]];then
 	echo "You are root."
 else
-	echo "sudo will be used for the install."
+	echo "sudo will be used for the uninstall."
   # Check if it is actually installed
   # If it isn't, exit because the unnstall cannot complete
   if [[ $(dpkg-query -s sudo) ]];then
@@ -27,14 +27,48 @@ fi
 
 function removeAndPurge {
 	# Purge dependencies
-	echo "Purging dependencies!"
-	$SUDO apt-get -y remove --purge dnsutils bc toilet
-	$SUDO apt-get -y remove --purge dnsmasq
-	$SUDO apt-get -y remove --purge lighttpd php5-common php5-cgi php5
+	read -p "Do you wish to purge dnsutils?" -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		$SUDO apt-get -y remove --purge dnsutils
+	fi
+
+	read -p "Do you wish to purge bc?" -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		$SUDO apt-get -y remove --purge bc
+	fi
+
+	read -p "Do you wish to purge toilet?" -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		$SUDO apt-get -y remove --purge toilet
+	fi
+
+	read -p "Do you wish to purge dnsmasq?" -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		$SUDO apt-get -y remove --purge dnsmasq
+	fi
+
+	read -p "Do you wish to purge lighttpd?" -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		$SUDO apt-get -y remove --purge lighttpd
+	fi
+
+	read -p "Do you wish to purge php5?" -n 1 -r
+	echo
+	if [[ $REPLY =~ ^[Yy]$ ]]; then
+		$SUDO apt-get -y remove --purge php5-common php5-cgi php5
+	fi
 
 	# Remove dependency config files
 	echo "Removing dnsmasq config files..."
 	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+
+	# Take care of any additional package cleaning
+	$SUDO apt-get -y autoremove
 
 	# Call removeNoPurge to remove PiHole specific files
 	removeNoPurge
@@ -86,13 +120,14 @@ function removeNoPurge {
 }
 
 ######### SCRIPT ###########
-echo "WARNING: This is destructive if run on any non-Debian based OS"
-echo "(SAFE TO RUN ON RASPBIAN)"
+echo "Preparing to remove packages, be sure that each may be safely removed depending on your operating system."
+echo "(SAFE TO REMOVE ALL ON RASPBIAN)"
 while true; do
-	read -p "Do you wish to purge PiHole's dependencies from your OS?" yn
+	read -rp "Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package)" yn
 	case $yn in
 		[Yy]* ) removeAndPurge; break;;
 	
 		[Nn]* ) removeNoPurge; break;;
 	esac
 done
+

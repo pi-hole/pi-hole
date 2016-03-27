@@ -75,9 +75,9 @@ fi
 spinner()
 {
     local pid=$1
-    local delay=0.75
+    local delay=0.50
     local spinstr='|/-\'
-    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
         local temp=${spinstr#?}
         printf " [%c]  " "$spinstr"
         local spinstr=$temp${spinstr%"$temp"}
@@ -486,6 +486,10 @@ installConfigs() {
 	$SUDO echo ":::"
 	$SUDO echo "::: Installing configs..."
 	versionCheckDNSmasq
+	if [ ! -d "/etc/lighttpd" ]; then
+		$SUDO mkdir /etc/lighttpd
+		$SUDO chown "$USER":root /etc/lighttpds
+	fi
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
 }
@@ -664,6 +668,9 @@ installPihole() {
 	stopServices
 	setUser
 	$SUDO mkdir -p /etc/pihole/
+	if [ ! -d "/var/www/html" ]; then
+		$SUDO mkdir /var/www/html
+	fi
 	$SUDO chown www-data:www-data /var/www/html
 	$SUDO chmod 775 /var/www/html
 	$SUDO usermod -a -G www-data pihole
