@@ -489,8 +489,8 @@ installConfigs() {
 	if [ ! -d "/etc/lighttpd" ]; then
 		$SUDO mkdir /etc/lighttpd
 		$SUDO chown "$USER":root /etc/lighttpd
+		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	fi
-	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
 }
 
@@ -622,9 +622,13 @@ installPiholeWeb() {
 		$SUDO echo " Existing page detected, not overwriting"
 	else
 		$SUDO mkdir /var/www/html/pihole
-		$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+		if [ -f /var/www/html/index.lighttpd.html ]; then
+			$SUDO mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+		else
+			printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
+		fi
 		$SUDO cp /etc/.pihole/advanced/index.html /var/www/html/pihole/index.html
-		$SUDO echo " done!"
+		$SUDO echo "::: done!"
 	fi
 }
 
@@ -646,7 +650,6 @@ runGravity() {
 	fi
 	#Don't run as SUDO, this was causing issues
 	echo "::: Running gravity.sh"
-	echo ":::"
 
 	/usr/local/bin/gravity.sh
 }

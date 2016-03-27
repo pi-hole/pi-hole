@@ -12,71 +12,71 @@
 
 # Must be root to uninstall
 if [[ $EUID -eq 0 ]];then
-	echo "You are root."
+	echo "::: You are root."
 else
-	echo "sudo will be used for the uninstall."
+	echo "::: Sudo will be used for the uninstall."
   # Check if it is actually installed
   # If it isn't, exit because the unnstall cannot complete
   if [[ $(dpkg-query -s sudo) ]];then
 		export SUDO="sudo"
   else
-    echo "Please install sudo or run this as root."
+    echo "::: Please install sudo or run this as root."
     exit 1
   fi
 fi
 
+spinner()
+{
+    local pid=$1
+    local delay=0.50
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
 function removeAndPurge {
 	# Purge dependencies
-	read -p "Do you wish to purge dnsutils?" -n 1 -r
-	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		$SUDO apt-get -y remove --purge dnsutils
-	fi
-
-	read -p "Do you wish to purge bc?" -n 1 -r
-	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		$SUDO apt-get -y remove --purge bc
-	fi
-
-	read -p "Do you wish to purge toilet?" -n 1 -r
-	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		$SUDO apt-get -y remove --purge toilet
-	fi
-
-	read -p "Do you wish to purge dnsmasq?" -n 1 -r
-	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		$SUDO apt-get -y remove --purge dnsmasq
-	fi
-
-	read -p "Do you wish to purge lighttpd?" -n 1 -r
-	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		$SUDO apt-get -y remove --purge lighttpd
-	fi
-
-	read -p "Do you wish to purge php5?" -n 1 -r
-	echo
-	if [[ $REPLY =~ ^[Yy]$ ]]; then
-		$SUDO apt-get -y remove --purge php5-common php5-cgi php5
-	fi
+echo ":::"
+	dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+	for i in "${dependencies[@]}"; do
+		if [ "$(dpkg-query -W --showformat='${Status}\n' "$i" | grep -c "ok installed")" -eq 1 ]; then
+			while true; do
+				read -rp "::: Do you wish to remove $i from your system? (y/n): " yn
+				case $yn in
+					[Yy]* ) echo "::: Removing $i..."; $SUDO apt-get -y remove --purge "$i" > /dev/null & spinner $!; echo "DONE!"; break;;
+					[Nn]* ) echo "::: Skipping $i"; break;;
+					* ) echo "::: You must answer yes or no!";;
+				esac
+			done
+		else
+			echo "IF FAILED			***"
+		fi
+	done
 
 	# Remove dependency config files
-	echo "Removing dnsmasq config files..."
+	echo "::: Removing dnsmasq config files..."
 	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 
 	# Take care of any additional package cleaning
-	$SUDO apt-get -y autoremove
+	echo "::: Auto removing remaining dependencies"
+	$SUDO apt-get -y autoremove &> /dev/null & spinner $!; echo "DONE!";
+	echo "::: Auto cleaning remaining dependencies"
+	$SUDO apt-get -y autoclean &> /dev/null & spinner $!; echo "DONE!";
 
 	# Call removeNoPurge to remove PiHole specific files
 	removeNoPurge
 }
 
 function removeNoPurge {
+	echo ":::"
 	# Only web directories/files that are created by pihole should be removed.
-	echo "Removing the Pi-hole Web server files..."
+	echo "::: Removing the Pi-hole Web server files..."
 	$SUDO rm -rf /var/www/html/admin &> /dev/null
 	$SUDO rm -rf /var/www/html/pihole &> /dev/null
 	$SUDO rm /var/www/html/index.lighttpd.orig &> /dev/null
@@ -93,7 +93,7 @@ function removeNoPurge {
 	# the installation of pihole, /etc/crontab.pihole should be permanently
 	# preserved.
 	if [[ -f /etc/crontab.orig ]]; then
-		echo "Initial Pi-hole cron detected.  Restoring the default system cron..."
+		echo "::: Initial Pi-hole cron detected.  Restoring the default system cron..."
 		$SUDO mv /etc/crontab /etc/crontab.pihole
 		$SUDO mv /etc/crontab.orig /etc/crontab
 		$SUDO service cron restart
@@ -101,11 +101,11 @@ function removeNoPurge {
 
 	# Attempt to preserve backwards compatibility with older versions
 	if [[ -f /etc/cron.d/pihole ]];then
-		echo "Removing cron.d/pihole..."
+		echo "::: Removing cron.d/pihole..."
 		$SUDO rm /etc/cron.d/pihole &> /dev/null
 	fi
 
-	echo "Removing config files and scripts..."
+	echo "::: Removing config files and scripts..."
 	$SUDO rm -rf /etc/lighttpd/ &> /dev/null
 	$SUDO rm /var/log/pihole.log &> /dev/null
 	$SUDO rm /usr/local/bin/gravity.sh &> /dev/null
@@ -116,18 +116,23 @@ function removeNoPurge {
 	$SUDO rm -rf /var/log/*pihole* &> /dev/null
 	$SUDO rm -rf /etc/pihole/ &> /dev/null
 	$SUDO rm -rf /etc/.pihole/ &> /dev/null
-
+	
+	echo ":::"
+	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
+	printf "::: Reach out to us at https://github.com/pi-hole/pi-hole/issues if you need help\n"
+	printf "::: Reinstall by simpling running\n:::\n:::\tcurl -L install.pi-hole.net | bash\n:::\n::: at any time!\n:::\n"
 }
 
 ######### SCRIPT ###########
-echo "Preparing to remove packages, be sure that each may be safely removed depending on your operating system."
-echo "(SAFE TO REMOVE ALL ON RASPBIAN)"
+echo "::: Preparing to remove packages, be sure that each may be safely removed depending on your operating system."
+echo "::: (SAFE TO REMOVE ALL ON RASPBIAN)"
 while true; do
-	read -rp "Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package)" yn
+	read -rp "::: Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package)" yn
 	case $yn in
 		[Yy]* ) removeAndPurge; break;;
 	
 		[Nn]* ) removeNoPurge; break;;
 	esac
 done
+
 
