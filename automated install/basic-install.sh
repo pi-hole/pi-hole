@@ -488,7 +488,7 @@ installConfigs() {
 	versionCheckDNSmasq
 	if [ ! -d "/etc/lighttpd" ]; then
 		$SUDO mkdir /etc/lighttpd
-		$SUDO chown "$USER":root /etc/lighttpds
+		$SUDO chown "$USER":root /etc/lighttpd
 	fi
 	$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
