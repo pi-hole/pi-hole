@@ -118,14 +118,14 @@ function normalChrono(){
 }
 
 function displayHelp(){
- echo "Displays stats about your piHole!"
-    echo " "
-    echo "Usage: chronometer.sh [optional:-j]"
-    echo "Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
-    echo "  "
-    echo "Options:"
-    echo "  -j, --json		output stats as JSON formatted string"
-    echo "  -h, --help	display this help text"
+ 	echo "::: Displays stats about your piHole!"
+    echo ":::"
+    echo "::: Usage: pihole.sh -c [optional:-j]"
+    echo "::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
+    echo ":::"
+    echo "::: Options:"
+    echo ":::  -j, --json		output stats as JSON formatted string"
+    echo ":::  -h, --help		display this help text"
 
     exit 1
 }

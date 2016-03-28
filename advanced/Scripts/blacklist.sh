@@ -11,15 +11,15 @@
 # (at your option) any later version.
 
 if [[ $# = 0 ]]; then
-    echo "Immediately blacklists one or more domains in the hosts file"
-    echo " "
-    echo "Usage: blacklist.sh domain1 [domain2 ...]"
-    echo "  "
-    echo "Options:"
-    echo "  -d, --delmode		Remove domains from the blacklist"
-    echo "  -nr, --noreload	Update blacklist without refreshing dnsmasq"
-    echo "  -f, --force		Force updating of the hosts files, even if there are no changes"
-    echo "  -q, --quiet		output is less verbose"
+    echo "::: Immediately blacklists one or more domains in the hosts file"
+    echo ":::"
+    echo "::: Usage: pihole.sh -b domain1 [domain2 ...]"
+    echo ":::"
+    echo "::: Options:"
+    echo ":::  -d, --delmode		Remove domains from the blacklist"
+    echo ":::  -nr, --noreload		Update blacklist without refreshing dnsmasq"
+    echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
+    echo ":::  -q, --quiet			output is less verbose"
     exit 1
 fi
 
@@ -53,7 +53,7 @@ function HandleOther(){
   #check validity of domain
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "$validDomain" ]; then
-		echo "$1" is not a valid argument or domain name
+		echo "::: $1 is not a valid argument or domain name"
 	else	  
 	  domList=("${domList[@]}" $validDomain)
 	fi
