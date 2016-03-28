@@ -112,6 +112,7 @@ function removeNoPurge {
 	$SUDO rm /usr/local/bin/gravity.sh &> /dev/null
 	$SUDO rm /usr/local/bin/chronometer.sh &> /dev/null
 	$SUDO rm /usr/local/bin/whitelist.sh &> /dev/null
+	$SUDO rm /usr/local/bin/blacklist.sh &> /dev/null
 	$SUDO rm /usr/local/bin/piholeLogFlush.sh &> /dev/null
 	$SUDO rm /usr/local/bin/piholeDebug.sh &> /dev/null
 	$SUDO rm /usr/local/bin/updateDashboard.sh &> /dev/null
