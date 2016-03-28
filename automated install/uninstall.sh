@@ -114,6 +114,8 @@ function removeNoPurge {
 	$SUDO rm /usr/local/bin/whitelist.sh &> /dev/null
 	$SUDO rm /usr/local/bin/piholeLogFlush.sh &> /dev/null
 	$SUDO rm /usr/local/bin/piholeDebug.sh &> /dev/null
+	$SUDO rm /usr/local/bin/updateDashboard.sh &> /dev/null
+	$SUDO rm /usr/local/bin/uninstall.sh &> /dev/null
 	$SUDO rm /etc/dnsmasq.d/adList.conf &> /dev/null
 	$SUDO rm -rf /var/log/*pihole* &> /dev/null
 	$SUDO rm -rf /etc/pihole/ &> /dev/null
