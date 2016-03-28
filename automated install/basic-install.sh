@@ -483,6 +483,7 @@ installScripts() {
 	$SUDO cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
 	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall,setupLCD}.sh
+	$SUDO cp /etc/.pihole/pihole.sh /usr/local/bin/pihole.sh
 	$SUDO echo " done."
 }
 

@@ -119,6 +119,7 @@ function removeNoPurge {
 	$SUDO rm -rf /etc/pihole/ &> /dev/null
 	$SUDO rm -rf /etc/.pihole/ &> /dev/null
 	$SUDO rm -rf /opt/pihole/ &> /dev/null
+	$SUDO rm /usr/local/bin/pihole.sh &> /dev/null
 	
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
