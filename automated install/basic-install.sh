@@ -93,8 +93,8 @@ backupLegacyPihole() {
 		if [ ! -d /opt/pihole ]; then
 			$SUDO mkdir /opt/pihole
 			$SUDO chown "$USER":root /opt/pihole
-			$SUDO chmod 1766 /opt/pihole
-		fi
+			$SUDO chmod u+srwx /opt/pihole
+		fi	
 		$SUDO mv /opt/pihole/gravity.sh /etc/pihole/original/gravity.sh."$(date "+%Y-%m-%d")"
 	else
 		:
@@ -481,11 +481,8 @@ installScripts() {
 	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /opt/pihole/updateDashboard.sh
 	$SUDO cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
-	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall}.sh
-	for f in /opt/pihole/*; do
-		filename=${f##*/}
-		$SUDO ln -s /opt/pihole/"$filename" /usr/local/bin/"$filename"
-	done
+	$SUDO cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
+	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall,setupLCD}.sh
 	$SUDO echo " done."
 }
 
