@@ -107,8 +107,13 @@ function removeNoPurge {
 	fi
 
 	echo "::: Removing config files and scripts..."
-	$SUDO rm -rf /etc/lighttpd/ &> /dev/null
-	$SUDO rm /var/log/pihole.log &> /dev/null
+	if [ ! "$(dpkg-query -W --showformat='${Status}\n' lighttpd 2> /dev/null | grep -c "ok installed")" -eq 1 ]; then
+		$SUDO rm -rf /etc/lighttpd/ &> /dev/null
+	else
+		if [ -f /etc/lighttpd/lighttpd.conf.orig ]; then
+			$SUDO mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
+		fi
+	fi
 	$SUDO rm /usr/local/bin/gravity.sh &> /dev/null
 	$SUDO rm /usr/local/bin/chronometer.sh &> /dev/null
 	$SUDO rm /usr/local/bin/whitelist.sh &> /dev/null
