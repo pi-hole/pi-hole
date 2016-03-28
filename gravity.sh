@@ -169,22 +169,12 @@ function gravity_transport() {
 	fi
 
 	# Silently curl url
-<<<<<<< HEAD
 	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
 	# Check for list updates
 	gravity_patternCheck $patternBuffer
-=======
-<<<<<<< HEAD
-	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
-	# Check for list updates
-	gravity_patternCheck $patternBuffer
-=======
 	curl -s "$cmd_ext" "$heisenbergCompensator" -A "$agent" "$url" > "$patternBuffer"
 	# Check for list updates
 	gravity_patternCheck "$patternBuffer"
->>>>>>> ScriptCleanup
->>>>>>> ScriptCleanup-Dev
-
 	# Cleanup
 	rm -f "$patternBuffer"
 }
@@ -269,16 +259,7 @@ function gravity_Whitelist() {
 	echo " done!"
 
 	echo -n "::: Running whitelist script to update HOSTS file...."
-<<<<<<< HEAD
-	$whitelistScript -f -nr -q ${urls[@]} > /dev/null & spinner $!
-
-<<<<<<< HEAD
-=======
-=======
 	$whitelistScript -f -nr -q "${urls[@]}" > /dev/null & spinner $!
-		
->>>>>>> ScriptCleanup
->>>>>>> ScriptCleanup-Dev
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
   echo " $numWhitelisted domain${plural} whitelisted!"
@@ -303,16 +284,7 @@ function gravity_hostFormat() {
   if [[ -n $piholeIPv6 ]];then
   	#Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
     echo -e "$piholeIP Pi-Hole.IsWorking.OK \n$piholeIPv6 Pi-Hole.IsWorking.OK" > $piholeDir/$accretionDisc
-<<<<<<< HEAD
-    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
-
-<<<<<<< HEAD
-=======
-=======
     $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
-    
->>>>>>> ScriptCleanup
->>>>>>> ScriptCleanup-Dev
   else
       # Otherwise, just create gravity.list as normal using IPv4
       #Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!

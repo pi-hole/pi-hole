@@ -51,13 +51,7 @@ fi
 
 function HandleOther(){
   #check validity of domain
-<<<<<<< HEAD
-	validDomain=$(echo $1 | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
-
-=======
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
-	
->>>>>>> ScriptCleanup-Dev
 	if [ -z "$validDomain" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
@@ -186,13 +180,8 @@ do
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
-<<<<<<< HEAD
-    "-q" | "--quiet"     ) versbose=false;;
-    *                    ) HandleOther $var;;
-=======
     "-q" | "--quiet"     ) versbose=false;;  			
     *                    ) HandleOther "$var";;
->>>>>>> ScriptCleanup-Dev
   esac
 done
 
