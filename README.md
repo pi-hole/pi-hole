@@ -1,14 +1,19 @@
+<<<<<<< HEAD
 # Automated Install
 ##### Designed For Raspberry Pi A+, B, B+, 2, Zero (with an Ethernet adapter), and also works on most Debian based distros!
+=======
+# Automated Install 
+##### Designed For Raspberry Pi A+, B, B+, 2, Zero, and 3B (with an Ethernet/Wi-Fi adapter)
+>>>>>>> PiholeDebug
 
 1. Install Raspbian on Raspberry Pi variants or a Debian based distribution on other hardware or virtual machines
 2. Run the command below
 
-### ```curl -L install.pi-hole.net | bash```
+### ```curl -L https://install.pi-hole.net | bash```
 
 #### Alternative Semi-Automated install ####
 ```
-wget -O basic-install.sh install.pi-hole.net
+wget -O basic-install.sh https://install.pi-hole.net
 chmod +x basic-install.sh
 ./basic-install.sh
 ```
@@ -18,13 +23,20 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 ## Pi-hole Is Free, But Powered By Your Donations
 [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate")
 
+## Catch us out on the net:
+Twitter: [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+
+reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
+
 ## How Does It Work?
 **Watch the 60-second video below to get a quick overview**
 
 [![Pi-hole exlplained](http://i.imgur.com/qNybJDX.png)](https://vimeo.com/135965232)
 
 ## Pi-hole Projects
+- [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
 - [x86 Docker container that runs Pi-hole](https://hub.docker.com/r/diginc/pi-hole/)
+- [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
 - [Pi-hole Chrome extension](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([open source](https://github.com/packtloss/pihole-extension))
 - [Go Bananas for CHiP-hole ad blocking](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
 - [Sky-Hole](http://dlaa.me/blog/post/skyhole)
@@ -34,7 +46,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 - [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 
 ## Coverage
-- [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
+- [Pi-hole on Adafruit's blog](https://blog.adafruit.com/2016/03/04/pi-hole-is-a-black-hole-for-internet-ads-piday-raspberrypi-raspberry_pi/)
 - [The Defrag Show - MSDN/Channel 9](https://channel9.msdn.com/Shows/The-Defrag-Show/Defrag-Endoscope-USB-Camera-The-Final-HoloLens-Vote-Adblock-Pi-and-more?WT.mc_id=dlvr_twitter_ch9#time=20m39s)
 - [MacObserver Podcast 585](http://www.macobserver.com/tmo/podcast/macgeekgab-585)
 - [Medium: Block All Ads For $53](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d)
@@ -67,6 +79,8 @@ The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashb
 
 `http://192.168.1.x/admin/index.php`
 
+![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/rTlLYPh.png)
+
 ### API
 
 A basic read-only API can be accessed at `/admin/api.php`. It returns the following JSON:
@@ -92,4 +106,4 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 - There is also an [FAQ section on pi-hole.net](http://pi-hole.net)
 
 ## Other Operating Systems
-This script will work for other UNIX-like systems with some slight **modifications**.  As long as you can install `dnsmasq` and a Webserver, it should work OK.  The automated install only works for a clean install of Raspiban right now since that is how the project originated.
+This script will work for other UNIX-like systems with some slight **modifications**.  As long as you can install `dnsmasq` and a Webserver, it should work OK.  The automated install is only for a clean install of a Debian based system, such as the Raspberry Pi.
