@@ -50,7 +50,7 @@ echo ":::"
 			while true; do
 				read -rp "::: Do you wish to remove $i from your system? [y/n]: " yn
 				case $yn in
-					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO apt-get -y remove --purge "$i" &> /dev/null & spinner $!; printf "DONE!\n"; break;;
+					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO apt-get -y remove --purge "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
 					[Nn]* ) printf ":::\tSkipping %s" "$i"; break;;
 					* ) printf "::: You must answer yes or no!";;
 				esac
@@ -65,10 +65,10 @@ echo ":::"
 	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 
 	# Take care of any additional package cleaning
-	printf "::: Auto removing remaining dependencies"
-	$SUDO apt-get -y autoremove &> /dev/null & spinner $!; printf "DONE!\n";
-	printf "::: Auto cleaning remaining dependencies"
-	$SUDO apt-get -y autoclean &> /dev/null & spinner $!; printf "DONE!\n";
+	printf "::: Auto removing remaining dependencies..."
+	$SUDO apt-get -y autoremove &> /dev/null & spinner $!; printf "done!\n";
+	printf "::: Auto cleaning remaining dependencies..."
+	$SUDO apt-get -y autoclean &> /dev/null & spinner $!; printf "done!\n";
 
 	# Call removeNoPurge to remove PiHole specific files
 	removeNoPurge
@@ -124,14 +124,14 @@ function removeNoPurge {
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
 	printf "::: Reach out to us at https://github.com/pi-hole/pi-hole/issues if you need help\n"
 	printf "::: Reinstall by simpling running\n:::\n:::\tcurl -L install.pi-hole.net | bash\n:::\n::: at any time!\n:::\n"
-	printf "::: PLEASE RESET YOUR DNS ON YOUR ROUTER/CLIENTS TO RESTORE INTERNET CONNECTIVITY!/n"
+	printf "::: PLEASE RESET YOUR DNS ON YOUR ROUTER/CLIENTS TO RESTORE INTERNET CONNECTIVITY!\n"
 }
 
 ######### SCRIPT ###########
 echo "::: Preparing to remove packages, be sure that each may be safely removed depending on your operating system."
 echo "::: (SAFE TO REMOVE ALL ON RASPBIAN)"
 while true; do
-	read -rp "::: Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package) [y/n]" yn
+	read -rp "::: Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package) [y/n]: " yn
 	case $yn in
 		[Yy]* ) removeAndPurge; break;;
 	
