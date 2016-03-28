@@ -33,13 +33,11 @@ versbose=true
 domList=()
 domToRemoveList=()
 
-
-piholeIPfile=/tmp/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
 # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
 IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
 piholeIP=${piholeIPCIDR%/*}
 
 modifyHost=false
@@ -53,11 +51,19 @@ fi
 
 function HandleOther(){
   #check validity of domain
+<<<<<<< HEAD
 	validDomain=$(echo $1 | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 
 	if [ -z "$validDomain" ]; then
 		echo $1 is not a valid argument or domain name
 	else
+=======
+	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
+	
+	if [ -z "$validDomain" ]; then
+		echo "$1" is not a valid argument or domain name
+	else	  
+>>>>>>> ScriptCleanup-Dev
 	  domList=("${domList[@]}" $validDomain)
 	fi
 }
@@ -67,12 +73,18 @@ function PopBlacklistFile(){
 	if [[ ! -f $blacklist ]];then
   	  touch $blacklist
 	fi
+<<<<<<< HEAD
 	for dom in "${domList[@]}"
 	do
 	  if $addmode; then
 	  	AddDomain $dom
+=======
+	for dom in "${domList[@]}"; do
+	  if "$addmode"; then
+	  	AddDomain "$dom"
+>>>>>>> ScriptCleanup-Dev
 	  else
-	    RemoveDomain $dom
+	    RemoveDomain "$dom"
 	  fi
 	done
 }
@@ -86,7 +98,7 @@ function AddDomain(){
 	  if $versbose; then
 	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
-		echo $1 >> $blacklist
+		echo "$1" >> $blacklist
 		modifyHost=true
 		echo " done!"
 	else
@@ -119,9 +131,10 @@ function ModifyHostFile(){
 	 if $addmode; then
 	    #add domains to the hosts file
 	    if [[ -r $blacklist ]];then
-	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
+	      numberOf=$($blacklist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
+<<<<<<< HEAD
         echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
 	    	if [[ -n $piholeIPv6 ]];then
 	    	  cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
@@ -132,10 +145,21 @@ function ModifyHostFile(){
 	  	fi
 	  else
 
+=======
+        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."	   		    
+	    	if [[ -n $piholeIPv6 ]];then	    	  
+				$blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
+	      	else	        
+				$blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
+	      	fi		    
+	  	fi
+	  else
+>>>>>>> ScriptCleanup-Dev
 		echo ":::"
 	  for dom in "${domToRemoveList[@]}"
 		do
 	      #we need to remove the domains from the blacklist file and the host file
+<<<<<<< HEAD
 				echo "::: $dom"
 				echo -n ":::    removing from HOSTS file..."
 	      echo $dom | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
@@ -145,6 +169,17 @@ function ModifyHostFile(){
 	      echo " done!"
 		done
 		fi
+=======
+			echo "::: $dom"
+			echo -n ":::    removing from HOSTS file..."
+	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList  
+	      	echo " done!"
+	      	echo -n ":::    removing from blackist.txt..."
+	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $blacklist
+	      	echo " done!"
+		done
+	fi
+>>>>>>> ScriptCleanup-Dev
 
 }
 
@@ -157,7 +192,7 @@ function Reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		sudo kill -HUP $dnsmasqPid
+		sudo kill -HUP "$dnsmasqPid"
 	else
 		# service not running, start it up
 		sudo service dnsmasq start
@@ -173,8 +208,13 @@ do
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
+<<<<<<< HEAD
     "-q" | "--quiet"     ) versbose=false;;
     *                    ) HandleOther $var;;
+=======
+    "-q" | "--quiet"     ) versbose=false;;  			
+    *                    ) HandleOther "$var";;
+>>>>>>> ScriptCleanup-Dev
   esac
 done
 

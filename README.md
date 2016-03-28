@@ -3,8 +3,13 @@
 ##### Designed For Raspberry Pi A+, B, B+, 2, Zero (with an Ethernet adapter), and also works on most Debian based distros!
 =======
 # Automated Install 
+<<<<<<< HEAD
 ##### Designed For Raspberry Pi A+, B, B+, 2, Zero, and 3B (with an Ethernet/Wi-Fi adapter)
 >>>>>>> PiholeDebug
+=======
+##### Designed For Raspberry Pi A+, B, B+, 2, and Zero (with an Ethernet/Wi-Fi adapter)
+>>>>>>> ScriptCleanup
+>>>>>>> ScriptCleanup-Dev
 
 1. Install Raspbian on Raspberry Pi variants or a Debian based distribution on other hardware or virtual machines
 2. Run the command below
