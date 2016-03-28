@@ -43,19 +43,20 @@ spinner()
 function removeAndPurge {
 	# Purge dependencies
 echo ":::"
-	dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+	# Nate 3/28/2016 - Removed `php5-cgi` and `php5` as they are removed with php5-common
+	dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common git curl unzip wget )
 	for i in "${dependencies[@]}"; do
-		if [ "$(dpkg-query -W --showformat='${Status}\n' "$i" | grep -c "ok installed")" -eq 1 ]; then
+		if [ "$(dpkg-query -W --showformat='${Status}\n' "$i" 2> /dev/null | grep -c "ok installed")" -eq 1 ]; then
 			while true; do
-				read -rp "::: Do you wish to remove $i from your system? (y/n): " yn
+				read -rp "::: Do you wish to remove $i from your system? [y/n]: " yn
 				case $yn in
-					[Yy]* ) echo "::: Removing $i..."; $SUDO apt-get -y remove --purge "$i" > /dev/null & spinner $!; echo "DONE!"; break;;
-					[Nn]* ) echo "::: Skipping $i"; break;;
-					* ) echo "::: You must answer yes or no!";;
+					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO apt-get -y remove --purge "$i" &> /dev/null & spinner $!; printf "DONE!\n"; break;;
+					[Nn]* ) printf ":::\tSkipping %s" "$i"; break;;
+					* ) printf "::: You must answer yes or no!";;
 				esac
 			done
 		else
-			echo "IF FAILED			***"
+			printf ":::\tPackage %s not installed... Not removing.\n" "$i"
 		fi
 	done
 
@@ -64,10 +65,10 @@ echo ":::"
 	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 
 	# Take care of any additional package cleaning
-	echo "::: Auto removing remaining dependencies"
-	$SUDO apt-get -y autoremove &> /dev/null & spinner $!; echo "DONE!";
-	echo "::: Auto cleaning remaining dependencies"
-	$SUDO apt-get -y autoclean &> /dev/null & spinner $!; echo "DONE!";
+	printf "::: Auto removing remaining dependencies"
+	$SUDO apt-get -y autoremove &> /dev/null & spinner $!; printf "DONE!\n";
+	printf "::: Auto cleaning remaining dependencies"
+	$SUDO apt-get -y autoclean &> /dev/null & spinner $!; printf "DONE!\n";
 
 	# Call removeNoPurge to remove PiHole specific files
 	removeNoPurge
@@ -113,21 +114,24 @@ function removeNoPurge {
 	$SUDO rm /usr/local/bin/whitelist.sh &> /dev/null
 	$SUDO rm /usr/local/bin/piholeLogFlush.sh &> /dev/null
 	$SUDO rm /usr/local/bin/piholeDebug.sh &> /dev/null
+	$SUDO rm /etc/dnsmasq.d/adList.conf &> /dev/null
 	$SUDO rm -rf /var/log/*pihole* &> /dev/null
 	$SUDO rm -rf /etc/pihole/ &> /dev/null
 	$SUDO rm -rf /etc/.pihole/ &> /dev/null
+	$SUDO rm -rf /opt/pihole/ &> /dev/null
 	
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
 	printf "::: Reach out to us at https://github.com/pi-hole/pi-hole/issues if you need help\n"
 	printf "::: Reinstall by simpling running\n:::\n:::\tcurl -L install.pi-hole.net | bash\n:::\n::: at any time!\n:::\n"
+	printf "::: PLEASE RESET YOUR DNS ON YOUR ROUTER/CLIENTS TO RESTORE INTERNET CONNECTIVITY!/n"
 }
 
 ######### SCRIPT ###########
 echo "::: Preparing to remove packages, be sure that each may be safely removed depending on your operating system."
 echo "::: (SAFE TO REMOVE ALL ON RASPBIAN)"
 while true; do
-	read -rp "::: Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package)" yn
+	read -rp "::: Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package) [y/n]" yn
 	case $yn in
 		[Yy]* ) removeAndPurge; break;;
 	

@@ -97,7 +97,12 @@ backupLegacyPihole() {
 		$SUDO mv /etc/resolv.conf /etc/pihole/original/resolv.conf."$(date "+%Y-%m-%d")"
 		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf."$(date "+%Y-%m-%d")"
 		$SUDO mv /var/www/pihole/index.html /etc/pihole/original/index.html."$(date "+%Y-%m-%d")"
-		$SUDO mv /usr/local/bin/gravity.sh /etc/pihole/original/gravity.sh."$(date "+%Y-%m-%d")"
+		if [ ! -d /opt/pihole ]; then
+			$SUDO mkdir /opt/pihole
+			$SUDO chown "$USER":root /opt/pihole
+			$SUDO chmod 1766 /opt/pihole
+		fi
+		$SUDO mv /opt/pihole/gravity.sh /etc/pihole/original/gravity.sh."$(date "+%Y-%m-%d")"
 	else
 		:
 	fi
@@ -470,14 +475,23 @@ versionCheckDNSmasq(){
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	$SUDO echo ":::"
-	$SUDO echo -n "::: Installing scripts..."
-	$SUDO cp /etc/.pihole/gravity.sh /usr/local/bin/gravity.sh
-	$SUDO cp /etc/.pihole/advanced/Scripts/chronometer.sh /usr/local/bin/chronometer.sh
-	$SUDO cp /etc/.pihole/advanced/Scripts/whitelist.sh /usr/local/bin/whitelist.sh
-	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /usr/local/bin/blacklist.sh
-	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /usr/local/bin/piholeLogFlush.sh
-	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /usr/local/bin/updateDashboard.sh
-	$SUDO chmod 755 /usr/local/bin/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard}.sh
+	$SUDO echo -n "::: Installing scripts to /opt/pihole..."
+	if [ ! -d /opt/pihole ]; then
+		$SUDO mkdir /opt/pihole
+		$SUDO chown "$USER":root /opt/pihole
+		$SUDO chmod 1766 /opt/pihole
+	fi	
+	$SUDO cp /etc/.pihole/gravity.sh /opt/pihole/gravity.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/chronometer.sh /opt/pihole/chronometer.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/whitelist.sh /opt/pihole/whitelist.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /opt/pihole/bin/blacklist.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /opt/pihole/updateDashboard.sh
+	$SUDO cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
+	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall}.sh
+	for f in /opt/pihole/*; do
+		$SUDO ln -s /opt/pihole/"$f" /usr/local/bin/"$f"
+	done
 	$SUDO echo " done."
 }
 
