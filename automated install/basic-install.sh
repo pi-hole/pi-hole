@@ -117,17 +117,10 @@ welcomeDialogs() {
 verifyFreeDiskSpace() {
 	# 25MB is the minimum space needed (20MB install + 5MB one day of logs.)
 	requiredFreeBytes=51200
-<<<<<<< HEAD
-
-	existingFreeBytes=`df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1`
-	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then
-		existingFreeBytes=`df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1`
-=======
 	
 	existingFreeBytes=$(df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1)  	
 	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then       
 		existingFreeBytes=$(df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1)		
->>>>>>> ScriptCleanup-Dev
 	fi
 
 	if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then
@@ -382,16 +375,6 @@ setDNS(){
 
 					piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" $r $c "$prePopulate" 3>&1 1>&2 2>&3)
 					if [[ $? = 0 ]];then
-<<<<<<< HEAD
-						piholeDNS1=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
-						piholeDNS2=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
-
-						if ! valid_ip $piholeDNS1 || [ ! $piholeDNS1 ]; then
-							piholeDNS1=$strInvalid
-						fi
-
-						if ! valid_ip $piholeDNS2 && [ $piholeDNS2 ]; then
-=======
 						piholeDNS1=$(echo "$piholeDNS" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
 						piholeDNS2=$(echo "$piholeDNS" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
 						
@@ -400,7 +383,6 @@ setDNS(){
 						fi
 												
 						if ! valid_ip "$piholeDNS2" && [ "$piholeDNS2" ]; then
->>>>>>> ScriptCleanup-Dev
 							piholeDNS2=$strInvalid
 						fi
 
@@ -408,17 +390,6 @@ setDNS(){
 						echo "::: Cancel selected, exiting...."
 						exit 1
 					fi
-<<<<<<< HEAD
-
-					if [[ $piholeDNS1 == $strInvalid ]] || [[ $piholeDNS2 == $strInvalid ]]; then
-						whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c
-
-						if [[ $piholeDNS1 == $strInvalid ]]; then
-							piholeDNS1=""
-						fi
-
-						if [[ $piholeDNS2 == $strInvalid ]]; then
-=======
 					
 					if [[ $piholeDNS1 == "$strInvalid" ]] || [[ $piholeDNS2 == "$strInvalid" ]]; then
 						whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" $r $c						
@@ -428,7 +399,6 @@ setDNS(){
 						fi
 						
 						if [[ $piholeDNS2 == "$strInvalid" ]]; then
->>>>>>> ScriptCleanup-Dev
 							piholeDNS2=""
 						fi
 
@@ -702,19 +672,6 @@ setUser(){
 	fi
 }
 
-setPassword() {
-	# Password needed to authorize changes to lists from admin page
-	pass=$(whiptail --passwordbox "Please enter a password to secure your Pi-hole web interface." 10 50 3>&1 1>&2 2>&3)
-
-	if [ $? = 0 ]; then
-		# Entered password
-		echo $pass > /etc/pihole/password.txt
-	else
-		echo "::: Cancel selected, exiting...."
-		exit 1
-	fi
-}
-
 installPihole() {
 	# Install base files and web interface
 	checkForDependencies # done
@@ -767,9 +724,6 @@ use4andor6
 
 # Decide what upstream DNS Servers to use
 setDNS
-
-# Set the admin page password
-setPassword
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
