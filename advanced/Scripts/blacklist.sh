@@ -13,7 +13,7 @@
 if [[ $# = 0 ]]; then
     echo "::: Immediately blacklists one or more domains in the hosts file"
     echo ":::"
-    echo "::: Usage: pihole.sh -b domain1 [domain2 ...]"
+    echo "::: Usage: sudo pihole.sh -b domain1 [domain2 ...]"
     echo ":::"
     echo "::: Options:"
     echo ":::  -d, --delmode		Remove domains from the blacklist"

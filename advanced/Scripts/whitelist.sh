@@ -13,7 +13,7 @@
 if [[ $# = 0 ]]; then
     echo "::: Immediately whitelists one or more domains in the hosts file"
     echo ":::"
-    echo "::: Usage: pihole -w domain1 [domain2 ...]"
+    echo "::: Usage: sudo pihole.sh -w domain1 [domain2 ...]"
     echo ":::"
     echo "::: Options:"
     echo ":::  -d, --delmode		Remove domains from the whitelist"

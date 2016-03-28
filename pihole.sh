@@ -61,6 +61,10 @@ function chronometerFunc {
 	$SUDO /opt/pihole/chronometer.sh
 	exit 1
 }
+function gravityFunc {
+	$SUDO /opt/pihole/gravity.sh
+	exit 1
+}
 
 function helpFunc {
     echo "::: Control all PiHole specific functions!"
@@ -69,14 +73,15 @@ function helpFunc {
     printf ":::\tAdd -h after -w, -b, or -c  for more information on usage\n"
     echo ":::"
     echo "::: Options:"
-    printf ":::  -w, --whitelist\t\tWhitelist domains\n"
-    printf ":::  -b, --blacklist\t\tBlacklist domains\n"
-    printf ":::  -d, --debug\t\tStart a debugging session if having trouble\n"
-    printf ":::  -f, --flush\t\tFlush the pihole.log file\n"
-    printf ":::  -u, --updateDashboard\t\tUpdate the web dashboard manually\n"
-   	printf ":::  -s, --setupLCD\t\tAutomatically configures the Pi to use the 2.8 LCD screen to display stats on it\n"
-	printf ":::  -c, --chronometer\t\tCalculates stats and displays to an LCD\n"
-	printf ":::  -h, --help\t\tShow this help dialog\n"
+    echo ":::  -w, --whitelist 			Whitelist domains"
+    echo ":::  -b, --blacklist 			Blacklist domains"
+    echo ":::  -d, --debug 				Start a debugging session if having trouble"
+    echo ":::  -f, --flush 				Flush the pihole.log file"
+    echo ":::  -u, --updateDashboard 	Update the web dashboard manually"
+    echo ":::  -g, --updateGravity		Update the list of ad-serving domains"
+   	echo ":::  -s, --setupLCD 			Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
+	echo ":::  -c, --chronometer 		Calculates stats and displays to an LCD"
+	echo ":::  -h, --help 				Show this help dialog"
     exit 1
 }
 
