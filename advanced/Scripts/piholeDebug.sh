@@ -170,7 +170,7 @@ then
 	echo >> $DEBUG_LOG
 else
 	echo "No 01-pihole.conf file found!" >> $DEBUG_LOG
-	echo ":::	No 01-pihole.conf file found\n"
+	printf ":::\tNo 01-pihole.conf file found\n"
 fi
 
 echo "::: Writing lighttpd.conf to debug log..."
