@@ -656,8 +656,7 @@ runGravity() {
 	fi
 	#Don't run as SUDO, this was causing issues
 	echo "::: Running gravity.sh"
-
-	/usr/local/bin/gravity.sh
+	/opt/pihole/gravity.sh
 }
 
 setUser(){
