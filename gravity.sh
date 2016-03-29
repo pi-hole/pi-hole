@@ -269,15 +269,16 @@ function gravity_unique() {
 function gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
+	hostname=$(</etc/hostname)
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
 	if [[ -n $piholeIPv6 ]];then
-		# Add dummy domain my.pi-hole.net to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (my.pi-hole.net/admin)
-		echo -e "$piholeIP my.pi-hole.net \n$piholeIPv6 my.pi-hole.net" > $piholeDir/$accretionDisc
+		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
+		echo -e "$piholeIP $hostname\n$piholeIPv6 $hostname\n$piholeIP pi.hole\n$piholeIPv6 pi.hole" > $piholeDir/$accretionDisc
 		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
 	else
 		# Otherwise, just create gravity.list as normal using IPv4
-		# Add dummy domain my.pi-hole.net to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (my.pi-hole.net/admin)
-		echo -e "$piholeIP my.pi-hole.net" > $piholeDir/$accretionDisc
+		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
+		echo -e "$piholeIP $hostname\n$piholeIP pi.hole" > $piholeDir/$accretionDisc
 		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
 	fi
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
