@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Provides variables for Pi-hole
+#
+# Pi-hole is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
+tmpLog=/tmp/pihole-install.log
+instalLogLoc=/etc/pihole/install.log
+
+webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
+webInterfaceDir="/var/www/html/admin"
+piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+piholeFilesDir="/etc/.pihole"
+piholeInstallDir="/etc/pihole"
+
+piLog="/var/log/pihole.log"
+
+whitelist=/etc/pihole/whitelist.txt
+blacklist=/etc/pihole/blacklist.txt
+adList=/etc/pihole/gravity.list
+
+piholeIPfile=/tmp/piholeIP
+piholeIPv6file=/etc/pihole/.useIPv6
+
+r=$(( rows / 2 ))
+c=$(( columns / 2 ))
+
+IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
+
+piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+
+availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
+dhcpcdFile=/etc/dhcpcd.conf

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Provides functions related to Git
+#
+# Pi-hole is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
+is_repo() {
+	# If the directory does not have a .git folder it is not a repo
+	echo -n ":::    Checking $1 is a repo..."
+    if [ -d "$1/.git" ]; then
+    		echo " OK!"
+        return 1
+    fi
+    echo " not found!!"
+    return 0
+}
+
+make_repo() {
+    # Remove the non-repod interface and clone the interface
+    echo -n ":::    Cloning $2 into $1..."
+    $SUDO rm -rf $1
+    $SUDO git clone -q "$2" "$1" > /dev/null & spinner $!
+    echo " done!"
+}
+
+update_repo() {
+    # Pull the latest commits
+    echo -n ":::     Updating repo in $1..."
+    cd "$1"
+    $SUDO git pull -q > /dev/null & spinner $!
+    echo " done!"
+}
