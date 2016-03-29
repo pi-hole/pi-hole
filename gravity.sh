@@ -31,8 +31,8 @@ piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
-whitelistScript=/usr/local/bin/whitelist.sh
-blacklistScript=/usr/local/bin/blacklist.sh
+whitelistScript=/opt/pihole/whitelist.sh
+blacklistScript=/opt/pihole/blacklist.sh
 
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
@@ -129,12 +129,12 @@ function gravity_collapse() {
         # Temporary hack to allow non-root access to pihole directory
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
-        $SUDO chmod 777 $piholeDir
         find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
-        echo "."
+        echo ":::"
 	else
         echo -n "::: Creating pihole directory..."
         mkdir $piholeDir & spinner $!
+        $SUDO chmod 777 $piholeDir
         echo " done!"
 	fi
 }
