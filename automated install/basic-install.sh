@@ -664,7 +664,7 @@ setPassword() {
 
 	if [ $? = 0 ]; then
 		# Entered password
-		echo $pass > /etc/pihole/password.txt
+		echo -n "$pass" | sha256sum | awk '{print $1}' > /etc/pihole/password.txt
 	else
 		echo "::: Cancel selected, exiting...."
 		exit 1
