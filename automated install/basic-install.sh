@@ -658,19 +658,6 @@ setUser(){
 	fi
 }
 
-setPassword() {
-	# Password needed to authorize changes to lists from admin page
-	pass=$(whiptail --passwordbox "Please enter a password to secure your Pi-hole web interface." 10 50 3>&1 1>&2 2>&3)
-
-	if [ $? = 0 ]; then
-		# Entered password
-		echo $pass > /etc/pihole/password.txt
-	else
-		echo "::: Cancel selected, exiting...."
-		exit 1
-	fi
-}
-
 installPihole() {
 	# Install base files and web interface
 	checkForDependencies # done
@@ -720,9 +707,6 @@ use4andor6
 
 # Decide what upstream DNS Servers to use
 setDNS
-
-# Set the admin page password
-setPassword
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
