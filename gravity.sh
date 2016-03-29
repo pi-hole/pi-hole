@@ -16,14 +16,14 @@ if [[ $EUID -eq 0 ]];then
 	echo "::: You are root."
 else
 	echo "::: sudo will be used."
-  # Check if it is actually installed
-  # If it isn't, exit because the install cannot complete
-  if [[ $(dpkg-query -s sudo) ]];then
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
 		export SUDO="sudo"
-  else
+	else
 		echo "::: Please install sudo or run this script as root."
-    exit 1
-  fi
+		exit 1
+	fi
 fi
 
 piholeIPfile=/tmp/piholeIP
@@ -50,9 +50,6 @@ if [[ -f $piholeIPv6file ]];then
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-
-
-
 # Variables for various stages of downloading and formatting the list
 basename=pihole
 piholeDir=/etc/$basename
@@ -73,22 +70,22 @@ if [[ -r $piholeDir/pihole.conf ]];then
         . $piholeDir/pihole.conf
 fi
 
-
 spinner(){
-        local pid=$1
-        local delay=0.001
-        local spinstr='/-\|'
+	local pid=$1
+	local delay=0.001
+	local spinstr='/-\|'
 
-        spin='-\|/'
-        i=0
-        while $SUDO kill -0 $pid 2>/dev/null
-        do
-                i=$(( (i+1) %4 ))
-                printf "\b${spin:$i:1}"
-                sleep .1
-        done
-        printf "\b"
+	spin='-\|/'
+	i=0
+	while $SUDO kill -0 $pid 2>/dev/null
+	do
+		i=$(( (i+1) %4 ))
+		printf "\b${spin:$i:1}"
+		sleep .1
+	done
+	printf "\b"
 }
+
 ###########################
 # collapse - begin formation of pihole
 function gravity_collapse() {
@@ -111,7 +108,7 @@ function gravity_collapse() {
 	else
 		#no custom file found, use defaults!
 		echo -n "::: No custom adlist file detected, reading from default file..."
-				sources=()
+			sources=()
 		while read -a line; do
 			#Do not read commented out or blank lines
 			if [[ $line = \#* ]] || [[ ! $line ]]; then
@@ -179,7 +176,7 @@ function gravity_transport() {
 
 # spinup - main gravity function
 function gravity_spinup() {
-  echo "::: "
+	echo "::: "
 	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
 	for ((i = 0; i < "${#sources[@]}"; i++))
 	do
@@ -198,17 +195,17 @@ function gravity_spinup() {
         # Use a case statement to download lists that need special cURL commands
         # to complete properly and reset the user agent when required
         case "$domain" in
-                "adblock.mahakala.is")
-                        agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
-                        cmd_ext="-e http://forum.xda-developers.com/"
-                        ;;
+            "adblock.mahakala.is")
+                agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+                cmd_ext="-e http://forum.xda-developers.com/"
+            ;;
 
-                "pgl.yoyo.org")
-                        cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
-                        ;;
+            "pgl.yoyo.org")
+                cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
+            ;;
 
-                # Default is a simple request
-                *) cmd_ext=""
+            # Default is a simple request
+            *) cmd_ext=""
         esac
         gravity_transport "$url" "$cmd_ext" "$agent"
 	done
@@ -216,7 +213,7 @@ function gravity_spinup() {
 
 # Schwarzchild - aggregate domains to one list and add blacklisted domains
 function gravity_Schwarzchild() {
-  echo "::: "
+	echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
 	truncate -s 0 $piholeDir/$matterandlight & spinner $!
@@ -228,7 +225,6 @@ function gravity_Schwarzchild() {
 
 }
 
-
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
@@ -236,14 +232,11 @@ function gravity_Blacklist(){
 
 	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-  echo " $numBlacklisted domain${plural} blacklisted!"
-
-
+	echo " $numBlacklisted domain${plural} blacklisted!"
 }
 
-
 function gravity_Whitelist() {
-  echo ":::"
+	echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
 	echo -n "::: Adding ${#sources[@]} ad list source${plural} to the whitelist..."
@@ -261,10 +254,7 @@ function gravity_Whitelist() {
 
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
-  echo " $numWhitelisted domain${plural} whitelisted!"
-
-
-
+	echo " $numWhitelisted domain${plural} whitelisted!"
 }
 
 function gravity_unique() {
@@ -277,20 +267,19 @@ function gravity_unique() {
 }
 
 function gravity_hostFormat() {
-  # Format domain list as "192.168.x.x domain.com"
+	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
-  # If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
-  if [[ -n $piholeIPv6 ]];then
-  	#Add dummy domain my.pi-hole.net to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (my.pi-hole.net/admin)
-    echo -e "$piholeIP my.pi-hole.net \n$piholeIPv6 my.pi-hole.net" > $piholeDir/$accretionDisc
-    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
-
-  else
-      # Otherwise, just create gravity.list as normal using IPv4
-      #Add dummy domain my.pi-hole.net to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (my.pi-hole.net/admin)
-    echo -e "$piholeIP my.pi-hole.net" > $piholeDir/$accretionDisc
-    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
-  fi
+	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
+	if [[ -n $piholeIPv6 ]];then
+		# Add dummy domain my.pi-hole.net to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (my.pi-hole.net/admin)
+		echo -e "$piholeIP my.pi-hole.net \n$piholeIPv6 my.pi-hole.net" > $piholeDir/$accretionDisc
+		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
+	else
+		# Otherwise, just create gravity.list as normal using IPv4
+		# Add dummy domain my.pi-hole.net to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (my.pi-hole.net/admin)
+		echo -e "$piholeIP my.pi-hole.net" > $piholeDir/$accretionDisc
+		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
+	fi
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp $piholeDir/$accretionDisc $adList
 }
@@ -310,21 +299,18 @@ function gravity_blackbody() {
 }
 
 function gravity_advanced() {
-
-
 	# Remove comments and print only the domain name
 	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 	# This helps with that and makes it easier to read
 	# It also helps with debugging so each stage of the script can be researched more in depth
 	echo -n "::: Formatting list of domains to remove comments...."
 	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova & spinner $!
-  echo " done!"
+	echo " done!"
 
 	numberOf=$(wc -l < $piholeDir/$supernova)
 	echo "::: $numberOf domains being pulled in by gravity..."
 
 	gravity_unique
-
 }
 
 function gravity_reload() {
