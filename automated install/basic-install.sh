@@ -36,12 +36,9 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
-
-# Find IP used to route to outside world
-
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-IPv4addr=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
-IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
+piholeINTfile=/etc/pihole/piholeINT
+piholeIPfile=/etc/pihole/piholeIP
+piholeIPv6file=/etc/pihole/.useIPv6
 
 availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
@@ -158,7 +155,6 @@ chooseInterface() {
 		do
 		piholeInterface=$desiredInterface
 		echo "::: Using interface: $piholeInterface"
-		echo ${piholeInterface} > /tmp/piholeINT
 		done
 	else
 		echo "::: Cancel selected, exiting...."
@@ -189,24 +185,61 @@ use4andor6() {
 			esac
 		done
 
-		if [ $useIPv4 ] && [ ! $useIPv6 ]; then
-			getStaticIPv4Settings
-			setStaticIPv4
+		if [ $useIPv4 ]; then
+			
+			# Get interface address information
+			IPv4dev=$piholeInterface
+			IPv4addresses=$($SUDO ip -o -f inet addr show dev $IPv4dev | awk '{print $4}')
+			IPv4gw=$($SUDO ip route show dev "$IPv4dev" | awk '/default/ {print $3}')
+			
+			# Turn IPv4 addresses into an array so it can be used with a whiptail dialog
+			IPv4Array=()
+			firstloop=1
+
+			while read -r line
+			do
+				mode="OFF"
+				if [[ $firstloop -eq 1 ]]; then
+					firstloop=0
+					mode="ON"
+				fi
+				IPv4Array+=("$line" "available" "$mode")
+			done <<< "$IPv4addresses"
+			
+			# Find out how many IP addresses are available to choose from
+			IPv4Count=$(echo "$IPv4addresses" | wc -l)
+			chooseIPv4Cmd=(whiptail --separate-output --radiolist "Choose an IPv4 address on this interface.\n\n(If you are unsure, leave it as the default.)" $r $c $IPv4Count)
+			IPv4addr=$("${chooseIPv4Cmd[@]}" "${IPv4Array[@]}" 2>&1 >/dev/tty)
+			
+			if [[ ! ($? = 0) ]];then
+				echo "::: Cancel selected, exiting...."
+				exit 1
+			fi
+		
+			if (whiptail --backtitle "IPv4" --title "Reconfigure IPv4" --yesno --defaultno "We have found the following details for the IPv4 address you have selected. Have you already configured this as a static IPv4 address as desired?\n\n(If you are unsure, choose No.)  \n\nCurrent settings:
+										IPv4 address:    $IPv4addr
+										Gateway:         $IPv4gw" $r $c)
+			then
+				echo "::: Leaving IPv4 settings as is."
+				# Saving the IP and interface to a file for future use by other scripts (gravity.sh, whitelist.sh, etc.)
+				echo ${IPv4addr%/*} > "${piholeIPfile}"
+				echo $piholeInterface > "${piholeINTfile}"
+			else
+				getStaticIPv4Settings
+				setStaticIPv4
+			fi
 			echo "::: Using IPv4 on $IPv4addr"
+		else
+			echo "::: IPv4 will NOT be used."
+		fi
+		
+		if [ $useIPv6 ]; then
+			useIPv6dialog
+			echo "::: Using IPv6 on $piholeIPv6"
+		else
 			echo "::: IPv6 will NOT be used."
 		fi
-		if [ ! $useIPv4 ] && [ $useIPv6 ]; then
-			useIPv6dialog
-			echo "::: IPv4 will NOT be used."
-			echo "::: Using IPv6 on $piholeIPv6"
-		fi
-		if [ $useIPv4 ] && [  $useIPv6 ]; then
-			getStaticIPv4Settings
-			setStaticIPv4
-			useIPv6dialog
-			echo "::: Using IPv4 on $IPv4addr"
-			echo "::: Using IPv6 on $piholeIPv6"
-		fi
+		
 		if [ ! $useIPv4 ] && [ ! $useIPv6 ]; then
 			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
 			echo "::: Exiting"
@@ -256,9 +289,9 @@ getStaticIPv4Settings() {
 							IP address:    $IPv4addr
 							Gateway:       $IPv4gw" $r $c)then
 							# If the settings are correct, then we need to set the piholeIP
-							# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script
-							echo ${IPv4addr%/*} > /tmp/piholeIP
-							echo $piholeInterface > /tmp/piholeINT
+							# Saving the IP and interface to a file for future use by other scripts (gravity.sh, whitelist.sh, etc.)
+							echo ${IPv4addr%/*} > "${piholeIPfile}"
+							echo $piholeInterface > "${piholeINTfile}"
 							# After that's done, the loop ends and we move on
 							ipSettingsCorrect=True
 					else

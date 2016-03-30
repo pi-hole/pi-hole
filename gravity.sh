@@ -26,7 +26,8 @@ else
   fi
 fi
 
-piholeIPfile=/tmp/piholeIP
+piholeINTfile=/etc/pihole/piholeINT
+piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
@@ -34,16 +35,32 @@ adListDefault=/etc/pihole/adlists.default
 whitelistScript=/usr/local/bin/whitelist.sh
 blacklistScript=/usr/local/bin/blacklist.sh
 
-if [[ -f $piholeIPfile ]];then
-    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat $piholeIPfile)
-    rm $piholeIPfile
+echo ":::"
+
+# Know which interface we are using.
+if [[ -f $piholeINTfile ]]; then
+    # This file should normally exist - it was saved as part of the install.
+    IPv4dev=$(cat $piholeINTfile)
 else
-    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+    # If it doesn't, we err on the side of working with the majority of setups and detect the most likely interface.
+    echo "::: Warning: ${piholeINTfile} is missing.  Auto detecting interface."
     IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+fi
+
+# Know which IPv4 address we are using.
+if [[ -f $piholeIPfile ]];then
+    # This file should normally exist - it was saved as part of the install.
+    piholeIP=$(cat $piholeIPfile)
+else
+    # If it doesn't, we err on the side of working with the majority of setups and detect the most likely IPv4 address,
+    # which is the first one we find belonging to the given interface.
+    echo "::: Warning: ${piholeIPfile} is missing.  Auto detecting IP address."
+    piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | head -n 1)
     piholeIP=${piholeIPCIDR%/*}
 fi
+
+echo "::: Large gravitational pull detected at ${piholeIP} (${IPv4dev})."
+echo ":::"
 
 if [[ -f $piholeIPv6file ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
