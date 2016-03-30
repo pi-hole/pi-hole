@@ -111,7 +111,7 @@ welcomeDialogs() {
 	whiptail --msgbox --backtitle "Plea" --title "Free and open source" "The Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" $r $c
 
 	# Explain the need for a static address
-	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.	
 	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
@@ -321,6 +321,26 @@ function valid_ip()
 	return $stat
 }
 
+function valid_ip_and_port()
+{
+	# Validate IP and port matches dnsmasq conf syntax
+	# For example '127.0.0.1#40'
+	local  ip=$1
+	local  stat=1
+	
+	if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}#[0-9]{1,5}$ ]]; then
+		OIFS=$IFS
+		IFS='.#'
+		ip=($ip)
+		IFS=$OIFS
+		[[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+		&& ${ip[2]} -le 255 && ${ip[3]} -le 255 \
+		&& ${ip[4]} -le 65535 ]]
+		stat=$?
+	fi
+	return $stat
+}
+
 setDNS(){
 	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." $r $c 6)
 	DNSChooseOptions=(Google "" on
@@ -375,16 +395,16 @@ setDNS(){
 						prePopulate="$piholeDNS1, $piholeDNS2"
 					fi
 
-					piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" $r $c "$prePopulate" 3>&1 1>&2 2>&3)
+					piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'\n\nIf the DNS server uses a custom port, append it following the hash symbol.\n\nFor example '127.0.0.1#40, 127.0.0.1#41'" $r $c "$prePopulate" 3>&1 1>&2 2>&3)
 					if [[ $? = 0 ]];then
 						piholeDNS1=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
 						piholeDNS2=$(echo $piholeDNS | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
 
-						if ! valid_ip $piholeDNS1 || [ ! $piholeDNS1 ]; then
+						if ! (valid_ip $piholeDNS1 || valid_ip_and_port $piholeDNS1) || [ ! $piholeDNS1 ]; then
 							piholeDNS1=$strInvalid
 						fi
 
-						if ! valid_ip $piholeDNS2 && [ $piholeDNS2 ]; then
+						if ! (valid_ip $piholeDNS2 || valid_ip_and_port $piholeDNS2) && [ $piholeDNS2 ]; then
 							piholeDNS2=$strInvalid
 						fi
 
