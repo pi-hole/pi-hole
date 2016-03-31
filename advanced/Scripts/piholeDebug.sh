@@ -118,7 +118,7 @@ function testNslookup {
 
 ### Check Pi internet connections ###
 # Log the IP addresses of this Pi
-IPADDR=$(ifconfig | perl -nle 's/dr:(\S+)/print $1/e')
+IPADDR=$($SUDO ifconfig | perl -nle 's/dr:(\S+)/print $1/e')
 echo "::: Writing local IPs to debug log"
 echo "IP Addresses of this Pi:" >> $DEBUG_LOG
 echo "$IPADDR" >> $DEBUG_LOG
