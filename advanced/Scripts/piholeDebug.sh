@@ -258,8 +258,8 @@ then
 	cat "$ADLISTSFILE" >> $DEBUG_LOG
 	echo >> $DEBUG_LOG
 else
-	echo "No adlists.list file found!" >> $DEBUG_LOG
-	printf ":::\tNo adlists.list file found!\n"
+	echo "No adlists.list file found... using adlists.default!" >> $DEBUG_LOG
+	printf ":::\tNo adlists.list file found... using adlists.default!\n"
 fi
 
 
