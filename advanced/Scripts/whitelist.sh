@@ -120,7 +120,7 @@ function ModifyHostFile(){
 	    #remove domains in  from hosts file
 	    if [[ -r $whitelist ]];then
         # Remove whitelist entries
-				numberOf=$($whitelist | sed '/^\s*$/d' | wc -l)
+				numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
         echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."

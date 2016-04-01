@@ -115,7 +115,7 @@ function ModifyHostFile(){
 	 if $addmode; then
 	    #add domains to the hosts file
 	    if [[ -r $blacklist ]];then
-	      numberOf=$($blacklist | sed '/^\s*$/d' | wc -l)
+	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
         echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."	   		    
