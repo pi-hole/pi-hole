@@ -41,7 +41,7 @@ if [[ -f $piholeIPfile ]];then
 else
     # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
     IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev $IPv4dev | awk '{print $4}' | awk 'END {print}')
+    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
     piholeIP=${piholeIPCIDR%/*}
 fi
 
@@ -54,18 +54,19 @@ fi
 
 
 # Variables for various stages of downloading and formatting the list
+## Nate 3/26/2016 - Commented unused variables
 basename=pihole
 piholeDir=/etc/$basename
 adList=$piholeDir/gravity.list
-blacklist=$piholeDir/blacklist.txt
-whitelist=$piholeDir/whitelist.txt
-latentWhitelist=$piholeDir/latentWhitelist.txt
+#blacklist=$piholeDir/blacklist.txt
+#whitelist=$piholeDir/whitelist.txt
+#latentWhitelist=$piholeDir/latentWhitelist.txt
 justDomainsExtension=domains
 matterandlight=$basename.0.matterandlight.txt
 supernova=$basename.1.supernova.txt
 eventHorizon=$basename.2.eventHorizon.txt
 accretionDisc=$basename.3.accretionDisc.txt
-eyeOfTheNeedle=$basename.4.wormhole.txt
+#eyeOfTheNeedle=$basename.4.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
@@ -74,21 +75,21 @@ if [[ -r $piholeDir/pihole.conf ]];then
 fi
 
 
-spinner(){
-        local pid=$1
-        local delay=0.001
-        local spinstr='/-\|'
-
-        spin='-\|/'
-        i=0
-        while $SUDO kill -0 $pid 2>/dev/null
-        do
-                i=$(( (i+1) %4 ))
-                printf "\b${spin:$i:1}"
-                sleep .1
-        done
-        printf "\b"
+spinner()
+{
+    local pid=$1
+    local delay=0.50
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
 }
+
 ###########################
 # collapse - begin formation of pihole
 function gravity_collapse() {
@@ -99,7 +100,7 @@ function gravity_collapse() {
 		#custom file found, use this instead of default
 		echo -n "::: Custom adList file detected. Reading..."
 		sources=()
-		while read -a line; do
+		while read -r line; do
 			#Do not read commented out or blank lines
 			if [[ $line = \#* ]] || [[ ! $line ]]; then
 				echo "" > /dev/null
@@ -112,7 +113,7 @@ function gravity_collapse() {
 		#no custom file found, use defaults!
 		echo -n "::: No custom adlist file detected, reading from default file..."
 				sources=()
-		while read -a line; do
+		while read -r line; do
 			#Do not read commented out or blank lines
 			if [[ $line = \#* ]] || [[ ! $line ]]; then
 				echo "" > /dev/null
@@ -129,8 +130,8 @@ function gravity_collapse() {
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
         $SUDO chmod 777 $piholeDir
-        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
-        echo "."
+        $SUDO chown root:root $piholeDir
+        echo "..."
 	else
         echo -n "::: Creating pihole directory..."
         mkdir $piholeDir & spinner $!
@@ -146,7 +147,7 @@ function gravity_patternCheck() {
 		# Some of the blocklists are copyright, they need to be downloaded
 		# and stored as is. They can be processed for content after they
 		# have been saved.
-		cp $patternBuffer $saveLocation
+		cp "$patternBuffer" "$saveLocation"
 		echo " List updated, transport successful!"
 	else
 		# curl didn't download any host files, probably because of the date check
@@ -169,12 +170,11 @@ function gravity_transport() {
 	fi
 
 	# Silently curl url
-	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
+	curl -s "$cmd_ext" "$heisenbergCompensator" -A "$agent" "$url" > "$patternBuffer"
 	# Check for list updates
-	gravity_patternCheck $patternBuffer
-
+	gravity_patternCheck "$patternBuffer"
 	# Cleanup
-	rm -f $patternBuffer
+	rm -f "$patternBuffer"
 }
 
 # spinup - main gravity function
@@ -222,7 +222,7 @@ function gravity_Schwarzchild() {
 	truncate -s 0 $piholeDir/$matterandlight & spinner $!
 	for i in "${activeDomains[@]}"
 	do
-   		cat $i |tr -d '\r' >> $piholeDir/$matterandlight
+		cat "$i" | tr -d '\r' >> $piholeDir/$matterandlight
 	done
 	echo " done!"
 
@@ -246,10 +246,10 @@ function gravity_Whitelist() {
   echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
-	echo -n "::: Adding ${#sources[@]} ad list source${plural} to the whitelist..."
+	echo -n "::: Adding ${#sources[@]} adlist source${plural} to the whitelist..."
 
 	urls=()
-	for url in ${sources[@]}
+	for url in "${sources[@]}"
 	do
         tmp=$(echo "$url" | awk -F '/' '{print $3}')
         urls=("${urls[@]}" $tmp)
@@ -257,8 +257,7 @@ function gravity_Whitelist() {
 	echo " done!"
 
 	echo -n "::: Running whitelist script to update HOSTS file...."
-	$whitelistScript -f -nr -q ${urls[@]} > /dev/null & spinner $!
-
+	$whitelistScript -f -nr -q "${urls[@]}" > /dev/null & spinner $!
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
   echo " $numWhitelisted domain${plural} whitelisted!"
@@ -284,7 +283,6 @@ function gravity_hostFormat() {
   	#Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
     echo -e "$piholeIP Pi-Hole.IsWorking.OK \n$piholeIPv6 Pi-Hole.IsWorking.OK" > $piholeDir/$accretionDisc
     cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
-
   else
       # Otherwise, just create gravity.list as normal using IPv4
       #Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
@@ -301,10 +299,10 @@ function gravity_blackbody() {
 	for file in $piholeDir/*.$justDomainsExtension
 	do
 		# If list is in active array then leave it (noop) else rm the list
-		if [[ " ${activeDomains[@]} " =~ " ${file} " ]]; then
+		if [[ " ${activeDomains[@]} " =~ ${file} ]]; then
 			:
 		else
-			rm -f $file
+			rm -f "$file"
 		fi
 	done
 }
@@ -343,7 +341,7 @@ function gravity_reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		$SUDO kill -HUP $dnsmasqPid & spinner $!
+		$SUDO kill -HUP "$dnsmasqPid" & spinner $!
 	else
 		# service not running, start it up
 		$SUDO service dnsmasq start & spinner $!
