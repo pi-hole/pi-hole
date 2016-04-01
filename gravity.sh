@@ -170,9 +170,6 @@ function gravity_transport() {
 	fi
 
 	# Silently curl url
-	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
-	# Check for list updates
-	gravity_patternCheck $patternBuffer
 	curl -s "$cmd_ext" "$heisenbergCompensator" -A "$agent" "$url" > "$patternBuffer"
 	# Check for list updates
 	gravity_patternCheck "$patternBuffer"
@@ -225,7 +222,7 @@ function gravity_Schwarzchild() {
 	truncate -s 0 $piholeDir/$matterandlight & spinner $!
 	for i in "${activeDomains[@]}"
 	do
-		"$i" |tr -d '\r' >> $piholeDir/$matterandlight
+		cat "$i" | tr -d '\r' >> $piholeDir/$matterandlight
 	done
 	echo " done!"
 
@@ -285,12 +282,12 @@ function gravity_hostFormat() {
   if [[ -n $piholeIPv6 ]];then
   	#Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
     echo -e "$piholeIP Pi-Hole.IsWorking.OK \n$piholeIPv6 Pi-Hole.IsWorking.OK" > $piholeDir/$accretionDisc
-    $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
   else
       # Otherwise, just create gravity.list as normal using IPv4
       #Add dummy domain Pi-Hole.IsWorking.OK to the top of gravity.list to make ping result return a friendlier looking domain!
     echo -e "$piholeIP Pi-Hole.IsWorking.OK" > $piholeDir/$accretionDisc
-    $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
+    cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
   fi
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp $piholeDir/$accretionDisc $adList
