@@ -246,7 +246,7 @@ function gravity_Whitelist() {
   echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
-	echo -n "::: Adding ${#sources[@]} ad list source${plural} to the whitelist..."
+	echo -n "::: Adding ${#sources[@]} adlist source${plural} to the whitelist..."
 
 	urls=()
 	for url in "${sources[@]}"
