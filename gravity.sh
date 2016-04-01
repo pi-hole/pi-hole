@@ -130,8 +130,8 @@ function gravity_collapse() {
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
         $SUDO chmod 777 $piholeDir
-        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
-        echo "."
+        $SUDO chown root:root $piholeDir
+        echo "..."
 	else
         echo -n "::: Creating pihole directory..."
         mkdir $piholeDir & spinner $!
@@ -246,7 +246,7 @@ function gravity_Whitelist() {
   echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
-	echo -n "::: Adding ${#sources[@]} ad list source${plural} to the whitelist..."
+	echo -n "::: Adding ${#sources[@]} adlist source${plural} to the whitelist..."
 
 	urls=()
 	for url in "${sources[@]}"
