@@ -122,7 +122,7 @@ function removeNoPurge {
 	$SUDO rm -rf /etc/.pihole/ &> /dev/null
 	$SUDO rm -rf /opt/pihole/ &> /dev/null
 	$SUDO rm /usr/local/bin/pihole &> /dev/null
-	$SUDO rm /etc/bash-completion.d/pihole
+	$SUDO rm /etc/bash_completion.d/pihole
 	
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"

@@ -486,7 +486,7 @@ installScripts() {
 	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall,setupLCD}.sh
 	$SUDO cp /etc/.pihole/pihole /usr/local/bin/pihole
 	$SUDO chmod 755 /usr/local/bin/pihole
-	$SUDO cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash-completion.d/pihole
+	$SUDO cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	$SUDO echo " done."
 }
 
