@@ -16,7 +16,7 @@ if [[ $EUID -eq 0 ]];then
 else
 	echo "::: Sudo will be used for this tool."
   # Check if it is actually installed
-  # If it isn't, exit because the unnstall cannot complete
+  # If it isn't, exit because the pihole cannot be invoked without privileges.
   if [[ $(dpkg-query -s sudo) ]];then
 		export SUDO="sudo"
   else
@@ -70,18 +70,18 @@ function helpFunc {
     echo "::: Control all PiHole specific functions!"
     echo ":::"
     echo "::: Usage: pihole.sh [options]"
-    printf ":::\tAdd -h after -w, -b, or -c  for more information on usage\n"
+    printf ":::\tAdd -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage\n"
     echo ":::"
     echo "::: Options:"
-    echo ":::  -w, --whitelist 			Whitelist domains"
-    echo ":::  -b, --blacklist 			Blacklist domains"
-    echo ":::  -d, --debug 				Start a debugging session if having trouble"
-    echo ":::  -f, --flush 				Flush the pihole.log file"
-    echo ":::  -u, --updateDashboard 	Update the web dashboard manually"
-    echo ":::  -g, --updateGravity		Update the list of ad-serving domains"
-   	echo ":::  -s, --setupLCD 			Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
-	echo ":::  -c, --chronometer 		Calculates stats and displays to an LCD"
-	echo ":::  -h, --help 				Show this help dialog"
+    echo ":::  -w, whitelist 			Whitelist domains"
+    echo ":::  -b, blacklist 			Blacklist domains"
+    echo ":::  -d, debug 				Start a debugging session if having trouble"
+    echo ":::  -f, flush 				Flush the pihole.log file"
+    echo ":::  -u, updateDashboard		Update the web dashboard manually"
+    echo ":::  -g, updateGravity		Update the list of ad-serving domains"
+   	echo ":::  -s, setupLCD 			Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
+	echo ":::  -c, chronometer 			Calculates stats and displays to an LCD"
+	echo ":::  -h, help 				Show this help dialog"
     exit 1
 }
 
@@ -91,13 +91,13 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "$1" in
-"-w" | "--whitelist"		) whitelistFunc "$@";;
-"-b" | "--blacklist"		) blacklistFunc "$@";;
-"-d" | "--debug"			) debugFunc;;
-"-f" | "--flush"			) flushFunc;;
-"-u" | "--updateDashboard"	) updateDashboardFunc;;
-"-s" | "--setupLCD"			) setupLCDFunction;;
-"-c" | "--chronometer"		) chronometerFunc;;
-"-h" | "--help"				) helpFunc;;
+"-w" | "whitelist"		) whitelistFunc "$@";;
+"-b" | "blacklist"		) blacklistFunc "$@";;
+"-d" | "debug"			) debugFunc;;
+"-f" | "flush"			) flushFunc;;
+"-u" | "-updateDashboard"	) updateDashboardFunc;;
+"-s" | "setupLCD"			) setupLCDFunction;;
+"-c" | "chronometer"		) chronometerFunc;;
+"-h" | "help"				) helpFunc;;
 *                    		) helpFunc;;
 esac
