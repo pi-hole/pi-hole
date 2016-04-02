@@ -478,6 +478,7 @@ installScripts() {
 	$SUDO cp /etc/.pihole/advanced/Scripts/chronometer.sh /opt/pihole/chronometer.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/whitelist.sh /opt/pihole/whitelist.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/blacklist.sh /opt/pihole/blacklist.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/piholeDebug.sh /opt/pihole/piholeDebug.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /opt/pihole/updateDashboard.sh
 	$SUDO cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh

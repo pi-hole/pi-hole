@@ -120,9 +120,9 @@ function ModifyHostFile(){
         echo ":::"
         echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."	   		    
 	    	if [[ -n $piholeIPv6 ]];then	    	  
-				$blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
+				cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
 	      	else	        
-				$blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
+				cat $blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
 	      	fi		    
 	  	fi
 	  else
