@@ -315,7 +315,7 @@ function gravity_reload() {
 	#Clear no longer needed files...
 	echo ":::"
 	echo -n "::: Cleaning up un-needed files..."
-	$SUDO rm /etc/pihole/pihole.*
+	$SUDO rm $piholeDir/pihole.*.txt
 	echo " done!"
 
 	# Reload hosts file
