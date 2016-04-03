@@ -110,7 +110,8 @@ welcomeDialogs() {
 
 	# Explain the need for a static address
 	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
-	In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
+	
+In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
 
@@ -174,7 +175,7 @@ cleanupIPv6() {
 
 use4andor6() {
 	# Let use select IPv4 and/or IPv6
-	cmd=(whiptail --separate-output --checklist "Select Protocols" $r $c 2)
+	cmd=(whiptail --separate-output --checklist "Select Protocols (press space to select)" $r $c 2)
 	options=(IPv4 "Block ads over IPv4" on
 	IPv6 "Block ads over IPv6" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
@@ -232,8 +233,8 @@ getStaticIPv4Settings() {
 					Gateway:       $IPv4gw" $r $c) then
 		# If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
 		whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
-		If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
-		It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
+If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
+It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
 		# Nothing else to do since the variables are already set above
 	else
 		# Otherwise, we need to ask the user to input their desired settings.
@@ -695,12 +696,12 @@ displayFinalMessage() {
 	# Final completion message to user
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-	$IPv4addr
-	$piholeIPv6
+IPv4:	$IPv4addr
+IPv6:	$piholeIPv6
 
-	If you set a new IP address, you should restart the Pi.
+If you set a new IP address, you should restart the Pi.
 
-	The install log is in /etc/pihole." $r $c
+The install log is in /etc/pihole." $r $c
 }
 
 ######## SCRIPT ############
