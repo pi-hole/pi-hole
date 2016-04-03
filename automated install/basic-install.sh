@@ -680,7 +680,7 @@ installPihole() {
 	setUser
 	$SUDO mkdir -p /etc/pihole/
 	if [ ! -d "/var/www/html" ]; then
-		$SUDO mkdir /var/www/html
+		$SUDO mkdir -p /var/www/html
 	fi
 	$SUDO chown www-data:www-data /var/www/html
 	$SUDO chmod 775 /var/www/html
