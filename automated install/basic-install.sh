@@ -118,9 +118,9 @@ verifyFreeDiskSpace() {
 	# 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
 	requiredFreeBytes=51200
 
-	existingFreeBytes=`df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1`
+	existingFreeBytes=$(df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1)
 	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then
-		existingFreeBytes=`df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1`
+		existingFreeBytes=$(df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1)
 	fi
 
 	if [[ $existingFreeBytes -lt $requiredFreeBytes ]]; then
@@ -487,6 +487,7 @@ installScripts() {
 	$SUDO cp /etc/.pihole/pihole /usr/local/bin/pihole
 	$SUDO chmod 755 /usr/local/bin/pihole
 	$SUDO cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+	$SUDO . /etc/bsah_completion.d/pihole
 	$SUDO echo " done."
 }
 

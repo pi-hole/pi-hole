@@ -52,6 +52,11 @@ function updateDashboardFunc {
 	exit 1
 }
 
+function updateGravityFunc {
+	$SUDO /opt/pihole/gravish.sh
+	exit 1
+}
+
 function setupLCDFunction {
 	$SUDO /opt/pihole/setupLCD.sh
 	exit 1
@@ -63,6 +68,11 @@ function chronometerFunc {
 }
 function gravityFunc {
 	$SUDO /opt/pihole/gravity.sh
+	exit 1
+}
+
+function uninstallFunc {
+	$SUDO /opt/pihole/uninstall.sh
 	exit 1
 }
 
@@ -82,6 +92,7 @@ function helpFunc {
    	echo ":::  -s, setupLCD 			Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
 	echo ":::  -c, chronometer 			Calculates stats and displays to an LCD"
 	echo ":::  -h, help 				Show this help dialog"
+	echo ":::  uninstall				Uninstall Pi-Hole from your system!"
     exit 1
 }
 
@@ -91,13 +102,15 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "$1" in
-"-w" | "whitelist"		) whitelistFunc "$@";;
-"-b" | "blacklist"		) blacklistFunc "$@";;
-"-d" | "debug"			) debugFunc;;
-"-f" | "flush"			) flushFunc;;
-"-u" | "-updateDashboard"	) updateDashboardFunc;;
+"-w" | "whitelist"			) whitelistFunc "$@";;
+"-b" | "blacklist"			) blacklistFunc "$@";;
+"-d" | "debug"				) debugFunc;;
+"-f" | "flush"				) flushFunc;;
+"-u" | "updateDashboard"	) updateDashboardFunc;;
+"-g" | "updateGravity"		) updateGravityFunc;;
 "-s" | "setupLCD"			) setupLCDFunction;;
 "-c" | "chronometer"		) chronometerFunc;;
 "-h" | "help"				) helpFunc;;
+"uninstall"					) uninstallFunc;;
 *                    		) helpFunc;;
 esac
