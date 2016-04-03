@@ -31,8 +31,8 @@ piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
-whitelistScript=/usr/local/bin/whitelist.sh
-blacklistScript=/usr/local/bin/blacklist.sh
+whitelistScript=/opt/pihole/whitelist.sh
+blacklistScript=/opt/pihole/blacklist.sh
 
 if [[ -f $piholeIPfile ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
@@ -74,7 +74,7 @@ fi
 spinner() {
     local pid=$1
     local delay=0.50
-    local spinstr='|/-\'
+    local spinstr='/-|'
     while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
         local temp=${spinstr#?}
         printf " [%c]  " "$spinstr"
@@ -124,12 +124,12 @@ function gravity_collapse() {
         # Temporary hack to allow non-root access to pihole directory
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
-        $SUDO chmod 777 $piholeDir
-        $SUDO chown root:root $piholeDir
-        echo "..."
+        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
+        echo ":::"
 	else
         echo -n "::: Creating pihole directory..."
         mkdir $piholeDir & spinner $!
+        $SUDO chmod 777 $piholeDir
         echo " done!"
 	fi
 }
@@ -315,7 +315,7 @@ function gravity_reload() {
 	#Clear no longer needed files...
 	echo ":::"
 	echo -n "::: Cleaning up un-needed files..."
-	$SUDO rm /etc/pihole/pihole.*
+	$SUDO rm $piholeDir/pihole.*.txt
 	echo " done!"
 
 	# Reload hosts file

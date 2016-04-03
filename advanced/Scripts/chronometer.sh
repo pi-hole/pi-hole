@@ -35,7 +35,7 @@ function CalcBlockedDomains(){
 
 function CalcQueriesToday(){
 	if [ -e "$piLog" ];then
-		queriesToday=$("$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
+		queriesToday=$(cat "$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
 	else
 		queriesToday="Err."
 	fi
@@ -43,7 +43,7 @@ function CalcQueriesToday(){
 
 function CalcblockedToday(){
 	if [ -e "$piLog" ] && [ -e "$gravity" ];then
-		blockedToday=$($piLog | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
+		blockedToday=$(cat $piLog | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
 	else
 		blockedToday="Err."
 	fi
@@ -118,14 +118,14 @@ function normalChrono(){
 }
 
 function displayHelp(){
- echo "Displays stats about your piHole!"
-    echo " "
-    echo "Usage: chronometer.sh [optional:-j]"
-    echo "Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
-    echo "  "
-    echo "Options:"
-    echo "  -j, --json		output stats as JSON formatted string"
-    echo "  -h, --help	display this help text"
+ 	echo "::: Displays stats about your piHole!"
+    echo ":::"
+    echo "::: Usage: sudo pihole.sh -c [optional:-j]"
+    echo "::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
+    echo ":::"
+    echo "::: Options:"
+    echo ":::  -j, --json		output stats as JSON formatted string"
+    echo ":::  -h, --help		display this help text"
 
     exit 1
 }

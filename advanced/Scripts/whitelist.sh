@@ -11,15 +11,15 @@
 # (at your option) any later version.
 
 if [[ $# = 0 ]]; then
-    echo "Immediately whitelists one or more domains in the hosts file"
-    echo " "
-    echo "Usage: whitelist.sh domain1 [domain2 ...]"
-    echo "  "
-    echo "Options:"
-    echo "  -d, --delmode		Remove domains from the whitelist"
-    echo "  -nr, --noreload	Update Whitelist without refreshing dnsmasq"
-    echo "  -f, --force		Force updating of the hosts files, even if there are no changes"
-    echo "  -q, --quiet		output is less verbose"
+    echo "::: Immediately whitelists one or more domains in the hosts file"
+    echo ":::"
+    echo "::: Usage: sudo pihole.sh -w domain1 [domain2 ...]"
+    echo ":::"
+    echo "::: Options:"
+    echo ":::  -d, --delmode		Remove domains from the whitelist"
+    echo ":::  -nr, --noreload		Update Whitelist without refreshing dnsmasq"
+    echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
+    echo ":::  -q, --quiet			output is less verbose"
     exit 1
 fi
 
