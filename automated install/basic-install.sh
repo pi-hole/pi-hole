@@ -488,6 +488,17 @@ installScripts() {
 	$SUDO chmod 755 /usr/local/bin/pihole
 	$SUDO cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	. /etc/bash_completion.d/pihole
+	
+	#Tidy up /usr/local/bin directory if installing over previous install.
+	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
+	for i in "${oldFiles[@]}"
+	do
+	:
+		if [ -f "/usr/local/bin/$i.sh" ]; then			
+			$SUDO rm /usr/local/bin/$i.sh			
+		fi
+	done
+	
 	$SUDO echo " done."
 }
 
