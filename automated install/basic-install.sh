@@ -487,7 +487,7 @@ installScripts() {
 	$SUDO cp /etc/.pihole/pihole /usr/local/bin/pihole
 	$SUDO chmod 755 /usr/local/bin/pihole
 	$SUDO cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
-	$SUDO . /etc/bsah_completion.d/pihole
+	. /etc/bsah_completion.d/pihole
 	$SUDO echo " done."
 }
 
