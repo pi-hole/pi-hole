@@ -165,7 +165,7 @@ function gravity_transport() {
 	fi
 
 	# Silently curl url
-	curl -s "$cmd_ext" "$heisenbergCompensator" -A "$agent" "$url" > "$patternBuffer"
+	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
 	# Check for list updates
 	gravity_patternCheck "$patternBuffer"
 	# Cleanup
