@@ -5,11 +5,11 @@
 #    2. run `nano /etc/pihole/adlists.list`                                    #
 #    3. Uncomment or comment any of the below lists                            #
 #                                                                              #
-#  Know of any other lists? Feel free to let us know about them, or add them   # 
+#  Know of any other lists? Feel free to let us know about them, or add them   #
 #  to this file!                                                               #
 ################################################################################
 
-# The below list amalgamates several lists we used previously. 
+# The below list amalgamates several lists we used previously.
 # See `https://github.com/StevenBlack/hosts` for details
 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
 
@@ -31,14 +31,17 @@ http://hosts-file.net/ad_servers.txt
 # ADZHOSTS list. Has been known to block legitimate domains
 #http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt
 
-# Windows 10 telemetry list - warning this one may block windows update
-#https://raw.githubusercontent.com/crazy-max/HostsWindowsBlocker/master/hosts.txt
+# Windows 10 telemetry list
+#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/hostsBlockWindowsSpy.txt
 
 # Securemecca.com list - Also blocks "adult" sites (pornography/gambling etc)
 #http://securemecca.com/Downloads/hosts.txt
 
 # Quidsup's tracker list
 https://raw.githubusercontent.com/quidsup/notrack/master/trackers.txt
+
+# Block the BBC News website Breaking News banner
+#https://raw.githubusercontent.com/BreakingTheNews/BreakingTheNews.github.io/master/hosts
 
 
 # Untested Lists:

@@ -10,7 +10,7 @@
 # (at your option) any later version.
 
 # Pi-hole: Update the ad sources once a week on Sunday at 01:59
-#          Download any updates from the ad lists
+#          Download any updates from the adlists
 59 1    * * 7   root    /usr/local/bin/gravity.sh
 
 # Pi-hole: Update the Web interface shortly after gravity runs

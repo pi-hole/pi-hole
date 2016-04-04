@@ -1,9 +1,11 @@
 # Automated Install 
-##### Designed For Raspberry Pi A+, B, B+, 2, and Zero (with an Ethernet/Wi-Fi adapter)
+##### Designed For Raspberry Pi A+, B, B+, 2, Zero, and 3B (with an Ethernet/Wi-Fi adapter) (Works on most Debian distributions!)
+
 
 [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 1. Install Raspbian 
+
 2. Run the command below
 
 ### ```curl -L https://install.pi-hole.net | bash```
