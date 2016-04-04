@@ -124,13 +124,13 @@ function gravity_collapse() {
         # Temporary hack to allow non-root access to pihole directory
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
-        find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
-        echo ":::"
-	else
-        echo -n "::: Creating pihole directory..."
-        mkdir $piholeDir & spinner $!
         $SUDO chmod 777 $piholeDir
-        echo " done!"
+        echo ":::"
+        echo "::: Existing pihole directory found"
+	else
+        echo "::: Creating pihole directory..."
+        mkdir $piholeDir
+        $SUDO chmod 777 $piholeDir
 	fi
 }
 
@@ -174,7 +174,7 @@ function gravity_transport() {
 
 # spinup - main gravity function
 function gravity_spinup() {
-	echo "::: "
+	echo ":::"
 	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
 	for ((i = 0; i < "${#sources[@]}"; i++))
 	do
