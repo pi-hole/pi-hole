@@ -90,7 +90,7 @@ function AddDomain(){
 	if $bool; then
 	  #domain not found in the whitelist file, add it!
 	  if $versbose; then
-		echo -n "::: Adding $1 to whitelist.txt..."
+		echo -n "::: Adding $1 to $whitelist..."
 	  fi
 	  echo "$1" >> $whitelist
 		modifyHost=true
@@ -99,7 +99,7 @@ function AddDomain(){
 	  fi
 	else
 		if $versbose; then
-			echo "::: $1 already exists in whitelist.txt, no need to add!"
+			echo "::: $1 already exists in $whitelist, no need to add!"
 		fi
 	fi
 }
@@ -157,7 +157,7 @@ function ModifyHostFile(){
 	      	echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
 	      	echo " done!"
 	      fi
-	      echo -n ":::        Removing $rdom from whitelist.txt..."
+	      echo -n ":::        Removing $rdom from $whitelist..."
 	      echo "$rdom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $whitelist
 	      echo " done!"
 	    done
