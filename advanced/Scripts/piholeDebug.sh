@@ -126,9 +126,9 @@ function checkProcesses {
 	for i in "${PROCESSES[@]}"
 	do
 		echo "" >> $DEBUG_LOG
-		echo -n $i >> $DEBUG_LOG
+		echo -n $i >> "$DEBUG_LOG"
 		echo " processes status:" >> $DEBUG_LOG
-		$SUDO systemctl -l status $i >> $DEBUG_LOG
+		$SUDO systemctl -l status $i >> "$DEBUG_LOG"
 	done
 }
 
