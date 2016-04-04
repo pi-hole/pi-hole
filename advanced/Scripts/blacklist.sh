@@ -96,7 +96,7 @@ function AddDomain(){
 		echo " done!"
 	else
 	if $versbose; then
-		echo "::: $1 already exists in blacklist.txt! No need to add"
+		echo "::: $1 already exists in $blacklist! No need to add"
 		fi
 	fi
 }
