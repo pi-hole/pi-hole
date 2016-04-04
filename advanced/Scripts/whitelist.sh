@@ -24,12 +24,15 @@ if [[ $# = 0 ]]; then
 fi
 
 #globals
-whitelist=/etc/pihole/whitelist.txt
-adList=/etc/pihole/gravity.list
+basename=pihole
+piholeDir=/etc/$basename
+adList=$piholeDir/gravity.list
+whitelist=$piholeDir/whitelist.txt
 reload=true
 addmode=true
 force=false
 versbose=true
+
 domList=()
 domToRemoveList=()
 
@@ -42,6 +45,11 @@ piholeIP=${piholeIPCIDR%/*}
 
 modifyHost=false
 
+# After setting defaults, check if there's local overrides
+if [[ -r $piholeDir/pihole.conf ]];then
+    echo "::: Local calibration requested..."
+        . $piholeDir/pihole.conf
+fi
 
 if [[ -f $piholeIPv6file ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
@@ -127,10 +135,10 @@ function ModifyHostFile(){
         awk -F':' '{print $1}' $whitelist | while read -r line; do echo "$piholeIP $line"; done > /etc/pihole/whitelist.tmp
         awk -F':' '{print $1}' $whitelist | while read -r line; do echo "$piholeIPv6 $line"; done >> /etc/pihole/whitelist.tmp
         echo "l" >> /etc/pihole/whitelist.tmp
-        grep -F -x -v -f /etc/pihole/whitelist.tmp /etc/pihole/gravity.list > /etc/pihole/gravity.tmp
-        rm /etc/pihole/gravity.list
-        mv /etc/pihole/gravity.tmp /etc/pihole/gravity.list
-        rm /etc/pihole/whitelist.tmp
+        grep -F -x -v -f $piholeDir/whitelist.tmp $adList > $piholeDir/gravity.tmp
+        rm $adList
+        mv $piholeDir/gravity.tmp $adList
+        rm $piholeDir/whitelist.tmp
         echo " done!"
 
 	  	fi
