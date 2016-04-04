@@ -24,12 +24,15 @@ if [[ $# = 0 ]]; then
 fi
 
 #globals
-blacklist=/etc/pihole/blacklist.txt
-adList=/etc/pihole/gravity.list
+basename=pihole
+piholeDir=/etc/$basename
+adList=$piholeDir/gravity.list
+blacklist=$piholeDir/blacklist.txt
 reload=true
 addmode=true
 force=false
 versbose=true
+
 domList=()
 domToRemoveList=()
 
@@ -41,6 +44,12 @@ piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk '
 piholeIP=${piholeIPCIDR%/*}
 
 modifyHost=false
+
+# After setting defaults, check if there's local overrides
+if [[ -r $piholeDir/pihole.conf ]];then
+    echo "::: Local calibration requested..."
+        . $piholeDir/pihole.conf
+fi
 
 
 if [[ -f $piholeIPv6file ]];then
