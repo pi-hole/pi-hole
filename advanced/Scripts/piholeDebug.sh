@@ -116,6 +116,24 @@ function testNslookup {
 	echo >> $DEBUG_LOG
 }
 
+function checkProcesses {
+	echo "#######################################" >> $DEBUG_LOG
+	echo "########### Processes Check ###########" >> $DEBUG_LOG
+	echo "#######################################" >> $DEBUG_LOG
+	echo ":::"
+	echo "::: Logging status of lighttpd and dnsmasq..."
+	PROCESSES=( lighttpd dnsmasq )
+	for i in "${PROCESSES[@]}"
+	do
+		echo "" >> $DEBUG_LOG
+		echo -n $i >> $DEBUG_LOG
+		echo " processes status:" >> $DEBUG_LOG
+		$SUDO systemctl -l status $i >> $DEBUG_LOG
+	done
+}
+
+### END FUNCTIONS ###
+
 ### Check Pi internet connections ###
 # Log the IP addresses of this Pi
 IPADDR=$($SUDO ifconfig | perl -nle 's/dr:(\S+)/print $1/e')
@@ -130,10 +148,10 @@ echo "Gateway check:" >> $DEBUG_LOG
 echo "$GATEWAY_CHECK" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
 
-# Test the nslookup here
 compareWhitelist
 compareBlacklist
 testNslookup
+checkProcesses
 
 echo "::: Writing dnsmasq.conf to debug log..."
 echo "#######################################" >> $DEBUG_LOG

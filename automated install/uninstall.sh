@@ -51,8 +51,8 @@ echo ":::"
 				read -rp "::: Do you wish to remove $i from your system? [y/n]: " yn
 				case $yn in
 					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO apt-get -y remove --purge "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
-					[Nn]* ) printf ":::\tSkipping %s" "$i"; break;;
-					* ) printf "::: You must answer yes or no!";;
+					[Nn]* ) printf ":::\tSkipping %s" "$i\n"; break;;
+					* ) printf "::: You must answer yes or no!\n";;
 				esac
 			done
 		else
@@ -127,7 +127,7 @@ function removeNoPurge {
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
 	printf "::: Reach out to us at https://github.com/pi-hole/pi-hole/issues if you need help\n"
-	printf "::: Reinstall by simpling running\n:::\n:::\tcurl -L install.pi-hole.net | bash\n:::\n::: at any time!\n:::\n"
+	printf "::: Reinstall by simpling running\n:::\n:::\tcurl -L https://install.pi-hole.net | bash\n:::\n::: at any time!\n:::\n"
 	printf "::: PLEASE RESET YOUR DNS ON YOUR ROUTER/CLIENTS TO RESTORE INTERNET CONNECTIVITY!\n"
 }
 
