@@ -326,7 +326,7 @@ function gravity_reload() {
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
-	$SUDO sed -i "s/^addn-hosts.*/addn-hosts=$adlist/" /etc/dnsmasq.d/01-pihole.conf
+	$SUDO sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	dnsmasqPid=$(pidof dnsmasq)
 
     find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
