@@ -47,7 +47,7 @@ fi
 
 if [[ -f $piholeIPv6file ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+    piholeIPv6="::"
 fi
 
 # Variables for various stages of downloading and formatting the list
