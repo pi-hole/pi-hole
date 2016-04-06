@@ -63,7 +63,8 @@ function setupLCDFunction {
 }
 
 function chronometerFunc {
-	$SUDO /opt/pihole/chronometer.sh
+	shift
+	$SUDO /opt/pihole/chronometer.sh "$@"
 	exit 1
 }
 
@@ -106,7 +107,7 @@ case "$1" in
 "-u" | "updateDashboard"	) updateDashboardFunc;;
 "-g" | "updateGravity"		) updateGravityFunc;;
 "-s" | "setupLCD"			) setupLCDFunction;;
-"-c" | "chronometer"		) chronometerFunc;;
+"-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
 "uninstall"					) uninstallFunc;;
 *                    		) helpFunc;;
