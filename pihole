@@ -11,10 +11,10 @@
 # (at your option) any later version.
 
 # Must be root to use this tool
-if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
-else
-	echo "::: Sudo will be used for this tool."
+if [[ ! $EUID -eq 0 ]];then
+	#echo "::: You are root."
+#else
+	#echo "::: Sudo will be used for this tool."
   # Check if it is actually installed
   # If it isn't, exit because the pihole cannot be invoked without privileges.
   if [[ $(dpkg-query -s sudo) ]];then
@@ -63,7 +63,8 @@ function setupLCDFunction {
 }
 
 function chronometerFunc {
-	$SUDO /opt/pihole/chronometer.sh
+	shift
+	$SUDO /opt/pihole/chronometer.sh "$@"
 	exit 1
 }
 
@@ -106,7 +107,7 @@ case "$1" in
 "-u" | "updateDashboard"	) updateDashboardFunc;;
 "-g" | "updateGravity"		) updateGravityFunc;;
 "-s" | "setupLCD"			) setupLCDFunction;;
-"-c" | "chronometer"		) chronometerFunc;;
+"-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
 "uninstall"					) uninstallFunc;;
 *                    		) helpFunc;;
