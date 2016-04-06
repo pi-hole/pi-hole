@@ -12,9 +12,9 @@
 
 # Must be root to use this tool
 if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
+	#echo "::: You are root."
 else
-	echo "::: Sudo will be used for this tool."
+	#echo "::: Sudo will be used for this tool."
   # Check if it is actually installed
   # If it isn't, exit because the pihole cannot be invoked without privileges.
   if [[ $(dpkg-query -s sudo) ]];then
