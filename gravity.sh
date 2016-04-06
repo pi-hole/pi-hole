@@ -40,19 +40,14 @@ if [[ -f $piholeIPv6file ]];then
 fi
 
 # Variables for various stages of downloading and formatting the list
-## Nate 3/26/2016 - Commented unused variables
 basename=pihole
 piholeDir=/etc/$basename
 adList=$piholeDir/gravity.list
-#blacklist=$piholeDir/blacklist.txt
-#whitelist=$piholeDir/whitelist.txt
-#latentWhitelist=$piholeDir/latentWhitelist.txt
 justDomainsExtension=domains
 matterandlight=$basename.0.matterandlight.txt
 supernova=$basename.1.supernova.txt
 eventHorizon=$basename.2.eventHorizon.txt
 accretionDisc=$basename.3.accretionDisc.txt
-#eyeOfTheNeedle=$basename.4.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
