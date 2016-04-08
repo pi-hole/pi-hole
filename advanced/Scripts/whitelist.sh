@@ -219,10 +219,10 @@ if $modifyHost || $force; then
 	 ModifyHostFile
 else
   if $verbose; then
-  echo ":::"
-	echo "::: No changes need to be made"
-	exit 1
+	  echo ":::"
+		echo "::: No changes need to be made"		
 	fi
+	exit 1
 fi
 
 if $reload; then
