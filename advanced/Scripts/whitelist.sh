@@ -188,7 +188,7 @@ function Reload() {
 }
 
 function DisplayWlist() {
-	clear
+	verbose=false
 	echo -e " Displaying Gravity Resistant Domains \n"
 	count=1
 	while IFS= read -r RD
