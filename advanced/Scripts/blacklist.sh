@@ -61,7 +61,7 @@ function helpFunc()
     echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
     echo ":::  -q, --quiet			output is less verbose"
     echo ":::  -h, --help			Show this help dialog"
-	echo ":::  -l, --list           Display your blacklisted domains"
+    echo ":::  -l, --list           Display your blacklisted domains"
     exit 1
 }
 
@@ -197,7 +197,7 @@ do
     "-f" | "--force"     ) force=true;;
     "-q" | "--quiet"     ) versbose=false;;
     "-h" | "--help"	     ) helpFunc;;
-	"-l" | "--list"      ) DisplayBlist;;
+    "-l" | "--list"      ) DisplayBlist;;
     *                    ) HandleOther "$var";;
   esac
 done

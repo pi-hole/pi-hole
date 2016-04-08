@@ -60,7 +60,7 @@ function helpFunc()
     echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
     echo ":::  -q, --quiet			output is less verbose"
     echo ":::  -h, --help			Show this help dialog"
-	echo ":::  -l, --list           Display your whitelisted domains"
+    echo ":::  -l, --list           Display your whitelisted domains"
     exit 1
 }
 
