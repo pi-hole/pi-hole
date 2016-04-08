@@ -206,7 +206,7 @@ if $modifyHost || $force; then
 	ModifyHostFile
 else
   if $verbose; then
-	echo "::: No changes need to be made"
+		echo "::: No changes need to be made"
 	fi
 	exit 1
 fi
