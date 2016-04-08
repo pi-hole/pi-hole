@@ -471,16 +471,17 @@ installScripts() {
 	$SUDO cp /etc/.pihole/advanced/Scripts/piholeDebug.sh /opt/pihole/piholeDebug.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /opt/pihole/updateDashboard.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/updatePihole.sh /opt/pihole/updateDashboard.sh
 	$SUDO cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
-	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall,setupLCD}.sh
+	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard, updatePihole,uninstall,setupLCD, piholeDebug}.sh
 	$SUDO cp /etc/.pihole/pihole /usr/local/bin/pihole
 	$SUDO chmod 755 /usr/local/bin/pihole
 	$SUDO cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	. /etc/bash_completion.d/pihole
 
 	#Tidy up /usr/local/bin directory if installing over previous install.
-	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
+	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard updatePihole uninstall setupLCD piholeDebug)
 	for i in "${oldFiles[@]}"; do
 		if [ -f "/usr/local/bin/$i.sh" ]; then
 			$SUDO rm /usr/local/bin/"$i".sh
