@@ -57,6 +57,11 @@ function updateGravityFunc {
 	exit 1
 }
 
+function updatePiholeFunc {
+	$SUDO /opt/pihole/updatePihole.sh
+	exit 1
+}
+
 function setupLCDFunction {
 	$SUDO /opt/pihole/setupLCD.sh
 	exit 1
@@ -86,6 +91,7 @@ function helpFunc {
     echo ":::  -d, debug 				Start a debugging session if having trouble"
     echo ":::  -f, flush 				Flush the pihole.log file"
     echo ":::  -u, updateDashboard		Update the web dashboard manually"
+    echo ":::  -up, updatePihole		Update the Pi-hole core files manually"
     echo ":::  -g, updateGravity		Update the list of ad-serving domains"
    	echo ":::  -s, setupLCD 			Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
 	echo ":::  -c, chronometer 			Calculates stats and displays to an LCD"
@@ -105,6 +111,7 @@ case "$1" in
 "-d" | "debug"				) debugFunc;;
 "-f" | "flush"				) flushFunc;;
 "-u" | "updateDashboard"	) updateDashboardFunc;;
+"-up" | "updatePihole"		) updatePiholeFunc;;
 "-g" | "updateGravity"		) updateGravityFunc;;
 "-s" | "setupLCD"			) setupLCDFunction;;
 "-c" | "chronometer"		) chronometerFunc "$@";;
