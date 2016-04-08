@@ -1,7 +1,11 @@
 # Automated Install 
-##### Designed For Raspberry Pi A+, B, B+, 2, and Zero (with an Ethernet/Wi-Fi adapter)
+##### Designed For Raspberry Pi A+, B, B+, 2, Zero, and 3B (with an Ethernet/Wi-Fi adapter) (Works on most Debian distributions!)
+
+
+[![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 1. Install Raspbian 
+
 2. Run the command below
 
 ### ```curl -L https://install.pi-hole.net | bash```
@@ -29,6 +33,7 @@ reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
 [![Pi-hole exlplained](http://i.imgur.com/qNybJDX.png)](https://vimeo.com/135965232)
 
 ## Pi-hole Projects
+- [Get LED alerts for each blocked ad](http://www.stinebaugh.info/get-led-alerts-for-each-blocked-ad-using-pi-hole/)
 - [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
 - [x86 Docker container that runs Pi-hole](https://hub.docker.com/r/diginc/pi-hole/)
 - [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
@@ -41,6 +46,7 @@ reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
 - [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 
 ## Coverage
+- [TekThing: 5 fun, easy projects for a Raspberry Pi](https://youtu.be/QwrKlyC2kdM?t=1m42s)
 - [Pi-hole on Adafruit's blog](https://blog.adafruit.com/2016/03/04/pi-hole-is-a-black-hole-for-internet-ads-piday-raspberrypi-raspberry_pi/)
 - [The Defrag Show - MSDN/Channel 9](https://channel9.msdn.com/Shows/The-Defrag-Show/Defrag-Endoscope-USB-Camera-The-Final-HoloLens-Vote-Adblock-Pi-and-more?WT.mc_id=dlvr_twitter_ch9#time=20m39s)
 - [MacObserver Podcast 585](http://www.macobserver.com/tmo/podcast/macgeekgab-585)
