@@ -22,7 +22,7 @@ whitelist=$piholeDir/whitelist.txt
 reload=true
 addmode=true
 force=false
-versbose=true
+verbose=true
 
 domList=()
 domToRemoveList=()
@@ -96,16 +96,16 @@ function AddDomain(){
 	grep -Ex -q "$1" $whitelist || bool=true
 	if $bool; then
 	  #domain not found in the whitelist file, add it!
-	  if $versbose; then
+	  if $verbose; then
 		echo -n "::: Adding $1 to $whitelist..."
 	  fi
 	  echo "$1" >> $whitelist
 		modifyHost=true
-		if $versbose; then
+		if $verbose; then
 	  	echo " done!"
 	  fi
 	else
-		if $versbose; then
+		if $verbose; then
 			echo "::: $1 already exists in $whitelist, no need to add!"
 		fi
 	fi
@@ -117,12 +117,12 @@ function RemoveDomain(){
   grep -Ex -q "$1" $whitelist || bool=true
   if $bool; then
   	#Domain is not in the whitelist file, no need to Remove
-  	if $versbose; then
+  	if $verbose; then
   	echo "::: $1 is NOT whitelisted! No need to remove"
   	fi
   else
     #Domain is in the whitelist file, add to a temporary array and remove from whitelist file
-    #if $versbose; then
+    #if $verbose; then
     #echo "::: Un-whitelisting $dom..."
     #fi
     domToRemoveList=("${domToRemoveList[@]}" $1)
@@ -206,7 +206,7 @@ do
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
-    "-q" | "--quiet"     ) versbose=false;;
+    "-q" | "--quiet"     ) verbose=false;;
     "-h" | "--help"      ) helpFunc;;
     "-l" | "--list"      ) DisplayWlist;;
     *                    ) HandleOther "$var";;
@@ -218,7 +218,7 @@ PopWhitelistFile
 if $modifyHost || $force; then
 	 ModifyHostFile
 else
-  if $versbose; then
+  if $verbose; then
   echo ":::"
 	echo "::: No changes need to be made"
 	exit 1
