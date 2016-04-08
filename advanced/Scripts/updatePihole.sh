@@ -24,6 +24,7 @@ if [[ $LOCAL = $REMOTE ]]; then
 elif [[ $LOCAL = $BASE ]]; then
   echo "Updating Pi-hole..."
   git pull
+  /opt/pihole/updatePiholeSecondary.sh
 elif [[ $REMOTE = $BASE ]]; then
   : # Need to push, so do nothing
 else
