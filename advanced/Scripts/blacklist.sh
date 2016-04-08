@@ -22,7 +22,7 @@ blacklist=$piholeDir/blacklist.txt
 reload=true
 addmode=true
 force=false
-versbose=true
+verbose=true
 
 domList=()
 domToRemoveList=()
@@ -95,14 +95,14 @@ function AddDomain(){
 	grep -Ex -q "$1" $blacklist || bool=true
 	if $bool; then
 	  #domain not found in the blacklist file, add it!
-	  if $versbose; then
+	  if $verbose; then
 	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
 		echo "$1" >> $blacklist
 		modifyHost=true
 		echo " done!"
 	else
-	if $versbose; then
+	if $verbose; then
 		echo "::: $1 already exists in $blacklist! No need to add"
 		fi
 	fi
@@ -114,12 +114,12 @@ function RemoveDomain(){
   grep -Ex -q "$1" $blacklist || bool=true
   if $bool; then
   	#Domain is not in the blacklist file, no need to Remove
-  	if $versbose; then
+  	if $verbose; then
   	echo "::: $1 is NOT blacklisted! No need to remove"
   	fi
   else
     #Domain is in the blacklist file, add to a temporary array
-    if $versbose; then
+    if $verbose; then
     echo "::: Un-blacklisting $dom..."
     fi
     domToRemoveList=("${domToRemoveList[@]}" $1)
@@ -193,7 +193,7 @@ do
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
-    "-q" | "--quiet"     ) versbose=false;;
+    "-q" | "--quiet"     ) verbose=false;;
     "-h" | "--help"	     ) helpFunc;;
     "-l" | "--list"      ) DisplayBlist;;
     *                    ) HandleOther "$var";;
@@ -205,7 +205,7 @@ PopBlacklistFile
 if $modifyHost || $force; then
 	ModifyHostFile
 else
-  if $versbose; then
+  if $verbose; then
 	echo "::: No changes need to be made"
 	fi
 	exit 1
