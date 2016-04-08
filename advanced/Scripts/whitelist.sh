@@ -60,6 +60,7 @@ function helpFunc()
     echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
     echo ":::  -q, --quiet			output is less verbose"
     echo ":::  -h, --help			Show this help dialog"
+	echo ":::  -l, --list           Display your whitelisted domains"
     exit 1
 }
 
@@ -186,6 +187,19 @@ function Reload() {
 	echo " done!"
 }
 
+function DisplayWlist() {
+clear
+echo -e " Displaying Gravity Resistant Domains \n"
+
+GRD="$whitelist"
+count=1
+while IFS= read -r RD
+do
+  echo "${count}: $RD"
+count=$((count+1))
+done < "$whitelist"
+}
+
 ###################################################
 
 for var in "$@"
@@ -195,7 +209,8 @@ do
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
     "-q" | "--quiet"     ) versbose=false;;
-    "-h" | "--help"			 ) helpFunc;;
+    "-h" | "--help"		 ) helpFunc;;
+    "-l" | "--list"      ) DisplayWlist;;
     *                    ) HandleOther "$var";;
   esac
 done

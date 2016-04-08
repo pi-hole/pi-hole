@@ -61,6 +61,7 @@ function helpFunc()
     echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
     echo ":::  -q, --quiet			output is less verbose"
     echo ":::  -h, --help			Show this help dialog"
+	echo ":::  -l, --list           Display your blacklisted domains"
     exit 1
 }
 
@@ -173,6 +174,19 @@ function Reload() {
 	echo " done!"
 }
 
+function DisplayBlist() {
+clear
+echo -e " Displaying Gravity Affected Domains \n"
+
+GRD="$blacklist"
+count=1
+while IFS= read -r RD
+do
+  echo "${count}: $RD"
+count=$((count+1))
+done < "$blacklist"
+}
+
 ###################################################
 
 for var in "$@"
@@ -182,7 +196,8 @@ do
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
     "-q" | "--quiet"     ) versbose=false;;
-    "-h" | "--help"			 ) helpFunc;;
+    "-h" | "--help"	     ) helpFunc;;
+	"-l" | "--list"      ) DisplayBlist;;
     *                    ) HandleOther "$var";;
   esac
 done
