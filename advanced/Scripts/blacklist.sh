@@ -175,7 +175,7 @@ function Reload() {
 }
 
 function DisplayBlist() {
-	clear
+	verbose=false
 	echo -e " Displaying Gravity Affected Domains \n"
 	count=1
 	while IFS= read -r AD
