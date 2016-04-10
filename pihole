@@ -78,7 +78,7 @@ function helpFunc {
 	echo "::: Control all PiHole specific functions!"
 	echo ":::"
 	echo "::: Usage: pihole [options]"
-	printf ":::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage"
+	echo ":::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage"
 	echo ":::"
 	echo "::: Options:"
 	echo ":::  -w, whitelist			Whitelist domains"
