@@ -85,11 +85,11 @@ function helpFunc {
 	echo ":::  -b, blacklist			Blacklist domains"
 	echo ":::  -d, debug 				Start a debugging session if having trouble"
 	echo ":::  -f, flush 				Flush the pihole.log file"
-	echo ":::  -u, updateDashboard		Update the web dashboard manually"
-	echo ":::  -g, updateGravity		Update the list of ad-serving domains"
+	echo ":::  -u, updateDashboard			Update the web dashboard manually"
+	echo ":::  -g, updateGravity			Update the list of ad-serving domains"
 	echo ":::  -s, setupLCD				Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
 	echo ":::  -c, chronometer			Calculates stats and displays to an LCD"
-	echo ":::  -h, help					Show this help dialog"
+	echo ":::  -h, help				Show this help dialog"
 	echo ":::  uninstall				Uninstall Pi-Hole from your system!"
 	exit 1
 }
