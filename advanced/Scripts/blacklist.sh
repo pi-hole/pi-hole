@@ -51,18 +51,18 @@ fi
 
 function helpFunc()
 {
-	  echo "::: Immediately blacklists one or more domains in the hosts file"
-    echo ":::"
-    echo "::: Usage: sudo pihole -b domain1 [domain2 ...]"
-    echo ":::"
-    echo "::: Options:"
-    echo ":::  -d, --delmode			Remove domains from the blacklist"
-    echo ":::  -nr, --noreload		Update blacklist without refreshing dnsmasq"
-    echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
-    echo ":::  -q, --quiet				output is less verbose"
-    echo ":::  -h, --help					Show this help dialog"
-    echo ":::  -l, --list					Display your blacklisted domains"
-    exit 1
+	echo "::: Immediately blacklists one or more domains in the hosts file"
+	echo ":::"
+	echo ":::"
+	echo "::: Usage: sudo pihole -b domain1 [domain2 ...]"
+	echo "::: Options:"
+	echo ":::  -d, --delmode			Remove domains from the blacklist"
+	echo ":::  -nr, --noreload			Update blacklist without refreshing dnsmasq"
+	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
+	echo ":::  -q, --quiet				output is less verbose"
+	echo ":::  -h, --help				Show this help dialog"
+	echo ":::  -l, --list				Display your blacklisted domains"
+	exit 1
 }
 
 function HandleOther(){
