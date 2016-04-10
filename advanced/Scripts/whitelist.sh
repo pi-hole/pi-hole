@@ -52,15 +52,15 @@ function helpFunc()
 {
 	  echo "::: Immediately whitelists one or more domains in the hosts file"
     echo ":::"
-    echo "::: Usage: sudo pihole.sh -w domain1 [domain2 ...]"
+    echo "::: Usage: sudo pihole -w domain1 [domain2 ...]"
     echo ":::"
     echo "::: Options:"
-    echo ":::  -d, --delmode		Remove domains from the whitelist"
+    echo ":::  -d, --delmode			Remove domains from the whitelist"
     echo ":::  -nr, --noreload		Update Whitelist without refreshing dnsmasq"
-    echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
-    echo ":::  -q, --quiet			output is less verbose"
-    echo ":::  -h, --help			Show this help dialog"
-    echo ":::  -l, --list			Display your whitelisted domains"
+    echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
+    echo ":::  -q, --quiet				output is less verbose"
+    echo ":::  -h, --help					Show this help dialog"
+    echo ":::  -l, --list					Display your whitelisted domains"
     exit 1
 }
 
@@ -220,7 +220,7 @@ if $modifyHost || $force; then
 else
   if $verbose; then
 	  echo ":::"
-		echo "::: No changes need to be made"		
+		echo "::: No changes need to be made"
 	fi
 	exit 1
 fi

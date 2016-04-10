@@ -53,15 +53,15 @@ function helpFunc()
 {
 	  echo "::: Immediately blacklists one or more domains in the hosts file"
     echo ":::"
-    echo "::: Usage: sudo pihole.sh -b domain1 [domain2 ...]"
+    echo "::: Usage: sudo pihole -b domain1 [domain2 ...]"
     echo ":::"
     echo "::: Options:"
-    echo ":::  -d, --delmode		Remove domains from the blacklist"
+    echo ":::  -d, --delmode			Remove domains from the blacklist"
     echo ":::  -nr, --noreload		Update blacklist without refreshing dnsmasq"
-    echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
-    echo ":::  -q, --quiet			output is less verbose"
-    echo ":::  -h, --help			Show this help dialog"
-    echo ":::  -l, --list			Display your blacklisted domains"
+    echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
+    echo ":::  -q, --quiet				output is less verbose"
+    echo ":::  -h, --help					Show this help dialog"
+    echo ":::  -l, --list					Display your blacklisted domains"
     exit 1
 }
 
@@ -70,7 +70,7 @@ function HandleOther(){
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "$validDomain" ]; then
 		echo "::: $1 is not a valid argument or domain name"
-	else	  
+	else
 	  domList=("${domList[@]}" $validDomain)
 	fi
 }
@@ -134,12 +134,12 @@ function ModifyHostFile(){
 	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
-        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."	   		    
-	    	if [[ -n $piholeIPv6 ]];then	    	  
+        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
+	    	if [[ -n $piholeIPv6 ]];then
 				cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
-	      	else	        
+	      	else
 				cat $blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
-	      	fi		    
+	      	fi
 	  	fi
 	  else
 		echo ":::"
@@ -148,7 +148,7 @@ function ModifyHostFile(){
 	      #we need to remove the domains from the blacklist file and the host file
 			echo "::: $dom"
 			echo -n ":::    removing from HOSTS file..."
-	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList  
+	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
 	      	echo " done!"
 	      	echo -n ":::    removing from blackist.txt..."
 	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $blacklist
