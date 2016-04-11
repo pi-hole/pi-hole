@@ -19,6 +19,7 @@ DEBUG_LOG="/var/log/pihole_debug.log"
 DNSMASQFILE="/etc/dnsmasq.conf"
 PIHOLECONFFILE="/etc/dnsmasq.d/01-pihole.conf"
 LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
+LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
 GRAVITYFILE="/etc/pihole/gravity.list"
 HOSTSFILE="/etc/hosts"
 WHITELISTFILE="/etc/pihole/whitelist.txt"
@@ -126,10 +127,42 @@ function checkProcesses {
 	for i in "${PROCESSES[@]}"
 	do
 		echo "" >> $DEBUG_LOG
-		echo -n $i >> "$DEBUG_LOG"
+		echo -n "$i" >> "$DEBUG_LOG"
 		echo " processes status:" >> $DEBUG_LOG
-		$SUDO systemctl -l status $i >> "$DEBUG_LOG"
+		$SUDO systemctl -l status "$i" >> "$DEBUG_LOG"
 	done
+}
+
+function debugLighttpd {
+	echo "::: Writing lighttpd to debug log..."
+	echo "#######################################" >> $DEBUG_LOG
+	echo "############ lighttpd.conf ############" >> $DEBUG_LOG
+	echo "#######################################" >> $DEBUG_LOG
+	if [ -e "$LIGHTTPDFILE" ]
+	then
+		while read -r line; do
+			if [ ! -z "$line" ]; then
+				[[ "$line" =~ ^#.*$ ]] && continue
+				echo "$line" >> $DEBUG_LOG
+			fi
+		done < "$LIGHTTPDFILE"
+		echo >> $DEBUG_LOG
+	else
+		echo "No lighttpd.conf file found!" >> $DEBUG_LOG
+		printf ":::\tNo lighttpd.conf file found\n"
+	fi
+	
+	if [ -e "$LIGHTTPDERRFILE" ]
+	then
+		echo "#######################################" >> $DEBUG_LOG
+		echo "######### lighttpd error.log ##########" >> $DEBUG_LOG
+		echo "#######################################" >> $DEBUG_LOG
+		cat "$LIGHTTPDERRFILE" >> $DEBUG_LOG
+	else
+		echo "No lighttpd error.log file found!" >> $DEBUG_LOG
+		printf ":::\tNo lighttpd error.log file found\n"
+	fi
+	echo >> $DEBUG_LOG
 }
 
 ### END FUNCTIONS ###
@@ -152,6 +185,7 @@ compareWhitelist
 compareBlacklist
 testNslookup
 checkProcesses
+debugLighttpd
 
 echo "::: Writing dnsmasq.conf to debug log..."
 echo "#######################################" >> $DEBUG_LOG
@@ -178,7 +212,6 @@ echo "########### 01-pihole.conf ############" >> $DEBUG_LOG
 echo "#######################################" >> $DEBUG_LOG
 if [ -e "$PIHOLECONFFILE" ]
 then
-	#cat "$PIHOLECONFFILE" >> $DEBUG_LOG
 	while read -r line; do
 		if [ ! -z "$line" ]; then
 			[[ "$line" =~ ^#.*$ ]] && continue
@@ -189,25 +222,6 @@ then
 else
 	echo "No 01-pihole.conf file found!" >> $DEBUG_LOG
 	printf ":::\tNo 01-pihole.conf file found\n"
-fi
-
-echo "::: Writing lighttpd.conf to debug log..."
-echo "#######################################" >> $DEBUG_LOG
-echo "############ lighttpd.conf ############" >> $DEBUG_LOG
-echo "#######################################" >> $DEBUG_LOG
-if [ -e "$LIGHTTPDFILE" ]
-then
-	#cat "$PIHOLECONFFILE" >> $DEBUG_LOG
-	while read -r line; do
-		if [ ! -z "$line" ]; then
-			[[ "$line" =~ ^#.*$ ]] && continue
-			echo "$line" >> $DEBUG_LOG
-        fi
-	done < "$LIGHTTPDFILE"
-	echo >> $DEBUG_LOG
-else
-	echo "No lighttpd.conf file found!" >> $DEBUG_LOG
-	printf ":::\tNo lighttpd.conf file found\n"
 fi
 
 echo "::: Writing size of gravity.list to debug log..."
@@ -283,7 +297,7 @@ fi
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 function dumpPiHoleLog {
-	trap '{ echo -e "\nFinishing debug write from interrupt... Quitting!" ; exit 1; }' INT
+	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
 	echo -e "::: Writing current pihole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
 	echo "#######################################" >> $DEBUG_LOG
 	echo "############# pihole.log ##############" >> $DEBUG_LOG
