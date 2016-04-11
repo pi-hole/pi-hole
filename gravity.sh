@@ -12,6 +12,7 @@
 
 # Run this script as root or under sudo
 echo ":::"
+
 if [[ $EUID -eq 0 ]];then
 	echo "::: You are root."
 else
@@ -70,20 +71,6 @@ if [[ -r $piholeDir/pihole.conf ]];then
     echo "::: Local calibration requested..."
         . $piholeDir/pihole.conf
 fi
-
-spinner() {
-    local pid=$1
-    local delay=0.50
-    local spinstr='/-|'
-    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
-        local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
-        printf "\b\b\b\b\b\b"
-    done
-    printf "    \b\b\b\b"
-}
 
 ###########################
 # collapse - begin formation of pihole
@@ -214,7 +201,7 @@ function gravity_Schwarzchild() {
 	echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
-	truncate -s 0 $piholeDir/$matterandlight & spinner $!
+	truncate -s 0 $piholeDir/$matterandlight
 	for i in "${activeDomains[@]}"
 	do
 		cat "$i" | tr -d '\r' >> $piholeDir/$matterandlight
@@ -225,7 +212,7 @@ function gravity_Schwarzchild() {
 function gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
-	$blacklistScript -f -nr -q > /dev/null & spinner $!
+	$blacklistScript -f -nr -q > /dev/null
 
 	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
@@ -247,7 +234,7 @@ function gravity_Whitelist() {
 	echo " done!"
 
 	echo -n "::: Running whitelist script to update HOSTS file...."
-	$whitelistScript -f -nr -q "${urls[@]}" > /dev/null & spinner $!
+	$whitelistScript -f -nr -q "${urls[@]}" > /dev/null
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
 	echo " $numWhitelisted domain${plural} whitelisted!"
@@ -256,7 +243,7 @@ function gravity_Whitelist() {
 function gravity_unique() {
 	# Sort and remove duplicates
 	echo -n "::: Removing duplicate domains...."
-	sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon  & spinner $!
+	sort -u  $piholeDir/$supernova > $piholeDir/$eventHorizon
 	echo " done!"
 	numberOf=$(wc -l < $piholeDir/$eventHorizon)
 	echo "::: $numberOf unique domains trapped in the event horizon."
@@ -302,7 +289,7 @@ function gravity_advanced() {
 	# This helps with that and makes it easier to read
 	# It also helps with debugging so each stage of the script can be researched more in depth
 	echo -n "::: Formatting list of domains to remove comments...."
-	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova & spinner $!
+	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' $piholeDir/$matterandlight | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  $piholeDir/$supernova
 	echo " done!"
 
 	numberOf=$(wc -l < $piholeDir/$supernova)
@@ -329,14 +316,14 @@ function gravity_reload() {
 	$SUDO sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	dnsmasqPid=$(pidof dnsmasq)
 
-    find "$piholeDir" -type f -exec $SUDO chmod 666 {} \; & spinner $!
+    find "$piholeDir" -type f -exec $SUDO chmod 666 {} \;
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		$SUDO kill -HUP "$dnsmasqPid" & spinner $!
+		$SUDO kill -HUP "$dnsmasqPid"
 	else
 		# service not running, start it up
-		$SUDO service dnsmasq start & spinner $!
+		$SUDO service dnsmasq start
 	fi
 	echo " done!"
 }

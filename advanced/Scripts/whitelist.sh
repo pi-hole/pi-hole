@@ -22,7 +22,7 @@ whitelist=$piholeDir/whitelist.txt
 reload=true
 addmode=true
 force=false
-versbose=true
+verbose=true
 
 domList=()
 domToRemoveList=()
@@ -50,17 +50,18 @@ fi
 
 function helpFunc()
 {
-	  echo "::: Immediately whitelists one or more domains in the hosts file"
-    echo ":::"
-    echo "::: Usage: sudo pihole.sh -w domain1 [domain2 ...]"
-    echo ":::"
-    echo "::: Options:"
-    echo ":::  -d, --delmode		Remove domains from the whitelist"
-    echo ":::  -nr, --noreload		Update Whitelist without refreshing dnsmasq"
-    echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
-    echo ":::  -q, --quiet			output is less verbose"
-    echo ":::  -h, --help			Show this help dialog"
-    exit 1
+	echo "::: Immediately whitelists one or more domains in the hosts file"
+	echo ":::"
+	echo "::: Usage: sudo pihole -w domain1 [domain2 ...]"
+	echo ":::"
+	echo "::: Options:"
+	echo ":::  -d, --delmode			Remove domains from the whitelist"
+	echo ":::  -nr, --noreload			Update Whitelist without refreshing dnsmasq"
+	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
+	echo ":::  -q, --quiet				output is less verbose"
+	echo ":::  -h, --help				Show this help dialog"
+	echo ":::  -l, --list				Display your whitelisted domains"
+	exit 1
 }
 
 function HandleOther(){
@@ -95,16 +96,16 @@ function AddDomain(){
 	grep -Ex -q "$1" $whitelist || bool=true
 	if $bool; then
 	  #domain not found in the whitelist file, add it!
-	  if $versbose; then
+	  if $verbose; then
 		echo -n "::: Adding $1 to $whitelist..."
 	  fi
 	  echo "$1" >> $whitelist
 		modifyHost=true
-		if $versbose; then
+		if $verbose; then
 	  	echo " done!"
 	  fi
 	else
-		if $versbose; then
+		if $verbose; then
 			echo "::: $1 already exists in $whitelist, no need to add!"
 		fi
 	fi
@@ -116,12 +117,12 @@ function RemoveDomain(){
   grep -Ex -q "$1" $whitelist || bool=true
   if $bool; then
   	#Domain is not in the whitelist file, no need to Remove
-  	if $versbose; then
+  	if $verbose; then
   	echo "::: $1 is NOT whitelisted! No need to remove"
   	fi
   else
     #Domain is in the whitelist file, add to a temporary array and remove from whitelist file
-    #if $versbose; then
+    #if $verbose; then
     #echo "::: Un-whitelisting $dom..."
     #fi
     domToRemoveList=("${domToRemoveList[@]}" $1)
@@ -186,6 +187,17 @@ function Reload() {
 	echo " done!"
 }
 
+function DisplayWlist() {
+	verbose=false
+	echo -e " Displaying Gravity Resistant Domains \n"
+	count=1
+	while IFS= read -r RD
+	do
+		echo "${count}: $RD"
+		count=$((count+1))
+	done < "$whitelist"
+}
+
 ###################################################
 
 for var in "$@"
@@ -194,8 +206,9 @@ do
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
-    "-q" | "--quiet"     ) versbose=false;;
-    "-h" | "--help"			 ) helpFunc;;
+    "-q" | "--quiet"     ) verbose=false;;
+    "-h" | "--help"      ) helpFunc;;
+    "-l" | "--list"      ) DisplayWlist;;
     *                    ) HandleOther "$var";;
   esac
 done
@@ -205,11 +218,11 @@ PopWhitelistFile
 if $modifyHost || $force; then
 	 ModifyHostFile
 else
-  if $versbose; then
-  echo ":::"
-	echo "::: No changes need to be made"
-	exit 1
+  if $verbose; then
+	  echo ":::"
+		echo "::: No changes need to be made"
 	fi
+	exit 1
 fi
 
 if $reload; then
