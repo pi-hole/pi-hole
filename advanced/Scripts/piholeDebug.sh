@@ -54,6 +54,19 @@ else
 fi
 
 ### Private functions exist here ###
+function versionCheck {
+	echo "#######################################" >> $DEBUG_LOG
+	echo "########## Versions Section ###########" >> $DEBUG_LOG
+	echo "#######################################" >> $DEBUG_LOG
+	
+	TMP=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
+	echo "Pi-hole Version: $TMP" >> $DEBUG_LOG
+	
+	TMP=$(cd /var/www/html/admin && git describe --tags --abbrev=0)
+	echo "WebUI Version: $TMP" >> $DEBUG_LOG
+	echo >> $DEBUG_LOG
+}
+
 function compareWhitelist {
 	if [ ! -f "$WHITELISTMATCHES" ]; then
 		$SUDO touch $WHITELISTMATCHES
@@ -181,6 +194,7 @@ echo "Gateway check:" >> $DEBUG_LOG
 echo "$GATEWAY_CHECK" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
 
+versionCheck
 compareWhitelist
 compareBlacklist
 testNslookup
