@@ -316,7 +316,8 @@ function dumpPiHoleLog {
 
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
-	echo "::: Finshed debugging!"
+	echo "::: Finshed debugging!" 
+	echo "::: Debug log can be found at : /var/log/pihole_debug.log"
 }
 trap finalWork EXIT
 
