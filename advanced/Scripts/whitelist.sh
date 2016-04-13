@@ -10,6 +10,21 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+#rootcheck
+if [[ $EUID -eq 0 ]];then
+	echo "::: You are root."
+else
+	echo "::: sudo will be used."
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		export SUDO="sudo"
+	else
+		echo "::: Please install sudo or run this script as root."
+		exit 1
+	fi
+fi
+
 if [[ $# = 0 ]]; then
 	helpFunc
 fi
@@ -52,7 +67,7 @@ function helpFunc()
 {
 	echo "::: Immediately whitelists one or more domains in the hosts file"
 	echo ":::"
-	echo "::: Usage: sudo pihole -w domain1 [domain2 ...]"
+	echo "::: Usage: pihole -w domain1 [domain2 ...]"
 	echo ":::"
 	echo "::: Options:"
 	echo ":::  -d, --delmode			Remove domains from the whitelist"
@@ -179,10 +194,10 @@ function Reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		sudo kill -HUP "$dnsmasqPid"
+		$SUDO kill -HUP "$dnsmasqPid"
 	else
 		# service not running, start it up
-		sudo service dnsmasq start
+		$SUDO service dnsmasq start
 	fi
 	echo " done!"
 }
