@@ -320,7 +320,7 @@ function gravity_reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		$SUDO kill -s HUP "$dnsmasqPid"
+		$SUDO kill -HUP "$dnsmasqPid"
 	else
 		# service not running, start it up
 		$SUDO service dnsmasq start
