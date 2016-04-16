@@ -194,7 +194,7 @@ function Reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		$SUDO kill -HUP "$dnsmasqPid"
+		$SUDO kill -s HUP "$dnsmasqPid"
 	else
 		# service not running, start it up
 		$SUDO service dnsmasq start
