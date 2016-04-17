@@ -10,9 +10,6 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-if [[ $# = 0 ]]; then
-	helpFunc
-fi
 
 #globals
 basename=pihole
@@ -64,6 +61,10 @@ function helpFunc()
 	echo ":::  -l, --list				Display your blacklisted domains"
 	exit 1
 }
+
+if [[ $# = 0 ]]; then
+	helpFunc
+fi
 
 function HandleOther(){
   #check validity of domain
