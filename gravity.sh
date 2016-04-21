@@ -236,15 +236,20 @@ function gravity_unique() {
 function gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
+	# Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+    realIP=${piholeIPCIDR%/*}
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
 	if [[ -n $piholeIPv6 ]];then
+		realIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$piholeIP $hostname\n$piholeIPv6 $hostname\n$piholeIP pi.hole\n$piholeIPv6 pi.hole" > $piholeDir/$accretionDisc
+		echo -e "$realIP $hostname\n$realIPv6 $hostname\n$realIP pi.hole\n$realIPv6 pi.hole" > $piholeDir/$accretionDisc
 		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
 	else
 		# Otherwise, just create gravity.list as normal using IPv4
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$piholeIP $hostname\n$piholeIP pi.hole" > $piholeDir/$accretionDisc
+		echo -e "$realIP $hostname\n$realIP pi.hole" > $piholeDir/$accretionDisc
 		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
 	fi
 
