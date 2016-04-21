@@ -27,7 +27,7 @@ else
 	fi
 fi
 
-piholeIPfile=/tmp/piholeIP
+piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
