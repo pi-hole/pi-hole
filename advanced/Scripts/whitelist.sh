@@ -42,7 +42,7 @@ verbose=true
 domList=()
 domToRemoveList=()
 
-piholeIPfile=/tmp/piholeIP
+piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
 if [[ -f $piholeIPfile ]];then
