@@ -10,6 +10,21 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+#rootcheck
+if [[ $EUID -eq 0 ]];then
+	echo "::: You are root."
+else
+	echo "::: sudo will be used."
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		export SUDO="sudo"
+	else
+		echo "::: Please install sudo or run this script as root."
+		exit 1
+	fi
+fi
+
 if [[ $# = 0 ]]; then
 	helpFunc
 fi
@@ -22,7 +37,7 @@ blacklist=$piholeDir/blacklist.txt
 reload=true
 addmode=true
 force=false
-versbose=true
+verbose=true
 
 domList=()
 domToRemoveList=()
@@ -40,25 +55,30 @@ fi
 
 function helpFunc()
 {
-	  echo "::: Immediately blacklists one or more domains in the hosts file"
-    echo ":::"
-    echo "::: Usage: sudo pihole.sh -b domain1 [domain2 ...]"
-    echo ":::"
-    echo "::: Options:"
-    echo ":::  -d, --delmode		Remove domains from the blacklist"
-    echo ":::  -nr, --noreload		Update blacklist without refreshing dnsmasq"
-    echo ":::  -f, --force			Force updating of the hosts files, even if there are no changes"
-    echo ":::  -q, --quiet			output is less verbose"
-    echo ":::  -h, --help			Show this help dialog"
-    exit 1
+	echo "::: Immediately blacklists one or more domains in the hosts file"
+	echo ":::"
+	echo ":::"
+	echo "::: Usage: pihole -b domain1 [domain2 ...]"
+	echo "::: Options:"
+	echo ":::  -d, --delmode			Remove domains from the blacklist"
+	echo ":::  -nr, --noreload			Update blacklist without refreshing dnsmasq"
+	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
+	echo ":::  -q, --quiet				output is less verbose"
+	echo ":::  -h, --help				Show this help dialog"
+	echo ":::  -l, --list				Display your blacklisted domains"
+	exit 1
 }
+
+if [[ $# = 0 ]]; then
+	helpFunc
+fi
 
 function HandleOther(){
   #check validity of domain
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "$validDomain" ]; then
 		echo "::: $1 is not a valid argument or domain name"
-	else	  
+	else
 	  domList=("${domList[@]}" $validDomain)
 	fi
 }
@@ -83,14 +103,14 @@ function AddDomain(){
 	grep -Ex -q "$1" $blacklist || bool=true
 	if $bool; then
 	  #domain not found in the blacklist file, add it!
-	  if $versbose; then
+	  if $verbose; then
 	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
 		echo "$1" >> $blacklist
 		modifyHost=true
 		echo " done!"
 	else
-	if $versbose; then
+	if $verbose; then
 		echo "::: $1 already exists in $blacklist! No need to add"
 		fi
 	fi
@@ -102,12 +122,12 @@ function RemoveDomain(){
   grep -Ex -q "$1" $blacklist || bool=true
   if $bool; then
   	#Domain is not in the blacklist file, no need to Remove
-  	if $versbose; then
+  	if $verbose; then
   	echo "::: $1 is NOT blacklisted! No need to remove"
   	fi
   else
     #Domain is in the blacklist file, add to a temporary array
-    if $versbose; then
+    if $verbose; then
     echo "::: Un-blacklisting $dom..."
     fi
     domToRemoveList=("${domToRemoveList[@]}" $1)
@@ -122,12 +142,12 @@ function ModifyHostFile(){
 	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
-        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."	   		    
-	    	if [[ -n $piholeIPv6 ]];then	    	  
+        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
+	    	if [[ -n $piholeIPv6 ]];then
 				cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
-	      	else	        
+	      	else
 				cat $blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
-	      	fi		    
+	      	fi
 	  	fi
 	  else
 		echo ":::"
@@ -136,7 +156,7 @@ function ModifyHostFile(){
 	      #we need to remove the domains from the blacklist file and the host file
 			echo "::: $dom"
 			echo -n ":::    removing from HOSTS file..."
-	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList  
+	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
 	      	echo " done!"
 	      	echo -n ":::    removing from blackist.txt..."
 	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $blacklist
@@ -154,12 +174,23 @@ function Reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		sudo kill -HUP "$dnsmasqPid"
+		$SUDO killall -s HUP dnsmasq
 	else
 		# service not running, start it up
-		sudo service dnsmasq start
+		$SUDO service dnsmasq start
 	fi
 	echo " done!"
+}
+
+function DisplayBlist() {
+	verbose=false
+	echo -e " Displaying Gravity Affected Domains \n"
+	count=1
+	while IFS= read -r AD
+	do
+		echo "${count}: $AD"
+		count=$((count+1))
+	done < "$blacklist"
 }
 
 ###################################################
@@ -170,8 +201,9 @@ do
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
-    "-q" | "--quiet"     ) versbose=false;;
-    "-h" | "--help"			 ) helpFunc;;
+    "-q" | "--quiet"     ) verbose=false;;
+    "-h" | "--help"	     ) helpFunc;;
+    "-l" | "--list"      ) DisplayBlist;;
     *                    ) HandleOther "$var";;
   esac
 done
@@ -181,8 +213,8 @@ PopBlacklistFile
 if $modifyHost || $force; then
 	ModifyHostFile
 else
-  if $versbose; then
-	echo "::: No changes need to be made"
+  if $verbose; then
+		echo "::: No changes need to be made"
 	fi
 	exit 1
 fi
