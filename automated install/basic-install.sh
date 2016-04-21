@@ -255,8 +255,8 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 					IP address:    $IPv4addr
 					Gateway:       $IPv4gw" $r $c)then
 					# If the settings are correct, then we need to set the piholeIP
-					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script
-					echo "${IPv4addr%/*}" > /tmp/piholeIP
+					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script. piholeIP is saved to a permanent file so gravity.sh can use it when updating
+					echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
 					echo "$piholeInterface" > /tmp/piholeINT
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
