@@ -42,12 +42,8 @@ verbose=true
 domList=()
 domToRemoveList=()
 
-piholeIPv6file=/etc/pihole/.useIPv6
-
-# Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-piholeIP=${piholeIPCIDR%/*}
+piholeIP="0.0.0.0"
+piholeIPv6="::"
 
 modifyHost=false
 
@@ -56,12 +52,6 @@ if [[ -r $piholeDir/pihole.conf ]];then
     echo "::: Local calibration requested..."
         . $piholeDir/pihole.conf
 fi
-
-if [[ -f $piholeIPv6file ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-fi
-
 
 function helpFunc()
 {
@@ -153,20 +143,19 @@ function ModifyHostFile(){
 	 if $addmode; then
 	    #remove domains in  from hosts file
 	    if [[ -r $whitelist ]];then
-        # Remove whitelist entries
-				numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
-        plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo ":::"
-        echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
-        awk -F':' '{print $1}' $whitelist | while read -r line; do echo "$piholeIP $line"; done > /etc/pihole/whitelist.tmp
-        awk -F':' '{print $1}' $whitelist | while read -r line; do echo "$piholeIPv6 $line"; done >> /etc/pihole/whitelist.tmp
-        echo "l" >> /etc/pihole/whitelist.tmp
-        grep -F -x -v -f $piholeDir/whitelist.tmp $adList > $piholeDir/gravity.tmp
-        rm $adList
-        mv $piholeDir/gravity.tmp $adList
-        rm $piholeDir/whitelist.tmp
-        echo " done!"
-
+            # Remove whitelist entries
+			numberOf=$(cat $whitelist | sed '/^\s*$/d' | wc -l)
+	        plural=; [[ "$numberOf" != "1" ]] && plural=s
+	        echo ":::"
+	        echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
+	        awk -F':' '{print $1}' $whitelist | while read -r line; do echo "$piholeIP $line"; done > /etc/pihole/whitelist.tmp
+	        awk -F':' '{print $1}' $whitelist | while read -r line; do echo "$piholeIPv6 $line"; done >> /etc/pihole/whitelist.tmp
+	        echo "l" >> /etc/pihole/whitelist.tmp
+	        grep -F -x -v -f $piholeDir/whitelist.tmp $adList > $piholeDir/gravity.tmp
+	        rm $adList
+	        mv $piholeDir/gravity.tmp $adList
+	        rm $piholeDir/whitelist.tmp
+	        echo " done!"
 	  	fi
 	  else
 	    #we need to add the removed domains to the hosts file

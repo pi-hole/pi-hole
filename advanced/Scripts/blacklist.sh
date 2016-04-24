@@ -42,12 +42,8 @@ verbose=true
 domList=()
 domToRemoveList=()
 
-piholeIPv6file=/etc/pihole/.useIPv6
-
-# Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-piholeIP=${piholeIPCIDR%/*}
+piholeIP="0.0.0.0"
+piholeIPv6="::"
 
 modifyHost=false
 
@@ -56,13 +52,6 @@ if [[ -r $piholeDir/pihole.conf ]];then
     echo "::: Local calibration requested..."
         . $piholeDir/pihole.conf
 fi
-
-
-if [[ -f $piholeIPv6file ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-fi
-
 
 function helpFunc()
 {

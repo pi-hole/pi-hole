@@ -27,44 +27,28 @@ else
 	fi
 fi
 
-piholeIPfile=/tmp/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
 whitelistScript=/opt/pihole/whitelist.sh
 blacklistScript=/opt/pihole/blacklist.sh
 
-if [[ -f $piholeIPfile ]];then
-    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat $piholeIPfile)
-    rm $piholeIPfile
-else
-    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-    piholeIP=${piholeIPCIDR%/*}
-fi
-
+piholeIP="0.0.0.0"
+piholeIPv6file=/etc/pihole/.useIPv6
 if [[ -f $piholeIPv6file ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+    piholeIPv6="::"
 fi
 
 # Variables for various stages of downloading and formatting the list
-## Nate 3/26/2016 - Commented unused variables
 basename=pihole
 piholeDir=/etc/$basename
 adList=$piholeDir/gravity.list
-#blacklist=$piholeDir/blacklist.txt
-#whitelist=$piholeDir/whitelist.txt
-#latentWhitelist=$piholeDir/latentWhitelist.txt
 justDomainsExtension=domains
 matterandlight=$basename.0.matterandlight.txt
 supernova=$basename.1.supernova.txt
 eventHorizon=$basename.2.eventHorizon.txt
 accretionDisc=$basename.3.accretionDisc.txt
-#eyeOfTheNeedle=$basename.4.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r $piholeDir/pihole.conf ]];then
@@ -252,16 +236,20 @@ function gravity_unique() {
 function gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
-	hostname=$(</etc/hostname)
+	# Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+    realIP=${piholeIPCIDR%/*}
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
 	if [[ -n $piholeIPv6 ]];then
+		realIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$piholeIP $hostname\n$piholeIPv6 $hostname\n$piholeIP pi.hole\n$piholeIPv6 pi.hole" > $piholeDir/$accretionDisc
+		echo -e "$realIP $hostname\n$realIPv6 $hostname\n$realIP pi.hole\n$realIPv6 pi.hole" > $piholeDir/$accretionDisc
 		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $piholeDir/$accretionDisc
 	else
 		# Otherwise, just create gravity.list as normal using IPv4
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$piholeIP $hostname\n$piholeIP pi.hole" > $piholeDir/$accretionDisc
+		echo -e "$realIP $hostname\n$realIP pi.hole" > $piholeDir/$accretionDisc
 		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
 	fi
 
