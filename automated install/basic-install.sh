@@ -55,7 +55,7 @@ else
 	echo "::: sudo will be used for the install."
 	# Check if it is actually installed
 	# If it isn't, exit because the install cannot complete
-	if [[ $(dpkg-query -s sudo) ]];then
+	if [ -x "$(command -v sudo)" ];then
 		export SUDO="sudo"
 	else
 		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
