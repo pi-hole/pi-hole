@@ -235,6 +235,8 @@ getStaticIPv4Settings() {
 		whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
 It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
+		#piholeIP is saved to a permanent file so gravity.sh can use it when updating
+		echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
 		# Nothing else to do since the variables are already set above
 	else
 		# Otherwise, we need to ask the user to input their desired settings.
