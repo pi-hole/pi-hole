@@ -63,6 +63,35 @@ else
 	fi
 fi
 
+# Compatability
+if [ -x "$(command -v rpm)" ];then
+	# Fedora Family
+	if [ -x "$(command -v dnf)" ];then
+		PKG_MANAGER="dnf"
+	else
+		PKG_MANAGER="yum"
+	fi
+	PKG_CACHE="/var/cache/$PKG_MANAGER"
+	PKG_UPDATE="$PKG_MANAGER update -y"
+	PKG_INSTALL="$PKG_MANAGER install -y"
+	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd php-common php-cli php git curl unzip wget )
+	package_check() {
+		rpm -qa | grep ^$1- > /dev/null
+	}
+elif [ -x "$(command -v apt-get)" ];then
+	# Debian Family
+	PKG_MANAGER="apt-get"
+	PKG_CACHE="/var/cache/apt"
+	PKG_UPDATE="apt-get -qq update"
+	PKG_INSTALL="apt-get -y -qq install"
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+	package_check() {
+		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+	}
+else
+	echo "OS distribution not supported"
+	exit
+fi
 
 ####### FUNCTIONS ##########
 spinner()
@@ -521,16 +550,15 @@ checkForDependencies() {
 	# if so, advise the user to run apt-get update/upgrade at their own discretion
 	#Check to see if apt-get update has already been run today
 	# it needs to have been run at least once on new installs!
-
-	timestamp=$(stat -c %Y /var/cache/apt/)
+	timestamp=$(stat -c %Y $PKG_CACHE)
 	timestampAsDate=$(date -d @"$timestamp" "+%b %e")
 	today=$(date "+%b %e")
 
 	if [ ! "$today" == "$timestampAsDate" ]; then
 		#update package lists
 		echo ":::"
-		echo -n "::: apt-get update has not been run today. Running now..."
-		$SUDO apt-get -qq update & spinner $!
+		echo -n "::: $PKG_MANAGER update has not been run today. Running now..."
+		$SUDO $PKG_UPDATE & spinner $!
 		echo " done!"
 	fi
 	echo ":::"
@@ -548,17 +576,17 @@ checkForDependencies() {
     echo ":::"
     echo "::: Checking dependencies:"
 
-  dependencies=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo)
-	for i in "${dependencies[@]}"; do
-		echo -n ":::    Checking for $i..."
-		if [ "$(dpkg-query -W -f='${Status}' "$i" 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
-			echo -n " Not found! Installing...."
-			$SUDO apt-get -y -qq install "$i" > /dev/null & spinner $!
-			echo " done!"
-		else
-			echo " already installed!"
-		fi
-	done
+    for i in "${PIHOLE_DEPS[@]}"; do
+	echo -n ":::    Checking for $i..."
+	package_check $i > /dev/null
+	if ! [ $? -eq 0 ]; then
+		echo -n " Not found! Installing...."
+		$SUDO $PKG_INSTALL "$i" > /dev/null & spinner $!
+		echo " done!"
+	else
+		echo " already installed!"
+	fi
+    done
 }
 
 getGitFiles() {
