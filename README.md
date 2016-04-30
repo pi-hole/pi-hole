@@ -20,7 +20,15 @@ chmod +x basic-install.sh
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration.  Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
 ## Pi-hole Is Free, But Powered By Your Donations
-[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate")
+Send a one-time donation or sign up for Optimal.com's service using our link below to provide us with a small portion of the montly fee.
+
+| Paypal | Bitcoin | Optimal.com |
+| ------ | ------- | -------- |
+| [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate") |  <center> ![1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX](http://todobom.com/images/bitcoin-donations.png)<br />1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX</center> | Sign up for [Optimal.com using our link](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F) to provide us with a small monthly amount.  Your money will also support content-creators.
+
+[![Support Pi-hole by using Optimal.com](http://i.imgur.com/m8GN3Zv.png)](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F)
+![](http)
+
 
 ## Catch us out on the net:
 Twitter: [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
@@ -61,7 +69,7 @@ reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
 
 ## Partnering With Optimal.com
 
-Pi-hole will be teaming up with [Rob Leathern's subscription service to avoid ads](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d).  This service is unique and will help content-creators and publishers [still make money from visitors who are using an ad ablocker](http://techcrunch.com/2015/12/17/the-new-optimal/).
+Sign up for Optimal.com's service [using our link](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F).  This service splits your money between your favorite ad blockers and free Websites.  This allows you to block ads while still supporting those sites that currently depend on ads for revenue.
 
 ## Technical Details
 
