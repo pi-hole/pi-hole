@@ -36,16 +36,6 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
-
-# Find IP used to route to outside world
-
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
-
-availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
-dhcpcdFile=/etc/dhcpcd.conf
-
 ######## FIRST CHECK ########
 # Must be root to install
 echo ":::"
@@ -75,7 +65,7 @@ if [ -x "$(command -v rpm)" ];then
 	PKG_UPDATE="$PKG_MANAGER check-update -q"
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	INSTALLER_DEPS=( iproute procps-ng newt )
-	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd php-common php-cli php git curl unzip wget )
+	PIHOLE_DEPS=( dhcpcd bind-utils bc dnsmasq lighttpd php-common php-cli php git curl unzip wget )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
@@ -123,6 +113,15 @@ spinner()
         printf "\b\b\b\b\b\b"
     done
     printf "    \b\b\b\b"
+}
+
+findIPRoute() {
+	# Find IP used to route to outside world
+	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+	IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+	IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
+	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
+	dhcpcdFile=/etc/dhcpcd.conf
 }
 
 backupLegacyPihole() {
@@ -767,6 +766,8 @@ verifyFreeDiskSpace
 
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
+# Find IP used to route to outside world
+findIPRoute
 # Find interfaces and let the user choose one
 chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
