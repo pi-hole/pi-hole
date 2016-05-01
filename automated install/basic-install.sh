@@ -66,8 +66,8 @@ if [ -x "$(command -v rpm)" ];then
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
-	INSTALLER_DEPS=( iproute procps-ng newt )
-	PIHOLE_DEPS=( dhcpcd bind-utils bc dnsmasq lighttpd php-common php-cli php git curl unzip wget findutils cronie )
+	INSTALLER_DEPS=( iproute procps-ng newt dhcpcd )
+	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd php-common php-cli php git curl unzip wget findutils cronie )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
@@ -75,9 +75,9 @@ elif [ -x "$(command -v apt-get)" ];then
 	# Debian Family
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/cache/apt"
-	UPDATE_PKG_CACHE="apt-get -qq update"
+	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
 	PKG_UPDATE="$PKG_MANAGER upgrade"
-	PKG_INSTALL="apt-get -y -qq install"
+	PKG_INSTALL="$PKG_MANAGER -y -qq install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail )
 	PIHOLE_DEPS=( dhcpcd dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
