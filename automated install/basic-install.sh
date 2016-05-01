@@ -577,15 +577,15 @@ installerDependencies() {
 	echo -n "::: Checking $PKG_MANAGER for upgraded packages...."
 	updatesToInstall=$(eval "$SUDO $PKG_COUNT")
 	echo " done!"
-    echo ":::"
-    if [[ $updatesToInstall -eq "0" ]]; then
+	echo ":::"
+	if [[ $updatesToInstall -eq "0" ]]; then
 		echo "::: Your pi is up to date! Continuing with pi-hole installation..."
-    else
+	else
 		echo "::: There are $updatesToInstall updates availible for your pi!"
 		echo "::: We recommend you run '$PKG_UPDATE' after installing Pi-Hole! "
 		echo ":::"
-    fi
-    echo ":::"
+	fi
+	echo ":::"
 	echo "::: Checking installer dependencies..."
 	for i in "${INSTALLER_DEPS[@]}"; do
 		echo -n ":::    Checking for $i..."
