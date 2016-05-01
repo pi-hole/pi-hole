@@ -491,6 +491,7 @@ versionCheckDNSmasq(){
 	else
 		$SUDO sed -i '/^server=@DNS2@/d' $newFileFinalLocation
 	fi
+	$SUDO sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' $dnsFile1
 }
 
 installScripts() {
