@@ -72,8 +72,9 @@ if [ -x "$(command -v rpm)" ];then
 		PKG_MANAGER="yum"
 	fi
 	PKG_CACHE="/var/cache/$PKG_MANAGER"
-	PKG_UPDATE="$PKG_MANAGER update -y"
+	PKG_UPDATE="$PKG_MANAGER check-update -q"
 	PKG_INSTALL="$PKG_MANAGER install -y"
+	INSTALLER_DEPS=( iproute procps-ng newt )
 	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd php-common php-cli php git curl unzip wget )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
@@ -84,6 +85,7 @@ elif [ -x "$(command -v apt-get)" ];then
 	PKG_CACHE="/var/cache/apt"
 	PKG_UPDATE="apt-get -qq update"
 	PKG_INSTALL="apt-get -y -qq install"
+	INSTALLER_DEPS=( apt-utils whiptail )
 	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
@@ -92,6 +94,20 @@ else
 	echo "OS distribution not supported"
 	exit
 fi
+
+echo "::: Checking installer dependencies..."
+for i in "${INSTALLER_DEPS[@]}"; do
+	echo -n ":::    Checking for $i..."
+	package_check $i > /dev/null
+	if ! [ $? -eq 0 ]; then
+		$SUDO $PKG_UPDATE
+		echo -n " Not found! Installing...."
+		$SUDO $PKG_INSTALL "$i" > /dev/null
+		echo " done!"
+	else
+		echo " already installed!"
+	fi
+done
 
 ####### FUNCTIONS ##########
 spinner()
