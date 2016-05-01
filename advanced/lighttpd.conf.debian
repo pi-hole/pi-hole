@@ -14,9 +14,9 @@ server.modules = (
 	"mod_accesslog",
 	"mod_expire",
 	"mod_compress",
- 	"mod_redirect",
-	"mod_setenv",
-	"mod_rewrite"
+	"mod_redirect",
+    "mod_setenv",
+    "mod_rewrite"
 )
 
 server.document-root        = "/var/www/html"
