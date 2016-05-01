@@ -544,7 +544,11 @@ stopServices() {
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
 	#$SUDO service dnsmasq stop & spinner $! || true
-	$SUDO service lighttpd stop & spinner $! || true
+	if [ -x "$(command -v systemctl)" ]; then
+		$SUDO systemctl stop lighttpd & spinner $! || true
+	else
+		$SUDO service lighttpd stop & spinner $! || true
+	fi
 	$SUDO echo " done."
 }
 
@@ -796,8 +800,15 @@ displayFinalMessage
 
 echo -n "::: Restarting services..."
 # Start services
-$SUDO service dnsmasq restart
-$SUDO service lighttpd start
+
+if [ -x "$(command -v systemctl)" ]; then
+	$SUDO systemctl restart dnsmasq
+	$SUDO systemctl start lighttpd
+else
+	$SUDO service dnsmasq restart
+	$SUDO service lighttpd start
+fi
+
 echo " done."
 
 echo ":::"
