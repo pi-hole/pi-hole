@@ -62,8 +62,10 @@ if [ -x "$(command -v rpm)" ];then
 		PKG_MANAGER="yum"
 	fi
 	PKG_CACHE="/var/cache/$PKG_MANAGER"
-	PKG_UPDATE="$PKG_MANAGER check-update -q"
+	UPDATE_PKG_CACHE="$PKG_MANAGER check-update -q"
+	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
+	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute procps-ng newt )
 	PIHOLE_DEPS=( dhcpcd bind-utils bc dnsmasq lighttpd php-common php-cli php git curl unzip wget )
 	package_check() {
@@ -73,10 +75,12 @@ elif [ -x "$(command -v apt-get)" ];then
 	# Debian Family
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/cache/apt"
-	PKG_UPDATE="apt-get -qq update"
+	UPDATE_PKG_CACHE="apt-get -qq update"
+	PKG_UPDATE="$PKG_MANAGER upgrade"
 	PKG_INSTALL="apt-get -y -qq install"
+	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail )
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+	PIHOLE_DEPS=( dhcpcd dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
@@ -84,20 +88,6 @@ else
 	echo "OS distribution not supported"
 	exit
 fi
-
-echo "::: Checking installer dependencies..."
-for i in "${INSTALLER_DEPS[@]}"; do
-	echo -n ":::    Checking for $i..."
-	package_check $i > /dev/null
-	if ! [ $? -eq 0 ]; then
-		$SUDO $PKG_UPDATE
-		echo -n " Not found! Installing...."
-		$SUDO $PKG_INSTALL "$i" > /dev/null
-		echo " done!"
-	else
-		echo " already installed!"
-	fi
-done
 
 ####### FUNCTIONS ##########
 spinner()
@@ -558,7 +548,7 @@ stopServices() {
 	$SUDO echo " done."
 }
 
-checkForDependencies() {
+installerDependencies() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
 	#We'll change the logic up here, to check to see if there are any updates availible and
@@ -573,23 +563,39 @@ checkForDependencies() {
 		#update package lists
 		echo ":::"
 		echo -n "::: $PKG_MANAGER update has not been run today. Running now..."
-		$SUDO $PKG_UPDATE & spinner $!
+		$SUDO $UPDATE_PKG_CACHE > /dev/null 2>&1
 		echo " done!"
 	fi
 	echo ":::"
-	echo -n "::: Checking apt-get for upgraded packages...."
-    updatesToInstall=$($SUDO apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
-    echo " done!"
+	echo -n "::: Checking $PKG_MANAGER for upgraded packages...."
+	updatesToInstall=$(eval "$SUDO $PKG_COUNT")
+	echo " done!"
     echo ":::"
     if [[ $updatesToInstall -eq "0" ]]; then
 		echo "::: Your pi is up to date! Continuing with pi-hole installation..."
     else
 		echo "::: There are $updatesToInstall updates availible for your pi!"
-		echo "::: We recommend you run 'sudo apt-get upgrade' after installing Pi-Hole! "
+		echo "::: We recommend you run '$PKG_UPDATE' after installing Pi-Hole! "
 		echo ":::"
     fi
     echo ":::"
-    echo "::: Checking dependencies:"
+	echo "::: Checking installer dependencies..."
+	for i in "${INSTALLER_DEPS[@]}"; do
+		echo -n ":::    Checking for $i..."
+		package_check $i > /dev/null
+		if ! [ $? -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			$SUDO $PKG_INSTALL "$i" > /dev/null 2>&1
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
+	done
+}
+
+checkForDependencies() {
+	# Install dependencies for Pi-Hole
+    echo "::: Checking Pi-Hole dependencies:"
 
     for i in "${PIHOLE_DEPS[@]}"; do
 	echo -n ":::    Checking for $i..."
@@ -759,6 +765,10 @@ View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" $
 ######## SCRIPT ############
 # Start the installer
 $SUDO mkdir -p /etc/pihole/
+
+# Install packages used by this installation script
+installerDependencies
+
 welcomeDialogs
 
 # Verify there is enough disk space for the install
