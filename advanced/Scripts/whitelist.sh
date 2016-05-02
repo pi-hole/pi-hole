@@ -42,12 +42,19 @@ verbose=true
 domList=()
 domToRemoveList=()
 
+piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
-# Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-piholeIP=${piholeIPCIDR%/*}
+if [[ -f $piholeIPfile ]];then
+    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
+    piholeIP=$(cat $piholeIPfile)
+    #rm $piholeIPfile
+else
+    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+    piholeIP=${piholeIPCIDR%/*}
+fi
 
 modifyHost=false
 
