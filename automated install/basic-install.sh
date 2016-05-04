@@ -68,7 +68,8 @@ if [ -x "$(command -v rpm)" ];then
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute procps-ng newt dhcpcd )
 	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie )
-	LIGHTTPD_USER="lighttpd:lighttpd"
+	LIGHTTPD_USER="lighttpd"
+	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
@@ -83,7 +84,8 @@ elif [ -x "$(command -v apt-get)" ];then
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail )
 	PIHOLE_DEPS=( dhcpcd dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
-	LIGHTTPD_USER="www-data:www-data"
+	LIGHTTPD_USER="www-data"
+	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
@@ -543,7 +545,7 @@ installConfigs() {
 	fi
 	$SUDO cp /etc/.pihole/advanced/$LIGHTTPD_CFG /etc/lighttpd/lighttpd.conf
 	$SUDO mkdir -p /var/cache/lighttpd/compress
-	$SUDO chown $LIGHTTPD_USER /var/cache/lighttpd/compress
+	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/cache/lighttpd/compress
 }
 
 stopServices() {
@@ -746,9 +748,9 @@ installPihole() {
 	if [ ! -d "/var/www/html" ]; then
 		$SUDO mkdir -p /var/www/html
 	fi
-	$SUDO chown www-data:www-data /var/www/html
+	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/www/html
 	$SUDO chmod 775 /var/www/html
-	$SUDO usermod -a -G www-data pihole
+	$SUDO usermod -a -G $LIGHTTPD_GROUP pihole
 	$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
 
 	getGitFiles
