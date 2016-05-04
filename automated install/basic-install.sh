@@ -751,7 +751,11 @@ installPihole() {
 	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/www/html
 	$SUDO chmod 775 /var/www/html
 	$SUDO usermod -a -G $LIGHTTPD_GROUP pihole
-	$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	if [ -x "$(command -v lighty-enable-mod)" ]; then
+		$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	else
+		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+	fi
 
 	getGitFiles
 	installScripts
