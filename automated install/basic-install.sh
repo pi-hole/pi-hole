@@ -67,7 +67,7 @@ if [ -x "$(command -v rpm)" ];then
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute procps-ng newt dhcpcd )
-	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
