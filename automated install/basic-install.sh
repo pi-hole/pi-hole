@@ -544,6 +544,8 @@ installConfigs() {
 		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	fi
 	$SUDO cp /etc/.pihole/advanced/$LIGHTTPD_CFG /etc/lighttpd/lighttpd.conf
+	$SUDO mkdir -p /var/run/lighttpd
+	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/run/lighttpd
 	$SUDO mkdir -p /var/cache/lighttpd/compress
 	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/cache/lighttpd/compress
 }
