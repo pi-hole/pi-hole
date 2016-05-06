@@ -51,7 +51,7 @@ echo ":::"
 				read -rp "::: Do you wish to remove $i from your system? [y/n]: " yn
 				case $yn in
 					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO apt-get -y remove --purge "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
-					[Nn]* ) printf ":::\tSkipping %s" "$i\n"; break;;
+					[Nn]* ) printf ":::\tSkipping %s\n" "$i"; break;;
 					* ) printf "::: You must answer yes or no!\n";;
 				esac
 			done
