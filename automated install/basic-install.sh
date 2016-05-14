@@ -815,9 +815,10 @@ displayFinalMessage
 
 echo -n "::: Restarting services..."
 # Start services
-
 if [ -x "$(command -v systemctl)" ]; then
+	$SUDO systemctl enable dnsmasq
 	$SUDO systemctl restart dnsmasq
+	$SUDO systemctl enable lighttpd
 	$SUDO systemctl start lighttpd
 else
 	$SUDO service dnsmasq restart
