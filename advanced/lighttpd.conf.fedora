@@ -56,7 +56,7 @@ mimetype.assign   = ( ".png"  => "image/png",
 fastcgi.server = ( ".php" =>
                    ( "localhost" =>
                      (
-                       "socket" => "/var/run/lighttpd/php-fastcgi.socket",
+                       "socket" => "/tmp/php-fastcgi.socket",
                        "bin-path" => "/usr/bin/php-cgi"
                      )
                    )
