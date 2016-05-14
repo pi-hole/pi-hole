@@ -741,6 +741,22 @@ setUser(){
 	fi
 }
 
+configureFirewall() {
+	# Allow HTTP and DNS traffic
+	if [ -x "$(command -v firewall-cmd)" ]; then
+		$SUDO echo "::: Configuring firewalld for httpd and dnsmasq.."
+		$SUDO firewall-cmd --zone=public --permanent --add-service=http
+		$SUDO firewall-cmd --zone=public --permanent --add-service=dns
+		$SUDO firewall-cmd --reload
+	elif [ -x "$(command -v iptables)" ]; then
+		$SUDO echo "::: Configuring iptables for httpd and dnsmasq.."
+		$SUDO iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+		$SUDO iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
+	else
+		$SUDO echo "::: No firewall detected.. skipping firewall configuration."
+	fi
+}
+
 installPihole() {
 	# Install base files and web interface
 	checkForDependencies # done
@@ -766,6 +782,7 @@ installPihole() {
 	installPiholeWeb
 	installCron
 	runGravity
+	configureFirewall
 }
 
 displayFinalMessage() {
