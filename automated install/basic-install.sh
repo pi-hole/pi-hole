@@ -744,10 +744,13 @@ setUser(){
 configureFirewall() {
 	# Allow HTTP and DNS traffic
 	if [ -x "$(command -v firewall-cmd)" ]; then
-		$SUDO echo "::: Configuring firewalld for httpd and dnsmasq.."
-		$SUDO firewall-cmd --zone=public --permanent --add-service=http
-		$SUDO firewall-cmd --zone=public --permanent --add-service=dns
-		$SUDO firewall-cmd --reload
+		$SUDO firewall-cmd --state > /dev/null
+		if [[ $? -eq 0 ]]; then
+			$SUDO echo "::: Configuring firewalld for httpd and dnsmasq.."
+			$SUDO firewall-cmd --zone=public --permanent --add-service=http
+			$SUDO firewall-cmd --zone=public --permanent --add-service=dns
+			$SUDO firewall-cmd --reload
+		fi
 	elif [ -x "$(command -v iptables)" ]; then
 		$SUDO echo "::: Configuring iptables for httpd and dnsmasq.."
 		$SUDO iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
