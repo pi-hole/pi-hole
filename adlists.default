@@ -1,4 +1,4 @@
-## Pi-hole ad-list default sources. Updated 15/05/2016 #########################
+## Pi-hole ad-list default sources. Updated 22/05/2016 #########################
 #                                                                              #
 #  To make changes to this file:                                               #
 #    1. run `cp /etc/pihole/adlists.default /etc/pihole/adlists.list`          #
@@ -32,7 +32,7 @@ http://hosts-file.net/ad_servers.txt
 #http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt
 
 # Windows 10 telemetry list
-#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/hosts/hostsBlockWindowsSpy.txt
+#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/hosts/windows10_spy.txt
 
 # Securemecca.com list - Also blocks "adult" sites (pornography/gambling etc)
 #http://securemecca.com/Downloads/hosts.txt
