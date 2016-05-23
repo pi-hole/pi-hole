@@ -10,6 +10,21 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+#rootcheck
+if [[ $EUID -eq 0 ]];then
+	echo "::: You are root."
+else
+	echo "::: sudo will be used."
+	# Check if it is actually installed
+	# If it isn't, exit because the install cannot complete
+	if [[ $(dpkg-query -s sudo) ]];then
+		export SUDO="sudo"
+	else
+		echo "::: Please install sudo or run this script as root."
+		exit 1
+	fi
+fi
+
 if [[ $# = 0 ]]; then
 	helpFunc
 fi
@@ -27,12 +42,19 @@ verbose=true
 domList=()
 domToRemoveList=()
 
+piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
-# Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-piholeIP=${piholeIPCIDR%/*}
+if [[ -f $piholeIPfile ]];then
+    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
+    piholeIP=$(cat $piholeIPfile)
+    #rm $piholeIPfile
+else
+    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
+    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+    piholeIP=${piholeIPCIDR%/*}
+fi
 
 modifyHost=false
 
@@ -52,7 +74,7 @@ function helpFunc()
 {
 	echo "::: Immediately whitelists one or more domains in the hosts file"
 	echo ":::"
-	echo "::: Usage: sudo pihole -w domain1 [domain2 ...]"
+	echo "::: Usage: pihole -w domain1 [domain2 ...]"
 	echo ":::"
 	echo "::: Options:"
 	echo ":::  -d, --delmode			Remove domains from the whitelist"
@@ -63,6 +85,10 @@ function helpFunc()
 	echo ":::  -l, --list				Display your whitelisted domains"
 	exit 1
 }
+
+if [[ $# = 0 ]]; then
+	helpFunc
+fi
 
 function HandleOther(){
   #check validity of domain
@@ -179,10 +205,10 @@ function Reload() {
 
 	if [[ $dnsmasqPid ]]; then
 		# service already running - reload config
-		sudo kill -HUP "$dnsmasqPid"
+		$SUDO killall -s HUP dnsmasq
 	else
 		# service not running, start it up
-		sudo service dnsmasq start
+		$SUDO service dnsmasq start
 	fi
 	echo " done!"
 }

@@ -1,7 +1,7 @@
-## Pi-hole ad-list default sources. Updated 21/02/2016 #########################
+## Pi-hole ad-list default sources. Updated 22/05/2016 #########################
 #                                                                              #
 #  To make changes to this file:                                               #
-#    1. run `cp /etc/pihole/adlists.default /etc/pihole/adlists.list`           #
+#    1. run `cp /etc/pihole/adlists.default /etc/pihole/adlists.list`          #
 #    2. run `nano /etc/pihole/adlists.list`                                    #
 #    3. Uncomment or comment any of the below lists                            #
 #                                                                              #
@@ -32,7 +32,7 @@ http://hosts-file.net/ad_servers.txt
 #http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt
 
 # Windows 10 telemetry list
-#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/hostsBlockWindowsSpy.txt
+#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/hosts/windows10_spy.txt
 
 # Securemecca.com list - Also blocks "adult" sites (pornography/gambling etc)
 #http://securemecca.com/Downloads/hosts.txt
@@ -48,3 +48,6 @@ https://raw.githubusercontent.com/quidsup/notrack/master/trackers.txt
 #https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
 #http://spam404bl.com/spam404scamlist.txt
 #http://malwaredomains.lehigh.edu/files/domains.txt
+# Following two lists should be used simultaneously: (readme https://github.com/notracking/hosts-blocklists/)
+#https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt
+#https://raw.github.com/notracking/hosts-blocklists/master/domains.txt

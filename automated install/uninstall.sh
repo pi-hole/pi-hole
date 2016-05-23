@@ -44,7 +44,7 @@ function removeAndPurge {
 	# Purge dependencies
 echo ":::"
 	# Nate 3/28/2016 - Removed `php5-cgi` and `php5` as they are removed with php5-common
-	dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common git curl unzip wget )
+	dependencies=( dnsutils bc dnsmasq lighttpd php5-common git curl unzip wget )
 	for i in "${dependencies[@]}"; do
 		if [ "$(dpkg-query -W --showformat='${Status}\n' "$i" 2> /dev/null | grep -c "ok installed")" -eq 1 ]; then
 			while true; do

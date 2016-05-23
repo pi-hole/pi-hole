@@ -43,7 +43,7 @@ IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1
 IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
 IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 
-availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1)
+availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
 dhcpcdFile=/etc/dhcpcd.conf
 
 ######## FIRST CHECK ########
@@ -235,6 +235,8 @@ getStaticIPv4Settings() {
 		whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
 It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." $r $c
+		#piholeIP is saved to a permanent file so gravity.sh can use it when updating
+		echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
 		# Nothing else to do since the variables are already set above
 	else
 		# Otherwise, we need to ask the user to input their desired settings.
@@ -255,8 +257,8 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 					IP address:    $IPv4addr
 					Gateway:       $IPv4gw" $r $c)then
 					# If the settings are correct, then we need to set the piholeIP
-					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script
-					echo "${IPv4addr%/*}" > /tmp/piholeIP
+					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script. piholeIP is saved to a permanent file so gravity.sh can use it when updating
+					echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
 					echo "$piholeInterface" > /tmp/piholeINT
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
@@ -546,7 +548,7 @@ checkForDependencies() {
     echo ":::"
     echo "::: Checking dependencies:"
 
-  dependencies=( dnsutils bc toilet figlet dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+  dependencies=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
 	for i in "${dependencies[@]}"; do
 		echo -n ":::    Checking for $i..."
 		if [ "$(dpkg-query -W -f='${Status}' "$i" 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
