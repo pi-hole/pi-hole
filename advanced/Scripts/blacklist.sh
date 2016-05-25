@@ -25,6 +25,22 @@ else
 	fi
 fi
 
+function helpFunc()
+{
+	echo "::: Immediately blacklists one or more domains in the hosts file"
+	echo ":::"
+	echo ":::"
+	echo "::: Usage: pihole -b domain1 [domain2 ...]"
+	echo "::: Options:"
+	echo ":::  -d, --delmode			Remove domains from the blacklist"
+	echo ":::  -nr, --noreload			Update blacklist without refreshing dnsmasq"
+	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
+	echo ":::  -q, --quiet				output is less verbose"
+	echo ":::  -h, --help				Show this help dialog"
+	echo ":::  -l, --list				Display your blacklisted domains"
+	exit 1
+}
+
 if [[ $# = 0 ]]; then
 	helpFunc
 fi
@@ -68,27 +84,6 @@ fi
 if [[ -f $piholeIPv6file ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-fi
-
-
-function helpFunc()
-{
-	echo "::: Immediately blacklists one or more domains in the hosts file"
-	echo ":::"
-	echo ":::"
-	echo "::: Usage: pihole -b domain1 [domain2 ...]"
-	echo "::: Options:"
-	echo ":::  -d, --delmode			Remove domains from the blacklist"
-	echo ":::  -nr, --noreload			Update blacklist without refreshing dnsmasq"
-	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
-	echo ":::  -q, --quiet				output is less verbose"
-	echo ":::  -h, --help				Show this help dialog"
-	echo ":::  -l, --list				Display your blacklisted domains"
-	exit 1
-}
-
-if [[ $# = 0 ]]; then
-	helpFunc
 fi
 
 function HandleOther(){
