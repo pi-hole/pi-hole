@@ -698,12 +698,13 @@ displayFinalMessage() {
 	# Final completion message to user
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-IPv4:	$IPv4addr
+IPv4:	${IPv4addr%/*}
 IPv6:	$piholeIPv6
 
 If you set a new IP address, you should restart the Pi.
 
-The install log is in /etc/pihole." $r $c
+The install log is in /etc/pihole.
+View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" $r $c
 }
 
 ######## SCRIPT ############
@@ -740,10 +741,10 @@ echo " done."
 
 echo ":::"
 echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
-echo ":::     $IPv4addr"
+echo ":::     ${IPv4addr%/*}"
 echo ":::     $piholeIPv6"
 echo ":::"
 echo "::: If you set a new IP address, you should restart the Pi."
-echo "::: "
+echo ":::"
 echo "::: The install log is located at: /etc/pihole/install.log"
-
+echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
