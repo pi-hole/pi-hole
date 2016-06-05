@@ -788,6 +788,32 @@ installPihole() {
 	configureFirewall
 }
 
+configureSelinux() {
+	if [ -x "$(command -v getenforce)" ]; then
+		printf "\n::: SELinux Detected\n"
+		printf ":::\tChecking for SELinux policy development packages..."
+		package_check "selinux-policy-devel" > /dev/null
+		if ! [ $? -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			$SUDO $PKG_INSTALL "selinux-policy-devel" > /dev/null & spinner $!
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
+		printf ":::\tCompiling Pi-Hole SELinux policy..\n"
+		$SUDO checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
+		$SUDO semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
+		$SUDO semodule -i /etc/pihole/pihole.pp
+		$SUDO rm -f /etc/pihole/pihole.mod
+		$SUDO semodule -l | grep pihole > /dev/null
+		if [ $? -eq 0 ]; then
+			printf "::: Successfully installed Pi-Hole SELinux policy\n"
+		else
+			printf "::: Warning: Pi-Hole SELinux policy did not install correctly!\n"
+		fi
+	fi
+}
+
 displayFinalMessage() {
 	# Final completion message to user
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
@@ -830,6 +856,9 @@ installPihole | tee $tmpLog
 
 # Move the log file into /etc/pihole for storage
 $SUDO mv $tmpLog $instalLogLoc
+
+# Configure SELinux (if applicable)
+configureSelinux
 
 displayFinalMessage
 
