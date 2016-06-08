@@ -786,6 +786,7 @@ installPihole() {
 	installCron
 	runGravity
 	configureFirewall
+	configureSelinux
 }
 
 configureSelinux() {
@@ -861,9 +862,6 @@ installPihole | tee $tmpLog
 
 # Move the log file into /etc/pihole for storage
 $SUDO mv $tmpLog $instalLogLoc
-
-# Configure SELinux (if applicable)
-configureSelinux
 
 displayFinalMessage
 
