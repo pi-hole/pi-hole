@@ -747,8 +747,8 @@ configureFirewall() {
 		$SUDO firewall-cmd --state > /dev/null
 		if [[ $? -eq 0 ]]; then
 			$SUDO echo "::: Configuring firewalld for httpd and dnsmasq.."
-			$SUDO firewall-cmd --zone=public --permanent --add-service=http
-			$SUDO firewall-cmd --zone=public --permanent --add-service=dns
+			$SUDO firewall-cmd --permanent --add-port=80/tcp
+			$SUDO firewall-cmd --permanent --add-port=53/tcp
 			$SUDO firewall-cmd --reload
 		fi
 	elif [ -x "$(command -v iptables)" ]; then
