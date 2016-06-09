@@ -749,12 +749,14 @@ configureFirewall() {
 			$SUDO echo "::: Configuring firewalld for httpd and dnsmasq.."
 			$SUDO firewall-cmd --permanent --add-port=80/tcp
 			$SUDO firewall-cmd --permanent --add-port=53/tcp
+			$SUDO firewall-cmd --permanent --add-port=53/udp
 			$SUDO firewall-cmd --reload
 		fi
 	elif [ -x "$(command -v iptables)" ]; then
 		$SUDO echo "::: Configuring iptables for httpd and dnsmasq.."
 		$SUDO iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
 		$SUDO iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
+		$SUDO iptables -A INPUT -p tcp -m udp --dport 53 -j ACCEPT
 	else
 		$SUDO echo "::: No firewall detected.. skipping firewall configuration."
 	fi
