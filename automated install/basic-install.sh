@@ -110,7 +110,7 @@ welcomeDialogs() {
 
 	# Explain the need for a static address
 	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
-	
+
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
@@ -466,6 +466,7 @@ installScripts() {
 		$SUDO chown "$USER":root /opt/pihole
 		$SUDO chmod u+srwx /opt/pihole
 	fi
+	$SUDO cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
 	$SUDO cp /etc/.pihole/gravity.sh /opt/pihole/gravity.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/chronometer.sh /opt/pihole/chronometer.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/whitelist.sh /opt/pihole/whitelist.sh
