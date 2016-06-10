@@ -17,7 +17,7 @@ else
 	echo "::: Sudo will be used for the uninstall."
   # Check if it is actually installed
   # If it isn't, exit because the unnstall cannot complete
-  if [[ $(dpkg-query -s sudo) ]];then
+  if [ -x "$(command -v sudo)" ];then
 		export SUDO="sudo"
   else
     echo "::: Please install sudo or run this as root."
