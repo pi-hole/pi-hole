@@ -756,7 +756,7 @@ configureFirewall() {
 		$SUDO echo "::: Configuring iptables for httpd and dnsmasq.."
 		$SUDO iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
 		$SUDO iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
-		$SUDO iptables -A INPUT -p tcp -m udp --dport 53 -j ACCEPT
+		$SUDO iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
 	else
 		$SUDO echo "::: No firewall detected.. skipping firewall configuration."
 	fi
