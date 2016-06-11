@@ -32,7 +32,7 @@ http://hosts-file.net/ad_servers.txt
 #http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt
 
 # Windows 10 telemetry list
-#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/hosts/windows10_spy.txt
+#https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/win10/spy.txt
 
 # Securemecca.com list - Also blocks "adult" sites (pornography/gambling etc)
 #http://securemecca.com/Downloads/hosts.txt

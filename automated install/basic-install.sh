@@ -58,7 +58,7 @@ else
 	if [[ $(dpkg-query -s sudo) ]];then
 		export SUDO="sudo"
 	else
-		echo "::: Please install sudo or run this as root."
+		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
 		exit 1
 	fi
 fi
@@ -110,7 +110,7 @@ welcomeDialogs() {
 
 	# Explain the need for a static address
 	whiptail --msgbox --backtitle "Initating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
-	
+
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." $r $c
 }
 
@@ -548,7 +548,7 @@ checkForDependencies() {
     echo ":::"
     echo "::: Checking dependencies:"
 
-  dependencies=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+  dependencies=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo)
 	for i in "${dependencies[@]}"; do
 		echo -n ":::    Checking for $i..."
 		if [ "$(dpkg-query -W -f='${Status}' "$i" 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
@@ -638,6 +638,12 @@ installPiholeWeb() {
 		$SUDO cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
 		$SUDO echo " done!"
 	fi
+	# Install Sudoer file
+	echo -n "::: Installing sudoer file..."
+	$SUDO mkdir -p /etc/sudoers.d/
+	$SUDO cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
+	$SUDO chmod 0440 /etc/sudoers.d/pihole
+	echo " done!"
 }
 
 installCron() {
@@ -698,12 +704,13 @@ displayFinalMessage() {
 	# Final completion message to user
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-IPv4:	$IPv4addr
+IPv4:	${IPv4addr%/*}
 IPv6:	$piholeIPv6
 
 If you set a new IP address, you should restart the Pi.
 
-The install log is in /etc/pihole." $r $c
+The install log is in /etc/pihole.
+View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" $r $c
 }
 
 ######## SCRIPT ############
@@ -740,10 +747,10 @@ echo " done."
 
 echo ":::"
 echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
-echo ":::     $IPv4addr"
+echo ":::     ${IPv4addr%/*}"
 echo ":::     $piholeIPv6"
 echo ":::"
 echo "::: If you set a new IP address, you should restart the Pi."
-echo "::: "
+echo ":::"
 echo "::: The install log is located at: /etc/pihole/install.log"
-
+echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
