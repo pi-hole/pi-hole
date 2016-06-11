@@ -58,7 +58,7 @@ else
 	if [[ $(dpkg-query -s sudo) ]];then
 		export SUDO="sudo"
 	else
-		echo "::: Please install sudo or run this as root."
+		echo "::: sudo will be installed.  It is needed for the Web interface to run pihole commands."
 		exit 1
 	fi
 fi
@@ -548,7 +548,7 @@ checkForDependencies() {
     echo ":::"
     echo "::: Checking dependencies:"
 
-  dependencies=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget )
+  dependencies=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo)
 	for i in "${dependencies[@]}"; do
 		echo -n ":::    Checking for $i..."
 		if [ "$(dpkg-query -W -f='${Status}' "$i" 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
