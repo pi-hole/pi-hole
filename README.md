@@ -1,9 +1,6 @@
 # Automated Install 
 ##### Designed For Raspberry Pi A+, B, B+, 2, Zero, and 3B (with an Ethernet/Wi-Fi adapter) (Works on most Debian distributions!)
 
-
-[![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 1. Install Raspbian 
 
 2. Run the command below
@@ -19,6 +16,15 @@ chmod +x basic-install.sh
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration.  Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
+## How To Install Pi-hole
+
+[![60-second install tutorial](http://i.imgur.com/lVyNWTC.png)](https://www.youtube.com/watch?v=TzFLJqUeirA)
+
+## How Does It Work?
+**Watch the 60-second video below to get a quick overview**
+
+[![Pi-hole exlplained](http://i.imgur.com/qNybJDX.png)](https://youtu.be/L2iVKs0v0Tk)
+
 ## Pi-hole Is Free, But Powered By Your Donations
 Send a one-time donation or sign up for Optimal.com's service using our link below to provide us with a small portion of the montly fee.
 
@@ -26,19 +32,51 @@ Send a one-time donation or sign up for Optimal.com's service using our link bel
 | ------ | ------- | -------- |
 | [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate") |  <center> ![1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX](http://todobom.com/images/bitcoin-donations.png)<br />1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX</center> | Sign up for [Optimal.com using our link](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F) to provide us with a small monthly amount.  Your money will also support content-creators.
 
-[![Support Pi-hole by using Optimal.com](http://i.imgur.com/m8GN3Zv.png)](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F)
-![](http)
+## Get Help Or Connect With Us On The Web
 
+- [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+- [/r/pihole](https://www.reddit.com/r/pihole/)
+- [Pi-hole YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
+- [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
+- [FAQs](https://pi-hole.net/help/)
+- [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## Catch us out on the net:
-Twitter: [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+## Technical Details
 
-reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
+The Pi-hole is an **advertising-aware DNS/Web server**.  If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.  You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
 
-## How Does It Work?
-**Watch the 60-second video below to get a quick overview**
+### Gravity
+The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic.  The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)).
 
-[![Pi-hole exlplained](http://i.imgur.com/qNybJDX.png)](https://vimeo.com/135965232)
+## Web Interface
+The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings.  You can find it at:
+
+`http://192.168.1.x/admin/index.php` or `http://pi.hole/admin`
+
+![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/rTlLYPh.png)
+
+### Whitelist and blacklist
+
+Domains can be whitelisted and blacklisted using two pre-installed scripts. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
+![Whitelist editor in the Web interface](http://i.imgur.com/Anj1GzO.png)
+
+## API
+
+A basic read-only API can be accessed at `/admin/api.php`. It returns the following JSON:
+```JSON
+{
+	"domains_being_blocked": "136708",
+	"dns_queries_today": "18108",
+	"ads_blocked_today": "14648",
+	"ads_percentage_today": "80.89"
+}
+```
+The same output can be acheived on the CLI by running `chronometer.sh -j`
+
+## Real-time Statistics
+
+You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj).  This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh).
+![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
 
 ## Pi-hole Projects
 - [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
@@ -67,53 +105,6 @@ reddit: [/r/pihole](https://www.reddit.com/r/pihole/)
 - [Foolish Tech Show](https://youtu.be/bYyena0I9yc?t=2m4s)
 - [Pi-hole on Ubuntu](http://www.boyter.org/2015/12/pi-hole-ubuntu-14-04/)
 - [Catchpoint: iOS 9 Ad Blocking](http://blog.catchpoint.com/2015/09/14/ad-blocking-apple/)
-
-## Partnering With Optimal.com
-
-Sign up for Optimal.com's service [using our link](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F).  This service splits your money between your favorite ad blockers and free Websites.  This allows you to block ads while still supporting those sites that currently depend on ads for revenue.
-
-## Technical Details
-
-The Pi-hole is an **advertising-aware DNS/Web server**.  If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.  You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
-
-A more detailed explanation of the installation can be found [here](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0).
-
-## Gravity
-The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic.  The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)).
-
-## Whitelist and blacklist
-Domains can be whitelisted and blacklisted using two pre-installed scripts. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
-
-## Web Interface
-The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings.  You can find it at:
-
-`http://192.168.1.x/admin/index.php`
-
-![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/rTlLYPh.png)
-
-### API
-
-A basic read-only API can be accessed at `/admin/api.php`. It returns the following JSON:
-```JSON
-{
-	"domains_being_blocked": "136708",
-	"dns_queries_today": "18108",
-	"ads_blocked_today": "14648",
-	"ads_percentage_today": "80.89"
-}
-```
-The same output can be acheived on the CLI by running `chronometer.sh -j`
-
-![Web](http://i.imgur.com/m114SCn.png)
-
-## Real-time Statistics
-
-You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj).  This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh).
-![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
-
-## Help
-- See the [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization) entry for more details
-- There is also an [FAQ section on pi-hole.net](http://pi-hole.net)
 
 ## Other Operating Systems
 This script will work for other UNIX-like systems with some slight **modifications**.  As long as you can install `dnsmasq` and a Webserver, it should work OK.  The automated install is only for a clean install of a Debian based system, such as the Raspberry Pi.
