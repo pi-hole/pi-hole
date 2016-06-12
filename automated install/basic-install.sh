@@ -815,6 +815,7 @@ installPihole() {
 	installScripts
 	installConfigs
 	CreateLogFile
+	configureSelinux
 	installPiholeWeb
 	installCron
 	runGravity
@@ -888,9 +889,6 @@ use4andor6
 
 # Decide what upstream DNS Servers to use
 setDNS
-
-# Configure SELinux (if applicable)
-configureSelinux
 
 # Install and log everything to a file
 installPihole | tee $tmpLog
