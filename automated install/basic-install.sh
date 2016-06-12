@@ -66,7 +66,7 @@ if [ -x "$(command -v rpm)" ];then
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
-	INSTALLER_DEPS=( iproute net-tools procps-ng newt dhcpcd )
+	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
 	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
@@ -117,7 +117,6 @@ findIPRoute() {
 	IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
 	IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
-	dhcpcdFile=/etc/dhcpcd.conf
 }
 
 backupLegacyPihole() {
@@ -328,20 +327,52 @@ setDHCPCD() {
 	echo "::: interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
-	static domain_name_servers=$IPv4gw" | $SUDO tee -a $dhcpcdFile >/dev/null
+	static domain_name_servers=$IPv4gw" | $SUDO tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
-	# Tries to set the IPv4 address
-	if grep -q "$IPv4addr" $dhcpcdFile; then
-		# address already set, noop
-		:
+	if [[ -f /etc/dhcpcd.conf ]];then
+		# Debian Family
+		if grep -q "$IPv4addr" /etc/dhcpcd.conf; then
+			echo "::: Static IP already configured"
+		else
+			setDHCPCD
+			$SUDO ip addr replace dev "$piholeInterface" "$IPv4addr"
+			echo ":::"
+			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo ":::"
+		fi
+	elif [[ -f /etc/sysconfig/network-scripts/ifcfg-$piholeInterface ]];then
+		# Fedora Family
+		IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-$piholeInterface
+		if grep -q "$IPv4addr" $IFCFG_FILE; then
+			echo "::: Static IP already configured"
+		else
+			IPADDR=$(echo $IPv4addr | cut -f1 -d/)
+			CIDR=$(echo $IPv4addr | cut -f2 -d/)
+			# Backup existing interface configuration:
+			cp $IFCFG_FILE $IFCFG_FILE.backup-$(date +%Y-%m-%d-%H%M%S)
+			# Build Interface configuration file:
+			$SUDO echo "# Configured via Pi-Hole installer" > $IFCFG_FILE
+			$SUDO echo "DEVICE=$piholeInterface" >> $IFCFG_FILE
+			$SUDO echo "BOOTPROTO=none" >> $IFCFG_FILE
+			$SUDO echo "ONBOOT=yes" >> $IFCFG_FILE
+			$SUDO echo "IPADDR=$IPADDR" >> $IFCFG_FILE
+			$SUDO echo "PREFIX=$CIDR" >> $IFCFG_FILE
+			$SUDO echo "USERCTL=no" >> $IFCFG_FILE
+			$SUDO ip addr replace dev "$piholeInterface" "$IPv4addr"
+			if [ -x "$(command -v nmcli)" ];then
+				# Tell NetworkManager to read our new sysconfig file
+				$SUDO nmcli con load $IFCFG_FILE > /dev/null
+			fi
+			echo ":::"
+			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo ":::"
+
+		fi
 	else
-		setDHCPCD
-		$SUDO ip addr replace dev "$piholeInterface" "$IPv4addr"
-		echo ":::"
-		echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
-		echo ":::"
+		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
+		exit 1
 	fi
 }
 
