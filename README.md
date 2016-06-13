@@ -53,7 +53,7 @@ The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashb
 
 `http://192.168.1.x/admin/index.php` or `http://pi.hole/admin`
 
-![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/rTlLYPh.png)
+![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/CQlEnDy.png)
 
 ### Whitelist and blacklist
 
