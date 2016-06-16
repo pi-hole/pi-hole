@@ -43,6 +43,8 @@ https://raw.githubusercontent.com/quidsup/notrack/master/trackers.txt
 # Block the BBC News website Breaking News banner
 #https://raw.githubusercontent.com/BreakingTheNews/BreakingTheNews.github.io/master/hosts
 
+# List of known C&C malware servers (see https://github.com/pi-hole/pi-hole/issues/528)
+https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt
 
 # Untested Lists:
 #https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
