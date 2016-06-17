@@ -3,7 +3,7 @@
 
 1. Install Raspbian 
 
-2. Run the command below
+2. Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
 ### ```curl -L https://install.pi-hole.net | bash```
 
@@ -13,6 +13,8 @@ wget -O basic-install.sh https://install.pi-hole.net
 chmod +x basic-install.sh
 ./basic-install.sh
 ```
+If you wish to read over the script before running it, then after the `wget` command, do `nano basic-install.sh` to open a text viewer
+
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration.  Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
