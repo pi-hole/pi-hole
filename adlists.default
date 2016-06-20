@@ -48,7 +48,7 @@ https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt
 
 # Untested Lists:
 #https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
-#http://spam404bl.com/spam404scamlist.txt
+#https://raw.githubusercontent.com/Dawsey21/Lists/master/main-blacklist.txt
 #http://malwaredomains.lehigh.edu/files/domains.txt
 # Following two lists should be used simultaneously: (readme https://github.com/notracking/hosts-blocklists/)
 #https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt
