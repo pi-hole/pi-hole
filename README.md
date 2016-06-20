@@ -29,10 +29,14 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Pi-hole Is Free, But Powered By Your Donations
 Send a one-time donation or sign up for Optimal.com's service using our link below to provide us with a small portion of the montly fee.
+* ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
+* ![Flattr](http://i.imgur.com/ZFceFRu.png) : [Donate](https://flattr.com/submit/auto?user_id=jacobsalmela&url=https://github.com/pi-hole/pi-hole)
+* ![Bitcoin](http://i.imgur.com/FIlmOMG.png)  : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+* ![Optimal.com](http://i.imgur.com/d4EAYrw.png) : [Optimal.com](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F) (we get a small comission)
 
 | Paypal | Bitcoin | Optimal.com |
 | ------ | ------- | -------- |
-| [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate") |  <center> ![1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX](http://todobom.com/images/bitcoin-donations.png)<br />1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX</center> | Sign up for [Optimal.com using our link](http://api.optimal.com/partner/v1.0/bmV0d29ya3xkbnN8OlJhc3BiZXJyeSBQaS1Ib2xl/subscribe?redirect=https%3A%2F%2Fpi-hole.net%2Fthank-you%2F) to provide us with a small monthly amount.  Your money will also support content-creators.
+| [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif "Free, but powered by donations")](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY "Donate") |  <center> ![1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX](http://todobom.com/images/bitcoin-donations.png)<br />1hXEKGKExiPAQ7y5CFPwWiEXUXB6wDuqX</center> | 
 
 ## Get Help Or Connect With Us On The Web
 
