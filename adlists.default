@@ -43,6 +43,8 @@ https://raw.githubusercontent.com/quidsup/notrack/master/trackers.txt
 # Block the BBC News website Breaking News banner
 #https://raw.githubusercontent.com/BreakingTheNews/BreakingTheNews.github.io/master/hosts
 
+# Combination of serveral host files on the internt (warning some facebook domains are also blocked but you can go to facebook.com)
+#https://raw.githubusercontent.com/mat1th/Dns-add-block/master/hosts
 
 # Untested Lists:
 #https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
