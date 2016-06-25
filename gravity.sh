@@ -181,7 +181,7 @@ function gravity_spinup() {
         # to complete properly and reset the user agent when required
         case "$domain" in
             "adblock.mahakala.is")
-                agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+                agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
                 cmd_ext="-e http://forum.xda-developers.com/"
             ;;
 
