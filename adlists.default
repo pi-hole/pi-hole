@@ -53,3 +53,5 @@ https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt
 # Following two lists should be used simultaneously: (readme https://github.com/notracking/hosts-blocklists/)
 #https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt
 #https://raw.github.com/notracking/hosts-blocklists/master/domains.txt
+# Combination of serveral host files on the internet (warning some facebook domains are also blocked but you can go to facebook.com). See https://github.com/mat1th/Dns-add-block for more information.
+#https://raw.githubusercontent.com/mat1th/Dns-add-block/master/hosts
