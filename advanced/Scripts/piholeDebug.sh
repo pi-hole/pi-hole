@@ -330,8 +330,7 @@ function dumpPiHoleLog {
 
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
-	echo "::: Finshed debugging!" 
-	echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+	echo "::: Debug log can be found at : $(cat /var/log/pihole_debug.log | curl --silent -F 'sprunge=<-' http://sprunge.us)"
 }
 trap finalWork EXIT
 

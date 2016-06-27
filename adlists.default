@@ -43,11 +43,15 @@ https://raw.githubusercontent.com/quidsup/notrack/master/trackers.txt
 # Block the BBC News website Breaking News banner
 #https://raw.githubusercontent.com/BreakingTheNews/BreakingTheNews.github.io/master/hosts
 
+# List of known C&C malware servers (see https://github.com/pi-hole/pi-hole/issues/528)
+https://ransomwaretracker.abuse.ch/downloads/RW_DOMBL.txt
 
 # Untested Lists:
 #https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
-#http://spam404bl.com/spam404scamlist.txt
+#https://raw.githubusercontent.com/Dawsey21/Lists/master/main-blacklist.txt
 #http://malwaredomains.lehigh.edu/files/domains.txt
 # Following two lists should be used simultaneously: (readme https://github.com/notracking/hosts-blocklists/)
 #https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt
 #https://raw.github.com/notracking/hosts-blocklists/master/domains.txt
+# Combination of serveral host files on the internet (warning some facebook domains are also blocked but you can go to facebook.com). See https://github.com/mat1th/Dns-add-block for more information.
+#https://raw.githubusercontent.com/mat1th/Dns-add-block/master/hosts
