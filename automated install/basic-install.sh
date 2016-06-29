@@ -36,16 +36,6 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
-
-# Find IP used to route to outside world
-
-IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
-
-availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
-dhcpcdFile=/etc/dhcpcd.conf
-
 ######## FIRST CHECK ########
 # Must be root to install
 echo ":::"
@@ -55,7 +45,7 @@ else
 	echo "::: sudo will be used for the install."
 	# Check if it is actually installed
 	# If it isn't, exit because the install cannot complete
-	if [[ $(dpkg-query -s sudo) ]];then
+	if [ -x "$(command -v sudo)" ];then
 		export SUDO="sudo"
 	else
 		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
@@ -63,6 +53,47 @@ else
 	fi
 fi
 
+# Compatability
+if [ -x "$(command -v rpm)" ];then
+	# Fedora Family
+	if [ -x "$(command -v dnf)" ];then
+		PKG_MANAGER="dnf"
+	else
+		PKG_MANAGER="yum"
+	fi
+	PKG_CACHE="/var/cache/$PKG_MANAGER"
+	UPDATE_PKG_CACHE="$PKG_MANAGER check-update -q"
+	PKG_UPDATE="$PKG_MANAGER update -y"
+	PKG_INSTALL="$PKG_MANAGER install -y"
+	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
+	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo )
+	LIGHTTPD_USER="lighttpd"
+	LIGHTTPD_GROUP="lighttpd"
+	LIGHTTPD_CFG="lighttpd.conf.fedora"
+	package_check() {
+		rpm -qa | grep ^$1- > /dev/null
+	}
+elif [ -x "$(command -v apt-get)" ];then
+	# Debian Family
+	PKG_MANAGER="apt-get"
+	PKG_CACHE="/var/cache/apt"
+	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
+	PKG_UPDATE="$PKG_MANAGER upgrade"
+	PKG_INSTALL="$PKG_MANAGER -y -qq install"
+	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
+	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo )
+	LIGHTTPD_USER="www-data"
+	LIGHTTPD_GROUP="www-data"
+	LIGHTTPD_CFG="lighttpd.conf.debian"
+	package_check() {
+		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+	}
+else
+	echo "OS distribution not supported"
+	exit
+fi
 
 ####### FUNCTIONS ##########
 spinner()
@@ -78,6 +109,14 @@ spinner()
         printf "\b\b\b\b\b\b"
     done
     printf "    \b\b\b\b"
+}
+
+findIPRoute() {
+	# Find IP used to route to outside world
+	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
+	IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+	IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
+	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 backupLegacyPihole() {
@@ -288,20 +327,52 @@ setDHCPCD() {
 	echo "::: interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
-	static domain_name_servers=$IPv4gw" | $SUDO tee -a $dhcpcdFile >/dev/null
+	static domain_name_servers=$IPv4gw" | $SUDO tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
-	# Tries to set the IPv4 address
-	if grep -q "$IPv4addr" $dhcpcdFile; then
-		# address already set, noop
-		:
+	if [[ -f /etc/dhcpcd.conf ]];then
+		# Debian Family
+		if grep -q "$IPv4addr" /etc/dhcpcd.conf; then
+			echo "::: Static IP already configured"
+		else
+			setDHCPCD
+			$SUDO ip addr replace dev "$piholeInterface" "$IPv4addr"
+			echo ":::"
+			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo ":::"
+		fi
+	elif [[ -f /etc/sysconfig/network-scripts/ifcfg-$piholeInterface ]];then
+		# Fedora Family
+		IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-$piholeInterface
+		if grep -q "$IPv4addr" $IFCFG_FILE; then
+			echo "::: Static IP already configured"
+		else
+			IPADDR=$(echo $IPv4addr | cut -f1 -d/)
+			CIDR=$(echo $IPv4addr | cut -f2 -d/)
+			# Backup existing interface configuration:
+			cp $IFCFG_FILE $IFCFG_FILE.backup-$(date +%Y-%m-%d-%H%M%S)
+			# Build Interface configuration file:
+			$SUDO echo "# Configured via Pi-Hole installer" > $IFCFG_FILE
+			$SUDO echo "DEVICE=$piholeInterface" >> $IFCFG_FILE
+			$SUDO echo "BOOTPROTO=none" >> $IFCFG_FILE
+			$SUDO echo "ONBOOT=yes" >> $IFCFG_FILE
+			$SUDO echo "IPADDR=$IPADDR" >> $IFCFG_FILE
+			$SUDO echo "PREFIX=$CIDR" >> $IFCFG_FILE
+			$SUDO echo "USERCTL=no" >> $IFCFG_FILE
+			$SUDO ip addr replace dev "$piholeInterface" "$IPv4addr"
+			if [ -x "$(command -v nmcli)" ];then
+				# Tell NetworkManager to read our new sysconfig file
+				$SUDO nmcli con load $IFCFG_FILE > /dev/null
+			fi
+			echo ":::"
+			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo ":::"
+
+		fi
 	else
-		setDHCPCD
-		$SUDO ip addr replace dev "$piholeInterface" "$IPv4addr"
-		echo ":::"
-		echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
-		echo ":::"
+		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
+		exit 1
 	fi
 }
 
@@ -455,6 +526,7 @@ versionCheckDNSmasq(){
 	else
 		$SUDO sed -i '/^server=@DNS2@/d' $newFileFinalLocation
 	fi
+	$SUDO sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' $dnsFile1
 }
 
 installScripts() {
@@ -502,7 +574,11 @@ installConfigs() {
 		$SUDO chown "$USER":root /etc/lighttpd
 		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	fi
-	$SUDO cp /etc/.pihole/advanced/lighttpd.conf /etc/lighttpd/lighttpd.conf
+	$SUDO cp /etc/.pihole/advanced/$LIGHTTPD_CFG /etc/lighttpd/lighttpd.conf
+	$SUDO mkdir -p /var/run/lighttpd
+	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/run/lighttpd
+	$SUDO mkdir -p /var/cache/lighttpd/compress
+	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/cache/lighttpd/compress
 }
 
 stopServices() {
@@ -510,55 +586,74 @@ stopServices() {
 	$SUDO echo ":::"
 	$SUDO echo -n "::: Stopping services..."
 	#$SUDO service dnsmasq stop & spinner $! || true
-	$SUDO service lighttpd stop & spinner $! || true
+	if [ -x "$(command -v systemctl)" ]; then
+		$SUDO systemctl stop lighttpd & spinner $! || true
+	else
+		$SUDO service lighttpd stop & spinner $! || true
+	fi
 	$SUDO echo " done."
 }
 
-checkForDependencies() {
+installerDependencies() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
 	#We'll change the logic up here, to check to see if there are any updates availible and
 	# if so, advise the user to run apt-get update/upgrade at their own discretion
 	#Check to see if apt-get update has already been run today
 	# it needs to have been run at least once on new installs!
-
-	timestamp=$(stat -c %Y /var/cache/apt/)
+	timestamp=$(stat -c %Y $PKG_CACHE)
 	timestampAsDate=$(date -d @"$timestamp" "+%b %e")
 	today=$(date "+%b %e")
 
 	if [ ! "$today" == "$timestampAsDate" ]; then
 		#update package lists
 		echo ":::"
-		echo -n "::: apt-get update has not been run today. Running now..."
-		$SUDO apt-get -qq update & spinner $!
+		echo -n "::: $PKG_MANAGER update has not been run today. Running now..."
+		$SUDO $UPDATE_PKG_CACHE > /dev/null 2>&1
 		echo " done!"
 	fi
 	echo ":::"
-	echo -n "::: Checking apt-get for upgraded packages...."
-    updatesToInstall=$($SUDO apt-get -s -o Debug::NoLocking=true upgrade | grep -c ^Inst)
-    echo " done!"
-    echo ":::"
-    if [[ $updatesToInstall -eq "0" ]]; then
+	echo -n "::: Checking $PKG_MANAGER for upgraded packages...."
+	updatesToInstall=$(eval "$SUDO $PKG_COUNT")
+	echo " done!"
+	echo ":::"
+	if [[ $updatesToInstall -eq "0" ]]; then
 		echo "::: Your pi is up to date! Continuing with pi-hole installation..."
-    else
+	else
 		echo "::: There are $updatesToInstall updates availible for your pi!"
-		echo "::: We recommend you run 'sudo apt-get upgrade' after installing Pi-Hole! "
+		echo "::: We recommend you run '$PKG_UPDATE' after installing Pi-Hole! "
 		echo ":::"
-    fi
-    echo ":::"
-    echo "::: Checking dependencies:"
-
-  dependencies=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo)
-	for i in "${dependencies[@]}"; do
+	fi
+	echo ":::"
+	echo "::: Checking installer dependencies..."
+	for i in "${INSTALLER_DEPS[@]}"; do
 		echo -n ":::    Checking for $i..."
-		if [ "$(dpkg-query -W -f='${Status}' "$i" 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
+		package_check $i > /dev/null
+		if ! [ $? -eq 0 ]; then
 			echo -n " Not found! Installing...."
-			$SUDO apt-get -y -qq install "$i" > /dev/null & spinner $!
+			$SUDO $PKG_INSTALL "$i" > /dev/null 2>&1
 			echo " done!"
 		else
 			echo " already installed!"
 		fi
 	done
+}
+
+checkForDependencies() {
+	# Install dependencies for Pi-Hole
+    echo "::: Checking Pi-Hole dependencies:"
+
+    for i in "${PIHOLE_DEPS[@]}"; do
+	echo -n ":::    Checking for $i..."
+	package_check $i > /dev/null
+	if ! [ $? -eq 0 ]; then
+		echo -n " Not found! Installing...."
+		$SUDO $PKG_INSTALL "$i" > /dev/null & spinner $!
+		echo " done!"
+	else
+		echo " already installed!"
+	fi
+    done
 }
 
 getGitFiles() {
@@ -677,6 +772,27 @@ setUser(){
 	fi
 }
 
+configureFirewall() {
+	# Allow HTTP and DNS traffic
+	if [ -x "$(command -v firewall-cmd)" ]; then
+		$SUDO firewall-cmd --state > /dev/null
+		if [[ $? -eq 0 ]]; then
+			$SUDO echo "::: Configuring firewalld for httpd and dnsmasq.."
+			$SUDO firewall-cmd --permanent --add-port=80/tcp
+			$SUDO firewall-cmd --permanent --add-port=53/tcp
+			$SUDO firewall-cmd --permanent --add-port=53/udp
+			$SUDO firewall-cmd --reload
+		fi
+	elif [ -x "$(command -v iptables)" ]; then
+		$SUDO echo "::: Configuring iptables for httpd and dnsmasq.."
+		$SUDO iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+		$SUDO iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
+		$SUDO iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
+	else
+		$SUDO echo "::: No firewall detected.. skipping firewall configuration."
+	fi
+}
+
 installPihole() {
 	# Install base files and web interface
 	checkForDependencies # done
@@ -686,18 +802,55 @@ installPihole() {
 	if [ ! -d "/var/www/html" ]; then
 		$SUDO mkdir -p /var/www/html
 	fi
-	$SUDO chown www-data:www-data /var/www/html
+	$SUDO chown $LIGHTTPD_USER:$LIGHTTPD_GROUP /var/www/html
 	$SUDO chmod 775 /var/www/html
-	$SUDO usermod -a -G www-data pihole
-	$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	$SUDO usermod -a -G $LIGHTTPD_GROUP pihole
+	if [ -x "$(command -v lighty-enable-mod)" ]; then
+		$SUDO lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	else
+		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+	fi
 
 	getGitFiles
 	installScripts
 	installConfigs
 	CreateLogFile
+	configureSelinux
 	installPiholeWeb
 	installCron
 	runGravity
+	configureFirewall
+}
+
+configureSelinux() {
+	if [ -x "$(command -v getenforce)" ]; then
+		printf "\n::: SELinux Detected\n"
+		printf ":::\tChecking for SELinux policy development packages..."
+		package_check "selinux-policy-devel" > /dev/null
+		if ! [ $? -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			$SUDO $PKG_INSTALL "selinux-policy-devel" > /dev/null & spinner $!
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
+		printf "::: Enabling httpd server side includes (SSI).. "
+		$SUDO setsebool -P httpd_ssi_exec on
+		if [ $? -eq 0 ]; then
+			echo -n "Success\n"
+		fi
+		printf ":::\tCompiling Pi-Hole SELinux policy..\n"
+		$SUDO checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
+		$SUDO semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
+		$SUDO semodule -i /etc/pihole/pihole.pp
+		$SUDO rm -f /etc/pihole/pihole.mod
+		$SUDO semodule -l | grep pihole > /dev/null
+		if [ $? -eq 0 ]; then
+			printf "::: Successfully installed Pi-Hole SELinux policy\n"
+		else
+			printf "::: Warning: Pi-Hole SELinux policy did not install correctly!\n"
+		fi
+	fi
 }
 
 displayFinalMessage() {
@@ -716,6 +869,10 @@ View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" $
 ######## SCRIPT ############
 # Start the installer
 $SUDO mkdir -p /etc/pihole/
+
+# Install packages used by this installation script
+installerDependencies
+
 welcomeDialogs
 
 # Verify there is enough disk space for the install
@@ -723,6 +880,8 @@ verifyFreeDiskSpace
 
 # Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
 backupLegacyPihole
+# Find IP used to route to outside world
+findIPRoute
 # Find interfaces and let the user choose one
 chooseInterface
 # Let the user decide if they want to block ads over IPv4 and/or IPv6
@@ -741,8 +900,16 @@ displayFinalMessage
 
 echo -n "::: Restarting services..."
 # Start services
-$SUDO service dnsmasq restart
-$SUDO service lighttpd start
+if [ -x "$(command -v systemctl)" ]; then
+	$SUDO systemctl enable dnsmasq
+	$SUDO systemctl restart dnsmasq
+	$SUDO systemctl enable lighttpd
+	$SUDO systemctl start lighttpd
+else
+	$SUDO service dnsmasq restart
+	$SUDO service lighttpd start
+fi
+
 echo " done."
 
 echo ":::"

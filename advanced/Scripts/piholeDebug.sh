@@ -36,7 +36,7 @@ if [[ $EUID -eq 0 ]]; then
 else
 	echo "::: Sudo will be used for debugging."
 	# Check if sudo is actually installed
-	if [[ $(dpkg-query -s sudo) ]]; then
+	if [ -x "$(command -v sudo)" ]; then
 		export SUDO="sudo"
 	else
 		echo "::: Please install sudo or run this as root."

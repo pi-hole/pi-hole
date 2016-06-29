@@ -17,12 +17,45 @@ else
 	echo "::: Sudo will be used for the uninstall."
   # Check if it is actually installed
   # If it isn't, exit because the unnstall cannot complete
-  if [[ $(dpkg-query -s sudo) ]];then
+  if [ -x "$(command -v sudo)" ];then
 		export SUDO="sudo"
   else
     echo "::: Please install sudo or run this as root."
     exit 1
   fi
+fi
+
+# Compatability
+if [ -x "$(command -v rpm)" ];then
+	# Fedora Family
+	if [ -x "$(command -v dnf)" ];then
+		PKG_MANAGER="dnf"
+	else
+		PKG_MANAGER="yum"
+	fi
+	PKG_REMOVE="$PKG_MANAGER remove -y"
+	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common git curl unzip wget findutils )
+	package_check() {
+		rpm -qa | grep ^$1- > /dev/null
+	}
+	package_cleanup() {
+		$SUDO $PKG_MANAGER -y autoremove
+	}
+elif [ -x "$(command -v apt-get)" ];then
+	# Debian Family
+	PKG_MANAGER="apt-get"
+	PKG_REMOVE="$PKG_MANAGER -y remove --purge"
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common git curl unzip wget )
+	package_check() {
+		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+	}
+	package_cleanup() {
+		$SUDO $PKG_MANAGER -y autoremove
+		$SUDO $PKG_MANAGER -y autoclean
+	}
+else
+	echo "OS distribution not supported"
+	exit
 fi
 
 spinner()
@@ -43,14 +76,13 @@ spinner()
 function removeAndPurge {
 	# Purge dependencies
 echo ":::"
-	# Nate 3/28/2016 - Removed `php5-cgi` and `php5` as they are removed with php5-common
-	dependencies=( dnsutils bc dnsmasq lighttpd php5-common git curl unzip wget )
-	for i in "${dependencies[@]}"; do
-		if [ "$(dpkg-query -W --showformat='${Status}\n' "$i" 2> /dev/null | grep -c "ok installed")" -eq 1 ]; then
+	for i in "${PIHOLE_DEPS[@]}"; do
+		package_check $i > /dev/null
+		if [ $? -eq 0 ]; then
 			while true; do
 				read -rp "::: Do you wish to remove $i from your system? [y/n]: " yn
 				case $yn in
-					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO apt-get -y remove --purge "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
+					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO $PKG_REMOVE "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
 					[Nn]* ) printf ":::\tSkipping %s" "$i\n"; break;;
 					* ) printf "::: You must answer yes or no!\n";;
 				esac
@@ -65,10 +97,8 @@ echo ":::"
 	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 
 	# Take care of any additional package cleaning
-	printf "::: Auto removing remaining dependencies..."
-	$SUDO apt-get -y autoremove &> /dev/null & spinner $!; printf "done!\n";
-	printf "::: Auto cleaning remaining dependencies..."
-	$SUDO apt-get -y autoclean &> /dev/null & spinner $!; printf "done!\n";
+	printf "::: Auto removing & cleaning remaining dependencies..."
+	package_cleanup &> /dev/null & spinner $!; printf "done!\n";
 
 	# Call removeNoPurge to remove PiHole specific files
 	removeNoPurge
@@ -107,7 +137,8 @@ function removeNoPurge {
 	fi
 
 	echo "::: Removing config files and scripts..."
-	if [ ! "$(dpkg-query -W --showformat='${Status}\n' lighttpd 2> /dev/null | grep -c "ok installed")" -eq 1 ]; then
+	package_check $i > /dev/null
+	if [ $? -eq 1 ]; then
 		$SUDO rm -rf /etc/lighttpd/ &> /dev/null
 	else
 		if [ -f /etc/lighttpd/lighttpd.conf.orig ]; then
@@ -143,5 +174,3 @@ while true; do
 		[Nn]* ) removeNoPurge; break;;
 	esac
 done
-
-
