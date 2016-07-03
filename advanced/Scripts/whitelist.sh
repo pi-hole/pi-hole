@@ -17,7 +17,7 @@ else
 	echo "::: sudo will be used."
 	# Check if it is actually installed
 	# If it isn't, exit because the install cannot complete
-	if [[ $(dpkg-query -s sudo) ]];then
+	if [ -x "$(command -v sudo)" ];then
 		export SUDO="sudo"
 	else
 		echo "::: Please install sudo or run this script as root."
