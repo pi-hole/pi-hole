@@ -19,7 +19,7 @@ else
 	echo "::: sudo will be used."
 	# Check if it is actually installed
 	# If it isn't, exit because the install cannot complete
-	if [[ $(dpkg-query -s sudo) ]];then
+	if [ -x "$(command -v sudo)" ];then
 		export SUDO="sudo"
 	else
 		echo "::: Please install sudo or run this script as root."
@@ -152,7 +152,7 @@ function gravity_transport() {
 	fi
 
 	# Silently curl url
-	curl -s $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
+	curl -s -L $cmd_ext $heisenbergCompensator -A "$agent" $url > $patternBuffer
 	# Check for list updates
 	gravity_patternCheck "$patternBuffer"
 	# Cleanup
@@ -181,7 +181,7 @@ function gravity_spinup() {
         # to complete properly and reset the user agent when required
         case "$domain" in
             "adblock.mahakala.is")
-                agent='Mozilla/5.0 (X11; Linux x86_64; rv:30.0) Gecko/20100101 Firefox/30.0'
+                agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
                 cmd_ext="-e http://forum.xda-developers.com/"
             ;;
 
