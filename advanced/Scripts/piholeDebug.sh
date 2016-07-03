@@ -330,8 +330,16 @@ function dumpPiHoleLog {
 
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
-	echo "::: Finshed debugging!" 
-	echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+	echo "::: Finshed debugging!"
+	SPRUNGE=$(cat /var/log/pihole_debug.log | curl --silent --connect-timeout 5 -F 'sprunge=<-' http://sprunge.us)
+
+	# Check if sprunge.us is reachable. When it's not, point to local log instead
+	if [ -n "$SPRUNGE" ]
+	then
+		echo "::: Debug log can be found at : $SPRUNGE"
+	else
+		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+	fi
 }
 trap finalWork EXIT
 
