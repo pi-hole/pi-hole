@@ -20,12 +20,12 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## How To Install Pi-hole
 
-[![60-second install tutorial](http://i.imgur.com/lVyNWTC.png)](https://www.youtube.com/watch?v=TzFLJqUeirA)
+[![60-second install tutorial](http://i.imgur.com/5TEc3a6.png)](https://www.youtube.com/watch?v=TzFLJqUeirA)
 
 ## How Does It Work?
 **Watch the 60-second video below to get a quick overview**
 
-[![Pi-hole exlplained](http://i.imgur.com/qNybJDX.png)](https://youtu.be/L2iVKs0v0Tk)
+[![Pi-hole exlplained](http://i.imgur.com/pG1m937.png)](https://youtu.be/L2iVKs0v0Tk)
 
 ## Pi-hole Is Free, But Powered By Your Donations
 Send a one-time donation or sign up for Optimal.com's service using our link below to provide us with a small portion of the montly fee.
@@ -56,12 +56,12 @@ The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashb
 
 `http://192.168.1.x/admin/index.php` or `http://pi.hole/admin`
 
-![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/CQlEnDy.png)
+![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/gTq2GbS.png)
 
 ### Whitelist and blacklist
 
 Domains can be whitelisted and blacklisted using two pre-installed scripts. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
-![Whitelist editor in the Web interface](http://i.imgur.com/Anj1GzO.png)
+![Whitelist editor in the Web interface](http://i.imgur.com/ogu2ewg.png)
 
 ## API
 
@@ -96,6 +96,7 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 - [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 
 ## Coverage
+- [Adafruit livestream install](https://www.youtube.com/watch?v=eg4u2j1HYlI)
 - [TekThing: 5 fun, easy projects for a Raspberry Pi](https://youtu.be/QwrKlyC2kdM?t=1m42s)
 - [Pi-hole on Adafruit's blog](https://blog.adafruit.com/2016/03/04/pi-hole-is-a-black-hole-for-internet-ads-piday-raspberrypi-raspberry_pi/)
 - [The Defrag Show - MSDN/Channel 9](https://channel9.msdn.com/Shows/The-Defrag-Show/Defrag-Endoscope-USB-Camera-The-Final-HoloLens-Vote-Adblock-Pi-and-more?WT.mc_id=dlvr_twitter_ch9#time=20m39s)
