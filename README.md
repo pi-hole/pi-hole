@@ -25,7 +25,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 ## How Does It Work?
 **Watch the 60-second video below to get a quick overview**
 
-[![Pi-hole exlplained](http://i.imgur.com/pG1m937.png)](https://youtu.be/L2iVKs0v0Tk)
+[![Pi-hole exlplained](http://i.imgur.com/pG1m937.png)](https://youtu.be/9Eti3xibiho)
 
 ## Pi-hole Is Free, But Powered By Your Donations
 Send a one-time donation or sign up for Optimal.com's service using our link below to provide us with a small portion of the montly fee.
