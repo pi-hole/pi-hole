@@ -72,7 +72,7 @@ function distroCheck {
 	echo "######## Distribution Section #########" >> $DEBUG_LOG
 	echo "#######################################" >> $DEBUG_LOG
 	
-	TMP=$(cat /etc/lsb-release/ || cat /etc/os-release ||  echo "Failed to find release")
+	TMP=$(cat /etc/*release/ || echo "Failed to find release")
 	echo "Distribution Version: $TMP" >> $DEBUG_LOG
 	
 function compareWhitelist {
