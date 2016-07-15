@@ -67,7 +67,7 @@ if [ -x "$(command -v rpm)" ];then
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo netcat )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
@@ -83,7 +83,7 @@ elif [ -x "$(command -v apt-get)" ];then
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo netcat )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
