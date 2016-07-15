@@ -74,6 +74,7 @@ function distroCheck {
 	
 	TMP=$(cat /etc/*release/ || echo "Failed to find release")
 	echo "Distribution Version: $TMP" >> $DEBUG_LOG
+}
 	
 function compareWhitelist {
 	if [ ! -f "$WHITELISTMATCHES" ]; then
