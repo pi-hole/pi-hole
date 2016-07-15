@@ -340,12 +340,12 @@ function dumpPiHoleLog {
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
 	echo "::: Finshed debugging!"
-	SPRUNGE=$(cat /var/log/pihole_debug.log | curl --silent --connect-timeout 5 -F 'sprunge=<-' http://sprunge.us)
+	TERMBIN=$(cat /var/log/pihole_debug.log | nc termbin.com 9999)
 
-	# Check if sprunge.us is reachable. When it's not, point to local log instead
-	if [ -n "$SPRUNGE" ]
+	# Check if termbin.com is reachable. When it's not, point to local log instead
+	if [ -n "$TERMBIN" ]
 	then
-		echo "::: Debug log can be found at : $SPRUNGE"
+		echo "::: Debug log can be found at : $TERMBIN"
 	else
 		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
 	fi
