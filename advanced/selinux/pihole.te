@@ -1,0 +1,87 @@
+module pihole 1.0;
+
+require {
+        type var_log_t;
+        type unconfined_t;
+        type init_t;
+        type auditd_t;
+        type syslogd_t;
+        type NetworkManager_t;
+        type mdadm_t;
+        type tuned_t;
+        type avahi_t;
+        type irqbalance_t;
+        type system_dbusd_t;
+        type kernel_t;
+        type httpd_sys_script_t;
+        type systemd_logind_t;
+        type httpd_t;
+        type policykit_t;
+        type dnsmasq_t;
+        type udev_t;
+        type postfix_pickup_t;
+        type sshd_t;
+        type crond_t;
+        type getty_t;
+        type lvm_t;
+        type postfix_qmgr_t;
+        type postfix_master_t;
+        class dir { getattr search };
+        class file { read open setattr };
+}
+
+#============= dnsmasq_t ==============
+allow dnsmasq_t var_log_t:file { open setattr };
+
+#============= httpd_t ==============
+allow httpd_t var_log_t:file { read open };
+
+#============= httpd_sys_script_t (class: dir) ==============
+allow httpd_sys_script_t NetworkManager_t:dir { getattr search };
+allow httpd_sys_script_t auditd_t:dir { getattr search };
+allow httpd_sys_script_t avahi_t:dir { getattr search };
+allow httpd_sys_script_t crond_t:dir { getattr search };
+allow httpd_sys_script_t dnsmasq_t:dir { getattr search };
+allow httpd_sys_script_t getty_t:dir { getattr search };
+allow httpd_sys_script_t httpd_t:dir { getattr search };
+allow httpd_sys_script_t init_t:dir { getattr search };
+allow httpd_sys_script_t irqbalance_t:dir { getattr search };
+allow httpd_sys_script_t kernel_t:dir { getattr search };
+allow httpd_sys_script_t lvm_t:dir { getattr search };
+allow httpd_sys_script_t mdadm_t:dir { getattr search };
+allow httpd_sys_script_t policykit_t:dir { getattr search };
+allow httpd_sys_script_t postfix_master_t:dir { getattr search };
+allow httpd_sys_script_t postfix_pickup_t:dir { getattr search };
+allow httpd_sys_script_t postfix_qmgr_t:dir { getattr search };
+allow httpd_sys_script_t sshd_t:dir { getattr search };
+allow httpd_sys_script_t syslogd_t:dir { getattr search };
+allow httpd_sys_script_t system_dbusd_t:dir { getattr search };
+allow httpd_sys_script_t systemd_logind_t:dir { getattr search };
+allow httpd_sys_script_t tuned_t:dir { getattr search };
+allow httpd_sys_script_t udev_t:dir { getattr search };
+allow httpd_sys_script_t unconfined_t:dir { getattr search };
+
+#============= httpd_sys_script_t (class: file) ==============
+allow httpd_sys_script_t NetworkManager_t:file { read open };
+allow httpd_sys_script_t auditd_t:file { read open };
+allow httpd_sys_script_t avahi_t:file { read open };
+allow httpd_sys_script_t crond_t:file { read open };
+allow httpd_sys_script_t dnsmasq_t:file { read open };
+allow httpd_sys_script_t getty_t:file { read open };
+allow httpd_sys_script_t httpd_t:file { read open };
+allow httpd_sys_script_t init_t:file { read open };
+allow httpd_sys_script_t irqbalance_t:file { read open };
+allow httpd_sys_script_t kernel_t:file { read open };
+allow httpd_sys_script_t lvm_t:file { read open };
+allow httpd_sys_script_t mdadm_t:file { read open };
+allow httpd_sys_script_t policykit_t:file { read open };
+allow httpd_sys_script_t postfix_master_t:file { read open };
+allow httpd_sys_script_t postfix_pickup_t:file { read open };
+allow httpd_sys_script_t postfix_qmgr_t:file { read open };
+allow httpd_sys_script_t sshd_t:file { read open };
+allow httpd_sys_script_t syslogd_t:file { read open };
+allow httpd_sys_script_t system_dbusd_t:file { read open };
+allow httpd_sys_script_t systemd_logind_t:file { read open };
+allow httpd_sys_script_t tuned_t:file { read open };
+allow httpd_sys_script_t udev_t:file { read open };
+allow httpd_sys_script_t unconfined_t:file { read open };

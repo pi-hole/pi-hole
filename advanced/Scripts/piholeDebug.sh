@@ -36,7 +36,7 @@ if [[ $EUID -eq 0 ]]; then
 else
 	echo "::: Sudo will be used for debugging."
 	# Check if sudo is actually installed
-	if [[ $(dpkg-query -s sudo) ]]; then
+	if [ -x "$(command -v sudo)" ]; then
 		export SUDO="sudo"
 	else
 		echo "::: Please install sudo or run this as root."
@@ -67,6 +67,14 @@ function versionCheck {
 	echo >> $DEBUG_LOG
 }
 
+function distroCheck {
+	echo "#######################################" >> $DEBUG_LOG
+	echo "######## Distribution Section #########" >> $DEBUG_LOG
+	echo "#######################################" >> $DEBUG_LOG
+	
+	TMP=$(cat /etc/*release/ || echo "Failed to find release")
+	echo "Distribution Version: $TMP" >> $DEBUG_LOG
+	
 function compareWhitelist {
 	if [ ! -f "$WHITELISTMATCHES" ]; then
 		$SUDO touch $WHITELISTMATCHES
@@ -195,6 +203,7 @@ echo "$GATEWAY_CHECK" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
 
 versionCheck
+distroCheck
 compareWhitelist
 compareBlacklist
 testNslookup
@@ -330,8 +339,16 @@ function dumpPiHoleLog {
 
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
-	echo "::: Finshed debugging!" 
-	echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+	echo "::: Finshed debugging!"
+	TERMBIN=$(cat /var/log/pihole_debug.log | nc termbin.com 9999)
+
+	# Check if termbin.com is reachable. When it's not, point to local log instead
+	if [ -n "$TERMBIN" ]
+	then
+		echo "::: Debug log can be found at : $TERMBIN"
+	else
+		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+	fi
 }
 trap finalWork EXIT
 
