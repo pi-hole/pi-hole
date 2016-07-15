@@ -67,6 +67,14 @@ function versionCheck {
 	echo >> $DEBUG_LOG
 }
 
+function distroCheck {
+	echo "#######################################" >> $DEBUG_LOG
+	echo "######## Distribution Section #########" >> $DEBUG_LOG
+	echo "#######################################" >> $DEBUG_LOG
+	
+	TMP=$(cat /etc/*release/ || echo "Failed to find release")
+	echo "Distribution Version: $TMP" >> $DEBUG_LOG
+	
 function compareWhitelist {
 	if [ ! -f "$WHITELISTMATCHES" ]; then
 		$SUDO touch $WHITELISTMATCHES
@@ -195,6 +203,7 @@ echo "$GATEWAY_CHECK" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
 
 versionCheck
+distroCheck
 compareWhitelist
 compareBlacklist
 testNslookup
