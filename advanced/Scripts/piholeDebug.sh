@@ -69,7 +69,7 @@ function distroCheck {
 	echo "######## Distribution Section #########" >> $DEBUG_LOG
 	echo "#######################################" >> $DEBUG_LOG
 	
-	TMP=$(cat /etc/*release/ || echo "Failed to find release")
+	TMP=$(cat /etc/*release || echo "Failed to find release")
 	echo "Distribution Version: $TMP" >> $DEBUG_LOG
 }
 	
