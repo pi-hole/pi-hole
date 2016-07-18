@@ -10,9 +10,6 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-# Nate Brandeburg
-# nate@ubiquisoft.com
-# 3/24/2016
 
 ######## GLOBAL VARS ########
 DEBUG_LOG="/var/log/pihole_debug.log"
@@ -67,6 +64,15 @@ function versionCheck {
 	echo >> $DEBUG_LOG
 }
 
+function distroCheck {
+	echo "#######################################" >> $DEBUG_LOG
+	echo "######## Distribution Section #########" >> $DEBUG_LOG
+	echo "#######################################" >> $DEBUG_LOG
+	
+	TMP=$(cat /etc/*release || echo "Failed to find release")
+	echo "Distribution Version: $TMP" >> $DEBUG_LOG
+}
+	
 function compareWhitelist {
 	if [ ! -f "$WHITELISTMATCHES" ]; then
 		$SUDO touch $WHITELISTMATCHES
@@ -195,6 +201,7 @@ echo "$GATEWAY_CHECK" >> $DEBUG_LOG
 echo >> $DEBUG_LOG
 
 versionCheck
+distroCheck
 compareWhitelist
 compareBlacklist
 testNslookup
@@ -331,12 +338,12 @@ function dumpPiHoleLog {
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
 	echo "::: Finshed debugging!"
-	SPRUNGE=$(cat /var/log/pihole_debug.log | curl --silent --connect-timeout 5 -F 'sprunge=<-' http://sprunge.us)
+	TERMBIN=$(cat /var/log/pihole_debug.log | nc termbin.com 9999)
 
-	# Check if sprunge.us is reachable. When it's not, point to local log instead
-	if [ -n "$SPRUNGE" ]
+	# Check if termbin.com is reachable. When it's not, point to local log instead
+	if [ -n "$TERMBIN" ]
 	then
-		echo "::: Debug log can be found at : $SPRUNGE"
+		echo "::: Debug log can be found at : $TERMBIN"
 	else
 		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
 	fi
