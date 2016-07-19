@@ -324,7 +324,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 setDHCPCD() {
 	# Append these lines to dhcpcd.conf to enable a static IP
-	echo "::: interface $piholeInterface
+	echo "## interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
 	static domain_name_servers=$IPv4gw" | $SUDO tee -a /etc/dhcpcd.conf >/dev/null
