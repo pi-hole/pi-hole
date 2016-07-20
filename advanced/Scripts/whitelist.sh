@@ -183,7 +183,7 @@ function ModifyHostFile(){
               echo "$rdom" | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
               echo " done!"
             else
-              echo -n ":::        Restoring block for $rdom on IPv4"
+              echo -n ":::        Restoring block for $rdom on IPv4..."
               echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
               echo " done!"
             fi
