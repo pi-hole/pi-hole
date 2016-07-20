@@ -175,20 +175,23 @@ function ModifyHostFile(){
 	    echo ":::"
 	    echo "::: Modifying HOSTS file to un-whitelist domains..."
 	    for rdom in "${domToRemoveList[@]}"
-	    do
-	    	if [[ -n $piholeIPv6 ]];then
-	    	  echo -n ":::    Un-whitelisting $rdom on IPv4 and IPv6..."
-	    	  echo "$rdom" | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
-	    	  echo " done!"
-	      else
-	        echo -n ":::    Un-whitelisting $rdom on IPv4"
-	      	echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
-	      	echo " done!"
-	      fi
-	      echo -n ":::        Removing $rdom from $whitelist..."
-	      echo "$rdom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $whitelist
-	      echo " done!"
-	    done
+        do
+          if grep -q "$rdom" /etc/pihole/*.domains; then
+            echo ":::    AdLists contain $rdom, re-adding block"
+            if [[ -n $piholeIPv6 ]];then
+              echo -n ":::        Restoring block for $rdom on IPv4 and IPv6..."
+              echo "$rdom" | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
+              echo " done!"
+            else
+              echo -n ":::        Restoring block for $rdom on IPv4"
+              echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
+              echo " done!"
+            fi
+          fi
+          echo -n ":::    Removing $rdom from $whitelist..."
+          echo "$rdom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $whitelist
+          echo " done!"
+        done
 	  fi
 }
 
