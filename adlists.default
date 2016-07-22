@@ -22,7 +22,7 @@ https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
 
 # hosts-file.net list. Updated frequently, but has been known to block legitimate sites.
-https://hosts-file.net/ad_servers.txt
+http://hosts-file.net/ad_servers.txt
 
 # Mahakala list. Has been known to block legitimage domains including the entire .com range.
 # Warning: Due to the sheer size of this list, the web admin console will be unresponsive.
