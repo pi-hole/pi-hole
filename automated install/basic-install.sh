@@ -67,7 +67,7 @@ if [ -x "$(command -v rpm)" ];then
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo netcat )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo nmap-ncat )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
@@ -324,7 +324,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 setDHCPCD() {
 	# Append these lines to dhcpcd.conf to enable a static IP
-	echo "::: interface $piholeInterface
+	echo "## interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
 	static domain_name_servers=$IPv4gw" | $SUDO tee -a /etc/dhcpcd.conf >/dev/null
