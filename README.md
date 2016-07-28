@@ -1,6 +1,6 @@
-# Automated Install
-
 [![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE)   
+
+# Automated Install
 
 Designed For Raspberry Pi A+, B, B+, 2, 3B, and Zero (with an Ethernet/Wi-Fi adapter)
 Works on most Debian and CentOS/RHEL based distributions!
