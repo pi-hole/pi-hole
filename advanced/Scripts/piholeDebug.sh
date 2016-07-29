@@ -10,9 +10,6 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-# Nate Brandeburg
-# nate@ubiquisoft.com
-# 3/24/2016
 
 ######## GLOBAL VARS ########
 DEBUG_LOG="/var/log/pihole_debug.log"
@@ -72,7 +69,7 @@ function distroCheck {
 	echo "######## Distribution Section #########" >> $DEBUG_LOG
 	echo "#######################################" >> $DEBUG_LOG
 	
-	TMP=$(cat /etc/*release/ || echo "Failed to find release")
+	TMP=$(cat /etc/*release || echo "Failed to find release")
 	echo "Distribution Version: $TMP" >> $DEBUG_LOG
 }
 	
