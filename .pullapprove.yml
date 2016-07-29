@@ -1,0 +1,14 @@
+approve_by_comment: true
+approve_regex: '^(Approved|:shipit:|:\+1:)'
+reject_regex: '^(Rejected|:-1:)'
+reset_on_push: true
+author_approval: required
+reviewers:
+  members:
+  - brantje
+  - dschaper
+  - jacobsalmela
+  - Mcat12
+  - PromoFaux
+  name: pullapprove
+  required: 3
