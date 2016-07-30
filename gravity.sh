@@ -27,6 +27,16 @@ else
 	fi
 fi
 
+
+# If you are running more than one name server then
+# Uncomment next then change number.
+#piholeNSnumber=1
+
+# If you want to send your response to another server then
+# Uncomment next line to send query to a different ip address than pihole's ip 
+#piholeDumpAddress="0.0.0.0"
+
+
 piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
@@ -261,7 +271,8 @@ function gravity_hostFormat() {
 	else
 		# Otherwise, just create gravity.list as normal using IPv4
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$piholeIP $hostname\n$piholeIP pi.hole" > $piholeDir/$accretionDisc
+                echo -e "$piholeIP $hostname\n$piholeIP pi$piholeNSnumber.hole" > $piholeDir/$accretionDisc
+                if ! [[ -n $piholeDumpAddress ]];then piholeDumpAddress="$piholeIP"; fi
 		cat $piholeDir/$eventHorizon | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> $piholeDir/$accretionDisc
 	fi
 
