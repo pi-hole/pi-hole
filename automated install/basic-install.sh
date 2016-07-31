@@ -158,7 +158,7 @@ verifyFreeDiskSpace() {
 	# 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
 	requiredFreeBytes=51200
 
-	existingFreeBytes=$(df -lk / 2>&1 | awk '{print $4}' | head -2 | tail -1)
+	existingFreeBytes=$(df -k / 2>&1 | awk '{print $4}' | head -2 | tail -1)
 	if ! [[ "$existingFreeBytes" =~ ^([0-9])+$ ]]; then
 		existingFreeBytes=$(df -lk /dev 2>&1 | awk '{print $4}' | head -2 | tail -1)
 	fi
