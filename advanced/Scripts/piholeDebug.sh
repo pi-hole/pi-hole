@@ -337,17 +337,27 @@ function dumpPiHoleLog {
 
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
-	echo "::: Finshed debugging!"
-	TERMBIN=$(cat /var/log/pihole_debug.log | nc termbin.com 9999)
+        echo "::: Finshed debugging!"
+    echo "::: The degug log can be uploaded to Termbin.com for easier sharing."
+        read -r -p "::: Would you like to upload the log? [y/N] " response
+    case $response in
+        [yY][eE][sS]|[yY])
+            TERMBIN=$(cat /var/log/pihole_debug.log | nc termbin.com 9999)
+            ;;
+        *)
+            echo "::: Log will NOT be uploaded to Termbin."
+            ;;
+    esac
 
-	# Check if termbin.com is reachable. When it's not, point to local log instead
-	if [ -n "$TERMBIN" ]
-	then
-		echo "::: Debug log can be found at : $TERMBIN"
-	else
-		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
-	fi
+        # Check if termbin.com is reachable. When it's not, point to local log instead
+        if [ -n "$TERMBIN" ]
+        then
+                echo "::: Debug log can be found at : $TERMBIN"
+        else
+                echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+        fi
 }
+
 trap finalWork EXIT
 
 ### Method calls for additional logging ###
