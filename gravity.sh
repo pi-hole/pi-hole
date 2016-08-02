@@ -28,15 +28,6 @@ else
 fi
 
 
-# If you are running more than one name server then
-# Uncomment next then change number.
-#piholeNSnumber=1
-
-# If you want to send your response to another server then
-# Uncomment next line to send query to a different ip address than pihole's ip 
-#piholeDumpAddress="0.0.0.0"
-
-
 piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
