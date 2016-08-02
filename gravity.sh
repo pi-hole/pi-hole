@@ -27,7 +27,6 @@ else
 	fi
 fi
 
-
 piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
