@@ -74,6 +74,10 @@ function uninstallFunc {
 	exit 1
 }
 
+function versionFunc{
+    $SUDO /opt/pihole/version.sh
+    exit 1
+}
 function helpFunc {
 	echo "::: Control all PiHole specific functions!"
 	echo ":::"
@@ -90,6 +94,7 @@ function helpFunc {
 	echo ":::  -s, setupLCD				Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
 	echo ":::  -c, chronometer			Calculates stats and displays to an LCD"
 	echo ":::  -h, help				Show this help dialog"
+	echo ":::  -v, version          Show current versions"
 	echo ":::  uninstall				Uninstall Pi-Hole from your system!"
 	exit 1
 }
@@ -109,6 +114,7 @@ case "$1" in
 "-s" | "setupLCD"			) setupLCDFunction;;
 "-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
+"-v" | "version"            ) versionFunc;;
 "uninstall"					) uninstallFunc;;
 *                    		) helpFunc;;
 esac
