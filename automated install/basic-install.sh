@@ -548,7 +548,8 @@ installScripts() {
 	$SUDO cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /opt/pihole/updateDashboard.sh
 	$SUDO cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
 	$SUDO cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
-	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall,setupLCD}.sh
+	$SUDO cp /etc/.pihole/advanced/Scripts/version.sh /opt/pihole/version.sh
+	$SUDO chmod 755 /opt/pihole/{gravity,chronometer,whitelist,blacklist,piholeLogFlush,updateDashboard,uninstall,setupLCD,version}.sh
 	$SUDO cp /etc/.pihole/pihole /usr/local/bin/pihole
 	$SUDO chmod 755 /usr/local/bin/pihole
 	$SUDO cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
