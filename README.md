@@ -102,6 +102,7 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 -   [unRaid-hole](https://github.com/spants/unraidtemplates/blob/master/Spants/unRaid-hole.xml#L13)--[Repo and more info](http://lime-technology.com/forum/index.php?PHPSESSID=c0eae3e5ef7e521f7866034a3336489d&topic=38486.0)
 -   [Pi-hole on/off button](http://thetimmy.silvernight.org/pages/endisbutton/)
 -   [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
+-   [Windows Tray Stat Application](https://github.com/goldbattle/copernicus)
 
 ## Coverage
 
