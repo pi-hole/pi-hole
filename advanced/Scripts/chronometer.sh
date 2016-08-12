@@ -51,9 +51,13 @@ function CalcblockedToday(){
 
 function CalcPercentBlockedToday(){
 	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
-		#scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-		percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)		
-		percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")		
+		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
+		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
+			percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)
+			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")
+		else
+			percentBlockedToday=0
+		fi
 	fi
 }
 
@@ -69,9 +73,9 @@ function outputJSON(){
 	CalcQueriesToday
 	CalcblockedToday
 	CalcPercentBlockedToday
-	
+
 	CalcBlockedDomains
-	
+
 	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
 }
 
@@ -80,47 +84,53 @@ function normalChrono(){
 	do
 		clear
 		# Displays a colorful Pi-hole logo
-		toilet -f small -F gay Pi-hole
+		echo " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m"
+		echo "[0;1;31;91m|[0m [0;1;33;93m_[0m [0;1;32;92m(_[0;1;36;96m)_[0;1;34;94m__[0;1;35;95m|[0m [0;1;31;91m|_[0m  [0;1;32;92m__[0;1;36;96m_|[0m [0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m"
+		echo "[0;1;33;93m|[0m  [0;1;32;92m_[0;1;36;96m/[0m [0;1;34;94m|_[0;1;35;95m__[0;1;31;91m|[0m [0;1;33;93m'[0m [0;1;32;92m\/[0m [0;1;36;96m_[0m [0;1;34;94m\[0m [0;1;35;95m/[0m [0;1;31;91m-[0;1;33;93m_)[0m"
+		echo "[0;1;32;92m|_[0;1;36;96m|[0m [0;1;34;94m|_[0;1;35;95m|[0m   [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m"
+		echo ""
 		echo "        $(ifconfig eth0 | awk '/inet addr/ {print $2}' | cut -d':' -f2)"
 		echo ""
 		uptime | cut -d' ' -f11-
+		#uptime -p	#Doesn't work on all versions of uptime
+		uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes."}'
 		echo "-------------------------------"
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
-		
+
 		#uncomment next 4 lines to use original query count calculation
 		#today=$(date "+%b %e")
 		#todaysQueryCount=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ {print $7}' | wc -l)
 		#todaysQueryCountV4=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[A\]/ {print $7}' | wc -l)
 		#todaysQueryCountV6=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[AAAA\]/ {print $7}' | wc -l)
-				
-		
+
+
 		CalcQueriesToday
 		CalcblockedToday
 		CalcPercentBlockedToday
-		
+
 		CalcBlockedDomains
-		
+
 		echo "Blocking:      $blockedDomainsTotal"
 		#below commented line does not add up to todaysQueryCount
 		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
 		echo "Queries:       $queriesToday" #same total calculation as dashboard
 	  echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
-		
+
 		sleep 5
 	done
 }
 
 function displayHelp(){
- echo "Displays stats about your piHole!"
-    echo " "
-    echo "Usage: chronometer.sh [optional:-j]"
-    echo "Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
-    echo "  "
-    echo "Options:"
-    echo "  -j, --json		output stats as JSON formatted string"
-    echo "  -h, --help	display this help text"
-    
+ 	echo "::: Displays stats about your piHole!"
+    echo ":::"
+    echo "::: Usage: sudo pihole -c [optional:-j]"
+    echo "::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
+    echo ":::"
+    echo "::: Options:"
+    echo ":::  -j, --json		output stats as JSON formatted string"
+    echo ":::  -h, --help		display this help text"
+
     exit 1
 }
 
@@ -132,7 +142,7 @@ for var in "$@"
 do
   case "$var" in
     "-j" | "--json"  ) outputJSON;;
-    "-h" | "--help"  ) displayHelp;;        			
+    "-h" | "--help"  ) displayHelp;;
     *                ) exit 1;;
   esac
 done

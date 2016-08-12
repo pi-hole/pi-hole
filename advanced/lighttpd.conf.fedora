@@ -11,10 +11,11 @@
 
 server.modules = (
 	"mod_access",
+	"mod_fastcgi",
 	"mod_accesslog",
 	"mod_expire",
 	"mod_compress",
- 	"mod_redirect",
+	"mod_redirect",
 	"mod_setenv",
 	"mod_rewrite"
 )
@@ -24,8 +25,8 @@ server.error-handler-404	= "pihole/index.html"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error.log"
 server.pid-file             = "/var/run/lighttpd.pid"
-server.username             = "www-data"
-server.groupname            = "www-data"
+server.username             = "lighttpd"
+server.groupname            = "lighttpd"
 server.port                 = 80
 accesslog.filename			= "/var/log/lighttpd/access.log"
 accesslog.format			= "%{%s}t|%V|%r|%s|%b"
@@ -38,10 +39,28 @@ static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
 compress.cache-dir          = "/var/cache/lighttpd/compress/"
 compress.filetype           = ( "application/javascript", "text/css", "text/html", "text/plain" )
 
+mimetype.assign   = ( ".png"  => "image/png",
+                      ".jpg"  => "image/jpeg",
+                      ".jpeg" => "image/jpeg",
+                      ".html" => "text/html",
+                      ".css" => "text/css; charset=utf-8",
+                      ".js" => "application/javascript",
+                      ".json" => "application/json",
+                      ".txt"  => "text/plain" )
+
 # default listening port for IPv6 falls back to the IPv4 port
-include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
-include_shell "/usr/share/lighttpd/create-mime.assign.pl"
-include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
+#include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
+#include_shell "/usr/share/lighttpd/create-mime.assign.pl"
+#include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
+
+fastcgi.server = ( ".php" =>
+                   ( "localhost" =>
+                     (
+                       "socket" => "/tmp/php-fastcgi.socket",
+                       "bin-path" => "/usr/bin/php-cgi"
+                     )
+                   )
+                 )
 
 # If the URL starts with /admin, it is the Web interface
 $HTTP["url"] =~ "^/admin/" {
@@ -53,4 +72,6 @@ $HTTP["url"] =~ "^/admin/" {
 $HTTP["url"] =~ "^(?!/admin)/.*" {
 	# Create a response header for debugging using curl -I
 	setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
+        # rewrite only js requests
+        url.rewrite = ("(.*).js" => "pihole/index.js")
 }
