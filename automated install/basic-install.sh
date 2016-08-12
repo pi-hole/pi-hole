@@ -170,7 +170,7 @@ verifyFreeDiskSpace() {
 
 			echo "non-integer value from existingFreeBytes ($existingFreeBytes)"
 			echo "Unknown free space, user aborted, exiting..."
-			exit
+			exit 1
 
 		fi
 
