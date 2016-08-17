@@ -340,6 +340,23 @@ function gravity_reload() {
 	echo " done!"
 }
 
+
+for var in "$@"
+do
+  case "$var" in
+    "-f" | "--force"     ) force=true;;
+    "-h" | "--help"      ) helpFunc;;
+  esac
+done
+
+#Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
+
+if $force; then
+	echo -n "::: Deleting exising list cache..."
+	$SUDO rm /etc/pihole/list.*
+	echo " done!"
+fi
+
 $SUDO cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
