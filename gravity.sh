@@ -27,6 +27,18 @@ else
 	fi
 fi
 
+function helpFunc()
+{
+	echo "::: Pull in domains from adlists"
+	echo ":::"
+	echo "::: Usage: pihole -g"
+	echo ":::"
+	echo "::: Options:"
+	echo ":::  -f, --force				Force lists to be downloaded, even if they don't need updating."
+	echo ":::  -h, --help				Show this help dialog"
+	exit 1
+}
+
 piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
