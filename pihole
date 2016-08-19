@@ -53,7 +53,7 @@ function updateDashboardFunc {
 }
 
 function updateGravityFunc {
-    $SUDO /opt/pihole/gravity.sh
+    $SUDO /opt/pihole/gravity.sh "$@"
     exit 1
 }
 

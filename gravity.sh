@@ -344,14 +344,14 @@ function gravity_reload() {
 for var in "$@"
 do
   case "$var" in
-    "-f" | "--force"     ) force=true;;
+    "-f" | "--force"     ) forceGrav=true;;
     "-h" | "--help"      ) helpFunc;;
   esac
 done
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
 
-if [[ ${force} == true ]]; then
+if [[ ${forceGrav} == true ]]; then
 	echo -n "::: Deleting exising list cache..."
 	${SUDO} rm /etc/pihole/list.*
 	echo " done!"
