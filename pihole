@@ -27,55 +27,55 @@ fi
 
 function whitelistFunc {
     shift
-    $SUDO /opt/pihole/whitelist.sh "$@"
+    ${SUDO} /opt/pihole/whitelist.sh "$@"
     exit 1
 }
 
 function blacklistFunc {
     shift
-    $SUDO /opt/pihole/blacklist.sh "$@"
+    ${SUDO} /opt/pihole/blacklist.sh "$@"
     exit 1
 }
 
 function debugFunc {
-    $SUDO /opt/pihole/piholeDebug.sh
+    ${SUDO} /opt/pihole/piholeDebug.sh
     exit 1
 }
 
 function flushFunc {
-    $SUDO /opt/pihole/piholeLogFlush.sh
+    ${SUDO} /opt/pihole/piholeLogFlush.sh
     exit 1
 }
 
 function updateDashboardFunc {
-    $SUDO /opt/pihole/updateDashboard.sh
+    ${SUDO} /opt/pihole/updateDashboard.sh
     exit 1
 }
 
 function updateGravityFunc {
-    $SUDO /opt/pihole/gravity.sh "$@"
+    ${SUDO} /opt/pihole/gravity.sh "$@"
     exit 1
 }
 
 function setupLCDFunction {
-    $SUDO /opt/pihole/setupLCD.sh
+    ${SUDO} /opt/pihole/setupLCD.sh
     exit 1
 }
 
 function chronometerFunc {
     shift
-    $SUDO /opt/pihole/chronometer.sh "$@"
+    ${SUDO} /opt/pihole/chronometer.sh "$@"
     exit 1
 }
 
 
 function uninstallFunc {
-    $SUDO /opt/pihole/uninstall.sh
+    ${SUDO} /opt/pihole/uninstall.sh
     exit 1
 }
 
 function versionFunc {
-    $SUDO /opt/pihole/version.sh
+    ${SUDO} /opt/pihole/version.sh
     exit 1
 }
 
@@ -111,7 +111,7 @@ case "$1" in
 "-d" | "debug"				) debugFunc;;
 "-f" | "flush"				) flushFunc;;
 "-u" | "updateDashboard"	) updateDashboardFunc;;
-"-g" | "updateGravity"		) updateGravityFunc;;
+"-g" | "updateGravity"		) updateGravityFunc "$@";;
 "-s" | "setupLCD"			) setupLCDFunction;;
 "-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
