@@ -828,6 +828,52 @@ installPihole() {
 	configureFirewall
 }
 
+installPihole() {
+	# Install base files and web interface
+	checkForDependencies # done
+	stopServices
+	setUser
+	${SUDO} mkdir -p /etc/pihole/
+	if [ ! -d "/var/www/html" ]; then
+		${SUDO} mkdir -p /var/www/html
+	fi
+	${SUDO} chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
+	${SUDO} chmod 775 /var/www/html
+	${SUDO} usermod -a -G ${LIGHTTPD_GROUP} pihole
+	if [ -x "$(command -v lighty-enable-mod)" ]; then
+		${SUDO} lighty-enable-mod fastcgi fastcgi-php > /dev/null
+	else
+		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+	fi
+
+	getGitFiles
+	installScripts
+	installConfigs
+	installConfigs
+	CreateLogFile
+	configureSelinux
+	installPiholeWeb
+	installCron
+	runGravity
+	configureFirewall
+}
+
+updatePihole() {
+	# Install base files and web interface
+	checkForDependencies # done
+	stopServices
+	getGitFiles
+	installScripts
+	installConfigs
+	installConfigs
+	CreateLogFile
+	configureSelinux
+	installPiholeWeb
+	installCron
+	runGravity
+	configureFirewall
+}
+
 configureSelinux() {
 	if [ -x "$(command -v getenforce)" ]; then
 		printf "\n::: SELinux Detected\n"
@@ -908,11 +954,8 @@ if [[ ${useUpdateVars} == false ]]; then
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
 else
-    echo "Hi!"
+    updatePihole | tee ${tmpLog}
 fi
-
-
-
 
 # Move the log file into /etc/pihole for storage
 ${SUDO} mv ${tmpLog} ${instalLogLoc}
