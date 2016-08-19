@@ -920,7 +920,7 @@ View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" $
 
 updateDialogs(){
 
-    if (whiptail --title "Existing Install detected" --yesno "We have detected you are installing over the top of an existing install.\n\n\nWould you like update?"  ${r} ${c}); then
+    if (whiptail --title "Existing Install detected" --yesno "We have detected you are installing over the top of an existing install.\n\nIf you would like to update, select yes.\n\n If you would like to run the complete setup again, select no."  ${r} ${c}); then
         echo "::: Updating existing install selected"
         useUpdateVars=true
     fi
