@@ -484,8 +484,8 @@ setDNS(){
 		exit 1
 	fi
 
-	${SUDO} echo "piholeDNS1=${piholeDNS1}" >> /etc/pihole/setupVars/conf
-	${SUDO} echo "piholeDNS2=${piholeDNS2}" >> /etc/pihole/setupVars/conf
+	${SUDO} echo "piholeDNS1=${piholeDNS1}" >> /etc/pihole/setupVars.conf
+	${SUDO} echo "piholeDNS2=${piholeDNS2}" >> /etc/pihole/setupVars.conf
 }
 
 versionCheckDNSmasq(){
