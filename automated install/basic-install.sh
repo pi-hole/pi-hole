@@ -194,7 +194,7 @@ chooseInterface() {
 			piholeInterface=${desiredInterface}
 			echo "::: Using interface: $piholeInterface"
 			echo "${piholeInterface}" > /tmp/piholeINT
-			echo "piholeInterface=${piholeInterface}" > /etc/pihole/setupVars.conf
+			echo "piholeInterface=${piholeInterface}" >> /etc/pihole/setupVars.conf
 		done
 	else
 		echo "::: Cancel selected, exiting...."
@@ -228,7 +228,7 @@ use4andor6() {
 		if [ ${useIPv4} ] && [ ! ${useIPv6} ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
-			${SUDO} echo "IPv4addr=${IPv4addr}" > /etc/pihole/setupVars.conf
+			${SUDO} echo "IPv4addr=${IPv4addr}" >> /etc/pihole/setupVars.conf
 			echo "::: Using IPv4 on $IPv4addr"
 			echo "::: IPv6 will NOT be used."
 		fi
@@ -240,7 +240,7 @@ use4andor6() {
 		if [ ${useIPv4} ] && [  ${useIPv6} ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
-			${SUDO} echo "IPv4addr=${IPv4addr}" > /etc/pihole/setupVars.conf
+			${SUDO} echo "IPv4addr=${IPv4addr}" >> /etc/pihole/setupVars.conf
 			useIPv6dialog
 			echo "::: Using IPv4 on $IPv4addr"
 			echo "::: Using IPv6 on $piholeIPv6"
@@ -260,7 +260,7 @@ use4andor6() {
 useIPv6dialog() {
 	# Show the IPv6 address used for blocking
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-	${SUDO} echo "piholeIPv6=${piholeIPv6}" > /etc/pihole/setupVars.conf
+	${SUDO} echo "piholeIPv6=${piholeIPv6}" >> /etc/pihole/setupVars.conf
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." ${r} ${c}
 
 	${SUDO} touch /etc/pihole/.useIPv6
