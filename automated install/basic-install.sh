@@ -876,7 +876,7 @@ updateDialogs(){
 
     if (whiptail --title "Existing Install detected" --yesno "We have detected you are installing over the top of an existing install.\n\n\nWould you like update?"  ${r} ${c}); then
         echo "::: Updating existing install selected"
-        useUpdateVars = true
+        useUpdateVars=true
     fi
 
 }
