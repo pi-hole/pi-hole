@@ -351,7 +351,7 @@ done
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
 
-if [[ ${force} ]]; then
+if [[ ${force} == true ]]; then
 	echo -n "::: Deleting exising list cache..."
 	${SUDO} rm /etc/pihole/list.*
 	echo " done!"
