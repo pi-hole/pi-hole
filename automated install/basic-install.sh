@@ -22,6 +22,7 @@
 
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
+setupVars=/etc/pihole/setupVars.conf
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
@@ -194,10 +195,11 @@ chooseInterface() {
 			piholeInterface=${desiredInterface}
 			echo "::: Using interface: $piholeInterface"
 			echo "${piholeInterface}" > /tmp/piholeINT
-			echo "piholeInterface=${piholeInterface}" >> /etc/pihole/setupVars.conf
+			echo "piholeInterface=${piholeInterface}" >> ${setupVars}
 		done
 	else
 		echo "::: Cancel selected, exiting...."
+		${SUDO} rm ${setupVars}
 		exit 1
 	fi
 
@@ -228,7 +230,7 @@ use4andor6() {
 		if [ ${useIPv4} ] && [ ! ${useIPv6} ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
-			${SUDO} echo "IPv4addr=${IPv4addr}" >> /etc/pihole/setupVars.conf
+			${SUDO} echo "IPv4addr=${IPv4addr}" >> ${setupVars}
 			echo "::: Using IPv4 on $IPv4addr"
 			echo "::: IPv6 will NOT be used."
 		fi
@@ -240,7 +242,7 @@ use4andor6() {
 		if [ ${useIPv4} ] && [  ${useIPv6} ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
-			${SUDO} echo "IPv4addr=${IPv4addr}" >> /etc/pihole/setupVars.conf
+			${SUDO} echo "IPv4addr=${IPv4addr}" >> ${setupVars}
 			useIPv6dialog
 			echo "::: Using IPv4 on $IPv4addr"
 			echo "::: Using IPv6 on $piholeIPv6"
@@ -248,11 +250,13 @@ use4andor6() {
 		if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
 			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
 			echo "::: Exiting"
+			${SUDO} rm ${setupVars}
 			exit 1
 		fi
 		cleanupIPv6
 	else
 		echo "::: Cancel selected. Exiting..."
+		${SUDO} rm ${setupVars}
 		exit 1
 	fi
 }
@@ -260,7 +264,7 @@ use4andor6() {
 useIPv6dialog() {
 	# Show the IPv6 address used for blocking
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-	${SUDO} echo "piholeIPv6=${piholeIPv6}" >> /etc/pihole/setupVars.conf
+	${SUDO} echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." ${r} ${c}
 
 	${SUDO} touch /etc/pihole/.useIPv6
@@ -310,12 +314,14 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 				# Cancelling gateway settings window
 				ipSettingsCorrect=False
 				echo "::: Cancel selected. Exiting..."
+				${SUDO} rm ${setupVars}
 				exit 1
 			fi
 		else
 			# Cancelling IPv4 settings window
 			ipSettingsCorrect=False
 			echo "::: Cancel selected. Exiting..."
+			${SUDO} rm ${setupVars}
 			exit 1
 		fi
 		done
@@ -373,6 +379,7 @@ setStaticIPv4() {
 		fi
 	else
 		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
+		${SUDO} rm ${setupVars}
 		exit 1
 	fi
 }
@@ -457,6 +464,7 @@ setDNS(){
                         fi
                     else
                         echo "::: Cancel selected, exiting...."
+                        ${SUDO} rm ${setupVars}
                         exit 1
                     fi
                     if [[ ${piholeDNS1} == "$strInvalid" ]] || [[ ${piholeDNS2} == "$strInvalid" ]]; then
@@ -481,11 +489,12 @@ setDNS(){
 	    esac
 	else
 		echo "::: Cancel selected. Exiting..."
+		${SUDO} rm ${setupVars}
 		exit 1
 	fi
 
-	${SUDO} echo "piholeDNS1=${piholeDNS1}" >> /etc/pihole/setupVars.conf
-	${SUDO} echo "piholeDNS2=${piholeDNS2}" >> /etc/pihole/setupVars.conf
+	${SUDO} echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
+	${SUDO} echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
 }
 
 versionCheckDNSmasq(){
@@ -928,8 +937,8 @@ updateDialogs(){
 }
 
 ######## SCRIPT ############
-if [[ -f /etc/pihole/setupVars.conf ]];then
-    . /etc/pihole/setupVars.conf
+if [[ -f ${setupVars} ]];then
+    . ${setupVars}
     updateDialogs
 fi
 
@@ -938,11 +947,11 @@ fi
 installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
-    ${SUDO} echo "" > /etc/pihole/setupVars.conf
-    ${SUDO} mkdir -p /etc/pihole/
     welcomeDialogs
     # Verify there is enough disk space for the install
     verifyFreeDiskSpace
+    ${SUDO} echo "" > ${setupVars}
+    ${SUDO} mkdir -p /etc/pihole/
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
