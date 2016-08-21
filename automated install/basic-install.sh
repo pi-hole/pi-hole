@@ -119,27 +119,6 @@ findIPRoute() {
 	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
 }
 
-backupLegacyPihole() {
-	# This function detects and backups the pi-hole v1 files.  It will not do anything to the current version files.
-	if [[ -f /etc/dnsmasq.d/adList.conf ]];then
-		echo "::: Original Pi-hole detected.  Initiating sub space transport"
-		$SUDO mkdir -p /etc/pihole/original/
-		$SUDO mv /etc/dnsmasq.d/adList.conf /etc/pihole/original/adList.conf."$(date "+%Y-%m-%d")"
-		$SUDO mv /etc/dnsmasq.conf /etc/pihole/original/dnsmasq.conf."$(date "+%Y-%m-%d")"
-		$SUDO mv /etc/resolv.conf /etc/pihole/original/resolv.conf."$(date "+%Y-%m-%d")"
-		$SUDO mv /etc/lighttpd/lighttpd.conf /etc/pihole/original/lighttpd.conf."$(date "+%Y-%m-%d")"
-		$SUDO mv /var/www/pihole/index.html /etc/pihole/original/index.html."$(date "+%Y-%m-%d")"
-		if [ ! -d /opt/pihole ]; then
-			$SUDO mkdir /opt/pihole
-			$SUDO chown "$USER":root /opt/pihole
-			$SUDO chmod u+srwx /opt/pihole
-		fi
-		$SUDO mv /opt/pihole/gravity.sh /etc/pihole/original/gravity.sh."$(date "+%Y-%m-%d")"
-	else
-		:
-	fi
-}
-
 welcomeDialogs() {
 	# Display the welcome dialog
 	whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "This installer will transform your Raspberry Pi into a network-wide ad blocker!" $r $c
@@ -894,8 +873,6 @@ welcomeDialogs
 # Verify there is enough disk space for the install
 verifyFreeDiskSpace
 
-# Just back up the original Pi-hole right away since it won't take long and it gets it out of the way
-backupLegacyPihole
 # Find IP used to route to outside world
 findIPRoute
 # Find interfaces and let the user choose one
