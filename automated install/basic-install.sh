@@ -969,7 +969,9 @@ fi
 # Move the log file into /etc/pihole for storage
 ${SUDO} mv ${tmpLog} ${instalLogLoc}
 
-displayFinalMessage
+if [[ ${useUpdateVars} == false ]]; then
+    displayFinalMessage
+fi
 
 echo -n "::: Restarting services..."
 # Start services
@@ -986,11 +988,16 @@ fi
 echo " done."
 
 echo ":::"
-echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
-echo ":::     ${IPv4addr%/*}"
-echo ":::     $piholeIPv6"
-echo ":::"
-echo "::: If you set a new IP address, you should restart the Pi."
+if [[ ${useUpdateVars} == false ]]; then
+    echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
+    echo ":::     ${IPv4addr%/*}"
+    echo ":::     $piholeIPv6"
+    echo ":::"
+    echo "::: If you set a new IP address, you should restart the Pi."
+else
+    echo "::: Update complete!"
+fi
+
 echo ":::"
 echo "::: The install log is located at: /etc/pihole/install.log"
 echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
