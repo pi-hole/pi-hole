@@ -56,7 +56,7 @@ function updateMainFunc {
     echo "::: Fetching latest changes from Github..."
     cd /etc/.pihole
     ${SUDO} git pull
-    ${SUDO} /etc/.pihole/automated install/basic-install.sh
+    ${SUDO} /etc/.pihole/automated\ install/basic-install.sh
     exit 1
 }
 
