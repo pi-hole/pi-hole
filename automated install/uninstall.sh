@@ -39,7 +39,7 @@ if [ -x "$(command -v rpm)" ];then
 		rpm -qa | grep ^$1- > /dev/null
 	}
 	package_cleanup() {
-		$SUDO $PKG_MANAGER -y autoremove
+		${SUDO} ${PKG_MANAGER} -y autoremove
 	}
 elif [ -x "$(command -v apt-get)" ];then
 	# Debian Family
@@ -50,8 +50,8 @@ elif [ -x "$(command -v apt-get)" ];then
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
 	package_cleanup() {
-		$SUDO $PKG_MANAGER -y autoremove
-		$SUDO $PKG_MANAGER -y autoclean
+		${SUDO} ${PKG_MANAGER} -y autoremove
+		${SUDO} ${PKG_MANAGER} -y autoclean
 	}
 else
 	echo "OS distribution not supported"
@@ -66,8 +66,8 @@ spinner()
     while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
         local temp=${spinstr#?}
         printf " [%c]  " "$spinstr"
-        local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
+        local spinstr=${temp}${spinstr%"$temp"}
+        sleep ${delay}
         printf "\b\b\b\b\b\b"
     done
     printf "    \b\b\b\b"
@@ -77,12 +77,12 @@ function removeAndPurge {
 	# Purge dependencies
 echo ":::"
 	for i in "${PIHOLE_DEPS[@]}"; do
-		package_check $i > /dev/null
+		package_check ${i} > /dev/null
 		if [ $? -eq 0 ]; then
 			while true; do
 				read -rp "::: Do you wish to remove $i from your system? [y/n]: " yn
-				case $yn in
-					[Yy]* ) printf ":::\tRemoving %s..." "$i"; $SUDO $PKG_REMOVE "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
+				case ${yn} in
+					[Yy]* ) printf ":::\tRemoving %s..." "$i"; ${SUDO} ${PKG_REMOVE} "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
 					[Nn]* ) printf ":::\tSkipping %s" "$i\n"; break;;
 					* ) printf "::: You must answer yes or no!\n";;
 				esac
@@ -94,7 +94,7 @@ echo ":::"
 
 	# Remove dependency config files
 	echo "::: Removing dnsmasq config files..."
-	$SUDO rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+	${SUDO} rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 
 	# Take care of any additional package cleaning
 	printf "::: Auto removing & cleaning remaining dependencies..."
@@ -108,14 +108,14 @@ function removeNoPurge {
 	echo ":::"
 	# Only web directories/files that are created by pihole should be removed.
 	echo "::: Removing the Pi-hole Web server files..."
-	$SUDO rm -rf /var/www/html/admin &> /dev/null
-	$SUDO rm -rf /var/www/html/pihole &> /dev/null
-	$SUDO rm /var/www/html/index.lighttpd.orig &> /dev/null
+	${SUDO} rm -rf /var/www/html/admin &> /dev/null
+	${SUDO} rm -rf /var/www/html/pihole &> /dev/null
+	${SUDO} rm /var/www/html/index.lighttpd.orig &> /dev/null
 
 	# If the web directory is empty after removing these files, then the parent html folder can be removed.
 	if [ -d "/var/www/html" ]; then
 		if [[ ! "$(ls -A /var/www/html)" ]]; then
-    			$SUDO rm -rf /var/www/html &> /dev/null
+    			${SUDO} rm -rf /var/www/html &> /dev/null
 		fi
 	fi
 
@@ -125,36 +125,36 @@ function removeNoPurge {
 	# preserved.
 	if [[ -f /etc/crontab.orig ]]; then
 		echo "::: Initial Pi-hole cron detected.  Restoring the default system cron..."
-		$SUDO mv /etc/crontab /etc/crontab.pihole
-		$SUDO mv /etc/crontab.orig /etc/crontab
-		$SUDO service cron restart
+		${SUDO} mv /etc/crontab /etc/crontab.pihole
+		${SUDO} mv /etc/crontab.orig /etc/crontab
+		${SUDO} service cron restart
 	fi
 
 	# Attempt to preserve backwards compatibility with older versions
 	if [[ -f /etc/cron.d/pihole ]];then
 		echo "::: Removing cron.d/pihole..."
-		$SUDO rm /etc/cron.d/pihole &> /dev/null
+		${SUDO} rm /etc/cron.d/pihole &> /dev/null
 	fi
 
 	echo "::: Removing config files and scripts..."
-	package_check $i > /dev/null
+	package_check ${i} > /dev/null
 	if [ $? -eq 1 ]; then
-		$SUDO rm -rf /etc/lighttpd/ &> /dev/null
+		${SUDO} rm -rf /etc/lighttpd/ &> /dev/null
 	else
 		if [ -f /etc/lighttpd/lighttpd.conf.orig ]; then
-			$SUDO mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
+			${SUDO} mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
 		fi
 	fi
 
-	$SUDO rm /etc/dnsmasq.d/adList.conf &> /dev/null
-	$SUDO rm /etc/dnsmasq.d/01-pihole.conf &> /dev/null
-	$SUDO rm -rf /var/log/*pihole* &> /dev/null
-	$SUDO rm -rf /etc/pihole/ &> /dev/null
-	$SUDO rm -rf /etc/.pihole/ &> /dev/null
-	$SUDO rm -rf /opt/pihole/ &> /dev/null
-	$SUDO rm /usr/local/bin/pihole &> /dev/null
-	$SUDO rm /etc/bash_completion.d/pihole &> /dev/null
-	$SUDO rm /etc/sudoers.d/pihole &> /dev/null
+	${SUDO} rm /etc/dnsmasq.d/adList.conf &> /dev/null
+	${SUDO} rm /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+	${SUDO} rm -rf /var/log/*pihole* &> /dev/null
+	${SUDO} rm -rf /etc/pihole/ &> /dev/null
+	${SUDO} rm -rf /etc/.pihole/ &> /dev/null
+	${SUDO} rm -rf /opt/pihole/ &> /dev/null
+	${SUDO} rm /usr/local/bin/pihole &> /dev/null
+	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
+	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null
 
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
@@ -168,7 +168,7 @@ echo "::: Preparing to remove packages, be sure that each may be safely removed 
 echo "::: (SAFE TO REMOVE ALL ON RASPBIAN)"
 while true; do
 	read -rp "::: Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package) [y/n]: " yn
-	case $yn in
+	case ${yn} in
 		[Yy]* ) removeAndPurge; break;;
 	
 		[Nn]* ) removeNoPurge; break;;
