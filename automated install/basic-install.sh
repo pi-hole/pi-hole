@@ -950,8 +950,8 @@ if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
     # Verify there is enough disk space for the install
     verifyFreeDiskSpace
-    ${SUDO} echo "" > ${setupVars}
     ${SUDO} mkdir -p /etc/pihole/
+    ${SUDO} echo "" > ${setupVars}
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
