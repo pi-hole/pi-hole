@@ -27,6 +27,18 @@ else
 	fi
 fi
 
+function helpFunc()
+{
+	echo "::: Pull in domains from adlists"
+	echo ":::"
+	echo "::: Usage: pihole -g"
+	echo ":::"
+	echo "::: Options:"
+	echo ":::  -f, --force				Force lists to be downloaded, even if they don't need updating."
+	echo ":::  -h, --help				Show this help dialog"
+	exit 1
+}
+
 piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
@@ -327,6 +339,23 @@ function gravity_reload() {
 	fi
 	echo " done!"
 }
+
+
+for var in "$@"
+do
+  case "$var" in
+    "-f" | "--force"     ) force=true;;
+    "-h" | "--help"      ) helpFunc;;
+  esac
+done
+
+#Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
+
+if $force; then
+	echo -n "::: Deleting exising list cache..."
+	$SUDO rm /etc/pihole/list.*
+	echo " done!"
+fi
 
 $SUDO cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
