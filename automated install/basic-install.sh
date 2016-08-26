@@ -195,11 +195,9 @@ chooseInterface() {
 			piholeInterface=${desiredInterface}
 			echo "::: Using interface: $piholeInterface"
 			echo "${piholeInterface}" > /tmp/piholeINT
-			echo "piholeInterface=${piholeInterface}" >> ${setupVars}
 		done
 	else
 		echo "::: Cancel selected, exiting...."
-		${SUDO} rm ${setupVars}
 		exit 1
 	fi
 
@@ -230,7 +228,6 @@ use4andor6() {
 		if [ ${useIPv4} ] && [ ! ${useIPv6} ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
-			${SUDO} echo "IPv4addr=${IPv4addr}" >> ${setupVars}
 			echo "::: Using IPv4 on $IPv4addr"
 			echo "::: IPv6 will NOT be used."
 		fi
@@ -242,7 +239,6 @@ use4andor6() {
 		if [ ${useIPv4} ] && [  ${useIPv6} ]; then
 			getStaticIPv4Settings
 			setStaticIPv4
-			${SUDO} echo "IPv4addr=${IPv4addr}" >> ${setupVars}
 			useIPv6dialog
 			echo "::: Using IPv4 on $IPv4addr"
 			echo "::: Using IPv6 on $piholeIPv6"
@@ -250,13 +246,11 @@ use4andor6() {
 		if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
 			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
 			echo "::: Exiting"
-			${SUDO} rm ${setupVars}
 			exit 1
 		fi
 		cleanupIPv6
 	else
 		echo "::: Cancel selected. Exiting..."
-		${SUDO} rm ${setupVars}
 		exit 1
 	fi
 }
@@ -264,7 +258,6 @@ use4andor6() {
 useIPv6dialog() {
 	# Show the IPv6 address used for blocking
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-	${SUDO} echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." ${r} ${c}
 
 	${SUDO} touch /etc/pihole/.useIPv6
@@ -314,14 +307,12 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 				# Cancelling gateway settings window
 				ipSettingsCorrect=False
 				echo "::: Cancel selected. Exiting..."
-				${SUDO} rm ${setupVars}
 				exit 1
 			fi
 		else
 			# Cancelling IPv4 settings window
 			ipSettingsCorrect=False
 			echo "::: Cancel selected. Exiting..."
-			${SUDO} rm ${setupVars}
 			exit 1
 		fi
 		done
@@ -379,7 +370,6 @@ setStaticIPv4() {
 		fi
 	else
 		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
-		${SUDO} rm ${setupVars}
 		exit 1
 	fi
 }
@@ -464,7 +454,6 @@ setDNS(){
                         fi
                     else
                         echo "::: Cancel selected, exiting...."
-                        ${SUDO} rm ${setupVars}
                         exit 1
                     fi
                     if [[ ${piholeDNS1} == "$strInvalid" ]] || [[ ${piholeDNS2} == "$strInvalid" ]]; then
@@ -489,12 +478,8 @@ setDNS(){
 	    esac
 	else
 		echo "::: Cancel selected. Exiting..."
-		${SUDO} rm ${setupVars}
 		exit 1
 	fi
-
-	${SUDO} echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
-	${SUDO} echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
 }
 
 versionCheckDNSmasq(){
@@ -807,36 +792,19 @@ configureFirewall() {
 	fi
 }
 
-installPihole() {
-	# Install base files and web interface
-	checkForDependencies # done
-	stopServices
-	setUser
-	${SUDO} mkdir -p /etc/pihole/
-	if [ ! -d "/var/www/html" ]; then
-		${SUDO} mkdir -p /var/www/html
-	fi
-	${SUDO} chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-	${SUDO} chmod 775 /var/www/html
-	${SUDO} usermod -a -G ${LIGHTTPD_GROUP} pihole
-	if [ -x "$(command -v lighty-enable-mod)" ]; then
-		${SUDO} lighty-enable-mod fastcgi fastcgi-php > /dev/null
-	else
-		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
-	fi
-
-	getGitFiles
-	installScripts
-	installConfigs
-	installConfigs
-	CreateLogFile
-	configureSelinux
-	installPiholeWeb
-	installCron
-	runGravity
-	configureFirewall
+finalExports() {
+    #If it already exists, lets overwrite it with the new values.
+    if [[ -f ${setupVars} ]];then
+        ${SUDO} rm ${setupVars}
+    fi
+    ${SUDO} echo "piholeInterface=${piholeInterface}" >> ${setupVars}
+    ${SUDO} echo "IPv4addr=${IPv4addr}" >> ${setupVars}
+    ${SUDO} echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
+    ${SUDO} echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
+    ${SUDO} echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
 }
 
+
 installPihole() {
 	# Install base files and web interface
 	checkForDependencies # done
@@ -865,6 +833,7 @@ installPihole() {
 	installCron
 	runGravity
 	configureFirewall
+	finalExports
 }
 
 updatePihole() {
@@ -967,7 +936,7 @@ if [[ ${useUpdateVars} == false ]]; then
     # Verify there is enough disk space for the install
     verifyFreeDiskSpace
     ${SUDO} mkdir -p /etc/pihole/
-    ${SUDO} echo "" > ${setupVars}
+
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
