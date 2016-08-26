@@ -63,7 +63,8 @@ function setupLCDFunction {
 }
 
 function queryFunc {
-    for list in /etc/pihole/list.*;do echo $list;grep '$@' $list;done
+    domain=$2
+    for list in /etc/pihole/list.*;do echo $list;grep ${domain} $list;done
     exit 1
 }
 
@@ -122,7 +123,7 @@ case "$1" in
 "-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
 "-v" | "version"            ) versionFunc;;
-"-q" | "query"              ) queryFunc;;
+"-q" | "query"              ) queryFunc "$@";;
 "uninstall"					) uninstallFunc;;
 *                    		) helpFunc;;
 esac
