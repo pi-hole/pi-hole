@@ -924,7 +924,13 @@ updateDialogs(){
 ######## SCRIPT ############
 if [[ -f ${setupVars} ]];then
     . ${setupVars}
-    updateDialogs
+
+    if [ "$1" == "pihole" ]; then
+        useUpdateVars=true
+    else
+        updateDialogs
+    fi
+
 fi
 
 # Start the installer
