@@ -55,7 +55,7 @@ is_repo() {
 # replaces it with the current master branch from github
 make_repo() {
     # remove the non-repod interface and clone the interface
-    rm -rf $WEB_INTERFACE_DIR
+    rm -rf ${WEB_INTERFACE_DIR}
     git clone "$WEB_INTERFACE_GIT_URL" "$WEB_INTERFACE_DIR"
 }
 

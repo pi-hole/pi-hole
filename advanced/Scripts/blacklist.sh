@@ -47,9 +47,9 @@ fi
 
 #globals
 basename=pihole
-piholeDir=/etc/$basename
-adList=$piholeDir/gravity.list
-blacklist=$piholeDir/blacklist.txt
+piholeDir=/etc/${basename}
+adList=${piholeDir}/gravity.list
+blacklist=${piholeDir}/blacklist.txt
 reload=true
 addmode=true
 force=false
@@ -61,9 +61,9 @@ domToRemoveList=()
 piholeIPfile=/etc/pihole/piholeIP
 piholeIPv6file=/etc/pihole/.useIPv6
 
-if [[ -f $piholeIPfile ]];then
+if [[ -f ${piholeIPfile} ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat $piholeIPfile)
+    piholeIP=$(cat ${piholeIPfile})
     #rm $piholeIPfile
 else
     # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
@@ -75,13 +75,13 @@ fi
 modifyHost=false
 
 # After setting defaults, check if there's local overrides
-if [[ -r $piholeDir/pihole.conf ]];then
+if [[ -r ${piholeDir}/pihole.conf ]];then
     echo "::: Local calibration requested..."
-        . $piholeDir/pihole.conf
+        . ${piholeDir}/pihole.conf
 fi
 
 
-if [[ -f $piholeIPv6file ]];then
+if [[ -f ${piholeIPv6file} ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
@@ -92,14 +92,14 @@ function HandleOther(){
 	if [ -z "$validDomain" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
-	  domList=("${domList[@]}" $validDomain)
+	  domList=("${domList[@]}" ${validDomain})
 	fi
 }
 
 function PopBlacklistFile(){
 	#check blacklist file exists, and if not, create it
-	if [[ ! -f $blacklist ]];then
-  	  touch $blacklist
+	if [[ ! -f ${blacklist} ]];then
+  	  touch ${blacklist}
 	fi
 	for dom in "${domList[@]}"; do
 	  if "$addmode"; then
@@ -113,17 +113,17 @@ function PopBlacklistFile(){
 function AddDomain(){
 #| sed 's/\./\\./g'
 	bool=false
-	grep -Ex -q "$1" $blacklist || bool=true
-	if $bool; then
+	grep -Ex -q "$1" ${blacklist} || bool=true
+	if ${bool}; then
 	  #domain not found in the blacklist file, add it!
-	  if $verbose; then
+	  if ${verbose}; then
 	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
-		echo "$1" >> $blacklist
+		echo "$1" >> ${blacklist}
 		modifyHost=true
 		echo " done!"
 	else
-	if $verbose; then
+	if ${verbose}; then
 		echo "::: $1 already exists in $blacklist! No need to add"
 		fi
 	fi
@@ -132,15 +132,15 @@ function AddDomain(){
 function RemoveDomain(){
 
   bool=false
-  grep -Ex -q "$1" $blacklist || bool=true
-  if $bool; then
+  grep -Ex -q "$1" ${blacklist} || bool=true
+  if ${bool}; then
   	#Domain is not in the blacklist file, no need to Remove
-  	if $verbose; then
+  	if ${verbose}; then
   	echo "::: $1 is NOT blacklisted! No need to remove"
   	fi
   else
     #Domain is in the blacklist file, add to a temporary array
-    if $verbose; then
+    if ${verbose}; then
     echo "::: Un-blacklisting $dom..."
     fi
     domToRemoveList=("${domToRemoveList[@]}" $1)
@@ -149,17 +149,17 @@ function RemoveDomain(){
 }
 
 function ModifyHostFile(){
-	 if $addmode; then
+	 if ${addmode}; then
 	    #add domains to the hosts file
-	    if [[ -r $blacklist ]];then
-	      numberOf=$(cat $blacklist | sed '/^\s*$/d' | wc -l)
+	    if [[ -r ${blacklist} ]];then
+	      numberOf=$(cat ${blacklist} | sed '/^\s*$/d' | wc -l)
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
         echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
-	    	if [[ -n $piholeIPv6 ]];then
-				cat $blacklist | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> $adList
+	    	if [[ -n ${piholeIPv6} ]];then
+				cat ${blacklist} | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
 	      	else
-				cat $blacklist | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>$adList
+				cat ${blacklist} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
 	      	fi
 	  	fi
 	  else
@@ -169,10 +169,10 @@ function ModifyHostFile(){
 	      #we need to remove the domains from the blacklist file and the host file
 			echo "::: $dom"
 			echo -n ":::    removing from HOSTS file..."
-	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' $adList
+	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' ${adList}
 	      	echo " done!"
 	      	echo -n ":::    removing from blackist.txt..."
-	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' $blacklist
+	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
 	      	echo " done!"
 		done
 	fi
@@ -185,12 +185,12 @@ function Reload() {
 
 	dnsmasqPid=$(pidof dnsmasq)
 
-	if [[ $dnsmasqPid ]]; then
+	if [[ ${dnsmasqPid} ]]; then
 		# service already running - reload config
-		$SUDO killall -s HUP dnsmasq
+		${SUDO} killall -s HUP dnsmasq
 	else
 		# service not running, start it up
-		$SUDO service dnsmasq start
+		${SUDO} service dnsmasq start
 	fi
 	echo " done!"
 }
@@ -223,15 +223,15 @@ done
 
 PopBlacklistFile
 
-if $modifyHost || $force; then
+if ${modifyHost} || ${force}; then
 	ModifyHostFile
 else
-  if $verbose; then
+  if ${verbose}; then
 		echo "::: No changes need to be made"
 	fi
 	exit 1
 fi
 
-if $reload; then
+if ${reload}; then
 	Reload
 fi

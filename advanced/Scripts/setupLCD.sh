@@ -44,12 +44,12 @@ getInitSys() {
 # https://github.com/adafruit/Adafruit-PiTFT-Helper/blob/master/adafruit-pitft-helper#L274-L285
 autoLoginPiToConsole() {
   if [ -e /etc/init.d/lightdm ]; then
-    if [ $SYSTEMD -eq 1 ]; then
-      $SUDO systemctl set-default multi-user.target
-      $SUDO ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+    if [ ${SYSTEMD} -eq 1 ]; then
+      ${SUDO} systemctl set-default multi-user.target
+      ${SUDO} ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
     else
-      $SUDO update-rc.d lightdm disable 2
-      $SUDO sed /etc/inittab -i -e "s/1:2345:respawn:\/sbin\/getty --noclear 38400 tty1/1:2345:respawn:\/bin\/login -f pi tty1 <\/dev\/tty1 >\/dev\/tty1 2>&1/"
+      ${SUDO} update-rc.d lightdm disable 2
+      ${SUDO} sed /etc/inittab -i -e "s/1:2345:respawn:\/sbin\/getty --noclear 38400 tty1/1:2345:respawn:\/bin\/login -f pi tty1 <\/dev\/tty1 >\/dev\/tty1 2>&1/"
       fi
   fi
 }
@@ -66,23 +66,23 @@ echo /usr/local/bin/chronometer.sh >> /home/pi/.bashrc
 
 # Set up the LCD screen based on Adafruits instuctions:
 # https://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi/easy-install
-curl -SLs https://apt.adafruit.com/add-pin | $SUDO bash
-$SUDO apt-get -y install raspberrypi-bootloader
-$SUDO apt-get -y install adafruit-pitft-helper
-$SUDO adafruit-pitft-helper -t 28r
+curl -SLs https://apt.adafruit.com/add-pin | ${SUDO} bash
+${SUDO} apt-get -y install raspberrypi-bootloader
+${SUDO} apt-get -y install adafruit-pitft-helper
+${SUDO} adafruit-pitft-helper -t 28r
 
 # Download the cmdline.txt file that prevents the screen from going blank after a period of time
-$SUDO mv /boot/cmdline.txt /boot/cmdline.orig
-$SUDO curl -o /boot/cmdline.txt https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/cmdline.txt
+${SUDO} mv /boot/cmdline.txt /boot/cmdline.orig
+${SUDO} curl -o /boot/cmdline.txt https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/cmdline.txt
 
 # Back up the original file and download the new one
-$SUDO mv /etc/default/console-setup /etc/default/console-setup.orig
-$SUDO curl -o /etc/default/console-setup https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/console-setup
+${SUDO} mv /etc/default/console-setup /etc/default/console-setup.orig
+${SUDO} curl -o /etc/default/console-setup https://raw.githubusercontent.com/pi-hole/pi-hole/master/advanced/console-setup
 
 # Instantly apply the font change to the LCD screen
-$SUDO setupcon
+${SUDO} setupcon
 
-$SUDO reboot
+${SUDO} reboot
 
 # Start showing the stats on the screen by running the command on another tty:
 # http://unix.stackexchange.com/questions/170063/start-a-process-on-a-different-tty
