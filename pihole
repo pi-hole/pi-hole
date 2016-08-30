@@ -27,38 +27,46 @@ fi
 
 function whitelistFunc {
     shift
-    $SUDO /opt/pihole/whitelist.sh "$@"
+    ${SUDO} /opt/pihole/whitelist.sh "$@"
     exit 1
 }
 
 function blacklistFunc {
     shift
-    $SUDO /opt/pihole/blacklist.sh "$@"
+    ${SUDO} /opt/pihole/blacklist.sh "$@"
     exit 1
 }
 
 function debugFunc {
-    $SUDO /opt/pihole/piholeDebug.sh
+    ${SUDO} /opt/pihole/piholeDebug.sh
     exit 1
 }
 
 function flushFunc {
-    $SUDO /opt/pihole/piholeLogFlush.sh
+    ${SUDO} /opt/pihole/piholeLogFlush.sh
     exit 1
 }
 
 function updateDashboardFunc {
-    $SUDO /opt/pihole/updateDashboard.sh
+    ${SUDO} /opt/pihole/updateDashboard.sh
+    exit 1
+}
+
+function updatePiholeFunc {
+    echo "::: Fetching latest changes from Github..."
+    cd /etc/.pihole
+    ${SUDO} git pull
+    ${SUDO} /etc/.pihole/automated\ install/basic-install.sh pihole
     exit 1
 }
 
 function updateGravityFunc {
-    $SUDO /opt/pihole/gravity.sh
+    ${SUDO} /opt/pihole/gravity.sh "$@"
     exit 1
 }
 
 function setupLCDFunction {
-    $SUDO /opt/pihole/setupLCD.sh
+    ${SUDO} /opt/pihole/setupLCD.sh
     exit 1
 }
 
@@ -70,18 +78,18 @@ function queryFunc {
 
 function chronometerFunc {
     shift
-    $SUDO /opt/pihole/chronometer.sh "$@"
+    ${SUDO} /opt/pihole/chronometer.sh "$@"
     exit 1
 }
 
 
 function uninstallFunc {
-    $SUDO /opt/pihole/uninstall.sh
+    ${SUDO} /opt/pihole/uninstall.sh
     exit 1
 }
 
 function versionFunc {
-    $SUDO /opt/pihole/version.sh
+    ${SUDO} /opt/pihole/version.sh
     exit 1
 }
 
@@ -96,7 +104,8 @@ function helpFunc {
     echo ":::  -b, blacklist            Blacklist domains"
     echo ":::  -d, debug                Start a debugging session if having trouble"
     echo ":::  -f, flush                Flush the pihole.log file"
-    echo ":::  -u, updateDashboard      Update the web dashboard manually"
+    echo ":::  -ud, updateDashboard      Update the web dashboard manually"
+    echo ":::  -up, updatePihole           Update Pi-hole"
     echo ":::  -g, updateGravity        Update the list of ad-serving domains"
     echo ":::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
     echo ":::  -c, chronometer          Calculates stats and displays to an LCD"
@@ -117,8 +126,9 @@ case "$1" in
 "-b" | "blacklist"			) blacklistFunc "$@";;
 "-d" | "debug"				) debugFunc;;
 "-f" | "flush"				) flushFunc;;
-"-u" | "updateDashboard"	) updateDashboardFunc;;
-"-g" | "updateGravity"		) updateGravityFunc;;
+"-ud" | "updateDashboard"	) updateDashboardFunc;;
+"-up" | "updatePihole"      ) updatePiholeFunc;;
+"-g" | "updateGravity"		) updateGravityFunc "$@";;
 "-s" | "setupLCD"			) setupLCDFunction;;
 "-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
