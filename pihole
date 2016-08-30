@@ -70,6 +70,12 @@ function setupLCDFunction {
     exit 1
 }
 
+function queryFunc {
+    domain=$2
+    for list in /etc/pihole/list.*;do echo $list;grep ${domain} $list;done
+    exit 1
+}
+
 function chronometerFunc {
     shift
     ${SUDO} /opt/pihole/chronometer.sh "$@"
@@ -105,6 +111,7 @@ function helpFunc {
     echo ":::  -c, chronometer          Calculates stats and displays to an LCD"
     echo ":::  -h, help                 Show this help dialog"
     echo ":::  -v, version              Show current versions"
+    echo ":::  -q, query                Query the adlists for a specific domain"
     echo ":::  uninstall                Uninstall Pi-Hole from your system :(!"
     exit 1
 }
@@ -126,6 +133,7 @@ case "$1" in
 "-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
 "-v" | "version"            ) versionFunc;;
+"-q" | "query"              ) queryFunc "$@";;
 "uninstall"					) uninstallFunc;;
 *                    		) helpFunc;;
 esac
