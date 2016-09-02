@@ -14,7 +14,6 @@
 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
 
 # Other lists we consider safe:
-http://adblock.gjtech.net/?format=unix-hosts
 http://mirror1.malwaredomains.com/files/justdomains
 http://sysctl.org/cameleon/hosts
 https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist
