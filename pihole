@@ -72,7 +72,15 @@ function setupLCDFunction {
 
 function queryFunc {
     domain=$2
-    for list in /etc/pihole/list.*;do echo $list;grep ${domain} $list;done
+    for list in /etc/pihole/list.*
+    do
+        count=$(grep ${domain} $list | wc -l)
+        echo "::: ${list} (${count} results)"
+        if [[ ${count} > 0 ]]; then
+            grep ${domain} ${list}
+        fi
+        echo ""
+    done
     exit 1
 }
 
