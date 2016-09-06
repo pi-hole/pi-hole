@@ -75,12 +75,11 @@ function queryFunc {
     for list in /etc/pihole/list.*
     do
         count=$(grep ${domain} $list | wc -l)
-
+        echo "::: ${list} (${count} results)"
         if [[ ${count} > 0 ]]; then
-            echo "::: ${list} (${count} results)"
             grep ${domain} ${list}
-            echo ""
         fi
+        echo ""
     done
     exit 1
 }
