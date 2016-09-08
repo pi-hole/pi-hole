@@ -67,7 +67,7 @@ if [ -x "$(command -v apt-get)" ];then
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo netcat )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo netcat cron )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
