@@ -359,6 +359,8 @@ setStaticIPv4() {
 			${SUDO} echo "IPADDR=$IPADDR" >> ${IFCFG_FILE}
 			${SUDO} echo "PREFIX=$CIDR" >> ${IFCFG_FILE}
 			${SUDO} echo "GATEWAY=$IPv4gw" >> ${IFCFG_FILE}
+			${SUDO} echo "DNS1=$piholeDNS1" >> ${IFCFG_FILE}
+			${SUDO} echo "DNS2=$piholeDNS2" >> ${IFCFG_FILE}
 			${SUDO} echo "USERCTL=no" >> ${IFCFG_FILE}
 			${SUDO} ip addr replace dev "$piholeInterface" "$IPv4addr"
 			if [ -x "$(command -v nmcli)" ];then
