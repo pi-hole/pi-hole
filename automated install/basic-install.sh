@@ -871,9 +871,9 @@ configureSelinux() {
 		printf "::: Enabling httpd server side includes (SSI).. "
 		${SUDO} setsebool -P httpd_ssi_exec on
 		if [ $? -eq 0 ]; then
-			echo -n "Success\n"
+			echo -n "Success"
 		fi
-		printf ":::\tCompiling Pi-Hole SELinux policy..\n"
+		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
 		${SUDO} checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
 		${SUDO} semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		${SUDO} semodule -i /etc/pihole/pihole.pp
