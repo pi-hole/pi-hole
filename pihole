@@ -53,10 +53,26 @@ function updateDashboardFunc {
 }
 
 function updatePiholeFunc {
-    echo "::: Fetching latest changes from Github..."
-    cd /etc/.pihole
-    ${SUDO} git pull origin master
-    ${SUDO} /etc/.pihole/automated\ install/basic-install.sh pihole
+    echo "::: Checking for updates..."
+    piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
+    piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+
+    if [[ ${piholeVersion} == ${piholeVersionLatest} ]] ; then
+        echo "::: Pi-hole is already up to date! Version: ${piholeVersion}"
+        echo ":::"
+        echo "::: No need to update!"
+    else
+        echo "::: An update is available! Current Version: ${piholeVersion}"
+        echo ":::                         Latest Version: ${piholeVersionLatest}"
+        echo ":::"
+        echo "::: Fetching latest changes from Github..."
+        cd /etc/.pihole
+        ${SUDO} git pull origin master
+        ${SUDO} /etc/.pihole/automated\ install/basic-install.sh pihole
+        echo ":::"
+        echo "::: Pi-hole has been updated, see https://changes.pi-hole.net for details"
+    fi
+
     exit 1
 }
 
