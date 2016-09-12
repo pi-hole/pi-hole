@@ -58,6 +58,7 @@ function updatePiholeFunc {
 
     echo "::: Pi-hole version is $piholeVersion (Latest version is $piholeVersionLatest)"
     echo "::: Web Admin version is $webVersion (Latest version is $webVersionLatest)"
+    echo ":::"
 
     if [[ ${piholeVersion} == ${piholeVersionLatest} ]] ; then
         echo "::: Pi-hole Base files are already up to date! Version: ${piholeVersionLatest}"
