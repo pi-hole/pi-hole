@@ -47,10 +47,6 @@ function flushFunc {
     exit 1
 }
 
-function updateDashboardFunc {
-    ${SUDO} /opt/pihole/updateDashboard.sh
-    exit 1
-}
 
 function updatePiholeFunc {
     echo "::: Checking for updates..."
@@ -159,8 +155,7 @@ function helpFunc {
     echo ":::  -b, blacklist            Blacklist domains"
     echo ":::  -d, debug                Start a debugging session if having trouble"
     echo ":::  -f, flush                Flush the pihole.log file"
-    echo ":::  -ud, updateDashboard      Update the web dashboard manually"
-    echo ":::  -up, updatePihole           Update Pi-hole"
+    echo ":::  -up, updatePihole        Update Pi-hole"
     echo ":::  -g, updateGravity        Update the list of ad-serving domains"
     echo ":::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
     echo ":::  -c, chronometer          Calculates stats and displays to an LCD"
@@ -181,7 +176,6 @@ case "$1" in
 "-b" | "blacklist"			) blacklistFunc "$@";;
 "-d" | "debug"				) debugFunc;;
 "-f" | "flush"				) flushFunc;;
-"-ud" | "updateDashboard"	) updateDashboardFunc;;
 "-up" | "updatePihole"      ) updatePiholeFunc;;
 "-g" | "updateGravity"		) updateGravityFunc "$@";;
 "-s" | "setupLCD"			) setupLCDFunction;;
