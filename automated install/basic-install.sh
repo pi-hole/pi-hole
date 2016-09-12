@@ -57,7 +57,24 @@ else
 fi
 
 # Compatibility
-if [ -x "$(command -v rpm)" ];then
+
+if [ -x "$(command -v apt-get)" ];then
+	# Debian Family
+	PKG_MANAGER="apt-get"
+	PKG_CACHE="/var/cache/apt"
+	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
+	PKG_UPDATE="$PKG_MANAGER upgrade"
+	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
+	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
+	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo netcat cron )
+	LIGHTTPD_USER="www-data"
+	LIGHTTPD_GROUP="www-data"
+	LIGHTTPD_CFG="lighttpd.conf.debian"
+	package_check() {
+		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+	}
+elif [ -x "$(command -v rpm)" ];then
 	# Fedora Family
 	if [ -x "$(command -v dnf)" ];then
 		PKG_MANAGER="dnf"
@@ -76,22 +93,6 @@ if [ -x "$(command -v rpm)" ];then
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
-	}
-elif [ -x "$(command -v apt-get)" ];then
-	# Debian Family
-	PKG_MANAGER="apt-get"
-	PKG_CACHE="/var/cache/apt"
-	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
-	PKG_UPDATE="$PKG_MANAGER upgrade"
-	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
-	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
-	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo netcat )
-	LIGHTTPD_USER="www-data"
-	LIGHTTPD_GROUP="www-data"
-	LIGHTTPD_CFG="lighttpd.conf.debian"
-	package_check() {
-		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
 else
 	echo "OS distribution not supported"

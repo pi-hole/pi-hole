@@ -11,5 +11,5 @@
 # (at your option) any later version.
 
 echo -n "::: Flushing /var/log/pihole.log ..."
-truncate -s 0 /var/log/pihole.log
+echo " " > /var/log/pihole.log
 echo "... done!"
