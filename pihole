@@ -55,7 +55,7 @@ function updateDashboardFunc {
 function updatePiholeFunc {
     echo "::: Fetching latest changes from Github..."
     cd /etc/.pihole
-    ${SUDO} git pull
+    ${SUDO} git pull origin master
     ${SUDO} /etc/.pihole/automated\ install/basic-install.sh pihole
     exit 1
 }
