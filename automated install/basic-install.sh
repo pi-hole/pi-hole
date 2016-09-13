@@ -803,7 +803,6 @@ finalExports() {
     ${SUDO} echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
     ${SUDO} echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
     ${SUDO} echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
-    export IPv4addr
 }
 
 
