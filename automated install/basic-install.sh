@@ -803,6 +803,7 @@ finalExports() {
     ${SUDO} echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
     ${SUDO} echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
     ${SUDO} echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
+    export IPv4addr
 }
 
 
@@ -923,15 +924,18 @@ updateDialogs(){
 }
 
 ######## SCRIPT ############
-if [[ -f ${setupVars} ]];then
-    . ${setupVars}
+if [ -f ${setupVars} ];then
+    echo "::: Importing previous variables for upgrade"
+    while read line; do 
+        echo "   ::: ${line}"
+        eval "export $line"
+    done < ${setupVars}
 
     if [ "$1" == "pihole" ]; then
         useUpdateVars=true
     else
         updateDialogs
     fi
-
 fi
 
 # Start the installer
