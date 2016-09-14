@@ -1,4 +1,5 @@
 import pytest
+from textwrap import dedent
 
 @pytest.fixture
 def Pihole(Docker):
@@ -22,10 +23,10 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file).stdout
 
-    script = '''#!/bin/bash -e
-. /opt/pihole/stub_basic-install.sh
-readSetupVarsIfPresent pihole
-printSetupVars'''
+    script = dedent('''#!/bin/bash -e
+    . /opt/pihole/stub_basic-install.sh
+    readSetupVarsIfPresent pihole
+    printSetupVars''')
 
     write_test_script(Pihole, script)
     output = Pihole.run('bash /test').stdout
@@ -41,11 +42,11 @@ def test_setupVars_saved_to_file(Pihole):
         set_setup_vars += "{}={}\n".format(k, v)
     Pihole.run(set_setup_vars).stdout
 
-    script = '''#!/bin/bash -e
-. /opt/pihole/stub_basic-install.sh
-{}
-finalExports
-cat /etc/pihole/setupVars.conf'''.format(set_setup_vars)
+    script = dedent('''#!/bin/bash -e
+    . /opt/pihole/stub_basic-install.sh
+    {}
+    finalExports
+    cat /etc/pihole/setupVars.conf'''.format(set_setup_vars))
 
     write_test_script(Pihole, script)
     output = Pihole.run('bash /test').stdout
@@ -53,6 +54,8 @@ cat /etc/pihole/setupVars.conf'''.format(set_setup_vars)
 
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
+
+
 
 def write_test_script(Pihole, script):
     Pihole.run('cat <<EOF> /test\n{}\nEOF'.format(script))
