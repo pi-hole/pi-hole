@@ -26,6 +26,16 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     script = dedent('''#!/bin/bash -e
     . /opt/pihole/stub_basic-install.sh
     readSetupVarsIfPresent pihole
+
+    printSetupVars() {
+        # Currently debug test function only
+        echo "piholeInterface=\${piholeInterface}"
+        echo "IPv4addr=\${IPv4addr}"
+        echo "piholeIPv6=\${piholeIPv6}"
+        echo "piholeDNS1=\${piholeDNS1}"
+        echo "piholeDNS2=\${piholeDNS2}"
+    }
+
     printSetupVars''')
 
     write_test_script(Pihole, script)
@@ -58,4 +68,4 @@ def test_setupVars_saved_to_file(Pihole):
 def write_test_script(Pihole, script):
     Pihole.run('cat <<EOF> /test\n{}\nEOF'.format(script))
     Pihole.run('chmod +x /test')
-    #print Pihole.run('cat /test; ls -lat /test').stdout
+    print Pihole.run('cat /test; ls -lat /test').stdout

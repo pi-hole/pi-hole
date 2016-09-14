@@ -935,15 +935,6 @@ readSetupVarsIfPresent() {
     fi
 }
 
-printSetupVars() {
-    # Currently debug test function only
-    echo "piholeInterface=${piholeInterface}"
-    echo "IPv4addr=${IPv4addr}"
-    echo "piholeIPv6=${piholeIPv6}"
-    echo "piholeDNS1=${piholeDNS1}"
-    echo "piholeDNS2=${piholeDNS2}"
-}
-
 # Start the installer
 readSetupVarsIfPresent "${1}"
 
