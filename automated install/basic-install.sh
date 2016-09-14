@@ -42,7 +42,7 @@ c=$(( columns / 2 ))
 ######## FIRST CHECK ########
 # Must be root to install
 echo ":::"
-if [ `id -u` -eq 0 ];then
+if [[ $EUID -eq 0 ]];then
 	echo "::: You are root."
 else
 	echo "::: sudo will be used for the install."
@@ -923,21 +923,29 @@ updateDialogs(){
 }
 
 ######## SCRIPT ############
-if [ -f ${setupVars} ];then
-    echo "::: Importing previous variables for upgrade"
-    while read line; do 
-        echo "   ::: ${line}"
-        eval "export $line"
-    done < ${setupVars}
+readSetupVarsIfPresent() {
+    if [ -f ${setupVars} ];then
+        . ${setupVars}
 
-    if [ "$1" == "pihole" ]; then
-        useUpdateVars=true
-    else
-        updateDialogs
+        if [ "$1" == "pihole" ]; then
+            useUpdateVars=true
+        else
+            updateDialogs
+        fi
     fi
-fi
+}
+
+printSetupVars() {
+    echo "piholeInterface=${piholeInterface}"
+    echo "IPv4addr=${IPv4addr}"
+    echo "piholeIPv6=${piholeIPv6}"
+    echo "piholeDNS1=${piholeDNS1}"
+    echo "piholeDNS2=${piholeDNS2}"
+}
 
 # Start the installer
+readSetupVarsIfPresent "${1}"
+
 # Install packages used by this installation script
 installerDependencies
 
