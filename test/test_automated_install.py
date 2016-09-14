@@ -36,7 +36,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
         assert "{}={}".format(k, v) in output
 
 def test_setupVars_saved_to_file(Pihole):
-    ''' one function imports, other functions read these variables '''
+    ''' confirm saved settings are written to a file for future updates to re-use '''
     set_setup_vars = ''
     for k,v in SETUPVARS.iteritems():
         set_setup_vars += "{}={}\n".format(k, v)
@@ -54,8 +54,6 @@ def test_setupVars_saved_to_file(Pihole):
 
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
-
-
 
 def write_test_script(Pihole, script):
     Pihole.run('cat <<EOF> /test\n{}\nEOF'.format(script))

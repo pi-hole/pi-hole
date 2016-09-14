@@ -936,6 +936,7 @@ readSetupVarsIfPresent() {
 }
 
 printSetupVars() {
+    # Currently debug test function only
     echo "piholeInterface=${piholeInterface}"
     echo "IPv4addr=${IPv4addr}"
     echo "piholeIPv6=${piholeIPv6}"
