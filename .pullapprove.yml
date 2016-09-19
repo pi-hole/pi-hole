@@ -1,7 +1,7 @@
 approve_by_comment: true
 approve_regex: '^(Approved|:shipit:|:\+1:)'
 reject_regex: '^(Rejected|:-1:)'
-reset_on_push: true
+reset_on_push: false
 author_approval: required
 reviewers:
   members:
