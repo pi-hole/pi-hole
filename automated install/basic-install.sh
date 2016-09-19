@@ -195,20 +195,12 @@ chooseInterface() {
 		do
 			piholeInterface=${desiredInterface}
 			echo "::: Using interface: $piholeInterface"
-			echo "${piholeInterface}" > /tmp/piholeINT
 		done
 	else
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
 
-}
-
-cleanupIPv6() {
-	# Removes IPv6 indicator file if we are not using IPv6
-	if [ -f "/etc/pihole/.useIPv6" ] && [ ! "$useIPv6" ]; then
-		rm /etc/pihole/.useIPv6
-	fi
 }
 
 use4andor6() {
@@ -249,7 +241,7 @@ use4andor6() {
 			echo "::: Exiting"
 			exit 1
 		fi
-		cleanupIPv6
+
 	else
 		echo "::: Cancel selected. Exiting..."
 		exit 1
@@ -260,8 +252,6 @@ useIPv6dialog() {
 	# Show the IPv6 address used for blocking
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." ${r} ${c}
-
-	${SUDO} touch /etc/pihole/.useIPv6
 }
 
 getStaticIPv4Settings() {
@@ -273,8 +263,6 @@ getStaticIPv4Settings() {
 		whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
 It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." ${r} ${c}
-		#piholeIP is saved to a permanent file so gravity.sh can use it when updating
-		${SUDO} echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
 		# Nothing else to do since the variables are already set above
 	else
 		# Otherwise, we need to ask the user to input their desired settings.
@@ -294,10 +282,6 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 				if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
 					IP address:    $IPv4addr
 					Gateway:       $IPv4gw" ${r} ${c}); then
-					# If the settings are correct, then we need to set the piholeIP
-					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script. piholeIP is saved to a permanent file so gravity.sh can use it when updating
-					$SUDO echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
-					$SUDO echo "$piholeInterface" > /tmp/piholeINT
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
 				else

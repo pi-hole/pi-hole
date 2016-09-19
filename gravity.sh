@@ -39,44 +39,26 @@ function helpFunc()
 	exit 1
 }
 
-piholeIPfile=/etc/pihole/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
 whitelistScript=/opt/pihole/whitelist.sh
 blacklistScript=/opt/pihole/blacklist.sh
 
-if [[ -f ${piholeIPfile} ]];then
-    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat ${piholeIPfile})
-    #rm $piholeIPfile
-else
-    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-    piholeIP=${piholeIPCIDR%/*}
-fi
-
-if [[ -f ${piholeIPv6file} ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-fi
+#Source the setupVars from install script for the IP
+. /etc/pihole/setupVars.conf
+#Remove the /* from the end of the IPv4addr.
+IPv4addr=${IPv4addr%/*}
 
 # Variables for various stages of downloading and formatting the list
-## Nate 3/26/2016 - Commented unused variables
 basename=pihole
 piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
-#blacklist=$piholeDir/blacklist.txt
-#whitelist=$piholeDir/whitelist.txt
-#latentWhitelist=$piholeDir/latentWhitelist.txt
 justDomainsExtension=domains
-matterandlight=${basename}.0.matterandlight.txt
+matterAndLight=${basename}.0.matterandlight.txt
 supernova=${basename}.1.supernova.txt
 eventHorizon=${basename}.2.eventHorizon.txt
 accretionDisc=${basename}.3.accretionDisc.txt
-#eyeOfTheNeedle=$basename.4.wormhole.txt
 
 # After setting defaults, check if there's local overrides
 if [[ -r ${piholeDir}/pihole.conf ]];then
@@ -213,10 +195,10 @@ function gravity_Schwarzchild() {
 	echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
-	truncate -s 0 ${piholeDir}/${matterandlight}
+	truncate -s 0 ${piholeDir}/${matterAndLight}
 	for i in "${activeDomains[@]}"
 	do
-		cat "$i" | tr -d '\r' >> ${piholeDir}/${matterandlight}
+		cat "$i" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
 	done
 	echo " done!"
 }
@@ -268,13 +250,13 @@ function gravity_hostFormat() {
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
 	if [[ -n ${piholeIPv6} ]];then
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$piholeIP $hostname\n$piholeIPv6 $hostname\n$piholeIP pi.hole\n$piholeIPv6 pi.hole" > ${piholeDir}/${accretionDisc}
-		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+		echo -e "$IPv4addr $hostname\n$piholeIPv6 $hostname\n$IPv4addr pi.hole\n$piholeIPv6 pi.hole" > ${piholeDir}/${accretionDisc}
+		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4addr" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 	else
 		# Otherwise, just create gravity.list as normal using IPv4
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$piholeIP $hostname\n$piholeIP pi.hole" > ${piholeDir}/${accretionDisc}
-		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
+		echo -e "$IPv4addr $hostname\n$IPv4addr pi.hole" > ${piholeDir}/${accretionDisc}
+		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4addr" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 	fi
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
@@ -301,7 +283,7 @@ function gravity_advanced() {
 	# This helps with that and makes it easier to read
 	# It also helps with debugging so each stage of the script can be researched more in depth
 	echo -n "::: Formatting list of domains to remove comments...."
-	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' ${piholeDir}/${matterandlight} | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+	awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' ${piholeDir}/${matterAndLight} | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
 	echo " done!"
 
 	numberOf=$(wc -l < ${piholeDir}/${supernova})
@@ -349,14 +331,13 @@ do
   esac
 done
 
-#Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-
 if [[ ${forceGrav} == true ]]; then
 	echo -n "::: Deleting exising list cache..."
 	${SUDO} rm /etc/pihole/list.*
 	echo " done!"
 fi
 
+#Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
 ${SUDO} cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
