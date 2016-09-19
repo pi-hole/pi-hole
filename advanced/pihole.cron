@@ -13,9 +13,8 @@
 #          Download any updates from the adlists
 59 1    * * 7   root    /usr/local/bin/pihole updateGravity
 
-# Pi-hole: Update the Web interface shortly after gravity runs
-#          This should also update the version number if it is changed in the dashboard repo
-30 2    * * 7   root    /usr/local/bin/pihole updateDashboard
+# Pi-hole: Update Pi-hole! Uncomment to enable auto update
+#30 2    * * 7   root    /usr/local/bin/pihole updatePihole
 
 # Pi-hole: Parse the log file before it is flushed and save the stats to a database
 #          This will be used for a historical view of your Pi-hole's performance
