@@ -338,7 +338,7 @@ function dumpPiHoleLog {
 # Anything to be done after capturing of pihole.log terminates
 function finalWork {
         echo "::: Finshed debugging!"
-    echo "::: The degug log can be uploaded to Termbin.com for easier sharing."
+    echo "::: The debug log can be uploaded to Termbin.com for easier sharing."
         read -r -p "::: Would you like to upload the log? [y/N] " response
     case ${response} in
         [yY][eE][sS]|[yY])
