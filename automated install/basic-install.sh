@@ -188,7 +188,7 @@ chooseInterface() {
 
 	# Find out how many interfaces are available to choose from
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
-	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" ${r} ${c} ${interfaceCount})
+	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]]; then
 		for desiredInterface in ${chooseInterfaceOptions}
