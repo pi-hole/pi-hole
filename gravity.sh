@@ -246,7 +246,13 @@ function gravity_unique() {
 function gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
-	hostname=$(</etc/hostname)
+	if [[ -f /etc/hostname ]]; then
+		hostname=$(</etc/hostname)
+	elif [ -x "$(command -v hostname)" ]; then
+		hostname=$(hostname -f)
+	else
+		echo "::: Error: Unable to determine fully qualified domain name of host"
+	fi
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
 	if [[ -n ${piholeIPv6} ]];then
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
