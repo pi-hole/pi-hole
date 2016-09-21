@@ -8,12 +8,18 @@ _This template was created based on the work of [`udemy-dl`](https://github.com/
 - [ ] I accept that this submission may not be used, and the pull request closed at the will of the maintainer.
 - [ ] I give this submission freely, and claim no ownership to its content.
 
-**My familiarity with the project is as follows (check one, eg [X]):**
+**How familiar are you with the codebase?:**
 
-- [ ] I have never used the project.
-- [ ] I have used the project briefly.
-- [ ] I have used the project extensively, but have not contributed previously.
-- [ ] I am an active contributor to the project.
+- [ ] 1 (very unfamiliar)
+- [ ] 2
+- [ ] 3
+- [ ] 4
+- [ ] 5
+- [ ] 6
+- [ ] 7
+- [ ] 8
+- [ ] 9
+- [ ] 10 (very familiar)
 
 ---
 _{replace this line with your pull request content}_
