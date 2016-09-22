@@ -12,3 +12,8 @@ reviewers:
   - PromoFaux
   name: pullapprove
   required: 3
+always_pending:
+  title_regex: '(WIP|wip)'
+  labels:
+    - wip
+  explanation: 'This PR is a work in progress...'

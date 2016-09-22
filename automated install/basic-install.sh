@@ -188,27 +188,19 @@ chooseInterface() {
 
 	# Find out how many interfaces are available to choose from
 	interfaceCount=$(echo "$availableInterfaces" | wc -l)
-	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface" ${r} ${c} ${interfaceCount})
+	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]]; then
 		for desiredInterface in ${chooseInterfaceOptions}
 		do
 			piholeInterface=${desiredInterface}
 			echo "::: Using interface: $piholeInterface"
-			echo "${piholeInterface}" > /tmp/piholeINT
 		done
 	else
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
 
-}
-
-cleanupIPv6() {
-	# Removes IPv6 indicator file if we are not using IPv6
-	if [ -f "/etc/pihole/.useIPv6" ] && [ ! "$useIPv6" ]; then
-		rm /etc/pihole/.useIPv6
-	fi
 }
 
 use4andor6() {
@@ -249,7 +241,7 @@ use4andor6() {
 			echo "::: Exiting"
 			exit 1
 		fi
-		cleanupIPv6
+
 	else
 		echo "::: Cancel selected. Exiting..."
 		exit 1
@@ -260,8 +252,6 @@ useIPv6dialog() {
 	# Show the IPv6 address used for blocking
 	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." ${r} ${c}
-
-	${SUDO} touch /etc/pihole/.useIPv6
 }
 
 getStaticIPv4Settings() {
@@ -273,8 +263,6 @@ getStaticIPv4Settings() {
 		whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
 It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." ${r} ${c}
-		#piholeIP is saved to a permanent file so gravity.sh can use it when updating
-		${SUDO} echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
 		# Nothing else to do since the variables are already set above
 	else
 		# Otherwise, we need to ask the user to input their desired settings.
@@ -294,10 +282,6 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 				if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
 					IP address:    $IPv4addr
 					Gateway:       $IPv4gw" ${r} ${c}); then
-					# If the settings are correct, then we need to set the piholeIP
-					# Saving it to a temporary file us to retrieve it later when we run the gravity.sh script. piholeIP is saved to a permanent file so gravity.sh can use it when updating
-					$SUDO echo "${IPv4addr%/*}" > /etc/pihole/piholeIP
-					$SUDO echo "$piholeInterface" > /tmp/piholeINT
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
 				else
@@ -358,6 +342,9 @@ setStaticIPv4() {
 			${SUDO} echo "ONBOOT=yes" >> ${IFCFG_FILE}
 			${SUDO} echo "IPADDR=$IPADDR" >> ${IFCFG_FILE}
 			${SUDO} echo "PREFIX=$CIDR" >> ${IFCFG_FILE}
+			${SUDO} echo "GATEWAY=$IPv4gw" >> ${IFCFG_FILE}
+			${SUDO} echo "DNS1=$piholeDNS1" >> ${IFCFG_FILE}
+			${SUDO} echo "DNS2=$piholeDNS2" >> ${IFCFG_FILE}
 			${SUDO} echo "USERCTL=no" >> ${IFCFG_FILE}
 			${SUDO} ip addr replace dev "$piholeInterface" "$IPv4addr"
 			if [ -x "$(command -v nmcli)" ];then
@@ -543,11 +530,10 @@ installScripts() {
 	${SUDO} cp /etc/.pihole/advanced/Scripts/blacklist.sh /opt/pihole/blacklist.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeDebug.sh /opt/pihole/piholeDebug.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/updateDashboard.sh /opt/pihole/updateDashboard.sh
 	${SUDO} cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/version.sh /opt/pihole/version.sh
-	${SUDO} chmod 755 /opt/pihole/gravity.sh /opt/pihole/chronometer.sh /opt/pihole/whitelist.sh /opt/pihole/blacklist.sh /opt/pihole/piholeLogFlush.sh /opt/pihole/updateDashboard.sh /opt/pihole/uninstall.sh /opt/pihole/setupLCD.sh /opt/pihole/version.sh
+	${SUDO} chmod 755 /opt/pihole/gravity.sh /opt/pihole/chronometer.sh /opt/pihole/whitelist.sh /opt/pihole/blacklist.sh /opt/pihole/piholeLogFlush.sh /opt/pihole/uninstall.sh /opt/pihole/setupLCD.sh /opt/pihole/version.sh
 	${SUDO} cp /etc/.pihole/pihole /usr/local/bin/pihole
 	${SUDO} chmod 755 /usr/local/bin/pihole
 	${SUDO} cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
@@ -868,9 +854,9 @@ configureSelinux() {
 		printf "::: Enabling httpd server side includes (SSI).. "
 		${SUDO} setsebool -P httpd_ssi_exec on
 		if [ $? -eq 0 ]; then
-			echo -n "Success\n"
+			echo -n "Success"
 		fi
-		printf ":::\tCompiling Pi-Hole SELinux policy..\n"
+		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
 		${SUDO} checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
 		${SUDO} semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		${SUDO} semodule -i /etc/pihole/pihole.pp
