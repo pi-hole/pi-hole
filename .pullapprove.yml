@@ -1,7 +1,7 @@
 approve_by_comment: true
-approve_regex: '^(Approved|:shipit:|:\+1:)'
-reject_regex: '^(Rejected|:-1:)'
-reset_on_push: false
+approve_regex: '^(Approved|:shipit:|:\+1:|Engage)'
+reject_regex: '^(Rejected|:-1:|Borg)'
+reset_on_push: true
 author_approval: required
 reviewers:
   members:
@@ -12,3 +12,8 @@ reviewers:
   - PromoFaux
   name: pullapprove
   required: 3
+always_pending:
+  title_regex: '(WIP|wip)'
+  labels:
+    - wip
+  explanation: 'This PR is a work in progress...'
