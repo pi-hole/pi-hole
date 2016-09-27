@@ -226,7 +226,7 @@ function testNslookup {
 		done < "$GRAVITYFILE"
 	fi
 
-	echo "NSLOOKUP of $TESTURL from PiHole:" >> ${DEBUG_LOG}
+	echo "NSLOOKUP of $TESTURL from Pi-hole:" >> ${DEBUG_LOG}
 	nslookup "$TESTURL" >> ${DEBUG_LOG}
 	echo >> ${DEBUG_LOG}
 	echo "NSLOOKUP of $TESTURL from 8.8.8.8:" >> ${DEBUG_LOG}
@@ -347,7 +347,7 @@ else
 fi
 
 
-### PiHole application specific logging ###
+### Pi-hole application specific logging ###
 echo "::: Writing whitelist to debug log..."
 echo "#######################################" >> ${DEBUG_LOG}
 echo "############## Whitelist ##############" >> ${DEBUG_LOG}
@@ -391,7 +391,7 @@ fi
 # Continuously append the pihole.log file to the pihole_debug.log file
 function dumpPiHoleLog {
 	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo -e "::: Writing current pi-hole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
+	echo -e "::: Writing current Pi-hole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
 	echo "#######################################" >> ${DEBUG_LOG}
 	echo "############# pihole.log ##############" >> ${DEBUG_LOG}
 	echo "#######################################" >> ${DEBUG_LOG}
@@ -402,8 +402,8 @@ function dumpPiHoleLog {
 			echo >> ${DEBUG_LOG}
 		done
 	else
-		echo "No pihole.log file found!" >> ${DEBUG_LOG}
-		printf ":::\tNo pihole.log file found!\n"
+		echo "No Pi-hole.log file found!" >> ${DEBUG_LOG}
+		printf ":::\tNo Pi-hole.log file found!\n"
 	fi
 }
 
