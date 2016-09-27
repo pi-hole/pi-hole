@@ -72,6 +72,15 @@ function versionCheck {
 	echo "::: Writing Pi-hole installed version to logfile."
 	TMP=$(cd /var/www/html/admin && git describe --tags --abbrev=0)
 	echo "WebUI Version: $TMP" >> ${DEBUG_LOG}
+
+	echo "::: Writing lighttpd version to logfile."
+	light_ver=$(lighttpd -v | head -n1)
+	if [ -n light_ver ]
+	then
+	    echo "${light_ver}" >> ${DEBUG_LOG}
+	else
+	    echo "lighttpd not installed." >> ${DEBUG_LOG}
+	fi
 	echo >> ${DEBUG_LOG}
 }
 
@@ -121,14 +130,17 @@ function ipCheck {
 }
 
 function hostnameCheck {
+    echo "############################################################" >> ${DEBUG_LOG}
+	echo "########            Hostname Information           #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+    echo "::: Writing locally configured hostnames to logfile"
     # Write the hostname output to compare against entries in /etc/hosts, which is logged next
-    echo "Hostname of this pihole is: " >> ${DEBUG_LOG}
-    hostname >> ${DEBUG_LOG}
+    echo "This Pi-hole is: $(hostname)" >> ${DEBUG_LOG}
 
     echo "::: Writing hosts file to debug log..."
-    echo "#######################################" >> ${DEBUG_LOG}
-    echo "################ Hosts ################" >> ${DEBUG_LOG}
-    echo "#######################################" >> ${DEBUG_LOG}
+    echo "###              Hosts              ###" >> ${DEBUG_LOG}
+
     if [ -e "$HOSTSFILE" ]
     then
 	    cat "$HOSTSFILE" >> ${DEBUG_LOG}
