@@ -81,6 +81,15 @@ function versionCheck {
 	else
 	    echo "lighttpd not installed." >> ${DEBUG_LOG}
 	fi
+
+	echo "::: Writing PHP version to logfile."
+	php_ver=$(php -v | head -n1)
+	if [ -n php_ver ]
+	then
+	    echo "${php_ver}" >> ${DEBUG_LOG}
+	else
+	    echo "PHP not installed." >> ${DEBUG_LOG}
+	fi
 	echo >> ${DEBUG_LOG}
 }
 
@@ -149,6 +158,17 @@ function hostnameCheck {
 	    echo "No hosts file found!" >> ${DEBUG_LOG}
 	    printf ":::\tNo hosts file found!\n"
     fi
+}
+
+function portCheck {
+    echo "############################################################" >> ${DEBUG_LOG}
+	echo "########           Open Port Information           #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+    echo "::: Writing local server ports to logfile"
+
+    ${SUDO} netstat -tulpn >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
 }
 
 function compareWhitelist {
@@ -269,6 +289,7 @@ versionCheck
 distroCheck
 ipCheck
 hostnameCheck
+portCheck
 compareWhitelist
 compareBlacklist
 testNslookup
