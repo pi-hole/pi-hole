@@ -119,6 +119,26 @@ function ipCheck {
     fi
     echo >> ${DEBUG_LOG}
 }
+
+function hostnameCheck {
+    # Write the hostname output to compare against entries in /etc/hosts, which is logged next
+    echo "Hostname of this pihole is: " >> ${DEBUG_LOG}
+    hostname >> ${DEBUG_LOG}
+
+    echo "::: Writing hosts file to debug log..."
+    echo "#######################################" >> ${DEBUG_LOG}
+    echo "################ Hosts ################" >> ${DEBUG_LOG}
+    echo "#######################################" >> ${DEBUG_LOG}
+    if [ -e "$HOSTSFILE" ]
+    then
+	    cat "$HOSTSFILE" >> ${DEBUG_LOG}
+	    echo >> ${DEBUG_LOG}
+    else
+	    echo "No hosts file found!" >> ${DEBUG_LOG}
+	    printf ":::\tNo hosts file found!\n"
+    fi
+}
+
 function compareWhitelist {
 	if [ ! -f "$WHITELISTMATCHES" ]; then
 		${SUDO} touch ${WHITELISTMATCHES}
@@ -236,6 +256,7 @@ function debugLighttpd {
 versionCheck
 distroCheck
 ipCheck
+hostnameCheck
 compareWhitelist
 compareBlacklist
 testNslookup
@@ -292,22 +313,6 @@ else
 	printf ":::\tNo gravity.list file found\n"
 fi
 
-# Write the hostname output to compare against entries in /etc/hosts, which is logged next
-echo "Hostname of this pihole is: " >> ${DEBUG_LOG}
-hostname >> ${DEBUG_LOG}
-
-echo "::: Writing hosts file to debug log..."
-echo "#######################################" >> ${DEBUG_LOG}
-echo "################ Hosts ################" >> ${DEBUG_LOG}
-echo "#######################################" >> ${DEBUG_LOG}
-if [ -e "$HOSTSFILE" ]
-then
-	cat "$HOSTSFILE" >> ${DEBUG_LOG}
-	echo >> ${DEBUG_LOG}
-else
-	echo "No hosts file found!" >> ${DEBUG_LOG}
-	printf ":::\tNo hosts file found!\n"
-fi
 
 ### PiHole application specific logging ###
 echo "::: Writing whitelist to debug log..."
