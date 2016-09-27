@@ -96,8 +96,12 @@ function ipCheck {
     echo "::: Writing local IPs to logfile"
     IPADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')
     echo "$IPADDR" >> ${DEBUG_LOG}
+
     IP6ADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')
+    if [ -n "$IP6ADDR" ]
+    then
     echo "$IP6ADDR" >> ${DEBUG_LOG}
+    fi
     echo >> ${DEBUG_LOG}
 
     echo "::: Locating default gateway and checking connectivity"
