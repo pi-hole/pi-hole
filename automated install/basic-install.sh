@@ -59,7 +59,14 @@ fi
 # Compatibility
 
 if [ -x "$(command -v apt-get)" ];then
-	# Debian Family
+	#Debian Family
+	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
+	phpVer="php"
+	apt-cache show php5 &> /dev/null
+	if [ $? == 0 ]; then
+	    phpVer="php5"
+	fi
+	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/cache/apt"
 	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
@@ -67,7 +74,7 @@ if [ -x "$(command -v apt-get)" ];then
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-cgi php5 git curl unzip wget sudo netcat cron )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer} git curl unzip wget sudo netcat cron )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
