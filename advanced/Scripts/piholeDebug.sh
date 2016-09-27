@@ -402,8 +402,8 @@ function dumpPiHoleLog {
 			echo >> ${DEBUG_LOG}
 		done
 	else
-		echo "No Pi-hole.log file found!" >> ${DEBUG_LOG}
-		printf ":::\tNo Pi-hole.log file found!\n"
+		echo "No pihole.log file found!" >> ${DEBUG_LOG}
+		printf ":::\tNo pihole.log file found!\n"
 	fi
 }
 
