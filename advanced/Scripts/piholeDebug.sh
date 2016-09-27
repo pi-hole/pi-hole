@@ -3,7 +3,7 @@
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
-# Generates pihole_debug.log in /var/log/ to be used for troubleshooting.
+# Generates pihole_debug.log to be used for troubleshooting.
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,18 +25,27 @@ ADLISTSFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
+# Header info and introduction
+echo "::: Beginning Pi-hole debug at $(date)!"
+echo "::: This debugging process will collect information from your running configuration,"
+echo "::: and optionally upload the generated log to a unique and random directory on"
+echo "::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only"
+echo "::: person who is given the unique URL. Please consider where you post this link."
+echo "::: "
+
 
 ######## FIRST CHECK ########
 # Must be root to debug
 if [[ $EUID -eq 0 ]]; then
-	echo "::: You are root... Beginning debug!"
+	echo "::: Script is executing as root user..."
 else
-	echo "::: Sudo will be used for debugging."
+	echo "::: Non-root user detected..."
 	# Check if sudo is actually installed
 	if [ -x "$(command -v sudo)" ]; then
 		export SUDO="sudo"
+		echo "::: sudo command located, debug will run under sudo."
 	else
-		echo "::: Please install sudo or run this as root."
+		echo "::: Unable to locate sudo command. Please install sudo or run this as root."
 		exit 1
 	fi
 fi
@@ -52,27 +61,57 @@ fi
 
 ### Private functions exist here ###
 function versionCheck {
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "########## Versions Section ###########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	
+	echo "############################################################" >> ${DEBUG_LOG}
+	echo "##########           Installed Versions           ##########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+	echo "::: Detecting Pi-hole installed versions."
 	TMP=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
 	echo "Pi-hole Version: $TMP" >> ${DEBUG_LOG}
-	
+
+	echo "::: Writing Pi-hole installed version to logfile."
 	TMP=$(cd /var/www/html/admin && git describe --tags --abbrev=0)
 	echo "WebUI Version: $TMP" >> ${DEBUG_LOG}
 	echo >> ${DEBUG_LOG}
 }
 
 function distroCheck {
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "######## Distribution Section #########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	
+	echo "############################################################" >> ${DEBUG_LOG}
+	echo "########          Installed OS Distribution        #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+	echo "::: Checking installed OS Distribution release."
 	TMP=$(cat /etc/*release || echo "Failed to find release")
-	echo "Distribution Version: $TMP" >> ${DEBUG_LOG}
+
+	echo "::: Writing OS Distribution release to logfile."
+	echo "$TMP" >> ${DEBUG_LOG}
+	echo >> ${DEBUG_LOG}
 }
-	
+
+function ipCheck {
+	echo "############################################################" >> ${DEBUG_LOG}
+	echo "########           IP Address Information          #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+    IPADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')
+    echo "::: Writing local IPs to debug log"
+    echo "$IPADDR" >> ${DEBUG_LOG}
+    IP6ADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')
+    echo "$IP6ADDR" >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
+
+    echo "::: Locating default gateway and checking connectivity"
+    GATEWAY=$(ip r | grep default | cut -d ' ' -f 3)
+    GATEWAY_CHECK=$(ping -q -w 1 -c 1 "${GATEWAY}" > /dev/null && echo ok || echo error)
+    echo "Gateway check at ${GATEWAY}:" >> ${DEBUG_LOG}
+    echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
+
+    GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
+    GATEWAY6_CHECK=$(ping6 -q -w 1 -c 1 "${GATEWAY6}" > /dev/null && echo ok || echo error)
+    echo "IPv6 Gateway check at ${GATEWAY6}:" >> ${DEBUG_LOG}
+    echo "$GATEWAY6_CHECK" >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
+}
 function compareWhitelist {
 	if [ ! -f "$WHITELISTMATCHES" ]; then
 		${SUDO} touch ${WHITELISTMATCHES}
@@ -186,22 +225,10 @@ function debugLighttpd {
 
 ### END FUNCTIONS ###
 
-### Check Pi internet connections ###
-# Log the IP addresses of this Pi
-IPADDR=$(${SUDO} ifconfig | perl -nle 's/dr:(\S+)/print $1/e')
-echo "::: Writing local IPs to debug log"
-echo "IP Addresses of this Pi:" >> ${DEBUG_LOG}
-echo "$IPADDR" >> ${DEBUG_LOG}
-echo >> ${DEBUG_LOG}
-
-# Check if we can connect to the local gateway
-GATEWAY_CHECK=$(ping -q -w 1 -c 1 "$(ip r | grep default | cut -d ' ' -f 3)" > /dev/null && echo ok || echo error)
-echo "Gateway check:" >> ${DEBUG_LOG}
-echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
-echo >> ${DEBUG_LOG}
 
 versionCheck
 distroCheck
+ipCheck
 compareWhitelist
 compareBlacklist
 testNslookup
@@ -319,7 +346,7 @@ fi
 # Continuously append the pihole.log file to the pihole_debug.log file
 function dumpPiHoleLog {
 	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo -e "::: Writing current pihole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
+	echo -e "::: Writing current pi-hole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
 	echo "#######################################" >> ${DEBUG_LOG}
 	echo "############# pihole.log ##############" >> ${DEBUG_LOG}
 	echo "#######################################" >> ${DEBUG_LOG}
