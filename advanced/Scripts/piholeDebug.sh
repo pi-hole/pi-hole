@@ -93,8 +93,8 @@ function ipCheck {
 	echo "########           IP Address Information          #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
 
+    echo "::: Writing local IPs to logfile"
     IPADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')
-    echo "::: Writing local IPs to debug log"
     echo "$IPADDR" >> ${DEBUG_LOG}
     IP6ADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')
     echo "$IP6ADDR" >> ${DEBUG_LOG}
@@ -107,9 +107,12 @@ function ipCheck {
     echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
 
     GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
+    if [ -n "$GATEWAY6" ]
+    then
     GATEWAY6_CHECK=$(ping6 -q -w 1 -c 1 "${GATEWAY6}" > /dev/null && echo ok || echo error)
     echo "IPv6 Gateway check at ${GATEWAY6}:" >> ${DEBUG_LOG}
     echo "$GATEWAY6_CHECK" >> ${DEBUG_LOG}
+    fi
     echo >> ${DEBUG_LOG}
 }
 function compareWhitelist {
