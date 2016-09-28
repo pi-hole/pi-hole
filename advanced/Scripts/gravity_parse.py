@@ -38,6 +38,7 @@ import sqlite3
 def create_tables():
 
     qt = 'DROP TABLE IF EXISTS gravity'
+    c.execute(qt)
     conn.commit()
 
     qt = '''
