@@ -43,10 +43,21 @@ function debugFunc {
 }
 
 function flushFunc {
-    ${SUDO} /opt/pihole/piholeLogFlush.sh
+    sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS queries"
+    sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS forwards"
+    sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS replies"
     exit 1
 }
 
+function databaseFunc{
+    echo "::: Importing /var/log/pihole/log to /etc/pihole/pihole.db"
+    python /opt/pihole/dnsmasq_parse.py
+    echo -n "::: Flushing /var/log/pihole.log..."
+    echo " " > /var/log/pihole.log
+    echo " ...done!"
+    exit 1
+
+}
 
 function updatePiholeFunc {
     echo "::: Checking for updates..."
@@ -177,6 +188,7 @@ case "$1" in
 "-b" | "blacklist"			) blacklistFunc "$@";;
 "-d" | "debug"				) debugFunc;;
 "-f" | "flush"				) flushFunc;;
+"-i" | "importLogToDatabase"      ) databaseFunc;;
 "-up" | "updatePihole"      ) updatePiholeFunc;;
 "-g" | "updateGravity"		) updateGravityFunc "$@";;
 "-s" | "setupLCD"			) setupLCDFunction;;
