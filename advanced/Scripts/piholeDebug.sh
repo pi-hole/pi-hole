@@ -192,28 +192,6 @@ function portCheck {
     echo >> ${DEBUG_LOG}
 }
 
-function compareWhitelist {
-	if [ ! -f "$WHITELISTMATCHES" ]; then
-		${SUDO} touch ${WHITELISTMATCHES}
-		${SUDO} chmod 644 ${WHITELISTMATCHES}
-		${SUDO} chown "$USER":root ${WHITELISTMATCHES}
-	else
-		truncate -s 0 ${WHITELISTMATCHES}
-	fi
-
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "######## Whitelist Comparison #########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	while read -r line; do
-		TMP=$(grep -w ".* $line$" "$GRAVITYFILE")
-		if [ ! -z "$TMP" ]; then
-			echo "$TMP" >> ${DEBUG_LOG}
-			echo "$TMP"	>> ${WHITELISTMATCHES}
-		fi
-	done < "$WHITELISTFILE"
-	echo >> ${DEBUG_LOG}
-}
-
 function compareBlacklist {
 	echo "#######################################" >> ${DEBUG_LOG}
 	echo "######## Blacklist Comparison #########" >> ${DEBUG_LOG}
@@ -311,7 +289,6 @@ distroCheck
 ipCheck
 hostnameCheck
 portCheck
-compareWhitelist
 compareBlacklist
 testNslookup
 checkProcesses
