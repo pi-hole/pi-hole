@@ -37,7 +37,7 @@ echo "::: "
 
 ######## FIRST CHECK ########
 # Must be root to debug
-if [[ $EUID -eq 0 ]]; then
+if [[ "$EUID" -eq 0 ]]; then
 	echo "::: Script is executing as root user..."
 else
 	echo "::: Non-root user detected..."
@@ -61,40 +61,30 @@ else
 fi
 
 ### Private functions exist here ###
-function versionCheck {
-	echo "############################################################" >> ${DEBUG_LOG}
-	echo "##########           Installed Versions           ##########" >> ${DEBUG_LOG}
-	echo "############################################################" >> ${DEBUG_LOG}
-
-	echo "::: Detecting Pi-hole installed versions."
-	TMP=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
-	echo "Pi-hole Version: $TMP" >> ${DEBUG_LOG}
-
-	echo "::: Writing Pi-hole installed version to logfile."
-	TMP=$(cd /var/www/html/admin && git describe --tags --abbrev=0)
-	echo "WebUI Version: $TMP" >> ${DEBUG_LOG}
-
-	echo "::: Writing lighttpd version to logfile."
-	light_ver=$(lighttpd -v | head -n1)
-	if [ -n light_ver ]
-	then
-	    echo "${light_ver}" >> ${DEBUG_LOG}
-	else
-	    echo "lighttpd not installed." >> ${DEBUG_LOG}
-	fi
-
-	echo "::: Writing PHP version to logfile."
-	php_ver=$(php -v | head -n1)
-	if [ -n php_ver ]
-	then
-	    echo "${php_ver}" >> ${DEBUG_LOG}
-	else
-	    echo "PHP not installed." >> ${DEBUG_LOG}
-	fi
-	echo >> ${DEBUG_LOG}
+function log_write {
+  echo "$1" >> "${DEBUG_LOG}"
 }
 
-function distroCheck {
+function version_check {
+  log_write "############################################################"
+  log_write "##########           Installed Versions           ##########"
+  log_write "############################################################"
+
+  echo "::: Detecting Pi-hole installed versions."
+  pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
+  && log_write "Pi-hole Version: $pi_hole_ver" || log_write "Pi-hole git repository not detected."
+  admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
+  && log_write "WebUI Version: $admin_ver" || log_write "Pi-hole Admin Pages git repository not detected."
+
+  echo "::: Writing lighttpd version to logfile."
+  light_ver="$(lighttpd -v |& head -n1)" && log_write "${light_ver}" || log_write "lighttpd not installed."
+
+  echo "::: Writing PHP version to logfile."
+  php_ver="$(php -v |& head -n1)" && log_write "${php_ver}" || log_write "PHP not installed."
+
+}
+
+function distro_check {
 	echo "############################################################" >> ${DEBUG_LOG}
 	echo "########          Installed OS Distribution        #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
@@ -107,22 +97,17 @@ function distroCheck {
 	echo >> ${DEBUG_LOG}
 }
 
-function ipCheck {
+function ip_check {
 	echo "############################################################" >> ${DEBUG_LOG}
 	echo "########           IP Address Information          #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
 
     echo "::: Writing local IPs to logfile"
-    IPADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')
+    IPADDR="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')"
     echo "$IPADDR" >> ${DEBUG_LOG}
 
-    IP6ADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')
-    if [[ $? = 0 ]]
-    then
-    echo "$IP6ADDR" >> ${DEBUG_LOG}
-    else
-    echo "No IPv6 addresses found." >> ${DEBUG_LOG}
-    fi
+    IP6ADDR="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
+    && echo "$IP6ADDR" >> ${DEBUG_LOG} || echo "No IPv6 addresses found." >> ${DEBUG_LOG}
     echo >> ${DEBUG_LOG}
 
     echo "::: Locating default gateway and checking connectivity"
@@ -329,10 +314,9 @@ function debugLighttpd {
 
 ### END FUNCTIONS ###
 
-
-versionCheck
-distroCheck
-ipCheck
+version_check
+distro_check
+ip_check
 hostnameCheck
 portCheck
 checkProcesses
