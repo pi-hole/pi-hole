@@ -75,7 +75,7 @@ for line in open(logfile):
     if (counts['lc'] % 10000) == 0:
         conn.commit()
 
-    sql = "INSERT INTO gravity (domain) VALUES ('"+line+"')"
-    c.execute(sql)
+    sql = "INSERT INTO gravity (domain) VALUES (?)"
+    c.execute(sql, line)
 
 conn.commit()
