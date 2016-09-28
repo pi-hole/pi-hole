@@ -138,12 +138,24 @@ function ipCheck {
         echo "IPv4 Gateway check failed:" >> ${DEBUG_LOG}
         fi
     echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
+
+    echo "::: Pinging Internet via IPv4..."
+    INET_CHECK=$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv4 Internet check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv4 Internet check failed:" >> ${DEBUG_LOG}
+        fi
+    echo "$INET_CHECK" >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
     fi
 
     GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
     if [[ $? = 0 ]]
     then
-    echo "::: Pinging default IPv4 gateway..."
+    echo "::: Pinging default IPv6 gateway..."
     GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n "${GATEWAY6}" | tail -n3)
         if [[ $? = 0 ]]
         then
@@ -151,10 +163,21 @@ function ipCheck {
         else
         echo "IPv6 Gateway check failed:" >> ${DEBUG_LOG}
         fi
+
+    echo "::: Pinging Internet via IPv6..."
+    GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n 2001:4860:4860::8888 | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv6 Internet check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv6 Internet check failed:" >> ${DEBUG_LOG}
+        fi
+
     else
     GATEWAY_CHECK="No IPv6 Gateway Detected"
     fi
     echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
+
 
     echo >> ${DEBUG_LOG}
 }
