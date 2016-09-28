@@ -49,7 +49,7 @@ function flushFunc {
     exit 1
 }
 
-function databaseFunc{
+function databaseFunc {
     echo "::: Importing /var/log/pihole/log to /etc/pihole/pihole.db"
     python /opt/pihole/dnsmasq_parse.py
     echo -n "::: Flushing /var/log/pihole.log..."
