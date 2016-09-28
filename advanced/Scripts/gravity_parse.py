@@ -76,6 +76,6 @@ for line in open(logfile):
         conn.commit()
 
     sql = "INSERT INTO gravity (domain) VALUES (?)"
-    c.execute(sql, line)
+    c.execute(sql, (line,))
 
 conn.commit()
