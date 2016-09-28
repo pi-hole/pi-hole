@@ -240,15 +240,38 @@ function testResolver {
 	fi
 
 	echo "Resolution of $TESTURL from Pi-hole:" >> ${DEBUG_LOG}
-	dig "$TESTURL" @127.0.0.1>> ${DEBUG_LOG}
+	LOCALDIG=$(dig "$TESTURL" @127.0.0.1)
+	if [[ $? = 0 ]]
+	then
+	    echo "$LOCALDIG" >> ${DEBUG_LOG}
+	else
+	    echo "Failed to resolve $TESTURL on Pi-hole" >> ${DEBUG_LOG}
+	fi
 	echo >> ${DEBUG_LOG}
+
+
 	echo "Resolution of $TESTURL from 8.8.8.8:" >> ${DEBUG_LOG}
-	dig "$TESTURL" @8.8.8.8 >> ${DEBUG_LOG}
+	REMOTEDIG=$(dig "$TESTURL" @8.8.8.8)
+	if [[ $? = 0 ]]
+	then
+	    echo "$REMOTEDIG" >> ${DEBUG_LOG}
+	else
+	    echo "Failed to resolve $TESTURL on 8.8.8.8" >> ${DEBUG_LOG}
 	echo >> ${DEBUG_LOG}
 
 	echo "Pi-hole dnsmasq specific records lookups" >> ${DEBUG_LOG}
     echo "Cache Size:" >> ${DEBUG_LOG}
     dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
+    echo "Insertions count:" >> ${DEBUG_LOG}
+    dig +short chaos txt insertions.bind >> ${DEBUG_LOG}
+    echo "Evictions count:" >> ${DEBUG_LOG}
+    dig +short chaos txt evictions.bind >> ${DEBUG_LOG}
+    echo "Misses count:" >> ${DEBUG_LOG}
+    dig +short chaos txt misses.bind >> ${DEBUG_LOG}
+    echo "Hits count:" >> ${DEBUG_LOG}
+    dig +short chaos txt hits.bind >> ${DEBUG_LOG}
+    echo "Auth count:" >> ${DEBUG_LOG}
+    dig +short chaos txt auth.bind >> ${DEBUG_LOG}
     echo "Upstream Servers:" >> ${DEBUG_LOG}
     dig +short chaos txt servers.bind >> ${DEBUG_LOG}
     echo >> ${DEBUG_LOG}
