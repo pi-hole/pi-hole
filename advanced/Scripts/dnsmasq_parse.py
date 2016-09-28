@@ -140,7 +140,7 @@ logfile = sys.argv[1]
 counts = {'lc': 0, 'qc': 0, 'fc': 0, 'rc': 0, 'bc':0}
 
 # Create the SQLite connection
-conn = sqlite3.connect('dnsmasq.sqlite')
+conn = sqlite3.connect('/etc/pihole/pihole.db')
 c = conn.cursor()
 
 create_tables()
