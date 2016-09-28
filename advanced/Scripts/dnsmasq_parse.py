@@ -170,3 +170,5 @@ print 'Imported {0} log entries.'.format(counts['lc'] - counts['bc'])
 print '{0} queries, {1} forwards, and {2} replies.'.format(counts['qc'],
                                                            counts['fc'],
                                                            counts['rc'])
+
+conn.commit()
