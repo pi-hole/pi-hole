@@ -241,6 +241,12 @@ function gravity_unique() {
 	echo " done!"
 	numberOf=$(wc -l < ${piholeDir}/${eventHorizon})
 	echo "::: $numberOf unique domains trapped in the event horizon."
+
+	echo -n "::: Importing domains into database for web admin lookups..."
+	python /opt/pihole/gravity_parse.py
+	echo " done!"
+
+
 }
 
 function gravity_hostFormat() {
