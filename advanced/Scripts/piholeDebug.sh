@@ -209,9 +209,10 @@ function portCheck {
 	echo "########           Open Port Information           #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
 
-    echo "::: Writing local server ports to logfile"
+    echo "::: Detecting local server port 80 and 53 processes."
 
-    ${SUDO} netstat -tulpn >> ${DEBUG_LOG}
+    ${SUDO} lsof -i :80 >> ${DEBUG_LOG}
+    ${SUDO} lsof -i :53 >> ${DEBUG_LOG}
     echo >> ${DEBUG_LOG}
 }
 
