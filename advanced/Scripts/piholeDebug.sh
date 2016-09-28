@@ -257,6 +257,7 @@ function testResolver {
 	    echo "$REMOTEDIG" >> ${DEBUG_LOG}
 	else
 	    echo "Failed to resolve $TESTURL on 8.8.8.8" >> ${DEBUG_LOG}
+	fi
 	echo >> ${DEBUG_LOG}
 
 	echo "Pi-hole dnsmasq specific records lookups" >> ${DEBUG_LOG}
