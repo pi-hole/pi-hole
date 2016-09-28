@@ -51,9 +51,9 @@ function flushFunc {
 
 function databaseFunc {
     echo "::: Importing /var/log/pihole/log to /etc/pihole/pihole.db"
-    python /opt/pihole/dnsmasq_parse.py
+    python /opt/pihole/dnsmasq_parse.py /var/log/pihole.log
     echo -n "::: Flushing /var/log/pihole.log..."
-    echo " " > /var/log/pihole.log
+    ${SUDO} echo " " > /var/log/pihole.log
     echo " ...done!"
     exit 1
 
