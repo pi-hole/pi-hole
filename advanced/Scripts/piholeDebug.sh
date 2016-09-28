@@ -216,18 +216,6 @@ function portCheck {
     echo >> ${DEBUG_LOG}
 }
 
-function compareBlacklist {
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "######## Blacklist Comparison #########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	while read -r line; do
-		if [ ! -z "$line" ]; then
-			grep -w ".* $line$" "$GRAVITYFILE" >> ${DEBUG_LOG}
-		fi
-	done < "$BLACKLISTFILE"
-	echo >> ${DEBUG_LOG}
-}
-
 function testNslookup {
 	TESTURL="doubleclick.com"
 	echo "#######################################" >> ${DEBUG_LOG}
@@ -313,7 +301,6 @@ distroCheck
 ipCheck
 hostnameCheck
 portCheck
-compareBlacklist
 testNslookup
 checkProcesses
 debugLighttpd
