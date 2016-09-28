@@ -216,12 +216,14 @@ function portCheck {
     echo >> ${DEBUG_LOG}
 }
 
-function testNslookup {
-	TESTURL="doubleclick.com"
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "############ NSLookup Test ############" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
+function testResolver {
+	echo "############################################################" >> ${DEBUG_LOG}
+	echo "############      Resolver Functions Check      ############" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+
 	# Find a blocked url that has not been whitelisted.
+    TESTURL="doubleclick.com"
 	if [ -s "$WHITELISTMATCHES" ]; then
 		while read -r line; do
 			CUTURL=${line#*" "}
@@ -237,12 +239,19 @@ function testNslookup {
 		done < "$GRAVITYFILE"
 	fi
 
-	echo "NSLOOKUP of $TESTURL from Pi-hole:" >> ${DEBUG_LOG}
-	nslookup "$TESTURL" >> ${DEBUG_LOG}
+	echo "Resolution of $TESTURL from Pi-hole:" >> ${DEBUG_LOG}
+	dig "$TESTURL" @127.0.0.1>> ${DEBUG_LOG}
 	echo >> ${DEBUG_LOG}
-	echo "NSLOOKUP of $TESTURL from 8.8.8.8:" >> ${DEBUG_LOG}
-	nslookup "$TESTURL" 8.8.8.8 >> ${DEBUG_LOG}
+	echo "Resolution of $TESTURL from 8.8.8.8:" >> ${DEBUG_LOG}
+	dig "$TESTURL" @8.8.8.8 >> ${DEBUG_LOG}
 	echo >> ${DEBUG_LOG}
+
+	echo "Pi-hole dnsmasq specific records lookups" >> ${DEBUG_LOG}
+    echo "Cache Size:" >> ${DEBUG_LOG}
+    dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
+    echo "Upstream Servers:" >> ${DEBUG_LOG}
+    dig +short chaos txt servers.bind >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
 }
 
 function checkProcesses {
@@ -259,6 +268,7 @@ function checkProcesses {
 		echo " processes status:" >> ${DEBUG_LOG}
 		${SUDO} systemctl -l status "$i" >> "$DEBUG_LOG"
 	done
+	echo >> ${DEBUG_LOG}
 }
 
 function debugLighttpd {
@@ -301,8 +311,8 @@ distroCheck
 ipCheck
 hostnameCheck
 portCheck
-testNslookup
 checkProcesses
+testResolver
 debugLighttpd
 
 echo "::: Writing dnsmasq.conf to debug log..."
