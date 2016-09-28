@@ -10,6 +10,7 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+set -o pipefail
 
 ######## GLOBAL VARS ########
 DEBUG_LOG="/var/log/pihole_debug.log"
@@ -116,25 +117,45 @@ function ipCheck {
     echo "$IPADDR" >> ${DEBUG_LOG}
 
     IP6ADDR=$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')
-    if [ -n "$IP6ADDR" ]
+    if [[ $? = 0 ]]
     then
     echo "$IP6ADDR" >> ${DEBUG_LOG}
+    else
+    echo "No IPv6 addresses found." >> ${DEBUG_LOG}
     fi
     echo >> ${DEBUG_LOG}
 
     echo "::: Locating default gateway and checking connectivity"
     GATEWAY=$(ip r | grep default | cut -d ' ' -f 3)
-    GATEWAY_CHECK=$(ping -q -w 1 -c 1 "${GATEWAY}" > /dev/null && echo ok || echo error)
-    echo "Gateway check at ${GATEWAY}:" >> ${DEBUG_LOG}
+    if [[ $? = 0 ]]
+    then
+    echo "::: Pinging default IPv4 gateway..."
+    GATEWAY_CHECK=$(ping -q -w 3 -c 3 -n "${GATEWAY}" | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv4 Gateway check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv4 Gateway check failed:" >> ${DEBUG_LOG}
+        fi
     echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
+    fi
 
     GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
-    if [ -n "$GATEWAY6" ]
+    if [[ $? = 0 ]]
     then
-    GATEWAY6_CHECK=$(ping6 -q -w 1 -c 1 "${GATEWAY6}" > /dev/null && echo ok || echo error)
-    echo "IPv6 Gateway check at ${GATEWAY6}:" >> ${DEBUG_LOG}
-    echo "$GATEWAY6_CHECK" >> ${DEBUG_LOG}
+    echo "::: Pinging default IPv4 gateway..."
+    GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n "${GATEWAY6}" | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv6 Gateway check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv6 Gateway check failed:" >> ${DEBUG_LOG}
+        fi
+    else
+    GATEWAY_CHECK="No IPv6 Gateway Detected"
     fi
+    echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
+
     echo >> ${DEBUG_LOG}
 }
 
