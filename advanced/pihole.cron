@@ -20,6 +20,6 @@
 * * * * *   root    /usr/local/bin/pihole importLogToDatabase
 
 # Pi-hole: Flush the database daily at 00:00 so it doesn't get out of control
-00 00   * * *   root    /usr/local/bin/pihole flush
+1 0   * * *   root    /usr/local/bin/pihole flush
 
 
