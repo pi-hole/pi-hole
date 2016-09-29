@@ -62,11 +62,11 @@ if [ -x "$(command -v apt-get)" ];then
 	#Debian Family
 	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
 	phpVer="php"
-	sqliteVer="php-sqlite3"
+	phpSqliteVer="php-sqlite3"
 	apt-cache show php5 &> /dev/null
 	if [ $? == 0 ]; then
 	    phpVer="php5"
-	    sqliteVer="php5-sqlite"
+	    phpSqliteVer="php5-sqlite"
 	fi
 	#############################################
 	PKG_MANAGER="apt-get"
@@ -76,7 +76,7 @@ if [ -x "$(command -v apt-get)" ];then
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer} git curl unzip wget sudo netcat cron iproute2 sqlite3 ${sqliteVer} )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer} ${phpVer}-common ${phpVer}-cgi ${phpSqliteVer} git curl unzip wget sudo netcat cron iproute2 sqlite3  )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -96,7 +96,7 @@ elif [ -x "$(command -v rpm)" ];then
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo nmap-ncat sqlite3 )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php-pdo php git curl unzip wget findutils cronie sudo nmap-ncat sqlite3 )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
