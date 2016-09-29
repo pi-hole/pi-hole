@@ -12,71 +12,12 @@
 
 
 #Functions##############################################################################################################
-piLog="/var/log/pihole.log"
-gravity="/etc/pihole/gravity.list"
-
+json=""
 today=$(date "+%b %e")
 
-function CalcBlockedDomains(){
-	CheckIPv6
-	if [ -e "$gravity" ]; then
-		#Are we IPV6 or IPV4?
-		if [[ -n ${piholeIPv6} ]];then
-			#We are IPV6
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
-		else
-			#We are IPV4
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1}')
-		fi
-	else
-		blockedDomainsTotal="Err."
-	fi
-}
-
-function CalcQueriesToday(){
-	if [ -e "$piLog" ];then
-		queriesToday=$(cat "$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
-	else
-		queriesToday="Err."
-	fi
-}
-
-function CalcblockedToday(){
-	if [ -e "$piLog" ] && [ -e "$gravity" ];then
-		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
-	else
-		blockedToday="Err."
-	fi
-}
-
-function CalcPercentBlockedToday(){
-	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
-		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
-		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-			percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)
-			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")
-		else
-			percentBlockedToday=0
-		fi
-	fi
-}
-
-function CheckIPv6(){
-	piholeIPv6file="/etc/pihole/.useIPv6"
-	if [[ -f ${piholeIPv6file} ]];then
-	    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-	    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-	fi
-}
-
 function outputJSON(){
-	CalcQueriesToday
-	CalcblockedToday
-	CalcPercentBlockedToday
-
-	CalcBlockedDomains
-
-	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
+	json=$(curl -s http://127.0.0.1/admin/api.php?summaryRaw)
+	echo ${json}
 }
 
 function normalChrono(){
@@ -98,28 +39,20 @@ function normalChrono(){
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
 
-		#uncomment next 4 lines to use original query count calculation
-		#today=$(date "+%b %e")
-		#todaysQueryCount=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ {print $7}' | wc -l)
-		#todaysQueryCountV4=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[A\]/ {print $7}' | wc -l)
-		#todaysQueryCountV6=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[AAAA\]/ {print $7}' | wc -l)
+		blockedDomainsTotal=$(echo ${json} | python -c "import sys, json; print json.load(sys.stdin)['domains_being_blocked']")
+		queriesToday=$(echo ${json} | python -c "import sys, json; print json.load(sys.stdin)['dns_queries_today']")
+		blockedToday=$(echo ${json} | python -c "import sys, json; print json.load(sys.stdin)['ads_blocked_today']")
+		percentBlockedToday=$(echo ${json} | python -c "import sys, json; print json.load(sys.stdin)['ads_percentage_today']")
 
-
-		CalcQueriesToday
-		CalcblockedToday
-		CalcPercentBlockedToday
-
-		CalcBlockedDomains
 
 		echo "Blocking:      $blockedDomainsTotal"
-		#below commented line does not add up to todaysQueryCount
-		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
 		echo "Queries:       $queriesToday" #same total calculation as dashboard
-	  echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
-
+	    echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
+        json=$(curl -s http://127.0.0.1/admin/api.php?summaryRaw)
 		sleep 5
 	done
 }
+
 
 function displayHelp(){
  	echo "::: Displays stats about your piHole!"
@@ -135,6 +68,7 @@ function displayHelp(){
 }
 
 if [[ $# = 0 ]]; then
+    json=$(curl -s http://127.0.0.1/admin/api.php?summaryRaw)
 	normalChrono
 fi
 
