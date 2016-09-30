@@ -60,6 +60,7 @@ counts = {'lc': 0}
 
 # Create the SQLite connection
 conn = sqlite3.connect('/etc/pihole/pihole.db')
+conn.text_factory = str  # I don't like it as a fix, but it works for now
 c = conn.cursor()
 
 create_tables()
