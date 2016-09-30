@@ -63,7 +63,7 @@ if [ -x "$(command -v apt-get)" ];then
 	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
 	phpVer="php"
 	phpSqliteVer="php-sqlite3"
-	apt-cache show php5 &> /dev/null
+	${SUDO} apt-get install --dry-run php5 > /dev/null 2>&1
 	if [ $? == 0 ]; then
 	    phpVer="php5"
 	    phpSqliteVer="php5-sqlite"
@@ -96,7 +96,7 @@ elif [ -x "$(command -v rpm)" ];then
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php-pdo php git curl unzip wget findutils cronie sudo nmap-ncat sqlite3 python )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo nmap-ncat )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
@@ -542,10 +542,6 @@ installScripts() {
 	${SUDO} cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/version.sh /opt/pihole/version.sh
-
-	${SUDO} cp /etc/.pihole/advanced/Scripts/dnsmasq_parse.py /opt/pihole/dnsmasq_parse.py
-	${SUDO} cp /etc/.pihole/advanced/Scripts/gravity_parse.py /opt/pihole/gravity_parse.py
-
 	${SUDO} chmod 755 /opt/pihole/gravity.sh /opt/pihole/chronometer.sh /opt/pihole/whitelist.sh /opt/pihole/blacklist.sh /opt/pihole/piholeLogFlush.sh /opt/pihole/uninstall.sh /opt/pihole/setupLCD.sh /opt/pihole/version.sh
 	${SUDO} cp /etc/.pihole/pihole /usr/local/bin/pihole
 	${SUDO} chmod 755 /usr/local/bin/pihole
