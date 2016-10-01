@@ -49,6 +49,18 @@ function flushFunc {
 
 
 function updatePiholeFunc {
+
+    if [ ! -d "/etc/.pihole" ]; then #This is unlikely
+        echo "::: Critical Error: Pi-Hole repo missing from system!"
+        echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+        exit 1;
+    fi
+    if [ ! -d "/var/www/html/admin" ]; then #This is unlikely
+        echo "::: Critical Error: Pi-Hole repo missing from system!"
+        echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+        exit 1;
+    fi
+
     echo "::: Checking for updates..."
     piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
     piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
