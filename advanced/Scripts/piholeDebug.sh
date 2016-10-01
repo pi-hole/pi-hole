@@ -81,7 +81,6 @@ function version_check {
 
   echo "::: Writing PHP version to logfile."
   php_ver="$(php -v |& head -n1)" && log_write "${php_ver}" || log_write "PHP not installed."
-
 }
 
 function distro_check {
@@ -190,7 +189,7 @@ function hostnameCheck {
 }
 
 function portCheck {
-    echo "############################################################" >> ${DEBUG_LOG}
+  echo "############################################################" >> ${DEBUG_LOG}
 	echo "########           Open Port Information           #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
 
@@ -407,7 +406,12 @@ echo "############ adlists.list #############" >> ${DEBUG_LOG}
 echo "#######################################" >> ${DEBUG_LOG}
 if [ -e "$ADLISTSFILE" ]
 then
-	cat "$ADLISTSFILE" >> ${DEBUG_LOG}
+  while read -r line; do
+    if [ ! -z "$line" ]; then
+		  [[ "$line" =~ ^#.*$ ]] && continue
+			echo "$line" >> ${DEBUG_LOG}
+	fi
+	done < "$ADLISTSFILE"
 	echo >> ${DEBUG_LOG}
 else
 	echo "No adlists.list file found... using adlists.default!" >> ${DEBUG_LOG}
