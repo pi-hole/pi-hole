@@ -43,7 +43,7 @@ def create_tables():
 
     qt = '''
     CREATE TABLE IF NOT EXISTS gravity (
-        id integer primary key autoincrement,
+        idx integer primary key autoincrement,
         domain text
     )
     '''
