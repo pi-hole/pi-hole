@@ -3,13 +3,14 @@
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
-# Generates pihole_debug.log in /var/log/ to be used for troubleshooting.
+# Generates pihole_debug.log to be used for troubleshooting.
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+set -o pipefail
 
 ######## GLOBAL VARS ########
 DEBUG_LOG="/var/log/pihole_debug.log"
@@ -25,18 +26,27 @@ ADLISTSFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
+# Header info and introduction
+echo "::: Beginning Pi-hole debug at $(date)!"
+echo "::: This debugging process will collect information from your running configuration,"
+echo "::: and optionally upload the generated log to a unique and random directory on"
+echo "::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only"
+echo "::: person who is given the unique URL. Please consider where you post this link."
+echo "::: "
+
 
 ######## FIRST CHECK ########
 # Must be root to debug
-if [[ $EUID -eq 0 ]]; then
-	echo "::: You are root... Beginning debug!"
+if [[ "$EUID" -eq 0 ]]; then
+	echo "::: Script is executing as root user..."
 else
-	echo "::: Sudo will be used for debugging."
+	echo "::: Non-root user detected..."
 	# Check if sudo is actually installed
 	if [ -x "$(command -v sudo)" ]; then
 		export SUDO="sudo"
+		echo "::: sudo command located, debug will run under sudo."
 	else
-		echo "::: Please install sudo or run this as root."
+		echo "::: Unable to locate sudo command. Please install sudo or run this as root."
 		exit 1
 	fi
 fi
@@ -51,68 +61,153 @@ else
 fi
 
 ### Private functions exist here ###
-function versionCheck {
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "########## Versions Section ###########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	
-	TMP=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
-	echo "Pi-hole Version: $TMP" >> ${DEBUG_LOG}
-	
-	TMP=$(cd /var/www/html/admin && git describe --tags --abbrev=0)
-	echo "WebUI Version: $TMP" >> ${DEBUG_LOG}
-	echo >> ${DEBUG_LOG}
+function log_write {
+  echo "$1" >> "${DEBUG_LOG}"
 }
 
-function distroCheck {
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "######## Distribution Section #########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	
+function version_check {
+  log_write "############################################################"
+  log_write "##########           Installed Versions           ##########"
+  log_write "############################################################"
+
+  echo "::: Detecting Pi-hole installed versions."
+  pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
+  && log_write "Pi-hole Version: $pi_hole_ver" || log_write "Pi-hole git repository not detected."
+  admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
+  && log_write "WebUI Version: $admin_ver" || log_write "Pi-hole Admin Pages git repository not detected."
+
+  echo "::: Writing lighttpd version to logfile."
+  light_ver="$(lighttpd -v |& head -n1)" && log_write "${light_ver}" || log_write "lighttpd not installed."
+
+  echo "::: Writing PHP version to logfile."
+  php_ver="$(php -v |& head -n1)" && log_write "${php_ver}" || log_write "PHP not installed."
+}
+
+function distro_check {
+	echo "############################################################" >> ${DEBUG_LOG}
+	echo "########          Installed OS Distribution        #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+	echo "::: Checking installed OS Distribution release."
 	TMP=$(cat /etc/*release || echo "Failed to find release")
-	echo "Distribution Version: $TMP" >> ${DEBUG_LOG}
-}
-	
-function compareWhitelist {
-	if [ ! -f "$WHITELISTMATCHES" ]; then
-		${SUDO} touch ${WHITELISTMATCHES}
-		${SUDO} chmod 644 ${WHITELISTMATCHES}
-		${SUDO} chown "$USER":root ${WHITELISTMATCHES}
-	else
-		truncate -s 0 ${WHITELISTMATCHES}
-	fi
 
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "######## Whitelist Comparison #########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	while read -r line; do
-		TMP=$(grep -w ".* $line$" "$GRAVITYFILE")
-		if [ ! -z "$TMP" ]; then
-			echo "$TMP" >> ${DEBUG_LOG}
-			echo "$TMP"	>> ${WHITELISTMATCHES}
-		fi
-	done < "$WHITELISTFILE"
+	echo "::: Writing OS Distribution release to logfile."
+	echo "$TMP" >> ${DEBUG_LOG}
 	echo >> ${DEBUG_LOG}
 }
 
-function compareBlacklist {
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "######## Blacklist Comparison #########" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
-	while read -r line; do
-		if [ ! -z "$line" ]; then
-			grep -w ".* $line$" "$GRAVITYFILE" >> ${DEBUG_LOG}
-		fi
-	done < "$BLACKLISTFILE"
-	echo >> ${DEBUG_LOG}
+function ip_check {
+	echo "############################################################" >> ${DEBUG_LOG}
+	echo "########           IP Address Information          #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+    echo "::: Writing local IPs to logfile"
+    IPADDR="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')"
+    echo "$IPADDR" >> ${DEBUG_LOG}
+
+    IP6ADDR="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
+    && echo "$IP6ADDR" >> ${DEBUG_LOG} || echo "No IPv6 addresses found." >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
+
+    echo "::: Locating default gateway and checking connectivity"
+    GATEWAY=$(ip r | grep default | cut -d ' ' -f 3)
+    if [[ $? = 0 ]]
+    then
+    echo "::: Pinging default IPv4 gateway..."
+    GATEWAY_CHECK=$(ping -q -w 3 -c 3 -n "${GATEWAY}" | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv4 Gateway check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv4 Gateway check failed:" >> ${DEBUG_LOG}
+        fi
+    echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
+
+    echo "::: Pinging Internet via IPv4..."
+    INET_CHECK=$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv4 Internet check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv4 Internet check failed:" >> ${DEBUG_LOG}
+        fi
+    echo "$INET_CHECK" >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
+    fi
+
+    GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
+    if [[ $? = 0 ]]
+    then
+    echo "::: Pinging default IPv6 gateway..."
+    GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n "${GATEWAY6}" | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv6 Gateway check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv6 Gateway check failed:" >> ${DEBUG_LOG}
+        fi
+
+    echo "::: Pinging Internet via IPv6..."
+    GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n 2001:4860:4860::8888 | tail -n3)
+        if [[ $? = 0 ]]
+        then
+        echo "IPv6 Internet check:" >> ${DEBUG_LOG}
+        else
+        echo "IPv6 Internet check failed:" >> ${DEBUG_LOG}
+        fi
+
+    else
+    GATEWAY_CHECK="No IPv6 Gateway Detected"
+    fi
+    echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
+
+
+    echo >> ${DEBUG_LOG}
 }
 
-function testNslookup {
-	TESTURL="doubleclick.com"
-	echo "#######################################" >> ${DEBUG_LOG}
-	echo "############ NSLookup Test ############" >> ${DEBUG_LOG}
-	echo "#######################################" >> ${DEBUG_LOG}
+function hostnameCheck {
+    echo "############################################################" >> ${DEBUG_LOG}
+	echo "########            Hostname Information           #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+    echo "::: Writing locally configured hostnames to logfile"
+    # Write the hostname output to compare against entries in /etc/hosts, which is logged next
+    echo "This Pi-hole is: $(hostname)" >> ${DEBUG_LOG}
+
+    echo "::: Writing hosts file to debug log..."
+    echo "###              Hosts              ###" >> ${DEBUG_LOG}
+
+    if [ -e "$HOSTSFILE" ]
+    then
+	    cat "$HOSTSFILE" >> ${DEBUG_LOG}
+	    echo >> ${DEBUG_LOG}
+    else
+	    echo "No hosts file found!" >> ${DEBUG_LOG}
+	    printf ":::\tNo hosts file found!\n"
+    fi
+}
+
+function portCheck {
+  echo "############################################################" >> ${DEBUG_LOG}
+	echo "########           Open Port Information           #########" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+    echo "::: Detecting local server port 80 and 53 processes."
+
+    ${SUDO} lsof -i :80 >> ${DEBUG_LOG}
+    ${SUDO} lsof -i :53 >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
+}
+
+function testResolver {
+	echo "############################################################" >> ${DEBUG_LOG}
+	echo "############      Resolver Functions Check      ############" >> ${DEBUG_LOG}
+	echo "############################################################" >> ${DEBUG_LOG}
+
+
 	# Find a blocked url that has not been whitelisted.
+    TESTURL="doubleclick.com"
 	if [ -s "$WHITELISTMATCHES" ]; then
 		while read -r line; do
 			CUTURL=${line#*" "}
@@ -128,12 +223,43 @@ function testNslookup {
 		done < "$GRAVITYFILE"
 	fi
 
-	echo "NSLOOKUP of $TESTURL from PiHole:" >> ${DEBUG_LOG}
-	nslookup "$TESTURL" >> ${DEBUG_LOG}
+	echo "Resolution of $TESTURL from Pi-hole:" >> ${DEBUG_LOG}
+	LOCALDIG=$(dig "$TESTURL" @127.0.0.1)
+	if [[ $? = 0 ]]
+	then
+	    echo "$LOCALDIG" >> ${DEBUG_LOG}
+	else
+	    echo "Failed to resolve $TESTURL on Pi-hole" >> ${DEBUG_LOG}
+	fi
 	echo >> ${DEBUG_LOG}
-	echo "NSLOOKUP of $TESTURL from 8.8.8.8:" >> ${DEBUG_LOG}
-	nslookup "$TESTURL" 8.8.8.8 >> ${DEBUG_LOG}
+
+
+	echo "Resolution of $TESTURL from 8.8.8.8:" >> ${DEBUG_LOG}
+	REMOTEDIG=$(dig "$TESTURL" @8.8.8.8)
+	if [[ $? = 0 ]]
+	then
+	    echo "$REMOTEDIG" >> ${DEBUG_LOG}
+	else
+	    echo "Failed to resolve $TESTURL on 8.8.8.8" >> ${DEBUG_LOG}
+	fi
 	echo >> ${DEBUG_LOG}
+
+	echo "Pi-hole dnsmasq specific records lookups" >> ${DEBUG_LOG}
+    echo "Cache Size:" >> ${DEBUG_LOG}
+    dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
+    echo "Insertions count:" >> ${DEBUG_LOG}
+    dig +short chaos txt insertions.bind >> ${DEBUG_LOG}
+    echo "Evictions count:" >> ${DEBUG_LOG}
+    dig +short chaos txt evictions.bind >> ${DEBUG_LOG}
+    echo "Misses count:" >> ${DEBUG_LOG}
+    dig +short chaos txt misses.bind >> ${DEBUG_LOG}
+    echo "Hits count:" >> ${DEBUG_LOG}
+    dig +short chaos txt hits.bind >> ${DEBUG_LOG}
+    echo "Auth count:" >> ${DEBUG_LOG}
+    dig +short chaos txt auth.bind >> ${DEBUG_LOG}
+    echo "Upstream Servers:" >> ${DEBUG_LOG}
+    dig +short chaos txt servers.bind >> ${DEBUG_LOG}
+    echo >> ${DEBUG_LOG}
 }
 
 function checkProcesses {
@@ -150,6 +276,7 @@ function checkProcesses {
 		echo " processes status:" >> ${DEBUG_LOG}
 		${SUDO} systemctl -l status "$i" >> "$DEBUG_LOG"
 	done
+	echo >> ${DEBUG_LOG}
 }
 
 function debugLighttpd {
@@ -186,26 +313,13 @@ function debugLighttpd {
 
 ### END FUNCTIONS ###
 
-### Check Pi internet connections ###
-# Log the IP addresses of this Pi
-IPADDR=$(${SUDO} ifconfig | perl -nle 's/dr:(\S+)/print $1/e')
-echo "::: Writing local IPs to debug log"
-echo "IP Addresses of this Pi:" >> ${DEBUG_LOG}
-echo "$IPADDR" >> ${DEBUG_LOG}
-echo >> ${DEBUG_LOG}
-
-# Check if we can connect to the local gateway
-GATEWAY_CHECK=$(ping -q -w 1 -c 1 "$(ip r | grep default | cut -d ' ' -f 3)" > /dev/null && echo ok || echo error)
-echo "Gateway check:" >> ${DEBUG_LOG}
-echo "$GATEWAY_CHECK" >> ${DEBUG_LOG}
-echo >> ${DEBUG_LOG}
-
-versionCheck
-distroCheck
-compareWhitelist
-compareBlacklist
-testNslookup
+version_check
+distro_check
+ip_check
+hostnameCheck
+portCheck
 checkProcesses
+testResolver
 debugLighttpd
 
 echo "::: Writing dnsmasq.conf to debug log..."
@@ -258,24 +372,8 @@ else
 	printf ":::\tNo gravity.list file found\n"
 fi
 
-# Write the hostname output to compare against entries in /etc/hosts, which is logged next
-echo "Hostname of this pihole is: " >> ${DEBUG_LOG}
-hostname >> ${DEBUG_LOG}
 
-echo "::: Writing hosts file to debug log..."
-echo "#######################################" >> ${DEBUG_LOG}
-echo "################ Hosts ################" >> ${DEBUG_LOG}
-echo "#######################################" >> ${DEBUG_LOG}
-if [ -e "$HOSTSFILE" ]
-then
-	cat "$HOSTSFILE" >> ${DEBUG_LOG}
-	echo >> ${DEBUG_LOG}
-else
-	echo "No hosts file found!" >> ${DEBUG_LOG}
-	printf ":::\tNo hosts file found!\n"
-fi
-
-### PiHole application specific logging ###
+### Pi-hole application specific logging ###
 echo "::: Writing whitelist to debug log..."
 echo "#######################################" >> ${DEBUG_LOG}
 echo "############## Whitelist ##############" >> ${DEBUG_LOG}
@@ -308,7 +406,12 @@ echo "############ adlists.list #############" >> ${DEBUG_LOG}
 echo "#######################################" >> ${DEBUG_LOG}
 if [ -e "$ADLISTSFILE" ]
 then
-	cat "$ADLISTSFILE" >> ${DEBUG_LOG}
+  while read -r line; do
+    if [ ! -z "$line" ]; then
+		  [[ "$line" =~ ^#.*$ ]] && continue
+			echo "$line" >> ${DEBUG_LOG}
+	fi
+	done < "$ADLISTSFILE"
 	echo >> ${DEBUG_LOG}
 else
 	echo "No adlists.list file found... using adlists.default!" >> ${DEBUG_LOG}
@@ -319,7 +422,7 @@ fi
 # Continuously append the pihole.log file to the pihole_debug.log file
 function dumpPiHoleLog {
 	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo -e "::: Writing current pihole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
+	echo -e "::: Writing current Pi-hole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
 	echo "#######################################" >> ${DEBUG_LOG}
 	echo "############# pihole.log ##############" >> ${DEBUG_LOG}
 	echo "#######################################" >> ${DEBUG_LOG}
