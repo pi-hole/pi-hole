@@ -33,7 +33,6 @@ with conn:
     # Ready new table for list of domains
     gt = '''
     CREATE TABLE IF NOT EXISTS gravity (
-        idx INTEGER PRIMARY KEY ASC,
         domain text
     )
     '''

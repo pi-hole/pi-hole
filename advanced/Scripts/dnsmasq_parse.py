@@ -62,7 +62,6 @@ r_re = re.compile(r'(.*) dnsmasq\[\d+\]: (reply|cached) (.*) is (.*)')
 def create_tables():
     qt = '''
     CREATE TABLE IF NOT EXISTS queries (
-        id integer primary key autoincrement,
         source text,
         query_type text,
         name text,
@@ -74,7 +73,6 @@ def create_tables():
 
     ft = '''
     CREATE TABLE IF NOT EXISTS forwards (
-        id integer primary key autoincrement,
         resolver text,
         name text,
         ts datetime
@@ -85,7 +83,6 @@ def create_tables():
 
     rt = '''
     CREATE TABLE IF NOT EXISTS replies (
-        id integer primary key autoincrement,
         ip text,
         reply_type text,
         name text,
