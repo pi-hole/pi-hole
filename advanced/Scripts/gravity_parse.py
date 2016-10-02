@@ -43,52 +43,33 @@
 
 import sqlite3
 
-#-----------------------------------------------------------------------------
-# Functions
-#-----------------------------------------------------------------------------
-def create_tables():
+# Logfile containing unique list of all domains on downloaded lists.
+logfile = '/etc/pihole/pihole.2.eventHorizon.txt'
 
-    qt = 'DROP TABLE IF EXISTS gravity'
-    c.execute(qt)
-    conn.commit()
+# Create the SQLite connection
+conn = sqlite3.connect('/etc/pihole/pihole.db')
 
+# Python auto-handle commits, no need to call for commits manually
+with conn:
+    c = conn.cursor()
+
+    # Lists have just been downloaded, clear out the existing data
+    c.execute('DROP TABLE IF EXISTS gravity')
+
+    # Ready new table for list of domains
     qt = '''
     CREATE TABLE IF NOT EXISTS gravity (
-        idx integer primary key autoincrement,
+        idx INTEGER PRIMARY KEY ASC,
         domain text
     )
     '''
     c.execute(qt)
-    conn.commit()
 
-#-----------------------------------------------------------------------------
-# Main
-#-----------------------------------------------------------------------------
+    # enable WAL mode
+    c.execute('PRAGMA journal_mode=WAL;')
 
-logfile = '/etc/pihole/pihole.2.eventHorizon.txt'
-
-counts = {'lc': 0}
-
-# Create the SQLite connection
-conn = sqlite3.connect('/etc/pihole/pihole.db')
-conn.text_factory = str  # I don't like it as a fix, but it works for now
-c = conn.cursor()
-
-create_tables()
-
-sql = "DELETE FROM gravity"
-c.execute(sql)
-conn.commit()
-
-# Parse the log file.
-for line in open(logfile):
-    line = line.rstrip()
-    counts['lc'] += 1
-
-    if (counts['lc'] % 10000) == 0:
-        conn.commit()
-
-    sql = "INSERT INTO gravity (domain) VALUES (?)"
-    c.execute(sql, (line,))
-
-conn.commit()
+    # Parse the log file into the database
+    with open(logfile) as f:
+        for line in f:
+            sql = "INSERT INTO gravity (domain) VALUES (?)"
+            c.execute(sql, (line,))
