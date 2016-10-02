@@ -71,19 +71,16 @@ counts = {'lc': 0}
 
 # Create the SQLite connection
 conn = sqlite3.connect('/etc/pihole/pihole.db')
-conn.text_factory = str  # I don't like it as a fix, but it works for now
-c = conn.cursor()
 
-create_tables()
+with conn:
+    c = conn.cursor()
 
-sql = "DELETE FROM gravity"
-c.execute(sql)
-conn.commit()
+    create_tables()
 
-# Parse the log file.
-for line in open(logfile):
-    line = line.rstrip()
-    counts['lc'] += 1
+    # Parse the log file.
+    for line in open(logfile):
+        line = line.rstrip()
+        counts['lc'] += 1
 
     if (counts['lc'] % 10000) == 0:
         conn.commit()
