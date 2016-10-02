@@ -158,8 +158,8 @@ verifyFreeDiskSpace() {
         echo "::: Unknown free disk space!"
         echo "::: We were unable to determine available free disk space on this system."
         echo "::: You may override this check and force the installation, however, it is not recommended"
-        echo "::: To do so, pass the argument '--force' to the install script"
-        echo "::: eg. curl -L https://install.pi-hole.net | bash /dev/stdin --force"
+        echo "::: To do so, pass the argument '--i_do_not_follow_recommendations' to the install script"
+        echo "::: eg. curl -L https://install.pi-hole.net | bash /dev/stdin --i_do_not_follow_recommendations"
         exit 1
 	# - Insufficient free disk space
 	elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
@@ -927,8 +927,9 @@ fi
 
 # Start the installer
 # Verify there is enough disk space for the install
-if [ $1 = "--force" ]; then
-    echo "::: --force passed to script, skipping free disk space verification!"
+if [ $1 = "--i_do_not_follow_recommendations" ]; then
+    echo "::: ----i_do_not_follow_recommendations passed to script"
+    echo "::: skipping free disk space verification!"
 else
     verifyFreeDiskSpace
 fi
