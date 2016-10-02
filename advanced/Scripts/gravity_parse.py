@@ -24,6 +24,9 @@ conn = sqlite3.connect('/etc/pihole/gravity.db')
 with conn:
     c = conn.cursor()
 
+    # enable WAL mode
+    c.execute('PRAGMA journal_mode=WAL;')
+
     # Lists have just been downloaded, clear out the existing data
     c.execute('DROP TABLE IF EXISTS gravity')
 
@@ -35,9 +38,6 @@ with conn:
     )
     '''
     c.execute(gt)
-
-    # enable WAL mode
-    c.execute('PRAGMA journal_mode=WAL;')
 
     # Parse the log file into the database
     with open(logfile) as f:
