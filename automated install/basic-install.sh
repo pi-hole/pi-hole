@@ -820,7 +820,6 @@ installPihole() {
 	getGitFiles
 	installScripts
 	installConfigs
-	installConfigs
 	CreateLogFile
 	configureSelinux
 	installPiholeWeb
@@ -836,7 +835,6 @@ updatePihole() {
 	stopServices
 	getGitFiles
 	installScripts
-	installConfigs
 	installConfigs
 	CreateLogFile
 	configureSelinux
