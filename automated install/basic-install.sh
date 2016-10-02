@@ -926,13 +926,13 @@ if [[ -f ${setupVars} ]];then
 fi
 
 # Start the installer
+# Verify there is enough disk space for the install
+verifyFreeDiskSpace
 # Install packages used by this installation script
 installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
-    # Verify there is enough disk space for the install
-    verifyFreeDiskSpace
     ${SUDO} mkdir -p /etc/pihole/
 
     # Find IP used to route to outside world
