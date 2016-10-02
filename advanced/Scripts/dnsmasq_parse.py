@@ -147,21 +147,22 @@ logfile = sys.argv[1]
 
 # Create the SQLite connection
 conn = sqlite3.connect('/etc/pihole/pihole.db')
-c = conn.cursor()
 
-create_tables()
+with conn:
+    c = conn.cursor()
 
-# Parse the log file.
-for line in open(logfile):
-    line = line.rstrip()
+    create_tables()
 
-    if ': query[' in line:
-        parse_query(line)
+    # Parse the log file.
+    for line in open(logfile):
+        line = line.rstrip()
 
-    elif ': forwarded ' in line:
-        parse_forward(line)
+        if ': query[' in line:
+            parse_query(line)
 
-    elif (': reply ' in line) or (': cached ' in line):
-        parse_reply(line)
+        elif ': forwarded ' in line:
+            parse_forward(line)
 
-conn.commit()
+        elif (': reply ' in line) or (': cached ' in line):
+            parse_reply(line)
+

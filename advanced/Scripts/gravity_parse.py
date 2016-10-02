@@ -18,7 +18,7 @@ import sqlite3
 logfile = '/etc/pihole/pihole.2.eventHorizon.txt'
 
 # Create the SQLite connection
-conn = sqlite3.connect('/etc/pihole/gravity.db')
+conn = sqlite3.connect('/etc/pihole/pihole.db')
 
 # Python auto-handle commits, no need to call for commits manually
 with conn:
