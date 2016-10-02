@@ -804,7 +804,6 @@ installPihole() {
 	checkForDependencies # done
 	stopServices
 	setUser
-	${SUDO} mkdir -p /etc/pihole/
 	if [ ! -d "/var/www/html" ]; then
 		${SUDO} mkdir -p /var/www/html
 	fi
@@ -939,7 +938,7 @@ installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
-
+    ${SUDO} mkdir -p /etc/pihole/
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
