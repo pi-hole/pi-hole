@@ -154,15 +154,16 @@ with conn:
     create_tables()
 
     # Parse the log file.
-    for line in open(logfile):
-        line = line.rstrip()
+    with open(logfile) as f:
+        for line in f:
+            line = line.rstrip()
 
-        if ': query[' in line:
-            parse_query(line)
+            if ': query[' in line:
+                parse_query(line)
 
-        elif ': forwarded ' in line:
-            parse_forward(line)
+            elif ': forwarded ' in line:
+                parse_forward(line)
 
-        elif (': reply ' in line) or (': cached ' in line):
-            parse_reply(line)
+            elif (': reply ' in line) or (': cached ' in line):
+                parse_reply(line)
 
