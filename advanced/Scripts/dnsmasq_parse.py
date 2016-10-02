@@ -30,6 +30,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Pi-hole: A black hole for Internet advertisements
+# (c) 2015, 2016 by Jacob Salmela
+# Network-wide ad blocking via your Raspberry Pi
+# http://pi-hole.net
+# Controller for all pihole scripts and functions.
+#
+# Pi-hole is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
 
 import datetime
 import sqlite3
@@ -151,7 +162,6 @@ for line in open(logfile):
     counts['lc'] += 1
 
     if (counts['lc'] % 10000) == 0:
-        print 'Processed {0} lines.'.format(counts['lc'])
         conn.commit()
 
     if ': query[' in line:
@@ -165,10 +175,5 @@ for line in open(logfile):
 
     else:
         counts['bc'] += 1
-
-print 'Imported {0} log entries.'.format(counts['lc'] - counts['bc'])
-print '{0} queries, {1} forwards, and {2} replies.'.format(counts['qc'],
-                                                           counts['fc'],
-                                                           counts['rc'])
 
 conn.commit()
