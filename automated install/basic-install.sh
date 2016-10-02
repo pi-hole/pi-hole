@@ -933,7 +933,6 @@ installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
-    ${SUDO} mkdir -p /etc/pihole/
 
     # Find IP used to route to outside world
     findIPRoute
