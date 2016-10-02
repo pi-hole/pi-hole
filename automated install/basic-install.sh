@@ -166,9 +166,9 @@ verifyFreeDiskSpace() {
 		fi
 
 	# - Insufficient free disk space
-	elif [[ $existing_free_kilobytes -lt $required_free_kilobytes ]]; then
+	elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
 
-		whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $required_free_kilobytes KiloBytes.\nYou only have $existing_free_kilobytes KiloBytes free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" $r $c
+		whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $required_free_kilobytes KiloBytes.\nYou only have $existing_free_kilobytes KiloBytes free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" ${r} ${c}
 		echo "$existing_free_kilobytes is less than $required_free_kilobytes"
 		echo "Insufficient free space, exiting..."
 		exit 1
