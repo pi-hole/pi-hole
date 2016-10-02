@@ -77,6 +77,9 @@ with conn:
 
     create_tables()
 
+    # enable WAL mode
+    c.execute('PRAGMA journal_mode=WAL;')
+
     # Parse the log file.
     for line in open(logfile):
         line = line.rstrip()
@@ -87,5 +90,3 @@ with conn:
 
     sql = "INSERT INTO gravity (domain) VALUES (?)"
     c.execute(sql, (line,))
-
-conn.commit()
