@@ -62,7 +62,6 @@ r_re = re.compile(r'(.*) dnsmasq\[\d+\]: (reply|cached) (.*) is (.*)')
 def create_tables():
     qt = '''
     CREATE TABLE IF NOT EXISTS queries (
-        id integer primary key autoincrement,
         source text,
         query_type text,
         name text,
@@ -74,7 +73,6 @@ def create_tables():
 
     ft = '''
     CREATE TABLE IF NOT EXISTS forwards (
-        id integer primary key autoincrement,
         resolver text,
         name text,
         ts datetime
@@ -85,7 +83,6 @@ def create_tables():
 
     rt = '''
     CREATE TABLE IF NOT EXISTS replies (
-        id integer primary key autoincrement,
         ip text,
         reply_type text,
         name text,
@@ -106,21 +103,18 @@ def convert_date(ds):
 def parse_query(query):
     m = q_re.match(query)
     if m is not None:
-        counts['qc'] += 1
         add_query(m.group(4), m.group(2), m.group(3), m.group(1))
 
 
 def parse_forward(query):
     m = f_re.match(query)
     if m is not None:
-        counts['fc'] += 1
         add_forward(m.group(3), m.group(2), m.group(1))
 
 
 def parse_reply(query):
     m = r_re.match(query)
     if m is not None:
-        counts['rc'] += 1
         add_reply(m.group(4), m.group(2), m.group(3), m.group(1))
 
 
@@ -148,32 +142,25 @@ if len(sys.argv) != 2:
 
 logfile = sys.argv[1]
 
-counts = {'lc': 0, 'qc': 0, 'fc': 0, 'rc': 0, 'bc':0}
-
 # Create the SQLite connection
 conn = sqlite3.connect('/etc/pihole/pihole.db')
-c = conn.cursor()
 
-create_tables()
+with conn:
+    c = conn.cursor()
 
-# Parse the log file.
-for line in open(logfile):
-    line = line.rstrip()
-    counts['lc'] += 1
+    create_tables()
 
-    if (counts['lc'] % 10000) == 0:
-        conn.commit()
+    # Parse the log file.
+    with open(logfile) as f:
+        for line in f:
+            line = line.rstrip()
 
-    if ': query[' in line:
-        parse_query(line)
+            if ': query[' in line:
+                parse_query(line)
 
-    elif ': forwarded ' in line:
-        parse_forward(line)
+            elif ': forwarded ' in line:
+                parse_forward(line)
 
-    elif (': reply ' in line) or (': cached ' in line):
-        parse_reply(line)
+            elif (': reply ' in line) or (': cached ' in line):
+                parse_reply(line)
 
-    else:
-        counts['bc'] += 1
-
-conn.commit()
