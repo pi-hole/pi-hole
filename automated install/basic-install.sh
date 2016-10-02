@@ -149,27 +149,27 @@ verifyFreeDiskSpace() {
 
 	# 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
 	# - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
+	echo "::: Verifying free disk space..."
 	local required_free_kilobytes=51200
 	local existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
 
 	# - Unknown free disk space , not a integer
 	if ! [[ "$existing_free_kilobytes" =~ ^([0-9])+$ ]]; then
-
-		whiptail --title "Unknown free disk space" --yesno "We were unable to determine available free disk space on this system.\n\nYou may override this check and force the installation, however, it is not recommended.\n\nWould you like to continue with the installation?" --defaultno --backtitle "Pi-hole" ${r} ${c}
-		local choice=$?
-		if (( $choice != 0 )); then
-
-			echo "non-integer value from existing_free_kilobytes ($existing_free_kilobytes)"
-			echo "Unknown free space, user aborted, exiting..."
-			exit 1
-
-		fi
-
+        echo "::: Unknown free disk space!"
+        echo "::: We were unable to determine available free disk space on this system."
+        echo "::: You may override this check and force the installation, however, it is not recommended"
+        echo "::: To do so, pass the argument '--force' to the install script"
+        echo "::: eg. curl -L https://install.pi-hole.net | bash /dev/stdin --force"
+        exit 1
 	# - Insufficient free disk space
 	elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
+	    echo "::: Insufficient Disk Space!"
+	    echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+	    echo "::: You only have $existing_free_kilobytes KiloBytes free."
+	    echo "::: If this is a new install you may need to expand your disk."
+	    echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
+	    echo "::: After rebooting, run this installation again. (curl -L https://install.pi-hole.net | bash)"
 
-		whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $required_free_kilobytes KiloBytes.\nYou only have $existing_free_kilobytes KiloBytes free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" ${r} ${c}
-		echo "$existing_free_kilobytes is less than $required_free_kilobytes"
 		echo "Insufficient free space, exiting..."
 		exit 1
 
@@ -927,7 +927,12 @@ fi
 
 # Start the installer
 # Verify there is enough disk space for the install
-verifyFreeDiskSpace
+if [ $1 = "--force" ]; then
+    echo "::: --force passed to script, skipping free disk space verification!"
+else
+    verifyFreeDiskSpace
+fi
+
 # Install packages used by this installation script
 installerDependencies
 
