@@ -43,31 +43,7 @@
 
 import sqlite3
 
-#-----------------------------------------------------------------------------
-# Functions
-#-----------------------------------------------------------------------------
-def create_tables():
-
-    qt = 'DROP TABLE IF EXISTS gravity'
-    c.execute(qt)
-    conn.commit()
-
-    qt = '''
-    CREATE TABLE IF NOT EXISTS gravity (
-        idx integer primary key autoincrement,
-        domain text
-    )
-    '''
-    c.execute(qt)
-    conn.commit()
-
-#-----------------------------------------------------------------------------
-# Main
-#-----------------------------------------------------------------------------
-
 logfile = '/etc/pihole/pihole.2.eventHorizon.txt'
-
-counts = {'lc': 0}
 
 # Create the SQLite connection
 conn = sqlite3.connect('/etc/pihole/pihole.db')
@@ -75,18 +51,21 @@ conn = sqlite3.connect('/etc/pihole/pihole.db')
 with conn:
     c = conn.cursor()
 
-    create_tables()
+    c.execute('DROP TABLE IF EXISTS gravity')
+
+    qt = '''
+    CREATE TABLE IF NOT EXISTS gravity (
+        idx INTEGER PRIMARY KEY ASC,
+        domain text
+    )
+    '''
+    c.execute(qt)
 
     # enable WAL mode
     c.execute('PRAGMA journal_mode=WAL;')
 
     # Parse the log file.
-    for line in open(logfile):
-        line = line.rstrip()
-        counts['lc'] += 1
-
-    if (counts['lc'] % 10000) == 0:
-        conn.commit()
-
-    sql = "INSERT INTO gravity (domain) VALUES (?)"
-    c.execute(sql, (line,))
+    with open(logfile) as f:
+        for line in f:
+            sql = "INSERT INTO gravity (domain) VALUES (?)"
+            c.execute(sql, (line,))
