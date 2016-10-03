@@ -916,18 +916,21 @@ updateDialogs(){
 }
 
 ######## SCRIPT ############
-if [[ -f ${setupVars} ]];then
-    . ${setupVars}
+readSetupVarsIfPresent() {
+    if [ -f ${setupVars} ];then
+        . ${setupVars}
 
-    if [ "$1" == "pihole" ]; then
-        useUpdateVars=true
-    else
-        updateDialogs
+        if [ "$1" == "pihole" ]; then
+            useUpdateVars=true
+        else
+            updateDialogs
+        fi
     fi
-
-fi
+}
 
 # Start the installer
+readSetupVarsIfPresent "${1}"
+
 # Install packages used by this installation script
 installerDependencies
 
