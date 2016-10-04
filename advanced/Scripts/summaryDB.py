@@ -48,6 +48,10 @@ with conn:
     '''
     c.execute(gt)
 
+    #Delete entries more than 7 days old. TODO: make this a configurable number in /etc/pihole/setupVars.conf
+    sql = "DELETE FROM summaries WHERE ts <= date('now', '-7 day')"
+    c.execute(sql);
+
     #Insert values into summaries table
     sql = "INSERT INTO summaries (ts, domains_being_blocked, dns_queries_today, ads_blocked_today, ads_percentage_today) VALUES (?,?,?,?,?)"
     c.execute(sql, (datetime.now(), api_domains_being_blocked, api_dns_queries_today, api_ads_blocked_today, api_ads_percentage_today))
