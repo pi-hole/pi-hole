@@ -43,6 +43,9 @@ function debugFunc {
 }
 
 function flushFunc {
+    echo "::: Saving current summary..."
+    python /opt/pihole/summaryDB.py
+    echo "::: Flushing queries from database..."
     sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS queries"
     sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS forwards"
     sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS replies"
