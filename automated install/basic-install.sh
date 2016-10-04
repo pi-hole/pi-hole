@@ -545,6 +545,7 @@ installScripts() {
 
 	${SUDO} cp /etc/.pihole/advanced/Scripts/dnsmasq_parse.py /opt/pihole/dnsmasq_parse.py
  	${SUDO} cp /etc/.pihole/advanced/Scripts/gravity_parse.py /opt/pihole/gravity_parse.py
+ 	${SUDO} cp /etc/.pihole/advanced/Scripts/summaryDB.py /opt/pihole/summaryDB.py
 
 	${SUDO} chmod 755 /opt/pihole/gravity.sh /opt/pihole/chronometer.sh /opt/pihole/whitelist.sh /opt/pihole/blacklist.sh /opt/pihole/piholeLogFlush.sh /opt/pihole/uninstall.sh /opt/pihole/setupLCD.sh /opt/pihole/version.sh
 	${SUDO} cp /etc/.pihole/pihole /usr/local/bin/pihole
