@@ -534,7 +534,7 @@ installScripts() {
 	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
 	${SUDO} install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
 
-	${SUDO} cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+	${SUDO} install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	. /etc/bash_completion.d/pihole
 
 	#Tidy up /usr/local/bin directory if installing over previous install.
