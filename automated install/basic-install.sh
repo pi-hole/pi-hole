@@ -550,8 +550,8 @@ installScripts() {
 
 installConfigs() {
 	# Install the configs from /etc/.pihole to their various locations
-	${SUDO} echo ":::"
-	${SUDO} echo "::: Installing configs..."
+	echo ":::"
+	echo "::: Installing configs..."
 	versionCheckDNSmasq
 	if [ ! -d "/etc/lighttpd" ]; then
 		${SUDO} mkdir /etc/lighttpd
@@ -567,15 +567,15 @@ installConfigs() {
 
 stopServices() {
 	# Stop dnsmasq and lighttpd
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Stopping services..."
+	echo ":::"
+	echo -n "::: Stopping services..."
 	#$SUDO service dnsmasq stop & spinner $! || true
 	if [ -x "$(command -v systemctl)" ]; then
 		${SUDO} systemctl stop lighttpd & spinner $! || true
 	else
 		${SUDO} service lighttpd stop & spinner $! || true
 	fi
-	${SUDO} echo " done."
+	echo " done."
 }
 
 installerDependencies() {
