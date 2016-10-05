@@ -526,13 +526,11 @@ installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	${SUDO} echo ":::"
 	${SUDO} echo -n "::: Installing scripts to /opt/pihole..."
-	${SUDO} install -o ${USER} -m755 -d /opt/pihole
-	
-	${SUDO} cp /etc/.pihole/gravity.sh /opt/pihole/gravity.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/chronometer.sh /opt/pihole/chronometer.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/whitelist.sh /opt/pihole/whitelist.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/blacklist.sh /opt/pihole/blacklist.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeDebug.sh /opt/pihole/piholeDebug.sh
+	${SUDO} install -o "${USER}" -m755 -d /opt/pihole
+
+	cd /etc/.pihole/
+
+	${SUDO} install cp "${USER}" -m755 -d /opt/pihole/ gravity.sh chronometer.sh whitelist.sh blacklist.sh piholeDebug.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
 	${SUDO} cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
