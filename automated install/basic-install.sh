@@ -526,11 +526,8 @@ installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	${SUDO} echo ":::"
 	${SUDO} echo -n "::: Installing scripts to /opt/pihole..."
-	if [ ! -d /opt/pihole ]; then
-		${SUDO} mkdir /opt/pihole
-		${SUDO} chown "$USER":root /opt/pihole
-		${SUDO} chmod u+srwx /opt/pihole
-	fi
+	${SUDO} install -o ${USER} -m755 -d /opt/pihole
+	
 	${SUDO} cp /etc/.pihole/gravity.sh /opt/pihole/gravity.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/chronometer.sh /opt/pihole/chronometer.sh
 	${SUDO} cp /etc/.pihole/advanced/Scripts/whitelist.sh /opt/pihole/whitelist.sh
