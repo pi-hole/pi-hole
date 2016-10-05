@@ -524,8 +524,8 @@ versionCheckDNSmasq(){
 
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Installing scripts to /opt/pihole..."
+	echo ":::"
+	echo -n "::: Installing scripts to /opt/pihole..."
 	${SUDO} install -o "${USER}" -m755 -d /opt/pihole
 
 	cd /etc/.pihole/
@@ -545,7 +545,7 @@ installScripts() {
 		fi
 	done
 
-	${SUDO} echo " done."
+	echo " done."
 }
 
 installConfigs() {
