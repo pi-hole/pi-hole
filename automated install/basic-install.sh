@@ -530,12 +530,8 @@ installScripts() {
 
 	cd /etc/.pihole/
 
-	${SUDO} install cp "${USER}" -m755 -d /opt/pihole/ gravity.sh chronometer.sh whitelist.sh blacklist.sh piholeDebug.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
-	${SUDO} cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/version.sh /opt/pihole/version.sh
-	${SUDO} chmod 755 /opt/pihole/gravity.sh /opt/pihole/chronometer.sh /opt/pihole/whitelist.sh /opt/pihole/blacklist.sh /opt/pihole/piholeLogFlush.sh /opt/pihole/uninstall.sh /opt/pihole/setupLCD.sh /opt/pihole/version.sh
+	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
+	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
 	${SUDO} cp /etc/.pihole/pihole /usr/local/bin/pihole
 	${SUDO} chmod 755 /usr/local/bin/pihole
 	${SUDO} cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
