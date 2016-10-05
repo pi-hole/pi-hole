@@ -532,8 +532,8 @@ installScripts() {
 
 	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
 	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
-	${SUDO} cp /etc/.pihole/pihole /usr/local/bin/pihole
-	${SUDO} chmod 755 /usr/local/bin/pihole
+	${SUDO} install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
+
 	${SUDO} cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	. /etc/bash_completion.d/pihole
 
