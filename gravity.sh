@@ -39,13 +39,6 @@ function helpFunc()
 	exit 1
 }
 
-piholeIPfile=/etc/pihole/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
-
-adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
-whitelistScript=/opt/pihole/whitelist.sh
-blacklistScript=/opt/pihole/blacklist.sh
 
 if [[ -f ${piholeIPfile} ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
@@ -63,25 +56,10 @@ if [[ -f ${piholeIPv6file} ]];then
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-# Variables for various stages of downloading and formatting the list
-## Nate 3/26/2016 - Commented unused variables
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-#blacklist=$piholeDir/blacklist.txt
-#whitelist=$piholeDir/whitelist.txt
-#latentWhitelist=$piholeDir/latentWhitelist.txt
-justDomainsExtension=domains
-matterandlight=${basename}.0.matterandlight.txt
-supernova=${basename}.1.supernova.txt
-eventHorizon=${basename}.2.eventHorizon.txt
-accretionDisc=${basename}.3.accretionDisc.txt
-#eyeOfTheNeedle=$basename.4.wormhole.txt
-
 # After setting defaults, check if there's local overrides
-if [[ -r ${piholeDir}/pihole.conf ]];then
+if [[ -r pihole.conf ]];then
     echo "::: Local calibration requested..."
-        . ${piholeDir}/pihole.conf
+        source pihole.conf
 fi
 
 ###########################
@@ -226,7 +204,7 @@ function gravity_Blacklist(){
 	echo -n "::: Running blacklist script to update HOSTS file...."
 	${blacklistScript} -f -nr -q > /dev/null
 
-	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
+	numBlacklisted=$(wc -l < "${blacklist}")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
 	echo " $numBlacklisted domain${plural} blacklisted!"
 }
@@ -247,7 +225,7 @@ function gravity_Whitelist() {
 
 	echo -n "::: Running whitelist script to update HOSTS file...."
 	${whitelistScript} -f -nr -q "${urls[@]}" > /dev/null
-	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
+	numWhitelisted=$(wc -l < "${whitelist}")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
 	echo " $numWhitelisted domain${plural} whitelisted!"
 }
@@ -316,27 +294,31 @@ function gravity_reload() {
 	echo -n "::: Cleaning up un-needed files..."
 	${SUDO} rm ${piholeDir}/pihole.*.txt
 	echo " done!"
-
-	# Reload hosts file
-	echo ":::"
-	echo -n "::: Refresh lists in dnsmasq..."
-	
-	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
-	#First escape forward slashes in the path:
-	adList=${adList//\//\\\/}
-	#Now replace the line in dnsmasq file
-	${SUDO} sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
-	dnsmasqPid=$(pidof dnsmasq)
-
-    find "$piholeDir" -type f -exec ${SUDO} chmod 666 {} \;
-
-	if [[ ${dnsmasqPid} ]]; then
-		# service already running - reload config
-		${SUDO} killall -s HUP dnsmasq
+        if [ ${etchosts} == "1" ] ; then
+		${SUDO} cp ${adList} /etc/hosts
 	else
-		# service not running, start it up
-		${SUDO} service dnsmasq start
+        	# Reload hosts file
+        	echo ":::"
+        	echo -n "::: Refresh lists in dnsmasq..."
+
+        	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
+        	#First escape forward slashes in the path:
+	        adList=${adList//\//\\\/}
+        	#Now replace the line in dnsmasq file
+		${SUDO} sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
+		dnsmasqPid=$(pidof dnsmasq)
+		if [[ ${dnsmasqPid} ]]; then
+			# service already running - reload config
+			${SUDO} killall -s HUP dnsmasq
+		else
+			# service not running, start it up
+			${SUDO} service dnsmasq start
+		fi
 	fi
+#       SHOULDNT NEED TO CHMOD THE WHOLE DIR
+#       find "$piholeDir" -type f -exec ${SUDO} chmod 666 {} \;
+        ${SUDO} chmod 644 "${adList}"
+
 	echo " done!"
 }
 
@@ -357,7 +339,7 @@ if [[ ${forceGrav} == true ]]; then
 	echo " done!"
 fi
 
-${SUDO} cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+#${SUDO} cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
