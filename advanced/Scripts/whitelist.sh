@@ -45,21 +45,15 @@ if [[ $# = 0 ]]; then
 	helpFunc
 fi
 
-#globals
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-whitelist=${piholeDir}/whitelist.txt
-reload=true
-addmode=true
-force=false
-verbose=true
+# After setting defaults, check if there's local overrides
+if [[ -r ../../pihole.conf ]];then
+    echo "::: Local calibration requested..."
+        source ../../pihole.conf
+fi
+
 
 domList=()
 domToRemoveList=()
-
-piholeIPfile=/etc/pihole/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
 
 if [[ -f ${piholeIPfile} ]];then
     # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
@@ -73,12 +67,6 @@ else
 fi
 
 modifyHost=false
-
-# After setting defaults, check if there's local overrides
-if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: Local calibration requested..."
-        . ${piholeDir}/pihole.conf
-fi
 
 if [[ -f ${piholeIPv6file} ]];then
     # If the file exists, then the user previously chose to use IPv6 in the automated installer
@@ -160,8 +148,8 @@ function ModifyHostFile(){
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
         echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
-        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIP $line"; done > /etc/pihole/whitelist.tmp
-        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIPv6 $line"; done >> /etc/pihole/whitelist.tmp
+        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIP $line"; done > ${piholeDir}/whitelist.tmp
+        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIPv6 $line"; done >> ${piholeDir}/whitelist.tmp
         echo "l" >> /etc/pihole/whitelist.tmp
         grep -F -x -v -f ${piholeDir}/whitelist.tmp ${adList} > ${piholeDir}/gravity.tmp
         rm ${adList}
