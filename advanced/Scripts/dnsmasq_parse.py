@@ -65,7 +65,8 @@ def create_tables():
         source text,
         query_type text,
         name text,
-        ts datetime
+        ts datetime,
+        piholed bool
     )
     '''
     c.execute(qt)
@@ -103,7 +104,14 @@ def convert_date(ds):
 def parse_query(query):
     m = q_re.match(query)
     if m is not None:
-        add_query(m.group(4), m.group(2), m.group(3), m.group(1))
+        add_query(m.group(4), m.group(2), m.group(3), m.group(1),check_gravity(m.group(3)))
+
+
+def check_gravity(txt):
+    for entry in gravFile:
+        if entry == txt:
+            return True
+    return False
 
 
 def parse_forward(query):
@@ -118,9 +126,9 @@ def parse_reply(query):
         add_reply(m.group(4), m.group(2), m.group(3), m.group(1))
 
 
-def add_query(source, qtype, name, ts):
-    sql = "INSERT INTO queries (source, query_type, name, ts) VALUES(?,?,?,?)"
-    c.execute(sql, (source, qtype, name, convert_date(ts)))
+def add_query(source, qtype, name, ts, blocked):
+    sql = "INSERT INTO queries (source, query_type, name, ts, piholed) VALUES(?,?,?,?,?)"
+    c.execute(sql, (source, qtype, name, convert_date(ts), blocked))
 
 
 def add_forward(resolver, name, ts):
@@ -145,6 +153,12 @@ logfile = sys.argv[1]
 # Create the SQLite connection
 conn = sqlite3.connect('/etc/pihole/pihole.db')
 
+gravFile = []
+
+with open('/etc/pihole/gravity.list', 'r') as g:
+    for line in g:
+        gravFile.append(line.rstrip().split(' ')[1])
+
 with conn:
     c = conn.cursor()
 
@@ -163,4 +177,3 @@ with conn:
 
             elif (': reply ' in line) or (': cached ' in line):
                 parse_reply(line)
-
