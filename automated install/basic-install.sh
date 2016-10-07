@@ -690,23 +690,23 @@ update_repo() {
 CreateLogFile() {
 	# Create logfiles if necessary
 	echo ":::"
-	${SUDO}  echo -n "::: Creating log file and changing owner to dnsmasq..."
+	echo -n "::: Creating log file and changing owner to dnsmasq..."
 	if [ ! -f /var/log/pihole.log ]; then
 		${SUDO} touch /var/log/pihole.log
 		${SUDO} chmod 644 /var/log/pihole.log
 		${SUDO} chown dnsmasq:root /var/log/pihole.log
-		${SUDO} echo " done!"
+		echo " done!"
 	else
-		${SUDO}  echo " already exists!"
+		echo " already exists!"
 	fi
 }
 
 installPiholeWeb() {
 	# Install the web interface
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Installing pihole custom index page..."
+	echo ":::"
+	echo -n "::: Installing pihole custom index page..."
 	if [ -d "/var/www/html/pihole" ]; then
-		${SUDO} echo " Existing page detected, not overwriting"
+		echo " Existing page detected, not overwriting"
 	else
 		${SUDO} mkdir /var/www/html/pihole
 		if [ -f /var/www/html/index.lighttpd.html ]; then
@@ -715,7 +715,7 @@ installPiholeWeb() {
 			printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
 		fi
 		${SUDO} cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
-		${SUDO} echo " done!"
+		echo " done!"
 	fi
 	# Install Sudoer file
 	echo -n "::: Installing sudoer file..."
@@ -727,16 +727,16 @@ installPiholeWeb() {
 
 installCron() {
 	# Install the cron job
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Installing latest Cron script..."
+	echo ":::"
+	echo -n "::: Installing latest Cron script..."
 	${SUDO} cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
-	${SUDO} echo " done!"
+	echo " done!"
 }
 
 runGravity() {
 	# Rub gravity.sh to build blacklists
-	${SUDO} echo ":::"
-	${SUDO} echo "::: Preparing to run gravity.sh to refresh hosts..."
+	echo ":::"
+	echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
 		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
 		${SUDO} rm /etc/pihole/list.*
