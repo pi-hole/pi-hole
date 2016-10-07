@@ -151,27 +151,27 @@ verifyFreeDiskSpace() {
 
 	# 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
 	# - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
+	echo "::: Verifying free disk space..."
 	local required_free_kilobytes=51200
 	local existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
 
 	# - Unknown free disk space , not a integer
 	if ! [[ "$existing_free_kilobytes" =~ ^([0-9])+$ ]]; then
-
-		whiptail --title "Unknown free disk space" --yesno "We were unable to determine available free disk space on this system.\n\nYou may override this check and force the installation, however, it is not recommended.\n\nWould you like to continue with the installation?" --defaultno --backtitle "Pi-hole" ${r} ${c}
-		local choice=$?
-		if (( $choice != 0 )); then
-
-			echo "non-integer value from existing_free_kilobytes ($existing_free_kilobytes)"
-			echo "Unknown free space, user aborted, exiting..."
-			exit 1
-
-		fi
-
+        echo "::: Unknown free disk space!"
+        echo "::: We were unable to determine available free disk space on this system."
+        echo "::: You may override this check and force the installation, however, it is not recommended"
+        echo "::: To do so, pass the argument '--i_do_not_follow_recommendations' to the install script"
+        echo "::: eg. curl -L https://install.pi-hole.net | bash /dev/stdin --i_do_not_follow_recommendations"
+        exit 1
 	# - Insufficient free disk space
-	elif [[ $existing_free_kilobytes -lt $required_free_kilobytes ]]; then
+	elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
+	    echo "::: Insufficient Disk Space!"
+	    echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+	    echo "::: You only have $existing_free_kilobytes KiloBytes free."
+	    echo "::: If this is a new install you may need to expand your disk."
+	    echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
+	    echo "::: After rebooting, run this installation again. (curl -L https://install.pi-hole.net | bash)"
 
-		whiptail --msgbox --backtitle "Insufficient Disk Space" --title "Insufficient Disk Space" "\nYour system appears to be low on disk space. pi-hole recomends a minimum of $required_free_kilobytes KiloBytes.\nYou only have $existing_free_kilobytes KiloBytes free.\n\nIf this is a new install you may need to expand your disk.\n\nTry running:\n    'sudo raspi-config'\nChoose the 'expand file system option'\n\nAfter rebooting, run this installation again.\n\ncurl -L install.pi-hole.net | bash\n" $r $c
-		echo "$existing_free_kilobytes is less than $required_free_kilobytes"
 		echo "Insufficient free space, exiting..."
 		exit 1
 
@@ -526,30 +526,18 @@ versionCheckDNSmasq(){
 
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Installing scripts to /opt/pihole..."
-	if [ ! -d /opt/pihole ]; then
-		${SUDO} mkdir /opt/pihole
-		${SUDO} chown "$USER":root /opt/pihole
-		${SUDO} chmod u+srwx /opt/pihole
-	fi
-	${SUDO} cp /etc/.pihole/gravity.sh /opt/pihole/gravity.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/chronometer.sh /opt/pihole/chronometer.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/whitelist.sh /opt/pihole/whitelist.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/blacklist.sh /opt/pihole/blacklist.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeDebug.sh /opt/pihole/piholeDebug.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
-	${SUDO} cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/version.sh /opt/pihole/version.sh
+	echo ":::"
+	echo -n "::: Installing scripts to /opt/pihole..."
+	${SUDO} install -o "${USER}" -m755 -d /opt/pihole
 
-	${SUDO} cp /etc/.pihole/advanced/Scripts/dnsmasq_parse.py /opt/pihole/dnsmasq_parse.py
- 	${SUDO} cp /etc/.pihole/advanced/Scripts/summaryDB.py /opt/pihole/summaryDB.py
+	cd /etc/.pihole/
 
-	${SUDO} chmod 755 /opt/pihole/gravity.sh /opt/pihole/chronometer.sh /opt/pihole/whitelist.sh /opt/pihole/blacklist.sh /opt/pihole/piholeLogFlush.sh /opt/pihole/uninstall.sh /opt/pihole/setupLCD.sh /opt/pihole/version.sh
-	${SUDO} cp /etc/.pihole/pihole /usr/local/bin/pihole
-	${SUDO} chmod 755 /usr/local/bin/pihole
-	${SUDO} cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
+	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
+	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.py
+	${SUDO} install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
+
+	${SUDO} install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	. /etc/bash_completion.d/pihole
 
 	#Tidy up /usr/local/bin directory if installing over previous install.
@@ -560,13 +548,13 @@ installScripts() {
 		fi
 	done
 
-	${SUDO} echo " done."
+	echo " done."
 }
 
 installConfigs() {
 	# Install the configs from /etc/.pihole to their various locations
-	${SUDO} echo ":::"
-	${SUDO} echo "::: Installing configs..."
+	echo ":::"
+	echo "::: Installing configs..."
 	versionCheckDNSmasq
 	if [ ! -d "/etc/lighttpd" ]; then
 		${SUDO} mkdir /etc/lighttpd
@@ -582,15 +570,15 @@ installConfigs() {
 
 stopServices() {
 	# Stop dnsmasq and lighttpd
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Stopping services..."
+	echo ":::"
+	echo -n "::: Stopping services..."
 	#$SUDO service dnsmasq stop & spinner $! || true
 	if [ -x "$(command -v systemctl)" ]; then
 		${SUDO} systemctl stop lighttpd & spinner $! || true
 	else
 		${SUDO} service lighttpd stop & spinner $! || true
 	fi
-	${SUDO} echo " done."
+	echo " done."
 }
 
 installerDependencies() {
@@ -810,7 +798,6 @@ installPihole() {
 	checkForDependencies # done
 	stopServices
 	setUser
-	${SUDO} mkdir -p /etc/pihole/
 	if [ ! -d "/var/www/html" ]; then
 		${SUDO} mkdir -p /var/www/html
 	fi
@@ -825,7 +812,6 @@ installPihole() {
 
 	getGitFiles
 	installScripts
-	installConfigs
 	installConfigs
 	CreateLogFile
 	configureSelinux
@@ -842,7 +828,6 @@ updatePihole() {
 	stopServices
 	getGitFiles
 	installScripts
-	installConfigs
 	installConfigs
 	CreateLogFile
 	configureSelinux
@@ -934,15 +919,20 @@ if [[ -f ${setupVars} ]];then
 fi
 
 # Start the installer
+# Verify there is enough disk space for the install
+if [ $1 = "--i_do_not_follow_recommendations" ]; then
+    echo "::: ----i_do_not_follow_recommendations passed to script"
+    echo "::: skipping free disk space verification!"
+else
+    verifyFreeDiskSpace
+fi
+
 # Install packages used by this installation script
 installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
-    # Verify there is enough disk space for the install
-    verifyFreeDiskSpace
     ${SUDO} mkdir -p /etc/pihole/
-
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
