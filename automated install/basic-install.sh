@@ -524,26 +524,17 @@ versionCheckDNSmasq(){
 
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Installing scripts to /opt/pihole..."
-	if [ ! -d /opt/pihole ]; then
-		${SUDO} mkdir /opt/pihole
-		${SUDO} chown "$USER":root /opt/pihole
-		${SUDO} chmod u+srwx /opt/pihole
-	fi
-	${SUDO} cp /etc/.pihole/gravity.sh /opt/pihole/gravity.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/chronometer.sh /opt/pihole/chronometer.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/whitelist.sh /opt/pihole/whitelist.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/blacklist.sh /opt/pihole/blacklist.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeDebug.sh /opt/pihole/piholeDebug.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/piholeLogFlush.sh /opt/pihole/piholeLogFlush.sh
-	${SUDO} cp /etc/.pihole/automated\ install/uninstall.sh /opt/pihole/uninstall.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/setupLCD.sh /opt/pihole/setupLCD.sh
-	${SUDO} cp /etc/.pihole/advanced/Scripts/version.sh /opt/pihole/version.sh
-	${SUDO} chmod 755 /opt/pihole/gravity.sh /opt/pihole/chronometer.sh /opt/pihole/whitelist.sh /opt/pihole/blacklist.sh /opt/pihole/piholeLogFlush.sh /opt/pihole/uninstall.sh /opt/pihole/setupLCD.sh /opt/pihole/version.sh
-	${SUDO} cp /etc/.pihole/pihole /usr/local/bin/pihole
-	${SUDO} chmod 755 /usr/local/bin/pihole
-	${SUDO} cp /etc/.pihole/advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+	echo ":::"
+	echo -n "::: Installing scripts to /opt/pihole..."
+	${SUDO} install -o "${USER}" -m755 -d /opt/pihole
+
+	cd /etc/.pihole/
+
+	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
+	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
+	${SUDO} install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
+
+	${SUDO} install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	. /etc/bash_completion.d/pihole
 
 	#Tidy up /usr/local/bin directory if installing over previous install.
@@ -554,13 +545,13 @@ installScripts() {
 		fi
 	done
 
-	${SUDO} echo " done."
+	echo " done."
 }
 
 installConfigs() {
 	# Install the configs from /etc/.pihole to their various locations
-	${SUDO} echo ":::"
-	${SUDO} echo "::: Installing configs..."
+	echo ":::"
+	echo "::: Installing configs..."
 	versionCheckDNSmasq
 	if [ ! -d "/etc/lighttpd" ]; then
 		${SUDO} mkdir /etc/lighttpd
@@ -576,15 +567,15 @@ installConfigs() {
 
 stopServices() {
 	# Stop dnsmasq and lighttpd
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Stopping services..."
+	echo ":::"
+	echo -n "::: Stopping services..."
 	#$SUDO service dnsmasq stop & spinner $! || true
 	if [ -x "$(command -v systemctl)" ]; then
 		${SUDO} systemctl stop lighttpd & spinner $! || true
 	else
 		${SUDO} service lighttpd stop & spinner $! || true
 	fi
-	${SUDO} echo " done."
+	echo " done."
 }
 
 installerDependencies() {
