@@ -678,7 +678,7 @@ make_repo() {
     # Remove the non-repod interface and clone the interface
     echo -n ":::    Cloning $2 into $1..."
     ${SUDO} rm -rf "$1"
-    ${SUDO} git clone -q "$2" "$1" > /dev/null & spinner $!
+    ${SUDO} git clone --depth 1 -q "$2" "$1" > /dev/null & spinner $!
     echo " done!"
 }
 
