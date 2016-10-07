@@ -918,7 +918,7 @@ fi
 # Start the installer
 # Verify there is enough disk space for the install
 if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
-    echo "::: ----i_do_not_follow_recommendations passed to script"
+    echo "::: --i_do_not_follow_recommendations passed to script"
     echo "::: skipping free disk space verification!"
 else
     verifyFreeDiskSpace
