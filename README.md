@@ -93,7 +93,7 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 -   [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
 -   [Get LED alerts for each blocked ad](http://www.stinebaugh.info/get-led-alerts-for-each-blocked-ad-using-pi-hole/)
 -   [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
--   [x86 Docker container that runs Pi-hole](https://hub.docker.com/r/diginc/pi-hole/)
+-   [Docker Pi-hole container (x86 and ARM)](https://hub.docker.com/r/diginc/pi-hole/)
 -   [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
 -   [Pi-hole Chrome extension](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([open source](https://github.com/packtloss/pihole-extension))
 -   [Go Bananas for CHiP-hole ad blocking](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)

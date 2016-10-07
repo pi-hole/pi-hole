@@ -47,16 +47,72 @@ function flushFunc {
     exit 1
 }
 
-function updateDashboardFunc {
-    ${SUDO} /opt/pihole/updateDashboard.sh
-    exit 1
-}
 
 function updatePiholeFunc {
-    echo "::: Fetching latest changes from Github..."
-    cd /etc/.pihole
-    ${SUDO} git pull
-    ${SUDO} /etc/.pihole/automated\ install/basic-install.sh pihole
+
+    if [ ! -d "/etc/.pihole" ]; then #This is unlikely
+        echo "::: Critical Error: Pi-Hole repo missing from system!"
+        echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+        exit 1;
+    fi
+    if [ ! -d "/var/www/html/admin" ]; then #This is unlikely
+        echo "::: Critical Error: Pi-Hole repo missing from system!"
+        echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+        exit 1;
+    fi
+
+    echo "::: Checking for updates..."
+    piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
+    piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+
+    webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
+    webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+
+    echo "::: Pi-hole version is $piholeVersion (Latest version is $piholeVersionLatest)"
+    echo "::: Web Admin version is $webVersion (Latest version is $webVersionLatest)"
+    echo ":::"
+
+    if [[ ${piholeVersion} == ${piholeVersionLatest} ]] ; then
+        echo "::: Pi-hole Base files are already up to date! Version: ${piholeVersionLatest}"
+        echo "::: No need to update!"
+        echo ":::"
+
+        if [[ ${webVersion} == ${webVersionLatest} ]] ; then
+            echo "::: Web Admin files are already up to date!"
+            echo "::: No need to update!"
+            echo ":::"
+        else
+            echo "::: An Update is available for the Web Admin!"
+            echo ":::"
+            echo "::: Fetching latest changes from GitHub..."
+            cd /var/www/html/admin
+            ${SUDO} git pull origin master
+            echo ":::"
+            echo "::: Pi-hole Web Admin has been updated to ${webVersion}"
+            echo "::: See https://changes.pi-hole.net for details"
+        fi
+    else
+        echo -n "::: An update is available for "
+        if [[ ${webVersion} == ${webVersionLatest} ]] ; then
+            echo " Pi-Hole!"
+        else
+            echo " Pi-Hole base files and the Web Admin. Both will be updated!"
+        fi
+
+        echo "::: Fetching latest changes from GitHub..."
+        cd /etc/.pihole
+        ${SUDO} git pull origin master
+        ${SUDO} /etc/.pihole/automated\ install/basic-install.sh pihole
+
+        echo ":::"
+        echo "::: Pi-hole has been updated to version ${piholeVersionLatest}"
+        if [[ ${webVersion} != ${webVersionLatest} ]] ; then
+            echo "::: Web Admin has been updated to version ${webVersionLatest}"
+        fi
+        echo ":::"
+        echo "::: See https://changes.pi-hole.net for details"
+    fi
+
     exit 1
 }
 
@@ -112,8 +168,7 @@ function helpFunc {
     echo ":::  -b, blacklist            Blacklist domains"
     echo ":::  -d, debug                Start a debugging session if having trouble"
     echo ":::  -f, flush                Flush the pihole.log file"
-    echo ":::  -ud, updateDashboard      Update the web dashboard manually"
-    echo ":::  -up, updatePihole           Update Pi-hole"
+    echo ":::  -up, updatePihole        Update Pi-hole"
     echo ":::  -g, updateGravity        Update the list of ad-serving domains"
     echo ":::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
     echo ":::  -c, chronometer          Calculates stats and displays to an LCD"
@@ -134,7 +189,6 @@ case "$1" in
 "-b" | "blacklist"			) blacklistFunc "$@";;
 "-d" | "debug"				) debugFunc;;
 "-f" | "flush"				) flushFunc;;
-"-ud" | "updateDashboard"	) updateDashboardFunc;;
 "-up" | "updatePihole"      ) updatePiholeFunc;;
 "-g" | "updateGravity"		) updateGravityFunc "$@";;
 "-s" | "setupLCD"			) setupLCDFunction;;
