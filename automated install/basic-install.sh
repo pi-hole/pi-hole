@@ -79,7 +79,8 @@ if [ -x "$(command -v apt-get)" ];then
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
 	package_check() {
-		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+	  # Returns 0 if package found locally, non-zero if package missing
+		dpkg-query -W "$1" 2>/dev/null
 	}
 elif [ -x "$(command -v rpm)" ];then
 	# Fedora Family
