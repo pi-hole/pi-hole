@@ -73,7 +73,7 @@ if [ -x "$(command -v apt-get)" ];then
 	PKG_UPDATE="$PKG_MANAGER upgrade"
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
-	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
+	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5 )
 	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer} git curl unzip wget sudo netcat cron iproute2 )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
@@ -579,11 +579,32 @@ stopServices() {
 	echo " done."
 }
 
+installPackages() {
+  declare -a argArray1=("${!1}")
+
+	for i in "${argArray1[@]}"; do
+		echo -n ":::    Checking for $i..."
+		package_check ${i} > /dev/null
+		if ! [ $? -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			${SUDO} ${PKG_INSTALL} "$i" > /dev/null 2>&1
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
+	done
+
+}
+
+
+
 installerDependencies() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
 	#We'll change the logic up here, to check to see if there are any updates availible and
 	# if so, advise the user to run apt-get update/upgrade at their own discretion
+
+
 	#Check to see if apt-get update has already been run today
 	# it needs to have been run at least once on new installs!
 	timestamp=$(stat -c %Y ${PKG_CACHE})
@@ -611,34 +632,13 @@ installerDependencies() {
 	fi
 	echo ":::"
 	echo "::: Checking installer dependencies..."
-	for i in "${INSTALLER_DEPS[@]}"; do
-		echo -n ":::    Checking for $i..."
-		package_check ${i} > /dev/null
-		if ! [ $? -eq 0 ]; then
-			echo -n " Not found! Installing...."
-			${SUDO} ${PKG_INSTALL} "$i" > /dev/null 2>&1
-			echo " done!"
-		else
-			echo " already installed!"
-		fi
-	done
+	installPackages INSTALLER_DEPS[@]
 }
 
 checkForDependencies() {
 	# Install dependencies for Pi-Hole
-    echo "::: Checking Pi-Hole dependencies:"
-
-    for i in "${PIHOLE_DEPS[@]}"; do
-	echo -n ":::    Checking for $i..."
-	package_check ${i} > /dev/null
-	if ! [ $? -eq 0 ]; then
-		echo -n " Not found! Installing...."
-		${SUDO} ${PKG_INSTALL} "$i" > /dev/null & spinner $!
-		echo " done!"
-	else
-		echo " already installed!"
-	fi
-    done
+  echo "::: Checking Pi-Hole dependencies:"
+  installPackages PIHOLE_DEPS[@]
 }
 
 getGitFiles() {
