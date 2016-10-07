@@ -325,13 +325,28 @@ function gravity_reload() {
     find "$piholeDir" -type f -exec ${SUDO} chmod 666 {} \;
 
 	if [[ ${dnsmasqPid} ]]; then
-		# service already running - reload config
-		${SUDO} killall -s HUP dnsmasq
+	    # service already running - reload config
+	    if [ -x "$(command -v systemctl)" ]; then
+	        ${SUDO} systemctl reload dnsmasq
+            ${SUDO} systemctl restart dnsmasq
+        else
+            ${SUDO} service dnsmasq reload
+            ${SUDO} service dnsmasq restart
+        fi
 	else
-		# service not running, start it up
-		${SUDO} service dnsmasq start
+	    # service not running, start it up
+	    if [ -x "$(command -v systemctl)" ]; then
+            ${SUDO} systemctl start dnsmasq
+        else
+            ${SUDO} service dnsmasq start
+        fi
 	fi
+
+	# Start services
+
 	echo " done!"
+
+
 }
 
 
