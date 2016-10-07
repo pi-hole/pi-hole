@@ -646,29 +646,32 @@ getGitFiles() {
 	echo ":::"
 	echo "::: Checking for existing base files..."
 	if is_repo ${piholeFilesDir}; then
-		make_repo ${piholeFilesDir} ${piholeGitUrl}
-	else
 		update_repo ${piholeFilesDir}
+	else
+	  make_repo ${piholeFilesDir} ${piholeGitUrl}
 	fi
 
 	echo ":::"
 	echo "::: Checking for existing web interface..."
 	if is_repo ${webInterfaceDir}; then
-		make_repo ${webInterfaceDir} ${webInterfaceGitUrl}
-	else
 		update_repo ${webInterfaceDir}
+	else
+		make_repo ${webInterfaceDir} ${webInterfaceGitUrl}
 	fi
 }
 
 is_repo() {
 	# If the directory does not have a .git folder it is not a repo
 	echo -n ":::    Checking $1 is a repo..."
-		if [ -d "$1/.git" ]; then
-		echo " OK!"
-		return 1
+	  cd "$1"
+		# returns 0 if in git repo, non-zero if not in a repo
+		git status > /dev/null & spinner $!
+		if [[ "$?" -eq 0 ]]; then
+		echo " repository found!"
+		return 0
 	fi
-	echo " not found!!"
-	return 0
+	echo " repository not found!!"
+	return 1
 }
 
 make_repo() {
