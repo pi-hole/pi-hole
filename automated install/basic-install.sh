@@ -663,15 +663,18 @@ getGitFiles() {
 is_repo() {
 	# If the directory does not have a .git folder it is not a repo
 	echo -n ":::    Checking $1 is a repo..."
-	  cd "$1"
-		# returns 0 if in git repo, non-zero if not in a repo
-		git status > /dev/null & spinner $!
-		if [[ "$?" -eq 0 ]]; then
-		echo " repository found!"
-		return 0
-	fi
-	echo " repository not found!!"
-	return 1
+	  if [[ -d "$1" ]] ; then
+	    cd "$1"
+		  # returns 0 if in git repo, non-zero if not in a repo
+		  git status > /dev/null & spinner $!
+		  if [[ "$?" -eq 0 ]]; then
+		    echo " repository found!"
+		    return 0
+	    fi
+	  else
+	    echo " repository not found!!"
+	    return 1
+	  fi
 }
 
 make_repo() {
