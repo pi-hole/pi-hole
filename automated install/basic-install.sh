@@ -584,8 +584,8 @@ installPackages() {
 
 	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check ${i} > /dev/null
-		if ! [ $? -eq 0 ]; then
+		package_check "${i}" > /dev/null
+		if ! [ "$?" -eq 0 ]; then
 			echo -n " Not found! Installing...."
 			${SUDO} ${PKG_INSTALL} "$i" > /dev/null 2>&1
 			echo " done!"
