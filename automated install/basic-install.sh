@@ -179,7 +179,6 @@ verify_free_disk_space() {
 
 }
 
-
 choose_interface() {
 	# Turn the available interfaces into an array so it can be used with a whiptail dialog
 	interfacesArray=()
@@ -188,7 +187,7 @@ choose_interface() {
 	while read -r line
 	do
 		mode="OFF"
-		if [[ ${firstLoop} -eq 1 ]]; then
+		if [[ "${firstLoop}" -eq 1 ]]; then
 			firstLoop=0
 			mode="ON"
 		fi
@@ -196,10 +195,10 @@ choose_interface() {
 	done <<< "$availableInterfaces"
 
 	# Find out how many interfaces are available to choose from
-	interfaceCount=$(echo "$availableInterfaces" | wc -l)
+	interfaceCount="$(echo "$availableInterfaces" | wc -l)"
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
-	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-	if [[ $? = 0 ]]; then
+	chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)"
+	if [[ "$?" = 0 ]]; then
 		for desiredInterface in ${chooseInterfaceOptions}
 		do
 			piholeInterface=${desiredInterface}
@@ -265,7 +264,6 @@ use_IPv4_and_or_IPv6() {
 get_static_IPv4_settings() {
   local ipSettingsCorrect = False
 
-
 	# Ask if the user wants to use DHCP settings as their static IP
 	if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
 					IP address:    $IPv4addr
@@ -316,80 +314,6 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 	fi
 }
 
-set_dhcpcd() {
-	# Append these lines to dhcpcd.conf to enable a static IP
-	echo "## interface $piholeInterface
-	static ip_address=$IPv4addr
-	static routers=$IPv4gw
-	static domain_name_servers=$IPv4gw" | tee -a /etc/dhcpcd.conf >/dev/null
-}
-
-set_static_IPv4() {
-	if [[ -f /etc/dhcpcd.conf ]];then
-		# Debian Family
-		if grep -q "$IPv4addr" /etc/dhcpcd.conf; then
-			echo "::: Static IP already configured"
-		else
-			set_dhcpcd
-			ip addr replace dev "$piholeInterface" "$IPv4addr"
-			echo ":::"
-			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
-			echo ":::"
-		fi
-	elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${piholeInterface} ]];then
-		# Fedora Family
-		IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${piholeInterface}
-		if grep -q "$IPv4addr" ${IFCFG_FILE}; then
-			echo "::: Static IP already configured"
-		else
-			IPADDR=$(echo ${IPv4addr} | cut -f1 -d/)
-			CIDR=$(echo ${IPv4addr} | cut -f2 -d/)
-			# Backup existing interface configuration:
-			cp ${IFCFG_FILE} ${IFCFG_FILE}.backup-$(date +%Y-%m-%d-%H%M%S)
-			# Build Interface configuration file:
-			echo "# Configured via Pi-Hole installer" > ${IFCFG_FILE}
-			echo "DEVICE=$piholeInterface" >> ${IFCFG_FILE}
-			echo "BOOTPROTO=none" >> ${IFCFG_FILE}
-			echo "ONBOOT=yes" >> ${IFCFG_FILE}
-			echo "IPADDR=$IPADDR" >> ${IFCFG_FILE}
-			echo "PREFIX=$CIDR" >> ${IFCFG_FILE}
-			echo "GATEWAY=$IPv4gw" >> ${IFCFG_FILE}
-			echo "DNS1=$piholeDNS1" >> ${IFCFG_FILE}
-			echo "DNS2=$piholeDNS2" >> ${IFCFG_FILE}
-			echo "USERCTL=no" >> ${IFCFG_FILE}
-			ip addr replace dev "$piholeInterface" "$IPv4addr"
-			if [ -x "$(command -v nmcli)" ];then
-				# Tell NetworkManager to read our new sysconfig file
-				nmcli con load ${IFCFG_FILE} > /dev/null
-			fi
-			echo ":::"
-			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
-			echo ":::"
-
-		fi
-	else
-		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
-		exit 1
-	fi
-}
-
-function valid_ip()
-{
-	local  ip=$1
-	local  stat=1
-
-	if [[ ${ip} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-		OIFS=$IFS
-		IFS='.'
-		ip=(${ip})
-		IFS=${OIFS}
-		[[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
-		&& ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
-		stat=$?
-	fi
-	return ${stat}
-}
-
 set_upstream_dns(){
 	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6)
 	DNSChooseOptions=(Google "" on
@@ -430,13 +354,13 @@ set_upstream_dns(){
                 until [[ ${DNSSettingsCorrect} = True ]]
                 do
                     strInvalid="Invalid"
-                    if [ ! ${piholeDNS1} ]; then
-                        if [ ! ${piholeDNS2} ]; then
+                    if [[ ! "${piholeDNS1}" ]]; then
+                        if [[ ! "${piholeDNS2}" ]]; then
                             prePopulate=""
                         else
                             prePopulate=", $piholeDNS2"
                         fi
-                    elif  [ ${piholeDNS1} ] && [ ! ${piholeDNS2} ]; then
+                    elif  [[ "${piholeDNS1}" ]] && [[ ! "${piholeDNS2}" ]]; then
                         prePopulate="$piholeDNS1"
                     elif [ ${piholeDNS1} ] && [ ${piholeDNS2} ]; then
                         prePopulate="$piholeDNS1, $piholeDNS2"
@@ -479,6 +403,79 @@ set_upstream_dns(){
 		echo "::: Cancel selected. Exiting..."
 		exit 1
 	fi
+}
+
+set_dhcpcd() {
+	# Append these lines to dhcpcd.conf to enable a static IP
+	echo "## interface $piholeInterface
+	static ip_address=$IPv4addr
+	static routers=$IPv4gw
+	static domain_name_servers=$IPv4gw" | tee -a /etc/dhcpcd.conf >/dev/null
+}
+
+set_static_IPv4() {
+	if [[ -f /etc/dhcpcd.conf ]];then
+		# Debian Family
+		if grep -q "$IPv4addr" /etc/dhcpcd.conf; then
+			echo "::: Static IP already configured"
+		else
+			set_dhcpcd
+			ip addr replace dev "$piholeInterface" "$IPv4addr"
+			echo ":::"
+			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo ":::"
+		fi
+	elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${piholeInterface} ]];then
+		# Fedora Family
+		IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${piholeInterface}
+		if grep -q "$IPv4addr" ${IFCFG_FILE}; then
+			echo "::: Static IP already configured"
+		else
+			IPADDR="$(echo ${IPv4addr} | cut -f1 -d/)"
+			CIDR="$(echo ${IPv4addr} | cut -f2 -d/)"
+			# Backup existing interface configuration:
+			cp "${IFCFG_FILE}" ${IFCFG_FILE}.backup-$(date +%Y-%m-%d-%H%M%S)
+			# Build Interface configuration file:
+			echo "# Configured via Pi-Hole installer" > "${IFCFG_FILE}"
+			echo "DEVICE=$piholeInterface" >> "${IFCFG_FILE}"
+			echo "BOOTPROTO=none" >> "${IFCFG_FILE}"
+			echo "ONBOOT=yes" >> "${IFCFG_FILE}"
+			echo "IPADDR=$IPADDR" >> "${IFCFG_FILE}"
+			echo "PREFIX=$CIDR" >> "${IFCFG_FILE}"
+			echo "GATEWAY=$IPv4gw" >> "${IFCFG_FILE}"
+			echo "DNS1=$piholeDNS1" >> "${IFCFG_FILE}"
+			echo "DNS2=$piholeDNS2" >> "${IFCFG_FILE}"
+			echo "USERCTL=no" >> "${IFCFG_FILE}"
+			ip addr replace dev "$piholeInterface" "$IPv4addr"
+			if [ -x "$(command -v nmcli)" ];then
+				# Tell NetworkManager to read our new sysconfig file
+				nmcli con load "${IFCFG_FILE}" > /dev/null
+			fi
+			echo ":::"
+			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo ":::"
+		fi
+	else
+		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
+		exit 1
+	fi
+}
+
+function valid_ip()
+{
+	local  ip=$1
+	local  stat=1
+
+	if [[ ${ip} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+		OIFS=$IFS
+		IFS='.'
+		ip=(${ip})
+		IFS=${OIFS}
+		[[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+		&& ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+		stat=$?
+	fi
+	return ${stat}
 }
 
 version_check_dnsmasq(){
