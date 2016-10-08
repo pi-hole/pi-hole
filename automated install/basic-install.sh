@@ -909,78 +909,82 @@ updateDialogs(){
 }
 
 ######## MAIN MAIN MAIN ########
-if [[ -f ${setupVars} ]];then
-    . ${setupVars}
+main () {
+  if [[ -f ${setupVars} ]];then
+      . ${setupVars}
 
-    if [ "$1" == "pihole" ]; then
-        useUpdateVars=true
-    else
-        updateDialogs
-    fi
+      if [ "$1" == "pihole" ]; then
+          useUpdateVars=true
+      else
+          updateDialogs
+      fi
 
-fi
+  fi
 
-# Start the installer
-# Verify there is enough disk space for the install
-if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
-    echo "::: --i_do_not_follow_recommendations passed to script"
-    echo "::: skipping free disk space verification!"
-else
-    verify_free_disk_space
-fi
+  # Start the installer
+  # Verify there is enough disk space for the install
+  if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
+      echo "::: --i_do_not_follow_recommendations passed to script"
+      echo "::: skipping free disk space verification!"
+  else
+      verify_free_disk_space
+  fi
 
-# Install packages used by this installation script
-installer_dependencies
+  # Install packages used by this installation script
+  installer_dependencies
 
-if [[ ${useUpdateVars} == false ]]; then
-    welcome_dialogs
-    ${SUDO} mkdir -p /etc/pihole/
-    # Find IP used to route to outside world
-    find_IPv4_route
-    # Find interfaces and let the user choose one
-    choose_interface
-    # Let the user decide if they want to block ads over IPv4 and/or IPv6
-    use_IPv4_and_or_IPv6
-    # Decide what upstream DNS Servers to use
-    set_upstream_dns
-    # Install and log everything to a file
-    install | tee ${tmpLog}
-else
-    update | tee ${tmpLog}
-fi
+  if [[ ${useUpdateVars} == false ]]; then
+      welcome_dialogs
+      ${SUDO} mkdir -p /etc/pihole/
+      # Find IP used to route to outside world
+      find_IPv4_route
+      # Find interfaces and let the user choose one
+      choose_interface
+      # Let the user decide if they want to block ads over IPv4 and/or IPv6
+      use_IPv4_and_or_IPv6
+      # Decide what upstream DNS Servers to use
+      set_upstream_dns
+      # Install and log everything to a file
+      install | tee ${tmpLog}
+  else
+      update | tee ${tmpLog}
+  fi
 
-# Move the log file into /etc/pihole for storage
-${SUDO} mv ${tmpLog} ${instalLogLoc}
+  # Move the log file into /etc/pihole for storage
+  ${SUDO} mv ${tmpLog} ${instalLogLoc}
 
-if [[ ${useUpdateVars} == false ]]; then
-    displayFinalMessage
-fi
+  if [[ ${useUpdateVars} == false ]]; then
+      displayFinalMessage
+  fi
 
-echo -n "::: Restarting services..."
-# Start services
-if [ -x "$(command -v systemctl)" ]; then
-	${SUDO} systemctl enable dnsmasq
-	${SUDO} systemctl restart dnsmasq
-	${SUDO} systemctl enable lighttpd
-	${SUDO} systemctl start lighttpd
-else
-	${SUDO} service dnsmasq restart
-	${SUDO} service lighttpd start
-fi
+  echo -n "::: Restarting services..."
+  # Start services
+  if [ -x "$(command -v systemctl)" ]; then
+    ${SUDO} systemctl enable dnsmasq
+    ${SUDO} systemctl restart dnsmasq
+    ${SUDO} systemctl enable lighttpd
+    ${SUDO} systemctl start lighttpd
+  else
+    ${SUDO} service dnsmasq restart
+    ${SUDO} service lighttpd start
+  fi
 
-echo " done."
+  echo " done."
 
-echo ":::"
-if [[ ${useUpdateVars} == false ]]; then
-    echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
-    echo ":::     ${IPv4addr%/*}"
-    echo ":::     $IPv6addr"
-    echo ":::"
-    echo "::: If you set a new IP address, you should restart the Pi."
-else
-    echo "::: Update complete!"
-fi
+  echo ":::"
+  if [[ ${useUpdateVars} == false ]]; then
+      echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
+      echo ":::     ${IPv4addr%/*}"
+      echo ":::     $IPv6addr"
+      echo ":::"
+      echo "::: If you set a new IP address, you should restart the Pi."
+  else
+      echo "::: Update complete!"
+  fi
 
-echo ":::"
-echo "::: The install log is located at: /etc/pihole/install.log"
-echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
+  echo ":::"
+  echo "::: The install log is located at: /etc/pihole/install.log"
+  echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
+}
+
+main "$@"
