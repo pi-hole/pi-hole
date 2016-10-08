@@ -315,6 +315,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 }
 
 set_upstream_dns(){
+  local DNSSettingsCorrect=False
 	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6)
 	DNSChooseOptions=(Google "" on
 			OpenDNS "" off
@@ -322,9 +323,9 @@ set_upstream_dns(){
 			Norton "" off
 			Comodo "" off
 			Custom "" off)
-	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+	DNSchoices="$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)"
 	if [[ $? = 0 ]];then
-		case ${DNSchoices} in
+		case "${DNSchoices}" in
             Google)
                 echo "::: Using Google DNS servers."
                 piholeDNS1="8.8.8.8"
