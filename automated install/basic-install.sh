@@ -54,6 +54,9 @@ else
 		exit 1
 	fi
 	echo "::: sudo utility found and will be used for the install."
+	echo "::: Restarting script with sudo"
+	exec sudo bash "$0" "$@"
+	exit $?
 fi
 
 # Compatibility
@@ -62,7 +65,7 @@ if [ -x "$(command -v apt-get)" ];then
 	#Debian Family
 	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
 	phpVer="php"
-	${SUDO} apt-get install --dry-run php5 > /dev/null 2>&1
+	apt-get install --dry-run php5 > /dev/null 2>&1
 	if [ $? == 0 ]; then
 	    phpVer="php5"
 	fi
