@@ -818,9 +818,9 @@ installPihole() {
 	configureSelinux
 	installPiholeWeb
 	installCron
-	runGravity
 	configureFirewall
 	finalExports
+	runGravity
 }
 
 updatePihole() {
@@ -834,8 +834,8 @@ updatePihole() {
 	configureSelinux
 	installPiholeWeb
 	installCron
-	runGravity
 	configureFirewall
+	runGravity
 }
 
 configureSelinux() {
