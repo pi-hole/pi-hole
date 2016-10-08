@@ -68,7 +68,7 @@ if [ -x "$(command -v apt-get)" ];then
 	fi
 	#############################################
 	PKG_MANAGER="apt-get"
-	PKG_CACHE="/var/cache/apt"
+	PKG_CACHE="/var/lib/apt/lists/"
 	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
 	PKG_UPDATE="$PKG_MANAGER upgrade"
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
