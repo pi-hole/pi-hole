@@ -124,15 +124,6 @@ spinner()
     printf "    \b\b\b\b"
 }
 
-find_IPv4_route() {
-	# Find IP used to route to outside world
-	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-	IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-	IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
-	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
-}
-
-
 welcome_dialogs() {
 	# Display the welcome dialog
 	whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "This installer will transform your Raspberry Pi into a network-wide ad blocker!" ${r} ${c}
@@ -192,7 +183,7 @@ choose_interface() {
 			mode="ON"
 		fi
 		interfacesArray+=("$line" "available" "$mode")
-	done <<< "$availableInterfaces"
+	done <<< "$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)"
 
 	# Find out how many interfaces are available to choose from
 	interfaceCount="$(echo "$availableInterfaces" | wc -l)"
@@ -208,6 +199,13 @@ choose_interface() {
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
+}
+
+find_IPv4_route() {
+	# Find IP used to route to outside world
+	IPv4dev="$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')"
+	IPv4addr="$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')"
+	IPv4gw="$(ip route get 8.8.8.8 | awk '{print $3}')"
 }
 
 whiptail_IPv6_address() {
@@ -262,7 +260,7 @@ use_IPv4_and_or_IPv6() {
 }
 
 get_static_IPv4_settings() {
-  local ipSettingsCorrect = False
+  local ipSettingsCorrect=False
 
 	# Ask if the user wants to use DHCP settings as their static IP
 	if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
@@ -490,7 +488,7 @@ version_check_dnsmasq(){
 
 	if [ -f ${dnsFile1} ]; then
 		echo -n ":::    Existing dnsmasq.conf found..."
-		if grep -q ${dnsSearch} ${dnsFile1}; then
+		if grep -q "${dnsSearch}" "${dnsFile1}"; then
 			echo " it is from a previous pi-hole install."
 			echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
 			mv -f ${dnsFile1} ${dnsFile2}
@@ -583,14 +581,37 @@ install_configs() {
 }
 
 stop_service() {
-	# Stop dnsmasq and lighttpd
+	# Stop service passed in via argument
 	echo ":::"
-	echo -n "::: Stopping services..."
-	#$SUDO service dnsmasq stop & spinner $! || true
+	echo -n "::: Stopping $1 service..."
 	if [ -x "$(command -v systemctl)" ]; then
-		systemctl stop lighttpd & spinner $! || true
+		systemctl stop "$1" & spinner $! || true
 	else
-		service lighttpd stop & spinner $! || true
+		service "$1" stop & spinner $! || true
+	fi
+	echo " done."
+}
+
+start_service() {
+  # Start service passed in via argument
+  echo ":::"
+  echo -n "::: Starting $1 service..."
+	if [ -x "$(command -v systemctl)" ]; then
+		systemctl restart "$1" & spinner $! || true
+	else
+		service "$1" restart & spinner $! || true
+	fi
+	echo " done."
+}
+
+enable_service() {
+  # Start service passed in via argument
+  echo ":::"
+  echo -n "::: Enabling $1 service..."
+	if [ -x "$(command -v systemctl)" ]; then
+		systemctl enable "$1" & spinner $! || true
+	else
+		update-rc.d "$1" defaults & spinner $! || true
 	fi
 	echo " done."
 }
@@ -827,7 +848,8 @@ final_exports() {
 install_pihole() {
 	# Install base files and web interface
 	check_dependencies # done
-	stop_service
+	stop_service dnsmasq
+	stop_service lighttpd
 	set_user
 	if [ ! -d "/var/www/html" ]; then
 		mkdir -p /var/www/html
@@ -856,7 +878,8 @@ install_pihole() {
 update() {
 	# Install base files and web interface
 	check_dependencies # done
-	stop_service
+	stop_service dnsmasq
+	stop_service lighttpd
 	setup_local_repos
 	install_scripts
 	install_configs
@@ -955,19 +978,14 @@ main () {
       displayFinalMessage
   fi
 
-  echo -n "::: Restarting services..."
+  echo "::: Restarting services..."
   # Start services
-  if [ -x "$(command -v systemctl)" ]; then
-    systemctl enable dnsmasq
-    systemctl restart dnsmasq
-    systemctl enable lighttpd
-    systemctl restart lighttpd
-  else
-    service dnsmasq restart
-    service lighttpd restart
-  fi
+  start_service dnsmasq
+  start_service lighttpd
 
-  echo " done."
+  echo "::: Enabling services on restart..."
+  enable_service dnsmasq
+  enable_service lighttpd
 
   echo ":::"
   if [[ ${useUpdateVars} == false ]]; then
