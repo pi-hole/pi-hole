@@ -263,6 +263,9 @@ use_IPv4_and_or_IPv6() {
 }
 
 get_static_IPv4_settings() {
+  local ipSettingsCorrect = False
+
+
 	# Ask if the user wants to use DHCP settings as their static IP
 	if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
 					IP address:    $IPv4addr
@@ -276,7 +279,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 		# Otherwise, we need to ask the user to input their desired settings.
 		# Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
 		# Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-		until [[ ${ipSettingsCorrect} = True ]]
+		until [[ "${ipSettingsCorrect}" = True ]]
 		do
 			# Ask for the IPv4 address
 			IPv4addr=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "$IPv4addr" 3>&1 1>&2 2>&3)
@@ -523,6 +526,22 @@ version_check_dnsmasq(){
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsFile1}
 }
 
+install_packages() {
+  # accepts an array as argument
+  declare -a argArray1=("${!1}")
+
+	for i in "${argArray1[@]}"; do
+		echo -n ":::    Checking for $i..."
+		package_check "${i}" 2>&1 > /dev/null
+		if ! [[ "$?" -eq 0 ]]; then
+			echo -n " Not found! Installing...."
+			${PKG_INSTALL} "$i" > /dev/null 2>&1
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
+	done
+}
 install_scripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	echo ":::"
@@ -578,25 +597,6 @@ stop_service() {
 	fi
 	echo " done."
 }
-
-install_packages() {
-  # accepts an array as argument
-  declare -a argArray1=("${!1}")
-
-	for i in "${argArray1[@]}"; do
-		echo -n ":::    Checking for $i..."
-		package_check "${i}"
-		if ! [[ "$?" -eq 0 ]]; then
-			echo -n " Not found! Installing...."
-			${PKG_INSTALL} "$i" > /dev/null 2>&1
-			echo " done!"
-		else
-			echo " already installed!"
-		fi
-	done
-}
-
-
 
 installer_dependencies() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
