@@ -171,10 +171,11 @@ verify_free_disk_space() {
 }
 
 choose_interface() {
+  local available_interfaces="$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)"
+
 	# Turn the available interfaces into an array so it can be used with a whiptail dialog
 	interfacesArray=()
 	firstLoop=1
-
 	while read -r line
 	do
 		mode="OFF"
@@ -183,10 +184,10 @@ choose_interface() {
 			mode="ON"
 		fi
 		interfacesArray+=("$line" "available" "$mode")
-	done <<< "$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)"
+	done <<< "${available_interfaces}"
 
 	# Find out how many interfaces are available to choose from
-	interfaceCount="$(echo "$availableInterfaces" | wc -l)"
+	interfaceCount="$(echo "$available_interfaces" | wc -l)"
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
 	chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)"
 	if [[ "$?" = 0 ]]; then
@@ -906,9 +907,10 @@ View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" $
 
 updateDialogs(){
 
-  UpdateCmd=(whiptail --separate-output --radiolist "We have detected an existing install.\n\n    Selecting Update will retain settings from the existing install.\n\n    Selecting Install will allow you to enter new settings.\n\n(Highlight desired option, and press space to select!)" ${r} ${c} 2)
-  UpdateChoices=(Update "" on
-                 Install "" off)
+  UpdateCmd=(whiptail --separate-output --menu "We have detected an existing install.\n\n" ${r} ${c} 2 \
+  "Update" "Retain existing settings." \
+  "Install" "Erase existing settings and restart."
+  )
   UpdateChoice=$("${UpdateCmd[@]}" "${UpdateChoices[@]}" 2>&1 >/dev/tty)
 
   if [[ $? = 0 ]];then
@@ -931,15 +933,13 @@ updateDialogs(){
 
 ######## MAIN MAIN MAIN ########
 main () {
-  if [[ -f ${setupVars} ]];then
+  if [[ -f "${setupVars}" ]];then
       . ${setupVars}
-
       if [ "$1" == "pihole" ]; then
           useUpdateVars=true
       else
           updateDialogs
       fi
-
   fi
 
   # Start the installer
@@ -955,14 +955,16 @@ main () {
   installer_dependencies
 
   if [[ ${useUpdateVars} == false ]]; then
+      # Display welcome whiptail screens
       welcome_dialogs
-      ${SUDO} mkdir -p /etc/pihole/
-      # Find IP used to route to outside world
-      find_IPv4_route
+      # Create directory for Pi-hole usage
+      mkdir -p /etc/pihole/
       # Find interfaces and let the user choose one
       choose_interface
       # Let the user decide if they want to block ads over IPv4 and/or IPv6
       use_IPv4_and_or_IPv6
+      # Find IP used to route to outside world
+      find_IPv4_route
       # Decide what upstream DNS Servers to use
       set_upstream_dns
       # Install and log everything to a file
