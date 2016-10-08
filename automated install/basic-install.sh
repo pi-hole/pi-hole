@@ -903,7 +903,7 @@ updateDialogs(){
 
 }
 
-######## SCRIPT ############
+main() {
 if [[ -f ${setupVars} ]];then
     . ${setupVars}
 
@@ -979,3 +979,6 @@ fi
 echo ":::"
 echo "::: The install log is located at: /etc/pihole/install.log"
 echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
+}
+
+main "$@"
