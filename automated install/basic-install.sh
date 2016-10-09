@@ -73,9 +73,9 @@ if [ -x "$(command -v apt-get)" ];then
 	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/lib/apt/lists/"
-	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
+	UPDATE_PKG_CACHE="$PKG_MANAGER update"
 	PKG_UPDATE="$PKG_MANAGER upgrade"
-	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
+	PKG_INSTALL="$PKG_MANAGER --yes install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
 	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
 	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi git curl unzip wget sudo netcat cron iproute2 )
@@ -83,7 +83,7 @@ if [ -x "$(command -v apt-get)" ];then
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
 	package_check() {
-		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+		dpkg-query -W -f='${Status}' "$1" | grep -c "ok installed"
 	}
 elif [ -x "$(command -v rpm)" ];then
 	# Fedora Family
@@ -582,11 +582,12 @@ stopServices() {
 	echo " done."
 }
 
-installerDependencies() {
+check_cache_freshness() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
 	#We'll change the logic up here, to check to see if there are any updates availible and
 	# if so, advise the user to run apt-get update/upgrade at their own discretion
+
 	#Check to see if apt-get update has already been run today
 	# it needs to have been run at least once on new installs!
 	timestamp=$(stat -c %Y ${PKG_CACHE})
@@ -612,12 +613,14 @@ installerDependencies() {
 		echo "::: We recommend you run '$PKG_UPDATE' after installing Pi-Hole! "
 		echo ":::"
 	fi
+}
+
+installerDependencies() {
 	echo ":::"
 	echo "::: Checking installer dependencies..."
 	for i in "${INSTALLER_DEPS[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check ${i} > /dev/null
-		if ! [ $? -eq 0 ]; then
+		if ! package_check ${i} &>/dev/null; then
 			echo -n " Not found! Installing...."
 			${PKG_INSTALL} "$i" > /dev/null 2>&1
 			echo " done!"
@@ -927,6 +930,9 @@ if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
 else
     verifyFreeDiskSpace
 fi
+
+# Check the package cache and update if necessary
+check_cache_freshness
 
 # Install packages used by this installation script
 installerDependencies
