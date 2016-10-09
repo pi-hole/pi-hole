@@ -615,36 +615,26 @@ check_cache_freshness() {
 	fi
 }
 
-installerDependencies() {
-	echo ":::"
-	echo "::: Checking installer dependencies..."
-	for i in "${INSTALLER_DEPS[@]}"; do
+dependency_package_install() {
+  # Install and verify package installation, exit out if any errors are detected
+  # Takes array as argument then iterates over array
+  declare -a argArray1=("${!1}")
+
+	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
 		if ! package_check ${i} &>/dev/null; then
 			echo -n " Not found! Installing...."
 			${PKG_INSTALL} "$i" > /dev/null 2>&1
-			echo " done!"
+			if ! package_check ${i} &>/dev/null; then
+			  echo ":::   ERROR, package ${i} has not been installed, please run ${UPDATE_PKG_CACHE} and try install again."
+			  exit 1
+			else
+			  echo " done!"
+			fi
 		else
 			echo " already installed!"
 		fi
 	done
-}
-
-checkForDependencies() {
-	# Install dependencies for Pi-Hole
-    echo "::: Checking Pi-Hole dependencies:"
-
-    for i in "${PIHOLE_DEPS[@]}"; do
-	echo -n ":::    Checking for $i..."
-	package_check ${i} > /dev/null
-	if ! [ $? -eq 0 ]; then
-		echo -n " Not found! Installing...."
-		${PKG_INSTALL} "$i" > /dev/null & spinner $!
-		echo " done!"
-	else
-		echo " already installed!"
-	fi
-    done
 }
 
 getGitFiles() {
@@ -799,7 +789,8 @@ finalExports() {
 
 installPihole() {
 	# Install base files and web interface
-	checkForDependencies # done
+	echo "Checking for Pi-hole dependencies"
+	dependency_package_install PIHOLE_DEPS[@] # done
 	stopServices
 	setUser
 	if [ ! -d "/var/www/html" ]; then
@@ -828,7 +819,8 @@ installPihole() {
 
 updatePihole() {
 	# Install base files and web interface
-	checkForDependencies # done
+	echo "Checking for Pi-hole dependencies"
+	dependency_package_install PIHOLE_DEPS[@] # done
 	stopServices
 	getGitFiles
 	installScripts
@@ -935,7 +927,8 @@ fi
 check_cache_freshness
 
 # Install packages used by this installation script
-installerDependencies
+echo "::: Checking for installer dependencies..."
+dependency_package_install INSTALLER_DEPS[@]
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
