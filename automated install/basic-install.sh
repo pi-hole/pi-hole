@@ -790,7 +790,9 @@ finalExports() {
 installPihole() {
 	# Install base files and web interface
 	echo "Checking for Pi-hole dependencies"
-	dependency_package_install PIHOLE_DEPS[@] # done
+	if ! dependency_package_install PIHOLE_DEPS[@]; then
+	  exit 1
+	fi
 	stopServices
 	setUser
 	if [ ! -d "/var/www/html" ]; then
@@ -820,7 +822,9 @@ installPihole() {
 updatePihole() {
 	# Install base files and web interface
 	echo "Checking for Pi-hole dependencies"
-	dependency_package_install PIHOLE_DEPS[@] # done
+	if ! dependency_package_install PIHOLE_DEPS[@]; then
+	  exit 1
+	fi
 	stopServices
 	getGitFiles
 	installScripts
@@ -928,7 +932,9 @@ check_cache_freshness
 
 # Install packages used by this installation script
 echo "::: Checking for installer dependencies..."
-dependency_package_install INSTALLER_DEPS[@]
+if ! dependency_package_install INSTALLER_DEPS[@]; then
+  exit 1
+fi
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
