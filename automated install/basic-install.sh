@@ -45,11 +45,15 @@ echo ":::"
 if [[ $EUID -eq 0 ]];then
 	echo "::: You are root."
 else
-	echo "::: sudo will be used for the install."
-	# Check if it is actually installed
-	# If it isn't, exit because the install cannot complete
+  echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
+  echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
+  echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
+  echo ":::"
+  echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 	if [ -x "$(command -v sudo)" ];then
-		export SUDO="sudo"
+		echo "::: Utility sudo located."
+	  exec sudo bash "$0" "$@"
+    exit $?
 	else
 		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
 		exit 1
@@ -62,7 +66,7 @@ if [ -x "$(command -v apt-get)" ];then
 	#Debian Family
 	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
 	phpVer="php"
-	${SUDO} apt-get install --dry-run php5 > /dev/null 2>&1
+	apt-get install --dry-run php5 > /dev/null 2>&1
 	if [ $? == 0 ]; then
 	    phpVer="php5"
 	fi
@@ -317,7 +321,7 @@ setDHCPCD() {
 	echo "## interface $piholeInterface
 	static ip_address=$IPv4addr
 	static routers=$IPv4gw
-	static domain_name_servers=$IPv4gw" | ${SUDO} tee -a /etc/dhcpcd.conf >/dev/null
+	static domain_name_servers=$IPv4gw" | tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
@@ -327,7 +331,7 @@ setStaticIPv4() {
 			echo "::: Static IP already configured"
 		else
 			setDHCPCD
-			${SUDO} ip addr replace dev "$piholeInterface" "$IPv4addr"
+			ip addr replace dev "$piholeInterface" "$IPv4addr"
 			echo ":::"
 			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
 			echo ":::"
@@ -343,20 +347,20 @@ setStaticIPv4() {
 			# Backup existing interface configuration:
 			cp ${IFCFG_FILE} ${IFCFG_FILE}.backup-$(date +%Y-%m-%d-%H%M%S)
 			# Build Interface configuration file:
-			${SUDO} echo "# Configured via Pi-Hole installer" > ${IFCFG_FILE}
-			${SUDO} echo "DEVICE=$piholeInterface" >> ${IFCFG_FILE}
-			${SUDO} echo "BOOTPROTO=none" >> ${IFCFG_FILE}
-			${SUDO} echo "ONBOOT=yes" >> ${IFCFG_FILE}
-			${SUDO} echo "IPADDR=$IPADDR" >> ${IFCFG_FILE}
-			${SUDO} echo "PREFIX=$CIDR" >> ${IFCFG_FILE}
-			${SUDO} echo "GATEWAY=$IPv4gw" >> ${IFCFG_FILE}
-			${SUDO} echo "DNS1=$piholeDNS1" >> ${IFCFG_FILE}
-			${SUDO} echo "DNS2=$piholeDNS2" >> ${IFCFG_FILE}
-			${SUDO} echo "USERCTL=no" >> ${IFCFG_FILE}
-			${SUDO} ip addr replace dev "$piholeInterface" "$IPv4addr"
+			echo "# Configured via Pi-Hole installer" > ${IFCFG_FILE}
+			echo "DEVICE=$piholeInterface" >> ${IFCFG_FILE}
+			echo "BOOTPROTO=none" >> ${IFCFG_FILE}
+			echo "ONBOOT=yes" >> ${IFCFG_FILE}
+			echo "IPADDR=$IPADDR" >> ${IFCFG_FILE}
+			echo "PREFIX=$CIDR" >> ${IFCFG_FILE}
+			echo "GATEWAY=$IPv4gw" >> ${IFCFG_FILE}
+			echo "DNS1=$piholeDNS1" >> ${IFCFG_FILE}
+			echo "DNS2=$piholeDNS2" >> ${IFCFG_FILE}
+			echo "USERCTL=no" >> ${IFCFG_FILE}
+			ip addr replace dev "$piholeInterface" "$IPv4addr"
 			if [ -x "$(command -v nmcli)" ];then
 				# Tell NetworkManager to read our new sysconfig file
-				${SUDO} nmcli con load ${IFCFG_FILE} > /dev/null
+				nmcli con load ${IFCFG_FILE} > /dev/null
 			fi
 			echo ":::"
 			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
@@ -491,57 +495,57 @@ versionCheckDNSmasq(){
 		if grep -q ${dnsSearch} ${dnsFile1}; then
 			echo " it is from a previous pi-hole install."
 			echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
-			${SUDO} mv -f ${dnsFile1} ${dnsFile2}
+			mv -f ${dnsFile1} ${dnsFile2}
 			echo " done."
 			echo -n ":::    Restoring default dnsmasq.conf..."
-			${SUDO} cp ${defaultFile} ${dnsFile1}
+			cp ${defaultFile} ${dnsFile1}
 			echo " done."
 		else
 			echo " it is not a pi-hole file, leaving alone!"
 		fi
 	else
 		echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
-		${SUDO} cp ${defaultFile} ${dnsFile1}
+		cp ${defaultFile} ${dnsFile1}
 		echo " done."
 	fi
 
 	echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
-	${SUDO} cp ${newFileToInstall} ${newFileFinalLocation}
+	cp ${newFileToInstall} ${newFileFinalLocation}
 	echo " done."
-	${SUDO} sed -i "s/@INT@/$piholeInterface/" ${newFileFinalLocation}
+	sed -i "s/@INT@/$piholeInterface/" ${newFileFinalLocation}
 	if [[ "$piholeDNS1" != "" ]]; then
-		${SUDO} sed -i "s/@DNS1@/$piholeDNS1/" ${newFileFinalLocation}
+		sed -i "s/@DNS1@/$piholeDNS1/" ${newFileFinalLocation}
 	else
-		${SUDO} sed -i '/^server=@DNS1@/d' ${newFileFinalLocation}
+		sed -i '/^server=@DNS1@/d' ${newFileFinalLocation}
 	fi
 	if [[ "$piholeDNS2" != "" ]]; then
-		${SUDO} sed -i "s/@DNS2@/$piholeDNS2/" ${newFileFinalLocation}
+		sed -i "s/@DNS2@/$piholeDNS2/" ${newFileFinalLocation}
 	else
-		${SUDO} sed -i '/^server=@DNS2@/d' ${newFileFinalLocation}
+		sed -i '/^server=@DNS2@/d' ${newFileFinalLocation}
 	fi
-	${SUDO} sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsFile1}
+	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsFile1}
 }
 
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	echo ":::"
 	echo -n "::: Installing scripts to /opt/pihole..."
-	${SUDO} install -o "${USER}" -m755 -d /opt/pihole
+	install -o "${USER}" -m755 -d /opt/pihole
 
 	cd /etc/.pihole/
 
-	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
-	${SUDO} install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
-	${SUDO} install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
+	install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
+	install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
+	install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
 
-	${SUDO} install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+	install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	. /etc/bash_completion.d/pihole
 
 	#Tidy up /usr/local/bin directory if installing over previous install.
 	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
 	for i in "${oldFiles[@]}"; do
 		if [ -f "/usr/local/bin/$i.sh" ]; then
-			${SUDO} rm /usr/local/bin/"$i".sh
+			rm /usr/local/bin/"$i".sh
 		fi
 	done
 
@@ -554,15 +558,15 @@ installConfigs() {
 	echo "::: Installing configs..."
 	versionCheckDNSmasq
 	if [ ! -d "/etc/lighttpd" ]; then
-		${SUDO} mkdir /etc/lighttpd
-		${SUDO} chown "$USER":root /etc/lighttpd
-		${SUDO} mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+		mkdir /etc/lighttpd
+		chown "$USER":root /etc/lighttpd
+		mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	fi
-	${SUDO} cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
-	${SUDO} mkdir -p /var/run/lighttpd
-	${SUDO} chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
-	${SUDO} mkdir -p /var/cache/lighttpd/compress
-	${SUDO} chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+	cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+	mkdir -p /var/run/lighttpd
+	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
+	mkdir -p /var/cache/lighttpd/compress
+	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
 }
 
 stopServices() {
@@ -571,9 +575,9 @@ stopServices() {
 	echo -n "::: Stopping services..."
 	#$SUDO service dnsmasq stop & spinner $! || true
 	if [ -x "$(command -v systemctl)" ]; then
-		${SUDO} systemctl stop lighttpd & spinner $! || true
+		systemctl stop lighttpd & spinner $! || true
 	else
-		${SUDO} service lighttpd stop & spinner $! || true
+		service lighttpd stop & spinner $! || true
 	fi
 	echo " done."
 }
@@ -593,12 +597,12 @@ installerDependencies() {
 		#update package lists
 		echo ":::"
 		echo -n "::: $PKG_MANAGER update has not been run today. Running now..."
-		${SUDO} ${UPDATE_PKG_CACHE} > /dev/null 2>&1
+		${UPDATE_PKG_CACHE} > /dev/null 2>&1
 		echo " done!"
 	fi
 	echo ":::"
 	echo -n "::: Checking $PKG_MANAGER for upgraded packages...."
-	updatesToInstall=$(eval "${SUDO} ${PKG_COUNT}")
+	updatesToInstall=$(eval "${PKG_COUNT}")
 	echo " done!"
 	echo ":::"
 	if [[ ${updatesToInstall} -eq "0" ]]; then
@@ -615,7 +619,7 @@ installerDependencies() {
 		package_check ${i} > /dev/null
 		if ! [ $? -eq 0 ]; then
 			echo -n " Not found! Installing...."
-			${SUDO} ${PKG_INSTALL} "$i" > /dev/null 2>&1
+			${PKG_INSTALL} "$i" > /dev/null 2>&1
 			echo " done!"
 		else
 			echo " already installed!"
@@ -632,7 +636,7 @@ checkForDependencies() {
 	package_check ${i} > /dev/null
 	if ! [ $? -eq 0 ]; then
 		echo -n " Not found! Installing...."
-		${SUDO} ${PKG_INSTALL} "$i" > /dev/null & spinner $!
+		${PKG_INSTALL} "$i" > /dev/null & spinner $!
 		echo " done!"
 	else
 		echo " already installed!"
@@ -673,8 +677,8 @@ is_repo() {
 make_repo() {
     # Remove the non-repod interface and clone the interface
     echo -n ":::    Cloning $2 into $1..."
-    ${SUDO} rm -rf "$1"
-    ${SUDO} git clone -q "$2" "$1" > /dev/null & spinner $!
+    rm -rf "$1"
+    git clone -q "$2" "$1" > /dev/null & spinner $!
     echo " done!"
 }
 
@@ -682,7 +686,7 @@ update_repo() {
     # Pull the latest commits
     echo -n ":::     Updating repo in $1..."
     cd "$1" || exit
-    ${SUDO} git pull -q > /dev/null & spinner $!
+    git pull -q > /dev/null & spinner $!
     echo " done!"
 }
 
@@ -690,59 +694,59 @@ update_repo() {
 CreateLogFile() {
 	# Create logfiles if necessary
 	echo ":::"
-	${SUDO}  echo -n "::: Creating log file and changing owner to dnsmasq..."
+	 echo -n "::: Creating log file and changing owner to dnsmasq..."
 	if [ ! -f /var/log/pihole.log ]; then
-		${SUDO} touch /var/log/pihole.log
-		${SUDO} chmod 644 /var/log/pihole.log
-		${SUDO} chown dnsmasq:root /var/log/pihole.log
-		${SUDO} echo " done!"
+		touch /var/log/pihole.log
+		chmod 644 /var/log/pihole.log
+		chown dnsmasq:root /var/log/pihole.log
+		echo " done!"
 	else
-		${SUDO}  echo " already exists!"
+		echo " already exists!"
 	fi
 }
 
 installPiholeWeb() {
 	# Install the web interface
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Installing pihole custom index page..."
+	echo ":::"
+	echo -n "::: Installing pihole custom index page..."
 	if [ -d "/var/www/html/pihole" ]; then
-		${SUDO} echo " Existing page detected, not overwriting"
+		echo " Existing page detected, not overwriting"
 	else
-		${SUDO} mkdir /var/www/html/pihole
+		mkdir /var/www/html/pihole
 		if [ -f /var/www/html/index.lighttpd.html ]; then
-			${SUDO} mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+			mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
 		else
 			printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
 		fi
-		${SUDO} cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
-		${SUDO} echo " done!"
+		cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
+		echo " done!"
 	fi
 	# Install Sudoer file
 	echo -n "::: Installing sudoer file..."
-	${SUDO} mkdir -p /etc/sudoers.d/
-	${SUDO} cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
-	${SUDO} chmod 0440 /etc/sudoers.d/pihole
+	mkdir -p /etc/sudoers.d/
+	cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
+	chmod 0440 /etc/sudoers.d/pihole
 	echo " done!"
 }
 
 installCron() {
 	# Install the cron job
-	${SUDO} echo ":::"
-	${SUDO} echo -n "::: Installing latest Cron script..."
-	${SUDO} cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
-	${SUDO} echo " done!"
+	echo ":::"
+	echo -n "::: Installing latest Cron script..."
+	cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
+	echo " done!"
 }
 
 runGravity() {
 	# Rub gravity.sh to build blacklists
-	${SUDO} echo ":::"
-	${SUDO} echo "::: Preparing to run gravity.sh to refresh hosts..."
+	echo ":::"
+	echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
 		echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
-		${SUDO} rm /etc/pihole/list.*
+		rm /etc/pihole/list.*
 	fi
 	echo "::: Running gravity.sh"
-	${SUDO} /opt/pihole/gravity.sh
+	/opt/pihole/gravity.sh
 }
 
 setUser(){
@@ -752,41 +756,41 @@ setUser(){
 		echo "::: User 'pihole' already exists"
 	else
 		echo "::: User 'pihole' doesn't exist.  Creating..."
-		${SUDO} useradd -r -s /usr/sbin/nologin pihole
+		useradd -r -s /usr/sbin/nologin pihole
 	fi
 }
 
 configureFirewall() {
 	# Allow HTTP and DNS traffic
 	if [ -x "$(command -v firewall-cmd)" ]; then
-		${SUDO} firewall-cmd --state > /dev/null
+		firewall-cmd --state > /dev/null
 		if [[ $? -eq 0 ]]; then
-			${SUDO} echo "::: Configuring firewalld for httpd and dnsmasq.."
-			${SUDO} firewall-cmd --permanent --add-port=80/tcp
-			${SUDO} firewall-cmd --permanent --add-port=53/tcp
-			${SUDO} firewall-cmd --permanent --add-port=53/udp
-			${SUDO} firewall-cmd --reload
+			echo "::: Configuring firewalld for httpd and dnsmasq.."
+			firewall-cmd --permanent --add-port=80/tcp
+			firewall-cmd --permanent --add-port=53/tcp
+			firewall-cmd --permanent --add-port=53/udp
+			firewall-cmd --reload
 		fi
 	elif [ -x "$(command -v iptables)" ]; then
-		${SUDO} echo "::: Configuring iptables for httpd and dnsmasq.."
-		${SUDO} iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
-		${SUDO} iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
-		${SUDO} iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
+		echo "::: Configuring iptables for httpd and dnsmasq.."
+		iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+		iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
+		iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
 	else
-		${SUDO} echo "::: No firewall detected.. skipping firewall configuration."
+		echo "::: No firewall detected.. skipping firewall configuration."
 	fi
 }
 
 finalExports() {
     #If it already exists, lets overwrite it with the new values.
     if [[ -f ${setupVars} ]];then
-        ${SUDO} rm ${setupVars}
+        rm ${setupVars}
     fi
-    ${SUDO} echo "piholeInterface=${piholeInterface}" >> ${setupVars}
-    ${SUDO} echo "IPv4addr=${IPv4addr}" >> ${setupVars}
-    ${SUDO} echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
-    ${SUDO} echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
-    ${SUDO} echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
+    echo "piholeInterface=${piholeInterface}" >> ${setupVars}
+    echo "IPv4addr=${IPv4addr}" >> ${setupVars}
+    echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
+    echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
+    echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
 }
 
 
@@ -796,13 +800,13 @@ installPihole() {
 	stopServices
 	setUser
 	if [ ! -d "/var/www/html" ]; then
-		${SUDO} mkdir -p /var/www/html
+		mkdir -p /var/www/html
 	fi
-	${SUDO} chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-	${SUDO} chmod 775 /var/www/html
-	${SUDO} usermod -a -G ${LIGHTTPD_GROUP} pihole
+	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
+	chmod 775 /var/www/html
+	usermod -a -G ${LIGHTTPD_GROUP} pihole
 	if [ -x "$(command -v lighty-enable-mod)" ]; then
-		${SUDO} lighty-enable-mod fastcgi fastcgi-php > /dev/null
+		lighty-enable-mod fastcgi fastcgi-php > /dev/null
 	else
 		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
 	fi
@@ -814,9 +818,9 @@ installPihole() {
 	configureSelinux
 	installPiholeWeb
 	installCron
-	runGravity
 	configureFirewall
 	finalExports
+	runGravity
 }
 
 updatePihole() {
@@ -830,8 +834,8 @@ updatePihole() {
 	configureSelinux
 	installPiholeWeb
 	installCron
-	runGravity
 	configureFirewall
+	runGravity
 }
 
 configureSelinux() {
@@ -841,22 +845,22 @@ configureSelinux() {
 		package_check "selinux-policy-devel" > /dev/null
 		if ! [ $? -eq 0 ]; then
 			echo -n " Not found! Installing...."
-			${SUDO} ${PKG_INSTALL} "selinux-policy-devel" > /dev/null & spinner $!
+			${PKG_INSTALL} "selinux-policy-devel" > /dev/null & spinner $!
 			echo " done!"
 		else
 			echo " already installed!"
 		fi
 		printf "::: Enabling httpd server side includes (SSI).. "
-		${SUDO} setsebool -P httpd_ssi_exec on
+		setsebool -P httpd_ssi_exec on
 		if [ $? -eq 0 ]; then
 			echo -n "Success"
 		fi
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
-		${SUDO} checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
-		${SUDO} semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
-		${SUDO} semodule -i /etc/pihole/pihole.pp
-		${SUDO} rm -f /etc/pihole/pihole.mod
-		${SUDO} semodule -l | grep pihole > /dev/null
+		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
+		semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
+		semodule -i /etc/pihole/pihole.pp
+		rm -f /etc/pihole/pihole.mod
+		semodule -l | grep pihole > /dev/null
 		if [ $? -eq 0 ]; then
 			printf "::: Successfully installed Pi-Hole SELinux policy\n"
 		else
@@ -903,7 +907,7 @@ updateDialogs(){
 
 }
 
-######## SCRIPT ############
+main() {
 if [[ -f ${setupVars} ]];then
     . ${setupVars}
 
@@ -929,7 +933,7 @@ installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
-    ${SUDO} mkdir -p /etc/pihole/
+    mkdir -p /etc/pihole/
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
@@ -945,7 +949,7 @@ else
 fi
 
 # Move the log file into /etc/pihole for storage
-${SUDO} mv ${tmpLog} ${instalLogLoc}
+mv ${tmpLog} ${instalLogLoc}
 
 if [[ ${useUpdateVars} == false ]]; then
     displayFinalMessage
@@ -954,13 +958,13 @@ fi
 echo -n "::: Restarting services..."
 # Start services
 if [ -x "$(command -v systemctl)" ]; then
-	${SUDO} systemctl enable dnsmasq
-	${SUDO} systemctl restart dnsmasq
-	${SUDO} systemctl enable lighttpd
-	${SUDO} systemctl start lighttpd
+	systemctl enable dnsmasq
+	systemctl restart dnsmasq
+	systemctl enable lighttpd
+	systemctl start lighttpd
 else
-	${SUDO} service dnsmasq restart
-	${SUDO} service lighttpd start
+	service dnsmasq restart
+	service lighttpd start
 fi
 
 echo " done."
@@ -979,3 +983,6 @@ fi
 echo ":::"
 echo "::: The install log is located at: /etc/pihole/install.log"
 echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
+}
+
+main "$@"
