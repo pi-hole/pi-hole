@@ -654,7 +654,7 @@ install_dependent_packages(){
 
 	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check_install "${i}" > /dev/null
+		package_check_install "${i}" &> /dev/null & spinner $!
 		echo " installed!"
 	done
 }
