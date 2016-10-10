@@ -65,11 +65,8 @@ fi
 if [ -x "$(command -v apt-get)" ];then
 	#Debian Family
 	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
-	phpVer="php"
-	apt-get install --dry-run php5 > /dev/null 2>&1
-	if [ $? == 0 ]; then
-	    phpVer="php5"
-	fi
+	phpVer="php5"
+	apt-get install --dry-run php5 > /dev/null 2>&1 || phpVer="php"
 	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/lib/apt/lists/"
