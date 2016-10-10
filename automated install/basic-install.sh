@@ -524,6 +524,16 @@ versionCheckDNSmasq(){
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsFile1}
 }
 
+remove_legacy_scripts(){
+	#Tidy up /usr/local/bin directory if installing over previous install.
+	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
+	for i in "${oldFiles[@]}"; do
+		if [ -f "/usr/local/bin/$i.sh" ]; then
+			rm /usr/local/bin/"$i".sh
+		fi
+	done
+}
+
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	echo ":::"
@@ -537,15 +547,6 @@ installScripts() {
 	install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
 
 	install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
-
-	#Tidy up /usr/local/bin directory if installing over previous install.
-	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
-	for i in "${oldFiles[@]}"; do
-		if [ -f "/usr/local/bin/$i.sh" ]; then
-			rm /usr/local/bin/"$i".sh
-		fi
-	done
-
 	echo " done."
 }
 
@@ -899,6 +900,8 @@ if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
+    # Remove legacy scripts from previous storage location
+    remove_legacy_scripts
     # Get Git files for Core and Admin
     getGitFiles ${piholeFilesDir} ${piholeGitUrl}
     getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
