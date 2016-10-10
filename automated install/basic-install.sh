@@ -79,8 +79,8 @@ if [ -x "$(command -v apt-get)" ];then
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
-	package_check() {
-		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+	package_check_install() {
+		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "$1"
 	}
 elif [ -x "$(command -v rpm)" ];then
 	# Fedora Family
@@ -99,7 +99,7 @@ elif [ -x "$(command -v rpm)" ];then
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
-	package_check() {
+	package_check_install() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
 else
@@ -613,32 +613,19 @@ installerDependencies() {
 	echo "::: Checking installer dependencies..."
 	for i in "${INSTALLER_DEPS[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check ${i} > /dev/null
-		if ! [ $? -eq 0 ]; then
-			echo -n " Not found! Installing...."
-			${PKG_INSTALL} "$i" > /dev/null 2>&1
-			echo " done!"
-		else
-			echo " already installed!"
-		fi
+		package_check_install ${i} > /dev/null
+		echo " installed!"
 	done
 }
 
 checkForDependencies() {
 	# Install dependencies for Pi-Hole
-    echo "::: Checking Pi-Hole dependencies:"
-
-    for i in "${PIHOLE_DEPS[@]}"; do
+  echo "::: Checking Pi-Hole dependencies:"
+  for i in "${PIHOLE_DEPS[@]}"; do
 	echo -n ":::    Checking for $i..."
-	package_check ${i} > /dev/null
-	if ! [ $? -eq 0 ]; then
-		echo -n " Not found! Installing...."
-		${PKG_INSTALL} "$i" > /dev/null & spinner $!
-		echo " done!"
-	else
-		echo " already installed!"
-	fi
-    done
+	package_check_install ${i} > /dev/null
+  echo " installed!"
+	done
 }
 
 getGitFiles() {
@@ -839,14 +826,8 @@ configureSelinux() {
 	if [ -x "$(command -v getenforce)" ]; then
 		printf "\n::: SELinux Detected\n"
 		printf ":::\tChecking for SELinux policy development packages..."
-		package_check "selinux-policy-devel" > /dev/null
-		if ! [ $? -eq 0 ]; then
-			echo -n " Not found! Installing...."
-			${PKG_INSTALL} "selinux-policy-devel" > /dev/null & spinner $!
-			echo " done!"
-		else
-			echo " already installed!"
-		fi
+		package_check_install "selinux-policy-devel" > /dev/null
+		echo " installed!"
 		printf "::: Enabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on
 		if [ $? -eq 0 ]; then
