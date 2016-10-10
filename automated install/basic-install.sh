@@ -526,6 +526,16 @@ versionCheckDNSmasq(){
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsFile1}
 }
 
+remove_legacy_scripts(){
+	#Tidy up /usr/local/bin directory if installing over previous install.
+	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
+	for i in "${oldFiles[@]}"; do
+		if [ -f "/usr/local/bin/$i.sh" ]; then
+			rm /usr/local/bin/"$i".sh
+		fi
+	done
+}
+
 installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	echo ":::"
@@ -539,16 +549,6 @@ installScripts() {
 	install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
 
 	install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
-	. /etc/bash_completion.d/pihole
-
-	#Tidy up /usr/local/bin directory if installing over previous install.
-	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
-	for i in "${oldFiles[@]}"; do
-		if [ -f "/usr/local/bin/$i.sh" ]; then
-			rm /usr/local/bin/"$i".sh
-		fi
-	done
-
 	echo " done."
 }
 
@@ -569,15 +569,15 @@ installConfigs() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
 }
 
-stopServices() {
-	# Stop dnsmasq and lighttpd
+stop_service() {
+	# Stop service passed in as argument.
+	# Can softfail, as process may not be installed when this is called
 	echo ":::"
-	echo -n "::: Stopping services..."
-	#$SUDO service dnsmasq stop & spinner $! || true
+	echo -n "::: Stopping ${1} service..."
 	if [ -x "$(command -v systemctl)" ]; then
-		systemctl stop lighttpd & spinner $! || true
+		systemctl stop "${1}" &> /dev/null & spinner $! || true
 	else
-		service lighttpd stop & spinner $! || true
+		service "${1}" &> /dev/null stop & spinner $! || true
 	fi
 	echo " done."
 }
@@ -645,47 +645,36 @@ checkForDependencies() {
 }
 
 getGitFiles() {
-	# Setup git repos for base files and web admin
+	# Setup git repos for directory and repository passed
+	# as arguments 1 and 2
 	echo ":::"
-	echo "::: Checking for existing base files..."
-	if is_repo ${piholeFilesDir}; then
-		make_repo ${piholeFilesDir} ${piholeGitUrl}
+	echo "::: Checking for existing repository..."
+	if is_repo "${1}"; then
+	  update_repo "${1}"
 	else
-		update_repo ${piholeFilesDir}
-	fi
-
-	echo ":::"
-	echo "::: Checking for existing web interface..."
-	if is_repo ${webInterfaceDir}; then
-		make_repo ${webInterfaceDir} ${webInterfaceGitUrl}
-	else
-		update_repo ${webInterfaceDir}
-	fi
+	  make_repo "${1}" "${2}"
+  fi
 }
 
 is_repo() {
-	# If the directory does not have a .git folder it is not a repo
+  # Use git to check if directory is currently under VCS
 	echo -n ":::    Checking $1 is a repo..."
-		if [ -d "$1/.git" ]; then
-		echo " OK!"
-		return 1
-	fi
-	echo " not found!!"
-	return 0
+	cd "${1}" &> /dev/null || return 1
+	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
 }
 
 make_repo() {
     # Remove the non-repod interface and clone the interface
     echo -n ":::    Cloning $2 into $1..."
-    rm -rf "$1"
-    git clone -q "$2" "$1" > /dev/null & spinner $!
+    rm -rf "${1}"
+    git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
     echo " done!"
 }
 
 update_repo() {
     # Pull the latest commits
     echo -n ":::     Updating repo in $1..."
-    cd "$1" || exit
+    cd "${1}" || exit 1
     git pull -q > /dev/null & spinner $!
     echo " done!"
 }
@@ -738,7 +727,7 @@ installCron() {
 }
 
 runGravity() {
-	# Rub gravity.sh to build blacklists
+	# Run gravity.sh to build blacklists
 	echo ":::"
 	echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
@@ -749,15 +738,10 @@ runGravity() {
 	/opt/pihole/gravity.sh
 }
 
-setUser(){
+create_pihole_user(){
 	# Check if user pihole exists and create if not
 	echo "::: Checking if user 'pihole' exists..."
-	if id -u pihole > /dev/null 2>&1; then
-		echo "::: User 'pihole' already exists"
-	else
-		echo "::: User 'pihole' doesn't exist.  Creating..."
-		useradd -r -s /usr/sbin/nologin pihole
-	fi
+	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || echo "::: User 'pihole' doesn't exist.  Creating..."; useradd -r -s /usr/sbin/nologin pihole
 }
 
 configureFirewall() {
@@ -796,9 +780,7 @@ finalExports() {
 
 installPihole() {
 	# Install base files and web interface
-	checkForDependencies # done
-	stopServices
-	setUser
+	create_pihole_user
 	if [ ! -d "/var/www/html" ]; then
 		mkdir -p /var/www/html
 	fi
@@ -806,12 +788,10 @@ installPihole() {
 	chmod 775 /var/www/html
 	usermod -a -G ${LIGHTTPD_GROUP} pihole
 	if [ -x "$(command -v lighty-enable-mod)" ]; then
-		lighty-enable-mod fastcgi fastcgi-php > /dev/null
+		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
 	else
 		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
 	fi
-
-	getGitFiles
 	installScripts
 	installConfigs
 	CreateLogFile
@@ -825,9 +805,6 @@ installPihole() {
 
 updatePihole() {
 	# Install base files and web interface
-	checkForDependencies # done
-	stopServices
-	getGitFiles
 	installScripts
 	installConfigs
 	CreateLogFile
@@ -882,15 +859,14 @@ The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" ${r} ${c}
 }
 
-updateDialogs(){
+update_dialogs(){
 
-  UpdateCmd=(whiptail --separate-output --radiolist "We have detected an existing install.\n\n    Selecting Update will retain settings from the existing install.\n\n    Selecting Install will allow you to enter new settings.\n\n(Highlight desired option, and press space to select!)" ${r} ${c} 2)
-  UpdateChoices=(Update "" on
-                 Install "" off)
-  UpdateChoice=$("${UpdateCmd[@]}" "${UpdateChoices[@]}" 2>&1 >/dev/tty)
+  UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "We have detected an existing install.\n\n Please chose from the following options:" ${r} ${c} 2 \
+  "Update"  "Update install will retain existing settings." \
+  "Install"  "Install will allow you to enter new settings." 3>&2 2>&1 1>&3)
 
   if [[ $? = 0 ]];then
-		case ${UpdateChoice} in
+		case ${UpdateCmd} in
             Update)
                 echo "::: Updating existing install"
                 useUpdateVars=true
@@ -914,7 +890,7 @@ if [[ -f ${setupVars} ]];then
     if [ "$1" == "pihole" ]; then
         useUpdateVars=true
     else
-        updateDialogs
+        update_dialogs
     fi
 
 fi
@@ -932,8 +908,18 @@ fi
 installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
+    # Display welcome dialogs
     welcomeDialogs
+    # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
+    # Remove legacy scripts from previous storage location
+    remove_legacy_scripts
+    # Get Git files for Core and Admin
+    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+    # Stop resolver and webserver while installing proceses
+    stop_service dnsmasq
+    stop_service lighttpd
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
