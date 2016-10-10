@@ -582,7 +582,32 @@ stop_service() {
 	if [ -x "$(command -v systemctl)" ]; then
 		systemctl stop "${1}" &> /dev/null & spinner $! || true
 	else
-		service "${1}" &> /dev/null stop & spinner $! || true
+		service "${1}" stop &> /dev/null & spinner $! || true
+	fi
+	echo " done."
+}
+
+start_service() {
+  # Start/Restart service passed in as argument
+  # This should not fail, it's an error if it does
+	echo ":::"
+	echo -n "::: Starting ${1} service..."
+	if [ -x "$(command -v systemctl)" ]; then
+		systemctl restart "${1}" &> /dev/null & spinner $!
+	else
+		service "${1}" restart &> /dev/null  & spinner $!
+	fi
+	echo " done."
+}
+
+enable_service() {
+  # Enable service so that it will start with next reboot
+	echo ":::"
+	echo -n "::: Enabling ${1} service to start on reboot..."
+	if [ -x "$(command -v systemctl)" ]; then
+		systemctl enable "${1}" &> /dev/null & spinner $!
+	else
+		update-rc.d "${1}" defaults &> /dev/null  & spinner $!
 	fi
 	echo " done."
 }
@@ -912,8 +937,6 @@ if [[ ${useUpdateVars} == false ]]; then
     stop_service lighttpd
     # Determine available interfaces
     get_available_interfaces
-    # Find IP used to route to outside world
-    #find_IPv4_information
     # Find interfaces and let the user choose one
     chooseInterface
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
@@ -937,16 +960,10 @@ fi
 
 echo -n "::: Restarting services..."
 # Start services
-if [ -x "$(command -v systemctl)" ]; then
-	systemctl enable dnsmasq
-	systemctl restart dnsmasq
-	systemctl enable lighttpd
-	systemctl start lighttpd
-else
-	service dnsmasq restart
-	service lighttpd start
-fi
-
+start_service dnsmasq
+enable_service dnsmasq
+start_service lighttpd
+enable_service lighttpd
 echo " done."
 
 echo ":::"
