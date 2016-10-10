@@ -129,9 +129,12 @@ findIPRoute() {
 	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
 	IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
 	IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
-	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
 }
 
+get_available_interfaces() {
+  # Get available interfaces. Consider only getting UP interfaces in the future, and leaving DOWN interfaces out of list.
+	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
+}
 
 welcomeDialogs() {
 	# Display the welcome dialog
@@ -907,6 +910,8 @@ if [[ ${useUpdateVars} == false ]]; then
     # Stop resolver and webserver while installing proceses
     stop_service dnsmasq
     stop_service lighttpd
+    # Determine available interfaces
+    get_available_interfaces
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
