@@ -567,15 +567,15 @@ installConfigs() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
 }
 
-stopServices() {
-	# Stop dnsmasq and lighttpd
+stop_service() {
+	# Stop service passed in as argument.
+	# Can softfail, as process may not be installed when this is called
 	echo ":::"
-	echo -n "::: Stopping services..."
-	#$SUDO service dnsmasq stop & spinner $! || true
+	echo -n "::: Stopping ${1} service..."
 	if [ -x "$(command -v systemctl)" ]; then
-		systemctl stop lighttpd & spinner $! || true
+		systemctl stop "${1}" &> /dev/null & spinner $! || true
 	else
-		service lighttpd stop & spinner $! || true
+		service "${1}" &> /dev/null stop & spinner $! || true
 	fi
 	echo " done."
 }
@@ -642,7 +642,7 @@ getGitFiles() {
 is_repo() {
   # Use git to check if directory is currently under VCS
 	echo -n ":::    Checking $1 is a repo..."
-	cd "${1}" || return 1
+	cd "${1}" &> /dev/null || return 1
 	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
 }
 
@@ -768,7 +768,6 @@ finalExports() {
 
 installPihole() {
 	# Install base files and web interface
-	stopServices
 	setUser
 	if [ ! -d "/var/www/html" ]; then
 		mkdir -p /var/www/html
@@ -794,7 +793,6 @@ installPihole() {
 
 updatePihole() {
 	# Install base files and web interface
-	stopServices
 	installScripts
 	installConfigs
 	CreateLogFile
@@ -905,6 +903,9 @@ if [[ ${useUpdateVars} == false ]]; then
     # Get Git files for Core and Admin
     getGitFiles ${piholeFilesDir} ${piholeGitUrl}
     getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+    # Stop resolver and webserver while installing proceses
+    stop_service dnsmasq
+    stop_service lighttpd
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
