@@ -185,8 +185,15 @@ verifyFreeDiskSpace() {
 
 chooseInterface() {
 	# Turn the available interfaces into an array so it can be used with a whiptail dialog
-	interfacesArray=()
-	firstLoop=1
+	local interfacesArray=()
+	# Number of available interfaces
+	local interfaceCount
+	# Whiptail variable storage
+	local chooseInterfaceCmd
+	# Temporary Whiptail options storage
+	local chooseInterfaceOptions
+	# Loop sentinel variable
+	local firstLoop=1
 
 	while read -r line
 	do
