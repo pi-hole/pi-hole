@@ -81,6 +81,7 @@ if [ -x "$(command -v apt-get)" ];then
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
+	DNSMASQ_USER="dnsmasq"
 	package_check_install() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "$1"
 	}
@@ -101,6 +102,7 @@ elif [ -x "$(command -v rpm)" ];then
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
+	DNSMASQ_USER="nobody"
 	package_check_install() {
 		rpm -qa | grep ^"$1"- > /dev/null || ${PKG_INSTALL} "$1"
 	}
@@ -702,7 +704,7 @@ CreateLogFile() {
 	if [ ! -f /var/log/pihole.log ]; then
 		touch /var/log/pihole.log
 		chmod 644 /var/log/pihole.log
-		chown dnsmasq:root /var/log/pihole.log
+		chown "${DNSMASQ_USER}":root /var/log/pihole.log
 		echo " done!"
 	else
 		echo " already exists!"
@@ -839,21 +841,13 @@ configureSelinux() {
 		package_check_install "selinux-policy-devel" > /dev/null
 		echo " installed!"
 		printf "::: Enabling httpd server side includes (SSI).. "
-		setsebool -P httpd_ssi_exec on
-		if [ $? -eq 0 ]; then
-			echo -n "Success"
-		fi
+		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
 		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
 		semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		semodule -i /etc/pihole/pihole.pp
 		rm -f /etc/pihole/pihole.mod
-		semodule -l | grep pihole > /dev/null
-		if [ $? -eq 0 ]; then
-			printf "::: Successfully installed Pi-Hole SELinux policy\n"
-		else
-			printf "::: Warning: Pi-Hole SELinux policy did not install correctly!\n"
-		fi
+		semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || echo "::: Warning: Pi-Hole SELinux policy did not install."
 	fi
 }
 
