@@ -843,7 +843,7 @@ The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" ${r} ${c}
 }
 
-updateDialogs(){
+update_dialogs(){
 
   UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "We have detected an existing install.\n\n Please chose from the following options:" ${r} ${c} 2 \
   "Update"  "Update install will retain existing settings." \
@@ -874,7 +874,7 @@ if [[ -f ${setupVars} ]];then
     if [ "$1" == "pihole" ]; then
         useUpdateVars=true
     else
-        updateDialogs
+        update_dialogs
     fi
 
 fi
