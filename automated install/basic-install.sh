@@ -73,7 +73,8 @@ if [ -x "$(command -v apt-get)" ];then
 	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
 	PKG_UPDATE="$PKG_MANAGER upgrade"
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
-	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
+	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
+	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
 	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
 	LIGHTTPD_USER="www-data"
