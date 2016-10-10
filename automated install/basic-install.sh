@@ -68,8 +68,8 @@ if [ -x "$(command -v apt-get)" ];then
 	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
 	phpVer="php5"
 	phpSqliteVer="php5-sqlite"
-	apt-get install --dry-run php5 > /dev/null 2>&1 || phpVer="php"
-	apt-get install --dry-run php-sqlite3 > /dev/null 2>&1 || phpSqliteVer="php-sqlite3"
+	apt-get install --dry-run ${phpVer} > /dev/null 2>&1 || phpVer="php"
+	apt-get install --dry-run ${phpSqliteVer} > /dev/null 2>&1 || phpSqliteVer="php-sqlite3"
 	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/lib/apt/lists/"
