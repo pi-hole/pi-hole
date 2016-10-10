@@ -70,9 +70,9 @@ if [ -x "$(command -v apt-get)" ];then
 	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/lib/apt/lists/"
-	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
+	UPDATE_PKG_CACHE="$PKG_MANAGER update"
 	PKG_UPDATE="$PKG_MANAGER upgrade"
-	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
+	PKG_INSTALL="$PKG_MANAGER --yes --fix-missing install"
 	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
@@ -91,7 +91,7 @@ elif [ -x "$(command -v rpm)" ];then
 		PKG_MANAGER="yum"
 	fi
 	PKG_CACHE="/var/cache/$PKG_MANAGER"
-	UPDATE_PKG_CACHE="$PKG_MANAGER check-update -q"
+	UPDATE_PKG_CACHE="$PKG_MANAGER check-update"
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
