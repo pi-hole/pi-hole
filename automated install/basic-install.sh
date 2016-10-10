@@ -101,7 +101,7 @@ elif [ -x "$(command -v rpm)" ];then
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
 	package_check_install() {
-		rpm -qa | grep ^$1- > /dev/null
+		rpm -qa | grep ^"$1"- > /dev/null
 	}
 else
 	echo "OS distribution not supported"
@@ -337,28 +337,30 @@ setStaticIPv4() {
 	elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${piholeInterface} ]];then
 		# Fedora Family
 		IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${piholeInterface}
-		if grep -q "$IPv4addr" ${IFCFG_FILE}; then
+		if grep -q "$IPv4addr" "${IFCFG_FILE}"; then
 			echo "::: Static IP already configured"
 		else
-			IPADDR=$(echo ${IPv4addr} | cut -f1 -d/)
-			CIDR=$(echo ${IPv4addr} | cut -f2 -d/)
+			IPADDR=$(echo "${IPv4addr}" | cut -f1 -d/)
+			CIDR=$(echo "${IPv4addr}" | cut -f2 -d/)
 			# Backup existing interface configuration:
-			cp ${IFCFG_FILE} ${IFCFG_FILE}.backup-$(date +%Y-%m-%d-%H%M%S)
+			cp "${IFCFG_FILE}" "${IFCFG_FILE}".backup-"$(date +%Y-%m-%d-%H%M%S)"
 			# Build Interface configuration file:
-			echo "# Configured via Pi-Hole installer" > ${IFCFG_FILE}
-			echo "DEVICE=$piholeInterface" >> ${IFCFG_FILE}
-			echo "BOOTPROTO=none" >> ${IFCFG_FILE}
-			echo "ONBOOT=yes" >> ${IFCFG_FILE}
-			echo "IPADDR=$IPADDR" >> ${IFCFG_FILE}
-			echo "PREFIX=$CIDR" >> ${IFCFG_FILE}
-			echo "GATEWAY=$IPv4gw" >> ${IFCFG_FILE}
-			echo "DNS1=$piholeDNS1" >> ${IFCFG_FILE}
-			echo "DNS2=$piholeDNS2" >> ${IFCFG_FILE}
-			echo "USERCTL=no" >> ${IFCFG_FILE}
+			{
+			echo "# Configured via Pi-Hole installer"
+			echo "DEVICE=$piholeInterface"
+			echo "BOOTPROTO=none"
+			echo "ONBOOT=yes"
+			echo "IPADDR=$IPADDR"
+			echo "PREFIX=$CIDR"
+			echo "GATEWAY=$IPv4gw"
+			echo "DNS1=$piholeDNS1"
+			echo "DNS2=$piholeDNS2"
+			echo "USERCTL=no"
+			}>> "${IFCFG_FILE}"
 			ip addr replace dev "$piholeInterface" "$IPv4addr"
 			if [ -x "$(command -v nmcli)" ];then
 				# Tell NetworkManager to read our new sysconfig file
-				nmcli con load ${IFCFG_FILE} > /dev/null
+				nmcli con load "${IFCFG_FILE}" > /dev/null
 			fi
 			echo ":::"
 			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
@@ -622,7 +624,7 @@ install_dependent_packages(){
 
 	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check_install ${i} > /dev/null
+		package_check_install "${i}" > /dev/null
 		echo " installed!"
 	done
 }
@@ -753,11 +755,13 @@ finalExports() {
     if [[ -f ${setupVars} ]];then
         rm ${setupVars}
     fi
-    echo "piholeInterface=${piholeInterface}" >> ${setupVars}
-    echo "IPv4addr=${IPv4addr}" >> ${setupVars}
-    echo "piholeIPv6=${piholeIPv6}" >> ${setupVars}
-    echo "piholeDNS1=${piholeDNS1}" >> ${setupVars}
-    echo "piholeDNS2=${piholeDNS2}" >> ${setupVars}
+    {
+    echo "piholeInterface=${piholeInterface}"
+    echo "IPv4addr=${IPv4addr}"
+    echo "piholeIPv6=${piholeIPv6}"
+    echo "piholeDNS1=${piholeDNS1}"
+    echo "piholeDNS2=${piholeDNS2}"
+     }>> "${setupVars}"
 }
 
 
