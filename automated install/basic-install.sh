@@ -484,49 +484,49 @@ setDNS(){
 	fi
 }
 
-versionCheckDNSmasq(){
+version_check_dnsmasq(){
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
-	dnsFile1="/etc/dnsmasq.conf"
-	dnsFile2="/etc/dnsmasq.conf.orig"
-	dnsSearch="addn-hosts=/etc/pihole/gravity.list"
-	defaultFile="/etc/.pihole/advanced/dnsmasq.conf.original"
-	newFileToInstall="/etc/.pihole/advanced/01-pihole.conf"
-	newFileFinalLocation="/etc/dnsmasq.d/01-pihole.conf"
+	local dnsmasq_conf="/etc/dnsmasq.conf"
+	local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
+	local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
+	local dnsmasq_original_config="/etc/.pihole/advanced/dnsmasq.conf.original"
+	local dnsmasq_pihole_01_snippet="/etc/.pihole/advanced/01-pihole.conf"
+	local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
 
-	if [ -f ${dnsFile1} ]; then
+	if [ -f ${dnsmasq_conf} ]; then
 		echo -n ":::    Existing dnsmasq.conf found..."
-		if grep -q ${dnsSearch} ${dnsFile1}; then
+		if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
 			echo " it is from a previous pi-hole install."
 			echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
-			mv -f ${dnsFile1} ${dnsFile2}
+			mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
 			echo " done."
 			echo -n ":::    Restoring default dnsmasq.conf..."
-			cp ${defaultFile} ${dnsFile1}
+			cp ${dnsmasq_original_config} ${dnsmasq_conf}
 			echo " done."
 		else
 			echo " it is not a pi-hole file, leaving alone!"
 		fi
 	else
 		echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
-		cp ${defaultFile} ${dnsFile1}
+		cp ${dnsmasq_original_config} ${dnsmasq_conf}
 		echo " done."
 	fi
 
 	echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
-	cp ${newFileToInstall} ${newFileFinalLocation}
+	cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
 	echo " done."
-	sed -i "s/@INT@/$piholeInterface/" ${newFileFinalLocation}
+	sed -i "s/@INT@/$piholeInterface/" ${dnsmasq_pihole_01_location}
 	if [[ "$piholeDNS1" != "" ]]; then
-		sed -i "s/@DNS1@/$piholeDNS1/" ${newFileFinalLocation}
+		sed -i "s/@DNS1@/$piholeDNS1/" ${dnsmasq_pihole_01_location}
 	else
-		sed -i '/^server=@DNS1@/d' ${newFileFinalLocation}
+		sed -i '/^server=@DNS1@/d' ${dnsmasq_pihole_01_location}
 	fi
 	if [[ "$piholeDNS2" != "" ]]; then
-		sed -i "s/@DNS2@/$piholeDNS2/" ${newFileFinalLocation}
+		sed -i "s/@DNS2@/$piholeDNS2/" ${dnsmasq_pihole_01_location}
 	else
-		sed -i '/^server=@DNS2@/d' ${newFileFinalLocation}
+		sed -i '/^server=@DNS2@/d' ${dnsmasq_pihole_01_location}
 	fi
-	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsFile1}
+	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
 }
 
 remove_legacy_scripts(){
@@ -559,7 +559,7 @@ installConfigs() {
 	# Install the configs from /etc/.pihole to their various locations
 	echo ":::"
 	echo "::: Installing configs..."
-	versionCheckDNSmasq
+	version_check_dnsmasq
 	if [ ! -d "/etc/lighttpd" ]; then
 		mkdir /etc/lighttpd
 		chown "$USER":root /etc/lighttpd
