@@ -326,6 +326,9 @@ setDHCPCD() {
 }
 
 setStaticIPv4() {
+  local IFCFG_FILE
+  local IPADDR
+  local CIDR
 	if [[ -f /etc/dhcpcd.conf ]];then
 		# Debian Family
 		if grep -q "$IPv4_address" /etc/dhcpcd.conf; then
@@ -366,9 +369,8 @@ setStaticIPv4() {
 				nmcli con load "${IFCFG_FILE}" > /dev/null
 			fi
 			echo ":::"
-			echo "::: Setting IP to $IPv4_address.  You may need to restart after the install is complete."
+			echo "::: Setting IP to ${IPv4_address}.  You may need to restart after the install is complete."
 			echo ":::"
-
 		fi
 	else
 		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
