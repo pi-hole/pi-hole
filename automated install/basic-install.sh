@@ -398,14 +398,14 @@ function valid_ip()
 }
 
 setDNS(){
-	DNSChoseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6)
+	DNSChooseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6)
 	DNSChooseOptions=(Google "" on
 			OpenDNS "" off
 			Level3 "" off
 			Norton "" off
 			Comodo "" off
 			Custom "" off)
-	DNSchoices=$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+	DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
 		case ${DNSchoices} in
             Google)
@@ -860,7 +860,7 @@ View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admi
 
 update_dialogs(){
 
-  UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease chose from the following options:" ${r} ${c} 2 \
+  UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease choose from the following options:" ${r} ${c} 2 \
   "Update"  "Update install will retain existing settings." \
   "Install"  "Install will allow you to enter new settings." 3>&2 2>&1 1>&3)
 
