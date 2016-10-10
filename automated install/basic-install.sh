@@ -18,8 +18,6 @@
 
 set -e
 ######## VARIABLES #########
-
-
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 setupVars=/etc/pihole/setupVars.conf
@@ -31,8 +29,8 @@ piholeFilesDir="/etc/.pihole"
 
 useUpdateVars=false
 
-IPv4_address="Not Used"
-IPv6_address="Not Used"
+IPv4_address=""
+IPv6_address=""
 
 # Find the rows and columns
 rows=$(tput lines)
