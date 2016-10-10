@@ -616,22 +616,13 @@ notify_package_updates_available(){
 }
 
 install_dependent_packages(){
+  # Install packages passed in via argument array
   declare -a argArray1=("${!1}")
 
 	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check ${i} > /dev/null
+		package_check_install ${i} > /dev/null
 		echo " installed!"
-	done
-}
-
-checkForDependencies() {
-	# Install dependencies for Pi-Hole
-  echo "::: Checking Pi-Hole dependencies:"
-  for i in "${PIHOLE_DEPS[@]}"; do
-	echo -n ":::    Checking for $i..."
-	package_check_install ${i} > /dev/null
-  echo " installed!"
 	done
 }
 
@@ -787,7 +778,6 @@ finalExports() {
 
 installPihole() {
 	# Install base files and web interface
-	checkForDependencies # done
 	stopServices
 	setUser
 	if [ ! -d "/var/www/html" ]; then
@@ -816,7 +806,6 @@ installPihole() {
 
 updatePihole() {
 	# Install base files and web interface
-	checkForDependencies # done
 	stopServices
 	getGitFiles
 	installScripts
@@ -934,6 +923,8 @@ if [[ ${useUpdateVars} == false ]]; then
     use4andor6
     # Decide what upstream DNS Servers to use
     setDNS
+    # Install packages used by the Pi-hole
+    install_dependent_packages PIHOLE_DEPS[@]
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
 else
