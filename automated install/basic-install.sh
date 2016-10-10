@@ -31,6 +31,9 @@ piholeFilesDir="/etc/.pihole"
 
 useUpdateVars=false
 
+IPv4_address="Not Used"
+IPv6_address="Not Used"
+
 # Find the rows and columns
 rows=$(tput lines)
 columns=$(tput cols)
@@ -124,10 +127,10 @@ spinner()
     printf "    \b\b\b\b"
 }
 
-findIPRoute() {
+find_IPv4_information() {
 	# Find IP used to route to outside world
 	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-	IPv4addr=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+	IPv4_address=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
 	IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 }
 
@@ -138,13 +141,13 @@ get_available_interfaces() {
 
 welcomeDialogs() {
 	# Display the welcome dialog
-	whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "This installer will transform your Raspberry Pi into a network-wide ad blocker!" ${r} ${c}
+	whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "\n\nThis installer will transform your device into a network-wide ad blocker!" ${r} ${c}
 
 	# Support for a part-time dev
-	whiptail --msgbox --backtitle "Plea" --title "Free and open source" "The Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" ${r} ${c}
+	whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\n\nThe Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" ${r} ${c}
 
 	# Explain the need for a static address
-	whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "The Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+	whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\n\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." ${r} ${c}
 }
@@ -219,10 +222,18 @@ chooseInterface() {
 		echo "::: Cancel selected, exiting...."
 		exit 1
 	fi
-
 }
 
+useIPv6dialog() {
+	# Show the IPv6 address used for blocking
+	IPv6_address=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPv6_address will be used to block ads." ${r} ${c}
+}
+
+
 use4andor6() {
+	local useIPv4
+	local useIPv6
 	# Let use select IPv4 and/or IPv6
 	cmd=(whiptail --separate-output --checklist "Select Protocols (press space to select)" ${r} ${c} 2)
 	options=(IPv4 "Block ads over IPv4" on
@@ -236,47 +247,31 @@ use4andor6() {
 			IPv6  )   useIPv6=true;;
 			esac
 		done
-
-		if [ ${useIPv4} ] && [ ! ${useIPv6} ]; then
-			getStaticIPv4Settings
-			setStaticIPv4
-			echo "::: Using IPv4 on $IPv4addr"
-			echo "::: IPv6 will NOT be used."
+		if [[ ${useIPv4} ]]; then
+		  find_IPv4_information
+		  getStaticIPv4Settings
+		  setStaticIPv4
 		fi
-		if [ ! ${useIPv4} ] && [ ${useIPv6} ]; then
-			useIPv6dialog
-			echo "::: IPv4 will NOT be used."
-			echo "::: Using IPv6 on $piholeIPv6"
-		fi
-		if [ ${useIPv4} ] && [  ${useIPv6} ]; then
-			getStaticIPv4Settings
-			setStaticIPv4
-			useIPv6dialog
-			echo "::: Using IPv4 on $IPv4addr"
-			echo "::: Using IPv6 on $piholeIPv6"
-		fi
+		if [[ ${useIPv6} ]]; then
+		  useIPv6dialog
+    fi
+    echo "::: IPv4 address: ${IPv4_address}"
+    echo "::: IPv6 address: ${IPv6_address}"
 		if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
 			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
 			echo "::: Exiting"
 			exit 1
 		fi
-
 	else
 		echo "::: Cancel selected. Exiting..."
 		exit 1
 	fi
 }
 
-useIPv6dialog() {
-	# Show the IPv6 address used for blocking
-	piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-	whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$piholeIPv6 will be used to block ads." ${r} ${c}
-}
-
 getStaticIPv4Settings() {
 	# Ask if the user wants to use DHCP settings as their static IP
 	if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
-					IP address:    $IPv4addr
+					IP address:    $IPv4_address
 					Gateway:       $IPv4gw" ${r} ${c}); then
 		# If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
 		whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
@@ -290,16 +285,16 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 		until [[ ${ipSettingsCorrect} = True ]]
 		do
 			# Ask for the IPv4 address
-			IPv4addr=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "$IPv4addr" 3>&1 1>&2 2>&3)
+			IPv4_address=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "$IPv4_address" 3>&1 1>&2 2>&3)
 			if [[ $? = 0 ]];then
-			echo "::: Your static IPv4 address:    $IPv4addr"
+			echo "::: Your static IPv4 address:    $IPv4_address"
 			# Ask for the gateway
 			IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "$IPv4gw" 3>&1 1>&2 2>&3)
 			if [[ $? = 0 ]];then
 				echo "::: Your static IPv4 gateway:    $IPv4gw"
 				# Give the user a chance to review their settings before moving on
 				if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-					IP address:    $IPv4addr
+					IP address:    $IPv4_address
 					Gateway:       $IPv4gw" ${r} ${c}); then
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
@@ -327,7 +322,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 setDHCPCD() {
 	# Append these lines to dhcpcd.conf to enable a static IP
 	echo "## interface $piholeInterface
-	static ip_address=$IPv4addr
+	static ip_address=$IPv4_address
 	static routers=$IPv4gw
 	static domain_name_servers=$IPv4gw" | tee -a /etc/dhcpcd.conf >/dev/null
 }
@@ -335,23 +330,23 @@ setDHCPCD() {
 setStaticIPv4() {
 	if [[ -f /etc/dhcpcd.conf ]];then
 		# Debian Family
-		if grep -q "$IPv4addr" /etc/dhcpcd.conf; then
+		if grep -q "$IPv4_address" /etc/dhcpcd.conf; then
 			echo "::: Static IP already configured"
 		else
 			setDHCPCD
-			ip addr replace dev "$piholeInterface" "$IPv4addr"
+			ip addr replace dev "$piholeInterface" "$IPv4_address"
 			echo ":::"
-			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo "::: Setting IP to $IPv4_address.  You may need to restart after the install is complete."
 			echo ":::"
 		fi
 	elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${piholeInterface} ]];then
 		# Fedora Family
 		IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${piholeInterface}
-		if grep -q "$IPv4addr" "${IFCFG_FILE}"; then
+		if grep -q "$IPv4_address" "${IFCFG_FILE}"; then
 			echo "::: Static IP already configured"
 		else
-			IPADDR=$(echo "${IPv4addr}" | cut -f1 -d/)
-			CIDR=$(echo "${IPv4addr}" | cut -f2 -d/)
+			IPADDR=$(echo "${IPv4_address}" | cut -f1 -d/)
+			CIDR=$(echo "${IPv4_address}" | cut -f2 -d/)
 			# Backup existing interface configuration:
 			cp "${IFCFG_FILE}" "${IFCFG_FILE}".backup-"$(date +%Y-%m-%d-%H%M%S)"
 			# Build Interface configuration file:
@@ -367,13 +362,13 @@ setStaticIPv4() {
 			echo "DNS2=$piholeDNS2"
 			echo "USERCTL=no"
 			}>> "${IFCFG_FILE}"
-			ip addr replace dev "$piholeInterface" "$IPv4addr"
+			ip addr replace dev "$piholeInterface" "$IPv4_address"
 			if [ -x "$(command -v nmcli)" ];then
 				# Tell NetworkManager to read our new sysconfig file
 				nmcli con load "${IFCFG_FILE}" > /dev/null
 			fi
 			echo ":::"
-			echo "::: Setting IP to $IPv4addr.  You may need to restart after the install is complete."
+			echo "::: Setting IP to $IPv4_address.  You may need to restart after the install is complete."
 			echo ":::"
 
 		fi
@@ -736,7 +731,7 @@ runGravity() {
 create_pihole_user(){
 	# Check if user pihole exists and create if not
 	echo "::: Checking if user 'pihole' exists..."
-	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || echo "::: User 'pihole' doesn't exist.  Creating..."; useradd -r -s /usr/sbin/nologin pihole
+	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || echo "::: User 'pihole' doesn't exist.  && Creating..." useradd -r -s /usr/sbin/nologin pihole
 }
 
 configureFirewall() {
@@ -767,11 +762,11 @@ finalExports() {
     fi
     {
     echo "piholeInterface=${piholeInterface}"
-    echo "IPv4addr=${IPv4addr}"
-    echo "piholeIPv6=${piholeIPv6}"
+    echo "IPv4_address=${IPv4_address}"
+    echo "IPv6_address=${IPv6_address}"
     echo "piholeDNS1=${piholeDNS1}"
     echo "piholeDNS2=${piholeDNS2}"
-     }>> "${setupVars}"
+    }>> "${setupVars}"
 }
 
 
@@ -841,13 +836,13 @@ displayFinalMessage() {
 	# Final completion message to user
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-IPv4:	${IPv4addr%/*}
-IPv6:	$piholeIPv6
+IPv4:	${IPv4_address%/*}
+IPv6:	$IPv6_address
 
 If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
-View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" ${r} ${c}
+View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin" ${r} ${c}
 }
 
 update_dialogs(){
@@ -860,6 +855,7 @@ update_dialogs(){
 		case ${UpdateCmd} in
             Update)
                 echo "::: Updating existing install"
+                . ${setupVars}
                 useUpdateVars=true
                 ;;
             Install)
@@ -876,14 +872,11 @@ update_dialogs(){
 
 main() {
 if [[ -f ${setupVars} ]];then
-    . ${setupVars}
-
-    if [ "$1" == "pihole" ]; then
-        useUpdateVars=true
-    else
-        update_dialogs
-    fi
-
+  if [ "$1" == "pihole" ]; then
+    useUpdateVars=true
+  else
+    update_dialogs
+  fi
 fi
 
 # Start the installer
@@ -920,7 +913,7 @@ if [[ ${useUpdateVars} == false ]]; then
     # Determine available interfaces
     get_available_interfaces
     # Find IP used to route to outside world
-    findIPRoute
+    #find_IPv4_information
     # Find interfaces and let the user choose one
     chooseInterface
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
@@ -959,8 +952,8 @@ echo " done."
 echo ":::"
 if [[ ${useUpdateVars} == false ]]; then
     echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
-    echo ":::     ${IPv4addr%/*}"
-    echo ":::     $piholeIPv6"
+    echo ":::     ${IPv4_address%/*}"
+    echo ":::     $IPv6_address"
     echo ":::"
     echo "::: If you set a new IP address, you should restart the Pi."
 else
@@ -969,7 +962,7 @@ fi
 
 echo ":::"
 echo "::: The install log is located at: /etc/pihole/install.log"
-echo "::: View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin"
+echo "::: View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin"
 }
 
 main "$@"
