@@ -74,8 +74,8 @@ if [ -x "$(command -v apt-get)" ];then
 	PKG_UPDATE="$PKG_MANAGER upgrade"
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
 	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
-	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi git curl unzip wget sudo netcat cron iproute2 )
+	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -94,8 +94,8 @@ elif [ -x "$(command -v rpm)" ];then
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
-	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo nmap-ncat )
+	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
@@ -578,14 +578,12 @@ stopServices() {
 	fi
 	echo " done."
 }
-
-installerDependencies() {
+update_pacakge_cache() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
-	#We'll change the logic up here, to check to see if there are any updates availible and
-	# if so, advise the user to run apt-get update/upgrade at their own discretion
+
 	#Check to see if apt-get update has already been run today
-	# it needs to have been run at least once on new installs!
+	#it needs to have been run at least once on new installs!
 	timestamp=$(stat -c %Y ${PKG_CACHE})
 	timestampAsDate=$(date -d @"$timestamp" "+%b %e")
 	today=$(date "+%b %e")
@@ -597,18 +595,26 @@ installerDependencies() {
 		${UPDATE_PKG_CACHE} > /dev/null 2>&1
 		echo " done!"
 	fi
+}
+
+notify_package_updates_available(){
+  # Let user know if they have outdated packages on their system and
+  # advise them to run a package update at soonest possible.
 	echo ":::"
 	echo -n "::: Checking $PKG_MANAGER for upgraded packages...."
 	updatesToInstall=$(eval "${PKG_COUNT}")
 	echo " done!"
 	echo ":::"
 	if [[ ${updatesToInstall} -eq "0" ]]; then
-		echo "::: Your pi is up to date! Continuing with pi-hole installation..."
+		echo "::: Your system is up to date! Continuing with Pi-hole installation..."
 	else
-		echo "::: There are $updatesToInstall updates availible for your pi!"
+		echo "::: There are $updatesToInstall updates available for your system!"
 		echo "::: We recommend you run '$PKG_UPDATE' after installing Pi-Hole! "
 		echo ":::"
 	fi
+}
+installerDependencies() {
+
 	echo ":::"
 	echo "::: Checking installer dependencies..."
 	for i in "${INSTALLER_DEPS[@]}"; do
@@ -906,12 +912,19 @@ else
     verifyFreeDiskSpace
 fi
 
+# Update package cache
+update_pacakge_cache
+
+# Notify user of package availability
+notify_package_updates_available
+
 # Install packages used by this installation script
 installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
     mkdir -p /etc/pihole/
+    #
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
