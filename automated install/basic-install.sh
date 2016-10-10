@@ -578,6 +578,7 @@ stopServices() {
 	fi
 	echo " done."
 }
+
 update_pacakge_cache() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
@@ -613,13 +614,13 @@ notify_package_updates_available(){
 		echo ":::"
 	fi
 }
-installerDependencies() {
 
-	echo ":::"
-	echo "::: Checking installer dependencies..."
-	for i in "${INSTALLER_DEPS[@]}"; do
+install_dependent_packages(){
+  declare -a argArray1=("${!1}")
+
+	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check_install ${i} > /dev/null
+		package_check ${i} > /dev/null
 		echo " installed!"
 	done
 }
@@ -919,7 +920,7 @@ update_pacakge_cache
 notify_package_updates_available
 
 # Install packages used by this installation script
-installerDependencies
+install_dependent_packages INSTALLER_DEPS[@]
 
 if [[ ${useUpdateVars} == false ]]; then
     welcomeDialogs
