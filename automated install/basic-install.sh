@@ -721,15 +721,10 @@ runGravity() {
 	/opt/pihole/gravity.sh
 }
 
-setUser(){
+create_pihole_user(){
 	# Check if user pihole exists and create if not
 	echo "::: Checking if user 'pihole' exists..."
-	if id -u pihole > /dev/null 2>&1; then
-		echo "::: User 'pihole' already exists"
-	else
-		echo "::: User 'pihole' doesn't exist.  Creating..."
-		useradd -r -s /usr/sbin/nologin pihole
-	fi
+	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || echo "::: User 'pihole' doesn't exist.  Creating..."; useradd -r -s /usr/sbin/nologin pihole
 }
 
 configureFirewall() {
@@ -768,7 +763,7 @@ finalExports() {
 
 installPihole() {
 	# Install base files and web interface
-	setUser
+	create_pihole_user
 	if [ ! -d "/var/www/html" ]; then
 		mkdir -p /var/www/html
 	fi
