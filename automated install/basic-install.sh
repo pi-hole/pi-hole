@@ -16,7 +16,7 @@
 #
 # curl -L install.pi-hole.net | bash
 
-set -e
+
 ######## VARIABLES #########
 
 
@@ -65,23 +65,25 @@ fi
 if [ -x "$(command -v apt-get)" ];then
 	#Debian Family
 	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
-	phpVer="php5"
-	apt-get install --dry-run php5 > /dev/null 2>&1 || phpVer="php"
+	phpVer="php"
+	apt-get install --dry-run php5 > /dev/null 2>&1
+	if [ $? == 0 ]; then
+	    phpVer="php5"
+	fi
 	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/lib/apt/lists/"
 	UPDATE_PKG_CACHE="$PKG_MANAGER -qq update"
 	PKG_UPDATE="$PKG_MANAGER upgrade"
 	PKG_INSTALL="$PKG_MANAGER --yes --quiet install"
-	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
-	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
+	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst"
+	INSTALLER_DEPS=( apt-utils whiptail dhcpcd5)
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi git curl unzip wget sudo netcat cron iproute2 )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
-	package_check_install() {
-		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "$1"
+	package_check() {
+		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
 elif [ -x "$(command -v rpm)" ];then
 	# Fedora Family
@@ -95,12 +97,12 @@ elif [ -x "$(command -v rpm)" ];then
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
-	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+	INSTALLER_DEPS=( iproute net-tools procps-ng newt )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php git curl unzip wget findutils cronie sudo nmap-ncat )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
-	package_check_install() {
+	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
 else
@@ -580,12 +582,13 @@ stop_service() {
 	echo " done."
 }
 
-update_pacakge_cache() {
+installerDependencies() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
-
+	#We'll change the logic up here, to check to see if there are any updates availible and
+	# if so, advise the user to run apt-get update/upgrade at their own discretion
 	#Check to see if apt-get update has already been run today
-	#it needs to have been run at least once on new installs!
+	# it needs to have been run at least once on new installs!
 	timestamp=$(stat -c %Y ${PKG_CACHE})
 	timestampAsDate=$(date -d @"$timestamp" "+%b %e")
 	today=$(date "+%b %e")
@@ -597,34 +600,48 @@ update_pacakge_cache() {
 		${UPDATE_PKG_CACHE} > /dev/null 2>&1
 		echo " done!"
 	fi
-}
-
-notify_package_updates_available(){
-  # Let user know if they have outdated packages on their system and
-  # advise them to run a package update at soonest possible.
 	echo ":::"
 	echo -n "::: Checking $PKG_MANAGER for upgraded packages...."
 	updatesToInstall=$(eval "${PKG_COUNT}")
 	echo " done!"
 	echo ":::"
 	if [[ ${updatesToInstall} -eq "0" ]]; then
-		echo "::: Your system is up to date! Continuing with Pi-hole installation..."
+		echo "::: Your pi is up to date! Continuing with pi-hole installation..."
 	else
-		echo "::: There are $updatesToInstall updates available for your system!"
+		echo "::: There are $updatesToInstall updates availible for your pi!"
 		echo "::: We recommend you run '$PKG_UPDATE' after installing Pi-Hole! "
 		echo ":::"
 	fi
+	echo ":::"
+	echo "::: Checking installer dependencies..."
+	for i in "${INSTALLER_DEPS[@]}"; do
+		echo -n ":::    Checking for $i..."
+		package_check ${i} > /dev/null
+		if ! [ $? -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			${PKG_INSTALL} "$i" > /dev/null 2>&1
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
+	done
 }
 
-install_dependent_packages(){
-  # Install packages passed in via argument array
-  declare -a argArray1=("${!1}")
+checkForDependencies() {
+	# Install dependencies for Pi-Hole
+    echo "::: Checking Pi-Hole dependencies:"
 
-	for i in "${argArray1[@]}"; do
-		echo -n ":::    Checking for $i..."
-		package_check_install ${i} > /dev/null
-		echo " installed!"
-	done
+    for i in "${PIHOLE_DEPS[@]}"; do
+	echo -n ":::    Checking for $i..."
+	package_check ${i} > /dev/null
+	if ! [ $? -eq 0 ]; then
+		echo -n " Not found! Installing...."
+		${PKG_INSTALL} "$i" > /dev/null & spinner $!
+		echo " done!"
+	else
+		echo " already installed!"
+	fi
+    done
 }
 
 getGitFiles() {
@@ -802,8 +819,14 @@ configureSelinux() {
 	if [ -x "$(command -v getenforce)" ]; then
 		printf "\n::: SELinux Detected\n"
 		printf ":::\tChecking for SELinux policy development packages..."
-		package_check_install "selinux-policy-devel" > /dev/null
-		echo " installed!"
+		package_check "selinux-policy-devel" > /dev/null
+		if ! [ $? -eq 0 ]; then
+			echo -n " Not found! Installing...."
+			${PKG_INSTALL} "selinux-policy-devel" > /dev/null & spinner $!
+			echo " done!"
+		else
+			echo " already installed!"
+		fi
 		printf "::: Enabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on
 		if [ $? -eq 0 ]; then
@@ -881,14 +904,8 @@ else
     verifyFreeDiskSpace
 fi
 
-# Update package cache
-update_pacakge_cache
-
-# Notify user of package availability
-notify_package_updates_available
-
 # Install packages used by this installation script
-install_dependent_packages INSTALLER_DEPS[@]
+installerDependencies
 
 if [[ ${useUpdateVars} == false ]]; then
     # Display welcome dialogs
@@ -911,8 +928,6 @@ if [[ ${useUpdateVars} == false ]]; then
     use4andor6
     # Decide what upstream DNS Servers to use
     setDNS
-    # Install packages used by the Pi-hole
-    install_dependent_packages PIHOLE_DEPS[@]
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
 else
