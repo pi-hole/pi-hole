@@ -628,22 +628,15 @@ install_dependent_packages(){
 }
 
 getGitFiles() {
-	# Setup git repos for base files and web admin
+	# Setup git repos for directory and repository passed
+	# as arguments 1 and 2
 	echo ":::"
 	echo "::: Checking for existing base files..."
-	if is_repo ${piholeFilesDir}; then
-	  update_repo ${piholeFilesDir}
+	if is_repo ${1}; then
+	  update_repo ${1}
 	else
-	  make_repo ${piholeFilesDir} ${piholeGitUrl}
+	  make_repo ${1} ${2}
   fi
-
-	#echo ":::"
-	#echo "::: Checking for existing web interface..."
-	#if is_repo ${webInterfaceDir}; then
-#		make_repo ${webInterfaceDir} ${webInterfaceGitUrl}
-	#else
-#		update_repo ${webInterfaceDir}
-#	fi
 }
 
 is_repo() {
@@ -787,7 +780,6 @@ installPihole() {
 	else
 		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
 	fi
-	getGitFiles
 	installScripts
 	installConfigs
 	CreateLogFile
@@ -802,7 +794,6 @@ installPihole() {
 updatePihole() {
 	# Install base files and web interface
 	stopServices
-	getGitFiles
 	installScripts
 	installConfigs
 	CreateLogFile
@@ -907,9 +898,13 @@ notify_package_updates_available
 install_dependent_packages INSTALLER_DEPS[@]
 
 if [[ ${useUpdateVars} == false ]]; then
+    # Display welcome dialogs
     welcomeDialogs
+    # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-    #
+    # Get Git files for Core and Admin
+    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
     # Find IP used to route to outside world
     findIPRoute
     # Find interfaces and let the user choose one
