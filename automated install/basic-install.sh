@@ -631,32 +631,33 @@ getGitFiles() {
 	# Setup git repos for directory and repository passed
 	# as arguments 1 and 2
 	echo ":::"
-	echo "::: Checking for existing base files..."
-	if is_repo ${1}; then
-	  update_repo ${1}
+	echo "::: Checking for existing repository..."
+	if is_repo "${1}"; then
+	  update_repo "${1}"
 	else
-	  make_repo ${1} ${2}
+	  make_repo "${1}" "${2}"
   fi
 }
 
 is_repo() {
+  # Use git to check if directory is currently under VCS
 	echo -n ":::    Checking $1 is a repo..."
-	cd $1 || return 1
-	git status && echo " OK!"; return 0 || echo " not found!"; return 1
+	cd "${1}" || return 1
+	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
 }
 
 make_repo() {
     # Remove the non-repod interface and clone the interface
     echo -n ":::    Cloning $2 into $1..."
-    rm -rf "$1"
-    git clone -q --depth 1 "$2" "$1" > /dev/null & spinner $!
+    rm -rf "${1}"
+    git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
     echo " done!"
 }
 
 update_repo() {
     # Pull the latest commits
     echo -n ":::     Updating repo in $1..."
-    cd "$1" || exit
+    cd "${1}" || exit 1
     git pull -q > /dev/null & spinner $!
     echo " done!"
 }
@@ -844,13 +845,12 @@ View the web interface at http://pi.hole/admin or http://${IPv4addr%/*}/admin" $
 
 updateDialogs(){
 
-  UpdateCmd=(whiptail --separate-output --radiolist "We have detected an existing install.\n\n    Selecting Update will retain settings from the existing install.\n\n    Selecting Install will allow you to enter new settings.\n\n(Highlight desired option, and press space to select!)" ${r} ${c} 2)
-  UpdateChoices=(Update "" on
-                 Install "" off)
-  UpdateChoice=$("${UpdateCmd[@]}" "${UpdateChoices[@]}" 2>&1 >/dev/tty)
+  UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "We have detected an existing install.\n\n Please chose from the following options:" ${r} ${c} 2 \
+  "Update"  "Update install will retain existing settings." \
+  "Install"  "Install will allow you to enter new settings." 3>&2 2>&1 1>&3)
 
   if [[ $? = 0 ]];then
-		case ${UpdateChoice} in
+		case ${UpdateCmd} in
             Update)
                 echo "::: Updating existing install"
                 useUpdateVars=true
