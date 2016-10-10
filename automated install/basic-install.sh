@@ -632,36 +632,31 @@ getGitFiles() {
 	echo ":::"
 	echo "::: Checking for existing base files..."
 	if is_repo ${piholeFilesDir}; then
-		make_repo ${piholeFilesDir} ${piholeGitUrl}
+	  update_repo ${piholeFilesDir}
 	else
-		update_repo ${piholeFilesDir}
-	fi
+	  make_repo ${piholeFilesDir} ${piholeGitUrl}
+  fi
 
-	echo ":::"
-	echo "::: Checking for existing web interface..."
-	if is_repo ${webInterfaceDir}; then
-		make_repo ${webInterfaceDir} ${webInterfaceGitUrl}
-	else
-		update_repo ${webInterfaceDir}
-	fi
+	#echo ":::"
+	#echo "::: Checking for existing web interface..."
+	#if is_repo ${webInterfaceDir}; then
+#		make_repo ${webInterfaceDir} ${webInterfaceGitUrl}
+	#else
+#		update_repo ${webInterfaceDir}
+#	fi
 }
 
 is_repo() {
-	# If the directory does not have a .git folder it is not a repo
 	echo -n ":::    Checking $1 is a repo..."
-		if [ -d "$1/.git" ]; then
-		echo " OK!"
-		return 1
-	fi
-	echo " not found!!"
-	return 0
+	cd $1 || return 1
+	git status && echo " OK!"; return 0 || echo " not found!"; return 1
 }
 
 make_repo() {
     # Remove the non-repod interface and clone the interface
     echo -n ":::    Cloning $2 into $1..."
     rm -rf "$1"
-    git clone -q "$2" "$1" > /dev/null & spinner $!
+    git clone -q --depth 1 "$2" "$1" > /dev/null & spinner $!
     echo " done!"
 }
 
@@ -788,11 +783,10 @@ installPihole() {
 	chmod 775 /var/www/html
 	usermod -a -G ${LIGHTTPD_GROUP} pihole
 	if [ -x "$(command -v lighty-enable-mod)" ]; then
-		lighty-enable-mod fastcgi fastcgi-php > /dev/null
+		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
 	else
 		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
 	fi
-
 	getGitFiles
 	installScripts
 	installConfigs
