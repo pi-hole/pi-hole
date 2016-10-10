@@ -626,7 +626,7 @@ update_pacakge_cache() {
 		#update package lists
 		echo ":::"
 		echo -n "::: $PKG_MANAGER update has not been run today. Running now..."
-		${UPDATE_PKG_CACHE} > /dev/null 2>&1
+		${UPDATE_PKG_CACHE} &> /dev/null & spinner $!
 		echo " done!"
 	fi
 }
@@ -650,11 +650,12 @@ notify_package_updates_available(){
 
 install_dependent_packages(){
   # Install packages passed in via argument array
+  # No spinner - conflicts with set -e
   declare -a argArray1=("${!1}")
 
 	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
-		package_check_install "${i}" &> /dev/null & spinner $!
+		package_check_install "${i}" &> /dev/null
 		echo " installed!"
 	done
 }
