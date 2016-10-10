@@ -102,7 +102,7 @@ elif [ -x "$(command -v rpm)" ];then
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
 	package_check_install() {
-		rpm -qa | grep ^"$1"- > /dev/null
+		rpm -qa | grep ^"$1"- > /dev/null || ${PKG_INSTALL} "$1"
 	}
 else
 	echo "OS distribution not supported"
@@ -922,6 +922,9 @@ notify_package_updates_available
 # Install packages used by this installation script
 install_dependent_packages INSTALLER_DEPS[@]
 
+# Install packages used by the Pi-hole
+install_dependent_packages PIHOLE_DEPS[@]
+
 if [[ ${useUpdateVars} == false ]]; then
     # Display welcome dialogs
     welcomeDialogs
@@ -943,8 +946,6 @@ if [[ ${useUpdateVars} == false ]]; then
     use4andor6
     # Decide what upstream DNS Servers to use
     setDNS
-    # Install packages used by the Pi-hole
-    install_dependent_packages PIHOLE_DEPS[@]
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
 else
