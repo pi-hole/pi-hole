@@ -537,7 +537,6 @@ installScripts() {
 	install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
 
 	install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
-	. /etc/bash_completion.d/pihole
 
 	#Tidy up /usr/local/bin directory if installing over previous install.
 	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
