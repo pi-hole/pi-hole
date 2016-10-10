@@ -721,7 +721,7 @@ installCron() {
 }
 
 runGravity() {
-	# Rub gravity.sh to build blacklists
+	# Run gravity.sh to build blacklists
 	echo ":::"
 	echo "::: Preparing to run gravity.sh to refresh hosts..."
 	if ls /etc/pihole/list* 1> /dev/null 2>&1; then
