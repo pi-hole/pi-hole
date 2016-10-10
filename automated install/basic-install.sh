@@ -16,7 +16,7 @@
 #
 # curl -L install.pi-hole.net | bash
 
-
+set -e
 ######## VARIABLES #########
 
 
