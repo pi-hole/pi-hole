@@ -694,7 +694,6 @@ update_repo() {
     echo " done!"
 }
 
-
 CreateLogFile() {
 	# Create logfiles if necessary
 	echo ":::"
@@ -756,7 +755,7 @@ runGravity() {
 create_pihole_user(){
 	# Check if user pihole exists and create if not
 	echo "::: Checking if user 'pihole' exists..."
-	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || echo "::: User 'pihole' doesn't exist.  && Creating..." useradd -r -s /usr/sbin/nologin pihole
+	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole
 }
 
 configureFirewall() {
