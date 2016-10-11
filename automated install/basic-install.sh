@@ -99,6 +99,10 @@ elif [ -x "$(command -v rpm)" ];then
 	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
 	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+	if grep -q 'Fedora' /etc/redhat-release; then
+		remove_deps=(epel-release);
+		PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
+	fi
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
