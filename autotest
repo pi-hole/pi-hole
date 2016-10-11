@@ -1,0 +1,1 @@
+py.test -v -f test/

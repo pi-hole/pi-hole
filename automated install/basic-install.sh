@@ -971,4 +971,6 @@ echo "::: The install log is located at: /etc/pihole/install.log"
 echo "::: View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin"
 }
 
-main "$@"
+if [[ -z "$PHTEST" ]] ; then
+    main "$@"
+fi
