@@ -48,7 +48,7 @@ blacklistScript=/opt/pihole/blacklist.sh
 #Source the setupVars from install script for the IP
 . /etc/pihole/setupVars.conf
 #Remove the /* from the end of the IPv4addr.
-IPv4addr=${IPv4addr%/*}
+IPv4addr=${IPv4_address%/*}
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
@@ -254,10 +254,10 @@ function gravity_hostFormat() {
 		echo "::: Error: Unable to determine fully qualified domain name of host"
 	fi
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
-	if [[ -n ${piholeIPv6} ]];then
+	if [[ -n "${IPv6_address}" ]];then
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$IPv4addr $hostname\n$piholeIPv6 $hostname\n$IPv4addr pi.hole\n$piholeIPv6 pi.hole" > ${piholeDir}/${accretionDisc}
-		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4addr" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+		echo -e "$IPv4addr $hostname\n$IPv6_address $hostname\n$IPv4addr pi.hole\n$IPv6_address pi.hole" > ${piholeDir}/${accretionDisc}
+		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4addr" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 	else
 		# Otherwise, just create gravity.list as normal using IPv4
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
