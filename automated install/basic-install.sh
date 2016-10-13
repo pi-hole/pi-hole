@@ -838,7 +838,7 @@ configureSelinux() {
 		printf ":::\tChecking for SELinux policy development packages..."
 		package_check_install "selinux-policy-devel" > /dev/null
 		echo " installed!"
-		printf "::: Enabling httpd server side includes (SSI).. "
+		printf ":::\tEnabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
 		if ! [ -x "$(command -v systemctl)" ]; then
@@ -954,13 +954,13 @@ if [[ ${useUpdateVars} == false ]]; then
     displayFinalMessage
 fi
 
-echo -n "::: Restarting services..."
+echo "::: Restarting services..."
 # Start services
 start_service dnsmasq
 enable_service dnsmasq
 start_service lighttpd
 enable_service lighttpd
-echo " done."
+echo "::: done."
 
 echo ":::"
 if [[ ${useUpdateVars} == false ]]; then
