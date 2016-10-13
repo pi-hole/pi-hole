@@ -96,7 +96,7 @@ elif [ -x "$(command -v rpm)" ];then
 	UPDATE_PKG_CACHE="$PKG_MANAGER check-update"
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
-	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
+	PKG_COUNT="$PKG_MANAGER check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
 	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
 	if grep -q 'Fedora' /etc/redhat-release; then
