@@ -25,23 +25,23 @@ fi
 function whitelistFunc {
     shift
     /opt/pihole/whitelist.sh "$@"
-    exit 1
+    exit 0
 }
 
 function blacklistFunc {
     shift
     /opt/pihole/blacklist.sh "$@"
-    exit 1
+    exit 0
 }
 
 function debugFunc {
     /opt/pihole/piholeDebug.sh
-    exit 1
+    exit 0
 }
 
 function flushFunc {
     /opt/pihole/piholeLogFlush.sh
-    exit 1
+    exit 0
 }
 
 
@@ -110,22 +110,22 @@ function updatePiholeFunc {
         echo "::: See https://changes.pi-hole.net for details"
     fi
 
-    exit 1
+    exit 0
 }
 
 function reconfigurePiholeFunc {
     /etc/.pihole/automated\ install/basic-install.sh
-    exit 1;
+    exit 0;
 }
 
 function updateGravityFunc {
     /opt/pihole/gravity.sh "$@"
-    exit 1
+    exit 0
 }
 
 function setupLCDFunction {
     /opt/pihole/setupLCD.sh
-    exit 1
+    exit 0
 }
 
 function queryFunc {
@@ -139,24 +139,24 @@ function queryFunc {
         fi
         echo ""
     done
-    exit 1
+    exit 0
 }
 
 function chronometerFunc {
     shift
     /opt/pihole/chronometer.sh "$@"
-    exit 1
+    exit 0
 }
 
 
 function uninstallFunc {
     /opt/pihole/uninstall.sh
-    exit 1
+    exit 0
 }
 
 function versionFunc {
     /opt/pihole/version.sh
-    exit 1
+    exit 0
 }
 
 function helpFunc {
@@ -178,7 +178,7 @@ function helpFunc {
     echo ":::  -v, version              Show current versions"
     echo ":::  -q, query                Query the adlists for a specific domain"
     echo ":::  uninstall                Uninstall Pi-Hole from your system :(!"
-    exit 1
+    exit 0
 }
 
 if [[ $# = 0 ]]; then
