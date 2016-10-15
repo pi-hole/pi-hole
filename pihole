@@ -22,30 +22,30 @@ if [[ ! $EUID -eq 0 ]];then
 	fi
 fi
 
-function whitelistFunc {
+whitelistFunc() {
     shift
     /opt/pihole/whitelist.sh "$@"
     exit 0
 }
 
-function blacklistFunc {
+blacklistFunc() {
     shift
     /opt/pihole/blacklist.sh "$@"
     exit 0
 }
 
-function debugFunc {
+debugFunc() {
     /opt/pihole/piholeDebug.sh
     exit 0
 }
 
-function flushFunc {
+flushFunc() {
     /opt/pihole/piholeLogFlush.sh
     exit 0
 }
 
 
-function updatePiholeFunc {
+updatePiholeFunc() {
 
     if [ ! -d "/etc/.pihole" ]; then #This is unlikely
         echo "::: Critical Error: Pi-Hole repo missing from system!"
@@ -113,22 +113,22 @@ function updatePiholeFunc {
     exit 0
 }
 
-function reconfigurePiholeFunc {
+reconfigurePiholeFunc() {
     /etc/.pihole/automated\ install/basic-install.sh
     exit 0;
 }
 
-function updateGravityFunc {
+updateGravityFunc() {
     /opt/pihole/gravity.sh "$@"
     exit 0
 }
 
-function setupLCDFunction {
+setupLCDFunction() {
     /opt/pihole/setupLCD.sh
     exit 0
 }
 
-function queryFunc {
+queryFunc() {
     domain=$2
     for list in /etc/pihole/list.*
     do
@@ -142,24 +142,24 @@ function queryFunc {
     exit 0
 }
 
-function chronometerFunc {
+chronometerFunc() {
     shift
     /opt/pihole/chronometer.sh "$@"
     exit 0
 }
 
 
-function uninstallFunc {
+uninstallFunc() {
     /opt/pihole/uninstall.sh
     exit 0
 }
 
-function versionFunc {
+versionFunc() {
     /opt/pihole/version.sh
     exit 0
 }
 
-function helpFunc {
+helpFunc() {
     echo "::: Control all PiHole specific functions!"
     echo ":::"
     echo "::: Usage: pihole [options]"
