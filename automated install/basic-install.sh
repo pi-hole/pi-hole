@@ -866,8 +866,8 @@ View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admi
 update_dialogs(){
     # reconfigure
     if [ "$reconfigure" = true ]; then
-        opt1a="Refresh"
-        opt1b="Refresh will retain existing settings"
+        opt1a="Repair"
+        opt1b="Repair will retain existing settings"
         strAdd="You will remain on the same version"
     else
         opt1a="Update"
