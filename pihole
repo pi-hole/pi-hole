@@ -99,7 +99,7 @@ updatePiholeFunc() {
         echo "::: Fetching latest changes from GitHub..."
         cd /etc/.pihole
         git pull origin master
-        /etc/.pihole/automated\ install/basic-install.sh pihole
+        /etc/.pihole/automated\ install/basic-install.sh --unattended
 
         echo ":::"
         echo "::: Pi-hole has been updated to version ${piholeVersionLatest}"
@@ -114,7 +114,7 @@ updatePiholeFunc() {
 }
 
 reconfigurePiholeFunc() {
-    /etc/.pihole/automated\ install/basic-install.sh
+    /etc/.pihole/automated\ install/basic-install.sh --reconfigure
     exit 0;
 }
 

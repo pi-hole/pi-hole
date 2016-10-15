@@ -40,6 +40,11 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
+######## Flags. Shhh ########
+skipSpaceCheck=false
+skipRepoUpdate=false
+runUnattended=false
+
 ######## FIRST CHECK ########
 # Must be root to install
 echo ":::"
@@ -884,8 +889,18 @@ update_dialogs(){
 }
 
 main() {
+
+for var in "$@"
+do
+  case "$var" in
+    "--reconfigure"  ) skipRepoUpdate=true;;
+    "--i_do_not_follow_recommendations"   ) skipSpaceCheck=false;;
+    "--unattended"     ) runUnattended=true;;
+  esac
+done
+
 if [[ -f ${setupVars} ]];then
-  if [ "$1" == "pihole" ]; then
+  if [ "$runUnattended" = true ]; then
     useUpdateVars=true
   else
     update_dialogs
@@ -894,7 +909,7 @@ fi
 
 # Start the installer
 # Verify there is enough disk space for the install
-if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
+if [[ "$skipSpaceCheck" = true ]]; then
     echo "::: --i_do_not_follow_recommendations passed to script"
     echo "::: skipping free disk space verification!"
 else
