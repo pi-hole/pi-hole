@@ -888,14 +888,6 @@ update_dialogs(){
 }
 
 main() {
-if [[ -f ${setupVars} ]];then
-  if [ "$1" == "pihole" ]; then
-    useUpdateVars=true
-  else
-    update_dialogs
-  fi
-fi
-
 # Start the installer
 # Verify there is enough disk space for the install
 if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
@@ -916,6 +908,15 @@ install_dependent_packages INSTALLER_DEPS[@]
 
 # Install packages used by the Pi-hole
 install_dependent_packages PIHOLE_DEPS[@]
+
+# Is this being called by pihole -up? (pihole argument passed)
+if [[ -f ${setupVars} ]];then
+  if [ "$1" == "pihole" ]; then
+    useUpdateVars=true # Skip update_dialogs and force update rather than offering choice of update or install.
+  else
+    update_dialogs
+  fi
+fi
 
 if [[ ${useUpdateVars} == false ]]; then
     # Display welcome dialogs
