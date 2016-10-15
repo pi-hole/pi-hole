@@ -54,10 +54,9 @@ supernova=${basename}.1.supernova.txt
 eventHorizon=${basename}.2.eventHorizon.txt
 accretionDisc=${basename}.3.accretionDisc.txt
 
-# After setting defaults, check if there's local overrides
+# Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
 if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: Local calibration requested..."
-        . ${piholeDir}/pihole.conf
+    echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
 
 ###########################
