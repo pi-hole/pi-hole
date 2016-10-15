@@ -116,6 +116,11 @@ function updatePiholeFunc {
     exit 1
 }
 
+function reconfigurePiholeFunc {
+    ${SUDO} /etc/.pihole/automated\ install/basic-install.sh
+    exit 1;
+}
+
 function updateGravityFunc {
     ${SUDO} /opt/pihole/gravity.sh "$@"
     exit 1
@@ -190,6 +195,7 @@ case "$1" in
 "-d" | "debug"				) debugFunc;;
 "-f" | "flush"				) flushFunc;;
 "-up" | "updatePihole"      ) updatePiholeFunc;;
+"-r"  | "reconfigure"       ) reconfigurePiholeFunc;;
 "-g" | "updateGravity"		) updateGravityFunc "$@";;
 "-s" | "setupLCD"			) setupLCDFunction;;
 "-c" | "chronometer"		) chronometerFunc "$@";;
