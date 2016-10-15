@@ -892,6 +892,7 @@ if [[ -f ${setupVars} ]];then
   if [ "$1" == "pihole" ]; then
     useUpdateVars=true
   else
+    package_check_install "whiptail"
     update_dialogs
   fi
 fi
