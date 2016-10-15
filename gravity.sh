@@ -13,21 +13,7 @@
 # Run this script as root or under sudo
 echo ":::"
 
-if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
-else
-	echo "::: sudo will be used."
-	# Check if it is actually installed
-	# If it isn't, exit because the install cannot complete
-	if [ -x "$(command -v sudo)" ];then
-		export SUDO="sudo"
-	else
-		echo "::: Please install sudo or run this script as root."
-		exit 1
-	fi
-fi
-
-function helpFunc()
+helpFunc()
 {
 	echo "::: Pull in domains from adlists"
 	echo ":::"
@@ -46,7 +32,15 @@ whitelistScript=/opt/pihole/whitelist.sh
 blacklistScript=/opt/pihole/blacklist.sh
 
 #Source the setupVars from install script for the IP
-. /etc/pihole/setupVars.conf
+setupVars=/etc/pihole/setupVars.conf
+if [[ -f ${setupVars} ]];then
+    . /etc/pihole/setupVars.conf
+else
+    echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
+    echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
+    exit 1
+fi
+
 #Remove the /* from the end of the IPv4addr.
 IPv4addr=${IPv4_address%/*}
 
@@ -60,15 +54,14 @@ supernova=${basename}.1.supernova.txt
 eventHorizon=${basename}.2.eventHorizon.txt
 accretionDisc=${basename}.3.accretionDisc.txt
 
-# After setting defaults, check if there's local overrides
+# Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
 if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: Local calibration requested..."
-        . ${piholeDir}/pihole.conf
+    echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
 
 ###########################
 # collapse - begin formation of pihole
-function gravity_collapse() {
+gravity_collapse() {
 	echo "::: Neutrino emissions detected..."
 	echo ":::"
 	#Decide if we're using a custom ad block list, or defaults.
@@ -105,18 +98,18 @@ function gravity_collapse() {
         # Temporary hack to allow non-root access to pihole directory
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
-        ${SUDO} chmod 777 ${piholeDir}
+        chmod 777 ${piholeDir}
         echo ":::"
         echo "::: Existing pihole directory found"
 	else
         echo "::: Creating pihole directory..."
         mkdir ${piholeDir}
-        ${SUDO} chmod 777 ${piholeDir}
+        chmod 777 ${piholeDir}
 	fi
 }
 
 # patternCheck - check to see if curl downloaded any new files.
-function gravity_patternCheck() {
+gravity_patternCheck() {
 	patternBuffer=$1
 	# check if the patternbuffer is a non-zero length file
 	if [[ -s "$patternBuffer" ]];then
@@ -132,7 +125,7 @@ function gravity_patternCheck() {
 }
 
 # transport - curl the specified url with any needed command extentions
-function gravity_transport() {
+gravity_transport() {
 	url=$1
 	cmd_ext=$2
 	agent=$3
@@ -154,7 +147,7 @@ function gravity_transport() {
 }
 
 # spinup - main gravity function
-function gravity_spinup() {
+gravity_spinup() {
 	echo ":::"
 	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
 	for ((i = 0; i < "${#sources[@]}"; i++))
@@ -191,7 +184,7 @@ function gravity_spinup() {
 }
 
 # Schwarzchild - aggregate domains to one list and add blacklisted domains
-function gravity_Schwarzchild() {
+gravity_Schwarzchild() {
 	echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
@@ -203,7 +196,7 @@ function gravity_Schwarzchild() {
 	echo " done!"
 }
 
-function gravity_Blacklist(){
+gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
 	${blacklistScript} -f -nr -q > /dev/null
@@ -213,7 +206,7 @@ function gravity_Blacklist(){
 	echo " $numBlacklisted domain${plural} blacklisted!"
 }
 
-function gravity_Whitelist() {
+gravity_Whitelist() {
 	echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
@@ -234,7 +227,7 @@ function gravity_Whitelist() {
 	echo " $numWhitelisted domain${plural} whitelisted!"
 }
 
-function gravity_unique() {
+gravity_unique() {
 	# Sort and remove duplicates
 	echo -n "::: Removing duplicate domains...."
 	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${eventHorizon}
@@ -243,7 +236,7 @@ function gravity_unique() {
 	echo "::: $numberOf unique domains trapped in the event horizon."
 }
 
-function gravity_hostFormat() {
+gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
 	if [[ -f /etc/hostname ]]; then
@@ -270,7 +263,7 @@ function gravity_hostFormat() {
 }
 
 # blackbody - remove any remnant files from script processes
-function gravity_blackbody() {
+gravity_blackbody() {
 	# Loop through list files
 	for file in ${piholeDir}/*.${justDomainsExtension}
 	do
@@ -283,7 +276,7 @@ function gravity_blackbody() {
 	done
 }
 
-function gravity_advanced() {
+gravity_advanced() {
 	# Remove comments and print only the domain name
 	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 	# This helps with that and makes it easier to read
@@ -301,11 +294,11 @@ function gravity_advanced() {
 	gravity_unique
 }
 
-function gravity_reload() {
+gravity_reload() {
 	#Clear no longer needed files...
 	echo ":::"
 	echo -n "::: Cleaning up un-needed files..."
-	${SUDO} rm ${piholeDir}/pihole.*.txt
+	rm ${piholeDir}/pihole.*.txt
 	echo " done!"
 
 	# Reload hosts file
@@ -316,17 +309,17 @@ function gravity_reload() {
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
-	${SUDO} sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
+	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	dnsmasqPid=$(pidof dnsmasq)
 
-    find "$piholeDir" -type f -exec ${SUDO} chmod 666 {} \;
+    find "$piholeDir" -type f -exec chmod 666 {} \;
 
 	if [[ ${dnsmasqPid} ]]; then
 		# service already running - reload config
-		${SUDO} killall -s HUP dnsmasq
+		killall -s HUP dnsmasq
 	else
 		# service not running, start it up
-		${SUDO} service dnsmasq start
+		service dnsmasq start
 	fi
 	echo " done!"
 }
@@ -342,12 +335,12 @@ done
 
 if [[ ${forceGrav} == true ]]; then
 	echo -n "::: Deleting exising list cache..."
-	${SUDO} rm /etc/pihole/list.*
+	rm /etc/pihole/list.*
 	echo " done!"
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-${SUDO} cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild

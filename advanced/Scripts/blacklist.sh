@@ -10,22 +10,7 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-#rootcheck
-if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
-else
-	echo "::: sudo will be used."
-	# Check if it is actually installed
-	# If it isn't, exit because the install cannot complete
-	if [ -x "$(command -v sudo)" ];then
-		export SUDO="sudo"
-	else
-		echo "::: Please install sudo or run this script as root."
-		exit 1
-	fi
-fi
-
-function helpFunc()
+helpFunc()
 {
 	echo "::: Immediately blacklists one or more domains in the hosts file"
 	echo ":::"
@@ -86,7 +71,7 @@ if [[ -f ${piholeIPv6file} ]];then
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-function HandleOther(){
+HandleOther(){
   #check validity of domain
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "$validDomain" ]; then
@@ -96,7 +81,7 @@ function HandleOther(){
 	fi
 }
 
-function PopBlacklistFile(){
+PopBlacklistFile(){
 	#check blacklist file exists, and if not, create it
 	if [[ ! -f ${blacklist} ]];then
   	  touch ${blacklist}
@@ -110,7 +95,7 @@ function PopBlacklistFile(){
 	done
 }
 
-function AddDomain(){
+AddDomain(){
 #| sed 's/\./\\./g'
 	bool=false
 	grep -Ex -q "$1" ${blacklist} || bool=true
@@ -129,7 +114,7 @@ function AddDomain(){
 	fi
 }
 
-function RemoveDomain(){
+RemoveDomain(){
 
   bool=false
   grep -Ex -q "$1" ${blacklist} || bool=true
@@ -148,7 +133,7 @@ function RemoveDomain(){
   fi
 }
 
-function ModifyHostFile(){
+ModifyHostFile(){
 	 if ${addmode}; then
 	    #add domains to the hosts file
 	    if [[ -r ${blacklist} ]];then
@@ -178,7 +163,7 @@ function ModifyHostFile(){
 	fi
 }
 
-function Reload() {
+Reload() {
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
@@ -187,15 +172,15 @@ function Reload() {
 
 	if [[ ${dnsmasqPid} ]]; then
 		# service already running - reload config
-		${SUDO} killall -s HUP dnsmasq
+		killall -s HUP dnsmasq
 	else
 		# service not running, start it up
-		${SUDO} service dnsmasq start
+		service dnsmasq start
 	fi
 	echo " done!"
 }
 
-function DisplayBlist() {
+DisplayBlist() {
 	verbose=false
 	echo -e " Displaying Gravity Affected Domains \n"
 	count=1

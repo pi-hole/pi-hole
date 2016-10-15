@@ -40,6 +40,11 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
+######## Undocumented Flags. Shhh ########
+skipSpaceCheck=false
+reconfigure=false
+runUnattended=false
+
 ######## FIRST CHECK ########
 # Must be root to install
 echo ":::"
@@ -864,13 +869,25 @@ View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admi
 }
 
 update_dialogs(){
+    # reconfigure
+    if [ "$reconfigure" = true ]; then
+        opt1a="Repair"
+        opt1b="This will retain existing settings"
+        strAdd="You will remain on the same version"
+    else
+        opt1a="Update"
+        opt1b="This will retain existing settings."
+        strAdd="You will be updated to the latest version."
+    fi
+    opt2a="Reconfigure"
+    opt2b="This will allow you to enter new settings"
 
-  UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease choose from the following options:" ${r} ${c} 2 \
-  "Update"  "Update install will retain existing settings." \
-  "Install"  "Install will allow you to enter new settings." 3>&2 2>&1 1>&3)
+    UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease choose from the following options: \n($strAdd)" ${r} ${c} 2 \
+    "$opt1a"  "$opt1b" \
+    "$opt2a"  "$opt2b" 3>&2 2>&1 1>&3)
 
-  if [[ $? = 0 ]];then
-		case ${UpdateCmd} in
+    if [[ $? = 0 ]];then
+        case ${UpdateCmd} in
             Update)
                 echo "::: Updating existing install"
                 useUpdateVars=true
@@ -879,17 +896,28 @@ update_dialogs(){
                 echo "::: Running complete install script"
                 useUpdateVars=false
                 ;;
-	    esac
-	else
-		echo "::: Cancel selected. Exiting..."
-		exit 1
-	fi
+        esac
+    else
+        echo "::: Cancel selected. Exiting..."
+        exit 1
+    fi
 
 }
 
 main() {
+# Check arguments for the undocumented flags
+for var in "$@"
+do
+  case "$var" in
+    "--reconfigure"  ) reconfigure=true;;
+    "--i_do_not_follow_recommendations"   ) skipSpaceCheck=false;;
+    "--unattended"     ) runUnattended=true;;
+  esac
+done
+
 if [[ -f ${setupVars} ]];then
-  if [ "$1" == "pihole" ]; then
+  if [[ "${runUnattended}" == true ]]; then
+    echo "::: --unattended passed to install script, no whiptail dialogs will be displayed"
     useUpdateVars=true
   else
     update_dialogs
@@ -898,9 +926,8 @@ fi
 
 # Start the installer
 # Verify there is enough disk space for the install
-if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
-    echo "::: --i_do_not_follow_recommendations passed to script"
-    echo "::: skipping free disk space verification!"
+if [[ "${skipSpaceCheck}" == true ]]; then
+    echo "::: --i_do_not_follow_recommendations passed to script, skipping free disk space verification!"
 else
     verifyFreeDiskSpace
 fi
@@ -917,6 +944,14 @@ install_dependent_packages INSTALLER_DEPS[@]
 # Install packages used by the Pi-hole
 install_dependent_packages PIHOLE_DEPS[@]
 
+if [[ "${reconfigure}" == true ]]; then
+    echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
+else
+    # Get Git files for Core and Admin
+    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+fi
+
 if [[ ${useUpdateVars} == false ]]; then
     # Display welcome dialogs
     welcomeDialogs
@@ -924,9 +959,6 @@ if [[ ${useUpdateVars} == false ]]; then
     mkdir -p /etc/pihole/
     # Remove legacy scripts from previous storage location
     remove_legacy_scripts
-    # Get Git files for Core and Admin
-    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
     # Stop resolver and webserver while installing proceses
     stop_service dnsmasq
     stop_service lighttpd
@@ -947,7 +979,7 @@ fi
 # Move the log file into /etc/pihole for storage
 mv ${tmpLog} ${instalLogLoc}
 
-if [[ ${useUpdateVars} == false ]]; then
+if [[ "${useUpdateVars}" == false ]]; then
     displayFinalMessage
 fi
 
@@ -960,7 +992,7 @@ enable_service lighttpd
 echo " done."
 
 echo ":::"
-if [[ ${useUpdateVars} == false ]]; then
+if [[ "${useUpdateVars}" == false ]]; then
     echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
     echo ":::     ${IPv4_address%/*}"
     echo ":::     $IPv6_address"
