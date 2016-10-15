@@ -12,14 +12,14 @@
 
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
-	if [ -x "$(command -v sudo)" ];then
-		echo "::: Elevating to root with sudo"
-	  exec sudo bash "$0" "$@"
-    exit $?
-	else
-		echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
-		exit 1
-	fi
+    if [ -x "$(command -v sudo)" ];then
+        echo "::: Elevating to root with sudo"
+        exec sudo bash "$0" "$@"
+        exit $?
+    else
+        echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+        exit 1
+    fi
 fi
 
 whitelistFunc() {
