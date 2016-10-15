@@ -32,7 +32,15 @@ whitelistScript=/opt/pihole/whitelist.sh
 blacklistScript=/opt/pihole/blacklist.sh
 
 #Source the setupVars from install script for the IP
-. /etc/pihole/setupVars.conf
+setupVars=/etc/pihole/setupVars.conf
+if [[ -f ${setupVars} ]];then
+    . /etc/pihole/setupVars.conf
+else
+    echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
+    echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
+    exit 1
+fi
+
 #Remove the /* from the end of the IPv4addr.
 IPv4addr=${IPv4_address%/*}
 
