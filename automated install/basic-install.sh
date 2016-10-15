@@ -912,7 +912,7 @@ do
 done
 
 if [[ -f ${setupVars} ]];then
-  if [ "$runUnattended" = true ]; then
+  if [[ "${runUnattended}" == true ]]; then
     echo "::: --unattended passed to install script, no whiptail dialogs will be displayed"
     useUpdateVars=true
   else
@@ -922,7 +922,7 @@ fi
 
 # Start the installer
 # Verify there is enough disk space for the install
-if [[ "$skipSpaceCheck" = true ]]; then
+if [[ "${skipSpaceCheck}" ==true ]]; then
     echo "::: --i_do_not_follow_recommendations passed to script, skipping free disk space verification!"
 else
     verifyFreeDiskSpace
@@ -940,7 +940,7 @@ install_dependent_packages INSTALLER_DEPS[@]
 # Install packages used by the Pi-hole
 install_dependent_packages PIHOLE_DEPS[@]
 
-if [[ "$reconfigure" = true ]]; then
+if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
 else
     # Get Git files for Core and Admin
@@ -975,7 +975,7 @@ fi
 # Move the log file into /etc/pihole for storage
 mv ${tmpLog} ${instalLogLoc}
 
-if [[ ${useUpdateVars} == false ]]; then
+if [[ "${useUpdateVars}" == false ]]; then
     displayFinalMessage
 fi
 
@@ -988,7 +988,7 @@ enable_service lighttpd
 echo " done."
 
 echo ":::"
-if [[ ${useUpdateVars} == false ]]; then
+if [[ "${useUpdateVars}" == false ]]; then
     echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
     echo ":::     ${IPv4_address%/*}"
     echo ":::     $IPv6_address"
