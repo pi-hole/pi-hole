@@ -13,20 +13,6 @@
 # Run this script as root or under sudo
 echo ":::"
 
-if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
-else
-	echo "::: sudo will be used."
-	# Check if it is actually installed
-	# If it isn't, exit because the install cannot complete
-	if [ -x "$(command -v sudo)" ];then
-		export SUDO="sudo"
-	else
-		echo "::: Please install sudo or run this script as root."
-		exit 1
-	fi
-fi
-
 function helpFunc()
 {
 	echo "::: Pull in domains from adlists"
@@ -105,13 +91,13 @@ function gravity_collapse() {
         # Temporary hack to allow non-root access to pihole directory
         # Will update later, needed for existing installs, new installs should
         # create this directory as non-root
-        ${SUDO} chmod 777 ${piholeDir}
+        chmod 777 ${piholeDir}
         echo ":::"
         echo "::: Existing pihole directory found"
 	else
         echo "::: Creating pihole directory..."
         mkdir ${piholeDir}
-        ${SUDO} chmod 777 ${piholeDir}
+        chmod 777 ${piholeDir}
 	fi
 }
 
@@ -305,7 +291,7 @@ function gravity_reload() {
 	#Clear no longer needed files...
 	echo ":::"
 	echo -n "::: Cleaning up un-needed files..."
-	${SUDO} rm ${piholeDir}/pihole.*.txt
+	rm ${piholeDir}/pihole.*.txt
 	echo " done!"
 
 	# Reload hosts file
@@ -316,17 +302,17 @@ function gravity_reload() {
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
-	${SUDO} sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
+	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	dnsmasqPid=$(pidof dnsmasq)
 
-    find "$piholeDir" -type f -exec ${SUDO} chmod 666 {} \;
+    find "$piholeDir" -type f -exec chmod 666 {} \;
 
 	if [[ ${dnsmasqPid} ]]; then
 		# service already running - reload config
-		${SUDO} killall -s HUP dnsmasq
+		killall -s HUP dnsmasq
 	else
 		# service not running, start it up
-		${SUDO} service dnsmasq start
+		service dnsmasq start
 	fi
 	echo " done!"
 }
@@ -342,12 +328,12 @@ done
 
 if [[ ${forceGrav} == true ]]; then
 	echo -n "::: Deleting exising list cache..."
-	${SUDO} rm /etc/pihole/list.*
+	rm /etc/pihole/list.*
 	echo " done!"
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-${SUDO} cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
