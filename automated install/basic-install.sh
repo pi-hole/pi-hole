@@ -40,7 +40,7 @@ columns=$(tput cols)
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
 
-######## Flags. Shhh ########
+######## Undocumented Flags. Shhh ########
 skipSpaceCheck=false
 skipRepoUpdate=false
 runUnattended=false
@@ -890,6 +890,7 @@ update_dialogs(){
 
 main() {
 
+# Check arguments for the undocumented flags
 for var in "$@"
 do
   case "$var" in
@@ -901,6 +902,7 @@ done
 
 if [[ -f ${setupVars} ]];then
   if [ "$runUnattended" = true ]; then
+    echo "::: --unattended passed to install script, no whiptail dialogs will be displayed"
     useUpdateVars=true
   else
     update_dialogs
@@ -910,8 +912,7 @@ fi
 # Start the installer
 # Verify there is enough disk space for the install
 if [[ "$skipSpaceCheck" = true ]]; then
-    echo "::: --i_do_not_follow_recommendations passed to script"
-    echo "::: skipping free disk space verification!"
+    echo "::: --i_do_not_follow_recommendations passed to script, skipping free disk space verification!"
 else
     verifyFreeDiskSpace
 fi
@@ -928,6 +929,14 @@ install_dependent_packages INSTALLER_DEPS[@]
 # Install packages used by the Pi-hole
 install_dependent_packages PIHOLE_DEPS[@]
 
+if [[ "$skipRepoUpdate" = true ]]; then
+    echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
+else
+    # Get Git files for Core and Admin
+    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+fi
+
 if [[ ${useUpdateVars} == false ]]; then
     # Display welcome dialogs
     welcomeDialogs
@@ -935,9 +944,6 @@ if [[ ${useUpdateVars} == false ]]; then
     mkdir -p /etc/pihole/
     # Remove legacy scripts from previous storage location
     remove_legacy_scripts
-    # Get Git files for Core and Admin
-    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
     # Stop resolver and webserver while installing proceses
     stop_service dnsmasq
     stop_service lighttpd
