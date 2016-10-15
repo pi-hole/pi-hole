@@ -13,7 +13,7 @@
 # Run this script as root or under sudo
 echo ":::"
 
-function helpFunc()
+helpFunc()
 {
 	echo "::: Pull in domains from adlists"
 	echo ":::"
@@ -54,7 +54,7 @@ fi
 
 ###########################
 # collapse - begin formation of pihole
-function gravity_collapse() {
+gravity_collapse() {
 	echo "::: Neutrino emissions detected..."
 	echo ":::"
 	#Decide if we're using a custom ad block list, or defaults.
@@ -102,7 +102,7 @@ function gravity_collapse() {
 }
 
 # patternCheck - check to see if curl downloaded any new files.
-function gravity_patternCheck() {
+gravity_patternCheck() {
 	patternBuffer=$1
 	# check if the patternbuffer is a non-zero length file
 	if [[ -s "$patternBuffer" ]];then
@@ -118,7 +118,7 @@ function gravity_patternCheck() {
 }
 
 # transport - curl the specified url with any needed command extentions
-function gravity_transport() {
+gravity_transport() {
 	url=$1
 	cmd_ext=$2
 	agent=$3
@@ -140,7 +140,7 @@ function gravity_transport() {
 }
 
 # spinup - main gravity function
-function gravity_spinup() {
+gravity_spinup() {
 	echo ":::"
 	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
 	for ((i = 0; i < "${#sources[@]}"; i++))
@@ -177,7 +177,7 @@ function gravity_spinup() {
 }
 
 # Schwarzchild - aggregate domains to one list and add blacklisted domains
-function gravity_Schwarzchild() {
+gravity_Schwarzchild() {
 	echo "::: "
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
@@ -189,7 +189,7 @@ function gravity_Schwarzchild() {
 	echo " done!"
 }
 
-function gravity_Blacklist(){
+gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
 	${blacklistScript} -f -nr -q > /dev/null
@@ -199,7 +199,7 @@ function gravity_Blacklist(){
 	echo " $numBlacklisted domain${plural} blacklisted!"
 }
 
-function gravity_Whitelist() {
+gravity_Whitelist() {
 	echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
@@ -220,7 +220,7 @@ function gravity_Whitelist() {
 	echo " $numWhitelisted domain${plural} whitelisted!"
 }
 
-function gravity_unique() {
+gravity_unique() {
 	# Sort and remove duplicates
 	echo -n "::: Removing duplicate domains...."
 	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${eventHorizon}
@@ -229,7 +229,7 @@ function gravity_unique() {
 	echo "::: $numberOf unique domains trapped in the event horizon."
 }
 
-function gravity_hostFormat() {
+gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
 	if [[ -f /etc/hostname ]]; then
@@ -256,7 +256,7 @@ function gravity_hostFormat() {
 }
 
 # blackbody - remove any remnant files from script processes
-function gravity_blackbody() {
+gravity_blackbody() {
 	# Loop through list files
 	for file in ${piholeDir}/*.${justDomainsExtension}
 	do
@@ -269,7 +269,7 @@ function gravity_blackbody() {
 	done
 }
 
-function gravity_advanced() {
+gravity_advanced() {
 	# Remove comments and print only the domain name
 	# Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
 	# This helps with that and makes it easier to read
@@ -287,7 +287,7 @@ function gravity_advanced() {
 	gravity_unique
 }
 
-function gravity_reload() {
+gravity_reload() {
 	#Clear no longer needed files...
 	echo ":::"
 	echo -n "::: Cleaning up un-needed files..."
