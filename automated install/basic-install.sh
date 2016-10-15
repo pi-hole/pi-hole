@@ -922,7 +922,7 @@ fi
 
 # Start the installer
 # Verify there is enough disk space for the install
-if [[ "${skipSpaceCheck}" ==true ]]; then
+if [[ "${skipSpaceCheck}" == true ]]; then
     echo "::: --i_do_not_follow_recommendations passed to script, skipping free disk space verification!"
 else
     verifyFreeDiskSpace
