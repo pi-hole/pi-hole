@@ -792,40 +792,45 @@ finalExports() {
 
 
 installPihole() {
-	# Install base files and web interface
-	create_pihole_user
-	if [ ! -d "/var/www/html" ]; then
-		mkdir -p /var/www/html
-	fi
-	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-	chmod 775 /var/www/html
-	usermod -a -G ${LIGHTTPD_GROUP} pihole
-	if [ -x "$(command -v lighty-enable-mod)" ]; then
-		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-	else
-		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
-	fi
-	installScripts
-	installConfigs
-	CreateLogFile
-	configureSelinux
-	installPiholeWeb
-	installCron
-	configureFirewall
-	finalExports
-	runGravity
+    # Install base files and web interface
+    create_pihole_user
+    if [ ! -d "/var/www/html" ]; then
+        mkdir -p /var/www/html
+    fi
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
+    chmod 775 /var/www/html
+    usermod -a -G ${LIGHTTPD_GROUP} pihole
+    if [ -x "$(command -v lighty-enable-mod)" ]; then
+        lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
+    else
+        printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+    fi
+    installScripts
+    installConfigs
+    CreateLogFile
+    configureSelinux
+    installPiholeWeb
+    installCron
+    configureFirewall
+    finalExports
+    runGravity
 }
 
 updatePihole() {
-	# Install base files and web interface
-	installScripts
-	installConfigs
-	CreateLogFile
-	configureSelinux
-	installPiholeWeb
-	installCron
-	configureFirewall
-	runGravity
+    # Refactoring of install script has changed the name of a couple of variables. Sort them out here.
+    sed -i 's/IPv4addr/IPv4_address/g' ${setupVars}
+    sed -i 's/piholeIPv6/IPv6_address/g' ${setupVars}
+    # Source ${setupVars} for use in the rest of the functions.
+    . ${setupVars}
+    # Install base files and web interface
+    installScripts
+    installConfigs
+    CreateLogFile
+    configureSelinux
+    installPiholeWeb
+    installCron
+    configureFirewall
+    runGravity
 }
 
 configureSelinux() {
@@ -868,7 +873,6 @@ update_dialogs(){
 		case ${UpdateCmd} in
             Update)
                 echo "::: Updating existing install"
-                . ${setupVars}
                 useUpdateVars=true
                 ;;
             Install)
