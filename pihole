@@ -12,38 +12,35 @@
 
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
-    #echo "::: You are root."
-#else
-    #echo "::: Sudo will be used for this tool."
-  # Check if it is actually installed
-  # If it isn't, exit because the pihole cannot be invoked without privileges.
-  if [ -x "$(command -v sudo)" ];then
-        export SUDO="sudo"
-  else
-    echo "::: Please install sudo or run this as root."
-    exit 1
-  fi
+	if [ -x "$(command -v sudo)" ];then
+		echo "::: Elevating to root with sudo"
+	  exec sudo bash "$0" "$@"
+    exit $?
+	else
+		echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+		exit 1
+	fi
 fi
 
 function whitelistFunc {
     shift
-    ${SUDO} /opt/pihole/whitelist.sh "$@"
+    /opt/pihole/whitelist.sh "$@"
     exit 1
 }
 
 function blacklistFunc {
     shift
-    ${SUDO} /opt/pihole/blacklist.sh "$@"
+    /opt/pihole/blacklist.sh "$@"
     exit 1
 }
 
 function debugFunc {
-    ${SUDO} /opt/pihole/piholeDebug.sh
+    /opt/pihole/piholeDebug.sh
     exit 1
 }
 
 function flushFunc {
-    ${SUDO} /opt/pihole/piholeLogFlush.sh
+    /opt/pihole/piholeLogFlush.sh
     exit 1
 }
 
@@ -86,7 +83,7 @@ function updatePiholeFunc {
             echo ":::"
             echo "::: Fetching latest changes from GitHub..."
             cd /var/www/html/admin
-            ${SUDO} git pull origin master
+            git pull origin master
             echo ":::"
             echo "::: Pi-hole Web Admin has been updated to ${webVersion}"
             echo "::: See https://changes.pi-hole.net for details"
@@ -101,8 +98,8 @@ function updatePiholeFunc {
 
         echo "::: Fetching latest changes from GitHub..."
         cd /etc/.pihole
-        ${SUDO} git pull origin master
-        ${SUDO} /etc/.pihole/automated\ install/basic-install.sh pihole
+        git pull origin master
+        /etc/.pihole/automated\ install/basic-install.sh pihole
 
         echo ":::"
         echo "::: Pi-hole has been updated to version ${piholeVersionLatest}"
@@ -117,17 +114,17 @@ function updatePiholeFunc {
 }
 
 function reconfigurePiholeFunc {
-    ${SUDO} /etc/.pihole/automated\ install/basic-install.sh
+    /etc/.pihole/automated\ install/basic-install.sh
     exit 1;
 }
 
 function updateGravityFunc {
-    ${SUDO} /opt/pihole/gravity.sh "$@"
+    /opt/pihole/gravity.sh "$@"
     exit 1
 }
 
 function setupLCDFunction {
-    ${SUDO} /opt/pihole/setupLCD.sh
+    /opt/pihole/setupLCD.sh
     exit 1
 }
 
@@ -147,18 +144,18 @@ function queryFunc {
 
 function chronometerFunc {
     shift
-    ${SUDO} /opt/pihole/chronometer.sh "$@"
+    /opt/pihole/chronometer.sh "$@"
     exit 1
 }
 
 
 function uninstallFunc {
-    ${SUDO} /opt/pihole/uninstall.sh
+    /opt/pihole/uninstall.sh
     exit 1
 }
 
 function versionFunc {
-    ${SUDO} /opt/pihole/version.sh
+    /opt/pihole/version.sh
     exit 1
 }
 
