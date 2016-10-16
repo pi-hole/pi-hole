@@ -101,9 +101,13 @@ elif [ -x "$(command -v rpm)" ];then
 	UPDATE_PKG_CACHE="$PKG_MANAGER check-update"
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
-	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
+	PKG_COUNT="$PKG_MANAGER check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
 	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+	if grep -q 'Fedora' /etc/redhat-release; then
+		remove_deps=(epel-release);
+		PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
+	fi
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
@@ -844,9 +848,12 @@ configureSelinux() {
 		printf ":::\tChecking for SELinux policy development packages..."
 		package_check_install "selinux-policy-devel" > /dev/null
 		echo " installed!"
-		printf "::: Enabling httpd server side includes (SSI).. "
+		printf ":::\tEnabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
+		if ! [ -x "$(command -v systemctl)" ]; then
+			sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
+		fi
 		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
 		semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		semodule -i /etc/pihole/pihole.pp
@@ -983,13 +990,13 @@ if [[ "${useUpdateVars}" == false ]]; then
     displayFinalMessage
 fi
 
-echo -n "::: Restarting services..."
+echo "::: Restarting services..."
 # Start services
 start_service dnsmasq
 enable_service dnsmasq
 start_service lighttpd
 enable_service lighttpd
-echo " done."
+echo "::: done."
 
 echo ":::"
 if [[ "${useUpdateVars}" == false ]]; then
