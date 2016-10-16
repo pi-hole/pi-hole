@@ -895,11 +895,11 @@ update_dialogs(){
 
     if [[ $? = 0 ]];then
         case ${UpdateCmd} in
-            Update)
+            ${opt1a})
                 echo "::: Updating existing install"
                 useUpdateVars=true
                 ;;
-            Install)
+            ${opt2a})
                 echo "::: Running complete install script"
                 useUpdateVars=false
                 ;;
