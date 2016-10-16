@@ -360,7 +360,7 @@ setStaticIPv4() {
 			IPADDR=$(echo "${IPv4_address}" | cut -f1 -d/)
 			CIDR=$(echo "${IPv4_address}" | cut -f2 -d/)
 			# Backup existing interface configuration:
-			cp "${IFCFG_FILE}" "${IFCFG_FILE}".backup-"$(date +%Y-%m-%d-%H%M%S)"
+			cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig"
 			# Build Interface configuration file:
 			{
 			echo "# Configured via Pi-Hole installer"
