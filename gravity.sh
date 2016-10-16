@@ -310,18 +310,25 @@ gravity_reload() {
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
 	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
-	dnsmasqPid=$(pidof dnsmasq)
+	find "$piholeDir" -type f -exec chmod 666 {} \;
 
-    find "$piholeDir" -type f -exec chmod 666 {} \;
+    dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ ${dnsmasqPid} ]]; then
-		# service already running - reload config
-		killall -s HUP dnsmasq
+	    # service already running - reload config
+	    if [ -x "$(command -v systemctl)" ]; then
+            systemctl restart dnsmasq
+        else
+            service dnsmasq restart
+        fi
 	else
-		# service not running, start it up
-		service dnsmasq start
+	    # service not running, start it up
+	    if [ -x "$(command -v systemctl)" ]; then
+            systemctl start dnsmasq
+        else
+            service dnsmasq start
+        fi
 	fi
-	echo " done!"
 }
 
 
