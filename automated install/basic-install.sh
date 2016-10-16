@@ -896,11 +896,11 @@ update_dialogs(){
     if [[ $? = 0 ]];then
         case ${UpdateCmd} in
             ${opt1a})
-                echo "::: Updating existing install"
+                echo "::: $opt1a option selected."
                 useUpdateVars=true
                 ;;
             ${opt2a})
-                echo "::: Running complete install script"
+                echo "::: $opt2a option selected"
                 useUpdateVars=false
                 ;;
         esac
