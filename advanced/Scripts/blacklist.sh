@@ -168,14 +168,22 @@ Reload() {
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
 
-	dnsmasqPid=$(pidof dnsmasq)
+    dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ ${dnsmasqPid} ]]; then
-		# service already running - reload config
-		killall -s HUP dnsmasq
+	    # service already running - reload config
+	    if [ -x "$(command -v systemctl)" ]; then
+            systemctl restart dnsmasq
+        else
+            service dnsmasq restart
+        fi
 	else
-		# service not running, start it up
-		service dnsmasq start
+	    # service not running, start it up
+	    if [ -x "$(command -v systemctl)" ]; then
+            systemctl start dnsmasq
+        else
+            service dnsmasq start
+        fi
 	fi
 	echo " done!"
 }
