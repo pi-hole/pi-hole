@@ -46,7 +46,8 @@ mimetype.assign   = ( ".png"  => "image/png",
                       ".css" => "text/css; charset=utf-8",
                       ".js" => "application/javascript",
                       ".json" => "application/json",
-                      ".txt"  => "text/plain" )
+                      ".txt"  => "text/plain",
+                      ".svg"  => "image/svg+xml" )
 
 # default listening port for IPv6 falls back to the IPv4 port
 #include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
