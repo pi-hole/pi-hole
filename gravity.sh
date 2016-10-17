@@ -37,7 +37,7 @@ if [[ -f ${setupVars} ]];then
     . /etc/pihole/setupVars.conf
 else
     echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
-    echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
+    echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
     exit 1
 fi
 
