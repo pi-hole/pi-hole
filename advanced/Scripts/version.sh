@@ -10,6 +10,10 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+
+
+
+normalOutput(){
 piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
 webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
 
@@ -18,3 +22,14 @@ webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/release
 
 echo "::: Pi-hole version is $piholeVersion (Latest version is $piholeVersionLatest)"
 echo "::: Web-Admin version is $webVersion (Latest version is $webVersionLatest)"
+
+}
+
+for var in "$@"
+do
+  case "$var" in
+    "-j" | "--json"  ) outputJSON;;
+    "-h" | "--help"  ) displayHelp;;
+    *                ) normalOutput;;
+  esac
+done
