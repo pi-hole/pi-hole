@@ -1,3 +1,38 @@
+# FROM https://github.com/libgit2/libgit2sharp
+# Text files that should be normalized to LF in odb.
+*.cs     text diff=csharp
+*.config text
+
+*.sln     text
+*.csproj  text
+
+*.md       text
+*.sh       text
+*.ps1      text
+*.cmd      text
+*.bat      text
+*.markdown text
+*.msbuild  text
+
+Lib/*  binary
+GitHub.Tests.Integration/Resources/*  binary
+
+
+# Binary files that should not be normalized or diffed
+*.png    binary
+*.jpg    binary
+*.gif    binary
+
+*.pfx    binary
+*.snk    binary
+*.dll    binary
+*.exe    binary
+*.lib    binary
+*.exp    binary
+*.pdb    binary
+*.sdf    binary
+*.7z     binary
+
+
+# Catch all for anything we forgot. Add rules if you get CRLF -> LF warnings.
 * text=auto
-*.sh text
-*.py text
