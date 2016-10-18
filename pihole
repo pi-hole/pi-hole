@@ -193,7 +193,8 @@ uninstallFunc() {
 }
 
 versionFunc() {
-    /opt/pihole/version.sh
+    shift
+    /opt/pihole/version.sh "$@"
     exit 0
 }
 
@@ -235,7 +236,7 @@ case "$1" in
 "-s" | "setupLCD"			) setupLCDFunction;;
 "-c" | "chronometer"		) chronometerFunc "$@";;
 "-h" | "help"				) helpFunc;;
-"-v" | "version"            ) versionFunc;;
+"-v" | "version"            ) versionFunc "$@";;
 "-q" | "query"              ) queryFunc "$@";;
 "uninstall"					) uninstallFunc;;
 *                    		) helpFunc;;
