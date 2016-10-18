@@ -43,20 +43,10 @@ flushFunc() {
     exit 0
 }
 
-getGitFiles() {
-	# Setup git repos for directory and repository passed
-	# as arguments 1 and 2
-	echo ":::"
-	echo "::: Checking for existing repository..."
-	if is_repo "${1}"; then
-	  update_repo "${1}"
-	else
-	  make_repo "${1}" "${2}"
-  fi
-}
 
 updatePiholeFunc() {
-    echo "Not Implemented"
+    /opt/pihole/update.sh
+    exit 0
 }
 
 reconfigurePiholeFunc() {
@@ -110,7 +100,7 @@ helpFunc() {
     echo "::: Control all PiHole specific functions!"
     echo ":::"
     echo "::: Usage: pihole [options]"
-    echo ":::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer), or -v (version)  for more information on usage"
+    echo ":::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage"
     echo ":::"
     echo "::: Options:"
     echo ":::  -w, whitelist            Whitelist domains"

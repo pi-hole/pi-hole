@@ -3,7 +3,7 @@
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
-# Whitelists domains
+# shows version numbers
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ webOutput(){
     else
         webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
         webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+        echo "::: Web-Admin version is $webVersion (Latest version is $webVersionLatest)"
     fi
 }
 
@@ -97,6 +98,5 @@ do
     "-a" | "--admin"     ) shift; webOutput "$@";;
     "-p" | "--pihole"    ) shift; coreOutput "$@" ;;
     "-h" | "--help"      ) helpFunc;;
-    *                    ) helpFunc;;
   esac
 done
