@@ -58,7 +58,7 @@ else
   echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 	if [ -x "$(command -v sudo)" ];then
 		echo "::: Utility sudo located."
-	  exec sudo bash "$0" "$@"
+	  exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
     exit $?
 	else
 		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
