@@ -54,6 +54,8 @@ supernova=${basename}.1.supernova.txt
 eventHorizon=${basename}.2.eventHorizon.txt
 accretionDisc=${basename}.3.accretionDisc.txt
 
+skipDownload=false
+
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
 if [[ -r ${piholeDir}/pihole.conf ]];then
     echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
@@ -162,7 +164,7 @@ gravity_spinup() {
 
         agent="Mozilla/10.0"
 
-        echo -n "::: Getting $domain list..."
+
 
         # Use a case statement to download lists that need special cURL commands
         # to complete properly and reset the user agent when required
@@ -179,7 +181,12 @@ gravity_spinup() {
             # Default is a simple request
             *) cmd_ext=""
         esac
-        gravity_transport "$url" "$cmd_ext" "$agent"
+        if [[ "${skipDownload}" == false ]]; then
+            echo -n "::: Getting $domain list..."
+            gravity_transport "$url" "$cmd_ext" "$agent"
+        else
+            echo "::: Using cached $domain list"
+        fi
 	done
 }
 
@@ -317,7 +324,7 @@ gravity_reload() {
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
-	
+
 	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
@@ -345,15 +352,18 @@ gravity_reload() {
 }
 
 
+
+
 for var in "$@"
 do
   case "$var" in
     "-f" | "--force"     ) forceGrav=true;;
     "-h" | "--help"      ) helpFunc;;
+    "-sd" | "--skip-download"    ) skipDownload=true;;
   esac
 done
 
-if [[ ${forceGrav} == true ]]; then
+if [[ "${forceGrav}" == true ]]; then
 	echo -n "::: Deleting exising list cache..."
 	rm /etc/pihole/list.*
 	echo " done!"
