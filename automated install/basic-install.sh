@@ -702,6 +702,7 @@ update_repo() {
     # Pull the latest commits
     echo -n ":::     Updating repo in $1..."
     cd "${1}" || exit 1
+    git stash -q > /dev/null & spinner $!
     git pull -q > /dev/null & spinner $!
     echo " done!"
 }
