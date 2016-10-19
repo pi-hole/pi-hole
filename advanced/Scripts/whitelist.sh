@@ -37,14 +37,6 @@ helpFunc()
 	exit 1
 }
 
-modifyHost=false
-
-# After setting defaults, check if there's local overrides
-if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: Local calibration requested..."
-    . ${piholeDir}/pihole.conf
-fi
-
 PopWhitelistFile(){
 	#check whitelist file exists, and if not, create it
 	if [[ ! -f ${whitelist} ]];then
@@ -102,43 +94,37 @@ RemoveDomain(){
 }
 
 ModifyHostFile(){
-	 if ${addmode}; then
-	    #remove domains in  from hosts file
-	    if [[ -r ${whitelist} ]];then
-              # Remove whitelist entries
-      	      numberOf=$(cat ${whitelist} | sed '/^\s*$/d' | wc -l)
-              plural=; [[ "$numberOf" != "1" ]] && plural=s
-              echo ":::"
-              echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
-              awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIP $line"; done > ${piholeDir}/whitelist.tmp
-              echo "l" >> ${piholeDir}/whitelist.tmp
-              grep -F -x -v -f ${piholeDir}/whitelist.tmp ${adList} > ${piholeDir}/gravity.tmp
-              rm ${adList}
-              mv ${piholeDir}/gravity.tmp ${adList}
-              rm ${piholeDir}/whitelist.tmp
-              echo " done!"
-            fi
-	 else
-	   #we need to add the removed domains to the hosts file
-	   echo ":::"
-	   echo "::: Modifying HOSTS file to un-whitelist domains..."
-	   for rdom in "${domToRemoveList[@]}"; do
-             if grep -q "$rdom" ${piholeDir}/*.domains; then
-               echo ":::    AdLists contain $rdom, re-adding block"
-               if [[ -n ${piholeIPv6} ]];then
-                 echo -n ":::        Restoring block for $rdom on IPv4 and IPv6..."
-                 echo "$rdom" | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
-                 echo " done!"
-               else
-                 echo -n ":::        Restoring block for $rdom on IPv4..."
-                 echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
-                 echo " done!"
-               fi
-          fi
-          echo -n ":::    Removing $rdom from $whitelist..."
-          echo "$rdom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
-          echo " done!"
-        done
+  if ${addmode}; then
+    #remove domains in  from hosts file
+    if [[ -r ${whitelist} ]];then
+      # Remove whitelist entries
+      numberOf=$(cat ${whitelist} | sed '/^\s*$/d' | wc -l)
+      plural=; [[ "$numberOf" != "1" ]] && plural=s
+      echo ":::"
+      echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
+      awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIP $line"; done > ${piholeDir}/whitelist.tmp
+      echo "l" >> ${piholeDir}/whitelist.tmp
+      grep -F -x -v -f ${piholeDir}/whitelist.tmp ${adList} > ${piholeDir}/gravity.tmp
+      rm ${adList}
+      mv ${piholeDir}/gravity.tmp ${adList}
+      rm ${piholeDir}/whitelist.tmp
+      echo " done!"
+    fi
+  else
+    #we need to add the removed domains to the hosts file
+    echo ":::"
+    echo "::: Modifying HOSTS file to un-whitelist domains..."
+    for rdom in "${domToRemoveList[@]}"; do
+      if grep -q "$rdom" ${piholeDir}/*.domains; then
+        echo ":::    AdLists contain $rdom, re-adding block"
+        echo -n ":::        Restoring block for $rdom on IPv4..."
+        echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
+        echo " done!"
+      fi
+      echo -n ":::    Removing $rdom from $whitelist..."
+      echo "$rdom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
+      echo " done!"
+    done
   fi
 }
 
@@ -180,6 +166,7 @@ DisplayWlist() {
 ###################################################
 
 #globals
+modifyHost=false
 reload=true
 addmode=true
 force=false
@@ -210,7 +197,7 @@ if [[ -z "${setupVars}" ]] ; then
   setupVars=/etc/pihole/setupVars.conf
 fi
 if [[ -f "${setupVars}" ]];then
-    . ${setupVars}
+    . "${setupVars}"
 else
     echo "::: WARNING: ${setupVars} missing. Possible installation failure."
     echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."

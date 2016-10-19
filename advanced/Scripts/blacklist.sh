@@ -26,9 +26,6 @@ helpFunc()
 	exit 1
 }
 
-modifyHost=false
-
-
 HandleOther(){
   #check validity of domain
         validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
@@ -38,13 +35,6 @@ HandleOther(){
           domList=("${domList[@]}" ${validDomain})
         fi
 }
-
-# After setting defaults, check if there's local overrides
-if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: Local calibration requested..."
-        . ${piholeDir}/pihole.conf
-fi
-
 
 PopBlacklistFile(){
 	#check blacklist file exists, and if not, create it
@@ -163,6 +153,7 @@ DisplayBlist() {
 ###################################################
 
 #globals
+modifyHost=false
 reload=true
 addmode=true
 force=false
@@ -194,7 +185,7 @@ if [[ -z "${setupVars}" ]] ; then
   setupVars=/etc/pihole/setupVars.conf
 fi
 if [[ -f "${setupVars}" ]];then
-    . ${setupVars}
+    . "${setupVars}"
 else
     echo "::: WARNING: ${setupVars} missing. Possible installation failure."
     echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
