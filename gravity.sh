@@ -30,6 +30,8 @@ adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
 whitelistScript=/opt/pihole/whitelist.sh
 blacklistScript=/opt/pihole/blacklist.sh
+whitelistFile=/etc/pihole/whitelist.txt
+blacklistFile=/etc/pihole/blacklist.txt
 
 #Source the setupVars from install script for the IP
 setupVars=/etc/pihole/setupVars.conf
@@ -205,19 +207,20 @@ gravity_Schwarzchild() {
 
 gravity_Blacklist(){
 	# Append blacklist entries if they exist
-	echo -n "::: Running blacklist script to update HOSTS file...."
-	${blacklistScript} -f -nr -q > /dev/null
-
-	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
+	numBlacklisted=$(wc -l < "${blacklistFile}")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	echo " $numBlacklisted domain${plural} blacklisted!"
+
+	echo -n "::: BlackListing $numBlacklisted domain${plural}..."
+	cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
+	echo " done!"
 }
 
 gravity_Whitelist() {
+    #${piholeDir}/${eventHorizon})
 	echo ":::"
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
-	echo -n "::: Adding ${#sources[@]} adlist source${plural} to the whitelist..."
+	echo -n "::: Adding adlist source${plural} to the whitelist..."
 
 	urls=()
 	for url in "${sources[@]}"
@@ -227,11 +230,16 @@ gravity_Whitelist() {
 	done
 	echo " done!"
 
-	echo -n "::: Running whitelist script to update HOSTS file...."
-	${whitelistScript} -f -nr -q "${urls[@]}" > /dev/null
-	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
+    # Ensure adlist domains are in whitelist.txt
+	${whitelistScript} -nr -q "${urls[@]}" > /dev/null
+
+    # Remove anything in whitelist.txt from the Event Horizon
+    numWhitelisted=$(wc -l < "${whitelistFile}")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
-	echo " $numWhitelisted domain${plural} whitelisted!"
+    echo -n "::: Whitelisting $numWhitelisted domain${plural}..."
+	grep -F -x -v -f ${whitelistFile} ${piholeDir}/${eventHorizon} > ${piholeDir}/${eventHorizon}.tmp
+	mv ${piholeDir}/${eventHorizon}.tmp ${piholeDir}/${eventHorizon}
+    echo " done!"
 }
 
 gravity_unique() {
@@ -351,9 +359,6 @@ gravity_reload() {
 	fi
 }
 
-
-
-
 for var in "$@"
 do
   case "$var" in
@@ -375,8 +380,11 @@ gravity_collapse
 gravity_spinup
 gravity_Schwarzchild
 gravity_advanced
-gravity_hostFormat
-gravity_blackbody
+
 gravity_Whitelist
 gravity_Blacklist
+
+gravity_hostFormat
+gravity_blackbody
+
 gravity_reload
