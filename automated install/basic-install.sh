@@ -24,7 +24,7 @@ setupVars=/etc/pihole/setupVars.conf
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+piholeGitUrl="https://github.com/tuplink/pi-hole.git"
 piholeFilesDir="/etc/.pihole"
 
 useUpdateVars=false
@@ -58,7 +58,7 @@ else
   echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 	if [ -x "$(command -v sudo)" ];then
 		echo "::: Utility sudo located."
-	  exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+	  exec sudo bash "$0" "$@"
     exit $?
 	else
 		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
@@ -796,6 +796,20 @@ finalExports() {
     echo "IPv6_address=${IPv6_address}"
     echo "piholeDNS1=${piholeDNS1}"
     echo "piholeDNS2=${piholeDNS2}"
+    echo "basename=pihole"
+    echo "piholeDir=/etc/\${basename}"
+    echo "adList=\${piholeDir}/gravity.list"
+    echo "justDomainsExtension=domains"
+    echo "matterAndLight=\${basename}.0.matterandlight.txt"
+    echo "supernova=\${basename}.1.supernova.txt"
+    echo "eventHorizon=\${basename}.2.eventHorizon.txt"
+    echo "accretionDisc=\${basename}.3.accretionDisc.txt"
+    echo "blacklist=/etc/pihole/blacklist.txt"
+    echo "whitelist=/etc/pihole/whitelist.txt"
+    echo "adListFile=/etc/pihole/adlists.list"
+    echo "adListDefault=/etc/pihole/adlists.default"
+    echo "whitelistScript=/opt/pihole/whitelist.sh"
+    echo "blacklistScript=/opt/pihole/blacklist.sh"
     }>> "${setupVars}"
 }
 

@@ -11,7 +11,6 @@
 # (at your option) any later version.
 
 # Run this script as root or under sudo
-echo ":::"
 
 helpFunc()
 {
@@ -22,42 +21,10 @@ helpFunc()
 	echo "::: Options:"
 	echo ":::  -f, --force				Force lists to be downloaded, even if they don't need updating."
 	echo ":::  -h, --help				Show this help dialog"
+        echo ":::  -c:/path/to/file                     location of config file"
 	exit 1
 }
 
-
-adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
-whitelistScript=/opt/pihole/whitelist.sh
-blacklistScript=/opt/pihole/blacklist.sh
-
-#Source the setupVars from install script for the IP
-setupVars=/etc/pihole/setupVars.conf
-if [[ -f ${setupVars} ]];then
-    . /etc/pihole/setupVars.conf
-else
-    echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
-    echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
-    exit 1
-fi
-
-#Remove the /* from the end of the IPv4addr.
-IPv4addr=${IPv4_address%/*}
-
-# Variables for various stages of downloading and formatting the list
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-justDomainsExtension=domains
-matterAndLight=${basename}.0.matterandlight.txt
-supernova=${basename}.1.supernova.txt
-eventHorizon=${basename}.2.eventHorizon.txt
-accretionDisc=${basename}.3.accretionDisc.txt
-
-# Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
-if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
-fi
 
 ###########################
 # collapse - begin formation of pihole
@@ -199,9 +166,9 @@ gravity_Schwarzchild() {
 gravity_Blacklist(){
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
-	${blacklistScript} -f -nr -q > /dev/null
+	${blacklistScript} -f -nr -q -c:${setupVars}> /dev/null
 
-	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
+	numBlacklisted=$(wc -l < "${blacklist}")
 	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
 	echo " $numBlacklisted domain${plural} blacklisted!"
 }
@@ -221,8 +188,8 @@ gravity_Whitelist() {
 	echo " done!"
 
 	echo -n "::: Running whitelist script to update HOSTS file...."
-	${whitelistScript} -f -nr -q "${urls[@]}" > /dev/null
-	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
+	${whitelistScript} -f -nr -q  -c:${setupVars} "${urls[@]}" > /dev/null
+	numWhitelisted=$(wc -l < "${whitelist}")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
 	echo " $numWhitelisted domain${plural} whitelisted!"
 }
@@ -304,7 +271,7 @@ gravity_reload() {
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
-	
+
 	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
@@ -312,42 +279,72 @@ gravity_reload() {
 	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	find "$piholeDir" -type f -exec chmod 666 {} \;
 
-    dnsmasqPid=$(pidof dnsmasq)
+        dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ ${dnsmasqPid} ]]; then
 	    # service already running - reload config
 	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl restart dnsmasq
-        else
-            service dnsmasq restart
-        fi
+		systemctl restart dnsmasq
+	    else
+                service dnsmasq restart
+            fi
 	else
 	    # service not running, start it up
 	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl start dnsmasq
-        else
-            service dnsmasq start
-        fi
+                systemctl start dnsmasq
+            else
+                service dnsmasq start
+            fi
 	fi
 }
-
 
 for var in "$@"
 do
   case "$var" in
     "-f" | "--force"     ) forceGrav=true;;
     "-h" | "--help"      ) helpFunc;;
+    -c*                  ) setupVars=$(echo $var | cut -d ":" -f2);;
   esac
 done
 
+echo ":::"
+
+#Source the setupVars from install script for the IP
+if [[ -z ${setupVars} ]] ; then
+  setupVars=/etc/pihole/setupVars.conf
+fi
+if [[ -f ${setupVars} ]];then
+    . ${setupVars}
+else
+    echo "::: WARNING: ${setupVars} missing. Possible installation failure."
+    echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
+    exit 1
+fi
+
+#Remove the /* from the end of the IPv4addr.
+IPv4addr=${IPv4_address%/*}
+
+# Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
+if [[ -r ${piholeDir}/pihole.conf ]];then
+    echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
+fi
+
+
+
+
+
+
 if [[ ${forceGrav} == true ]]; then
 	echo -n "::: Deleting exising list cache..."
-	rm /etc/pihole/list.*
+	for f in "${piholeDir}/list.*" ; do
+         # rm ${piholeDir}/list.${f}
+         echo "rm ${piholeDir}/list.${f}"
+        done
 	echo " done!"
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default ${piholeDir}/adlists.default
 gravity_collapse
 gravity_spinup
 gravity_Schwarzchild

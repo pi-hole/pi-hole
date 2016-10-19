@@ -10,6 +10,15 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+HandleOther(){
+  #check validity of domain
+        validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
+        if [ -z "$validDomain" ]; then
+                echo "::: $1 is not a valid argument or domain name"
+        else
+          domList=("${domList[@]}" ${validDomain})
+        fi
+}
 
 helpFunc()
 {
@@ -24,62 +33,17 @@ helpFunc()
 	echo ":::  -q, --quiet				output is less verbose"
 	echo ":::  -h, --help				Show this help dialog"
 	echo ":::  -l, --list				Display your whitelisted domains"
+        echo ":::  -c:/path/to/file                     location of config file"
 	exit 1
 }
-
-if [[ $# = 0 ]]; then
-	helpFunc
-fi
-
-#globals
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-whitelist=${piholeDir}/whitelist.txt
-reload=true
-addmode=true
-force=false
-verbose=true
-
-domList=()
-domToRemoveList=()
-
-piholeIPfile=/etc/pihole/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
-
-if [[ -f ${piholeIPfile} ]];then
-    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat ${piholeIPfile})
-    #rm $piholeIPfile
-else
-    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-    piholeIP=${piholeIPCIDR%/*}
-fi
 
 modifyHost=false
 
 # After setting defaults, check if there's local overrides
 if [[ -r ${piholeDir}/pihole.conf ]];then
     echo "::: Local calibration requested..."
-        . ${piholeDir}/pihole.conf
+    . ${piholeDir}/pihole.conf
 fi
-
-if [[ -f ${piholeIPv6file} ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-fi
-
-HandleOther(){
-  #check validity of domain
-	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
-	if [ -z "$validDomain" ]; then
-		echo "::: $1 is not a valid argument or domain name"
-	else
-	  domList=("${domList[@]}" ${validDomain})
-	fi
-}
 
 PopWhitelistFile(){
 	#check whitelist file exists, and if not, create it
@@ -141,44 +105,41 @@ ModifyHostFile(){
 	 if ${addmode}; then
 	    #remove domains in  from hosts file
 	    if [[ -r ${whitelist} ]];then
-        # Remove whitelist entries
-				numberOf=$(cat ${whitelist} | sed '/^\s*$/d' | wc -l)
-        plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo ":::"
-        echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
-        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIP $line"; done > /etc/pihole/whitelist.tmp
-        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIPv6 $line"; done >> /etc/pihole/whitelist.tmp
-        echo "l" >> /etc/pihole/whitelist.tmp
-        grep -F -x -v -f ${piholeDir}/whitelist.tmp ${adList} > ${piholeDir}/gravity.tmp
-        rm ${adList}
-        mv ${piholeDir}/gravity.tmp ${adList}
-        rm ${piholeDir}/whitelist.tmp
-        echo " done!"
-
-	  	fi
-	  else
-	    #we need to add the removed domains to the hosts file
-	    echo ":::"
-	    echo "::: Modifying HOSTS file to un-whitelist domains..."
-	    for rdom in "${domToRemoveList[@]}"
-        do
-          if grep -q "$rdom" /etc/pihole/*.domains; then
-            echo ":::    AdLists contain $rdom, re-adding block"
-            if [[ -n ${piholeIPv6} ]];then
-              echo -n ":::        Restoring block for $rdom on IPv4 and IPv6..."
-              echo "$rdom" | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
-              echo " done!"
-            else
-              echo -n ":::        Restoring block for $rdom on IPv4..."
-              echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
+              # Remove whitelist entries
+      	      numberOf=$(cat ${whitelist} | sed '/^\s*$/d' | wc -l)
+              plural=; [[ "$numberOf" != "1" ]] && plural=s
+              echo ":::"
+              echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
+              awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIP $line"; done > ${piholeDir}/whitelist.tmp
+              echo "l" >> ${piholeDir}/whitelist.tmp
+              grep -F -x -v -f ${piholeDir}/whitelist.tmp ${adList} > ${piholeDir}/gravity.tmp
+              rm ${adList}
+              mv ${piholeDir}/gravity.tmp ${adList}
+              rm ${piholeDir}/whitelist.tmp
               echo " done!"
             fi
+	 else
+	   #we need to add the removed domains to the hosts file
+	   echo ":::"
+	   echo "::: Modifying HOSTS file to un-whitelist domains..."
+	   for rdom in "${domToRemoveList[@]}"; do
+             if grep -q "$rdom" ${piholeDir}/*.domains; then
+               echo ":::    AdLists contain $rdom, re-adding block"
+               if [[ -n ${piholeIPv6} ]];then
+                 echo -n ":::        Restoring block for $rdom on IPv4 and IPv6..."
+                 echo "$rdom" | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
+                 echo " done!"
+               else
+                 echo -n ":::        Restoring block for $rdom on IPv4..."
+                 echo "$rdom" | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
+                 echo " done!"
+               fi
           fi
           echo -n ":::    Removing $rdom from $whitelist..."
           echo "$rdom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
           echo " done!"
         done
-	  fi
+  fi
 }
 
 Reload() {
@@ -218,18 +179,50 @@ DisplayWlist() {
 
 ###################################################
 
+#globals
+reload=true
+addmode=true
+force=false
+verbose=true
+
+domList=()
+domToRemoveList=()
+
 for var in "$@"
 do
   case "$var" in
-    "-nr"| "--noreload"  ) reload=false;;
-    "-d" | "--delmode"   ) addmode=false;;
-    "-f" | "--force"     ) force=true;;
-    "-q" | "--quiet"     ) verbose=false;;
-    "-h" | "--help"      ) helpFunc;;
-    "-l" | "--list"      ) DisplayWlist;;
-    *                    ) HandleOther "$var";;
+    "-nr"| "--noreload"  ) reload=false;shift;;
+    "-d" | "--delmode"   ) addmode=false;shift;;
+    "-f" | "--force"     ) force=true;shift;;
+    "-q" | "--quiet"     ) verbose=false;shift;;
+    "-h" | "--help"      ) helpFunc;shift;;
+    "-l" | "--list"      ) DisplayWlist;shift;;
+    -c*                  ) setupVars=$(echo $var | cut -d ":" -f2);;
+    *                    ) HandleOther "${var}";;
   esac
 done
+
+
+if [[ $# = 0 ]]; then
+        helpFunc
+fi
+if [[ -z ${setupVars} ]] ; then
+  setupVars=/etc/pihole/setupVars.conf
+fi
+if [[ -f ${setupVars} ]];then
+    . ${setupVars}
+else
+    echo "::: WARNING: ${setupVars} missing. Possible installation failure."
+    echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
+    exit 1
+fi
+
+if [[ -n ${IPv6_address} ]] ; then
+  piholeIP=${IPv6_address}
+else
+  piholeIP=${IPv4_address}
+  piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
+fi
 
 PopWhitelistFile
 

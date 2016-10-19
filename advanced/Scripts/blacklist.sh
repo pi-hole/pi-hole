@@ -9,7 +9,6 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-
 helpFunc()
 {
 	echo "::: Immediately blacklists one or more domains in the hosts file"
@@ -23,41 +22,22 @@ helpFunc()
 	echo ":::  -q, --quiet				output is less verbose"
 	echo ":::  -h, --help				Show this help dialog"
 	echo ":::  -l, --list				Display your blacklisted domains"
+        echo ":::  -c:/path/to/file                     location of config file"
 	exit 1
 }
 
-if [[ $# = 0 ]]; then
-	helpFunc
-fi
-
-#globals
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-blacklist=${piholeDir}/blacklist.txt
-reload=true
-addmode=true
-force=false
-verbose=true
-
-domList=()
-domToRemoveList=()
-
-piholeIPfile=/etc/pihole/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
-
-if [[ -f ${piholeIPfile} ]];then
-    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat ${piholeIPfile})
-    #rm $piholeIPfile
-else
-    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-    piholeIP=${piholeIPCIDR%/*}
-fi
-
 modifyHost=false
+
+
+HandleOther(){
+  #check validity of domain
+        validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
+        if [ -z "$validDomain" ]; then
+                echo "::: $1 is not a valid argument or domain name"
+        else
+          domList=("${domList[@]}" ${validDomain})
+        fi
+}
 
 # After setting defaults, check if there's local overrides
 if [[ -r ${piholeDir}/pihole.conf ]];then
@@ -65,21 +45,6 @@ if [[ -r ${piholeDir}/pihole.conf ]];then
         . ${piholeDir}/pihole.conf
 fi
 
-
-if [[ -f ${piholeIPv6file} ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-fi
-
-HandleOther(){
-  #check validity of domain
-	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
-	if [ -z "$validDomain" ]; then
-		echo "::: $1 is not a valid argument or domain name"
-	else
-	  domList=("${domList[@]}" ${validDomain})
-	fi
-}
 
 PopBlacklistFile(){
 	#check blacklist file exists, and if not, create it
@@ -138,15 +103,11 @@ ModifyHostFile(){
 	    #add domains to the hosts file
 	    if [[ -r ${blacklist} ]];then
 	      numberOf=$(cat ${blacklist} | sed '/^\s*$/d' | wc -l)
-        plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo ":::"
-        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
-	    	if [[ -n ${piholeIPv6} ]];then
-				cat ${blacklist} | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
-	      	else
-				cat ${blacklist} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
-	      	fi
-	  	fi
+              plural=; [[ "$numberOf" != "1" ]] && plural=s
+              echo ":::"
+              echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
+              sed "s/^/$piholeIP /g" ${blacklist} >> ${adList}
+            fi
 	  else
 		echo ":::"
 	  	for dom in "${domToRemoveList[@]}"
@@ -201,6 +162,15 @@ DisplayBlist() {
 
 ###################################################
 
+#globals
+reload=true
+addmode=true
+force=false
+verbose=true
+
+domList=()
+domToRemoveList=()
+
 for var in "$@"
 do
   case "$var" in
@@ -208,11 +178,37 @@ do
     "-d" | "--delmode"   ) addmode=false;;
     "-f" | "--force"     ) force=true;;
     "-q" | "--quiet"     ) verbose=false;;
-    "-h" | "--help"	     ) helpFunc;;
+    "-h" | "--help"      ) helpFunc;;
     "-l" | "--list"      ) DisplayBlist;;
+    -c*                  ) setupVars=$(echo $var | cut -d ":" -f2);;
     *                    ) HandleOther "$var";;
   esac
 done
+
+
+if [[ $# = 0 ]]; then
+        helpFunc
+fi
+
+if [[ -z ${setupVars} ]] ; then
+  setupVars=/etc/pihole/setupVars.conf
+fi
+if [[ -f ${setupVars} ]];then
+    . ${setupVars}
+else
+    echo "::: WARNING: ${setupVars} missing. Possible installation failure."
+    echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
+    exit 1
+fi
+
+if [[ -n ${IPv6_address} ]] ; then
+  piholeIP=${IPv6_address}
+else
+  piholeIP=${IPv4_address}
+  piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
+fi
+
+
 
 PopBlacklistFile
 
