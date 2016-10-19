@@ -323,6 +323,12 @@ if [[ -r ${piholeDir}/pihole.conf ]];then
     echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
 
+# make sure $IPv6_address or $IPv4_address are set
+if [[ -z "${IPv6_address}" ]] && [[ -z "${IPv4_address}" ]] ; then
+  echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
+  exit 1
+fi
+
 #remove CIDR from IPs
 if [[ -n "${IPv6_address}" ]] ; then
   IPv6_address=$(echo "${IPv6_address}" | cut -f1 -d"/")
