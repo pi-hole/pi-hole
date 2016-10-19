@@ -107,7 +107,7 @@ gravity_patternCheck() {
 		# Some of the blocklists are copyright, they need to be downloaded
 		# and stored as is. They can be processed for content after they
 		# have been saved.
-		cp "$patternBuffer" "$saveLocation"
+		mv "$patternBuffer" "$saveLocation"
 		echo " List updated, transport successful!"
 	else
 		# curl didn't download any host files, probably because of the date check
@@ -133,8 +133,6 @@ gravity_transport() {
 	curl -s -L ${cmd_ext} ${heisenbergCompensator} -A "$agent" ${url} > ${patternBuffer}
 	# Check for list updates
 	gravity_patternCheck "$patternBuffer"
-	# Cleanup
-	rm -f "$patternBuffer"
 }
 
 # spinup - main gravity function
