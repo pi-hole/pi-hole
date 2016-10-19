@@ -215,11 +215,11 @@ gravity_hostFormat() {
         fi
         # Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
         if [[ -n "${IPv6_address}" ]] ; then
-          echo -e "${IPv6_address} $hostname\n${IPv6_address} pi.hole" > ${piholeDir}/${accretionDisc}
+          echo -e "${IPv6_address} $hostname\n${IPv6_address} pi.hole" >> ${piholeDir}/${accretionDisc}
           cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="${IPv6_address}" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
         fi
         if [[ -n "${IPv4_address}" ]] ; then
-          echo -e "${IPv4_address} $hostname\n${IPv4_address} pi.hole" > ${piholeDir}/${accretionDisc}
+          echo -e "${IPv4_address} $hostname\n${IPv4_address} pi.hole" >> ${piholeDir}/${accretionDisc}
           cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="${IPv4_address}" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
         fi
         # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
@@ -322,6 +322,15 @@ fi
 if [[ -r ${piholeDir}/pihole.conf ]];then
     echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
+
+#remove CIDR from IPs
+if [[ -n "${IPv6_address}" ]] ; then
+  IPv6_address=$(echo "${IPv6_address}" | cut -f1 -d"/")
+fi
+if [[ -n "${IPv4_address}" ]] ; then
+  IPv4_address=$(echo "${IPv4_address}" | cut -f1 -d"/")
+fi
+
 
 if [[ ${forceGrav} == true ]]; then
         echo -n "::: Deleting exising list cache..."
