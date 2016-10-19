@@ -10,22 +10,8 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-#rootcheck
-if [[ $EUID -eq 0 ]];then
-	echo "::: You are root."
-else
-	echo "::: sudo will be used."
-	# Check if it is actually installed
-	# If it isn't, exit because the install cannot complete
-	if [ -x "$(command -v sudo)" ];then
-		export SUDO="sudo"
-	else
-		echo "::: Please install sudo or run this script as root."
-		exit 1
-	fi
-fi
 
-function helpFunc()
+helpFunc()
 {
 	echo "::: Immediately whitelists one or more domains in the hosts file"
 	echo ":::"
@@ -85,7 +71,7 @@ if [[ -f ${piholeIPv6file} ]];then
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-function HandleOther(){
+HandleOther(){
   #check validity of domain
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "$validDomain" ]; then
@@ -95,7 +81,7 @@ function HandleOther(){
 	fi
 }
 
-function PopWhitelistFile(){
+PopWhitelistFile(){
 	#check whitelist file exists, and if not, create it
 	if [[ ! -f ${whitelist} ]];then
   	  touch ${whitelist}
@@ -110,7 +96,7 @@ function PopWhitelistFile(){
 	done
 }
 
-function AddDomain(){
+AddDomain(){
 #| sed 's/\./\\./g'
 	bool=false
 
@@ -132,7 +118,7 @@ function AddDomain(){
 	fi
 }
 
-function RemoveDomain(){
+RemoveDomain(){
 
   bool=false
   grep -Ex -q "$1" ${whitelist} || bool=true
@@ -151,7 +137,7 @@ function RemoveDomain(){
   fi
 }
 
-function ModifyHostFile(){
+ModifyHostFile(){
 	 if ${addmode}; then
 	    #remove domains in  from hosts file
 	    if [[ -r ${whitelist} ]];then
@@ -195,23 +181,31 @@ function ModifyHostFile(){
 	  fi
 }
 
-function Reload() {
+Reload() {
 	# Reload hosts file
 	echo ":::"
 	echo -n "::: Refresh lists in dnsmasq..."
-	dnsmasqPid=$(pidof dnsmasq)
+    dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ ${dnsmasqPid} ]]; then
-		# service already running - reload config
-		${SUDO} killall -s HUP dnsmasq
+	    # service already running - reload config
+	    if [ -x "$(command -v systemctl)" ]; then
+            systemctl restart dnsmasq
+        else
+            service dnsmasq restart
+        fi
 	else
-		# service not running, start it up
-		${SUDO} service dnsmasq start
+	    # service not running, start it up
+	    if [ -x "$(command -v systemctl)" ]; then
+            systemctl start dnsmasq
+        else
+            service dnsmasq start
+        fi
 	fi
 	echo " done!"
 }
 
-function DisplayWlist() {
+DisplayWlist() {
 	verbose=false
 	echo -e " Displaying Gravity Resistant Domains \n"
 	count=1

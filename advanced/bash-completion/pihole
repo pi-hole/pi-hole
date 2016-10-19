@@ -4,7 +4,7 @@ _pihole()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="blacklist chronometer debug flush help query setupLCD uninstall updateDashboard updateGravity updatePihole version whitelist"
+    opts="blacklist chronometer debug flush help query reconfigure setupLCD uninstall updateGravity updatePihole version whitelist"
 
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
