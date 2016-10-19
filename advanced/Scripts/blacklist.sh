@@ -19,7 +19,6 @@ helpFunc()
 	echo "::: Options:"
 	echo ":::  -d, --delmode			Remove domains from the blacklist"
 	echo ":::  -nr, --noreload			Update blacklist without refreshing dnsmasq"
-	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
 	echo ":::  -q, --quiet				output is less verbose"
 	echo ":::  -h, --help				Show this help dialog"
 	echo ":::  -l, --list				Display your blacklisted domains"
@@ -37,39 +36,10 @@ adList=${piholeDir}/gravity.list
 blacklist=${piholeDir}/blacklist.txt
 reload=true
 addmode=true
-force=false
 verbose=true
 
 domList=()
 domToRemoveList=()
-
-piholeIPfile=/etc/pihole/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
-
-if [[ -f ${piholeIPfile} ]];then
-    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat ${piholeIPfile})
-    #rm $piholeIPfile
-else
-    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-    piholeIP=${piholeIPCIDR%/*}
-fi
-
-modifyHost=false
-
-# After setting defaults, check if there's local overrides
-if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: Local calibration requested..."
-        . ${piholeDir}/pihole.conf
-fi
-
-
-if [[ -f ${piholeIPv6file} ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-fi
 
 HandleOther(){
   #check validity of domain
@@ -105,7 +75,6 @@ AddDomain(){
 	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
 		echo "$1" >> ${blacklist}
-		modifyHost=true
 		echo " done!"
 	else
 	if ${verbose}; then
@@ -124,68 +93,16 @@ RemoveDomain(){
   	echo "::: $1 is NOT blacklisted! No need to remove"
   	fi
   else
-    #Domain is in the blacklist file, add to a temporary array
+    #Domain is in the blacklist file,remove it
     if ${verbose}; then
     echo "::: Un-blacklisting $dom..."
     fi
-    domToRemoveList=("${domToRemoveList[@]}" $1)
-    modifyHost=true
+   echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
   fi
 }
 
-ModifyHostFile(){
-	 if ${addmode}; then
-	    #add domains to the hosts file
-	    if [[ -r ${blacklist} ]];then
-	      numberOf=$(cat ${blacklist} | sed '/^\s*$/d' | wc -l)
-        plural=; [[ "$numberOf" != "1" ]] && plural=s
-        echo ":::"
-        echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
-	    	if [[ -n ${piholeIPv6} ]];then
-				cat ${blacklist} | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
-	      	else
-				cat ${blacklist} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
-	      	fi
-	  	fi
-	  else
-		echo ":::"
-	  	for dom in "${domToRemoveList[@]}"
-		do
-	      #we need to remove the domains from the blacklist file and the host file
-			echo "::: $dom"
-			echo -n ":::    removing from HOSTS file..."
-	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' ${adList}
-	      	echo " done!"
-	      	echo -n ":::    removing from blackist.txt..."
-	      	echo "$dom" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
-	      	echo " done!"
-		done
-	fi
-}
-
 Reload() {
-	# Reload hosts file
-	echo ":::"
-	echo -n "::: Refresh lists in dnsmasq..."
-
-    dnsmasqPid=$(pidof dnsmasq)
-
-	if [[ ${dnsmasqPid} ]]; then
-	    # service already running - reload config
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl restart dnsmasq
-        else
-            service dnsmasq restart
-        fi
-	else
-	    # service not running, start it up
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl start dnsmasq
-        else
-            service dnsmasq start
-        fi
-	fi
-	echo " done!"
+    pihole -g -sd
 }
 
 DisplayBlist() {
@@ -206,7 +123,6 @@ do
   case "$var" in
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
-    "-f" | "--force"     ) force=true;;
     "-q" | "--quiet"     ) verbose=false;;
     "-h" | "--help"	     ) helpFunc;;
     "-l" | "--list"      ) DisplayBlist;;
@@ -215,15 +131,6 @@ do
 done
 
 PopBlacklistFile
-
-if ${modifyHost} || ${force}; then
-	ModifyHostFile
-else
-  if ${verbose}; then
-		echo "::: No changes need to be made"
-	fi
-	exit 1
-fi
 
 if ${reload}; then
 	Reload
