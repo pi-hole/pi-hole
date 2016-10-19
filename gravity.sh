@@ -53,7 +53,8 @@ adList=${piholeDir}/gravity.list
 justDomainsExtension=domains
 matterAndLight=${basename}.0.matterandlight.txt
 supernova=${basename}.1.supernova.txt
-eventHorizon=${basename}.2.eventHorizon.txt
+preEventHorizon=list.preEventHorizon
+eventHorizon=${basename}.2.supernova.txt
 accretionDisc=${basename}.3.accretionDisc.txt
 
 skipDownload=false
@@ -186,8 +187,6 @@ gravity_spinup() {
         if [[ "${skipDownload}" == false ]]; then
             echo -n "::: Getting $domain list..."
             gravity_transport "$url" "$cmd_ext" "$agent"
-        else
-            echo "::: Using cached $domain list"
         fi
 	done
 }
@@ -237,17 +236,16 @@ gravity_Whitelist() {
     numWhitelisted=$(wc -l < "${whitelistFile}")
 	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
     echo -n "::: Whitelisting $numWhitelisted domain${plural}..."
-	grep -F -x -v -f ${whitelistFile} ${piholeDir}/${eventHorizon} > ${piholeDir}/${eventHorizon}.tmp
-	mv ${piholeDir}/${eventHorizon}.tmp ${piholeDir}/${eventHorizon}
+	grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
     echo " done!"
 }
 
 gravity_unique() {
 	# Sort and remove duplicates
 	echo -n "::: Removing duplicate domains...."
-	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${eventHorizon}
+	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
 	echo " done!"
-	numberOf=$(wc -l < ${piholeDir}/${eventHorizon})
+	numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
 	echo "::: $numberOf unique domains trapped in the event horizon."
 }
 
@@ -378,9 +376,14 @@ fi
 cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
-gravity_Schwarzchild
-gravity_advanced
-
+if [[ "${skipDownload}" == false ]]; then
+    gravity_Schwarzchild
+    gravity_advanced
+else
+    echo "::: Using cached Event Horizon list..."
+    numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
+	echo "::: $numberOf unique domains trapped in the event horizon."
+fi
 gravity_Whitelist
 gravity_Blacklist
 
