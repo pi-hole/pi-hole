@@ -257,7 +257,7 @@ gravity_hostFormat() {
     elif [[ -n "${IPv4_address}" && -z "${IPv6_address}" ]];then
 
         # Only IPv4
-        echo -e "$IPv4addr $hostname\n$IPv4addr pi.hole" > ${piholeDir}/${accretionDisc}
+        echo -e "$IPv4_address $hostname\n$IPv4_address pi.hole" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
     elif [[ -z "${IPv4_address}" && -n "${IPv6_address}" ]];then
