@@ -336,9 +336,8 @@ fi
 
 if [[ ${forceGrav} == true ]]; then
 	echo -n "::: Deleting exising list cache..."
-	for f in "${piholeDir}/list.*" ; do
-         # rm ${piholeDir}/list.${f}
-         echo "rm ${piholeDir}/list.${f}"
+	for f in ${piholeDir}/list.* ; do
+         rm ${f}
         done
 	echo " done!"
 fi
