@@ -219,6 +219,7 @@ fi
 
 if [[ -n ${IPv6_address} ]] ; then
   piholeIP=${IPv6_address}
+  piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
 else
   piholeIP=${IPv4_address}
   piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
