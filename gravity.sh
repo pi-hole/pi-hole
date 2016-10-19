@@ -213,10 +213,8 @@ gravity_hostFormat() {
         else
                 echo "::: Error: Unable to determine fully qualified domain name of host"
         fi
-        # If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
-        # Otherwise, just create gravity.list as normal using IPv4
         # Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-        echo -e "$IPv4addr $hostname\n$IPv4addr pi.hole" > ${piholeDir}/${accretionDisc}
+        echo -e "$piholeIP $hostname\n$piholeIP pi.hole" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
         # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
