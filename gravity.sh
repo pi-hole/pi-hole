@@ -214,9 +214,14 @@ gravity_hostFormat() {
                 echo "::: Error: Unable to determine fully qualified domain name of host"
         fi
         # Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-        echo -e "$piholeIP $hostname\n$piholeIP pi.hole" > ${piholeDir}/${accretionDisc}
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
-
+        if [[ -n "${IPv6_address}" ]] ; then
+          echo -e "${IPv6_address} $hostname\n${IPv6_address} pi.hole" > ${piholeDir}/${accretionDisc}
+          cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="${IPv6_address}" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        fi
+        if [[ -n "${IPv4_address}" ]] ; then
+          echo -e "${IPv4_address} $hostname\n${IPv4_address} pi.hole" > ${piholeDir}/${accretionDisc}
+          cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="${IPv4_address}" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        fi
         # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
         cp ${piholeDir}/${accretionDisc} ${adList}
 }
@@ -311,14 +316,6 @@ else
     echo "::: WARNING: ${setupVars} missing. Possible installation failure."
     echo ":::          Please run 'pihole -r', and choose the 'install' option to reconfigure."
     exit 1
-fi
-
-if [[ -n "${IPv6_address}" ]] ; then
-  piholeIP=${IPv6_address}
-  piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
-else
-  piholeIP=${IPv4_address}
-  piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
 fi
 
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)

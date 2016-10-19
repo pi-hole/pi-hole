@@ -102,7 +102,12 @@ ModifyHostFile(){
       plural=; [[ "$numberOf" != "1" ]] && plural=s
       echo ":::"
       echo -n "::: Modifying HOSTS file to whitelist $numberOf domain${plural}..."
-      awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "$piholeIP $line"; done > ${piholeDir}/whitelist.tmp
+      if [[ -n "${IPv6_address}" ]] ; then
+        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "${IPv6_address} $line"; done >> ${piholeDir}/whitelist.tmp
+      fi
+      if [[ -n "${IPv4_address}" ]] ; then
+        awk -F':' '{print $1}' ${whitelist} | while read -r line; do echo "${IPv4_address} $line"; done >> ${piholeDir}/whitelist.tmp
+      fi
       echo "l" >> ${piholeDir}/whitelist.tmp
       grep -F -x -v -f ${piholeDir}/whitelist.tmp ${adList} > ${piholeDir}/gravity.tmp
       rm ${adList}

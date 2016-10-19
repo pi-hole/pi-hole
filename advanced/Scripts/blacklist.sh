@@ -96,7 +96,12 @@ ModifyHostFile(){
               plural=; [[ "$numberOf" != "1" ]] && plural=s
               echo ":::"
               echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
-              sed "s/^/$piholeIP /g" ${blacklist} >> ${adList}
+              if [[ -n "${IPv6_address}" ]] ; then
+                sed "s/^/${IPv6_address} /g" ${blacklist} >> ${adList}
+              fi
+              if [[ -n "${IPv4_address}" ]] ; then
+                sed "s/^/${IPv4_address} /g" ${blacklist} >> ${adList}
+              fi
             fi
 	  else
 		echo ":::"
