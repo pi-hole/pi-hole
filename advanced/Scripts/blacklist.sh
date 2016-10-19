@@ -97,10 +97,10 @@ ModifyHostFile(){
               echo ":::"
               echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
               if [[ -n "${IPv6_address}" ]] ; then
-                sed "s/^/${IPv6_address} /g" ${blacklist} >> ${adList}
+                sed "s/^/$IPv6_address /g" ${blacklist} >> ${adList}
               fi
               if [[ -n "${IPv4_address}" ]] ; then
-                sed "s/^/${IPv4_address} /g" ${blacklist} >> ${adList}
+                sed "s/^/$IPv4_address /g" ${blacklist} >> ${adList}
               fi
             fi
 	  else
@@ -198,11 +198,10 @@ else
 fi
 
 if [[ -n "${IPv6_address}" ]] ; then
-  piholeIP=${IPv6_address}
-  piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
-else
-  piholeIP=${IPv4_address}
-  piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
+  IPv6_address=$(echo "${IPv6_address}" | cut -f1 -d"/")
+fi
+if [[ -n "${IPv6_address}" ]] ; then
+  IPv4_address=$(echo "${IPv4_address}" | cut -f1 -d"/")
 fi
 
 
