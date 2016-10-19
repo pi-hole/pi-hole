@@ -97,20 +97,6 @@ gravity_collapse() {
 		done < ${adListDefault}
 		echo " done!"
 	fi
-
-	# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
-	if [[ -d ${piholeDir} ]];then
-        # Temporary hack to allow non-root access to pihole directory
-        # Will update later, needed for existing installs, new installs should
-        # create this directory as non-root
-        chmod 777 ${piholeDir}
-        echo ":::"
-        echo "::: Existing pihole directory found"
-	else
-        echo "::: Creating pihole directory..."
-        mkdir ${piholeDir}
-        chmod 777 ${piholeDir}
-	fi
 }
 
 # patternCheck - check to see if curl downloaded any new files.
