@@ -197,6 +197,7 @@ else
     exit 1
 fi
 
+#remove CIDR from IPs
 if [[ -n "${IPv6_address}" ]] ; then
   IPv6_address=$(echo "${IPv6_address}" | cut -f1 -d"/")
 fi
