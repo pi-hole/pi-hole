@@ -190,10 +190,10 @@ if [[ $# = 0 ]]; then
         helpFunc
 fi
 
-if [[ -z ${setupVars} ]] ; then
+if [[ -z "${setupVars}" ]] ; then
   setupVars=/etc/pihole/setupVars.conf
 fi
-if [[ -f ${setupVars} ]];then
+if [[ -f "${setupVars}" ]];then
     . ${setupVars}
 else
     echo "::: WARNING: ${setupVars} missing. Possible installation failure."
@@ -201,7 +201,7 @@ else
     exit 1
 fi
 
-if [[ -n ${IPv6_address} ]] ; then
+if [[ -n "${IPv6_address}" ]] ; then
   piholeIP=${IPv6_address}
   piholeIP=$(echo "${piholeIP}" | cut -f1 -d"/")
 else
