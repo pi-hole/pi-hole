@@ -165,7 +165,7 @@ helpFunc() {
     echo ":::  status			Is Pi-Hole Enabled or Disabled"
     echo ":::  enable			Enable Pi-Hole DNS Blocking"
     echo ":::  disable			Disable Pi-Hole DNS Blocking"
-    echo ":::  restartdnsmasq		Restart dnsmasq"
+    echo ":::  restartdns		Restart dnsmasq"
     exit 0
 }
 
@@ -191,7 +191,7 @@ case "$1" in
 "enable"                      ) piholeEnable 1;;
 "disable"                     ) piholeEnable 0;;
 "status"                      ) piholeStatus "$2";;
-"restartdnsmasq"              ) restartDNS;;
+"restartdns"                  ) restartDNS;;
 
 *                    		) helpFunc;;
 esac

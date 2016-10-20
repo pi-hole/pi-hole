@@ -322,7 +322,7 @@ gravity_reload() {
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	find "$piholeDir" -type f -exec chmod 666 {} \;
 
-        pihole restartdnsmasq
+        pihole restartdns
 }
 
 for var in "$@"
