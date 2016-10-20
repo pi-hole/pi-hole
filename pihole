@@ -130,10 +130,10 @@ piholeStatus() {
   if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "#addn-hosts=") ]] ; then
     if [[ "${1}" == "web" ]] ; then echo 0; else echo ":::  pihole is Disabled"; fi
   else
-    if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=") ]] ; then
-      if [[ "${1}" == "web" ]] ; then echo 1; else echo ":::  pihole is Enabled"; fi
-    else
-      if [[ "${1}" == "web" ]] ; then echo 1; else
+    if [[ "${1}" == "web" ]] ; then echo 1; else
+      if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=") ]] ; then
+        echo ":::  pihole is Enabled";
+      else
         echo ":::  no hosts file linked to dnsmasq, adding it in enabled state"
         echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
         restartDNS
