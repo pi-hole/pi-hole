@@ -1,4 +1,4 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
