@@ -313,7 +313,7 @@ gravity_reload() {
 
 	# Reload hosts file
 	echo ":::"
-	echo -n "::: Refresh lists in dnsmasq..."
+	echo "::: Refresh lists in dnsmasq..."
 
 	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
 	#First escape forward slashes in the path:
