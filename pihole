@@ -128,7 +128,7 @@ piholeEnable() {
 
 piholeStatus() {
   if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "#addn-hosts=") ]] ; then
-    if [[ "${1}" == "web" ]] ; then echo 0; else echo ":::  pihole is Diabled"; fi
+    if [[ "${1}" == "web" ]] ; then echo 0; else echo ":::  pihole is Disabled"; fi
   else
     if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=") ]] ; then
       if [[ "${1}" == "web" ]] ; then echo 1; else echo ":::  pihole is Enabled"; fi
@@ -162,10 +162,10 @@ helpFunc() {
     echo ":::  -v, version              Show current versions"
     echo ":::  -q, query                Query the adlists for a specific domain"
     echo ":::  uninstall                Uninstall Pi-Hole from your system :(!"
-    echo ":::  status			Is Pi-Hole Enabled or Disabled"
-    echo ":::  enable			Enable Pi-Hole DNS Blocking"
-    echo ":::  disable			Disable Pi-Hole DNS Blocking"
-    echo ":::  restartdns		Restart dnsmasq"
+    echo ":::  status                   Is Pi-Hole Enabled or Disabled"
+    echo ":::  enable                   Enable Pi-Hole DNS Blocking"
+    echo ":::  disable                  Disable Pi-Hole DNS Blocking"
+    echo ":::  restartdns               Restart dnsmasq"
     exit 0
 }
 
