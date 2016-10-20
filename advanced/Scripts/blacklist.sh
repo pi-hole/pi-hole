@@ -50,7 +50,7 @@ HandleOther(){
 
 PopBlacklistFile(){
 	#check blacklist file exists, and if not, create it
-	if [[ ! -f "${blacklistFile"} ]];then
+	if [[ ! -f "${blacklistFile}" ]];then
   	  touch "${blacklistFile}"
 	fi
 	for dom in "${domList[@]}"; do
@@ -83,7 +83,7 @@ AddDomain(){
 RemoveDomain(){
 
   bool=false
-  grep -Ex -q "$1" "${blacklistFile"} || bool=true
+  grep -Ex -q "$1" "${blacklistFile}" || bool=true
   if ${bool}; then
   	#Domain is not in the blacklist file, no need to Remove
   	if ${verbose}; then
