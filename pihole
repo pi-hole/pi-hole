@@ -96,6 +96,50 @@ versionFunc() {
     exit 0
 }
 
+restartDNS() {
+  dnsmasqPid=$(pidof dnsmasq)
+  if [[ ${dnsmasqPid} ]]; then
+    # service already running - reload config
+    if [ -x "$(command -v systemctl)" ]; then
+      systemctl restart dnsmasq
+    else
+      service dnsmasq restart
+    fi
+  else
+    # service not running, start it up
+    if [ -x "$(command -v systemctl)" ]; then
+      systemctl start dnsmasq
+    else
+      service dnsmasq start
+    fi
+  fi
+}
+
+piholeEnable() {
+  if [[ "${1}" == "0" ]] ; then
+    #Disable Pihole
+    sed -i 's/^addn-hosts/#addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+  else
+    #Enable pihole
+    sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+  fi
+  restartDNS
+}
+
+piholeStatus() {
+  if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "#addn-hosts=") ]] ; then
+    echo "pihole is Diabled"
+  else
+    if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=") ]] ; then
+      echo "pihole is Enabled"
+    else
+      echo "no hosts file linked to dnsmasq, adding it in enabled state"
+      echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
+    fi
+  fi
+}
+
+
 helpFunc() {
     echo "::: Control all PiHole specific functions!"
     echo ":::"
@@ -115,6 +159,10 @@ helpFunc() {
     echo ":::  -v, version              Show current versions"
     echo ":::  -q, query                Query the adlists for a specific domain"
     echo ":::  uninstall                Uninstall Pi-Hole from your system :(!"
+    echo ":::  status			Is Pi-Hole Enabled or Disabled"
+    echo ":::  enable			Enable Pi-Hole DNS Blocking"
+    echo ":::  disable			Disable Pi-Hole DNS Blocking"
+    echo ":::  restartdnsmasq		Restart dnsmasq"
     exit 0
 }
 
@@ -137,5 +185,10 @@ case "$1" in
 "-v" | "version"            ) versionFunc "$@";;
 "-q" | "query"              ) queryFunc "$@";;
 "uninstall"					) uninstallFunc;;
+"enable"                      ) piholeEnable 1;;
+"disable"                     ) piholeEnable 0;;
+"status"                      ) piholeStatus;;
+"restartdnsmasq"              ) restartDNS;;
+
 *                    		) helpFunc;;
 esac
