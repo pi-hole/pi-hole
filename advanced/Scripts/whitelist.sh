@@ -31,10 +31,6 @@ if [[ $# = 0 ]]; then
 fi
 
 #globals
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-whitelist=${piholeDir}/whitelist.txt
 reload=true
 addmode=true
 verbose=true

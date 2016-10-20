@@ -26,15 +26,6 @@ helpFunc()
 }
 
 
-adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
-whitelistScript=/opt/pihole/whitelist.sh
-blacklistScript=/opt/pihole/blacklist.sh
-whitelistFile=/etc/pihole/whitelist.txt
-blacklistFile=/etc/pihole/blacklist.txt
-
-#Source the setupVars from install script for the IP
-setupVars=/etc/pihole/setupVars.conf
 if [[ -f ${setupVars} ]];then
     . /etc/pihole/setupVars.conf
 else

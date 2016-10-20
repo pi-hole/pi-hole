@@ -122,6 +122,20 @@ if [[ $# = 0 ]]; then
     helpFunc
 fi
 
+#Source the setupVars from install script for the IP
+setupVars=/etc/pihole/setupVars.conf
+
+export basename=pihole
+export piholeDir=/etc/${basename}
+export adList=${piholeDir}/gravity.list
+export blacklist=${piholeDir}/blacklist.txt
+export whitelist=${piholeDir}/whitelist.txt
+export adListFile=${piholeDir}/adlists.list
+export adListDefault=${piholeDir}/adlists.default
+export whitelistScript=/opt/pihole/whitelist.sh
+export blacklistScript=/opt/pihole/blacklist.sh
+
+
 # Handle redirecting to specific functions based on arguments
 case "$1" in
 "-w" | "whitelist"			) whitelistFunc "$@";;
