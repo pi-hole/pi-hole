@@ -33,7 +33,6 @@ fi
 #globals
 basename=pihole
 piholeDir=/etc/${basename}
-blacklistScript=/opt/pihole/blacklist.sh
 adList=${piholeDir}/gravity.list
 whitelist=${piholeDir}/whitelist.txt
 reload=true
@@ -100,8 +99,7 @@ RemoveDomain(){
   	fi
   else
     echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
-    #Blacklist unwhitelisted
-    ${blacklistScript} $1
+    pihole -g
   fi
 }
 
