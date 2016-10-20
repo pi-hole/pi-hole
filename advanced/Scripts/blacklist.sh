@@ -31,10 +31,7 @@ if [[ $# = 0 ]]; then
 fi
 
 #globals
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-blacklist=${piholeDir}/blacklist.txt
+
 reload=true
 addmode=true
 verbose=true
@@ -54,8 +51,8 @@ HandleOther(){
 
 PopBlacklistFile() {
 	#check blacklist file exists, and if not, create it
-	if [[ ! -f ${blacklist} ]];then
-  	  touch ${blacklist}
+	if [[ ! -f "${blacklistFile}" ]];then
+  	  touch "${blacklistFile}"
 	fi
 	for dom in "${domList[@]}"; do
 	  if "$addmode"; then
@@ -69,13 +66,13 @@ PopBlacklistFile() {
 AddDomain() {
 #| sed 's/\./\\./g'
 	bool=false
-	grep -Ex -q "$1" ${blacklist} || bool=true
+	grep -Ex -q "$1" "${blacklistFile}" || bool=true
 	if ${bool}; then
 	  #domain not found in the blacklist file, add it!
 	  if ${verbose}; then
 	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
-		echo "$1" >> ${blacklist}
+		echo "$1" >> "${blacklistFile}"
 		echo " done!"
 	else
 	if ${verbose}; then
@@ -87,7 +84,7 @@ AddDomain() {
 RemoveDomain() {
 
   bool=false
-  grep -Ex -q "$1" ${blacklist} || bool=true
+  grep -Ex -q "$1" "${blacklistFile}" || bool=true
   if ${bool}; then
   	#Domain is not in the blacklist file, no need to Remove
   	if ${verbose}; then
@@ -98,7 +95,7 @@ RemoveDomain() {
     if ${verbose}; then
     echo "::: Un-blacklisting $dom..."
     fi
-   echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
+   echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' "${blacklistFile}"
   fi
 }
 

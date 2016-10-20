@@ -32,10 +32,6 @@ if [[ $# = 0 ]]; then
 fi
 
 #globals
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-whitelist=${piholeDir}/whitelist.txt
 reload=true
 addmode=true
 verbose=true
@@ -55,8 +51,8 @@ HandleOther(){
 
 PopWhitelistFile() {
 	#check whitelist file exists, and if not, create it
-	if [[ ! -f ${whitelist} ]];then
-  	  touch ${whitelist}
+	if [[ ! -f "${whitelistFile}" ]];then
+  	  touch "${whitelistFile}"
 	fi
 	for dom in "${domList[@]}"
 	do
@@ -72,13 +68,13 @@ AddDomain() {
 #| sed 's/\./\\./g'
 	bool=false
 
-	grep -Ex -q "$1" ${whitelist} || bool=true
+	grep -Ex -q "$1" "${whitelistFile}" || bool=true
 	if ${bool}; then
 	  #domain not found in the whitelist file, add it!
 	  if ${verbose}; then
 		echo -n "::: Adding $1 to $whitelist..."
 	  fi
-	  echo "$1" >> ${whitelist}
+	  echo "$1" >> "${whitelistFile}"
       if ${verbose}; then
 	  	echo " done!"
 	  fi
@@ -92,14 +88,14 @@ AddDomain() {
 RemoveDomain() {
 
   bool=false
-  grep -Ex -q "$1" ${whitelist} || bool=true
+  grep -Ex -q "$1" "${whitelistFile}" || bool=true
   if ${bool}; then
   	#Domain is not in the whitelist file, no need to Remove
   	if ${verbose}; then
   	echo "::: $1 is NOT whitelisted! No need to remove"
   	fi
   else
-    echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
+    echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' "${whitelistFile}"
   fi
 }
 
@@ -116,7 +112,7 @@ DisplayWlist() {
 	do
 		echo "${count}: $RD"
 		count=$((count+1))
-	done < "$whitelist"
+	done < "$whitelistFile"
 }
 
 ###################################################
