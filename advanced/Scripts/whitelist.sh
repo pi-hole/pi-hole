@@ -33,6 +33,7 @@ fi
 #globals
 basename=pihole
 piholeDir=/etc/${basename}
+blacklistScript=/opt/pihole/blacklist.sh
 adList=${piholeDir}/gravity.list
 whitelist=${piholeDir}/whitelist.txt
 reload=true
