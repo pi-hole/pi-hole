@@ -375,3 +375,4 @@ gravity_hostFormat
 gravity_blackbody
 
 gravity_reload
+pihole status
