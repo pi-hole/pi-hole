@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
@@ -27,12 +27,14 @@ PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 # Header info and introduction
-echo "::: Beginning Pi-hole debug at $(date)!"
-echo "::: This debugging process will collect information from your running configuration,"
-echo "::: and optionally upload the generated log to a unique and random directory on"
-echo "::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only"
-echo "::: person who is given the unique URL. Please consider where you post this link."
-echo "::: "
+cat << EOM
+::: Beginning Pi-hole debug at $(date)!
+::: This debugging process will collect information from your running configuration,
+::: and optionally upload the generated log to a unique and random directory on
+::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only
+::: person who is given the unique URL. Please consider where you post this link.
+::: 
+EOM
 
 
 ######## FIRST CHECK ########
@@ -61,11 +63,11 @@ else
 fi
 
 ### Private functions exist here ###
-function log_write {
+log_write() {
   echo "$1" >> "${DEBUG_LOG}"
 }
 
-function version_check {
+version_check() {
   log_write "############################################################"
   log_write "##########           Installed Versions           ##########"
   log_write "############################################################"
@@ -83,7 +85,7 @@ function version_check {
   php_ver="$(php -v |& head -n1)" && log_write "${php_ver}" || log_write "PHP not installed."
 }
 
-function distro_check {
+distro_check() {
 	echo "############################################################" >> ${DEBUG_LOG}
 	echo "########          Installed OS Distribution        #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
@@ -96,7 +98,7 @@ function distro_check {
 	echo >> ${DEBUG_LOG}
 }
 
-function ip_check {
+ip_check() {
 	echo "############################################################" >> ${DEBUG_LOG}
 	echo "########           IP Address Information          #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
@@ -166,7 +168,7 @@ function ip_check {
     echo >> ${DEBUG_LOG}
 }
 
-function hostnameCheck {
+hostnameCheck() {
     echo "############################################################" >> ${DEBUG_LOG}
 	echo "########            Hostname Information           #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
@@ -188,7 +190,7 @@ function hostnameCheck {
     fi
 }
 
-function portCheck {
+portCheck() {
   echo "############################################################" >> ${DEBUG_LOG}
 	echo "########           Open Port Information           #########" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
@@ -200,7 +202,7 @@ function portCheck {
     echo >> ${DEBUG_LOG}
 }
 
-function testResolver {
+testResolver() {
 	echo "############################################################" >> ${DEBUG_LOG}
 	echo "############      Resolver Functions Check      ############" >> ${DEBUG_LOG}
 	echo "############################################################" >> ${DEBUG_LOG}
@@ -262,7 +264,7 @@ function testResolver {
     echo >> ${DEBUG_LOG}
 }
 
-function checkProcesses {
+checkProcesses() {
 	echo "#######################################" >> ${DEBUG_LOG}
 	echo "########### Processes Check ###########" >> ${DEBUG_LOG}
 	echo "#######################################" >> ${DEBUG_LOG}
@@ -279,7 +281,7 @@ function checkProcesses {
 	echo >> ${DEBUG_LOG}
 }
 
-function debugLighttpd {
+debugLighttpd() {
 	echo "::: Writing lighttpd to debug log..."
 	echo "#######################################" >> ${DEBUG_LOG}
 	echo "############ lighttpd.conf ############" >> ${DEBUG_LOG}
@@ -420,7 +422,7 @@ fi
 
 
 # Continuously append the pihole.log file to the pihole_debug.log file
-function dumpPiHoleLog {
+dumpPiHoleLog() {
 	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
 	echo -e "::: Writing current Pi-hole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
 	echo "#######################################" >> ${DEBUG_LOG}
@@ -439,7 +441,7 @@ function dumpPiHoleLog {
 }
 
 # Anything to be done after capturing of pihole.log terminates
-function finalWork {
+finalWork() {
         echo "::: Finshed debugging!"
     echo "::: The debug log can be uploaded to Termbin.com for easier sharing."
         read -r -p "::: Would you like to upload the log? [y/N] " response

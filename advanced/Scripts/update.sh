@@ -17,8 +17,7 @@ webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 piholeFilesDir="/etc/.pihole"
 
-spinner()
-{
+spinner() {
 	local pid=$1
     local delay=0.50
     local spinstr='/-\|'

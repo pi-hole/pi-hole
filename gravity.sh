@@ -13,15 +13,16 @@
 # Run this script as root or under sudo
 echo ":::"
 
-helpFunc()
-{
-	echo "::: Pull in domains from adlists"
-	echo ":::"
-	echo "::: Usage: pihole -g"
-	echo ":::"
-	echo "::: Options:"
-	echo ":::  -f, --force				Force lists to be downloaded, even if they don't need updating."
-	echo ":::  -h, --help				Show this help dialog"
+helpFunc() {
+	cat << EOM
+::: Pull in domains from adlists
+:::
+::: Usage: pihole -g
+:::
+::: Options:
+:::  -f, --force			Force lists to be downloaded, even if they don't need updating.
+:::  -h, --help				Show this help dialog
+EOM
 	exit 1
 }
 
@@ -196,7 +197,7 @@ gravity_Schwarzchild() {
 	echo " done!"
 }
 
-gravity_Blacklist(){
+gravity_Blacklist() {
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
 	${blacklistScript} -f -nr -q > /dev/null

@@ -58,8 +58,7 @@ else
 	exit
 fi
 
-spinner()
-{
+spinner() {
     local pid=$1
     local delay=0.50
     local spinstr='/-\|'
@@ -73,9 +72,9 @@ spinner()
     printf "    \b\b\b\b"
 }
 
-function removeAndPurge {
+removeAndPurge() {
 	# Purge dependencies
-echo ":::"
+	echo ":::"
 	for i in "${PIHOLE_DEPS[@]}"; do
 		package_check ${i} > /dev/null
 		if [ $? -eq 0 ]; then
@@ -104,7 +103,7 @@ echo ":::"
 	removeNoPurge
 }
 
-function removeNoPurge {
+removeNoPurge() {
 	echo ":::"
 	# Only web directories/files that are created by pihole should be removed.
 	echo "::: Removing the Pi-hole Web server files..."

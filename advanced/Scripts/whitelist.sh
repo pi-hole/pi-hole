@@ -11,19 +11,20 @@
 # (at your option) any later version.
 
 
-helpFunc()
-{
-	echo "::: Immediately whitelists one or more domains in the hosts file"
-	echo ":::"
-	echo "::: Usage: pihole -w domain1 [domain2 ...]"
-	echo ":::"
-	echo "::: Options:"
-	echo ":::  -d, --delmode			Remove domains from the whitelist"
-	echo ":::  -nr, --noreload			Update Whitelist without refreshing dnsmasq"
-	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
-	echo ":::  -q, --quiet				output is less verbose"
-	echo ":::  -h, --help				Show this help dialog"
-	echo ":::  -l, --list				Display your whitelisted domains"
+helpFunc() {
+	cat << EOM
+::: Immediately whitelists one or more domains in the hosts file
+:::
+::: Usage: pihole -w domain1 [domain2 ...]
+:::
+::: Options:
+:::  -d, --delmode			Remove domains from the whitelist
+:::  -nr, --noreload			Update Whitelist without refreshing dnsmasq
+:::  -f, --force			Force updating of the hosts files, even if there are no changes
+:::  -q, --quiet			output is less verbose
+:::  -h, --help				Show this help dialog
+:::  -l, --list				Display your whitelisted domains
+EOM
 	exit 1
 }
 
@@ -71,7 +72,7 @@ if [[ -f ${piholeIPv6file} ]];then
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-HandleOther(){
+HandleOther() {
   #check validity of domain
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "$validDomain" ]; then
@@ -81,7 +82,7 @@ HandleOther(){
 	fi
 }
 
-PopWhitelistFile(){
+PopWhitelistFile() {
 	#check whitelist file exists, and if not, create it
 	if [[ ! -f ${whitelist} ]];then
   	  touch ${whitelist}
@@ -96,7 +97,7 @@ PopWhitelistFile(){
 	done
 }
 
-AddDomain(){
+AddDomain() {
 #| sed 's/\./\\./g'
 	bool=false
 
@@ -118,7 +119,7 @@ AddDomain(){
 	fi
 }
 
-RemoveDomain(){
+RemoveDomain() {
 
   bool=false
   grep -Ex -q "$1" ${whitelist} || bool=true
@@ -137,7 +138,7 @@ RemoveDomain(){
   fi
 }
 
-ModifyHostFile(){
+ModifyHostFile() {
 	 if ${addmode}; then
 	    #remove domains in  from hosts file
 	    if [[ -r ${whitelist} ]];then
