@@ -10,8 +10,7 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-helpFunc()
-{
+helpFunc() {
 	echo "::: Immediately blacklists one or more domains in the hosts file"
 	echo ":::"
 	echo ":::"
@@ -71,7 +70,7 @@ if [[ -f ${piholeIPv6file} ]];then
     piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
-HandleOther(){
+HandleOther() {
   #check validity of domain
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "$validDomain" ]; then
@@ -81,7 +80,7 @@ HandleOther(){
 	fi
 }
 
-PopBlacklistFile(){
+PopBlacklistFile() {
 	#check blacklist file exists, and if not, create it
 	if [[ ! -f ${blacklist} ]];then
   	  touch ${blacklist}
@@ -95,7 +94,7 @@ PopBlacklistFile(){
 	done
 }
 
-AddDomain(){
+AddDomain() {
 #| sed 's/\./\\./g'
 	bool=false
 	grep -Ex -q "$1" ${blacklist} || bool=true
@@ -114,7 +113,7 @@ AddDomain(){
 	fi
 }
 
-RemoveDomain(){
+RemoveDomain() {
 
   bool=false
   grep -Ex -q "$1" ${blacklist} || bool=true
@@ -133,7 +132,7 @@ RemoveDomain(){
   fi
 }
 
-ModifyHostFile(){
+ModifyHostFile() {
 	 if ${addmode}; then
 	    #add domains to the hosts file
 	    if [[ -r ${blacklist} ]];then

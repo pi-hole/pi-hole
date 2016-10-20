@@ -14,7 +14,7 @@
 latest=false
 current=false
 
-normalOutput(){
+normalOutput() {
     piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
     webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
 
@@ -25,7 +25,7 @@ normalOutput(){
     echo "::: Web-Admin version is $webVersion (Latest version is $webVersionLatest)"
 }
 
-webOutput(){
+webOutput() {
     for var in "$@"
     do
       case "$var" in
@@ -48,7 +48,7 @@ webOutput(){
     fi
 }
 
-coreOutput(){
+coreOutput() {
  for var in "$@"
     do
       case "$var" in
@@ -71,8 +71,7 @@ coreOutput(){
     fi
 }
 
-helpFunc()
-{
+helpFunc() {
     echo ":::"
 	echo "::: Show Pi-hole/Web Admin versions"
 	echo ":::"

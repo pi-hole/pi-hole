@@ -17,7 +17,7 @@ gravity="/etc/pihole/gravity.list"
 
 today=$(date "+%b %e")
 
-CalcBlockedDomains(){
+CalcBlockedDomains() {
 	CheckIPv6
 	if [ -e "$gravity" ]; then
 		#Are we IPV6 or IPV4?
@@ -33,7 +33,7 @@ CalcBlockedDomains(){
 	fi
 }
 
-CalcQueriesToday(){
+CalcQueriesToday() {
 	if [ -e "$piLog" ];then
 		queriesToday=$(cat "$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
 	else
@@ -41,7 +41,7 @@ CalcQueriesToday(){
 	fi
 }
 
-CalcblockedToday(){
+CalcblockedToday() {
 	if [ -e "$piLog" ] && [ -e "$gravity" ];then
 		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
 	else
@@ -49,7 +49,7 @@ CalcblockedToday(){
 	fi
 }
 
-CalcPercentBlockedToday(){
+CalcPercentBlockedToday() {
 	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
 		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
 		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
@@ -61,7 +61,7 @@ CalcPercentBlockedToday(){
 	fi
 }
 
-CheckIPv6(){
+CheckIPv6() {
 	piholeIPv6file="/etc/pihole/.useIPv6"
 	if [[ -f ${piholeIPv6file} ]];then
 	    # If the file exists, then the user previously chose to use IPv6 in the automated installer
@@ -69,7 +69,7 @@ CheckIPv6(){
 	fi
 }
 
-outputJSON(){
+outputJSON() {
 	CalcQueriesToday
 	CalcblockedToday
 	CalcPercentBlockedToday
@@ -79,7 +79,7 @@ outputJSON(){
 	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
 }
 
-normalChrono(){
+normalChrono() {
 	for (( ; ; ))
 	do
 		clear
@@ -121,7 +121,7 @@ normalChrono(){
 	done
 }
 
-displayHelp(){
+displayHelp() {
  	echo "::: Displays stats about your piHole!"
     echo ":::"
     echo "::: Usage: sudo pihole -c [optional:-j]"

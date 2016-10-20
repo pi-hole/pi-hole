@@ -13,8 +13,7 @@
 # Run this script as root or under sudo
 echo ":::"
 
-helpFunc()
-{
+helpFunc() {
 	echo "::: Pull in domains from adlists"
 	echo ":::"
 	echo "::: Usage: pihole -g"
@@ -196,7 +195,7 @@ gravity_Schwarzchild() {
 	echo " done!"
 }
 
-gravity_Blacklist(){
+gravity_Blacklist() {
 	# Append blacklist entries if they exist
 	echo -n "::: Running blacklist script to update HOSTS file...."
 	${blacklistScript} -f -nr -q > /dev/null

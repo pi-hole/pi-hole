@@ -121,8 +121,7 @@ else
 fi
 
 ####### FUNCTIONS ##########
-spinner()
-{
+spinner() {
 	local pid=$1
     local delay=0.50
     local spinstr='/-\|'
@@ -389,8 +388,7 @@ setStaticIPv4() {
 	fi
 }
 
-function valid_ip()
-{
+valid_ip() {
 	local  ip=$1
 	local  stat=1
 
@@ -406,7 +404,7 @@ function valid_ip()
 	return ${stat}
 }
 
-setDNS(){
+setDNS() {
 	DNSChooseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6)
 	DNSChooseOptions=(Google "" on
 			OpenDNS "" off
@@ -497,7 +495,7 @@ setDNS(){
 	fi
 }
 
-version_check_dnsmasq(){
+version_check_dnsmasq() {
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
 	local dnsmasq_conf="/etc/dnsmasq.conf"
 	local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
@@ -542,7 +540,7 @@ version_check_dnsmasq(){
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
 }
 
-remove_legacy_scripts(){
+remove_legacy_scripts() {
 	#Tidy up /usr/local/bin directory if installing over previous install.
 	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
 	for i in "${oldFiles[@]}"; do
@@ -642,7 +640,7 @@ update_pacakge_cache() {
 	fi
 }
 
-notify_package_updates_available(){
+notify_package_updates_available() {
   # Let user know if they have outdated packages on their system and
   # advise them to run a package update at soonest possible.
 	echo ":::"
@@ -659,7 +657,7 @@ notify_package_updates_available(){
 	fi
 }
 
-install_dependent_packages(){
+install_dependent_packages() {
   # Install packages passed in via argument array
   # No spinner - conflicts with set -e
   declare -a argArray1=("${!1}")
@@ -765,7 +763,7 @@ runGravity() {
 	/opt/pihole/gravity.sh
 }
 
-create_pihole_user(){
+create_pihole_user() {
 	# Check if user pihole exists and create if not
 	echo "::: Checking if user 'pihole' exists..."
 	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || (echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole)
@@ -876,7 +874,7 @@ The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin" ${r} ${c}
 }
 
-update_dialogs(){
+update_dialogs() {
     # reconfigure
     if [ "$reconfigure" = true ]; then
         opt1a="Repair"
