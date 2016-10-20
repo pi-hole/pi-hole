@@ -322,23 +322,7 @@ gravity_reload() {
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	find "$piholeDir" -type f -exec chmod 666 {} \;
 
-    dnsmasqPid=$(pidof dnsmasq)
-
-	if [[ ${dnsmasqPid} ]]; then
-	    # service already running - reload config
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl restart dnsmasq
-        else
-            service dnsmasq restart
-        fi
-	else
-	    # service not running, start it up
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl start dnsmasq
-        else
-            service dnsmasq start
-        fi
-	fi
+        pihole restartdnsmasq
 }
 
 for var in "$@"
