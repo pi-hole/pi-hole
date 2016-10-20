@@ -122,15 +122,16 @@ normalChrono() {
 }
 
 displayHelp() {
- 	echo "::: Displays stats about your piHole!"
-    echo ":::"
-    echo "::: Usage: sudo pihole -c [optional:-j]"
-    echo "::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
-    echo ":::"
-    echo "::: Options:"
-    echo ":::  -j, --json		output stats as JSON formatted string"
-    echo ":::  -h, --help		display this help text"
-
+	cat << EOM
+::: Displays stats about your piHole!
+:::
+::: Usage: sudo pihole -c [optional:-j]
+::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds
+:::
+::: Options:
+:::  -j, --json		output stats as JSON formatted string
+:::  -h, --help		display this help text
+EOM
     exit 1
 }
 

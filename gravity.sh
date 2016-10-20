@@ -14,13 +14,15 @@
 echo ":::"
 
 helpFunc() {
-	echo "::: Pull in domains from adlists"
-	echo ":::"
-	echo "::: Usage: pihole -g"
-	echo ":::"
-	echo "::: Options:"
-	echo ":::  -f, --force				Force lists to be downloaded, even if they don't need updating."
-	echo ":::  -h, --help				Show this help dialog"
+	cat << EOM
+::: Pull in domains from adlists
+:::
+::: Usage: pihole -g
+:::
+::: Options:
+:::  -f, --force			Force lists to be downloaded, even if they don't need updating.
+:::  -h, --help				Show this help dialog
+EOM
 	exit 1
 }
 

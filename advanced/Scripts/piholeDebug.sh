@@ -27,12 +27,14 @@ PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 # Header info and introduction
-echo "::: Beginning Pi-hole debug at $(date)!"
-echo "::: This debugging process will collect information from your running configuration,"
-echo "::: and optionally upload the generated log to a unique and random directory on"
-echo "::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only"
-echo "::: person who is given the unique URL. Please consider where you post this link."
-echo "::: "
+cat << EOM
+::: Beginning Pi-hole debug at $(date)!
+::: This debugging process will collect information from your running configuration,
+::: and optionally upload the generated log to a unique and random directory on
+::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only
+::: person who is given the unique URL. Please consider where you post this link.
+::: 
+EOM
 
 
 ######## FIRST CHECK ########

@@ -11,17 +11,19 @@
 # (at your option) any later version.
 
 helpFunc() {
-	echo "::: Immediately blacklists one or more domains in the hosts file"
-	echo ":::"
-	echo ":::"
-	echo "::: Usage: pihole -b domain1 [domain2 ...]"
-	echo "::: Options:"
-	echo ":::  -d, --delmode			Remove domains from the blacklist"
-	echo ":::  -nr, --noreload			Update blacklist without refreshing dnsmasq"
-	echo ":::  -f, --force				Force updating of the hosts files, even if there are no changes"
-	echo ":::  -q, --quiet				output is less verbose"
-	echo ":::  -h, --help				Show this help dialog"
-	echo ":::  -l, --list				Display your blacklisted domains"
+	cat << EOM
+::: Immediately blacklists one or more domains in the hosts file
+:::
+:::
+::: Usage: pihole -b domain1 [domain2 ...]
+::: Options:
+:::  -d, --delmode			Remove domains from the blacklist
+:::  -nr, --noreload			Update blacklist without refreshing dnsmasq
+:::  -f, --force			Force updating of the hosts files, even if there are no changes
+:::  -q, --quiet			output is less verbose
+:::  -h, --help				Show this help dialog
+:::  -l, --list				Display your blacklisted domains
+EOM
 	exit 1
 }
 

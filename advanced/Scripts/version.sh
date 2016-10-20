@@ -72,19 +72,21 @@ coreOutput() {
 }
 
 helpFunc() {
-    echo ":::"
-	echo "::: Show Pi-hole/Web Admin versions"
-	echo ":::"
-	echo "::: Usage: pihole -v [ -a | -p ] [ -l | -c ]"
-	echo ":::"
-	echo "::: Options:"
-	echo ":::  -a, --admin          Show both current and latest versions of web admin"
-	echo ":::  -p, --pihole         Show both current and latest versions of Pi-hole core files"
-	echo ":::  -l, --latest         (Only after -a | -p) Return only latest version"
-	echo ":::  -c, --current        (Only after -a | -p) Return only current version"
-	echo ":::  -h, --help           Show this help dialog"
-	echo ":::"
-	exit 0
+	cat << EOM
+:::
+::: Show Pi-hole/Web Admin versions
+:::
+::: Usage: pihole -v [ -a | -p ] [ -l | -c ]
+:::
+::: Options:
+:::  -a, --admin          Show both current and latest versions of web admin
+:::  -p, --pihole         Show both current and latest versions of Pi-hole core files
+:::  -l, --latest         (Only after -a | -p) Return only latest version
+:::  -c, --current        (Only after -a | -p) Return only current version
+:::  -h, --help           Show this help dialog
+:::
+EOM
+	exit 1
 }
 
 if [[ $# = 0 ]]; then
