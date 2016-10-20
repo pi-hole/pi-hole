@@ -320,7 +320,6 @@ gravity_reload() {
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
 	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
-	find "$piholeDir" -type f -exec chmod 666 {} \;
 
     dnsmasqPid=$(pidof dnsmasq)
 
