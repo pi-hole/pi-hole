@@ -113,7 +113,7 @@ gravity_transport() {
 	# tmp file, so we don't have to store the (long!) lists in RAM
 	patternBuffer=$(mktemp)
 	heisenbergCompensator=""
-	if [[ -r "${saveLocation"} ]]; then
+	if [[ -r "${saveLocation}" ]]; then
 		# if domain has been saved, add file for date check to only download newer
 		heisenbergCompensator="-z $saveLocation"
 	fi
