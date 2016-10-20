@@ -128,13 +128,16 @@ piholeEnable() {
 
 piholeStatus() {
   if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "#addn-hosts=") ]] ; then
-    echo "pihole is Diabled"
+    if [[ "${1}" == "web" ]] ; then echo 0; else echo ":::  pihole is Diabled"; fi
   else
     if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=") ]] ; then
-      echo "pihole is Enabled"
+      if [[ "${1}" == "web" ]] ; then echo 1; else echo ":::  pihole is Enabled"; fi
     else
-      echo "no hosts file linked to dnsmasq, adding it in enabled state"
-      echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
+      if [[ "${1}" == "web" ]] ; then echo 1; else
+        echo ":::  no hosts file linked to dnsmasq, adding it in enabled state"
+        echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
+        restartDNS
+      fi
     fi
   fi
 }
@@ -187,7 +190,7 @@ case "$1" in
 "uninstall"					) uninstallFunc;;
 "enable"                      ) piholeEnable 1;;
 "disable"                     ) piholeEnable 0;;
-"status"                      ) piholeStatus;;
+"status"                      ) piholeStatus "$2";;
 "restartdnsmasq"              ) restartDNS;;
 
 *                    		) helpFunc;;
