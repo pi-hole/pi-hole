@@ -26,7 +26,7 @@ helpFunc()
 }
 
 
-if [[ -f ${setupVars} ]];then
+if [[ -f "${setupVars}" ]];then
     . /etc/pihole/setupVars.conf
 else
     echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
@@ -38,20 +38,18 @@ fi
 IPv4_address=${IPv4_address%/*}
 
 # Variables for various stages of downloading and formatting the list
-basename=pihole
-piholeDir=/etc/${basename}
-adList=${piholeDir}/gravity.list
-justDomainsExtension=domains
-matterAndLight=${basename}.0.matterandlight.txt
-supernova=${basename}.1.supernova.txt
-preEventHorizon=list.preEventHorizon
-eventHorizon=${basename}.2.supernova.txt
-accretionDisc=${basename}.3.accretionDisc.txt
+adList="${piholeDir}/gravity.list"
+justDomainsExtension="domains"
+matterAndLight="${basename}.0.matterandlight.txt"
+supernova="${basename}.1.supernova.txt"
+preEventHorizon="list.preEventHorizon"
+eventHorizon="${basename}.2.supernova.txt"
+accretionDisc="${basename}.3.accretionDisc.txt"
 
 skipDownload=false
 
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
-if [[ -r ${piholeDir}/pihole.conf ]];then
+if [[ -r "${piholeDir}/pihole.conf" ]];then
     echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
 
@@ -115,7 +113,7 @@ gravity_transport() {
 	# tmp file, so we don't have to store the (long!) lists in RAM
 	patternBuffer=$(mktemp)
 	heisenbergCompensator=""
-	if [[ -r ${saveLocation} ]]; then
+	if [[ -r "${saveLocation"} ]]; then
 		# if domain has been saved, add file for date check to only download newer
 		heisenbergCompensator="-z $saveLocation"
 	fi
