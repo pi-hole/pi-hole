@@ -99,6 +99,8 @@ RemoveDomain(){
   	fi
   else
     echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
+    #reload gravity to pickup any entries this may have removed
+    pihole -g
   fi
 }
 
