@@ -14,7 +14,7 @@
 latest=false
 current=false
 
-normalOutput(){
+normalOutput() {
     piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
     webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
 
@@ -25,7 +25,7 @@ normalOutput(){
     echo "::: Web-Admin version is $webVersion (Latest version is $webVersionLatest)"
 }
 
-webOutput(){
+webOutput() {
     for var in "$@"
     do
       case "$var" in
@@ -48,7 +48,7 @@ webOutput(){
     fi
 }
 
-coreOutput(){
+coreOutput() {
  for var in "$@"
     do
       case "$var" in
@@ -71,21 +71,22 @@ coreOutput(){
     fi
 }
 
-helpFunc()
-{
-    echo ":::"
-	echo "::: Show Pi-hole/Web Admin versions"
-	echo ":::"
-	echo "::: Usage: pihole -v [ -a | -p ] [ -l | -c ]"
-	echo ":::"
-	echo "::: Options:"
-	echo ":::  -a, --admin          Show both current and latest versions of web admin"
-	echo ":::  -p, --pihole         Show both current and latest versions of Pi-hole core files"
-	echo ":::  -l, --latest         (Only after -a | -p) Return only latest version"
-	echo ":::  -c, --current        (Only after -a | -p) Return only current version"
-	echo ":::  -h, --help           Show this help dialog"
-	echo ":::"
-	exit 0
+helpFunc() {
+	cat << EOM
+:::
+::: Show Pi-hole/Web Admin versions
+:::
+::: Usage: pihole -v [ -a | -p ] [ -l | -c ]
+:::
+::: Options:
+:::  -a, --admin          Show both current and latest versions of web admin
+:::  -p, --pihole         Show both current and latest versions of Pi-hole core files
+:::  -l, --latest         (Only after -a | -p) Return only latest version
+:::  -c, --current        (Only after -a | -p) Return only current version
+:::  -h, --help           Show this help dialog
+:::
+EOM
+	exit 1
 }
 
 if [[ $# = 0 ]]; then

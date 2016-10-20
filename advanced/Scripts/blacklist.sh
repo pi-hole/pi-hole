@@ -10,18 +10,19 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-helpFunc()
-{
-	echo "::: Immediately blacklists one or more domains in the hosts file"
-	echo ":::"
-	echo ":::"
-	echo "::: Usage: pihole -b domain1 [domain2 ...]"
-	echo "::: Options:"
-	echo ":::  -d, --delmode			Remove domains from the blacklist"
-	echo ":::  -nr, --noreload			Update blacklist without refreshing dnsmasq"
-	echo ":::  -q, --quiet				output is less verbose"
-	echo ":::  -h, --help				Show this help dialog"
-	echo ":::  -l, --list				Display your blacklisted domains"
+helpFunc() {
+	cat << EOM
+::: Immediately blacklists one or more domains in the hosts file
+:::
+:::
+::: Usage: pihole -b domain1 [domain2 ...]
+::: Options:
+:::  -d, --delmode			Remove domains from the blacklist
+:::  -nr, --noreload			Update blacklist without refreshing dnsmasq
+:::  -q, --quiet			output is less verbose
+:::  -h, --help				Show this help dialog
+:::  -l, --list				Display your blacklisted domains
+EOM
 	exit 1
 }
 
@@ -51,7 +52,7 @@ HandleOther(){
 	fi
 }
 
-PopBlacklistFile(){
+PopBlacklistFile() {
 	#check blacklist file exists, and if not, create it
 	if [[ ! -f ${blacklist} ]];then
   	  touch ${blacklist}
@@ -65,7 +66,7 @@ PopBlacklistFile(){
 	done
 }
 
-AddDomain(){
+AddDomain() {
 #| sed 's/\./\\./g'
 	bool=false
 	grep -Ex -q "$1" ${blacklist} || bool=true
@@ -83,7 +84,7 @@ AddDomain(){
 	fi
 }
 
-RemoveDomain(){
+RemoveDomain() {
 
   bool=false
   grep -Ex -q "$1" ${blacklist} || bool=true
