@@ -8,6 +8,11 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
+# 
+# This file is under source-control of the Pi-hole installation and update
+# scripts, any changes made to this file will be overwritten when the softare
+# is updated or re-installed. Please make any changes to the appropriate crontab
+# or other cron file snippets.
 
 # Pi-hole: Update the ad sources once a week on Sunday at 01:59
 #          Download any updates from the adlists
