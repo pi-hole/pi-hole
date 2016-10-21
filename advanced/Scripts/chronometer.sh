@@ -12,60 +12,59 @@
 
 
 #Functions##############################################################################################################
+
+setupVars="/etc/pihole/setupVars.conf"
+
+if [[ -f "${setupVars}" ]] ; then
+    . "${setupVars}"
+else
+    echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
+    echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
+    exit 1
+fi
+
 piLog="/var/log/pihole.log"
+gravityraw="/etc/pihole/list.preEventHorizon"
 gravity="/etc/pihole/gravity.list"
 
 today=$(date "+%b %e")
+IPv4_address=$(echo "${IPv4_address}" | cut -d"/" -f1)
+
 
 CalcBlockedDomains() {
-	CheckIPv6
-	if [ -e "$gravity" ]; then
-		#Are we IPV6 or IPV4?
-		if [[ -n ${piholeIPv6} ]];then
-			#We are IPV6
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
-		else
-			#We are IPV4
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1}')
-		fi
+	if [ -e "${gravity}" ]; then
+		blockedDomainsTotal=$(wc -l "${gravityraw}" | awk '{print $1}')
 	else
 		blockedDomainsTotal="Err."
 	fi
 }
 
 CalcQueriesToday() {
-	if [ -e "$piLog" ];then
-		queriesToday=$(cat "$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
-	else
-		queriesToday="Err."
-	fi
+        if [ -e "${piLog}" ];then
+                queriesToday=$(cat "${piLog}" | grep "${today}" | cut -d" " -f5 | grep query | wc -l)
+        else
+                queriesToday="Err."
+        fi
 }
 
 CalcblockedToday() {
-	if [ -e "$piLog" ] && [ -e "$gravity" ];then
-		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
+	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
+		blockedToday=$(grep "${gravity}" "${piLog}" | grep "${today}" | grep -v read | wc -l)
 	else
 		blockedToday="Err."
 	fi
 }
 
+
 CalcPercentBlockedToday() {
-	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
-		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
+	if [ "${queriesToday}" != "Err." ] && [ "${blockedToday}" != "Err." ]; then
+		if [ "${queriesToday}" != 0 ]; then #Fixes divide by zero error :)
 		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-			percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)
-			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")
+			percentBlockedToday=$(echo "scale=4; ${blockedToday}/${queriesToday}*100" | bc)
+			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "${percentBlockedToday}")
 		else
 			percentBlockedToday=0
 		fi
-	fi
-}
-
-CheckIPv6() {
-	piholeIPv6file="/etc/pihole/.useIPv6"
-	if [[ -f ${piholeIPv6file} ]];then
-	    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-	    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	fi
 }
 
@@ -73,10 +72,9 @@ outputJSON() {
 	CalcQueriesToday
 	CalcblockedToday
 	CalcPercentBlockedToday
-
 	CalcBlockedDomains
 
-	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
+	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "${blockedDomainsTotal}" "${queriesToday}" "${blockedToday}" "${percentBlockedToday}"
 }
 
 normalChrono() {
@@ -89,7 +87,7 @@ normalChrono() {
 		echo "[0;1;33;93m|[0m  [0;1;32;92m_[0;1;36;96m/[0m [0;1;34;94m|_[0;1;35;95m__[0;1;31;91m|[0m [0;1;33;93m'[0m [0;1;32;92m\/[0m [0;1;36;96m_[0m [0;1;34;94m\[0m [0;1;35;95m/[0m [0;1;31;91m-[0;1;33;93m_)[0m"
 		echo "[0;1;32;92m|_[0;1;36;96m|[0m [0;1;34;94m|_[0;1;35;95m|[0m   [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m"
 		echo ""
-		echo "        $(ifconfig eth0 | awk '/inet addr/ {print $2}' | cut -d':' -f2)"
+		echo "        ${IPv4_address}"
 		echo ""
 		uptime | cut -d' ' -f11-
 		#uptime -p	#Doesn't work on all versions of uptime
@@ -111,11 +109,9 @@ normalChrono() {
 
 		CalcBlockedDomains
 
-		echo "Blocking:      $blockedDomainsTotal"
-		#below commented line does not add up to todaysQueryCount
-		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
-		echo "Queries:       $queriesToday" #same total calculation as dashboard
-	  echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
+		echo "Blocking:      ${blockedDomainsTotal}"
+		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
+		echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
 
 		sleep 5
 	done
