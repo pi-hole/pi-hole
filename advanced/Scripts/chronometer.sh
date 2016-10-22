@@ -33,7 +33,7 @@ IPv4_address=$(echo "${IPv4_address}" | cut -d"/" -f1)
 
 CalcBlockedDomains() {
 	if [ -e "${gravity}" ]; then
-		blockedDomainsTotal=$(wc -l "${gravityraw}" | awk '{print $1}')
+		blockedDomainsTotal=$(pihole stats list)
 	else
 		blockedDomainsTotal="Err."
 	fi
@@ -41,7 +41,7 @@ CalcBlockedDomains() {
 
 CalcQueriesToday() {
         if [ -e "${piLog}" ];then
-                queriesToday=$(cat "${piLog}" | grep "${today}" | cut -d" " -f5 | grep query | wc -l)
+                queriesToday=$(pihole stats hits)
         else
                 queriesToday="Err."
         fi
@@ -49,7 +49,7 @@ CalcQueriesToday() {
 
 CalcblockedToday() {
 	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
-		blockedToday=$(grep "${gravity}" "${piLog}" | grep "${today}" | grep -v read | wc -l)
+		blockedToday=$(pihole stats blocked)
 	else
 		blockedToday="Err."
 	fi

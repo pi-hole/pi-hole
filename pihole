@@ -154,6 +154,35 @@ piholeStatus() {
   fi
 }
 
+statsBlockedDomains() {
+  local blockedDomainsTotal=$(wc -l /etc/pihole/list.preEventHorizon | awk '{print $1}')
+  echo ${blockedDomainsTotal}
+}
+
+statsQueriesToday() {
+  local queriesToday=$(cat /var/log/pihole.log | cut -d" " -f5 | grep query | wc -l)
+  echo ${queriesToday}
+}
+
+statsBlockedToday() {
+  local blockedToday=$(grep /etc/pihole/gravity.list /var/log/pihole.log | grep -v read | wc -l)
+  echo ${blockedToday}
+}
+
+stats() {
+  shift
+  if [[ $1 == "list" ]] ; then
+    statsBlockedDomains
+  elif [[ $1 == "hits" ]] ; then
+    statsQueriesToday
+  elif [[ $1 == "blocked" ]] ; then
+    statsBlockedToday
+  fi
+}
+
+
+
+
 
 helpFunc() {
     echo "::: Control all PiHole specific functions!"
@@ -187,23 +216,23 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "$1" in
-"-w" | "whitelist"			) whitelistFunc "$@";;
-"-b" | "blacklist"			) blacklistFunc "$@";;
-"-d" | "debug"				) debugFunc;;
-"-f" | "flush"				) flushFunc;;
-"-up" | "updatePihole"      ) updatePiholeFunc;;
-"-r"  | "reconfigure"       ) reconfigurePiholeFunc;;
-"-g" | "updateGravity"		) updateGravityFunc "$@";;
-"-s" | "setupLCD"			) setupLCDFunction;;
-"-c" | "chronometer"		) chronometerFunc "$@";;
-"-h" | "help"				) helpFunc;;
-"-v" | "version"            ) versionFunc "$@";;
-"-q" | "query"              ) queryFunc "$@";;
-"uninstall"					) uninstallFunc;;
+"-w" | "whitelist"            ) whitelistFunc "$@";;
+"-b" | "blacklist"            ) blacklistFunc "$@";;
+"-d" | "debug"                ) debugFunc;;
+"-f" | "flush"                ) flushFunc;;
+"-up" | "updatePihole"        ) updatePiholeFunc;;
+"-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
+"-g" | "updateGravity"        ) updateGravityFunc "$@";;
+"-s" | "setupLCD"             ) setupLCDFunction;;
+"-c" | "chronometer"          ) chronometerFunc "$@";;
+"-h" | "help"                 ) helpFunc;;
+"-v" | "version"              ) versionFunc "$@";;
+"-q" | "query"                ) queryFunc "$@";;
+"uninstall"                   ) uninstallFunc;;
 "enable"                      ) piholeEnable 1;;
 "disable"                     ) piholeEnable 0;;
 "status"                      ) piholeStatus "$2";;
 "restartdns"                  ) restartDNS;;
-
-*                    		) helpFunc;;
+"stats"                       ) stats "$@";;
+*                             ) helpFunc;;
 esac
