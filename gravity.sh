@@ -35,11 +35,11 @@ blacklistScript=/opt/pihole/blacklist.sh
 #Source the setupVars from install script for the IP
 setupVars=/etc/pihole/setupVars.conf
 if [[ -f ${setupVars} ]];then
-    . /etc/pihole/setupVars.conf
+	. /etc/pihole/setupVars.conf
 else
-    echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
-    echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
-    exit 1
+	echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
+	echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
+	exit 1
 fi
 
 #Remove the /* from the end of the IPv4addr.
@@ -56,8 +56,8 @@ eventHorizon=${basename}.2.eventHorizon.txt
 accretionDisc=${basename}.3.accretionDisc.txt
 
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
-if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
+if [[ -r ${piholeDir}/pihole.conf ]]; then
+	echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
 
 ###########################
@@ -95,17 +95,17 @@ gravity_collapse() {
 	fi
 
 	# Create the pihole resource directory if it doesn't exist.  Future files will be stored here
-	if [[ -d ${piholeDir} ]];then
-        # Temporary hack to allow non-root access to pihole directory
-        # Will update later, needed for existing installs, new installs should
-        # create this directory as non-root
-        chmod 777 ${piholeDir}
-        echo ":::"
-        echo "::: Existing pihole directory found"
+	if [[ -d ${piholeDir} ]]; then
+        	# Temporary hack to allow non-root access to pihole directory
+        	# Will update later, needed for existing installs, new installs should
+        	# create this directory as non-root
+		chmod 777 ${piholeDir}
+		echo ":::"
+		echo "::: Existing pihole directory found"
 	else
-        echo "::: Creating pihole directory..."
-        mkdir ${piholeDir}
-        chmod 777 ${piholeDir}
+		echo "::: Creating pihole directory..."
+		mkdir ${piholeDir}
+		chmod 777 ${piholeDir}
 	fi
 }
 
@@ -113,7 +113,7 @@ gravity_collapse() {
 gravity_patternCheck() {
 	patternBuffer=$1
 	# check if the patternbuffer is a non-zero length file
-	if [[ -s "$patternBuffer" ]];then
+	if [[ -s "$patternBuffer" ]]; then
 		# Some of the blocklists are copyright, they need to be downloaded
 		# and stored as is. They can be processed for content after they
 		# have been saved.
@@ -151,36 +151,35 @@ gravity_transport() {
 gravity_spinup() {
 	echo ":::"
 	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
-	for ((i = 0; i < "${#sources[@]}"; i++))
-	do
-        url=${sources[$i]}
-        # Get just the domain from the URL
-        domain=$(echo "$url" | cut -d'/' -f3)
+	for ((i = 0; i < "${#sources[@]}"; i++)); do
+		url=${sources[$i]}
+		# Get just the domain from the URL
+		domain=$(echo "$url" | cut -d'/' -f3)
 
-        # Save the file as list.#.domain
-        saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
-        activeDomains[$i]=${saveLocation}
+		# Save the file as list.#.domain
+		saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
+		activeDomains[$i]=${saveLocation}
 
-        agent="Mozilla/10.0"
+		agent="Mozilla/10.0"
 
-        echo -n "::: Getting $domain list..."
+		echo -n "::: Getting $domain list..."
 
-        # Use a case statement to download lists that need special cURL commands
-        # to complete properly and reset the user agent when required
-        case "$domain" in
-            "adblock.mahakala.is")
-                agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-                cmd_ext="-e http://forum.xda-developers.com/"
-            ;;
+		# Use a case statement to download lists that need special cURL commands
+		# to complete properly and reset the user agent when required
+		case "$domain" in
+			"adblock.mahakala.is")
+			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+			cmd_ext="-e http://forum.xda-developers.com/"
+		    ;;
 
-            "pgl.yoyo.org")
-                cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
-            ;;
+		    "pgl.yoyo.org")
+			cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
+		    ;;
 
-            # Default is a simple request
-            *) cmd_ext=""
-        esac
-        gravity_transport "$url" "$cmd_ext" "$agent"
+		    # Default is a simple request
+		    *) cmd_ext=""
+		esac
+		gravity_transport "$url" "$cmd_ext" "$agent"
 	done
 }
 
@@ -190,8 +189,7 @@ gravity_Schwarzchild() {
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
 	truncate -s 0 ${piholeDir}/${matterAndLight}
-	for i in "${activeDomains[@]}"
-	do
+	for i in "${activeDomains[@]}"; do
 		cat "$i" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
 	done
 	echo " done!"
@@ -214,10 +212,9 @@ gravity_Whitelist() {
 	echo -n "::: Adding ${#sources[@]} adlist source${plural} to the whitelist..."
 
 	urls=()
-	for url in "${sources[@]}"
-	do
-        tmp=$(echo "$url" | awk -F '/' '{print $3}')
-        urls=("${urls[@]}" ${tmp})
+	for url in "${sources[@]}"; do
+		tmp=$(echo "$url" | awk -F '/' '{print $3}')
+		urls=("${urls[@]}" ${tmp})
 	done
 	echo " done!"
 
@@ -248,7 +245,7 @@ gravity_hostFormat() {
 		echo "::: Error: Unable to determine fully qualified domain name of host"
 	fi
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
-	if [[ -n "${IPv6_address}" ]];then
+	if [[ -n "${IPv6_address}" ]]; then
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
 		echo -e "$IPv4addr $hostname\n$IPv6_address $hostname\n$IPv4addr pi.hole\n$IPv6_address pi.hole" > ${piholeDir}/${accretionDisc}
 		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4addr" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
@@ -266,8 +263,7 @@ gravity_hostFormat() {
 # blackbody - remove any remnant files from script processes
 gravity_blackbody() {
 	# Loop through list files
-	for file in ${piholeDir}/*.${justDomainsExtension}
-	do
+	for file in ${piholeDir}/*.${justDomainsExtension}; do
 		# If list is in active array then leave it (noop) else rm the list
 		if [[ " ${activeDomains[@]} " =~ ${file} ]]; then
 			:
@@ -313,32 +309,31 @@ gravity_reload() {
 	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 	find "$piholeDir" -type f -exec chmod 666 {} \;
 
-    dnsmasqPid=$(pidof dnsmasq)
+	dnsmasqPid=$(pidof dnsmasq)
 
 	if [[ ${dnsmasqPid} ]]; then
-	    # service already running - reload config
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl restart dnsmasq
-        else
-            service dnsmasq restart
-        fi
+	# service already running - reload config
+		if [ -x "$(command -v systemctl)" ]; then
+			systemctl restart dnsmasq
+		else
+			service dnsmasq restart
+		fi
 	else
-	    # service not running, start it up
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl start dnsmasq
-        else
-            service dnsmasq start
-        fi
+	# service not running, start it up
+		if [ -x "$(command -v systemctl)" ]; then
+			systemctl start dnsmasq
+		else
+			service dnsmasq start
+		fi
 	fi
 }
 
 
-for var in "$@"
-do
-  case "$var" in
-    "-f" | "--force"     ) forceGrav=true;;
-    "-h" | "--help"      ) helpFunc;;
-  esac
+for var in "$@"; do
+	case "$var" in
+		"-f" | "--force"     ) forceGrav=true;;
+		"-h" | "--help"      ) helpFunc;;
+	esac
 done
 
 if [[ ${forceGrav} == true ]]; then
