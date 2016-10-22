@@ -113,11 +113,11 @@ gravity_collapse() {
 gravity_patternCheck() {
 	patternBuffer=$1
 	# check if the patternbuffer is a non-zero length file
-	if [[ -s "$patternBuffer" ]]; then
+	if [[ -s "${patternBuffer}" ]]; then
 		# Some of the blocklists are copyright, they need to be downloaded
 		# and stored as is. They can be processed for content after they
 		# have been saved.
-		cp "$patternBuffer" "$saveLocation"
+		cp "${patternBuffer}" "${saveLocation}"
 		echo " List updated, transport successful!"
 	else
 		# curl didn't download any host files, probably because of the date check
@@ -136,15 +136,15 @@ gravity_transport() {
 	heisenbergCompensator=""
 	if [[ -r ${saveLocation} ]]; then
 		# if domain has been saved, add file for date check to only download newer
-		heisenbergCompensator="-z $saveLocation"
+		heisenbergCompensator="-z ${saveLocation}"
 	fi
 
 	# Silently curl url
-	curl -s -L ${cmd_ext} ${heisenbergCompensator} -A "$agent" ${url} > ${patternBuffer}
+	curl -s -L ${cmd_ext} ${heisenbergCompensator} -A "${agent}" ${url} > ${patternBuffer}
 	# Check for list updates
-	gravity_patternCheck "$patternBuffer"
+	gravity_patternCheck "${patternBuffer}"
 	# Cleanup
-	rm -f "$patternBuffer"
+	rm -f "${patternBuffer}"
 }
 
 # spinup - main gravity function
@@ -154,7 +154,7 @@ gravity_spinup() {
 	for ((i = 0; i < "${#sources[@]}"; i++)); do
 		url=${sources[$i]}
 		# Get just the domain from the URL
-		domain=$(echo "$url" | cut -d'/' -f3)
+		domain=$(echo "${url}" | cut -d'/' -f3)
 
 		# Save the file as list.#.domain
 		saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
@@ -162,11 +162,11 @@ gravity_spinup() {
 
 		agent="Mozilla/10.0"
 
-		echo -n "::: Getting $domain list..."
+		echo -n "::: Getting ${domain} list..."
 
 		# Use a case statement to download lists that need special cURL commands
 		# to complete properly and reset the user agent when required
-		case "$domain" in
+		case "${domain}" in
 			"adblock.mahakala.is")
 			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 			cmd_ext="-e http://forum.xda-developers.com/"
@@ -179,7 +179,7 @@ gravity_spinup() {
 		    # Default is a simple request
 		    *) cmd_ext=""
 		esac
-		gravity_transport "$url" "$cmd_ext" "$agent"
+		gravity_transport "${url}" "${cmd_ext}" "${agent}"
 	done
 }
 
@@ -190,7 +190,7 @@ gravity_Schwarzchild() {
 	echo -n "::: Aggregating list of domains..."
 	truncate -s 0 ${piholeDir}/${matterAndLight}
 	for i in "${activeDomains[@]}"; do
-		cat "$i" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
+		cat "${i}" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
 	done
 	echo " done!"
 }
@@ -201,8 +201,8 @@ gravity_Blacklist() {
 	${blacklistScript} -f -nr -q > /dev/null
 
 	numBlacklisted=$(wc -l < "/etc/pihole/blacklist.txt")
-	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	echo " $numBlacklisted domain${plural} blacklisted!"
+	plural=; [[ "${numBlacklisted}" != "1" ]] && plural=s
+	echo " ${numBlacklisted} domain${plural} blacklisted!"
 }
 
 gravity_Whitelist() {
@@ -213,7 +213,7 @@ gravity_Whitelist() {
 
 	urls=()
 	for url in "${sources[@]}"; do
-		tmp=$(echo "$url" | awk -F '/' '{print $3}')
+		tmp=$(echo "${url}" | awk -F '/' '{print $3}')
 		urls=("${urls[@]}" ${tmp})
 	done
 	echo " done!"
@@ -221,8 +221,8 @@ gravity_Whitelist() {
 	echo -n "::: Running whitelist script to update HOSTS file...."
 	${whitelistScript} -f -nr -q "${urls[@]}" > /dev/null
 	numWhitelisted=$(wc -l < "/etc/pihole/whitelist.txt")
-	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
-	echo " $numWhitelisted domain${plural} whitelisted!"
+	plural=; [[ "${numWhitelisted}" != "1" ]] && plural=s
+	echo " ${numWhitelisted} domain${plural} whitelisted!"
 }
 
 gravity_unique() {
@@ -231,7 +231,7 @@ gravity_unique() {
 	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${eventHorizon}
 	echo " done!"
 	numberOf=$(wc -l < ${piholeDir}/${eventHorizon})
-	echo "::: $numberOf unique domains trapped in the event horizon."
+	echo "::: ${numberOf} unique domains trapped in the event horizon."
 }
 
 gravity_hostFormat() {
@@ -247,13 +247,13 @@ gravity_hostFormat() {
 	# If there is a value in the $piholeIPv6, then IPv6 will be used, so the awk command modified to create a line for both protocols
 	if [[ -n "${IPv6_address}" ]]; then
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$IPv4addr $hostname\n$IPv6_address $hostname\n$IPv4addr pi.hole\n$IPv6_address pi.hole" > ${piholeDir}/${accretionDisc}
-		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4addr" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+		echo -e "${IPv4addr} ${hostname}\n${IPv6_address} ${hostname}\n${IPv4addr} pi.hole\n${IPv6_address} pi.hole" > ${piholeDir}/${accretionDisc}
+		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="${IPv4addr}" -v ipv6addr="${IPv6_address}" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 	else
 		# Otherwise, just create gravity.list as normal using IPv4
 		# Add hostname and dummy domain to the top of gravity.list to make ping result return a friendlier looking domain! Also allows for an easy way to access the Pi-hole admin console (pi.hole/admin)
-		echo -e "$IPv4addr $hostname\n$IPv4addr pi.hole" > ${piholeDir}/${accretionDisc}
-		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4addr" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
+		echo -e "${IPv4addr} ${hostname}\n${IPv4addr} pi.hole" > ${piholeDir}/${accretionDisc}
+		cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="${IPv4addr}" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 	fi
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
@@ -268,7 +268,7 @@ gravity_blackbody() {
 		if [[ " ${activeDomains[@]} " =~ ${file} ]]; then
 			:
 		else
-			rm -f "$file"
+			rm -f "${file}"
 		fi
 	done
 }
@@ -286,7 +286,7 @@ gravity_advanced() {
 	echo " done!"
 
 	numberOf=$(wc -l < ${piholeDir}/${supernova})
-	echo "::: $numberOf domains being pulled in by gravity..."
+	echo "::: ${numberOf} domains being pulled in by gravity..."
 
 	gravity_unique
 }
@@ -306,8 +306,8 @@ gravity_reload() {
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
-	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
-	find "$piholeDir" -type f -exec chmod 666 {} \;
+	sed -i "s/^addn-hosts.*/addn-hosts=${adList}/" /etc/dnsmasq.d/01-pihole.conf
+	find "${piholeDir}" -type f -exec chmod 666 {} \;
 
 	dnsmasqPid=$(pidof dnsmasq)
 
@@ -330,7 +330,7 @@ gravity_reload() {
 
 
 for var in "$@"; do
-	case "$var" in
+	case "${var}" in
 		"-f" | "--force"     ) forceGrav=true;;
 		"-h" | "--help"      ) helpFunc;;
 	esac
