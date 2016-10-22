@@ -30,37 +30,11 @@ gravity="/etc/pihole/gravity.list"
 today=$(date "+%b %e")
 IPv4_address=$(echo "${IPv4_address}" | cut -d"/" -f1)
 
-
-CalcBlockedDomains() {
-	if [ -e "${gravity}" ]; then
-		blockedDomainsTotal=$(pihole stats list)
-	else
-		blockedDomainsTotal="Err."
-	fi
-}
-
-CalcQueriesToday() {
-        if [ -e "${piLog}" ];then
-                queriesToday=$(pihole stats hits)
-        else
-                queriesToday="Err."
-        fi
-}
-
-CalcblockedToday() {
-	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
-		blockedToday=$(pihole stats blocked)
-	else
-		blockedToday="Err."
-	fi
-}
-
-
 CalcPercentBlockedToday() {
 	if [ "${queriesToday}" != "Err." ] && [ "${blockedToday}" != "Err." ]; then
 		if [ "${queriesToday}" != 0 ]; then #Fixes divide by zero error :)
 		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-			percentBlockedToday=$(echo "scale=4; ${blockedToday}/${queriesToday}*100" | bc)
+			percentBlockedToday=$(echo "scale=4; $(pihole stats blocked)/$(pihole stats hits)*100" | bc)
 			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "${percentBlockedToday}")
 		else
 			percentBlockedToday=0
@@ -69,12 +43,8 @@ CalcPercentBlockedToday() {
 }
 
 outputJSON() {
-	CalcQueriesToday
-	CalcblockedToday
 	CalcPercentBlockedToday
-	CalcBlockedDomains
-
-	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "${blockedDomainsTotal}" "${queriesToday}" "${blockedToday}" "${percentBlockedToday}"
+	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$(pihole stats list)" "$(pihole stats hits)" "$(pihole stats blocked)" "${percentBlockedToday}"
 }
 
 normalChrono() {
@@ -103,15 +73,11 @@ normalChrono() {
 		#todaysQueryCountV6=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[AAAA\]/ {print $7}' | wc -l)
 
 
-		CalcQueriesToday
-		CalcblockedToday
 		CalcPercentBlockedToday
 
-		CalcBlockedDomains
-
-		echo "Blocking:      ${blockedDomainsTotal}"
-		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
-		echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
+		echo "Blocking:      $(pihole stats list)"
+		echo "Queries:       $(pihole stats hits)" #same total calculation as dashboard
+		echo "Pi-holed:      $(pihole stats blocked) ($percentBlockedToday%)"
 
 		sleep 5
 	done
