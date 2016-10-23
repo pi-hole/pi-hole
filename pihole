@@ -133,14 +133,14 @@ piholeStatus() {
     if [[ "${1}" == "web" ]] ; then
       echo 0;
     else
-      echo ":::  Pi-hole blocking is Disabled";
+      echo "::: Pi-hole blocking is Disabled";
     fi
   elif [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=/") ]] ; then
     #list set
     if [[ "${1}" == "web" ]] ; then
       echo 1;
     else
-      echo ":::  Pi-hole blocking is Enabled";
+      echo "::: Pi-hole blocking is Enabled";
     fi
   else
     #addn-host not found
