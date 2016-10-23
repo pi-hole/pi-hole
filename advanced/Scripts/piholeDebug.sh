@@ -1,4 +1,4 @@
-usr/bin/env bash
+#!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
@@ -33,32 +33,15 @@ cat << EOM
 ::: and optionally upload the generated log to a unique and random directory on
 ::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only
 ::: person who is given the unique URL. Please consider where you post this link.
-::: 
+:::
 EOM
-
-
-######## FIRST CHECK ########
-# Must be root to debug
-if [[ "${EUID}" -eq 0 ]]; then
-	echo "::: Script is executing as root user..."
-else
-	echo "::: Non-root user detected..."
-	# Check if sudo is actually installed
-	if [ -x "$(command -v sudo)" ]; then
-		export SUDO="sudo"
-		echo "::: sudo command located, debug will run under sudo."
-	else
-		echo "::: Unable to locate sudo command. Please install sudo or run this as root."
-		exit 1
-	fi
-fi
 
 # Ensure the file exists, create if not, clear if exists.
 if [ ! -f "${DEBUG_LOG}" ]; then
-	${SUDO} touch ${DEBUG_LOG}
-	${SUDO} chmod 644 ${DEBUG_LOG}
-	${SUDO} chown "$USER":root ${DEBUG_LOG}
-else 
+	touch ${DEBUG_LOG}
+	chmod 644 ${DEBUG_LOG}
+	chown "$USER":root ${DEBUG_LOG}
+else
 	truncate -s 0 ${DEBUG_LOG}
 fi
 
@@ -83,6 +66,36 @@ version_check() {
 
 	echo "::: Writing PHP version to logfile."
 	php_ver="$(php -v |& head -n1)" && log_write "${php_ver}" || log_write "PHP not installed."
+}
+
+files_check() {
+	log_write "############################################################"
+	log_write "##########              Files Check               ##########"
+	log_write "############################################################"
+
+    #Check existence of setupVars.conf, and source it to get configured network interface for later use in script.
+    echo -n "::: Detecting existence setupVars.conf..."
+    setupVars=/etc/pihole/setupVars.conf
+    if [[ -f ${setupVars} ]];then
+        echo " found!"
+        log_write "/etc/pihole/setupVars.conf exists! Contents:"
+        while read -r line; do
+			if [ ! -z "${line}" ]; then
+				[[ "${line}" =~ ^#.*$ ]] && continue
+				log_write "${line}"
+			fi
+		done < "${setupVars}"
+		log_write ""
+
+        . "${setupVars}"
+        if [[ -n "${piholeInterface}" ]]; then
+            # prepend % to the beginning of piholeInterface for later use
+            piholeInterface="%${piholeInterface}"
+        fi
+    else
+        echo " NOT FOUND!"
+        log_write "/etc/pihole/setupVars.conf not found!"
+    fi
 }
 
 distro_check() {
@@ -138,7 +151,7 @@ ip_check() {
 	GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
 		echo "::: Pinging default IPv6 gateway..."
-		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n "${GATEWAY6}" | tail -n3)
+		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n "${GATEWAY6}""${piholeInterface}" | tail -n3)
 		if [[ $? = 0 ]]; then
 			echo "IPv6 Gateway check:" >> ${DEBUG_LOG}
 		else
@@ -146,7 +159,7 @@ ip_check() {
 		fi
 
 		echo "::: Pinging Internet via IPv6..."
-		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n 2001:4860:4860::8888 | tail -n3)
+		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n 2001:4860:4860::8888"${piholeInterface}" | tail -n3)
 		if [[ $? = 0 ]]; then
 			echo "IPv6 Internet check:" >> ${DEBUG_LOG}
 		else
@@ -190,8 +203,8 @@ portCheck() {
 
 	echo "::: Detecting local server port 80 and 53 processes."
 
-	${SUDO} lsof -i :80 >> ${DEBUG_LOG}
-	${SUDO} lsof -i :53 >> ${DEBUG_LOG}
+	lsof -i :80 >> ${DEBUG_LOG}
+	lsof -i :53 >> ${DEBUG_LOG}
 	echo >> ${DEBUG_LOG}
 }
 
@@ -266,7 +279,7 @@ checkProcesses() {
 		echo "" >> ${DEBUG_LOG}
 		echo -n "${i}" >> "${DEBUG_LOG}"
 		echo " processes status:" >> ${DEBUG_LOG}
-		${SUDO} systemctl -l status "${i}" >> "${DEBUG_LOG}"
+		systemctl -l status "${i}" >> "${DEBUG_LOG}"
 	done
 	echo >> ${DEBUG_LOG}
 }
@@ -288,7 +301,7 @@ debugLighttpd() {
 		echo "No lighttpd.conf file found!" >> ${DEBUG_LOG}
 		printf ":::\tNo lighttpd.conf file found\n"
 	fi
-	
+
 	if [ -e "${LIGHTTPDERRFILE}" ]; then
 		echo "#######################################" >> ${DEBUG_LOG}
 		echo "######### lighttpd error.log ##########" >> ${DEBUG_LOG}
@@ -304,6 +317,7 @@ debugLighttpd() {
 ### END FUNCTIONS ###
 
 version_check
+files_check
 distro_check
 ip_check
 hostnameCheck
