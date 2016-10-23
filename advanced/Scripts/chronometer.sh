@@ -28,7 +28,7 @@ gravityraw="/etc/pihole/list.preEventHorizon"
 gravity="/etc/pihole/gravity.list"
 
 today=$(date "+%b %e")
-IPv4_address=$(echo "${IPv4_address}" | cut -d"/" -f1)
+IPv4_address=${IPv4_address%/*}
 
 CalcPercentBlockedToday() {
 	if [ "${queriesToday}" != "Err." ] && [ "${blockedToday}" != "Err." ]; then
