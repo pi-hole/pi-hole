@@ -96,7 +96,7 @@ RemoveDomain() {
   if ${bool}; then
   	#Domain is not in the whitelist file, no need to Remove
   	if ${verbose}; then
-  	echo "::: $1 is NOT whitelisted! No need to remove"
+  	    echo "::: $1 is NOT whitelisted! No need to remove"
   	fi
   else
     echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
