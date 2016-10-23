@@ -73,7 +73,7 @@ AddDomain() {
 	if ${bool}; then
 	  #domain not found in the blacklist file, add it!
 	  if ${verbose}; then
-	  echo -n "::: Adding $1 to blacklist file..."
+	    echo -n "::: Adding $1 to blacklist file..."
 	  fi
 		echo "$1" >> ${blacklist}
 		reload=true
