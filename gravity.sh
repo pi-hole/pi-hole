@@ -314,31 +314,15 @@ gravity_reload() {
 
 	# Reload hosts file
 	echo ":::"
-	echo -n "::: Refresh lists in dnsmasq..."
+	echo "::: Refresh lists in dnsmasq..."
 
 	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
-	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
+#	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
-    dnsmasqPid=$(pidof dnsmasq)
-
-	if [[ ${dnsmasqPid} ]]; then
-	    # service already running - reload config
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl restart dnsmasq
-        else
-            service dnsmasq restart
-        fi
-	else
-	    # service not running, start it up
-	    if [ -x "$(command -v systemctl)" ]; then
-            systemctl start dnsmasq
-        else
-            service dnsmasq start
-        fi
-	fi
+        pihole restartdns
 }
 
 for var in "$@"
@@ -375,3 +359,4 @@ gravity_hostFormat
 gravity_blackbody
 
 gravity_reload
+pihole status

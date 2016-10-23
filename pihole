@@ -96,6 +96,65 @@ versionFunc() {
     exit 0
 }
 
+restartDNS() {
+  dnsmasqPid=$(pidof dnsmasq)
+  if [[ ${dnsmasqPid} ]]; then
+    # service already running - reload config
+    if [ -x "$(command -v systemctl)" ]; then
+      systemctl restart dnsmasq
+    else
+      service dnsmasq restart
+    fi
+  else
+    # service not running, start it up
+    if [ -x "$(command -v systemctl)" ]; then
+      systemctl start dnsmasq
+    else
+      service dnsmasq start
+    fi
+  fi
+}
+
+piholeEnable() {
+  if [[ "${1}" == "0" ]] ; then
+    #Disable Pihole
+    sed -i 's/^addn-hosts/#addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+  else
+    #Enable pihole
+    sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+  fi
+  restartDNS
+}
+
+piholeStatus() {
+  if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "#addn-hosts=/") ]] ; then
+    #list is commented out
+    if [[ "${1}" == "web" ]] ; then 
+      echo 0; 
+    else 
+      echo ":::  Pi-hole is Disabled";
+    fi
+  elif [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=/") ]] ; then
+    #list set
+    if [[ "${1}" == "web" ]] ; then
+      echo 1; 
+    else 
+      echo ":::  Pi-hole is Enabled";
+    fi
+  else
+    #addn-host not found
+    if [[ "${1}" == "web" ]] ; then
+      echo 99
+    else
+      echo ":::  No hosts file linked to dnsmasq, adding it in enabled state"
+    fi
+    #add addn-host= to dnsmasq
+    echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
+    restartDNS
+  fi
+}
+
+
 helpFunc() {
     echo "::: Control all PiHole specific functions!"
     echo ":::"
@@ -115,6 +174,10 @@ helpFunc() {
     echo ":::  -v, version              Show current versions"
     echo ":::  -q, query                Query the adlists for a specific domain"
     echo ":::  uninstall                Uninstall Pi-Hole from your system :(!"
+    echo ":::  status                   Is Pi-Hole Enabled or Disabled"
+    echo ":::  enable                   Enable Pi-Hole DNS Blocking"
+    echo ":::  disable                  Disable Pi-Hole DNS Blocking"
+    echo ":::  restartdns               Restart dnsmasq"
     exit 0
 }
 
@@ -137,5 +200,10 @@ case "$1" in
 "-v" | "version"            ) versionFunc "$@";;
 "-q" | "query"              ) queryFunc "$@";;
 "uninstall"					) uninstallFunc;;
+"enable"                      ) piholeEnable 1;;
+"disable"                     ) piholeEnable 0;;
+"status"                      ) piholeStatus "$2";;
+"restartdns"                  ) restartDNS;;
+
 *                    		) helpFunc;;
 esac
