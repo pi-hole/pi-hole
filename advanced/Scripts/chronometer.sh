@@ -27,7 +27,6 @@ piLog="/var/log/pihole.log"
 gravityraw="/etc/pihole/list.preEventHorizon"
 gravity="/etc/pihole/gravity.list"
 
-today=$(date "+%b %e")
 IPv4_address=${IPv4_address%/*}
 
 CalcPercentBlockedToday() {
