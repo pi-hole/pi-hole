@@ -12,130 +12,131 @@
 
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
-    if [ -x "$(command -v sudo)" ];then
-        exec sudo bash "$0" "$@"
-        exit $?
-    else
-        echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
-        exit 1
-    fi
+	if [ -x "$(command -v sudo)" ];then
+		exec sudo bash "$0" "$@"
+		exit $?
+	else
+		echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+		exit 1
+	fi
 fi
 
 whitelistFunc() {
-    shift
-    /opt/pihole/whitelist.sh "$@"
-    exit 0
+	shift
+	/opt/pihole/whitelist.sh "$@"
+	exit 0
 }
 
 blacklistFunc() {
-    shift
-    /opt/pihole/blacklist.sh "$@"
-    exit 0
+	shift
+	/opt/pihole/blacklist.sh "$@"
+	exit 0
 }
 
 debugFunc() {
-    /opt/pihole/piholeDebug.sh
-    exit 0
+	/opt/pihole/piholeDebug.sh
+	exit 0
 }
 
 flushFunc() {
-    /opt/pihole/piholeLogFlush.sh
-    exit 0
+	/opt/pihole/piholeLogFlush.sh
+	exit 0
 }
 
 
 updatePiholeFunc() {
-    /opt/pihole/update.sh
-    exit 0
+	/opt/pihole/update.sh
+	exit 0
 }
 
 reconfigurePiholeFunc() {
-    /etc/.pihole/automated\ install/basic-install.sh --reconfigure
-    exit 0;
+	/etc/.pihole/automated\ install/basic-install.sh --reconfigure
+	exit 0;
 }
 
 updateGravityFunc() {
-    /opt/pihole/gravity.sh "$@"
-    exit 0
+	/opt/pihole/gravity.sh "$@"
+	exit 0
 }
 
 setupLCDFunction() {
-    /opt/pihole/setupLCD.sh
-    exit 0
+	/opt/pihole/setupLCD.sh
+	exit 0
 }
 
 queryFunc() {
-    domain=$2
-    for list in /etc/pihole/list.*
-    do
-        count=$(grep ${domain} $list | wc -l)
-        echo "::: ${list} (${count} results)"
-        if [[ ${count} > 0 ]]; then
-            grep ${domain} ${list}
-        fi
-        echo ""
-    done
-    exit 0
+	domain=$2
+	for list in /etc/pihole/list.*; do
+		count=$(grep ${domain} $list | wc -l)
+		echo "::: ${list} (${count} results)"
+			if [[ ${count} > 0 ]]; then
+				grep ${domain} ${list}
+			fi
+		echo ""
+	done
+	exit 0
 }
 
 chronometerFunc() {
-    shift
-    /opt/pihole/chronometer.sh "$@"
-    exit 0
+	shift
+	/opt/pihole/chronometer.sh "$@"
+	exit 0
 }
 
 
 uninstallFunc() {
-    /opt/pihole/uninstall.sh
-    exit 0
+	/opt/pihole/uninstall.sh
+	exit 0
 }
 
 versionFunc() {
-    shift
-    /opt/pihole/version.sh "$@"
-    exit 0
+	shift
+	/opt/pihole/version.sh "$@"
+	exit 0
 }
 
 helpFunc() {
-    echo "::: Control all PiHole specific functions!"
-    echo ":::"
-    echo "::: Usage: pihole [options]"
-    echo ":::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage"
-    echo ":::"
-    echo "::: Options:"
-    echo ":::  -w, whitelist            Whitelist domains"
-    echo ":::  -b, blacklist            Blacklist domains"
-    echo ":::  -d, debug                Start a debugging session if having trouble"
-    echo ":::  -f, flush                Flush the pihole.log file"
-    echo ":::  -up, updatePihole        Update Pi-hole"
-    echo ":::  -g, updateGravity        Update the list of ad-serving domains"
-    echo ":::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it"
-    echo ":::  -c, chronometer          Calculates stats and displays to an LCD"
-    echo ":::  -h, help                 Show this help dialog"
-    echo ":::  -v, version              Show current versions"
-    echo ":::  -q, query                Query the adlists for a specific domain"
-    echo ":::  uninstall                Uninstall Pi-Hole from your system :(!"
-    exit 0
+	cat << EOM
+::: Control all PiHole specific functions!
+:::
+::: Usage: pihole [options]
+:::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage
+:::
+::: Options:
+:::  -w, whitelist            Whitelist domains
+:::  -b, blacklist            Blacklist domains
+:::  -d, debug                Start a debugging session if having trouble
+:::  -f, flush                Flush the pihole.log file
+:::  -up, updatePihole        Update Pi-hole
+:::  -g, updateGravity        Update the list of ad-serving domains
+:::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it
+:::  -c, chronometer          Calculates stats and displays to an LCD
+:::  -h, help                 Show this help dialog
+:::  -v, version              Show current versions
+:::  -q, query                Query the adlists for a specific domain
+:::  uninstall                Uninstall Pi-Hole from your system :(!
+EOM
+	exit 1
 }
 
 if [[ $# = 0 ]]; then
-    helpFunc
+	helpFunc
 fi
 
 # Handle redirecting to specific functions based on arguments
-case "$1" in
-"-w" | "whitelist"			) whitelistFunc "$@";;
-"-b" | "blacklist"			) blacklistFunc "$@";;
-"-d" | "debug"				) debugFunc;;
-"-f" | "flush"				) flushFunc;;
-"-up" | "updatePihole"      ) updatePiholeFunc;;
-"-r"  | "reconfigure"       ) reconfigurePiholeFunc;;
-"-g" | "updateGravity"		) updateGravityFunc "$@";;
-"-s" | "setupLCD"			) setupLCDFunction;;
-"-c" | "chronometer"		) chronometerFunc "$@";;
-"-h" | "help"				) helpFunc;;
-"-v" | "version"            ) versionFunc "$@";;
-"-q" | "query"              ) queryFunc "$@";;
-"uninstall"					) uninstallFunc;;
-*                    		) helpFunc;;
+case "${1}" in
+	"-w" | "whitelist"			) whitelistFunc "$@";;
+	"-b" | "blacklist"			) blacklistFunc "$@";;
+	"-d" | "debug"				) debugFunc;;
+	"-f" | "flush"				) flushFunc;;
+	"-up" | "updatePihole"      ) updatePiholeFunc;;
+	"-r"  | "reconfigure"       ) reconfigurePiholeFunc;;
+	"-g" | "updateGravity"		) updateGravityFunc "$@";;
+	"-s" | "setupLCD"			) setupLCDFunction;;
+	"-c" | "chronometer"		) chronometerFunc "$@";;
+	"-h" | "help"				) helpFunc;;
+	"-v" | "version"            ) versionFunc "$@";;
+	"-q" | "query"              ) queryFunc "$@";;
+	"uninstall"					) uninstallFunc;;
+	*                    		) helpFunc;;
 esac

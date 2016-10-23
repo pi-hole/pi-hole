@@ -11,29 +11,29 @@
 # (at your option) any later version.
 
 # Must be root to uninstall
-if [[ $EUID -eq 0 ]];then
+if [[ ${EUID} -eq 0 ]]; then
 	echo "::: You are root."
 else
 	echo "::: Sudo will be used for the uninstall."
-  # Check if it is actually installed
-  # If it isn't, exit because the unnstall cannot complete
-  if [ -x "$(command -v sudo)" ];then
+	# Check if it is actually installed
+	# If it isn't, exit because the unnstall cannot complete
+	if [ -x "$(command -v sudo)" ]; then
 		export SUDO="sudo"
-  else
-    echo "::: Please install sudo or run this as root."
-    exit 1
-  fi
+	else
+		echo "::: Please install sudo or run this as root."
+		exit 1
+	fi
 fi
 
 # Compatability
-if [ -x "$(command -v rpm)" ];then
+if [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
-	if [ -x "$(command -v dnf)" ];then
+	if [ -x "$(command -v dnf)" ]; then
 		PKG_MANAGER="dnf"
 	else
 		PKG_MANAGER="yum"
 	fi
-	PKG_REMOVE="$PKG_MANAGER remove -y"
+	PKG_REMOVE="${PKG_MANAGER} remove -y"
 	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common git curl unzip wget findutils )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
@@ -41,10 +41,10 @@ if [ -x "$(command -v rpm)" ];then
 	package_cleanup() {
 		${SUDO} ${PKG_MANAGER} -y autoremove
 	}
-elif [ -x "$(command -v apt-get)" ];then
+elif [ -x "$(command -v apt-get)" ]; then
 	# Debian Family
 	PKG_MANAGER="apt-get"
-	PKG_REMOVE="$PKG_MANAGER -y remove --purge"
+	PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
 	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common git curl unzip wget )
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
@@ -59,17 +59,17 @@ else
 fi
 
 spinner() {
-    local pid=$1
-    local delay=0.50
-    local spinstr='/-\|'
-    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
-        local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        local spinstr=${temp}${spinstr%"$temp"}
-        sleep ${delay}
-        printf "\b\b\b\b\b\b"
-    done
-    printf "    \b\b\b\b"
+	local pid=$1
+	local delay=0.50
+	local spinstr='/-\|'
+	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
+		local temp=${spinstr#?}
+		printf " [%c]  " "${spinstr}"
+		local spinstr=${temp}${spinstr%"$temp}"}
+		sleep ${delay}
+		printf "\b\b\b\b\b\b"
+	done
+	printf "    \b\b\b\b"
 }
 
 removeAndPurge() {
@@ -79,15 +79,15 @@ removeAndPurge() {
 		package_check ${i} > /dev/null
 		if [ $? -eq 0 ]; then
 			while true; do
-				read -rp "::: Do you wish to remove $i from your system? [y/n]: " yn
+				read -rp "::: Do you wish to remove ${i} from your system? [y/n]: " yn
 				case ${yn} in
-					[Yy]* ) printf ":::\tRemoving %s..." "$i"; ${SUDO} ${PKG_REMOVE} "$i" &> /dev/null & spinner $!; printf "done!\n"; break;;
-					[Nn]* ) printf ":::\tSkipping %s" "$i\n"; break;;
+					[Yy]* ) printf ":::\tRemoving %s..." "${i}"; ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null & spinner $!; printf "done!\n"; break;;
+					[Nn]* ) printf ":::\tSkipping %s" "${i}\n"; break;;
 					* ) printf "::: You must answer yes or no!\n";;
 				esac
 			done
 		else
-			printf ":::\tPackage %s not installed... Not removing.\n" "$i"
+			printf ":::\tPackage %s not installed... Not removing.\n" "${i}"
 		fi
 	done
 

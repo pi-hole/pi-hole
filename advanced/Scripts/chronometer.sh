@@ -19,9 +19,9 @@ today=$(date "+%b %e")
 
 CalcBlockedDomains() {
 	CheckIPv6
-	if [ -e "$gravity" ]; then
+	if [ -e "${gravity}" ]; then
 		#Are we IPV6 or IPV4?
-		if [[ -n ${piholeIPv6} ]];then
+		if [[ -n ${piholeIPv6} ]]; then
 			#We are IPV6
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
@@ -34,15 +34,15 @@ CalcBlockedDomains() {
 }
 
 CalcQueriesToday() {
-	if [ -e "$piLog" ];then
-		queriesToday=$(cat "$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
+	if [ -e "${piLog}" ]; then
+		queriesToday=$(cat "${piLog}" | grep "${today}" | awk '/query/ {print $6}' | wc -l)
 	else
 		queriesToday="Err."
 	fi
 }
 
 CalcblockedToday() {
-	if [ -e "$piLog" ] && [ -e "$gravity" ];then
+	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
 		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
 	else
 		blockedToday="Err."
@@ -50,11 +50,11 @@ CalcblockedToday() {
 }
 
 CalcPercentBlockedToday() {
-	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
-		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
-		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-			percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)
-			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")
+	if [ "${queriesToday}" != "Err." ] && [ "${blockedToday}" != "Err." ]; then
+		if [ "${queriesToday}" != 0 ]; then #Fixes divide by zero error :)
+			#scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
+			percentBlockedToday=$(echo "scale=4; ${blockedToday}/${queriesToday}*100" | bc)
+			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "${percentBlockedToday}")
 		else
 			percentBlockedToday=0
 		fi
@@ -64,8 +64,8 @@ CalcPercentBlockedToday() {
 CheckIPv6() {
 	piholeIPv6file="/etc/pihole/.useIPv6"
 	if [[ -f ${piholeIPv6file} ]];then
-	    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-	    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+		# If the file exists, then the user previously chose to use IPv6 in the automated installer
+		piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	fi
 }
 
@@ -80,8 +80,7 @@ outputJSON() {
 }
 
 normalChrono() {
-	for (( ; ; ))
-	do
+	for (( ; ; )); do
 		clear
 		# Displays a colorful Pi-hole logo
 		echo " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m"
@@ -111,11 +110,11 @@ normalChrono() {
 
 		CalcBlockedDomains
 
-		echo "Blocking:      $blockedDomainsTotal"
+		echo "Blocking:      ${blockedDomainsTotal}"
 		#below commented line does not add up to todaysQueryCount
 		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
-		echo "Queries:       $queriesToday" #same total calculation as dashboard
-	  echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
+		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
+	  echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
 
 		sleep 5
 	done
@@ -139,11 +138,10 @@ if [[ $# = 0 ]]; then
 	normalChrono
 fi
 
-for var in "$@"
-do
-  case "$var" in
-    "-j" | "--json"  ) outputJSON;;
-    "-h" | "--help"  ) displayHelp;;
-    *                ) exit 1;;
-  esac
+for var in "$@"; do
+	case "$var" in
+		"-j" | "--json"  ) outputJSON;;
+		"-h" | "--help"  ) displayHelp;;
+		*                ) exit 1;;
+	esac
 done
