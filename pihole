@@ -160,12 +160,14 @@ statsBlockedDomains() {
 }
 
 statsQueriesToday() {
-  local queriesToday=$(cat /var/log/pihole.log | cut -d" " -f5 | grep query | wc -l)
+  local today=$(date "+%b %e")
+  local queriesToday=$(cat /var/log/pihole.log |  grep "${today}" | cut -d" " -f5 | grep query | wc -l)
   echo ${queriesToday}
 }
 
 statsBlockedToday() {
-  local blockedToday=$(grep /etc/pihole/gravity.list /var/log/pihole.log | grep -v read | wc -l)
+  local today=$(date "+%b %e")
+  local blockedToday=$(grep /etc/pihole/gravity.list /var/log/pihole.log | grep "${today}" | grep -v read | wc -l)
   echo ${blockedToday}
 }
 
@@ -177,12 +179,17 @@ stats() {
     statsQueriesToday
   elif [[ $1 == "blocked" ]] ; then
     statsBlockedToday
+  else
+    echo ":::  Any heading can be called to just return that value"
+    echo ":::"
+    echo -n ":::   list: "
+    statsBlockedDomains
+    echo -n ":::   hits: "
+    statsQueriesToday
+    echo -n ":::   blocked: "
+    statsBlockedToday
   fi
 }
-
-
-
-
 
 helpFunc() {
     echo "::: Control all PiHole specific functions!"
@@ -207,6 +214,7 @@ helpFunc() {
     echo ":::  enable                   Enable Pi-Hole DNS Blocking"
     echo ":::  disable                  Disable Pi-Hole DNS Blocking"
     echo ":::  restartdns               Restart dnsmasq"
+    echo ":::  stats                    Display some statistics"
     exit 0
 }
 
