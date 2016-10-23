@@ -118,8 +118,10 @@ piholeEnable() {
   if [[ "${1}" == "0" ]] ; then
     #Disable Pihole
     sed -i 's/^addn-hosts/#addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+    echo "::: Blocking has been disabled!"
   else
     #Enable pihole
+    echo "::: Blocking has been enabled!"
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
   fi
   restartDNS
@@ -131,14 +133,14 @@ piholeStatus() {
     if [[ "${1}" == "web" ]] ; then
       echo 0;
     else
-      echo ":::  Pi-hole is Disabled";
+      echo ":::  Pi-hole blocking is Disabled";
     fi
   elif [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "addn-hosts=/") ]] ; then
     #list set
     if [[ "${1}" == "web" ]] ; then
       echo 1;
     else
-      echo ":::  Pi-hole is Enabled";
+      echo ":::  Pi-hole blocking is Enabled";
     fi
   else
     #addn-host not found
