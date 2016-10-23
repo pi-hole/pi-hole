@@ -35,7 +35,7 @@ basename=pihole
 piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
 blacklist=${piholeDir}/blacklist.txt
-reload=true
+reload=false
 addmode=true
 verbose=true
 
@@ -76,6 +76,7 @@ AddDomain() {
 	  echo -n "::: Adding $1 to blacklist file..."
 	  fi
 		echo "$1" >> ${blacklist}
+		reload=true
 		echo " done!"
 	else
 	if ${verbose}; then
@@ -99,6 +100,7 @@ RemoveDomain() {
     echo "::: Un-blacklisting $dom..."
     fi
    echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
+   reload=true
   fi
 }
 
