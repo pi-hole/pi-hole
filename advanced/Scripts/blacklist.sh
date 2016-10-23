@@ -143,6 +143,7 @@ DisplayBlist() {
 		echo "${count}: ${AD}"
 		count=$((count+1))
 	done < "${blacklist}"
+	exit 0;
 }
 
 ###################################################

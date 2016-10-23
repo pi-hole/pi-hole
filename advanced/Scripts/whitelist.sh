@@ -115,6 +115,7 @@ DisplayWlist() {
 		echo "${count}: ${RD}"
 		count=$((count+1))
 	done < "${whitelist}"
+	exit 0;
 }
 
 ###################################################
