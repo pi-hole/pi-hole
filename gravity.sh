@@ -37,11 +37,11 @@ blacklistFile=/etc/pihole/blacklist.txt
 #Source the setupVars from install script for the IP
 setupVars=/etc/pihole/setupVars.conf
 if [[ -f ${setupVars} ]];then
-    . /etc/pihole/setupVars.conf
+	. /etc/pihole/setupVars.conf
 else
-    echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
-    echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
-    exit 1
+	echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
+	echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
+	exit 1
 fi
 
 #Remove the /* from the end of the IPv4addr.
@@ -61,8 +61,8 @@ accretionDisc=${basename}.3.accretionDisc.txt
 skipDownload=false
 
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
-if [[ -r ${piholeDir}/pihole.conf ]];then
-    echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
+if [[ -r ${piholeDir}/pihole.conf ]]; then
+	echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
 fi
 
 ###########################
@@ -104,11 +104,11 @@ gravity_collapse() {
 gravity_patternCheck() {
 	patternBuffer=$1
 	# check if the patternbuffer is a non-zero length file
-	if [[ -s "$patternBuffer" ]];then
+	if [[ -s "${patternBuffer}" ]]; then
 		# Some of the blocklists are copyright, they need to be downloaded
 		# and stored as is. They can be processed for content after they
 		# have been saved.
-		mv "$patternBuffer" "$saveLocation"
+		mv "${patternBuffer}" "${saveLocation}"
 		echo " List updated, transport successful!"
 	else
 		# curl didn't download any host files, probably because of the date check
@@ -127,44 +127,41 @@ gravity_transport() {
 	heisenbergCompensator=""
 	if [[ -r ${saveLocation} ]]; then
 		# if domain has been saved, add file for date check to only download newer
-		heisenbergCompensator="-z $saveLocation"
+		heisenbergCompensator="-z ${saveLocation}"
 	fi
 
 	# Silently curl url
-	curl -s -L ${cmd_ext} ${heisenbergCompensator} -A "$agent" ${url} > ${patternBuffer}
+	curl -s -L ${cmd_ext} ${heisenbergCompensator} -A "${agent}" ${url} > ${patternBuffer}
 	# Check for list updates
-	gravity_patternCheck "$patternBuffer"
+	gravity_patternCheck "${patternBuffer}"
 }
 
 # spinup - main gravity function
 gravity_spinup() {
 	echo ":::"
 	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
-	for ((i = 0; i < "${#sources[@]}"; i++))
-	do
-        url=${sources[$i]}
-        # Get just the domain from the URL
-        domain=$(echo "$url" | cut -d'/' -f3)
+	for ((i = 0; i < "${#sources[@]}"; i++)); do
+		url=${sources[$i]}
+		# Get just the domain from the URL
+		domain=$(echo "${url}" | cut -d'/' -f3)
 
-        # Save the file as list.#.domain
-        saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
-        activeDomains[$i]=${saveLocation}
+		# Save the file as list.#.domain
+		saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
+		activeDomains[$i]=${saveLocation}
 
-        agent="Mozilla/10.0"
+		agent="Mozilla/10.0"
 
+		# Use a case statement to download lists that need special cURL commands
+		# to complete properly and reset the user agent when required
+		case "${domain}" in
+			"adblock.mahakala.is")
+			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+			cmd_ext="-e http://forum.xda-developers.com/"
+		    ;;
 
-
-        # Use a case statement to download lists that need special cURL commands
-        # to complete properly and reset the user agent when required
-        case "$domain" in
-            "adblock.mahakala.is")
-                agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-                cmd_ext="-e http://forum.xda-developers.com/"
-            ;;
-
-            "pgl.yoyo.org")
-                cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
-            ;;
+		    "pgl.yoyo.org")
+			cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
+		    ;;
 
             # Default is a simple request
             *) cmd_ext=""
@@ -182,9 +179,8 @@ gravity_Schwarzchild() {
 	# Find all active domains and compile them into one file and remove CRs
 	echo -n "::: Aggregating list of domains..."
 	truncate -s 0 ${piholeDir}/${matterAndLight}
-	for i in "${activeDomains[@]}"
-	do
-		cat "$i" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
+	for i in "${activeDomains[@]}"; do
+		cat "${i}" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
 	done
 	echo " done!"
 }
@@ -207,10 +203,9 @@ gravity_Whitelist() {
 	echo -n "::: Adding adlist source${plural} to the whitelist..."
 
 	urls=()
-	for url in "${sources[@]}"
-	do
-        tmp=$(echo "$url" | awk -F '/' '{print $3}')
-        urls=("${urls[@]}" ${tmp})
+	for url in "${sources[@]}"; do
+		tmp=$(echo "${url}" | awk -F '/' '{print $3}')
+		urls=("${urls[@]}" ${tmp})
 	done
 	echo " done!"
 
@@ -276,13 +271,12 @@ gravity_hostFormat() {
 # blackbody - remove any remnant files from script processes
 gravity_blackbody() {
 	# Loop through list files
-	for file in ${piholeDir}/*.${justDomainsExtension}
-	do
+	for file in ${piholeDir}/*.${justDomainsExtension}; do
 		# If list is in active array then leave it (noop) else rm the list
 		if [[ " ${activeDomains[@]} " =~ ${file} ]]; then
 			:
 		else
-			rm -f "$file"
+			rm -f "${file}"
 		fi
 	done
 }
@@ -300,7 +294,7 @@ gravity_advanced() {
 	echo " done!"
 
 	numberOf=$(wc -l < ${piholeDir}/${supernova})
-	echo "::: $numberOf domains being pulled in by gravity..."
+	echo "::: ${numberOf} domains being pulled in by gravity..."
 
 	gravity_unique
 }
@@ -325,13 +319,12 @@ gravity_reload() {
         pihole restartdns
 }
 
-for var in "$@"
-do
-  case "$var" in
-    "-f" | "--force"     ) forceGrav=true;;
-    "-h" | "--help"      ) helpFunc;;
-    "-sd" | "--skip-download"    ) skipDownload=true;;
-  esac
+for var in "$@"; do
+	case "${var}" in
+		"-f" | "--force"     ) forceGrav=true;;
+		"-h" | "--help"      ) helpFunc;;
+		"-sd" | "--skip-download"    ) skipDownload=true;;
+	esac
 done
 
 if [[ "${forceGrav}" == true ]]; then

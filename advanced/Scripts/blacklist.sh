@@ -48,58 +48,87 @@ HandleOther(){
 	if [ -z "$validDomain" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
-	  domList=("${domList[@]}" ${validDomain})
+		domList=("${domList[@]}" ${validDomain})
 	fi
 }
 
 PopBlacklistFile() {
 	#check blacklist file exists, and if not, create it
-	if [[ ! -f ${blacklist} ]];then
-  	  touch ${blacklist}
+	if [[ ! -f ${blacklist} ]]; then
+		touch ${blacklist}
 	fi
 	for dom in "${domList[@]}"; do
-	  if "$addmode"; then
-	  	AddDomain "$dom"
-	  else
-	    RemoveDomain "$dom"
-	  fi
+		if "${addmode}"; then
+			AddDomain "${dom}"
+		else
+			RemoveDomain "${dom}"
+		fi
 	done
 }
 
 AddDomain() {
-#| sed 's/\./\\./g'
+	#| sed 's/\./\\./g'
 	bool=false
 	grep -Ex -q "$1" ${blacklist} || bool=true
 	if ${bool}; then
-	  #domain not found in the blacklist file, add it!
-	  if ${verbose}; then
-	  echo -n "::: Adding $1 to blacklist file..."
-	  fi
-		echo "$1" >> ${blacklist}
+		#domain not found in the blacklist file, add it!
+		if ${verbose}; then
+			echo -n "::: Adding $1 to blacklist file..."
+		fi
+		echo "${1}" >> ${blacklist}
+		modifyHost=true
 		echo " done!"
 	else
 	if ${verbose}; then
-		echo "::: $1 already exists in $blacklist! No need to add"
+		echo "::: ${1} already exists in ${blacklist}! No need to add"
 		fi
 	fi
 }
 
 RemoveDomain() {
+	bool=false
+	grep -Ex -q "$1" ${blacklist} || bool=true
+	if ${bool}; then
+		#Domain is not in the blacklist file, no need to Remove
+		if ${verbose}; then
+			echo "::: $1 is NOT blacklisted! No need to remove"
+		fi
+	else
+		#Domain is in the blacklist file, remove it
+		if ${verbose}; then
+			echo "::: Un-blacklisting ${dom}..."
+		fi
+		echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
+	fi
+}
 
-  bool=false
-  grep -Ex -q "$1" ${blacklist} || bool=true
-  if ${bool}; then
-  	#Domain is not in the blacklist file, no need to Remove
-  	if ${verbose}; then
-  	echo "::: $1 is NOT blacklisted! No need to remove"
-  	fi
-  else
-    #Domain is in the blacklist file,remove it
-    if ${verbose}; then
-    echo "::: Un-blacklisting $dom..."
-    fi
-   echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
-  fi
+ModifyHostFile() {
+	if ${addmode}; then
+		#add domains to the hosts file
+		if [[ -r ${blacklist} ]]; then
+			numberOf=$(cat ${blacklist} | sed '/^\s*$/d' | wc -l)
+			plural=; [[ "${numberOf}" != "1" ]] && plural=s
+			echo ":::"
+			echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
+			if [[ -n ${piholeIPv6} ]]; then
+				cat ${blacklist} | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
+			else
+				cat ${blacklist} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
+			fi
+		fi
+	else
+		echo ":::"
+		for dom in "${domToRemoveList[@]}"; do
+			#we need to remove the domains from the blacklist file and the host file
+			echo "::: ${dom}"
+			echo -n ":::    removing from HOSTS file..."
+			echo "${dom}" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /[^.]'{}'(?!.)/;' ${adList}
+			echo " done!"
+			echo -n ":::    removing from blackist.txt..."
+			echo "${dom}" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${blacklist}
+			echo " done!"
+		done
+	fi
 }
 
 Reload() {
@@ -110,25 +139,23 @@ DisplayBlist() {
 	verbose=false
 	echo -e " Displaying Gravity Affected Domains \n"
 	count=1
-	while IFS= read -r AD
-	do
-		echo "${count}: $AD"
+	while IFS= read -r AD; do
+		echo "${count}: ${AD}"
 		count=$((count+1))
-	done < "$blacklist"
+	done < "${blacklist}"
 }
 
 ###################################################
 
-for var in "$@"
-do
-  case "$var" in
-    "-nr"| "--noreload"  ) reload=false;;
-    "-d" | "--delmode"   ) addmode=false;;
-    "-q" | "--quiet"     ) verbose=false;;
-    "-h" | "--help"	     ) helpFunc;;
-    "-l" | "--list"      ) DisplayBlist;;
-    *                    ) HandleOther "$var";;
-  esac
+for var in "$@"; do
+	case "$var" in
+		"-nr"| "--noreload"  ) reload=false;;
+		"-d" | "--delmode"   ) addmode=false;;
+		"-q" | "--quiet"     ) verbose=false;;
+		"-h" | "--help"      ) helpFunc;;
+		"-l" | "--list"      ) DisplayBlist;;
+		*                    ) HandleOther "$var";;
+	esac
 done
 
 PopBlacklistFile

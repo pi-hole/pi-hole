@@ -46,30 +46,29 @@ domToRemoveList=()
 HandleOther(){
   #check validity of domain
 	validDomain=$(echo "$1" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
-	if [ -z "$validDomain" ]; then
+	if [ -z "${validDomain}" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
-	  domList=("${domList[@]}" ${validDomain})
+		domList=("${domList[@]}" ${validDomain})
 	fi
 }
 
 PopWhitelistFile() {
 	#check whitelist file exists, and if not, create it
-	if [[ ! -f ${whitelist} ]];then
-  	  touch ${whitelist}
+	if [[ ! -f ${whitelist} ]]; then
+		touch ${whitelist}
 	fi
-	for dom in "${domList[@]}"
-	do
-	  if ${addmode}; then
-	  	AddDomain "$dom"
-	  else
-	    RemoveDomain "$dom"
-	  fi
+	for dom in "${domList[@]}"; do
+		if ${addmode}; then
+			AddDomain "${dom}"
+		else
+			RemoveDomain "${dom}"
+		fi
 	done
 }
 
 AddDomain() {
-#| sed 's/\./\\./g'
+	#| sed 's/\./\\./g'
 	bool=false
 
 	grep -Ex -q "$1" ${whitelist} || bool=true
@@ -84,7 +83,7 @@ AddDomain() {
 	  fi
 	else
 		if ${verbose}; then
-			echo "::: $1 already exists in $whitelist, no need to add!"
+			echo "::: ${1} already exists in ${whitelist}, no need to add!"
 		fi
 	fi
 }
@@ -112,25 +111,24 @@ DisplayWlist() {
 	verbose=false
 	echo -e " Displaying Gravity Resistant Domains \n"
 	count=1
-	while IFS= read -r RD
-	do
-		echo "${count}: $RD"
+	while IFS= read -r RD; do
+		echo "${count}: ${RD}"
 		count=$((count+1))
-	done < "$whitelist"
+	done < "${whitelist}"
 }
 
 ###################################################
 
-for var in "$@"
-do
-  case "$var" in
-    "-nr"| "--noreload"  ) reload=false;;
-    "-d" | "--delmode"   ) addmode=false;;
-    "-q" | "--quiet"     ) verbose=false;;
-    "-h" | "--help"      ) helpFunc;;
-    "-l" | "--list"      ) DisplayWlist;;
-    *                    ) HandleOther "$var";;
-  esac
+for var in "$@"; do
+	case "${var}" in
+		"-nr"| "--noreload"  ) reload=false;;
+		"-d" | "--delmode"   ) addmode=false;;
+		"-f" | "--force"     ) force=true;;
+		"-q" | "--quiet"     ) verbose=false;;
+		"-h" | "--help"      ) helpFunc;;
+		"-l" | "--list"      ) DisplayWlist;;
+		*                    ) HandleOther "${var}";;
+	esac
 done
 
 PopWhitelistFile
@@ -138,6 +136,3 @@ PopWhitelistFile
 if ${reload}; then
 	Reload
 fi
-
-
-
