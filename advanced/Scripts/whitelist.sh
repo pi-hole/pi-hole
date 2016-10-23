@@ -36,7 +36,7 @@ basename=pihole
 piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
 whitelist=${piholeDir}/whitelist.txt
-reload=true
+reload=false
 addmode=true
 verbose=true
 
@@ -77,6 +77,7 @@ AddDomain() {
 	  if ${verbose}; then
 		echo -n "::: Adding $1 to $whitelist..."
 	  fi
+	  reload=true
 	  echo "$1" >> ${whitelist}
       if ${verbose}; then
 	  	echo " done!"
@@ -99,6 +100,7 @@ RemoveDomain() {
   	fi
   else
     echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${whitelist}
+    reload=true
   fi
 }
 
