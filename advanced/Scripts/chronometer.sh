@@ -91,7 +91,6 @@ else
   exit 1
 fi
 
-#remove CIDR from IPv4
 IPv4_address=${IPv4_address%/*}
 
 center(){
