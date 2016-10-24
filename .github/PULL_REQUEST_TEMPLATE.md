@@ -1,5 +1,3 @@
-_This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._
-
 **By submitting this pull request, I confirm the following (please check boxes, eg [X]):**
 
 - [ ] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
@@ -23,3 +21,6 @@ _This template was created based on the work of [`udemy-dl`](https://github.com/
 
 ---
 _{replace this line with your pull request content}_
+
+
+_This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._
