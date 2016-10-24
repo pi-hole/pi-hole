@@ -12,52 +12,75 @@
 
 
 #Functions##############################################################################################################
+
+#move to pihole
 statsUpdateJSON() {
-  local x=$(curl -s http://127.0.0.1/admin/api.php?summaryRaw)
+  if [[ -z "${AdminLink}" ]] ; then
+    AdminLink="http://127.0.0.1/admin"
+  fi
+  local x=$(curl -s ${AdminLink}/api.php?summaryRaw)
   #check if json is valid
   if echo "${x}" | python -m json.tool > /dev/null ; then
     echo "${x}"
+  else
+    echo "Error"
   fi
 }
 
+#move to pihole
 statsBlockedDomains() {
-  if [[ -n $1 ]] ; then
-    local x=$(echo "$1" | python -c "import sys, json; print json.load(sys.stdin)['domains_being_blocked']")
+  if [[ -z "${json}" ]] ; then
+    json=$(statsUpdateJSON)
+  fi
+  if [[ "${json}" != "Error" ]] ; then
+    local x=$(echo "${json}" | python -c "import sys, json; print json.load(sys.stdin)['domains_being_blocked']")
     echo ${x}
   else
     echo "Error"
   fi
 }
 
+#move to pihole
 statsQueriesToday() {
-  if [[ -n $1 ]] ; then
-    local x=$(echo "$1" | python -c "import sys, json; print json.load(sys.stdin)['dns_queries_today']")
+  if [[ -z "${json}" ]] ; then
+   json=$(statsUpdateJSON)
+  fi
+  if [[ "${json}" != "Error" ]] ; then
+    local x=$(echo "${json}" | python -c "import sys, json; print json.load(sys.stdin)['dns_queries_today']")
     echo ${x}
   else
     echo "Error"
   fi
-
 }
 
+#move to pihole
 statsBlockedToday() {
-  if [[ -n $1 ]] ; then
-    local x=$(echo "$1" | python -c "import sys, json; print json.load(sys.stdin)['ads_blocked_today']")
+  if [[ -z "${json}" ]] ; then
+    json=$(statsUpdateJSON)
+  fi
+  if [[ "${json}" != "Error" ]] ; then
+    local x=$(echo "${json}" | python -c "import sys, json; print json.load(sys.stdin)['ads_blocked_today']")
     echo ${x}
   else
     echo "Error"
   fi
-
 }
 
+#move to pihole
 statsPercentBlockedToday() {
-  if [[ -n $1 ]] ; then
-    local x=$(echo "$1" | python -c "import sys, json; print round(float(json.load(sys.stdin)['ads_percentage_today']), 2)")
+  if [[ -z "${json}" ]] ; then
+    json=$(statsUpdateJSON)
+  fi
+  if [[ "${json}" != "Error" ]] ; then
+    local x=$(echo "${json}" | python -c "import sys, json; print round(float(json.load(sys.stdin)['ads_percentage_today']), 2)")
     echo ${x}
   else
     echo "Error"
   fi
-
 }
+
+
+#start script
 
 setupVars="/etc/pihole/setupVars.conf"
 if [[ -f "${setupVars}" ]] ; then
@@ -79,20 +102,22 @@ center(){
   printf "%${pad}s\n" "$1"
 }
 
-
-
 normalChrono() {
   for (( ; ; ))
   do
-    cols=$(tput cols)
     ## prepare all lines before clear to remove flashing
     json=$(statsUpdateJSON)
     load=$(uptime | cut -d' ' -f11-)
     uptime=$(uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes."}')
-    list=$(statsBlockedDomains $json)
-    hits=$(statsQueriesToday $json)
-    blocked=$(statsBlockedToday $json)
-    percent=$(statsPercentBlockedToday $json)
+    list=$(statsBlockedDomains)
+    hits=$(statsQueriesToday)
+    blocked=$(statsBlockedToday)
+    percent=$(statsPercentBlockedToday)
+#for moving functions to pihole
+#    list=$(pihole stats list)
+#    hits=$(pihole stats hits)
+#    blocked=$(pihole stats blocked)
+#    percent=$(pihole stats percent)
     clear
     # Displays a colorful Pi-hole logo
     echo " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m"
@@ -107,7 +132,7 @@ normalChrono() {
     echo "-------------------------------"
     echo "Blocking:      ${list}"
     echo "Queries:       ${hits}"
-    echo "Pi-holed:      ${blocked} (${percent})%)"
+    echo "Pi-holed:      ${blocked} (${percent})%"
     sleep 5
   done
 }
