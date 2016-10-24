@@ -1,21 +1,21 @@
 **In raising this issue, I confirm the following (please check boxes, eg [X]):**
 
-- [ ] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
-- [ ] The issue I am reporting can be *replicated*
-- [ ] The issue I'm reporting isn't a duplicate (see [FAQs](https://github.com/pi-hole/pi-hole/wiki/FAQs), [closed issues](https://github.com/pi-hole/pi-hole/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), and [open issues](https://github.com/pi-hole/pi-hole/issues)).
+- [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
+- [] The issue I am reporting can be *replicated*
+- [] The issue I'm reporting isn't a duplicate (see [FAQs](https://github.com/pi-hole/pi-hole/wiki/FAQs), [closed issues](https://github.com/pi-hole/pi-hole/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), and [open issues](https://github.com/pi-hole/pi-hole/issues)).
 
 **How familiar are you with the codebase?:**
 
-- [ ] 1 (very unfamiliar)
-- [ ] 2
-- [ ] 3
-- [ ] 4
-- [ ] 5
-- [ ] 6
-- [ ] 7
-- [ ] 8
-- [ ] 9
-- [ ] 10 (very familiar)
+- [] 1 (very unfamiliar)
+- [] 2
+- [] 3
+- [] 4
+- [] 5
+- [] 6
+- [] 7
+- [] 8
+- [] 9
+- [] 10 (very familiar)
 
 ---
 **[FEATURE REQUEST | QUESTION | OTHER]:**
