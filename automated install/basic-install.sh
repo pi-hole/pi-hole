@@ -103,7 +103,7 @@ elif [ -x "$(command -v rpm)" ];then
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat python)
 	if grep -q 'Fedora' /etc/redhat-release; then
 		remove_deps=(epel-release);
 		PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
@@ -791,7 +791,7 @@ finalExports() {
     fi
     {
     echo "piholeInterface=${piholeInterface}"
-    echo "IPv4_address=${IPv4_address}"
+    echo "IPv4_address=${IPv4_address%/*}"
     echo "IPv6_address=${IPv6_address}"
     echo "piholeDNS1=${piholeDNS1}"
     echo "piholeDNS2=${piholeDNS2}"
