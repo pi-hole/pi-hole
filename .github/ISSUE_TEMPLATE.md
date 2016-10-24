@@ -1,4 +1,4 @@
-**In raising this issue, I confirm the following (please check boxes, eg [X]):**
+**In raising this issue, I confirm the following (please check boxes, eg [X]) Failure to fill the template will close your issue:**
 
 - [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
 - [] The issue I am reporting can be *replicated*
