@@ -21,10 +21,6 @@
 # Pi-hole: Update Pi-hole! Uncomment to enable auto update
 #30 2    * * 7   root    /usr/local/bin/pihole updatePihole
 
-# Pi-hole: Parse the log file before it is flushed and save the stats to a database
-#          This will be used for a historical view of your Pi-hole's performance
-#50 23  * * *   root    /usr/local/bin/dailyLog.sh # note: this is outdated
-
 # Pi-hole: Flush the log daily at 00:00 so it doesn't get out of control
 #          Stats will be viewable in the Web interface thanks to the cron job above
 00 00   * * *   root    /usr/local/bin/pihole flush
