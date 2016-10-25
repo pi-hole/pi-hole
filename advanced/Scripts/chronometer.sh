@@ -14,19 +14,13 @@
 #Functions##############################################################################################################
 
 #move to pihole
-
-if [ ! -f "/opt/pihole/jq" ] ; then
-  curl -s http://stedolan.github.io/jq/download/linux64/jq -o /opt/pihole/jq
-  chmod 755 /opt/pihole/jq
-fi
-
 statsUpdateJSON() {
   if [[ -z "${AdminLink}" ]] ; then
     AdminLink="http://127.0.0.1/admin"
   fi
   local x=$(curl -s ${AdminLink}/api.php?summaryRaw)
   #check if json is valid
-  if echo "${x}" | /opt/pihole/jq "." > /dev/null ; then
+  if echo "${x}" | jq "." > /dev/null ; then
     echo "${x}"
   else
     echo "Error"
@@ -40,7 +34,7 @@ statsBlockedDomains() {
   fi
   if [[ "${json}" != "Error" ]] ; then
 #    local x=$(echo "${json}" | python -c "import sys, json; print json.load(sys.stdin)['domains_being_blocked']")
-    local x=$(echo "${json}" | /opt/pihole/jq ".domains_being_blocked" | tr -d '"')
+    local x=$(echo "${json}" | jq ".domains_being_blocked" | tr -d '"')
     echo ${x}
   else
     echo "Error"
@@ -53,7 +47,7 @@ statsQueriesToday() {
    json=$(statsUpdateJSON)
   fi
   if [[ "${json}" != "Error" ]] ; then
-    local x=$(echo "${json}" | /opt/pihole/jq ".dns_queries_today" | tr -d '"')
+    local x=$(echo "${json}" | jq ".dns_queries_today" | tr -d '"')
     echo ${x}
   else
     echo "Error"
@@ -66,7 +60,7 @@ statsBlockedToday() {
     json=$(statsUpdateJSON)
   fi
   if [[ "${json}" != "Error" ]] ; then
-    local x=$(echo "${json}" | /opt/pihole/jq ".ads_blocked_today" | tr -d '"')
+    local x=$(echo "${json}" | jq ".ads_blocked_today" | tr -d '"')
     echo ${x}
   else
     echo "Error"
@@ -79,7 +73,7 @@ statsPercentBlockedToday() {
     json=$(statsUpdateJSON)
   fi
   if [[ "${json}" != "Error" ]] ; then
-    local x=$(echo "${json}" |  /opt/pihole/jq ".ads_percentage_today" | tr -d '"' | xargs printf "%.*f\n" 2)
+    local x=$(echo "${json}" |  jq ".ads_percentage_today" | tr -d '"' | xargs printf "%.*f\n" 2)
     echo ${x}
   else
     echo "Error"
