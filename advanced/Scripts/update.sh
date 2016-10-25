@@ -18,17 +18,17 @@ piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 piholeFilesDir="/etc/.pihole"
 
 spinner() {
-	local pid=$1
-    local delay=0.50
-    local spinstr='/-\|'
-    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
+	local pid=${1}
+	local delay=0.50
+	local spinstr='/-\|'
+	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
 		local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        local spinstr=${temp}${spinstr%"$temp"}
-        sleep ${delay}
-        printf "\b\b\b\b\b\b"
-    done
-    printf "    \b\b\b\b"
+		printf " [%c]  " "${spinstr}"
+		local spinstr=${temp}${spinstr%"$temp"}
+		sleep ${delay}
+		printf "\b\b\b\b\b\b"
+	done
+	printf "    \b\b\b\b"
 }
 
 getGitFiles() {
@@ -37,45 +37,45 @@ getGitFiles() {
 	echo ":::"
 	echo "::: Checking for existing repository..."
 	if is_repo "${1}"; then
-	  update_repo "${1}"
+		update_repo "${1}"
 	else
-	  make_repo "${1}" "${2}"
-  fi
+		make_repo "${1}" "${2}"
+	fi
 }
 
 is_repo() {
-  # Use git to check if directory is currently under VCS
+	# Use git to check if directory is currently under VCS
 	echo -n ":::    Checking $1 is a repo..."
 	cd "${1}" &> /dev/null || return 1
 	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
 }
 
 make_repo() {
-    # Remove the non-repod interface and clone the interface
-    echo -n ":::    Cloning $2 into $1..."
-    rm -rf "${1}"
-    git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
-    echo " done!"
+	# Remove the non-repod interface and clone the interface
+	echo -n ":::    Cloning $2 into $1..."
+	rm -rf "${1}"
+	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+	echo " done!"
 }
 
 update_repo() {
-    # Pull the latest commits
-    echo -n ":::     Updating repo in $1..."
-    cd "${1}" || exit 1
-    git stash -q > /dev/null & spinner $!
-    git pull -q > /dev/null & spinner $!
-    echo " done!"
+# Pull the latest commits
+	echo -n ":::     Updating repo in $1..."
+	cd "${1}" || exit 1
+	git stash -q > /dev/null & spinner $!
+	git pull -q > /dev/null & spinner $!
+	echo " done!"
 }
 
 if [ ! -d "/etc/.pihole" ]; then #This is unlikely
-    echo "::: Critical Error: Pi-Hole repo missing from system!"
-    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
-    exit 1;
+	echo "::: Critical Error: Pi-Hole repo missing from system!"
+	echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+	exit 1;
 fi
 if [ ! -d "/var/www/html/admin" ]; then #This is unlikely
-    echo "::: Critical Error: Pi-Hole repo missing from system!"
-    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
-    exit 1;
+	echo "::: Critical Error: Pi-Hole repo missing from system!"
+	echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+	exit 1;
 fi
 
 echo "::: Checking for updates..."
@@ -105,40 +105,38 @@ echo ":::"
 
 
 if [[ ${piholeVersion} == ${piholeVersionLatest} && ${webVersion} == ${webVersionLatest} ]]; then
-    echo "::: Everything is up to date!"
-    echo ""
-    exit 0
+	echo "::: Everything is up to date!"
+	echo ""
+	exit 0
 
 elif [[ ${piholeVersion} == ${piholeVersionLatest} && ${webVersion} != ${webVersionLatest} ]]; then
-    echo "::: Pi-hole Web Admin files out of date"
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
-    echo ":::"
-    webVersion=$(pihole -v -a -c)
-    echo "::: Web Admin version is now at ${webVersion}"
-    echo "::: If you had made any changes in '/var/www/html/admin', they have been stashed using 'git stash'"
-    echo ""
-
+	echo "::: Pi-hole Web Admin files out of date"
+	getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+	echo ":::"
+	webVersion=$(pihole -v -a -c)
+	echo "::: Web Admin version is now at ${webVersion}"
+	echo "::: If you had made any changes in '/var/www/html/admin', they have been stashed using 'git stash'"
+	echo ""
 elif [[ ${piholeVersion} != ${piholeVersionLatest} && ${webVersion} == ${webVersionLatest} ]]; then
-    echo "::: Pi-hole core files out of date"
-    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
-    /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended
-    echo ":::"
-    piholeVersion=$(pihole -v -p -c)
-    echo "::: Pi-hole version is now at ${piholeVersion}"
-    echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
-    echo ""
-
+	echo "::: Pi-hole core files out of date"
+	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended
+	echo ":::"
+	piholeVersion=$(pihole -v -p -c)
+	echo "::: Pi-hole version is now at ${piholeVersion}"
+	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
+	echo ""
 elif [[ ${piholeVersion} != ${piholeVersionLatest} && ${webVersion} != ${webVersionLatest} ]]; then
-    echo "::: Updating Everything"
-    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
-    /etc/.pihole/automated\ install/basic-install.sh --unattended
-    webVersion=$(pihole -v -a -c)
-    piholeVersion=$(pihole -v -p -c)
-    echo ":::"
-    echo "::: Pi-hole version is now at ${piholeVersion}"
-    echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
-    echo ":::"
-    echo "::: Pi-hole version is now at ${piholeVersion}"
-    echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
-    echo ""
+	echo "::: Updating Everything"
+	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+	/etc/.pihole/automated\ install/basic-install.sh --unattended
+	webVersion=$(pihole -v -a -c)
+	piholeVersion=$(pihole -v -p -c)
+	echo ":::"
+	echo "::: Pi-hole version is now at ${piholeVersion}"
+	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
+	echo ":::"
+	echo "::: Pi-hole version is now at ${piholeVersion}"
+	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
+	echo ""
 fi
