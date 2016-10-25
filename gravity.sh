@@ -232,31 +232,20 @@ gravity_unique() {
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
-	if [[ -f /etc/hostname ]]; then
-		hostname=$(</etc/hostname)
-	elif [ -x "$(command -v hostname)" ]; then
-		hostname=$(hostname -f)
-	else
-		echo "::: Error: Unable to determine fully qualified domain name of host"
-	fi
-
     # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
     if [[ -n "${IPv4_address}" && -n "${IPv6_address}" ]];then
 
         # Both IPv4 and IPv6
-        echo -e "$IPv4_address $hostname\n$IPv6_address $hostname" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
     elif [[ -n "${IPv4_address}" && -z "${IPv6_address}" ]];then
 
         # Only IPv4
-        echo -e "$IPv4_address $hostname" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
     elif [[ -z "${IPv4_address}" && -n "${IPv6_address}" ]];then
 
         # Only IPv6
-        echo -e "$IPv6_address $hostname" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
     elif [[ -z "${IPv4_address}" && -z "${IPv6_address}" ]];then
