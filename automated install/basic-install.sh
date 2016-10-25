@@ -536,6 +536,11 @@ version_check_dnsmasq() {
 	else
 		sed -i '/^server=@DNS2@/d' ${dnsmasq_pihole_01_location}
 	fi
+	#Replace IPv4 and IPv6 tokens in 01-pihole.conf for pi.hole resolution.
+	tmp = ${IPv4_address%/*}
+	sed -i "s/@IPv4@/$tmp/" ${dnsmasq_pihole_01_location}
+	sed -i "s/@IPv6@/$IPv6_address/" ${dnsmasq_pihole_01_location}
+
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
 }
 
