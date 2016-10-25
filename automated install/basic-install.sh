@@ -98,13 +98,13 @@ elif [ -x "$(command -v rpm)" ]; then
 	else
 		PKG_MANAGER="yum"
 	fi
-	PKG_CACHE="/var/cache/$PKG_MANAGER"
-	UPDATE_PKG_CACHE="$PKG_MANAGER check-update"
-	PKG_UPDATE="$PKG_MANAGER update -y"
-	PKG_INSTALL="$PKG_MANAGER install -y"
-	PKG_COUNT="$PKG_MANAGER check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-	yum list procps-ng &> /dev/null && PROCPS_PKG="procps-ng" || PROCPS_PKG="procps"
-	yum list nmap-ncat &> /dev/null && NCAT_PKG="nmap-ncat" || NCAT_PKG="nmap"
+	PKG_CACHE="/var/cache/${PKG_MANAGER}"
+	UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
+	PKG_UPDATE="${PKG_MANAGER} update -y"
+	PKG_INSTALL="${PKG_MANAGER} install -y"
+	PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
+	${PKG_MANAGER} list procps-ng &> /dev/null && PROCPS_PKG="procps-ng" || PROCPS_PKG="procps"
+	${PKG_MANAGER} list nmap-ncat &> /dev/null && NCAT_PKG="nmap-ncat" || NCAT_PKG="nmap"
 	INSTALLER_DEPS=( iproute net-tools $PROCPS_PKG newt git )
 	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo $NCAT_PKG )
 	if grep -q 'Fedora' /etc/redhat-release; then
