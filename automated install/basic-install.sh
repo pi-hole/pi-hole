@@ -849,6 +849,9 @@ updatePihole() {
 
 configureSelinux() {
 	if [ -x "$(command -v getenforce)" ]; then
+		# If selinux is disabled skip
+         	getenforce | grep Disabled &> /dev/null && return
+
 		printf "\n::: SELinux Detected\n"
 		printf ":::\tChecking for SELinux policy development packages..."
 		package_check_install "selinux-policy-devel" > /dev/null
