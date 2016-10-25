@@ -86,7 +86,7 @@ if [ -x "$(command -v apt-get)" ]; then
 	${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
 	# #########################################
 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+	PIHOLE_DEPS=( dnsutils bc iputils-ping dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -778,11 +778,13 @@ configureFirewall() {
 		firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
 		&& firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
 		return
+    fi
 	if [ "$(command -v iptable)" ]; then
 		iptables_out=$(iptables -L -n || :)
-		(cat $iptables_out | grep -i DENY || cat $iptables_out | grep -i DROP || echo "::: IPTables firewall does not seem to be active" && return )
+		(cat $iptables_out | grep -i REJECT || cat $iptables_out | grep -i DROP || echo "::: IPTables firewall does not seem to be active" && return )
 		echo "::: IPTables firewall active, please make sure ports 53/udp, 53/tcp, and 80/tcp are open"
 		return
+    fi
 	echo "::: No firewall detected.. skipping firewall configuration."
 }
 
