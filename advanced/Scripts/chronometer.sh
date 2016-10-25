@@ -14,12 +14,6 @@
 #Functions##############################################################################################################
 
 #move to pihole
-
-if [ ! -f "/opt/pihole/jq" ] ; then
-  curl -s http://stedolan.github.io/jq/download/linux64/jq -o /opt/pihole/jq
-  chmod 755 /opt/pihole/jq
-fi
-
 statsUpdateJSON() {
   if [[ -z "${AdminLink}" ]] ; then
     AdminLink="http://127.0.0.1/admin"
