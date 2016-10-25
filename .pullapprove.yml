@@ -1,19 +1,42 @@
-approve_by_comment: true
-approve_regex: '^(Approved|:shipit:|:\+1:|Engage)'
-reject_regex: '^(Rejected|:-1:|Borg)'
-reset_on_push: true
-author_approval: required
-reviewers:
-  members:
-  - brantje
-  - dschaper
-  - jacobsalmela
-  - Mcat12
-  - PromoFaux
-  name: pullapprove
-  required: 3
+version: 2
+
 always_pending:
-  title_regex: '(WIP|wip)'
+  title_regex: '(WIP|wip)'  
   labels:
     - wip
   explanation: 'This PR is a work in progress...'
+
+group_defaults:
+  reset_on_push:
+    enabled: true
+  reject_value: -1
+  approve_by_comment:
+    enabled: true
+    approve_regex: '^(Approved|:shipit:|:\+1:|Engage)'
+
+groups:
+  development:
+    author_approval:
+      auto: true
+    conditions:
+      branches:
+        - development
+    required: 2
+    users:
+      - brantje
+      - dschaper
+      - jacobsalmela
+      - Mcat12
+      - PromoFaux
+  
+  development-master:
+    conditions:
+      branches:
+        - "master...development" # Only needed if merging into master from development
+    required: 1
+    users:
+      - brantje
+      - dschaper
+      - jacobsalmela
+      - Mcat12
+      - PromoFaux
