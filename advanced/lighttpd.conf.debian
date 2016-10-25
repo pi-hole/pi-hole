@@ -52,10 +52,11 @@ $HTTP["url"] =~ "^/admin/" {
     )
 }
 
+# Rewite js requests, must be out of $HTTP block due to bug #2526
+url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
+
 # If the URL does not start with /admin, then it is a query for an ad domain
 $HTTP["url"] =~ "^(?!/admin)/.*" {
     # Create a response header for debugging using curl -I
     setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
-    # rewrite only js requests
-    url.rewrite = ("(.*).js" => "pihole/index.js")
 }
