@@ -102,8 +102,10 @@ elif [ -x "$(command -v rpm)" ];then
 	PKG_UPDATE="$PKG_MANAGER update -y"
 	PKG_INSTALL="$PKG_MANAGER install -y"
 	PKG_COUNT="$PKG_MANAGER check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+	yum list procps-ng &> /dev/null && PROCPS_PKG="procps-ng" || PROCPS_PKG="procps"
+	yum list nmap-ncat &> /dev/null && NCAT_PKG="nmap-ncat" || NCAT_PKG="nmap"
+	INSTALLER_DEPS=( iproute net-tools $PROCPS_PKG newt git )
+	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo $NCAT_PKG )
 	if grep -q 'Fedora' /etc/redhat-release; then
 		remove_deps=(epel-release);
 		PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
@@ -115,6 +117,10 @@ elif [ -x "$(command -v rpm)" ];then
 	package_check_install() {
 		rpm -qa | grep ^"$1"- > /dev/null || ${PKG_INSTALL} "$1"
 	}
+	# v6 variants php is too old, install repo for php7.1
+	if grep -q -i "release 6." /etc/redhat-release; then
+		echo "::: running CentOS/RHEL 6.X, admin interface is broken"
+	fi
 else
 	echo "OS distribution not supported"
 	exit
