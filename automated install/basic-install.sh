@@ -82,8 +82,10 @@ if [ -x "$(command -v apt-get)" ]; then
 	PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
 	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
 	PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+	# Debian 7 doesn't have iproute2 use iproute
+	${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG='iproute2' || IPROUTE_PKG='iproute'
 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
