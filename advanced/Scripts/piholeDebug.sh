@@ -124,27 +124,27 @@ ip_check() {
 	echo ":::     Locating default gateway and checking connectivity"
 	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
-		echo ":::     Pinging default IPv4 gateway..."
+		echo -n ":::     Pinging default IPv4 gateway: "
 		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}" | tail -n3)" \
-		&& echo ":::       IPv4 Default Gateway Responded." || echo ":::       IPv4 Default Gateway did not respond."
+		&& echo "Gateway responded." || echo "Gateway did not respond."
 		log_write "${IPv4_def_gateway_check}"
 
-		echo ":::     Pinging Internet via IPv4..."
+		echo -n ":::     Pinging Internet via IPv4: "
 		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)" \
-		&& echo ":::       IPv4 Internet query responded." || echo ":::       IPv4 Internet query did not respond."
+		&& echo "Query responded." || echo "Query did not respond."
 		log_write "${IPv4_inet_check}"
 	fi
 
 	local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
-		echo ":::     Pinging default IPv6 gateway..."
+		echo -n ":::     Pinging default IPv6 gateway: "
 		local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
-		&& echo ":::       IPv6 Default Gateway Responded." || echo ":::       IPv6 Default Gateway did not respond."
+		&& echo "Gateway Responded." || echo "Gateway did not respond."
     log_write "${IPv6_def_gateway_check}"
 
-		echo ":::     Pinging Internet via IPv6..."
+		echo -n ":::     Pinging Internet via IPv6: "
 		local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
-		&& echo ":::       IPv6 Internet query responded." || echo ":::       IPv6 Internet query did not respond."
+		&& echo "Query responded." || echo "Query did not respond."
 	else
 		IPv6_inet_check="No IPv6 Gateway Detected"
 	fi
@@ -172,14 +172,18 @@ hostnameCheck() {
 	fi
 }
 
-portCheck() {
-	header_write "Open Port Information"
+daemon_check() {
+  # Check for daemon ${1} on port ${2}
+	header_write "Daemon Port Listening Information"
 
-	echo ":::     Detecting local server port 80 and 53 processes."
-
-	lsof -i :80 >> ${DEBUG_LOG}
-	lsof -i :53 >> ${DEBUG_LOG}
-	log_write ""
+	echo ":::     Checking port ${2} for ${1} listener."
+  local found_daemon=false
+	local ret_Val=$(lsof -i :${2} -FcL) \
+	&& (echo ":::       Port ${2} is in use." && found_daemon=true) \
+	|| (echo ":::       Port ${2} is not in use.")
+	if [[ found_daemon ]]; then
+		log_echo "Temporary holding place for evaluation code ${ret_Val}"
+	fi
 }
 
 testResolver() {
@@ -289,7 +293,8 @@ files_check "setupVars.conf"
 distro_check
 ip_check
 hostnameCheck
-portCheck
+daemon_check lighttpd http
+daemon_check dnsmasq domain
 checkProcesses
 testResolver
 debugLighttpd
