@@ -101,11 +101,8 @@ distro_check() {
   header_write "Installed OS Distribution"
 
 	echo ":::     Checking installed OS Distribution release."
-	TMP=$(cat /etc/*release || echo "Failed to find release")
-
-	echo ":::     Writing OS Distribution release to logfile."
-	log_write "${TMP}"
-	log_write ""
+	local distro="$(cat /etc/*release)" && log_write "${distro}" || log_write "Distribution details not found."
+	echo ":::"
 }
 
 ip_check() {
@@ -113,6 +110,7 @@ ip_check() {
 	# Get the current interface for Internet traffic
 	local IPv6_temp_interface=$(ip -6 r | grep default | cut -d ' ' -f 5)
 	# If declared in setupVars.conf use it, otherwise defer to default
+	# http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
 	local IPv6_interface=${piholeInterface:-$IPv6_temp_interface}
 
 	echo ":::     Collecting local IP info."
