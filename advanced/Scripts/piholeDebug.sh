@@ -152,7 +152,7 @@ ip_check() {
 	  || log_echo "No IPv6 addresses found."
 
     local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
-    if [[ $? = 0 ]]; then
+    if [[ $? = 0 ]] && [[ -n ${IPv6_def_gateway} ]]; then
       echo -n ":::     Pinging default IPv6 gateway: "
       local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
       && echo "Gateway Responded." || echo "Gateway did not respond."
@@ -164,8 +164,7 @@ ip_check() {
     else
       IPv6_inet_check="No IPv6 Gateway Detected"
     fi
-    log_write "${IPv6_inet_check}"
-    log_write ""
+    log_echo "${IPv6_inet_check}"
     echo ":::"
   fi
 }
