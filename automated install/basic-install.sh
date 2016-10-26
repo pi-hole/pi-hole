@@ -24,7 +24,7 @@ setupVars=/etc/pihole/setupVars.conf
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+piholeGitUrl="${piholeGitUrl:-https://github.com/pi-hole/pi-hole.git}"
 piholeFilesDir="/etc/.pihole"
 
 useUpdateVars=false
@@ -75,10 +75,6 @@ fi
 
 if [ -x "$(command -v apt-get)" ]; then
 	#Debian Family
-	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
-	phpVer="php5"
-	apt-get install --dry-run php5 > /dev/null 2>&1 || phpVer="php"
-	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/lib/apt/lists/"
 	UPDATE_PKG_CACHE="${PKG_MANAGER} update"
@@ -86,8 +82,15 @@ if [ -x "$(command -v apt-get)" ]; then
 	PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
 	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
 	PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+	# #########################################
+	# fixes for dependancy differences 
+	# Debian 7 doesn't have iproute2 use iproute
+	${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
+	# Ubuntu 16.04 LTS php / php5 fix
+	${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
+	# #########################################
 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
+	PIHOLE_DEPS=( dnsutils bc iputils-ping dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -97,29 +100,30 @@ if [ -x "$(command -v apt-get)" ]; then
 	}
 elif [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
-	if [ -x "$(command -v dnf)" ]; then
-		PKG_MANAGER="dnf"
-	else
-		PKG_MANAGER="yum"
-	fi
+
+	(command -v dnf >/dev/null ) && PKG_MANAGER="dnf" || PKG_MANAGER="yum"
+	(grep -q "Fedora" /etc/redhat-release ) && ISFEDORA=1
+	(grep -q -i "release 6." /etc/redhat-release ) && ISREL6=1
 	PKG_CACHE="/var/cache/${PKG_MANAGER}"
 	UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
 	PKG_UPDATE="${PKG_MANAGER} update -y"
 	PKG_INSTALL="${PKG_MANAGER} install -y"
 	PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
-	if grep -q 'Fedora' /etc/redhat-release; then
-		remove_deps=(epel-release);
-		PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
-	fi
+	# We only need epel if we are not Fedora 
+	[ ${ISFEDORA} ] || EPEL_PKG="epel-release"
+	${PKG_MANAGER} list procps-ng &> /dev/null && PROCPS_PKG="procps-ng" || PROCPS_PKG="procps"
+	${PKG_MANAGER} list nmap-ncat &> /dev/null && NCAT_PKG="nmap-ncat" || NCAT_PKG="nc"
+	INSTALLER_DEPS=( iproute net-tools $PROCPS_PKG newt git )
+	PIHOLE_DEPS=( ${EPEL_PKG} bind-utils lsof bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo $NCAT_PKG )
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
 	DNSMASQ_USER="nobody"
 	package_check_install() {
-		rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
+		${PKG_INSTALL} "${1}"
 	}
+	# v6 variants php is too old, install repo for php7.1
+	[ ${ISREL6} ] && echo "::: WARNING running CentOS/RHEL 6.X, admin interface is broken"
 else
 	echo "OS distribution not supported"
 	exit
@@ -777,14 +781,15 @@ configureFirewall() {
 	if [ -x "$(command -v firewall-cmd)" ]; then
 		firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
 		&& firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
-	elif [ -x "$(command -v iptables)" ]; then
-		echo "::: Configuring iptables for httpd and dnsmasq.."
-		iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
-		iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
-		iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
-	else
-		echo "::: No firewall detected.. skipping firewall configuration."
-	fi
+		return
+    fi
+	if [ "$(command -v iptable)" ]; then
+		iptables_out=$(iptables -L -n || :)
+		(cat $iptables_out | grep -i REJECT || cat $iptables_out | grep -i DROP || echo "::: IPTables firewall does not seem to be active" && return )
+		echo "::: IPTables firewall active, please make sure ports 53/udp, 53/tcp, and 80/tcp are open"
+		return
+    fi
+	echo "::: No firewall detected.. skipping firewall configuration."
 }
 
 finalExports() {
@@ -845,6 +850,9 @@ updatePihole() {
 
 configureSelinux() {
 	if [ -x "$(command -v getenforce)" ]; then
+		# If selinux is disabled skip
+         	getenforce | grep Disabled &> /dev/null && return
+
 		printf "\n::: SELinux Detected\n"
 		printf ":::\tChecking for SELinux policy development packages..."
 		package_check_install "selinux-policy-devel" > /dev/null
