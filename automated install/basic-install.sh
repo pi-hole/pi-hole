@@ -40,6 +40,9 @@ columns=$(echo $screen_size | awk '{print $2}')
 # Divide by two so the dialogs take up half of the screen, which looks nice.
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
+# Unless the screen is tiny
+r=$(( r < 20 ? 20 : r ))
+c=$(( c < 70 ? 70 : c ))
 
 ######## Undocumented Flags. Shhh ########
 skipSpaceCheck=false
