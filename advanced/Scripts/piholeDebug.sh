@@ -56,20 +56,24 @@ header_write() {
   echo "" >> "${DEBUG_LOG}"
 }
 
+log_echo() {
+  echo ":::       ${1}"
+  log_write "${1}"
+}
+
 version_check() {
   header_write "Installed Package Versions"
 	echo ":::     Detecting Pi-hole installed versions."
 
 	pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
-	&& log_write "Pi-hole Version: $pi_hole_ver" || log_write "Pi-hole git repository not detected."
+	&& log_echo "Pi-hole: $pi_hole_ver" || log_echo "Pi-hole git repository not detected."
 	admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
-	&& log_write "WebUI Version: $admin_ver" || log_write "Pi-hole Admin Pages git repository not detected."
-
-	echo ":::     Writing lighttpd version to logfile."
-	light_ver="$(lighttpd -v |& head -n1)" && log_write "${light_ver}" || log_write "lighttpd not installed."
-
-	echo ":::     Writing PHP version to logfile."
-	php_ver="$(php -v |& head -n1)" && log_write "${php_ver}" || log_write "PHP not installed."
+	&& log_echo "WebUI: $admin_ver" || log_echo "Pi-hole Admin Pages git repository not detected."
+	light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
+	&& log_echo "${light_ver}" || log_echo "lighttpd not installed."
+	php_ver="$(php -v |& head -n1)" \
+	&& log_echo "${php_ver}" || log_echo "PHP not installed."
+	echo ":::"
 }
 
 files_check() {
