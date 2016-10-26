@@ -115,7 +115,10 @@ distro_check() {
 
 ip_check() {
 	header_write "IP Address Information"
-	echo $piholeInterface
+	# Get the current interface for Internet traffic
+	local IPv6_temp_interface=$(ip -6 r | grep default | cut -d ' ' -f 5)
+	# If declared in setupVars.conf use it, otherwise defer to default
+	local IPv6_interface=${piholeInterface:-$IPv6_temp_interface}
 
 	echo ":::     Collecting local IP info."
 	local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
@@ -134,28 +137,20 @@ ip_check() {
 		log_write "${IPv4_def_gateway_check}"
 
 		echo ":::     Pinging Internet via IPv4..."
-		INET_CHECK=$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)
-		if [[ $? = 0 ]]; then
-			log_write "IPv4 Internet check:"
-		else
-			log_write "IPv4 Internet check failed:"
-		fi
-		log_write "${INET_CHECK}"
-		log_write ""
+		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)" \
+		&& echo ":::       IPv4 Internet query responded." || echo ":::       IPv4 Internet query did not respond."
+		log_write "${IPv4_inet_check}"
 	fi
 
-	GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
+	local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
 		echo ":::     Pinging default IPv6 gateway..."
-		GATEWAY6_CHECK=$(ping6 -q -W 3 -c 3 -n "${GATEWAY6}" )
-		if [[ $? = 0 ]]; then
-			log_write "IPv6 Gateway check:"
-		else
-			log_write "IPv6 Gateway check failed:"
-		fi
+		local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
+		&& echo ":::       IPv6 Default Gateway Responded." || echo ":::       IPv6 Default Gateway did not respond."
+    log_write "${IPv6_def_gateway_check}"
 
 		echo ":::     Pinging Internet via IPv6..."
-		GATEWAY6_CHECK=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 | tail -n3)
+		GATEWAY6_CHECK=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3)
 		if [[ $? = 0 ]]; then
 			log_write "IPv6 Internet check:"
 		else
@@ -165,7 +160,7 @@ ip_check() {
 	else
 		GATEWAY6_CHECK="No IPv6 Gateway Detected"
 	fi
-	log_write "${GATEWAY_CHECK}"
+	log_write "${GATEWAY6_CHECK}"
 
 
 	log_write ""
