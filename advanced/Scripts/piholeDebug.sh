@@ -65,43 +65,41 @@ version_check() {
   header_write "Installed Package Versions"
 	echo ":::     Detecting Pi-hole installed versions."
 
-	pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
+	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
 	&& log_echo "Pi-hole: $pi_hole_ver" || log_echo "Pi-hole git repository not detected."
-	admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
+	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
 	&& log_echo "WebUI: $admin_ver" || log_echo "Pi-hole Admin Pages git repository not detected."
-	light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
+	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
 	&& log_echo "${light_ver}" || log_echo "lighttpd not installed."
-	php_ver="$(php -v |& head -n1)" \
+	local php_ver="$(php -v |& head -n1)" \
 	&& log_echo "${php_ver}" || log_echo "PHP not installed."
 	echo ":::"
 }
 
-files_check() {
-  header_write "Files Check"
+source_variable() {
+  # Source file passed in as ${1} and add variable at ${2} to environment
+  source ${1}
+  echo $piholeInterface
+}
 
-    #Check existence of setupVars.conf, and source it to get configured network interface for later use in script.
-    echo -n ":::     Detecting existence setupVars.conf..."
-    setupVars=/etc/pihole/setupVars.conf
-    if [[ -f ${setupVars} ]];then
-        echo " found!"
-        log_write "/etc/pihole/setupVars.conf exists! Contents:"
-        while read -r line; do
-			if [ ! -z "${line}" ]; then
-				[[ "${line}" =~ ^#.*$ ]] && continue
+files_check() {
+  header_write "File Check"
+
+  #Check non-zero length existence of ${1}
+  echo ":::     Detecting existence of ${1}..."
+  local searchFile=/etc/pihole/"${1}"
+  if [[ -s ${searchFile} ]]; then
+    log_echo "/etc/pihole/${1} exists!"
+    while read -r line; do
+		  if [ ! -z "${line}" ]; then
+			  [[ "${line}" =~ ^#.*$ ]] && continue
 				log_write "${line}"
 			fi
-		done < "${setupVars}"
-		log_write ""
-
-        . "${setupVars}"
-        if [[ -n "${piholeInterface}" ]]; then
-            # prepend % to the beginning of piholeInterface for later use
-            piholeInterface="%${piholeInterface}"
-        fi
-    else
-        echo "     NOT FOUND!"
-        log_write "/etc/pihole/setupVars.conf not found!"
-    fi
+		done < "${searchFile}"
+	else
+    log_echo "/etc/pihole/${1} not found!"
+  fi
+  echo ":::"
 }
 
 distro_check() {
@@ -309,7 +307,7 @@ debugLighttpd() {
 ### END FUNCTIONS ###
 
 version_check
-files_check
+files_check "setupVars.conf"
 distro_check
 ip_check
 hostnameCheck
