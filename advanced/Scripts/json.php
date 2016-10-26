@@ -8,11 +8,11 @@ if ((isset($argv[1])) && (isset($argv[2]))) {
       echo "$result[$key]";
     } else {
       //key dosnt exist
-      die("Error KEY");
+      die("Error");
     }
   } else {
     //invalid json
-    die("Error JSON");
+    die("Error");
   }
 } else {
   die("Usage: php json.php \"JSON DATA HERE\" \"Key\"");
