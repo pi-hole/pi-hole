@@ -187,12 +187,16 @@ gravity_Schwarzchild() {
 
 gravity_Blacklist() {
 	# Append blacklist entries if they exist
-	numBlacklisted=$(wc -l < "${blacklistFile}")
-	plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
+	if [[ -f "${blacklistFile}" ]]; then
+	    numBlacklisted=$(wc -l < "${blacklistFile}")
+	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
+	    echo -n "::: BlackListing $numBlacklisted domain${plural}..."
+	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
+	    echo " done!"
+	else
+	    echo "::: Nothing to blacklist!"
+	fi
 
-	echo -n "::: BlackListing $numBlacklisted domain${plural}..."
-	cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
-	echo " done!"
 }
 
 gravity_Whitelist() {
@@ -209,15 +213,19 @@ gravity_Whitelist() {
 	done
 	echo " done!"
 
-    # Ensure adlist domains are in whitelist.txt
+	# Ensure adlist domains are in whitelist.txt
 	${whitelistScript} -nr -q "${urls[@]}" > /dev/null
 
-    # Remove anything in whitelist.txt from the Event Horizon
-    numWhitelisted=$(wc -l < "${whitelistFile}")
-	plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
-    echo -n "::: Whitelisting $numWhitelisted domain${plural}..."
-	grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
-    echo " done!"
+	if [[ -f "${whitelistFile}" ]]; then
+        # Remove anything in whitelist.txt from the Event Horizon
+        numWhitelisted=$(wc -l < "${whitelistFile}")
+        plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
+        echo -n "::: Whitelisting $numWhitelisted domain${plural}..."
+        grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
+        echo " done!"
+	else
+	    echo "::: Nothing to whitelist!"
+	fi
 }
 
 gravity_unique() {
