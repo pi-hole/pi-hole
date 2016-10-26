@@ -111,15 +111,27 @@ elif [ -x "$(command -v rpm)" ]; then
 	${PKG_MANAGER} list nmap-ncat &> /dev/null && NCAT_PKG="nmap-ncat" || NCAT_PKG="nc"
 	INSTALLER_DEPS=( iproute net-tools $PROCPS_PKG newt git )
 	PIHOLE_DEPS=( ${EPEL_PKG} bind-utils lsof bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo $NCAT_PKG )
-	LIGHTTPD_USER="lighttpd"
-	LIGHTTPD_GROUP="lighttpd"
-	LIGHTTPD_CFG="lighttpd.conf.fedora"
-	DNSMASQ_USER="nobody"
 	package_check_install() {
 		${PKG_INSTALL} "${1}"
 	}
 	# v6 variants php is too old, install repo for php7.1
 	[ ${ISREL6} ] && echo "::: WARNING running CentOS/RHEL 6.X, admin interface is broken"
+elif [ -x "$(command -v apk)" ]; then
+    echo "::: ALPHA ALPAH - Alpine support"
+    ISALPINE=1
+    # Alpine famile
+    PKG_MANAGER="apk"
+    PKG_UPDATE="${PKG_MANAGER} update"
+    PKG_INSTALL="${PKG_MANAGER} add"
+	INSTALLER_DEPS=( iproute2 net-tools procps newt git )
+	PIHOLE_DEPS=( perl bind-tools bc dnsmasq lighttpd php5-common php5-cli php5-cgi php5-json php5 fcgi curl findutils chrony sudo )
+	LIGHTTPD_USER="lighttpd"
+	LIGHTTPD_GROUP="lighttpd"
+	LIGHTTPD_CFG="lighttpd.conf.fedora"
+	DNSMASQ_USER="dnsmasq"
+    package_check_install() {
+        ${PKG_INSTALL} "${1}"
+    }
 else
 	echo "OS distribution not supported"
 	exit
@@ -386,7 +398,7 @@ setStaticIPv4() {
 		fi
 	else
 		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
-		exit 1
+		[ ${ISALPINE} ] || exit 1
 	fi
 }
 
@@ -509,7 +521,7 @@ version_check_dnsmasq() {
 
 	if [ -f ${dnsmasq_conf} ]; then
 		echo -n ":::    Existing dnsmasq.conf found..."
-		if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
+		if [ ${ISALPINE} ] || grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
 			echo " it is from a previous pi-hole install."
 			echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
 			mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
@@ -525,9 +537,8 @@ version_check_dnsmasq() {
 		cp ${dnsmasq_original_config} ${dnsmasq_conf}
 		echo " done."
 	fi
-
 	echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
-	cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
+	install -m755 -D ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
 	echo " done."
 	sed -i "s/@INT@/$piholeInterface/" ${dnsmasq_pihole_01_location}
 	if [[ "${piholeDNS1}" != "" ]]; then
@@ -750,7 +761,7 @@ installCron() {
 	# Install the cron job
 	echo ":::"
 	echo -n "::: Installing latest Cron script..."
-	cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
+	install -m755 -D  /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
 	echo " done!"
 }
 
@@ -769,7 +780,7 @@ runGravity() {
 create_pihole_user() {
 	# Check if user pihole exists and create if not
 	echo "::: Checking if user 'pihole' exists..."
-	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || (echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole)
+	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || (echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole 2>/dev/null || adduser -S -s /sbin/nologin pihole )
 }
 
 configureFirewall() {
@@ -810,7 +821,7 @@ installPihole() {
 	fi
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
 	chmod 775 /var/www/html
-	usermod -a -G ${LIGHTTPD_GROUP} pihole
+	usermod -a -G ${LIGHTTPD_GROUP} pihole 2> /dev/null || addgroup pihole ${LIGHTTPD_GROUP}
 	if [ -x "$(command -v lighty-enable-mod)" ]; then
 		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
 	else
@@ -944,10 +955,10 @@ main() {
 	fi
 
 	# Update package cache
-	update_pacakge_cache
+	[ ${ISALPINE} ] || update_pacakge_cache
 
 	# Notify user of package availability
-	notify_package_updates_available
+	[ ${ISALPINE} ] || notify_package_updates_available
 
 	# Install packages used by this installation script
 	install_dependent_packages INSTALLER_DEPS[@]
