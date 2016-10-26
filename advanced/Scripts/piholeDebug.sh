@@ -50,31 +50,33 @@ log_write() {
 	echo "${1}" >> "${DEBUG_LOG}"
 }
 
-version_check() {
-	log_write "############################################################"
-	log_write "##########           Installed Versions           ##########"
-	log_write "############################################################"
+header_write() {
+  echo "" >> "${DEBUG_LOG}"
+  echo "::: ${1}" >> "${DEBUG_LOG}"
+  echo "" >> "${DEBUG_LOG}"
+}
 
-	echo "::: Detecting Pi-hole installed versions."
+version_check() {
+  header_write "Installed Package Versions"
+	echo ":::     Detecting Pi-hole installed versions."
+
 	pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
 	&& log_write "Pi-hole Version: $pi_hole_ver" || log_write "Pi-hole git repository not detected."
 	admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
 	&& log_write "WebUI Version: $admin_ver" || log_write "Pi-hole Admin Pages git repository not detected."
 
-	echo "::: Writing lighttpd version to logfile."
+	echo ":::     Writing lighttpd version to logfile."
 	light_ver="$(lighttpd -v |& head -n1)" && log_write "${light_ver}" || log_write "lighttpd not installed."
 
-	echo "::: Writing PHP version to logfile."
+	echo ":::     Writing PHP version to logfile."
 	php_ver="$(php -v |& head -n1)" && log_write "${php_ver}" || log_write "PHP not installed."
 }
 
 files_check() {
-	log_write "############################################################"
-	log_write "##########              Files Check               ##########"
-	log_write "############################################################"
+  header_write "Files Check"
 
     #Check existence of setupVars.conf, and source it to get configured network interface for later use in script.
-    echo -n "::: Detecting existence setupVars.conf..."
+    echo -n ":::     Detecting existence setupVars.conf..."
     setupVars=/etc/pihole/setupVars.conf
     if [[ -f ${setupVars} ]];then
         echo " found!"
@@ -93,30 +95,26 @@ files_check() {
             piholeInterface="%${piholeInterface}"
         fi
     else
-        echo " NOT FOUND!"
+        echo "     NOT FOUND!"
         log_write "/etc/pihole/setupVars.conf not found!"
     fi
 }
 
 distro_check() {
-	log_write "############################################################"
-	log_write "########          Installed OS Distribution        #########"
-	log_write "############################################################"
+  header_write "Installed OS Distribution"
 
-	echo "::: Checking installed OS Distribution release."
+	echo ":::     Checking installed OS Distribution release."
 	TMP=$(cat /etc/*release || echo "Failed to find release")
 
-	echo "::: Writing OS Distribution release to logfile."
+	echo ":::     Writing OS Distribution release to logfile."
 	log_write "${TMP}"
 	log_write ""
 }
 
 ip_check() {
-	log_write "############################################################"
-	log_write "########           IP Address Information          #########"
-	log_write "############################################################"
+	header_write "IP Address Information"
 
-	echo "::: Writing local IPs to logfile"
+	echo ":::     Writing local IPs to logfile"
 	IPADDR="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')"
 	log_write "${IPADDR}"
 
@@ -124,10 +122,10 @@ ip_check() {
 	&& log_write "${IP6ADDR}" || log_write "No IPv6 addresses found."
 	log_write ""
 
-	echo "::: Locating default gateway and checking connectivity"
+	echo ":::     Locating default gateway and checking connectivity"
 	GATEWAY=$(ip r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
-		echo "::: Pinging default IPv4 gateway..."
+		echo ":::     Pinging default IPv4 gateway..."
 		GATEWAY_CHECK=$(ping -q -w 3 -c 3 -n "${GATEWAY}" | tail -n3)
 		if [[ $? = 0 ]]; then
 			log_write "IPv4 Gateway check:"
@@ -137,7 +135,7 @@ ip_check() {
 		log_write "${GATEWAY_CHECK}"
 		log_write ""
 
-		echo "::: Pinging Internet via IPv4..."
+		echo ":::     Pinging Internet via IPv4..."
 		INET_CHECK=$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)
 		if [[ $? = 0 ]]; then
 			log_write "IPv4 Internet check:"
@@ -150,7 +148,7 @@ ip_check() {
 
 	GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
-		echo "::: Pinging default IPv6 gateway..."
+		echo ":::     Pinging default IPv6 gateway..."
 		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n "${GATEWAY6}""${piholeInterface}" | tail -n3)
 		if [[ $? = 0 ]]; then
 			log_write "IPv6 Gateway check:"
@@ -158,7 +156,7 @@ ip_check() {
 			log_write "IPv6 Gateway check failed:"
 		fi
 
-		echo "::: Pinging Internet via IPv6..."
+		echo ":::     Pinging Internet via IPv6..."
 		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n 2001:4860:4860::8888"${piholeInterface}" | tail -n3)
 		if [[ $? = 0 ]]; then
 			log_write "IPv6 Internet check:"
@@ -176,15 +174,13 @@ ip_check() {
 }
 
 hostnameCheck() {
-	log_write "############################################################"
-	log_write "########            Hostname Information           #########"
-	log_write "############################################################"
+	header_write "Hostname Information"
 
-	echo "::: Writing locally configured hostnames to logfile"
+	echo ":::     Writing locally configured hostnames to logfile"
 	# Write the hostname output to compare against entries in /etc/hosts, which is logged next
 	log_write "This Pi-hole is: $(hostname)"
 
-	echo "::: Writing hosts file to debug log..."
+	echo ":::     Writing hosts file to debug log..."
 	log_write "###              Hosts              ###"
 
 	if [ -e "${HOSTSFILE}" ]; then
@@ -197,11 +193,9 @@ hostnameCheck() {
 }
 
 portCheck() {
-	log_write "############################################################"
-	log_write "########           Open Port Information           #########"
-	log_write "############################################################"
+	header_write "Open Port Information"
 
-	echo "::: Detecting local server port 80 and 53 processes."
+	echo ":::     Detecting local server port 80 and 53 processes."
 
 	lsof -i :80 >> ${DEBUG_LOG}
 	lsof -i :53 >> ${DEBUG_LOG}
@@ -209,10 +203,7 @@ portCheck() {
 }
 
 testResolver() {
-	log_write "############################################################"
-	log_write "############      Resolver Functions Check      ############"
-	log_write "############################################################"
-
+	header_write "Resolver Functions Check"
 
 	# Find a blocked url that has not been whitelisted.
 	TESTURL="doubleclick.com"
@@ -269,11 +260,9 @@ testResolver() {
 }
 
 checkProcesses() {
-	log_write "#######################################"
-	log_write "########### Processes Check ###########"
-	log_write "#######################################"
-	log_write ":::"
-	echo "::: Logging status of lighttpd and dnsmasq..."
+	header_write "Processes Check"
+
+	echo ":::     Logging status of lighttpd and dnsmasq..."
 	PROCESSES=( lighttpd dnsmasq )
 	for i in "${PROCESSES[@]}"; do
 		log_write ""
@@ -285,10 +274,8 @@ checkProcesses() {
 }
 
 debugLighttpd() {
-	log_write "::: Writing lighttpd to debug log..."
-	log_write "#######################################"
-	log_write "############ lighttpd.conf ############"
-	log_write "#######################################"
+	header_write "lighttpd.conf"
+
 	if [ -e "${LIGHTTPDFILE}" ]; then
 		while read -r line; do
 			if [ ! -z "${line}" ]; then
@@ -303,9 +290,10 @@ debugLighttpd() {
 	fi
 
 	if [ -e "${LIGHTTPDERRFILE}" ]; then
-		log_write "#######################################"
-		log_write "######### lighttpd error.log ##########"
-		log_write "#######################################"
+		log_write ""
+		log_write "::: lighttpd error.log"
+		log_write ""
+
 		cat "${LIGHTTPDERRFILE}" >> ${DEBUG_LOG}
 	else
 		log_write "No lighttpd error.log file found!"
@@ -327,9 +315,7 @@ testResolver
 debugLighttpd
 
 echo "::: Writing dnsmasq.conf to debug log..."
-log_write "#######################################"
-log_write "############### Dnsmasq ###############"
-log_write "#######################################"
+header_write "Dnsmasq configuration"
 if [ -e "${DNSMASQFILE}" ]; then
 	#cat $DNSMASQFILE >> $DEBUG_LOG
 	while read -r line; do
@@ -345,9 +331,8 @@ else
 fi
 
 echo "::: Writing 01-pihole.conf to debug log..."
-log_write "#######################################"
-log_write "########### 01-pihole.conf ############"
-log_write "#######################################"
+header_write "01-pihole.conf"
+
 if [ -e "${PIHOLECONFFILE}" ]; then
 	while read -r line; do
 		if [ ! -z "${line}" ]; then
@@ -362,9 +347,8 @@ else
 fi
 
 echo "::: Writing size of gravity.list to debug log..."
-log_write "#######################################"
-log_write "############ gravity.list #############"
-log_write "#######################################"
+header_write "gravity.list"
+
 if [ -e "${GRAVITYFILE}" ]; then
 	wc -l "${GRAVITYFILE}" >> ${DEBUG_LOG}
 	log_write ""
@@ -376,9 +360,7 @@ fi
 
 ### Pi-hole application specific logging ###
 echo "::: Writing whitelist to debug log..."
-log_write "#######################################"
-log_write "############## Whitelist ##############"
-log_write "#######################################"
+header_write "Whitelist"
 if [ -e "${WHITELISTFILE}" ]; then
 	cat "${WHITELISTFILE}" >> ${DEBUG_LOG}
 	log_write
@@ -388,9 +370,7 @@ else
 fi
 
 echo "::: Writing blacklist to debug log..."
-log_write "#######################################"
-log_write "############## Blacklist ##############"
-log_write "#######################################"
+header_write "Blacklist"
 if [ -e "${BLACKLISTFILE}" ]; then
 	cat "${BLACKLISTFILE}" >> ${DEBUG_LOG}
 	log_write
@@ -400,9 +380,7 @@ else
 fi
 
 echo "::: Writing adlists.list to debug log..."
-log_write "#######################################"
-log_write "############ adlists.list #############"
-log_write "#######################################"
+header_write "adlists.list"
 if [ -e "${ADLISTSFILE}" ]; then
 	while read -r line; do
 		if [ ! -z "${line}" ]; then
@@ -421,9 +399,7 @@ fi
 dumpPiHoleLog() {
 	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
 	echo -e "::: Writing current Pi-hole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
-	log_write "#######################################"
-	log_write "############# pihole.log ##############"
-	log_write "#######################################"
+	header_write "pihole.log"
 	if [ -e "${PIHOLELOG}" ]; then
 		while true; do
 			tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
