@@ -190,7 +190,6 @@ hostnameCheck() {
 lsof_parse() {
   # Dummy function for now
   echo "Dummy function lsof_parse got called"
-  log_echo ${1}
 }
 
 daemon_check() {
@@ -202,12 +201,12 @@ daemon_check() {
 	local lsof_value
 
 	if [[ ${IPV6_ENABLED} ]]; then
-	  lsof_value=$(lsof -i 6:${2} -FcL) \
+	  lsof_value=$(lsof -i 6:${2} -F0cL) \
 	  && (echo ":::       Port ${2} is in use on IPv6." && found_daemon=true && echo "${lsof_value}") \
 	  || (echo ":::       Port ${2} is not in use.")
 	fi
 
-	lsof_value=$(lsof -i 4:${2} -FcL) \
+	lsof_value=$(lsof -i 4:${2} -F0cL) \
 	  && (echo ":::       Port ${2} is in use on IPv4." && found_daemon=true && echo "${lsof_value}") \
 	  || (echo ":::       Port ${2} is not in use.")
 }
