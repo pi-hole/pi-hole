@@ -20,9 +20,8 @@ function outputJSON(){
 	echo ${json}
 }
 
-function normalChrono(){
-	for (( ; ; ))
-	do
+normalChrono() {
+	for (( ; ; )); do
 		clear
 		# Displays a colorful Pi-hole logo
 		echo " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m"
@@ -53,17 +52,17 @@ function normalChrono(){
 	done
 }
 
-
-function displayHelp(){
- 	echo "::: Displays stats about your piHole!"
-    echo ":::"
-    echo "::: Usage: sudo pihole -c [optional:-j]"
-    echo "::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
-    echo ":::"
-    echo "::: Options:"
-    echo ":::  -j, --json		output stats as JSON formatted string"
-    echo ":::  -h, --help		display this help text"
-
+displayHelp() {
+	cat << EOM
+::: Displays stats about your piHole!
+:::
+::: Usage: sudo pihole -c [optional:-j]
+::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds
+:::
+::: Options:
+:::  -j, --json		output stats as JSON formatted string
+:::  -h, --help		display this help text
+EOM
     exit 1
 }
 
@@ -72,11 +71,10 @@ if [[ $# = 0 ]]; then
 	normalChrono
 fi
 
-for var in "$@"
-do
-  case "$var" in
-    "-j" | "--json"  ) outputJSON;;
-    "-h" | "--help"  ) displayHelp;;
-    *                ) exit 1;;
-  esac
+for var in "$@"; do
+	case "$var" in
+		"-j" | "--json"  ) outputJSON;;
+		"-h" | "--help"  ) displayHelp;;
+		*                ) exit 1;;
+	esac
 done
