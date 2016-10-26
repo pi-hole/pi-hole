@@ -76,26 +76,21 @@ version_check() {
 	echo ":::"
 }
 
-source_variable() {
-  # Source file passed in as ${1} and add variable at ${2} to environment
-  source ${1}
-  echo $piholeInterface
-}
-
 files_check() {
   header_write "File Check"
 
   #Check non-zero length existence of ${1}
   echo ":::     Detecting existence of ${1}..."
-  local searchFile=/etc/pihole/"${1}"
-  if [[ -s ${searchFile} ]]; then
+  local search_file=/etc/pihole/"${1}"
+  if [[ -s ${search_file} ]]; then
     log_echo "/etc/pihole/${1} exists!"
+    source "${search_file}" &> /dev/null && log_echo "Successfully sourced ${search_file}" || log_echo "Could not source ${search_file}"
     while read -r line; do
 		  if [ ! -z "${line}" ]; then
 			  [[ "${line}" =~ ^#.*$ ]] && continue
 				log_write "${line}"
 			fi
-		done < "${searchFile}"
+		done < "${search_file}"
 	else
     log_echo "/etc/pihole/${1} not found!"
   fi
@@ -150,20 +145,14 @@ ip_check() {
     log_write "${IPv6_def_gateway_check}"
 
 		echo ":::     Pinging Internet via IPv6..."
-		GATEWAY6_CHECK=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3)
-		if [[ $? = 0 ]]; then
-			log_write "IPv6 Internet check:"
-		else
-			log_write "IPv6 Internet check failed:"
-		fi
-
+		local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
+		&& echo ":::       IPv6 Internet query responded." || echo ":::       IPv6 Internet query did not respond."
 	else
-		GATEWAY6_CHECK="No IPv6 Gateway Detected"
+		IPv6_inet_check="No IPv6 Gateway Detected"
 	fi
-	log_write "${GATEWAY6_CHECK}"
-
-
+	log_write "${IPv6_inet_check}"
 	log_write ""
+	echo ":::"
 }
 
 hostnameCheck() {
