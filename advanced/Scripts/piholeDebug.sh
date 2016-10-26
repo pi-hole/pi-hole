@@ -26,6 +26,9 @@ ADLISTSFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
+# Default to no IPv6, will check and enable if needed.
+IPV6=ENABLED=false
+
 # Header info and introduction
 cat << EOM
 ::: Beginning Pi-hole debug at $(date)!
@@ -105,21 +108,29 @@ distro_check() {
 	echo ":::"
 }
 
+ipv6_check() {
+  # Check if system is IPv6 enabled, for use in other functions
+  if [[ -a /proc/net/if_inet6 ]]; then
+    IPV6_ENABLED=true
+    return 0
+  else
+    return 1
+  fi
+}
+
 ip_check() {
 	header_write "IP Address Information"
 	# Get the current interface for Internet traffic
-	local IPv6_temp_interface=$(ip -6 r | grep default | cut -d ' ' -f 5)
+
+	# Check if IPv6 enabled
+	local IPv6_interface
+	ipv6_check &&	IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
 	# If declared in setupVars.conf use it, otherwise defer to default
 	# http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
-	local IPv6_interface=${piholeInterface:-$IPv6_temp_interface}
 
 	echo ":::     Collecting local IP info."
 	local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
 	&& (log_write "${IPv4_addr_list}" && echo ":::       IPv4 addresses located") || log_echo "No IPv4 addresses found."
-
-	local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
-	&& (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") || log_echo "No IPv6 addresses found."
-
 
 	echo ":::     Locating default gateway and checking connectivity"
 	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
@@ -135,22 +146,28 @@ ip_check() {
 		log_write "${IPv4_inet_check}"
 	fi
 
-	local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
-	if [[ $? = 0 ]]; then
-		echo -n ":::     Pinging default IPv6 gateway: "
-		local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
-		&& echo "Gateway Responded." || echo "Gateway did not respond."
-    log_write "${IPv6_def_gateway_check}"
+  if [[ IPV6_ENABLED ]]; then
+    local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
+	  && (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") \
+	  || log_echo "No IPv6 addresses found."
 
-		echo -n ":::     Pinging Internet via IPv6: "
-		local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
-		&& echo "Query responded." || echo "Query did not respond."
-	else
-		IPv6_inet_check="No IPv6 Gateway Detected"
-	fi
-	log_write "${IPv6_inet_check}"
-	log_write ""
-	echo ":::"
+    local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
+    if [[ $? = 0 ]]; then
+      echo -n ":::     Pinging default IPv6 gateway: "
+      local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
+      && echo "Gateway Responded." || echo "Gateway did not respond."
+      log_write "${IPv6_def_gateway_check}"
+
+      echo -n ":::     Pinging Internet via IPv6: "
+      local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
+      && echo "Query responded." || echo "Query did not respond."
+    else
+      IPv6_inet_check="No IPv6 Gateway Detected"
+    fi
+    log_write "${IPv6_inet_check}"
+    log_write ""
+    echo ":::"
+  fi
 }
 
 hostnameCheck() {
