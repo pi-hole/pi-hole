@@ -132,7 +132,6 @@ ip_check() {
 	local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
 	&& (log_write "${IPv4_addr_list}" && echo ":::       IPv4 addresses located") || log_echo "No IPv4 addresses found."
 
-	echo ":::     Locating default gateway and checking connectivity"
 	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
 		echo -n ":::     Pinging default IPv4 gateway: "
@@ -161,10 +160,10 @@ ip_check() {
       echo -n ":::     Pinging Internet via IPv6: "
       local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
       && echo "Query responded." || echo "Query did not respond."
+      log_write "${IPv6_inet_check}"
     else
-      IPv6_inet_check="No IPv6 Gateway Detected"
+      log_echo="No IPv6 Gateway Detected"
     fi
-    log_echo "${IPv6_inet_check}"
     echo ":::"
   fi
 }
@@ -188,18 +187,29 @@ hostnameCheck() {
 	fi
 }
 
+lsof_parse() {
+  # Dummy function for now
+  echo "Dummy function lsof_parse got called"
+  log_echo ${1}
+}
+
 daemon_check() {
   # Check for daemon ${1} on port ${2}
 	header_write "Daemon Port Listening Information"
 
 	echo ":::     Checking port ${2} for ${1} listener."
   local found_daemon=false
-	local ret_Val=$(lsof -i :${2} -FcL) \
-	&& (echo ":::       Port ${2} is in use." && found_daemon=true) \
-	|| (echo ":::       Port ${2} is not in use.")
-	if [[ found_daemon ]]; then
-		log_echo "Temporary holding place for evaluation code ${ret_Val}"
+	local lsof_value
+
+	if [[ ${IPV6_ENABLED} ]]; then
+	  lsof_value=$(lsof -i 6:${2} -FcL) \
+	  && (echo ":::       Port ${2} is in use on IPv6." && found_daemon=true && echo "${lsof_value}") \
+	  || (echo ":::       Port ${2} is not in use.")
 	fi
+
+	lsof_value=$(lsof -i 4:${2} -FcL) \
+	  && (echo ":::       Port ${2} is in use on IPv4." && found_daemon=true && echo "${lsof_value}") \
+	  || (echo ":::       Port ${2} is not in use.")
 }
 
 testResolver() {
