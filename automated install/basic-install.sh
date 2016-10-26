@@ -32,9 +32,10 @@ useUpdateVars=false
 IPv4_address=""
 IPv6_address=""
 
-# Find the rows and columns
-rows=$(stty size | awk '{print $1}')
-columns=$(stty size | awk '{print $2}')
+# Find the rows and columns will default to 80x24 is it can not be detected
+screen_size=$(stty size 2>/dev/null || echo 24 80) 
+rows=$(echo $screen_size | awk '{print $1}')
+columns=$(echo $screen_size | awk '{print $2}')
 
 # Divide by two so the dialogs take up half of the screen, which looks nice.
 r=$(( rows / 2 ))
