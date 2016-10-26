@@ -32,13 +32,17 @@ useUpdateVars=false
 IPv4_address=""
 IPv6_address=""
 
-# Find the rows and columns
-rows=$(tput lines)
-columns=$(tput cols)
+# Find the rows and columns will default to 80x24 is it can not be detected
+screen_size=$(stty size 2>/dev/null || echo 24 80) 
+rows=$(echo $screen_size | awk '{print $1}')
+columns=$(echo $screen_size | awk '{print $2}')
 
 # Divide by two so the dialogs take up half of the screen, which looks nice.
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
+# Unless the screen is tiny
+r=$(( r < 20 ? 20 : r ))
+c=$(( c < 70 ? 70 : c ))
 
 ######## Undocumented Flags. Shhh ########
 skipSpaceCheck=false
