@@ -115,27 +115,23 @@ distro_check() {
 
 ip_check() {
 	header_write "IP Address Information"
+	echo $piholeInterface
 
-	echo ":::     Writing local IPs to logfile"
-	IPADDR="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')"
-	log_write "${IPADDR}"
+	echo ":::     Collecting local IP info."
+	local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
+	&& (log_write "${IPv4_addr_list}" && echo ":::       IPv4 addresses located") || log_echo "No IPv4 addresses found."
 
-	IP6ADDR="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
-	&& log_write "${IP6ADDR}" || log_write "No IPv6 addresses found."
-	log_write ""
+	local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
+	&& (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") || log_echo "No IPv6 addresses found."
+
 
 	echo ":::     Locating default gateway and checking connectivity"
-	GATEWAY=$(ip r | grep default | cut -d ' ' -f 3)
+	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
 		echo ":::     Pinging default IPv4 gateway..."
-		GATEWAY_CHECK=$(ping -q -w 3 -c 3 -n "${GATEWAY}" | tail -n3)
-		if [[ $? = 0 ]]; then
-			log_write "IPv4 Gateway check:"
-		else
-			log_write "IPv4 Gateway check failed:"
-		fi
-		log_write "${GATEWAY_CHECK}"
-		log_write ""
+		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}" | tail -n3)" \
+		&& echo ":::       IPv4 Default Gateway Responded." || echo ":::       IPv4 Default Gateway did not respond."
+		log_write "${IPv4_def_gateway_check}"
 
 		echo ":::     Pinging Internet via IPv4..."
 		INET_CHECK=$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)
@@ -151,7 +147,7 @@ ip_check() {
 	GATEWAY6=$(ip -6 r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
 		echo ":::     Pinging default IPv6 gateway..."
-		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n "${GATEWAY6}""${piholeInterface}" | tail -n3)
+		GATEWAY6_CHECK=$(ping6 -q -W 3 -c 3 -n "${GATEWAY6}" )
 		if [[ $? = 0 ]]; then
 			log_write "IPv6 Gateway check:"
 		else
@@ -159,7 +155,7 @@ ip_check() {
 		fi
 
 		echo ":::     Pinging Internet via IPv6..."
-		GATEWAY6_CHECK=$(ping6 -q -w 3 -c 3 -n 2001:4860:4860::8888"${piholeInterface}" | tail -n3)
+		GATEWAY6_CHECK=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 | tail -n3)
 		if [[ $? = 0 ]]; then
 			log_write "IPv6 Internet check:"
 		else
@@ -167,7 +163,7 @@ ip_check() {
 		fi
 
 	else
-		GATEWAY_CHECK="No IPv6 Gateway Detected"
+		GATEWAY6_CHECK="No IPv6 Gateway Detected"
 	fi
 	log_write "${GATEWAY_CHECK}"
 
