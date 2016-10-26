@@ -24,7 +24,7 @@ setupVars=/etc/pihole/setupVars.conf
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+piholeGitUrl="${piholeGitUrl:-https://github.com/pi-hole/pi-hole.git}"
 piholeFilesDir="/etc/.pihole"
 
 useUpdateVars=false
