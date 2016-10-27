@@ -118,7 +118,7 @@ elif [ -x "$(command -v rpm)" ]; then
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
 	DNSMASQ_USER="nobody"
 	package_check_install() {
-		rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
+		${PKG_INSTALL} "${1}"
 	}
 else
 	echo "OS distribution not supported"
