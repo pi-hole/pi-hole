@@ -418,7 +418,7 @@ else
 	log_write "No adlists.list file found... using adlists.default!"
 	printf ":::\tNo adlists.list file found... using adlists.default!\n"
 fi
-
+echo
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
