@@ -99,7 +99,7 @@ if [[ $(command -v apt-get) ]]; then
   DNSMASQ_USER="dnsmasq"
 
   package_check_install() {
-    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
+    ${PKG_INSTALL} "${1}"
   }
 elif [ $(command -v rpm) ]; then
   # Fedora Family
@@ -799,9 +799,10 @@ install_dependent_packages() {
 	declare -a argArray1=("${!1}")
 
 	for i in "${argArray1[@]}"; do
-		echo -n ":::    Checking for $i..."
-		package_check_install "${i}" &> /dev/null
-		echo " installed!"
+		echo -n ":::    Installing $i..."
+		PKG_MGR_OUT=$(package_check_install "${i}" 2>&1 ) && echo "Installed!" || ( 
+		            echo "PACKAGE INSTALL ERROR" && echo "$PKG_MGR_OUT" && \
+                    echo "::: Sometimes this can be a transitory error, check connectivity and retry" && exit 1 )
 	done
 }
 
