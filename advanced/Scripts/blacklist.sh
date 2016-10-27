@@ -43,19 +43,7 @@ verbose=true
 domList=()
 domToRemoveList=()
 
-piholeIPfile=/etc/pihole/piholeIP
-piholeIPv6file=/etc/pihole/.useIPv6
-
-if [[ -f ${piholeIPfile} ]];then
-    # If the file exists, it means it was exported from the installation script and we should use that value instead of detecting it in this script
-    piholeIP=$(cat ${piholeIPfile})
-    #rm $piholeIPfile
-else
-    # Otherwise, the IP address can be taken directly from the machine, which will happen when the script is run by the user and not the installation script
-    IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-    piholeIPCIDR=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
-    piholeIP=${piholeIPCIDR%/*}
-fi
+. /etc/pihole/setupVars.conf
 
 modifyHost=false
 
@@ -63,12 +51,6 @@ modifyHost=false
 if [[ -r ${piholeDir}/pihole.conf ]];then
     echo "::: Local calibration requested..."
         . ${piholeDir}/pihole.conf
-fi
-
-
-if [[ -f ${piholeIPv6file} ]];then
-    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 fi
 
 HandleOther(){
@@ -141,10 +123,10 @@ ModifyHostFile(){
         plural=; [[ "$numberOf" != "1" ]] && plural=s
         echo ":::"
         echo -n "::: Modifying HOSTS file to blacklist $numberOf domain${plural}..."
-	    	if [[ -n ${piholeIPv6} ]];then
-				cat ${blacklist} | awk -v ipv4addr="$piholeIP" -v ipv6addr="$piholeIPv6" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
+	    	if [[ -n ${IPv6_address} ]];then
+				cat ${blacklist} | awk -v ipv4addr="$IPv4_address" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${adList}
 	      	else
-				cat ${blacklist} | awk -v ipv4addr="$piholeIP" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
+				cat ${blacklist} | awk -v ipv4addr="$IPv4_address" '{sub(/\r$/,""); print ipv4addr" "$0}' >>${adList}
 	      	fi
 	  	fi
 	  else
