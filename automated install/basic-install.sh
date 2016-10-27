@@ -565,6 +565,7 @@ installScripts() {
 
 	install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
 	install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
+	install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
 	install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
 
 	install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
