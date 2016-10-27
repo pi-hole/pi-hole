@@ -211,19 +211,15 @@ daemon_check() {
   local found_daemon=false
 	local lsof_value
 
-
 	if [[ ${IPV6_ENABLED} ]]; then
 	  lsof_value=$(lsof -i 6:${2} -FcL | tr '\n' ' ') \
-	  && (log_echo "Port ${2} is in use on IPv6" && (lsof_parse "${lsof_value}" "${1}" && found_daemon=true)) \
+	  && (log_echo "Port ${2} is in use on IPv6" && lsof_parse "${lsof_value}" "${1}") \
 	  || (log_echo "Port ${2} is not in use on IPv6.")
 	fi
 
 	lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
-	  && (log_echo "Port ${2} is in use on IPv4" && (lsof_parse "${lsof_value}" "${1}" && found_daemon=true)) \
+	  && (log_echo "Port ${2} is in use on IPv4" && lsof_parse "${lsof_value}" "${1}") \
 	  || (log_echo "Port ${2} is not in use on IPv4.")
-  if [[ "${found_daemon}" == false ]]; then
-    log_echo "Missing required daemon ${1}, please check configuration."
-  fi
 }
 
 testResolver() {
