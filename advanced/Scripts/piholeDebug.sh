@@ -188,9 +188,20 @@ hostnameCheck() {
 }
 
 lsof_parse() {
-  # Dummy function for now
-  echo "Dummy function lsof_parse got called"
+  local user
+  local process
+  local match
+
+  user=$(echo ${1} | cut -f 3 -d ' ' | cut -c 2-)
+  process=$(echo ${1} | cut -f 2 -d ' ' | cut -c 2-)
+  if [[ ${2} -eq ${process} ]]; then
+    match="as required."
+  else
+    match="incorrectly."
+  fi
+  log_echo "by ${user} for ${process} ${match}"
 }
+
 
 daemon_check() {
   # Check for daemon ${1} on port ${2}
@@ -200,15 +211,19 @@ daemon_check() {
   local found_daemon=false
 	local lsof_value
 
+
 	if [[ ${IPV6_ENABLED} ]]; then
-	  lsof_value=$(lsof -i 6:${2} -F0cL) \
-	  && (echo ":::       Port ${2} is in use on IPv6." && found_daemon=true && echo "${lsof_value}") \
-	  || (echo ":::       Port ${2} is not in use.")
+	  lsof_value=$(lsof -i 6:${2} -FcL | tr '\n' ' ') \
+	  && (log_echo "Port ${2} is in use on IPv6" && (lsof_parse "${lsof_value}" "${1}" && found_daemon=true)) \
+	  || (log_echo "Port ${2} is not in use on IPv6.")
 	fi
 
-	lsof_value=$(lsof -i 4:${2} -F0cL) \
-	  && (echo ":::       Port ${2} is in use on IPv4." && found_daemon=true && echo "${lsof_value}") \
-	  || (echo ":::       Port ${2} is not in use.")
+	lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
+	  && (log_echo "Port ${2} is in use on IPv4" && (lsof_parse "${lsof_value}" "${1}" && found_daemon=true)) \
+	  || (log_echo "Port ${2} is not in use on IPv4.")
+  if [[ "${found_daemon}" == false ]]; then
+    log_echo "Missing required daemon ${1}, please check configuration."
+  fi
 }
 
 testResolver() {
