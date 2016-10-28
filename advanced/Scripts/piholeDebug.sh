@@ -50,7 +50,7 @@ fi
 
 ### Private functions exist here ###
 log_write() {
-	echo "${1}" >> "${DEBUG_LOG}"
+    echo "${1}" >> "${DEBUG_LOG}"
 }
 
 header_write() {
@@ -60,7 +60,31 @@ header_write() {
 }
 
 log_echo() {
-  echo ":::       ${1}"
+  case ${1} in
+    -n)
+      echo -n ":::       ${2}"
+      log_write ${2}
+      ;;
+    -l)
+      echo "${2}"
+      log_write "${2}"
+      ;;
+     *)
+      echo ":::       ${1}"
+      log_write "${1}"
+  esac
+}
+
+file_parse() {
+    while read -r line; do
+		  if [ ! -z "${line}" ]; then
+			  [[ "${line}" =~ ^#.*$ ]] && continue
+				log_write "${line}"
+			fi
+		done < "${1}"
+}
+
+block_parse() {
   log_write "${1}"
 }
 
@@ -84,18 +108,13 @@ files_check() {
 
   #Check non-zero length existence of ${1}
   echo ":::     Detecting existence of ${1}..."
-  local search_file=/etc/pihole/"${1}"
+  local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-    log_echo "/etc/pihole/${1} exists!"
-    source "${search_file}" &> /dev/null && log_echo "Successfully sourced ${search_file}" || log_echo "Could not source ${search_file}"
-    while read -r line; do
-		  if [ ! -z "${line}" ]; then
-			  [[ "${line}" =~ ^#.*$ ]] && continue
-				log_write "${line}"
-			fi
-		done < "${search_file}"
+    log_echo -n "${1} exists"
+    source "${search_file}" &> /dev/null && log_echo -l " and successfully was sourced" || log_echo -l " and could not be sourced"
+    file_parse "${search_file}"
 	else
-    log_echo "/etc/pihole/${1} not found!"
+    log_echo "${1} not found!"
   fi
   echo ":::"
 }
@@ -104,7 +123,7 @@ distro_check() {
   header_write "Installed OS Distribution"
 
 	echo ":::     Checking installed OS Distribution release."
-	local distro="$(cat /etc/*release)" && log_write "${distro}" || log_write "Distribution details not found."
+	local distro="$(cat /etc/*release)" && block_parse "${distro}" || log_echo "Distribution details not found."
 	echo ":::"
 }
 
@@ -130,19 +149,22 @@ ip_check() {
 
 	echo ":::     Collecting local IP info."
 	local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
-	&& (log_write "${IPv4_addr_list}" && echo ":::       IPv4 addresses located") || log_echo "No IPv4 addresses found."
+	&& (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
+	|| log_echo "No IPv4 addresses found."
 
 	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
 		echo -n ":::     Pinging default IPv4 gateway: "
 		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}" | tail -n3)" \
-		&& echo "Gateway responded." || echo "Gateway did not respond."
-		log_write "${IPv4_def_gateway_check}"
+		&& echo "Gateway responded." \
+		|| echo "Gateway did not respond."
+		block_parse "${IPv4_def_gateway_check}"
 
 		echo -n ":::     Pinging Internet via IPv4: "
 		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)" \
-		&& echo "Query responded." || echo "Query did not respond."
-		log_write "${IPv4_inet_check}"
+		&& echo "Query responded." \
+		|| echo "Query did not respond."
+		block_parse "${IPv4_inet_check}"
 	fi
 
   if [[ IPV6_ENABLED ]]; then
@@ -154,13 +176,15 @@ ip_check() {
     if [[ $? = 0 ]] && [[ -n ${IPv6_def_gateway} ]]; then
       echo -n ":::     Pinging default IPv6 gateway: "
       local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
-      && echo "Gateway Responded." || echo "Gateway did not respond."
-      log_write "${IPv6_def_gateway_check}"
+      && echo "Gateway Responded." \
+      || echo "Gateway did not respond."
+      block_parse "${IPv6_def_gateway_check}"
 
       echo -n ":::     Pinging Internet via IPv6: "
       local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
-      && echo "Query responded." || echo "Query did not respond."
-      log_write "${IPv6_inet_check}"
+      && echo "Query responded." \
+      || echo "Query did not respond."
+      block_parse "${IPv6_inet_check}"
     else
       log_echo="No IPv6 Gateway Detected"
     fi
@@ -325,7 +349,7 @@ debugLighttpd() {
 ### END FUNCTIONS ###
 
 version_check
-files_check "setupVars.conf"
+files_check "/etc/pihole/setupVars.conf"
 distro_check
 ip_check
 hostnameCheck
