@@ -805,12 +805,9 @@ installPihole() {
 	create_pihole_user
 	install -d -o ${LIGHTTPD_USER} -g ${LIGHTTPD_GROUP} -m775 /var/www/html
 	usermod -a -G ${LIGHTTPD_GROUP} pihole
-	if [ -x "$(command -v lighty-enable-mod)" ]; then
-		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-	else
-		printf "\n***\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
-        INSTALLBUG=1
-	fi
+	lighty-enable-mod fastcgi fastcgi-php > /dev/null 2>&1 || (
+        printf "\n***\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n" && INSTALLBUG=1 )
+
 	finalExports || criticalError "finalExports"
 }
 
