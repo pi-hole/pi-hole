@@ -618,6 +618,8 @@ installConfigs() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
 	mkdir -p /var/cache/lighttpd/compress
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+	mkdir -p /var/cache/lighttpd/uploads
+	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
 }
 
 stop_service() {
