@@ -366,16 +366,12 @@ else
 	printf ":::\tNo 01-pihole.conf file found\n"
 fi
 
-echo "::: Writing size of gravity.list to debug log..."
-header_write "gravity.list"
 
-if [ -e "${GRAVITYFILE}" ]; then
-	wc -l "${GRAVITYFILE}" >> ${DEBUG_LOG}
-	log_write ""
-else
-	log_write "No gravity.list file found!"
-	printf ":::\tNo gravity.list file found\n"
-fi
+header_write "Analyzing gravity.list"
+
+	gravity_length=$(wc -l "${GRAVITYFILE}") \
+	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
+	|| log_echo "Warning: No gravity.list file found!"
 
 
 ### Pi-hole application specific logging ###
