@@ -155,12 +155,8 @@ distro_check() {
 }
 
 processor_check() {
-  local soft_fail
   header_write "Checking processor variety"
-
-  soft_fail=0
-  log_write $(uname -m) || soft_fail=1
-  return "${soft_fail}"
+  log_write $(uname -m) && return 0 || return 1
 }
 
 ipv6_check() {
@@ -173,34 +169,19 @@ ipv6_check() {
   fi
 }
 
+
 ip_check() {
 	header_write "IP Address Information"
 	# Get the current interface for Internet traffic
 
 	# Check if IPv6 enabled
 	local IPv6_interface
+	local IPv4_interface
 	ipv6_check &&	IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
 	# If declared in setupVars.conf use it, otherwise defer to default
 	# http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
+  IPv4_interface=${piholeInterface:-$(ip r | grep default | cut -d ' ' -f 5)}
 
-local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
-	&& (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
-	|| log_echo "No IPv4 addresses found."
-
-	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
-	if [[ $? = 0 ]]; then
-		echo -n ":::        Pinging default IPv4 gateway: "
-		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}" | tail -n3)" \
-		&& echo "Gateway responded." \
-		|| echo "Gateway did not respond."
-		block_parse "${IPv4_def_gateway_check}"
-
-		echo -n ":::        Pinging Internet via IPv4: "
-		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)" \
-		&& echo "Query responded." \
-		|| echo "Query did not respond."
-		block_parse "${IPv4_inet_check}"
-	fi
 
   if [[ IPV6_READY ]]; then
     local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
@@ -223,6 +204,26 @@ local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet"
     else
       log_echo="No IPv6 Gateway Detected"
     fi
+
+local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
+	&& (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
+	|| log_echo "No IPv4 addresses found."
+
+	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
+	if [[ $? = 0 ]]; then
+		echo -n ":::        Pinging default IPv4 gateway: "
+		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}"  -I "${IPv4_interface}" | tail -n3)" \
+		&& echo "Gateway responded." \
+		|| echo "Gateway did not respond."
+		block_parse "${IPv4_def_gateway_check}"
+
+		echo -n ":::        Pinging Internet via IPv4: "
+		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
+		&& echo "Query responded." \
+		|| echo "Query did not respond."
+		block_parse "${IPv4_inet_check}"
+	fi
+
   fi
 }
 
