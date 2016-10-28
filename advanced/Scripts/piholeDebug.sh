@@ -223,7 +223,7 @@ lsof_parse() {
   else
     match="incorrectly."
   fi
-  log_echo "by ${user} for ${process} ${match}"
+  log_echo -l "by ${user} for ${process} ${match}"
 }
 
 
@@ -237,12 +237,12 @@ daemon_check() {
 
 	if [[ ${IPV6_ENABLED} ]]; then
 	  lsof_value=$(lsof -i 6:${2} -FcL | tr '\n' ' ') \
-	  && (log_echo "Port ${2} is in use on IPv6" && lsof_parse "${lsof_value}" "${1}") \
+	  && (log_echo -n "IPv6 Port ${2} is in use " && lsof_parse "${lsof_value}" "${1}") \
 	  || (log_echo "Port ${2} is not in use on IPv6.")
 	fi
 
 	lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
-	  && (log_echo "Port ${2} is in use on IPv4" && lsof_parse "${lsof_value}" "${1}") \
+	  && (log_echo -n "IPv4 Port ${2} is in use " && lsof_parse "${lsof_value}" "${1}") \
 	  || (log_echo "Port ${2} is not in use on IPv4.")
 }
 
