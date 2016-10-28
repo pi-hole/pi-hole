@@ -88,6 +88,20 @@ block_parse() {
   log_write "${1}"
 }
 
+lsof_parse() {
+  local user
+  local process
+  local match
+
+  user=$(echo ${1} | cut -f 3 -d ' ' | cut -c 2-)
+  process=$(echo ${1} | cut -f 2 -d ' ' | cut -c 2-)
+  if [[ ${2} -eq ${process} ]]; then
+    match="as required."
+  else
+    match="incorrectly."
+  fi
+  log_echo -l "by ${user} for ${process} ${match}"
+}
 version_check() {
   header_write "Installed Package Versions"
 	echo ":::     Detecting Pi-hole installed versions."
@@ -209,21 +223,7 @@ hostnameCheck() {
 		log_write "No hosts file found!"
 		printf ":::\tNo hosts file found!\n"
 	fi
-}
-
-lsof_parse() {
-  local user
-  local process
-  local match
-
-  user=$(echo ${1} | cut -f 3 -d ' ' | cut -c 2-)
-  process=$(echo ${1} | cut -f 2 -d ' ' | cut -c 2-)
-  if [[ ${2} -eq ${process} ]]; then
-    match="as required."
-  else
-    match="incorrectly."
-  fi
-  log_echo -l "by ${user} for ${process} ${match}"
+	echo ":::"
 }
 
 
