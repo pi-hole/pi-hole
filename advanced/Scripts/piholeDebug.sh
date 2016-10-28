@@ -295,10 +295,6 @@ testResolver() {
 	log_write "Pi-hole dnsmasq specific records lookups"
 	log_write "Cache Size:"
 	dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
-	log_write "Misses count:"
-	dig +short chaos txt misses.bind >> ${DEBUG_LOG}
-	log_write "Hits count:"
-	dig +short chaos txt hits.bind >> ${DEBUG_LOG}
 	log_write "Upstream Servers:"
 	dig +short chaos txt servers.bind >> ${DEBUG_LOG}
 	log_write ""
@@ -346,25 +342,11 @@ checkProcesses
 testResolver
 debugLighttpd
 
-header_write "Dnsmasq configuration"
-files_check ${DNSMASQFILE}
-
-
-echo "::: Writing 01-pihole.conf to debug log..."
-header_write "01-pihole.conf"
-
-if [ -e "${DNSMASQCONFFILE}" ]; then
-	while read -r line; do
-		if [ ! -z "${line}" ]; then
-			[[ "${line}" =~ ^#.*$ ]] && continue
-			log_write "${line}"
-		fi
-	done < "${DNSMASQCONFFILE}"
-	log_write
-else
-	log_write "No 01-pihole.conf file found!"
-	printf ":::\tNo 01-pihole.conf file found\n"
-fi
+files_check "${DNSMASQFILE}"
+files_check "${DNSMASQCONFFILE}"
+files_check "${WHITELISTFILE}"
+files_check "${BLACKLISTFILE}"
+files_check "${ADLISTFILE}"
 
 
 header_write "Analyzing gravity.list"
@@ -372,44 +354,6 @@ header_write "Analyzing gravity.list"
 	gravity_length=$(wc -l "${GRAVITYFILE}") \
 	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
 	|| log_echo "Warning: No gravity.list file found!"
-
-
-### Pi-hole application specific logging ###
-echo "::: Writing whitelist to debug log..."
-header_write "Whitelist"
-if [ -e "${WHITELISTFILE}" ]; then
-	cat "${WHITELISTFILE}" >> ${DEBUG_LOG}
-	log_write
-else
-	log_write "No whitelist.txt file found!"
-	printf ":::\tNo whitelist.txt file found!\n"
-fi
-
-echo "::: Writing blacklist to debug log..."
-header_write "Blacklist"
-if [ -e "${BLACKLISTFILE}" ]; then
-	cat "${BLACKLISTFILE}" >> ${DEBUG_LOG}
-	log_write
-else
-	log_write "No blacklist.txt file found!"
-	printf ":::\tNo blacklist.txt file found!\n"
-fi
-
-echo "::: Writing adlists.list to debug log..."
-header_write "adlists.list"
-if [ -e "${ADLISTFILE}" ]; then
-	while read -r line; do
-		if [ ! -z "${line}" ]; then
-			[[ "${line}" =~ ^#.*$ ]] && continue
-			log_write "${line}"
-		fi
-	done < "${ADLISTFILE}"
-	log_write
-else
-	log_write "No adlists.list file found... using adlists.default!"
-	printf ":::\tNo adlists.list file found... using adlists.default!\n"
-fi
-echo
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
