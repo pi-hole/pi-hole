@@ -68,7 +68,7 @@ log_echo() {
   case ${1} in
     -n)
       echo -n ":::       ${2}"
-      log_write ${2}
+      log_write "${2}"
       ;;
     -l)
       echo "${2}"
@@ -131,7 +131,7 @@ files_check() {
   log_echo -n "Detecting existence of ${1}:"
   local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-    log_echo -l " exists"
+    echo " exists"
      file_parse "${search_file}"
      return 0
 	else
