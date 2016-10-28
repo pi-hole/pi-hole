@@ -29,8 +29,7 @@ EOM
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
-whitelistScript=/opt/pihole/whitelist.sh
-blacklistScript=/opt/pihole/blacklist.sh
+whitelistScript="pihole -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
 
@@ -186,7 +185,7 @@ gravity_Schwarzchild() {
 }
 
 gravity_Blacklist() {
-	# Append blacklist entries if they exist
+	# Append blacklist entries to eventHorizon if they exist
 	if [[ -f "${blacklistFile}" ]]; then
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
@@ -216,11 +215,13 @@ gravity_Whitelist() {
 	# Ensure adlist domains are in whitelist.txt
 	${whitelistScript} -nr -q "${urls[@]}" > /dev/null
 
+    # Check whitelist.txt exists.
 	if [[ -f "${whitelistFile}" ]]; then
         # Remove anything in whitelist.txt from the Event Horizon
         numWhitelisted=$(wc -l < "${whitelistFile}")
         plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
         echo -n "::: Whitelisting $numWhitelisted domain${plural}..."
+        #print everything from preEventHorizon into eventHorizon EXCEPT domains in whitelist.txt
         grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
         echo " done!"
 	else
@@ -240,31 +241,20 @@ gravity_unique() {
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo "::: Formatting domains into a HOSTS file..."
-	if [[ -f /etc/hostname ]]; then
-		hostname=$(</etc/hostname)
-	elif [ -x "$(command -v hostname)" ]; then
-		hostname=$(hostname -f)
-	else
-		echo "::: Error: Unable to determine fully qualified domain name of host"
-	fi
-
     # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
     if [[ -n "${IPv4_address}" && -n "${IPv6_address}" ]];then
 
         # Both IPv4 and IPv6
-        echo -e "$IPv4_address $hostname\n$IPv6_address $hostname\n$IPv4_address pi.hole\n$IPv6_address pi.hole" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
     elif [[ -n "${IPv4_address}" && -z "${IPv6_address}" ]];then
 
         # Only IPv4
-        echo -e "$IPv4_address $hostname\n$IPv4_address pi.hole" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
     elif [[ -z "${IPv4_address}" && -n "${IPv6_address}" ]];then
 
         # Only IPv6
-        echo -e "$IPv6_address $hostname\n$IPv6_address pi.hole" > ${piholeDir}/${accretionDisc}
         cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
     elif [[ -z "${IPv4_address}" && -z "${IPv6_address}" ]];then
