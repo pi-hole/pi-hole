@@ -111,17 +111,22 @@ lsof_parse() {
 
 version_check() {
   header_write "Installed Package Versions"
+
+  local error_found
+  error_found=0
+
 	echo ":::     Detecting Pi-hole installed versions."
 
 	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
-	&& log_echo "Pi-hole: $pi_hole_ver" || log_echo "Pi-hole git repository not detected."
+	&& log_echo "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
 	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
-	&& log_echo "WebUI: $admin_ver" || log_echo "Pi-hole Admin Pages git repository not detected."
+	&& log_echo "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
 	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
-	&& log_echo "${light_ver}" || log_echo "lighttpd not installed."
+	&& log_echo "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
 	local php_ver="$(php -v |& head -n1)" \
-	&& log_echo "${php_ver}" || log_echo "PHP not installed."
+	&& log_echo "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
 	echo ":::"
+	return "${error_found}"
 }
 
 files_check() {
@@ -242,7 +247,7 @@ hostnameCheck() {
 
 daemon_check() {
   # Check for daemon ${1} on port ${2}
-	header_write "Daemon Port Listening Information"
+	header_write "Daemon Process Information"
 
 	echo ":::     Checking port ${2} for ${1} listener."
   local found_daemon=false
@@ -257,6 +262,8 @@ daemon_check() {
 	lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
 	  && (log_echo -n "IPv4 Port ${2} is in use " && lsof_parse "${lsof_value}" "${1}") \
 	  || (log_echo "Port ${2} is not in use on IPv4.")
+
+  echo "${1}file"
 
 	echo ":::"
 }
@@ -327,7 +334,6 @@ checkProcesses() {
 }
 
 debugLighttpd() {
-
   echo ":::     Checking for necessary lighttpd files."
   files_check "${LIGHTTPDFILE}"
   files_check "${LIGHTTPDERRFILE}"
@@ -336,11 +342,15 @@ debugLighttpd() {
 
 ### END FUNCTIONS ###
 
-version_check
+# Gather version of required packages / repositories
+version_check || echo "REQUIRED FILES MISSING"
+
 source_file "/etc/pihole/setupVars.conf"
 distro_check
 ip_check
-hostnameCheck
+#hostnameCheck
+
+
 daemon_check lighttpd http
 daemon_check dnsmasq domain
 checkProcesses
