@@ -13,55 +13,45 @@
 set -o pipefail
 
 ######## GLOBAL VARS ########
+VARSFILE="/etc/pihole/setupVars.conf"
 DEBUG_LOG="/var/log/pihole_debug.log"
 DNSMASQFILE="/etc/dnsmasq.conf"
-PIHOLECONFFILE="/etc/dnsmasq.d/01-pihole.conf"
+DNSMASQCONFFILE="/etc/dnsmasq.d/01-pihole.conf"
 LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
 LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
 GRAVITYFILE="/etc/pihole/gravity.list"
-HOSTSFILE="/etc/hosts"
 WHITELISTFILE="/etc/pihole/whitelist.txt"
 BLACKLISTFILE="/etc/pihole/blacklist.txt"
-ADLISTSFILE="/etc/pihole/adlists.list"
+ADLISTFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
-# Default to no IPv6, will check and enable if needed.
-IPV6_ENABLED=false
+IPV6_READY=false
 
 # Header info and introduction
 cat << EOM
 ::: Beginning Pi-hole debug at $(date)!
 :::
-::: This debugging process will collect information from your Pi-hole,
-::: and optionally upload the generated log to a unique and random directory on
-::: tricorder.pi-hole.net. NOTE: All log files auto-delete after 24 hours and only
-::: the Pi-hole developers can access your data via the generated token. We have taken
-::: these extra steps to secure your data and we will work to further reduce any
-::: personal information gathered.
+::: This process collects information from your Pi-hole, and optionally uploads
+::: it to a unique and random directory on tricorder.pi-hole.net.
+:::
+::: NOTE: All log files auto-delete after 24 hours and ONLY the Pi-hole developers
+::: can access your data via the given token. We have taken these extra steps to
+::: secure your data and will work to further reduce any personal information gathered.
 :::
 ::: Please read and note any issues, and follow any directions advised during this process.
-:::
 EOM
 
 # Ensure the file exists, create if not, clear if exists.
-if [ ! -f "${DEBUG_LOG}" ]; then
-	touch ${DEBUG_LOG}
-	chmod 644 ${DEBUG_LOG}
-	chown "$USER":root ${DEBUG_LOG}
-else
-	truncate -s 0 ${DEBUG_LOG}
-fi
+truncate --size=0 "${DEBUG_LOG}"
+chmod 644 ${DEBUG_LOG}
+chown "$USER":pihole ${DEBUG_LOG}
+
+source ${VARSFILE}
 
 ### Private functions exist here ###
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
-}
-
-header_write() {
-  echo "" >> "${DEBUG_LOG}"
-  echo "::: ${1}" >> "${DEBUG_LOG}"
-  echo "" >> "${DEBUG_LOG}"
 }
 
 log_echo() {
@@ -70,14 +60,28 @@ log_echo() {
       echo -n ":::       ${2}"
       log_write "${2}"
       ;;
+    -r)
+      echo ":::       ${2}"
+      log_write "${2}"
+      ;;
     -l)
       echo "${2}"
       log_write "${2}"
       ;;
+     -e)
+      echo "${2}"
+      log_write
+      ;;
      *)
-      echo ":::       ${1}"
+      echo ":::  ${1}"
       log_write "${1}"
   esac
+}
+
+header_write() {
+  log_echo ""
+  log_echo "${1}"
+  log_write ""
 }
 
 file_parse() {
@@ -87,6 +91,7 @@ file_parse() {
 				log_write "${line}"
 			fi
 		done < "${1}"
+		log_write ""
 }
 
 block_parse() {
@@ -101,42 +106,37 @@ lsof_parse() {
   user=$(echo ${1} | cut -f 3 -d ' ' | cut -c 2-)
   process=$(echo ${1} | cut -f 2 -d ' ' | cut -c 2-)
   if [[ ${2} -eq ${process} ]]; then
-    match="as required."
+    echo ":::       Correctly configured."
   else
-    match="incorrectly."
+    log_echo ":::       Failure: Incorrectly configured daemon."
   fi
-  log_echo -l "by ${user} for ${process} ${match}"
+  log_write "Found user ${user} with process ${process}"
 }
 
 
 version_check() {
-  header_write "Installed Package Versions"
+  header_write "Detecting Installed Package Versions:"
 
   local error_found
   error_found=0
 
-	echo ":::     Detecting Pi-hole installed versions."
-
 	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
-	&& log_echo "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
+	&& log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
 	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
-	&& log_echo "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
+	&& log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
 	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
-	&& log_echo "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
+	&& log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
 	local php_ver="$(php -v |& head -n1)" \
-	&& log_echo "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
-	echo ":::"
+	&& log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
 	return "${error_found}"
 }
 
 files_check() {
-  header_write "File Check"
-
   #Check non-zero length existence of ${1}
-  log_echo -n "Detecting existence of ${1}:"
+  header_write "Detecting existence of ${1}:"
   local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-    echo " exists"
+     echo ":::       File exists"
      file_parse "${search_file}"
      return 0
 	else
@@ -148,22 +148,31 @@ files_check() {
 
 source_file() {
   local file_found=$(files_check "${1}") \
-   && (source "${1}" &> /dev/null && log_echo -l "${file_found} and was successfully sourced") \
+   && (source "${1}" &> /dev/null && echo "${file_found} and was successfully sourced") \
    || log_echo -l "${file_found} and could not be sourced"
 }
 
 distro_check() {
-  header_write "Installed OS Distribution"
+  local soft_fail
+  header_write "Detecting installed OS Distribution"
+  soft_fail=0
+	local distro="$(cat /etc/*release)" && block_parse "${distro}" || (log_echo "Distribution details not found." && soft_fail=1)
+	return "${soft_fail}"
+}
 
-	echo ":::     Checking installed OS Distribution release."
-	local distro="$(cat /etc/*release)" && block_parse "${distro}" || log_echo "Distribution details not found."
-	echo ":::"
+processor_check() {
+  local soft_fail
+  header_write "Checking processor variety"
+
+  soft_fail=0
+  log_write $(uname -m) || soft_fail=1
+  return "${soft_fail}"
 }
 
 ipv6_check() {
   # Check if system is IPv6 enabled, for use in other functions
-  if [[ -a /proc/net/if_inet6 ]]; then
-    IPV6_ENABLED=true
+  if [[ $IPv6_address ]]; then
+    ls /proc/net/if_inet6 &>/dev/null && IPV6_READY=true
     return 0
   else
     return 1
@@ -180,40 +189,39 @@ ip_check() {
 	# If declared in setupVars.conf use it, otherwise defer to default
 	# http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
 
-	echo ":::     Collecting local IP info."
-	local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
+local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
 	&& (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
 	|| log_echo "No IPv4 addresses found."
 
 	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
 	if [[ $? = 0 ]]; then
-		echo -n ":::     Pinging default IPv4 gateway: "
+		echo -n ":::        Pinging default IPv4 gateway: "
 		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}" | tail -n3)" \
 		&& echo "Gateway responded." \
 		|| echo "Gateway did not respond."
 		block_parse "${IPv4_def_gateway_check}"
 
-		echo -n ":::     Pinging Internet via IPv4: "
+		echo -n ":::        Pinging Internet via IPv4: "
 		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 | tail -n3)" \
 		&& echo "Query responded." \
 		|| echo "Query did not respond."
 		block_parse "${IPv4_inet_check}"
 	fi
 
-  if [[ IPV6_ENABLED ]]; then
+  if [[ IPV6_READY ]]; then
     local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
 	  && (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") \
 	  || log_echo "No IPv6 addresses found."
 
     local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
     if [[ $? = 0 ]] && [[ -n ${IPv6_def_gateway} ]]; then
-      echo -n ":::     Pinging default IPv6 gateway: "
+      echo -n ":::        Pinging default IPv6 gateway: "
       local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
       && echo "Gateway Responded." \
       || echo "Gateway did not respond."
       block_parse "${IPv6_def_gateway_check}"
 
-      echo -n ":::     Pinging Internet via IPv6: "
+      echo -n ":::        Pinging Internet via IPv6: "
       local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
       && echo "Query responded." \
       || echo "Query did not respond."
@@ -221,51 +229,28 @@ ip_check() {
     else
       log_echo="No IPv6 Gateway Detected"
     fi
-    echo ":::"
   fi
 }
 
-hostnameCheck() {
-	header_write "Hostname Information"
+port_check() {
+  local lsof_value
 
-	echo ":::     Writing locally configured hostnames to logfile"
-	# Write the hostname output to compare against entries in /etc/hosts, which is logged next
-	log_write "This Pi-hole is: $(hostname)"
-
-	echo ":::     Writing hosts file to debug log..."
-	log_write ":::       Hosts File Contents"
-
-	if [[ -e "${HOSTSFILE}" ]]; then
-		file_parse "${HOSTSFILE}"
-		else
-		log_echo "No hosts file found!"
-	fi
-
-	echo ":::"
+  lsof_value=$(lsof -i ${1}:${2} -FcL | tr '\n' ' ') \
+  && lsof_parse "${lsof_value}" "${3}" \
+  || log_echo "Failure: IPv${1} Port not in use"
 }
-
 
 daemon_check() {
   # Check for daemon ${1} on port ${2}
 	header_write "Daemon Process Information"
 
-	echo ":::     Checking port ${2} for ${1} listener."
-  local found_daemon=false
-	local lsof_value
+	echo ":::     Checking ${2} port for ${1} listener."
 
-	if [[ ${IPV6_ENABLED} ]]; then
-	  lsof_value=$(lsof -i 6:${2} -FcL | tr '\n' ' ') \
-	  && (log_echo -n "IPv6 Port ${2} is in use " && lsof_parse "${lsof_value}" "${1}") \
-	  || (log_echo "Port ${2} is not in use on IPv6.")
-	fi
-
+	if [[ ${IPV6_READY} ]]; then
+	  port_check 6 "${2}" "${1}"
+  fi
 	lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
-	  && (log_echo -n "IPv4 Port ${2} is in use " && lsof_parse "${lsof_value}" "${1}") \
-	  || (log_echo "Port ${2} is not in use on IPv4.")
-
-  echo "${1}file"
-
-	echo ":::"
+    port_check 4 "${2}" "${1}"
 }
 
 testResolver() {
@@ -344,9 +329,13 @@ debugLighttpd() {
 
 # Gather version of required packages / repositories
 version_check || echo "REQUIRED FILES MISSING"
-
+# Check for newer setupVars storage file
 source_file "/etc/pihole/setupVars.conf"
-distro_check
+# Gather information about the running distribution
+distro_check || echo "Distro Check soft fail"
+# Gather processor type
+processor_check || echo "Processor Check soft fail"
+
 ip_check
 #hostnameCheck
 
@@ -357,31 +346,20 @@ checkProcesses
 testResolver
 debugLighttpd
 
-echo "::: Writing dnsmasq.conf to debug log..."
 header_write "Dnsmasq configuration"
-if [ -e "${DNSMASQFILE}" ]; then
-	while read -r line; do
-		if [ ! -z "${line}" ]; then
-			[[ "${line}" =~ ^#.*$ ]] && continue
-			log_write "${line}"
-		fi
-	done < "${DNSMASQFILE}"
-	log_write ""
-else
-	log_write "No dnsmasq.conf file found!"
-	printf ":::\tNo dnsmasq.conf file found!\n"
-fi
+files_check ${DNSMASQFILE}
+
 
 echo "::: Writing 01-pihole.conf to debug log..."
 header_write "01-pihole.conf"
 
-if [ -e "${PIHOLECONFFILE}" ]; then
+if [ -e "${DNSMASQCONFFILE}" ]; then
 	while read -r line; do
 		if [ ! -z "${line}" ]; then
 			[[ "${line}" =~ ^#.*$ ]] && continue
 			log_write "${line}"
 		fi
-	done < "${PIHOLECONFFILE}"
+	done < "${DNSMASQCONFFILE}"
 	log_write
 else
 	log_write "No 01-pihole.conf file found!"
@@ -423,13 +401,13 @@ fi
 
 echo "::: Writing adlists.list to debug log..."
 header_write "adlists.list"
-if [ -e "${ADLISTSFILE}" ]; then
+if [ -e "${ADLISTFILE}" ]; then
 	while read -r line; do
 		if [ ! -z "${line}" ]; then
 			[[ "${line}" =~ ^#.*$ ]] && continue
 			log_write "${line}"
 		fi
-	done < "${ADLISTSFILE}"
+	done < "${ADLISTFILE}"
 	log_write
 else
 	log_write "No adlists.list file found... using adlists.default!"
