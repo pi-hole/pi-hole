@@ -32,10 +32,15 @@ IPV6=ENABLED=false
 # Header info and introduction
 cat << EOM
 ::: Beginning Pi-hole debug at $(date)!
-::: This debugging process will collect information from your running configuration,
+:::
+::: This debugging process will collect information from your Pi-hole,
 ::: and optionally upload the generated log to a unique and random directory on
-::: Termbin.com. NOTE: All log files auto-delete after 1 month and you are the only
-::: person who is given the unique URL. Please consider where you post this link.
+::: tricorder.pi-hole.net. NOTE: All log files auto-delete after 24 hours and only
+::: the Pi-hole developers can access your data via the generated token. We have taken
+::: these extra steps to secure your data and we will work to further reduce any
+::: personal information gathered.
+:::
+::: Please read and note any issues, and follow any directions advised during this process.
 :::
 EOM
 
@@ -214,15 +219,14 @@ hostnameCheck() {
 	log_write "This Pi-hole is: $(hostname)"
 
 	echo ":::     Writing hosts file to debug log..."
-	log_write "###              Hosts              ###"
+	log_write ":::       Hosts File Contents"
 
-	if [ -e "${HOSTSFILE}" ]; then
-		cat "${HOSTSFILE}" >> ${DEBUG_LOG}
-		log_write ""
-	else
-		log_write "No hosts file found!"
-		printf ":::\tNo hosts file found!\n"
+	if [[ -e "${HOSTSFILE}" ]]; then
+		file_parse "${HOSTSFILE}"
+		else
+		log_echo "No hosts file found!"
 	fi
+
 	echo ":::"
 }
 
@@ -244,6 +248,8 @@ daemon_check() {
 	lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
 	  && (log_echo -n "IPv4 Port ${2} is in use " && lsof_parse "${lsof_value}" "${1}") \
 	  || (log_echo "Port ${2} is not in use on IPv4.")
+
+	echo ":::"
 }
 
 testResolver() {
@@ -288,16 +294,10 @@ testResolver() {
 	log_write "Pi-hole dnsmasq specific records lookups"
 	log_write "Cache Size:"
 	dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
-	log_write "Insertions count:"
-	dig +short chaos txt insertions.bind >> ${DEBUG_LOG}
-	log_write "Evictions count:"
-	dig +short chaos txt evictions.bind >> ${DEBUG_LOG}
 	log_write "Misses count:"
 	dig +short chaos txt misses.bind >> ${DEBUG_LOG}
 	log_write "Hits count:"
 	dig +short chaos txt hits.bind >> ${DEBUG_LOG}
-	log_write "Auth count:"
-	dig +short chaos txt auth.bind >> ${DEBUG_LOG}
 	log_write "Upstream Servers:"
 	dig +short chaos txt servers.bind >> ${DEBUG_LOG}
 	log_write ""
@@ -458,24 +458,24 @@ dumpPiHoleLog() {
 
 # Anything to be done after capturing of pihole.log terminates
 finalWork() {
+  local tricorder
 	echo "::: Finshed debugging!"
-	echo "::: The debug log can be uploaded to Termbin.com for easier sharing."
+	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	read -r -p "::: Would you like to upload the log? [y/N] " response
 	case ${response} in
 		[yY][eE][sS]|[yY])
-			TERMBIN=$(cat /var/log/pihole_debug.log | nc termbin.com 9999)
+			tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
 			;;
 		*)
-			echo "::: Log will NOT be uploaded to Termbin."
+			echo "::: Log will NOT be uploaded to tricorder."
 			;;
 	esac
 
-	# Check if termbin.com is reachable. When it's not, point to local log instead
-	if [ -n "${TERMBIN}" ]; then
-		echo "::: Debug log can be found at : ${TERMBIN}"
-	else
-		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+	# Check if tricorder.pi-hole.net is reachable and provide token.
+	if [ -n "${tricorder}" ]; then
+		echo "::: Your debug token is : ${tricorder}"
 	fi
+		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
 }
 
 trap finalWork EXIT
