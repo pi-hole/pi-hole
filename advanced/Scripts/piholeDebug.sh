@@ -107,6 +107,8 @@ lsof_parse() {
   fi
   log_echo -l "by ${user} for ${process} ${match}"
 }
+
+
 version_check() {
   header_write "Installed Package Versions"
 	echo ":::     Detecting Pi-hole installed versions."
@@ -126,16 +128,23 @@ files_check() {
   header_write "File Check"
 
   #Check non-zero length existence of ${1}
-  echo ":::     Detecting existence of ${1}..."
+  log_echo -n "Detecting existence of ${1}:"
   local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-    log_echo -n "${1} exists"
-    source "${search_file}" &> /dev/null && log_echo -l " and successfully was sourced" || log_echo -l " and could not be sourced"
-    file_parse "${search_file}"
+    log_echo -l " exists"
+     file_parse "${search_file}"
+     return 0
 	else
     log_echo "${1} not found!"
+    return 1
   fi
   echo ":::"
+}
+
+source_file() {
+  local file_found=$(files_check "${1}") \
+   && (source "${1}" &> /dev/null && log_echo -l "${file_found} and was successfully sourced") \
+   || log_echo -l "${file_found} and could not be sourced"
 }
 
 distro_check() {
@@ -318,38 +327,17 @@ checkProcesses() {
 }
 
 debugLighttpd() {
-	header_write "lighttpd.conf"
 
-	if [ -e "${LIGHTTPDFILE}" ]; then
-		while read -r line; do
-			if [ ! -z "${line}" ]; then
-				[[ "${line}" =~ ^#.*$ ]] && continue
-				log_write "${line}"
-			fi
-		done < "${LIGHTTPDFILE}"
-		log_write ""
-	else
-		log_write "No lighttpd.conf file found!"
-		printf ":::\tNo lighttpd.conf file found\n"
-	fi
-
-	if [ -e "${LIGHTTPDERRFILE}" ]; then
-		log_write ""
-		log_write "::: lighttpd error.log"
-		log_write ""
-
-		cat "${LIGHTTPDERRFILE}" >> ${DEBUG_LOG}
-	else
-		log_write "No lighttpd error.log file found!"
-		printf ":::\tNo lighttpd error.log file found\n"
-	fi
-	log_write ""
+  echo ":::     Checking for necessary lighttpd files."
+  files_check "${LIGHTTPDFILE}"
+  files_check "${LIGHTTPDERRFILE}"
+  echo ":::"
 }
 
 ### END FUNCTIONS ###
 
 version_check
-files_check "/etc/pihole/setupVars.conf"
+source_file "/etc/pihole/setupVars.conf"
 distro_check
 ip_check
 hostnameCheck
@@ -362,7 +350,6 @@ debugLighttpd
 echo "::: Writing dnsmasq.conf to debug log..."
 header_write "Dnsmasq configuration"
 if [ -e "${DNSMASQFILE}" ]; then
-	#cat $DNSMASQFILE >> $DEBUG_LOG
 	while read -r line; do
 		if [ ! -z "${line}" ]; then
 			[[ "${line}" =~ ^#.*$ ]] && continue
