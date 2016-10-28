@@ -12,6 +12,7 @@
 server.modules = (
 	"mod_access",
 	"mod_accesslog",
+	"mod_auth",
 	"mod_expire",
 	"mod_compress",
 	"mod_redirect",
@@ -60,3 +61,6 @@ $HTTP["url"] =~ "^(?!/admin)/.*" {
     # Create a response header for debugging using curl -I
     setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
 }
+
+# Add user chosen options held in external file
+include_shell "cat external.conf 2>/dev/null"
