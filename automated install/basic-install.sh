@@ -385,7 +385,8 @@ setStaticIPv4() {
 			echo ":::"
 		fi
 	else
-		echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
+		echo "*** Warning: Unable to locate configuration file to set static IPv4 address!"
+        INSTALLBUG=1
 		exit 1
 	fi
 }
@@ -790,42 +791,27 @@ configureFirewall() {
 }
 
 finalExports() {
-	#If it already exists, lets overwrite it with the new values.
-	if [[ -f ${setupVars} ]]; then
-		rm ${setupVars}
-	fi
     {
 	echo "piholeInterface=${piholeInterface}"
 	echo "IPv4_address=${IPv4_address}"
 	echo "IPv6_address=${IPv6_address}"
 	echo "piholeDNS1=${piholeDNS1}"
 	echo "piholeDNS2=${piholeDNS2}"
-    }>> "${setupVars}"
+    } > "${setupVars}"
 }
 
 installPihole() {
 	# Install base files and web interface
 	create_pihole_user
-	if [ ! -d "/var/www/html" ]; then
-		mkdir -p /var/www/html
-	fi
-	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-	chmod 775 /var/www/html
+	install -d -o ${LIGHTTPD_USER} -g ${LIGHTTPD_GROUP} -m775 /var/www/html
 	usermod -a -G ${LIGHTTPD_GROUP} pihole
 	if [ -x "$(command -v lighty-enable-mod)" ]; then
 		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
 	else
-		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+		printf "\n***\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+        INSTALLBUG=1
 	fi
-	installScripts
-	installConfigs
-	CreateLogFile
-	configureSelinux
-	installPiholeWeb
-	installCron
-	configureFirewall
-	finalExports
-	runGravity
+	finalExports || criticalError "finalExports"
 }
 
 updatePihole() {
@@ -835,14 +821,6 @@ updatePihole() {
 	# Source ${setupVars} for use in the rest of the functions.
 	. ${setupVars}
 	# Install base files and web interface
-	installScripts
-	installConfigs
-	CreateLogFile
-	configureSelinux
-	installPiholeWeb
-	installCron
-	configureFirewall
-	runGravity
 }
 
 configureSelinux() {
@@ -861,7 +839,7 @@ configureSelinux() {
 		semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		semodule -i /etc/pihole/pihole.pp
 		rm -f /etc/pihole/pihole.mod
-		semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || echo "::: Warning: Pi-Hole SELinux policy did not install."
+		semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || ( echo "*** Warning: Pi-Hole SELinux policy did not install." && INSTALLBUG=1 )
 	fi
 }
 
@@ -914,6 +892,21 @@ update_dialogs() {
 
 }
 
+# Critical Error in the main install
+criticalError() {
+    echo "*** CRITICAL ERROR, Installation halted at stage: ${1}"
+    exit -1
+}
+
+#This variable should remain 0 unless we encouter something notworthy
+INSTALLBUG=0
+# Bug that might not affect actual operation, throw scary warning" 
+installWarning() {
+    echo "*** WARNING, Bug detected, installation might be incomplete.  Stage: ${1}"
+    INSTALLBUG=1    
+}
+
+
 main() {
 # Check arguments for the undocumented flags
 	for var in "$@"; do
@@ -950,8 +943,6 @@ main() {
 	# Install packages used by this installation script
 	install_dependent_packages INSTALLER_DEPS[@]
 
-	# Install packages used by the Pi-hole
-	install_dependent_packages PIHOLE_DEPS[@]
 
 	if [[ "${reconfigure}" == true ]]; then
 		echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
@@ -979,11 +970,26 @@ main() {
 		use4andor6
 		# Decide what upstream DNS Servers to use
 		setDNS
+	    # Install packages used by the Pi-hole
+	    install_dependent_packages PIHOLE_DEPS[@]
 		# Install and log everything to a file
 		installPihole | tee ${tmpLog}
 	else
+	    # Install packages used by the Pi-hole
+	    install_dependent_packages PIHOLE_DEPS[@]
 		updatePihole | tee ${tmpLog}
 	fi
+
+    (
+	installScripts   || criticalError "installScripts"
+	installConfigs   || criticalError "installConfigs"
+	CreateLogFile    || criticalError "CreateLogFiles"
+	installPiholeWeb || installWarning "installPiholeWeb"
+	runGravity       || installWarning "runGavity"
+	installCron      || criticalError "installCrom"
+	configureFirewall || installWarning "configureFirewalls"
+	configureSelinux  || installWarning "configureSeLinux"
+    ) | tee ${tmpLog}
 
 	# Move the log file into /etc/pihole for storage
 	mv ${tmpLog} ${instalLogLoc}
@@ -1014,6 +1020,12 @@ main() {
 	echo ":::"
 	echo "::: The install log is located at: /etc/pihole/install.log"
 	echo "::: View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin"
+
+    [ ${INSTALLBUG} ] && (
+        echo "*** ***************************************************************************"
+        echo "*** INSTALLER ENCOUNTERED ONE OR MORE BUGS, PLEASE REVIEW LOGS AND CHECK INSTALLATION"
+        read -p "*** PLEASE PRESS ENTER TO CONFIRM "
+    )
 }
 
 main "$@"
