@@ -68,10 +68,6 @@ log_echo() {
       echo "${2}"
       log_write "${2}"
       ;;
-     -e)
-      echo "${2}"
-      log_write
-      ;;
      *)
       echo ":::  ${1}"
       log_write "${1}"
@@ -87,7 +83,7 @@ header_write() {
 file_parse() {
     while read -r line; do
 		  if [ ! -z "${line}" ]; then
-			  [[ "${line}" =~ ^#.*$ ]] && continue
+			  [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
 				log_write "${line}"
 			fi
 		done < "${1}"
@@ -101,15 +97,13 @@ block_parse() {
 lsof_parse() {
   local user
   local process
-  local match
 
   user=$(echo ${1} | cut -f 3 -d ' ' | cut -c 2-)
   process=$(echo ${1} | cut -f 2 -d ' ' | cut -c 2-)
-  if [[ ${2} -eq ${process} ]]; then
-    echo ":::       Correctly configured."
-  else
-    log_echo ":::       Failure: Incorrectly configured daemon."
-  fi
+  [[ ${2} -eq ${process} ]] \
+  && echo ":::       Correctly configured." \
+  || log_echo ":::       Failure: Incorrectly configured daemon."
+
   log_write "Found user ${user} with process ${process}"
 }
 
@@ -333,8 +327,6 @@ distro_check || echo "Distro Check soft fail"
 processor_check || echo "Processor Check soft fail"
 
 ip_check
-#hostnameCheck
-
 
 daemon_check lighttpd http
 daemon_check dnsmasq domain
