@@ -27,7 +27,7 @@ PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 # Default to no IPv6, will check and enable if needed.
-IPV6=ENABLED=false
+IPV6_ENABLED=false
 
 # Header info and introduction
 cat << EOM
