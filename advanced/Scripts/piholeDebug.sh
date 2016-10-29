@@ -10,10 +10,11 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-set -o pipefail
+set -oe pipefail
 
 ######## GLOBAL VARS ########
 VARSFILE="/etc/pihole/setupVars.conf"
+PIHOLEGITDIR="/etc/.pihole/"
 DEBUG_LOG="/var/log/pihole_debug.log"
 DNSMASQFILE="/etc/dnsmasq.conf"
 DNSMASQCONFFILE="/etc/dnsmasq.d/01-pihole.conf"
@@ -42,14 +43,14 @@ cat << EOM
 ::: Please read and note any issues, and follow any directions advised during this process.
 EOM
 
-# Ensure the file exists, create if not, clear if exists.
-truncate --size=0 "${DEBUG_LOG}"
-chmod 644 ${DEBUG_LOG}
-chown "$USER":pihole ${DEBUG_LOG}
+debug_prepare() {
+  # Create file $1 if it doesn't exist, clear if exists and set permissions for $2.
+  truncate --size=0 "${1}"
+  chmod 644 "${1}"
+  chown "${2}":root "${1}"
+}
 
-source ${VARSFILE}
-
-### Private functions exist here ###
+# Logging utilities
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
 }
@@ -78,6 +79,23 @@ header_write() {
   log_echo ""
   log_echo "${1}"
   log_write ""
+}
+
+# Error Utilities
+MAJOR_ERROR=0
+MINOR_ERROR=0
+declare -a ERRORS
+
+debug_fatal(){
+MAJORERROR=1
+ERRORS+=("${1}")
+}
+
+report_errors(){
+for error in "${ERRORS[@]}"; do
+  echo "${error}"
+done
+exit 1
 }
 
 file_parse() {
@@ -109,20 +127,32 @@ lsof_parse() {
 
 
 version_check() {
+  local pi_hole_ver
+  local admin_ver
+  local lighttp_ver
+  local php_ver
+
   header_write "Detecting Installed Package Versions:"
 
-  local error_found
-  error_found=0
 
-	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
-	&& log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
-	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
-	&& log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
-	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
-	&& log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
-	local php_ver="$(php -v |& head -n1)" \
-	&& log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
-	return "${error_found}"
+  cd "${PIHOLEGITDIR}" &> /dev/null || debug_fatal "Missing Pi-hole local git repository."
+
+	pi_hole_ver="$(git describe --tags --abbrev=0 &> /dev/null)"|| debug_fatal "Git did not detect a Pi-hole repository" \
+	&& log_echo -r "Pi-hole: $pi_hole_ver"
+
+	cd /var/www/html/admin &> /dev/null || debug_fatal "Missing Pi-hole admin git repository."
+
+	admin_ver="$(git describe --tags --abbrev=0 &> /dev/null)" || debug_fatal "Git did not detect a Pi-hole Web repository." \
+	&& log_echo -r "WebUI: $admin_ver"
+
+	lighttp_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" || debug_fatal "No lighttpd daemon available." \
+	&& log_echo -r "${lighttp_ver}"
+
+	php_ver="$(php -v |& head -n1)" || debug_fatal "No PHP installation available."  \
+	&& log_echo -r "${php_ver}"
+
+	[[ ${ERRORS} ]] && return 1
+
 }
 
 files_check() {
@@ -316,12 +346,15 @@ debugLighttpd() {
   echo ":::"
 }
 
-### END FUNCTIONS ###
+
+# Check for newer setupVars storage file
+source_file "${VARSFILE}"
+# Prepare debug log file
+debug_prepare "${DEBUG_LOG}" "${USER}"
 
 # Gather version of required packages / repositories
-version_check || echo "REQUIRED FILES MISSING"
-# Check for newer setupVars storage file
-source_file "/etc/pihole/setupVars.conf"
+version_check || report_errors
+
 # Gather information about the running distribution
 distro_check || echo "Distro Check soft fail"
 # Gather processor type
@@ -390,3 +423,4 @@ trap finalWork EXIT
 
 ### Method calls for additional logging ###
 dumpPiHoleLog
+
