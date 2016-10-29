@@ -302,7 +302,7 @@ checkProcesses() {
 	PROCESSES=( lighttpd dnsmasq )
 	for i in "${PROCESSES[@]}"; do
 		log_write ""
-		log_write -n "${i}"
+		log_write "${i}"
 		log_write " processes status:"
 		systemctl -l status "${i}" >> "${DEBUG_LOG}"
 	done
@@ -382,6 +382,8 @@ finalWork() {
 	# Check if tricorder.pi-hole.net is reachable and provide token.
 	if [ -n "${tricorder}" ]; then
 		echo "::: Your debug token is : ${tricorder}"
+		echo "::: Please contact the Pi-hole team with your token to being assistance."
+		echo "::: Thank you."
 	fi
 		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
 }
