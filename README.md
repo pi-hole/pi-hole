@@ -1,4 +1,4 @@
-[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE)   
+[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE) [![Code Climate](https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg)](https://codeclimate.com/github/pi-hole/pi-hole)
 
 # Automated Install
 
