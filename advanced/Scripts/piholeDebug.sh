@@ -351,7 +351,9 @@ header_write "Analyzing gravity.list"
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
 	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo -e "::: Writing current Pi-hole traffic to debug log...\n:::\tTry loading any/all sites that you are having trouble with now... \n:::\t(Press ctrl+C to finish)"
+	echo "::: "
+	echo "::: --= User Action Required =--"
+	echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
 	header_write "pihole.log"
 	if [ -e "${PIHOLELOG}" ]; then
 		while true; do
