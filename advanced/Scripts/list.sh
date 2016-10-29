@@ -82,7 +82,7 @@ AddDomain() {
 
 	bool=true
 	#Is the domain in the list we want to add it to?
-	grep -Ex -q "$1" ${list} || bool=false
+	grep -Ex -q "$1" ${list} > /dev/null 2>&1 || bool=false
 
 	if [[ "${bool}" == false ]]; then
 	  #domain not found in the whitelist file, add it!
@@ -104,7 +104,7 @@ RemoveDomain() {
 
     bool=true
     #Is it in the other list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
-    grep -Ex -q "$1" ${list} || bool=false
+    grep -Ex -q "$1" ${list} > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
         # Remove it from the other one
         echo "::: Removing $1 from $list..."
