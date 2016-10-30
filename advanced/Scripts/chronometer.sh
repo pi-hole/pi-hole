@@ -17,11 +17,11 @@ gravity="/etc/pihole/gravity.list"
 
 today=$(date "+%b %e")
 
-CalcBlockedDomains(){
+CalcBlockedDomains() {
 	CheckIPv6
-	if [ -e "$gravity" ]; then
+	if [ -e "${gravity}" ]; then
 		#Are we IPV6 or IPV4?
-		if [[ -n ${piholeIPv6} ]];then
+		if [[ -n ${piholeIPv6} ]]; then
 			#We are IPV6
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
@@ -33,43 +33,43 @@ CalcBlockedDomains(){
 	fi
 }
 
-CalcQueriesToday(){
-	if [ -e "$piLog" ];then
-		queriesToday=$(cat "$piLog" | grep "$today" | awk '/query/ {print $6}' | wc -l)
+CalcQueriesToday() {
+	if [ -e "${piLog}" ]; then
+		queriesToday=$(cat "${piLog}" | grep "${today}" | awk '/query/ {print $6}' | wc -l)
 	else
 		queriesToday="Err."
 	fi
 }
 
-CalcblockedToday(){
-	if [ -e "$piLog" ] && [ -e "$gravity" ];then
+CalcblockedToday() {
+	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
 		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
 	else
 		blockedToday="Err."
 	fi
 }
 
-CalcPercentBlockedToday(){
-	if [ "$queriesToday" != "Err." ] && [ "$blockedToday" != "Err." ]; then
-		if [ "$queriesToday" != 0 ]; then #Fixes divide by zero error :)
-		 #scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-			percentBlockedToday=$(echo "scale=4; $blockedToday/$queriesToday*100" | bc)
-			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "$percentBlockedToday")
+CalcPercentBlockedToday() {
+	if [ "${queriesToday}" != "Err." ] && [ "${blockedToday}" != "Err." ]; then
+		if [ "${queriesToday}" != 0 ]; then #Fixes divide by zero error :)
+			#scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
+			percentBlockedToday=$(echo "scale=4; ${blockedToday}/${queriesToday}*100" | bc)
+			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "${percentBlockedToday}")
 		else
 			percentBlockedToday=0
 		fi
 	fi
 }
 
-CheckIPv6(){
+CheckIPv6() {
 	piholeIPv6file="/etc/pihole/.useIPv6"
 	if [[ -f ${piholeIPv6file} ]];then
-	    # If the file exists, then the user previously chose to use IPv6 in the automated installer
-	    piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+		# If the file exists, then the user previously chose to use IPv6 in the automated installer
+		piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	fi
 }
 
-outputJSON(){
+outputJSON() {
 	CalcQueriesToday
 	CalcblockedToday
 	CalcPercentBlockedToday
@@ -79,9 +79,8 @@ outputJSON(){
 	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
 }
 
-normalChrono(){
-	for (( ; ; ))
-	do
+normalChrono() {
+	for (( ; ; )); do
 		clear
 		# Displays a colorful Pi-hole logo
 		echo " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m"
@@ -111,26 +110,27 @@ normalChrono(){
 
 		CalcBlockedDomains
 
-		echo "Blocking:      $blockedDomainsTotal"
+		echo "Blocking:      ${blockedDomainsTotal}"
 		#below commented line does not add up to todaysQueryCount
 		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
-		echo "Queries:       $queriesToday" #same total calculation as dashboard
-	  echo "Pi-holed:      $blockedToday ($percentBlockedToday%)"
+		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
+	  echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
 
 		sleep 5
 	done
 }
 
-displayHelp(){
- 	echo "::: Displays stats about your piHole!"
-    echo ":::"
-    echo "::: Usage: sudo pihole -c [optional:-j]"
-    echo "::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds"
-    echo ":::"
-    echo "::: Options:"
-    echo ":::  -j, --json		output stats as JSON formatted string"
-    echo ":::  -h, --help		display this help text"
-
+displayHelp() {
+	cat << EOM
+::: Displays stats about your piHole!
+:::
+::: Usage: sudo pihole -c [optional:-j]
+::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds
+:::
+::: Options:
+:::  -j, --json		output stats as JSON formatted string
+:::  -h, --help		display this help text
+EOM
     exit 1
 }
 
@@ -138,11 +138,10 @@ if [[ $# = 0 ]]; then
 	normalChrono
 fi
 
-for var in "$@"
-do
-  case "$var" in
-    "-j" | "--json"  ) outputJSON;;
-    "-h" | "--help"  ) displayHelp;;
-    *                ) exit 1;;
-  esac
+for var in "$@"; do
+	case "$var" in
+		"-j" | "--json"  ) outputJSON;;
+		"-h" | "--help"  ) displayHelp;;
+		*                ) exit 1;;
+	esac
 done
