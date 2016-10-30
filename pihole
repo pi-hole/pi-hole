@@ -22,14 +22,12 @@ if [[ ! $EUID -eq 0 ]];then
 fi
 
 whitelistFunc() {
-	shift
-	/opt/pihole/whitelist.sh "$@"
+	/opt/pihole/list.sh "$@"
 	exit 0
 }
 
 blacklistFunc() {
-	shift
-	/opt/pihole/blacklist.sh "$@"
+	/opt/pihole/list.sh "$@"
 	exit 0
 }
 

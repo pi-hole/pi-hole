@@ -11,6 +11,7 @@
 
 server.modules = (
 	"mod_access",
+	"mod_auth",
 	"mod_fastcgi",
 	"mod_accesslog",
 	"mod_expire",
@@ -69,10 +70,14 @@ $HTTP["url"] =~ "^/admin/" {
 	setenv.add-response-header = ( "X-Pi-hole" => "The Pi-hole Web interface is working!" )
 }
 
+# Rewite js requests, must be out of $HTTP block due to bug #2526
+url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
+
 # If the URL does not start with /admin, then it is a query for an ad domain
 $HTTP["url"] =~ "^(?!/admin)/.*" {
 	# Create a response header for debugging using curl -I
 	setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
-        # rewrite only js requests
-        url.rewrite = ("(.*).js" => "pihole/index.js")
 }
+
+# Add user chosen options held in external file
+include_shell "cat external.conf 2>/dev/null"
