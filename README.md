@@ -8,7 +8,7 @@ Works on most Debian and CentOS/RHEL based distributions!
 1.  Install Raspbian
 2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
-## `curl -sSL https://install.pi-hole.net | bash`
+### `curl -sSL https://install.pi-hole.net | bash`
 
 ### Alternative Semi-Automated install
 
