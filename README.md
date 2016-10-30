@@ -16,7 +16,7 @@ Works on most Debian and CentOS/RHEL based distributions!
 wget -O basic-install.sh https://install.pi-hole.net
 cat basic-install.sh | bash
 ```
-If you wish to read over the script before running it, then after the `wget` command, do `nano basic-install.sh` to open a text viewer.
+If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
