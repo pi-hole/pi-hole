@@ -24,3 +24,6 @@
 # Pi-hole: Flush the log daily at 00:00 so it doesn't get out of control
 #          Stats will be viewable in the Web interface thanks to the cron job above
 00 00   * * *   root    /usr/local/bin/pihole flush
+
+# Pi-hole: Import data from pihole.log into database every minute
+* * * * *   root    /usr/local/bin/pihole importLogToDatabase
