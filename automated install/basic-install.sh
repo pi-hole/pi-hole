@@ -545,8 +545,7 @@ setLogging() {
 	LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?\n (Disabling will render graphs on the Admin page useless):" ${r} ${c} 6)
 	LogChooseOptions=("On (Reccomended)" "" on
 			Off "" off)
-	LogChoices=$("${LogToggleCommand[@]}" "${LogChooseOptions[@]}" 2>&1 >/dev/tty)
-	if [[ $? = 0 ]];then
+	LogChoices=$("${LogToggleCommand[@]}" "${LogChooseOptions[@]}" 2>&1 >/dev/tty) || (echo "::: Cancel selected. Exiting..." && exit 1)
 		case ${LogChoices} in
 			"On (Recommended)")
 				echo "::: Logging On."
@@ -557,11 +556,6 @@ setLogging() {
 				QUERYLOGGING=false
 				;;
 		esac
-	else
-	  # Well never see this, `set -e` kicked in already and dropped us.
-		echo "::: Cancel selected. Exiting..."
-		exit 1
-	fi
 }
 
 
