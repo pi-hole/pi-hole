@@ -539,11 +539,11 @@ setDNS() {
 
 setLogging() {
 	LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?\n (Disabling will render graphs on the Admin page useless):" ${r} ${c} 6)
-	DNSChooseOptions=("On (Reccomended)" "" on
+	LogChooseOptions=("On (Reccomended)" "" on
 			Off "" off)
-	DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+	LogChoices=$("${LogToggleCommand[@]}" "${LogChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
-		case ${DNSchoices} in
+		case ${LogChoices} in
 			"On (Recommended)")
 				echo "::: Logging On."
 				queryLogging=true
@@ -554,6 +554,7 @@ setLogging() {
 				;;
 		esac
 	else
+	  # Well never see this, `set -e` kicked in already and dropped us.
 		echo "::: Cancel selected. Exiting..."
 		exit 1
 	fi
