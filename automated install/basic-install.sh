@@ -538,6 +538,10 @@ setDNS() {
 }
 
 setLogging() {
+  local LogToggleCommand
+  local LogChooseOptions
+  local LogChoices
+
 	LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?\n (Disabling will render graphs on the Admin page useless):" ${r} ${c} 6)
 	LogChooseOptions=("On (Reccomended)" "" on
 			Off "" off)
