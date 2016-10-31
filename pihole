@@ -125,6 +125,27 @@ piholeEnable() {
   restartDNS
 }
 
+piholeLogging() {
+
+    shift
+
+    if [[ "${1}" == "off" ]] ; then
+        #Disable Logging
+        sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
+        sed -i 's/^queryLogging=true/queryLogging=false/' /etc/pihole/setupVars.conf
+        echo "::: Logging has been disabled!"
+    elif [[ "${1}" == "on" ]] ; then
+        #Enable logging
+        sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
+        sed -i 's/^queryLogging=false/queryLogging=true/' /etc/pihole/setupVars.conf
+        echo "::: Logging has been enabled!"
+    else
+        echo "::: Invalid option passed, please pass 'on' or 'off'"
+        exit 1
+    fi
+    restartDNS
+}
+
 piholeStatus() {
   if [[ $(cat /etc/dnsmasq.d/01-pihole.conf | grep "#addn-hosts=/") ]] ; then
     #list is commented out
@@ -173,6 +194,7 @@ helpFunc() {
 :::  -h, help                 Show this help dialog
 :::  -v, version              Show current versions
 :::  -q, query                Query the adlists for a specific domain
+:::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
 :::  uninstall                Uninstall Pi-Hole from your system :(!
 :::  status                   Is Pi-Hole Enabled or Disabled
 :::  enable                   Enable Pi-Hole DNS Blocking
@@ -200,6 +222,7 @@ case "${1}" in
 	"-h" | "help"				) helpFunc;;
 	"-v" | "version"            ) versionFunc "$@";;
 	"-q" | "query"              ) queryFunc "$@";;
+	"-l" | "logging"            ) piholeLogging "$@";;
 	"uninstall"					) uninstallFunc;;
 	"enable"                      ) piholeEnable 1;;
     "disable"                     ) piholeEnable 0;;
