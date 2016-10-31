@@ -984,9 +984,6 @@ main() {
 	# Install packages used by this installation script
 	install_dependent_packages INSTALLER_DEPS[@]
 
-	# Install packages used by the Pi-hole
-	install_dependent_packages PIHOLE_DEPS[@]
-
 	if [[ "${reconfigure}" == true ]]; then
 		echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
 	else
@@ -1013,9 +1010,15 @@ main() {
 		use4andor6
 		# Decide what upstream DNS Servers to use
 		setDNS
+
+		# Install packages used by the Pi-hole
+	    install_dependent_packages PIHOLE_DEPS[@]
+
 		# Install and log everything to a file
 		installPihole | tee ${tmpLog}
 	else
+	    # Install packages used by the Pi-hole
+	    install_dependent_packages PIHOLE_DEPS[@]
 		updatePihole | tee ${tmpLog}
 	fi
 
