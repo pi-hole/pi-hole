@@ -498,6 +498,29 @@ setDNS() {
 	fi
 }
 
+setLogging() {
+	LogToggleCommand=(whiptail --separate-output --radiolist "Select Logging mode:" ${r} ${c} 6)
+	DNSChooseOptions=("On (Reccomended)" "" on
+			Off "" off)
+	DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
+	if [[ $? = 0 ]];then
+		case ${DNSchoices} in
+			"On (Reccomended)")
+				echo "::: Logging On."
+				queryLogging=true
+				;;
+			Off)
+				echo "::: Logging Off."
+				queryLogging=false
+				;;
+		esac
+	else
+		echo "::: Cancel selected. Exiting..."
+		exit 1
+	fi
+}
+
+
 version_check_dnsmasq() {
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
 	local dnsmasq_conf="/etc/dnsmasq.conf"
@@ -572,6 +595,14 @@ version_check_dnsmasq() {
 	fi
 
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
+
+	if [[ "${queryLogging}" == false ]] ; then
+        #Disable Logging
+        sed -i 's/^log-queries/#log-queries/' ${dnsmasq_pihole_01_location}
+    else
+        #Enable Logging
+        sed -i 's/^#log-queries/log-queries/' ${dnsmasq_pihole_01_location}
+    fi
 }
 
 remove_legacy_scripts() {
@@ -834,6 +865,7 @@ finalExports() {
 	echo "IPv6_address=${IPv6_address}"
 	echo "piholeDNS1=${piholeDNS1}"
 	echo "piholeDNS2=${piholeDNS2}"
+	echo "queryLogging=${queryLogging}"
     }>> "${setupVars}"
 }
 
@@ -1010,6 +1042,8 @@ main() {
 		use4andor6
 		# Decide what upstream DNS Servers to use
 		setDNS
+		# Let the user decide if they want query logging enabled...
+		setLogging
 
 		# Install packages used by the Pi-hole
 	    install_dependent_packages PIHOLE_DEPS[@]
