@@ -538,13 +538,13 @@ setDNS() {
 }
 
 setLogging() {
-	LogToggleCommand=(whiptail --separate-output --radiolist "Select Logging mode:" ${r} ${c} 6)
+	LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?\n (Disabling will render graphs on the Admin page useless):" ${r} ${c} 6)
 	DNSChooseOptions=("On (Reccomended)" "" on
 			Off "" off)
 	DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
 		case ${DNSchoices} in
-			"On (Reccomended)")
+			"On (Recommended)")
 				echo "::: Logging On."
 				queryLogging=true
 				;;
