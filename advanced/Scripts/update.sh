@@ -49,7 +49,13 @@ is_repo() {
 	# Use git to check if directory is currently under VCS
 	echo -n ":::    Checking $1 is a repo..."
 	cd "${1}" &> /dev/null || return 1
-	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
+	if [[ $(git status --short) ]]; then
+    echo " OK!"
+    return 0
+  else
+    echo " not found!"
+    return 1
+  fi
 }
 
 make_repo() {
