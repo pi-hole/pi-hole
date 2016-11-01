@@ -26,14 +26,13 @@ listMain=""
 listAlt=""
 
 helpFunc() {
-
-    if [[ ${listMain} == ${whitelist} ]]; then
-        letter="w"
-        word="white"
-    else
-        letter="b"
-        word="black"
-    fi
+  if [[ ${listMain} == ${whitelist} ]]; then
+    letter="w"
+    word="white"
+  else
+    letter="b"
+    word="black"
+  fi
 
 	cat << EOM
 ::: Immediately ${word}lists one or more domains in the hosts file
@@ -100,21 +99,22 @@ AddDomain() {
 }
 
 RemoveDomain() {
-    list="$2"
+  list="$2"
 
-    bool=true
-    #Is it in the other list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
-    grep -Ex -q "$1" ${list} > /dev/null 2>&1 || bool=false
-    if [[ "${bool}" == true ]]; then
-        # Remove it from the other one
-        echo "::: Removing $1 from $list..."
-        echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${list}
-        reload=true
-    else
-        if [[ "${verbose}" == true ]]; then
-            echo "::: ${1} does not exist in ${list}, no need to remove!"
-        fi
+  bool=true
+
+  #Is it in the other list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
+  grep -Ex -q "$1" ${list} > /dev/null 2>&1 || bool=false
+  if [[ "${bool}" == true ]]; then
+    # Remove it from the other one
+    echo "::: Removing $1 from $list..."
+    echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${list}
+    reload=true
+  else
+    if [[ "${verbose}" == true ]]; then
+      echo "::: ${1} does not exist in ${list}, no need to remove!"
     fi
+  fi
 }
 
 Reload() {
@@ -123,11 +123,12 @@ Reload() {
 }
 
 Displaylist() {
-    if [[ ${listMain} == ${whitelist} ]]; then
-        string="gravity resistant domains"
-    else
-        string="domains caught in the sinkhole"
-    fi
+  if [[ ${listMain} == ${whitelist} ]]; then
+    string="gravity resistant domains"
+  else
+    string="domains caught in the sinkhole"
+  fi
+
 	verbose=false
 	echo -e " Displaying $string \n"
 	count=1
@@ -140,8 +141,8 @@ Displaylist() {
 
 for var in "$@"; do
 	case "${var}" in
-	    "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
-	    "-b" | "blacklist"   ) listMain="${blacklist}"; listAlt="${whitelist}";;
+	  "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
+	  "-b" | "blacklist"   ) listMain="${blacklist}"; listAlt="${whitelist}";;
 		"-nr"| "--noreload"  ) reload=false;;
 		"-d" | "--delmode"   ) addmode=false;;
 		"-f" | "--force"     ) force=true;;

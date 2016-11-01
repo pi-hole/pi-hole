@@ -82,12 +82,12 @@ header_write() {
 
 file_parse() {
     while read -r line; do
-		  if [ ! -z "${line}" ]; then
-			  [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
-				log_write "${line}"
-			fi
-		done < "${1}"
-		log_write ""
+      if [ ! -z "${line}" ]; then
+        [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
+        log_write "${line}"
+      fi
+    done < "${1}"
+    log_write ""
 }
 
 block_parse() {
@@ -114,15 +114,15 @@ version_check() {
   local error_found
   error_found=0
 
-	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
-	&& log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
-	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
-	&& log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
-	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
-	&& log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
-	local php_ver="$(php -v |& head -n1)" \
-	&& log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
-	return "${error_found}"
+  local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
+  && log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
+  local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
+  && log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
+  local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
+  && log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
+  local php_ver="$(php -v |& head -n1)" \
+  && log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
+  return "${error_found}"
 }
 
 files_check() {
@@ -133,7 +133,7 @@ files_check() {
      echo ":::       File exists"
      file_parse "${search_file}"
      return 0
-	else
+  else
     log_echo "${1} not found!"
     return 1
   fi
@@ -150,8 +150,8 @@ distro_check() {
   local soft_fail
   header_write "Detecting installed OS Distribution"
   soft_fail=0
-	local distro="$(cat /etc/*release)" && block_parse "${distro}" || (log_echo "Distribution details not found." && soft_fail=1)
-	return "${soft_fail}"
+  local distro="$(cat /etc/*release)" && block_parse "${distro}" || (log_echo "Distribution details not found." && soft_fail=1)
+  return "${soft_fail}"
 }
 
 processor_check() {
@@ -171,22 +171,22 @@ ipv6_check() {
 
 
 ip_check() {
-	header_write "IP Address Information"
-	# Get the current interface for Internet traffic
+  header_write "IP Address Information"
+  # Get the current interface for Internet traffic
 
-	# Check if IPv6 enabled
-	local IPv6_interface
-	local IPv4_interface
-	ipv6_check &&	IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
-	# If declared in setupVars.conf use it, otherwise defer to default
-	# http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
+  # Check if IPv6 enabled
+  local IPv6_interface
+  local IPv4_interface
+  ipv6_check &&	IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
+  # If declared in setupVars.conf use it, otherwise defer to default
+  # http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
   IPv4_interface=${piholeInterface:-$(ip r | grep default | cut -d ' ' -f 5)}
 
 
   if [[ IPV6_READY ]]; then
     local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
-	  && (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") \
-	  || log_echo "No IPv6 addresses found."
+    && (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") \
+    || log_echo "No IPv6 addresses found."
 
     local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
     if [[ $? = 0 ]] && [[ -n ${IPv6_def_gateway} ]]; then
@@ -206,23 +206,23 @@ ip_check() {
     fi
 
 local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
-	&& (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
-	|| log_echo "No IPv4 addresses found."
+  && (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
+  || log_echo "No IPv4 addresses found."
 
-	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
-	if [[ $? = 0 ]]; then
-		echo -n ":::        Pinging default IPv4 gateway: "
-		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}"  -I "${IPv4_interface}" | tail -n3)" \
-		&& echo "Gateway responded." \
-		|| echo "Gateway did not respond."
-		block_parse "${IPv4_def_gateway_check}"
+  local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
+  if [[ $? = 0 ]]; then
+    echo -n ":::        Pinging default IPv4 gateway: "
+    local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}"  -I "${IPv4_interface}" | tail -n3)" \
+    && echo "Gateway responded." \
+    || echo "Gateway did not respond."
+    block_parse "${IPv4_def_gateway_check}"
 
-		echo -n ":::        Pinging Internet via IPv4: "
-		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
-		&& echo "Query responded." \
-		|| echo "Query did not respond."
-		block_parse "${IPv4_inet_check}"
-	fi
+    echo -n ":::        Pinging Internet via IPv4: "
+    local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
+    && echo "Query responded." \
+    || echo "Query did not respond."
+    block_parse "${IPv4_inet_check}"
+  fi
 
   fi
 }
@@ -237,76 +237,76 @@ port_check() {
 
 daemon_check() {
   # Check for daemon ${1} on port ${2}
-	header_write "Daemon Process Information"
+  header_write "Daemon Process Information"
 
-	echo ":::     Checking ${2} port for ${1} listener."
+  echo ":::     Checking ${2} port for ${1} listener."
 
-	if [[ ${IPV6_READY} ]]; then
-	  port_check 6 "${2}" "${1}"
+  if [[ ${IPV6_READY} ]]; then
+    port_check 6 "${2}" "${1}"
   fi
-	lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
+  lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
     port_check 4 "${2}" "${1}"
 }
 
 testResolver() {
-	header_write "Resolver Functions Check"
+  header_write "Resolver Functions Check"
 
-	# Find a blocked url that has not been whitelisted.
-	TESTURL="doubleclick.com"
-	if [ -s "${WHITELISTMATCHES}" ]; then
-		while read -r line; do
-			CUTURL=${line#*" "}
-			if [ "${CUTURL}" != "Pi-Hole.IsWorking.OK" ]; then
-				while read -r line2; do
-					CUTURL2=${line2#*" "}
-					if [ "${CUTURL}" != "${CUTURL2}" ]; then
-						TESTURL="${CUTURL}"
-						break 2
-					fi
-				done < "${WHITELISTMATCHES}"
-			fi
-		done < "${GRAVITYFILE}"
-	fi
+  # Find a blocked url that has not been whitelisted.
+  TESTURL="doubleclick.com"
+  if [ -s "${WHITELISTMATCHES}" ]; then
+    while read -r line; do
+      CUTURL=${line#*" "}
+      if [ "${CUTURL}" != "Pi-Hole.IsWorking.OK" ]; then
+        while read -r line2; do
+          CUTURL2=${line2#*" "}
+          if [ "${CUTURL}" != "${CUTURL2}" ]; then
+            TESTURL="${CUTURL}"
+            break 2
+          fi
+        done < "${WHITELISTMATCHES}"
+      fi
+    done < "${GRAVITYFILE}"
+  fi
 
-	log_write "Resolution of ${TESTURL} from Pi-hole:"
-	LOCALDIG=$(dig "${TESTURL}" @127.0.0.1)
-	if [[ $? = 0 ]]; then
-		log_write "${LOCALDIG}"
-	else
-		log_write "Failed to resolve ${TESTURL} on Pi-hole"
-	fi
-	log_write ""
+  log_write "Resolution of ${TESTURL} from Pi-hole:"
+  LOCALDIG=$(dig "${TESTURL}" @127.0.0.1)
+  if [[ $? = 0 ]]; then
+    log_write "${LOCALDIG}"
+  else
+    log_write "Failed to resolve ${TESTURL} on Pi-hole"
+  fi
+  log_write ""
 
 
-	log_write "Resolution of ${TESTURL} from 8.8.8.8:"
-	REMOTEDIG=$(dig "${TESTURL}" @8.8.8.8)
-	if [[ $? = 0 ]]; then
-		log_write "${REMOTEDIG}"
-	else
-		log_write "Failed to resolve ${TESTURL} on 8.8.8.8"
-	fi
-	log_write ""
+  log_write "Resolution of ${TESTURL} from 8.8.8.8:"
+  REMOTEDIG=$(dig "${TESTURL}" @8.8.8.8)
+  if [[ $? = 0 ]]; then
+    log_write "${REMOTEDIG}"
+  else
+    log_write "Failed to resolve ${TESTURL} on 8.8.8.8"
+  fi
+  log_write ""
 
-	log_write "Pi-hole dnsmasq specific records lookups"
-	log_write "Cache Size:"
-	dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
-	log_write "Upstream Servers:"
-	dig +short chaos txt servers.bind >> ${DEBUG_LOG}
-	log_write ""
+  log_write "Pi-hole dnsmasq specific records lookups"
+  log_write "Cache Size:"
+  dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
+  log_write "Upstream Servers:"
+  dig +short chaos txt servers.bind >> ${DEBUG_LOG}
+  log_write ""
 }
 
 checkProcesses() {
-	header_write "Processes Check"
+  header_write "Processes Check"
 
-	echo ":::     Logging status of lighttpd and dnsmasq..."
-	PROCESSES=( lighttpd dnsmasq )
-	for i in "${PROCESSES[@]}"; do
-		log_write ""
-		log_write "${i}"
-		log_write " processes status:"
-		systemctl -l status "${i}" >> "${DEBUG_LOG}"
-	done
-	log_write ""
+  echo ":::     Logging status of lighttpd and dnsmasq..."
+  PROCESSES=( lighttpd dnsmasq )
+  for i in "${PROCESSES[@]}"; do
+    log_write ""
+    log_write "${i}"
+    log_write " processes status:"
+    systemctl -l status "${i}" >> "${DEBUG_LOG}"
+  done
+  log_write ""
 }
 
 debugLighttpd() {
@@ -344,50 +344,50 @@ files_check "${ADLISTFILE}"
 
 header_write "Analyzing gravity.list"
 
-	gravity_length=$(wc -l "${GRAVITYFILE}") \
-	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
-	|| log_echo "Warning: No gravity.list file found!"
+  gravity_length=$(wc -l "${GRAVITYFILE}") \
+  && log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
+  || log_echo "Warning: No gravity.list file found!"
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
-	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo "::: "
-	echo "::: --= User Action Required =--"
-	echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
-	header_write "pihole.log"
-	if [ -e "${PIHOLELOG}" ]; then
-		while true; do
-			tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
-			log_write ""
-		done
-	else
-		log_write "No pihole.log file found!"
-		printf ":::\tNo pihole.log file found!\n"
-	fi
+  trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
+  echo "::: "
+  echo "::: --= User Action Required =--"
+  echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
+  header_write "pihole.log"
+  if [ -e "${PIHOLELOG}" ]; then
+    while true; do
+      tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
+      log_write ""
+    done
+  else
+    log_write "No pihole.log file found!"
+    printf ":::\tNo pihole.log file found!\n"
+  fi
 }
 
 # Anything to be done after capturing of pihole.log terminates
 finalWork() {
   local tricorder
-	echo "::: Finshed debugging!"
-	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-	read -r -p "::: Would you like to upload the log? [y/N] " response
-	case ${response} in
-		[yY][eE][sS]|[yY])
-			tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
-			;;
-		*)
-			echo "::: Log will NOT be uploaded to tricorder."
-			;;
-	esac
+  echo "::: Finshed debugging!"
+  echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+  read -r -p "::: Would you like to upload the log? [y/N] " response
+  case ${response} in
+    [yY][eE][sS]|[yY])
+      tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+      ;;
+    *)
+      echo "::: Log will NOT be uploaded to tricorder."
+      ;;
+  esac
 
-	# Check if tricorder.pi-hole.net is reachable and provide token.
-	if [ -n "${tricorder}" ]; then
-		echo "::: Your debug token is : ${tricorder}"
-		echo "::: Please contact the Pi-hole team with your token to being assistance."
-		echo "::: Thank you."
-	fi
-		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+  # Check if tricorder.pi-hole.net is reachable and provide token.
+  if [ -n "${tricorder}" ]; then
+    echo "::: Your debug token is : ${tricorder}"
+    echo "::: Please contact the Pi-hole team with your token to being assistance."
+    echo "::: Thank you."
+  fi
+    echo "::: Debug log can be found at : /var/log/pihole_debug.log"
 }
 
 trap finalWork EXIT
