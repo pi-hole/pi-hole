@@ -79,10 +79,14 @@ if [ ! -d "/var/www/html/admin" ]; then #This is unlikely
 fi
 
 echo "::: Checking for updates..."
+# Checks Pi-hole version > pihole only > current local git repo version : returns string in format vX.X.X
 piholeVersion=$(pihole -v -p -c)
+# Checks Pi-hole version > pihole only > remote upstream repo version : returns string in format vX.X.X
 piholeVersionLatest=$(pihole -v -p -l)
 
+# Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
 webVersion=$(pihole -v -a -c)
+# Checks Pi-hole version > admin only > remote upstream repo version : returns string in format vX.X.X
 webVersionLatest=$(pihole -v -a -l)
 
 echo ":::"
@@ -104,7 +108,7 @@ echo ":::"
 
 
 
-if [[ ${piholeVersion} == ${piholeVersionLatest} ]] && [[ ${webVersion} == ${webVersionLatest} ]]; then
+if [[ ${piholeVersion} == ${piholeVersionLatest} ]] && [[ "${webVersion}" == "${webVersionLatest}" ]]; then
 	echo "::: Everything is up to date!"
 	echo ""
 	exit 0
