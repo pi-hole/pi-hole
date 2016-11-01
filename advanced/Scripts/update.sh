@@ -135,7 +135,8 @@ elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" 
 elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Updating Everything"
 	getGitFiles "${PIHOLEFILESDIR}" "${PIHOLEGITURL}"
-	/etc/.pihole/automated\ install/basic-install.sh --unattended
+
+	/etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
 	# Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
 	webVersion=$(pihole -v -a -c)
