@@ -126,7 +126,9 @@ elif [[ "${piholeVersion} == ${piholeVersionLatest}" ]] && [[ "${webVersion}" !=
 elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" == "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole core files out of date"
 	getGitFiles "${PIHOLEFILESDIR}" "${PIHOLEGITURL}"
-	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended
+
+	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+
 	echo ":::"
 	piholeVersion=$(pihole -v -p -c)
 	echo "::: Pi-hole version is now at ${piholeVersion}"
