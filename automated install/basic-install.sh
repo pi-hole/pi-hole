@@ -74,31 +74,31 @@ fi
 # Compatibility
 
 if [ -x "$(command -v apt-get)" ]; then
-	#Debian Family
-	#############################################
-	PKG_MANAGER="apt-get"
-	PKG_CACHE="/var/lib/apt/lists/"
-	UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-	PKG_UPDATE="${PKG_MANAGER} upgrade"
-	PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
-	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
-	PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-	# #########################################
-	# fixes for dependancy differences
-	# Debian 7 doesn't have iproute2 use iproute
-	${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
-	# Ubuntu 16.04 LTS php / php5 fix
-	${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
-	# #########################################
-	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
-	LIGHTTPD_USER="www-data"
-	LIGHTTPD_GROUP="www-data"
-	LIGHTTPD_CFG="lighttpd.conf.debian"
-	DNSMASQ_USER="dnsmasq"
-	package_check_install() {
-		dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
-	}
+  #Debian Family
+  #############################################
+  PKG_MANAGER="apt-get"
+  PKG_CACHE="/var/lib/apt/lists/"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+  PKG_UPDATE="${PKG_MANAGER} upgrade"
+  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
+  # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
+  PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+  # #########################################
+  # fixes for dependancy differences
+  # Debian 7 doesn't have iproute2 use iproute
+  ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
+  # Ubuntu 16.04 LTS php / php5 fix
+  ${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
+  # #########################################
+  INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
+  PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+  LIGHTTPD_USER="www-data"
+  LIGHTTPD_GROUP="www-data"
+  LIGHTTPD_CFG="lighttpd.conf.debian"
+  DNSMASQ_USER="dnsmasq"
+  package_check_install() {
+    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
+  }
 elif [ -x "$(command -v rpm)" ]; then
   # Fedora Family
   if [ -x "$(command -v dnf)" ]; then
