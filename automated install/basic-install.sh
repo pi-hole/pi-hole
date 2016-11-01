@@ -914,10 +914,16 @@ installPihole() {
 	runGravity
 }
 
-updatePihole() {
+accountForRefactor() {
+    # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
 	# Refactoring of install script has changed the name of a couple of variables. Sort them out here.
 	sed -i 's/IPv4addr/IPv4_address/g' ${setupVars}
 	sed -i 's/piholeIPv6/IPv6_address/g' ${setupVars}
+
+}
+
+updatePihole() {
+    accountForRefactor
 	# Source ${setupVars} for use in the rest of the functions.
 	. ${setupVars}
 	# Install base files and web interface
