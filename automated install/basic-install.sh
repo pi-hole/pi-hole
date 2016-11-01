@@ -31,6 +31,7 @@ useUpdateVars=false
 
 IPV4_ADDRESS=""
 IPV6_ADDRESS=""
+QUERY_LOGGING=true
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80) 
