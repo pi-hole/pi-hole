@@ -91,7 +91,7 @@ if [ -x "$(command -v apt-get)" ]; then
 	${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
 	# #########################################
 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+	PIHOLE_DEPS=( iputils-ping lsof dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
