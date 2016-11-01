@@ -510,11 +510,11 @@ setLogging() {
 		case ${LogChoices} in
 			"On (Recommended)")
 				echo "::: Logging On."
-				QUERYLOGGING=true
+				QUERY_LOGGING=true
 				;;
 			Off)
 				echo "::: Logging Off."
-				QUERYLOGGING=false
+				QUERY_LOGGING=false
 				;;
 		esac
 }
@@ -595,7 +595,7 @@ version_check_dnsmasq() {
 
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
 
-	if [[ "${QUERYLOGGING}" == false ]] ; then
+	if [[ "${QUERY_LOGGING}" == false ]] ; then
         #Disable Logging
         sed -i 's/^log-queries/#log-queries/' ${dnsmasq_pihole_01_location}
     else
@@ -864,7 +864,7 @@ finalExports() {
 	echo "IPv6_address=${IPv6_address}"
 	echo "piholeDNS1=${piholeDNS1}"
 	echo "piholeDNS2=${piholeDNS2}"
-	echo "QUERYLOGGING=${QUERYLOGGING}"
+	echo "QUERY_LOGGING=${QUERY_LOGGING}"
     }>> "${setupVars}"
 }
 
