@@ -885,7 +885,7 @@ finalExports() {
 	echo "IPv6_address=${IPv6_address}"
 	echo "piholeDNS1=${piholeDNS1}"
 	echo "piholeDNS2=${piholeDNS2}"
-	echo "queryLogging=${QUERYLOGGING}"
+	echo "QUERYLOGGING=${QUERYLOGGING}"
     }>> "${setupVars}"
 }
 
