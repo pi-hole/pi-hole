@@ -115,7 +115,7 @@ if [[ "${piholeVersion}" == "${piholeVersionLatest}" ]] && [[ "${webVersion}" ==
 
 elif [[ "${piholeVersion} == ${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole Web Admin files out of date"
-	getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+	getGitFiles "${webInterfaceDir}" "${webInterfaceGitUrl}"
 	echo ":::"
 	webVersion=$(pihole -v -a -c)
 	echo "::: Web Admin version is now at ${webVersion}"
@@ -123,7 +123,7 @@ elif [[ "${piholeVersion} == ${piholeVersionLatest}" ]] && [[ "${webVersion}" !=
 	echo ""
 elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" == "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole core files out of date"
-	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+	getGitFiles "${piholeFilesDir}" "${piholeGitUrl}"
 	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended
 	echo ":::"
 	piholeVersion=$(pihole -v -p -c)
@@ -132,7 +132,7 @@ elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" 
 	echo ""
 elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Updating Everything"
-	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+	getGitFiles "${piholeFilesDir}" "${piholeGitUrl}"
 	/etc/.pihole/automated\ install/basic-install.sh --unattended
 
 	# Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
