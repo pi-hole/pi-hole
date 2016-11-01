@@ -19,20 +19,6 @@ readonly WEBINTERFACEDIR="/var/www/html/admin"
 readonly PIHOLEGITURL="https://github.com/pi-hole/pi-hole.git"
 readonly PIHOLEFILESDIR="/etc/.pihole"
 
-spinner() {
-	local pid=${1}
-	local delay=0.50
-	local spinstr='/-\|'
-	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
-		local temp=${spinstr#?}
-		printf " [%c]  " "${spinstr}"
-		local spinstr=${temp}${spinstr%"$temp"}
-		sleep ${delay}
-		printf "\b\b\b\b\b\b"
-	done
-	printf "    \b\b\b\b"
-}
-
 getGitFiles() {
 	# Setup git repos for directory and repository passed
 	# as arguments 1 and 2
@@ -70,8 +56,8 @@ update_repo() {
 # Pull the latest commits
 	echo -n ":::     Updating repo in $1..."
 	cd "${1}" || exit 1
-	git stash -q > /dev/null & spinner $!
-	git pull -q > /dev/null & spinner $!
+	git stash -q > /dev/null || exit 1
+	git pull -q > /dev/null || exit 1
 	echo " done!"
 }
 
