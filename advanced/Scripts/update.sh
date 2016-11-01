@@ -3,7 +3,9 @@
 # (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
-# Whitelists domains
+# Check Pi-hole core and admin pages versions and determine what
+# upgrade (if any) is required. Automatically updates and reinstalls
+# application if update is detected.
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
