@@ -108,12 +108,12 @@ echo ":::"
 
 
 
-if [[ ${piholeVersion} == ${piholeVersionLatest} ]] && [[ "${webVersion}" == "${webVersionLatest}" ]]; then
+if [[ "${piholeVersion}" == "${piholeVersionLatest}" ]] && [[ "${webVersion}" == "${webVersionLatest}" ]]; then
 	echo "::: Everything is up to date!"
 	echo ""
 	exit 0
 
-elif [[ ${piholeVersion} == ${piholeVersionLatest} ]] && [[ ${webVersion} != ${webVersionLatest} ]]; then
+elif [[ "${piholeVersion} == ${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole Web Admin files out of date"
 	getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
 	echo ":::"
@@ -121,7 +121,7 @@ elif [[ ${piholeVersion} == ${piholeVersionLatest} ]] && [[ ${webVersion} != ${w
 	echo "::: Web Admin version is now at ${webVersion}"
 	echo "::: If you had made any changes in '/var/www/html/admin', they have been stashed using 'git stash'"
 	echo ""
-elif [[ ${piholeVersion} != ${piholeVersionLatest} ]] && [[ ${webVersion} == ${webVersionLatest} ]]; then
+elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" == "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole core files out of date"
 	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
 	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended
@@ -130,11 +130,14 @@ elif [[ ${piholeVersion} != ${piholeVersionLatest} ]] && [[ ${webVersion} == ${w
 	echo "::: Pi-hole version is now at ${piholeVersion}"
 	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
 	echo ""
-elif [[ ${piholeVersion} != ${piholeVersionLatest} ]] && [[ ${webVersion} != ${webVersionLatest} ]]; then
+elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Updating Everything"
 	getGitFiles ${piholeFilesDir} ${piholeGitUrl}
 	/etc/.pihole/automated\ install/basic-install.sh --unattended
+
+	# Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
 	webVersion=$(pihole -v -a -c)
+	# Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
 	piholeVersion=$(pihole -v -p -c)
 	echo ":::"
 	echo "::: Pi-hole version is now at ${piholeVersion}"
