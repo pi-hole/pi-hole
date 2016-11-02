@@ -1133,4 +1133,6 @@ main() {
 	echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
 }
 
-main "$@"
+if [[ -z "$PHTEST" ]] ; then
+    main "$@"
+fi
