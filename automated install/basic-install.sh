@@ -851,6 +851,7 @@ installPiholeWeb() {
 		echo " done!"
 	fi
 	# Install Sudoer file
+	echo ":::"
 	echo -n "::: Installing sudoer file..."
 	mkdir -p /etc/sudoers.d/
 	cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
