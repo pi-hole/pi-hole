@@ -126,24 +126,24 @@ piholeEnable() {
 }
 
 piholeLogging() {
+  shift
 
-    shift
-
-    if [[ "${1}" == "off" ]] ; then
-        #Disable Logging
-        sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
-        sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
-        echo "::: Logging has been disabled!"
-    elif [[ "${1}" == "on" ]] ; then
-        #Enable logging
-        sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
-        sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
-        echo "::: Logging has been enabled!"
-    else
-        echo "::: Invalid option passed, please pass 'on' or 'off'"
-        exit 1
-    fi
-    restartDNS
+  if [[ "${1}" == "off" ]] ; then
+    #Disable Logging
+    sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
+    sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
+    pihole -f
+    echo "::: Logging has been disabled!"
+  elif [[ "${1}" == "on" ]] ; then
+    #Enable logging
+    sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
+    sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
+    echo "::: Logging has been enabled!"
+  else
+    echo "::: Invalid option passed, please pass 'on' or 'off'"
+    exit 1
+  fi
+  restartDNS
 }
 
 piholeStatus() {
