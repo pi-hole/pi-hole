@@ -1,19 +1,38 @@
-approve_by_comment: true
-approve_regex: '^(Approved|:shipit:|:\+1:|Engage)'
-reject_regex: '^(Rejected|:-1:|Borg)'
-reset_on_push: true
-author_approval: required
-reviewers:
-  members:
-  - brantje
-  - dschaper
-  - jacobsalmela
-  - Mcat12
-  - PromoFaux
-  name: pullapprove
-  required: 3
+version: 2
+
 always_pending:
-  title_regex: '(WIP|wip)'
+  title_regex: '(WIP|wip)'  
   labels:
     - wip
   explanation: 'This PR is a work in progress...'
+
+group_defaults:
+  reset_on_push:
+    enabled: true
+  reject_value: -2
+  approve_regex: '^(Approved|:shipit:|:\+1:|Engage)'
+  reject_regex: '^(Rejected|:-1:|Borg)'
+  author_approval:
+    auto: true
+
+
+groups:
+  development:
+    approve_by_comment:
+      enabled: true
+    conditions:
+      branches:
+        - development        
+    required: 2
+    teams:
+      - gravity
+  
+  master:
+    approve_by_comment:
+      enabled: true
+    conditions:
+      branches:
+        - master
+    required: -1
+    teams:
+      - admin

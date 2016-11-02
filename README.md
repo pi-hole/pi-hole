@@ -1,4 +1,4 @@
-[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE)   
+[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE) [![Code Climate](https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg)](https://codeclimate.com/github/pi-hole/pi-hole)
 
 # Automated Install
 
@@ -8,17 +8,15 @@ Works on most Debian and CentOS/RHEL based distributions!
 1.  Install Raspbian
 2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
-## `curl -L https://install.pi-hole.net | bash`
+### `curl -sSL https://install.pi-hole.net | bash`
 
 ### Alternative Semi-Automated install
 
 ```bash
 wget -O basic-install.sh https://install.pi-hole.net
-chmod +x basic-install.sh
-./basic-install.sh
+cat basic-install.sh | bash
 ```
-
-If you wish to read over the script before running it, then after the `wget` command, do `nano basic-install.sh` to open a text viewer
+If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
@@ -34,7 +32,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Pi-hole Is Free, But Powered By Your Donations
 
-Send a one-time donation or sign up for Optimal.com's service using our link below to provide us with a small portion of the monthly fee.
+Send a one-time donation using our link below to provide us with a small portion of the monthly fee.
 
 -   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
 -   ![Flattr](http://i.imgur.com/ZFceFRu.png) : [Donate](https://flattr.com/submit/auto?user_id=jacobsalmela&url=https://github.com/pi-hole/pi-hole)
@@ -43,19 +41,24 @@ Send a one-time donation or sign up for Optimal.com's service using our link bel
 ## Get Help Or Connect With Us On The Web
 
 -   [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+-   [Discourse](https://discourse.pi-hole.net/)
 -   [/r/pihole](https://www.reddit.com/r/pihole/)
 -   [Pi-hole YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
--   [FAQs](https://pi-hole.net/help/)
+-   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Technical Details
 
 The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
 
+#### Other Operating Systems
+
+This script will work for other UNIX-like systems with some slight **modifications**. As long as you can install `dnsmasq` and a Webserver, it should work OK. The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. If there are other platforms you'd like supported, let us know.
+
 ### Gravity
 
-The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)).
+The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)). This script is controlled by the `pihole` command. Please run `pihole -h` to see what commands can be run via `pihole`.
 
 ## Web Interface
 
@@ -67,13 +70,13 @@ The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashb
 
 ### Whitelist and blacklist
 
-Domains can be whitelisted and blacklisted using two pre-installed scripts. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details ![Whitelist editor in the Web interface](http://i.imgur.com/ogu2ewg.png)
+Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details ![Whitelist editor in the Web interface](http://i.imgur.com/ogu2ewg.png)
 
 ## API
 
 A basic read-only API can be accessed at `/admin/api.php`. It returns the following JSON:
 
-```json
+``` json
 {
     "domains_being_blocked": "136708",
     "dns_queries_today": "18108",
@@ -119,7 +122,3 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 -   [Foolish Tech Show](https://youtu.be/bYyena0I9yc?t=2m4s)
 -   [Pi-hole on Ubuntu](http://www.boyter.org/2015/12/pi-hole-ubuntu-14-04/)
 -   [Catchpoint: iOS 9 Ad Blocking](http://blog.catchpoint.com/2015/09/14/ad-blocking-apple/)
-
-## Other Operating Systems
-
-This script will work for other UNIX-like systems with some slight **modifications**. As long as you can install `dnsmasq` and a Webserver, it should work OK. The automated install is only for a clean install of a Debian based system, such as the Raspberry Pi.

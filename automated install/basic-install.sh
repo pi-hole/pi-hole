@@ -32,29 +32,39 @@ useUpdateVars=false
 IPv4_address=""
 IPv6_address=""
 
-# Find the rows and columns
-rows=$(tput lines)
-columns=$(tput cols)
+# Find the rows and columns will default to 80x24 is it can not be detected
+screen_size=$(stty size 2>/dev/null || echo 24 80) 
+rows=$(echo $screen_size | awk '{print $1}')
+columns=$(echo $screen_size | awk '{print $2}')
 
 # Divide by two so the dialogs take up half of the screen, which looks nice.
 r=$(( rows / 2 ))
 c=$(( columns / 2 ))
+# Unless the screen is tiny
+r=$(( r < 20 ? 20 : r ))
+c=$(( c < 70 ? 70 : c ))
+
+######## Undocumented Flags. Shhh ########
+skipSpaceCheck=false
+reconfigure=false
+runUnattended=false
 
 ######## FIRST CHECK ########
 # Must be root to install
 echo ":::"
-if [[ $EUID -eq 0 ]];then
+if [[ ${EUID} -eq 0 ]]; then
 	echo "::: You are root."
 else
-  echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
-  echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
-  echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
-  echo ":::"
-  echo "::: Detecting the presence of the sudo utility for continuation of this install..."
-	if [ -x "$(command -v sudo)" ];then
+	echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
+	echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
+	echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
+	echo ":::"
+	echo "::: Detecting the presence of the sudo utility for continuation of this install..."
+
+	if [ -x "$(command -v sudo)" ]; then
 		echo "::: Utility sudo located."
-	  exec sudo bash "$0" "$@"
-    exit $?
+		exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+		exit $?
 	else
 		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
 		exit 1
@@ -63,48 +73,56 @@ fi
 
 # Compatibility
 
-if [ -x "$(command -v apt-get)" ];then
+if [ -x "$(command -v apt-get)" ]; then
 	#Debian Family
-	#Decide if php should be `php5` or just `php` (Fixes issues with Ubuntu 16.04 LTS)
-	phpVer="php5"
-	apt-get install --dry-run php5 > /dev/null 2>&1 || phpVer="php"
 	#############################################
 	PKG_MANAGER="apt-get"
 	PKG_CACHE="/var/lib/apt/lists/"
-	UPDATE_PKG_CACHE="$PKG_MANAGER update"
-	PKG_UPDATE="$PKG_MANAGER upgrade"
-	PKG_INSTALL="$PKG_MANAGER --yes --fix-missing install"
+	UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+	PKG_UPDATE="${PKG_MANAGER} upgrade"
+	PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
 	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
-	PKG_COUNT="$PKG_MANAGER -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+	PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+	# #########################################
+	# fixes for dependancy differences 
+	# Debian 7 doesn't have iproute2 use iproute
+	${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
+	# Ubuntu 16.04 LTS php / php5 fix
+	${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
+	# #########################################
 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
 	LIGHTTPD_USER="www-data"
 	LIGHTTPD_GROUP="www-data"
 	LIGHTTPD_CFG="lighttpd.conf.debian"
 	DNSMASQ_USER="dnsmasq"
 	package_check_install() {
-		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "$1"
+		dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
 	}
-elif [ -x "$(command -v rpm)" ];then
+elif [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
-	if [ -x "$(command -v dnf)" ];then
+	if [ -x "$(command -v dnf)" ]; then
 		PKG_MANAGER="dnf"
 	else
 		PKG_MANAGER="yum"
 	fi
-	PKG_CACHE="/var/cache/$PKG_MANAGER"
-	UPDATE_PKG_CACHE="$PKG_MANAGER check-update"
-	PKG_UPDATE="$PKG_MANAGER update -y"
-	PKG_INSTALL="$PKG_MANAGER install -y"
-	PKG_COUNT="$PKG_MANAGER check-update | grep -v ^Last | grep -c ^[a-zA-Z0-9]"
+	PKG_CACHE="/var/cache/${PKG_MANAGER}"
+	UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
+	PKG_UPDATE="${PKG_MANAGER} update -y"
+	PKG_INSTALL="${PKG_MANAGER} install -y"
+	PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
 	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
 	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+	if grep -q 'Fedora' /etc/redhat-release; then
+		remove_deps=(epel-release);
+		PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
+	fi
 	LIGHTTPD_USER="lighttpd"
 	LIGHTTPD_GROUP="lighttpd"
 	LIGHTTPD_CFG="lighttpd.conf.fedora"
 	DNSMASQ_USER="nobody"
 	package_check_install() {
-		rpm -qa | grep ^"$1"- > /dev/null || ${PKG_INSTALL} "$1"
+		rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
 	}
 else
 	echo "OS distribution not supported"
@@ -112,19 +130,18 @@ else
 fi
 
 ####### FUNCTIONS ##########
-spinner()
-{
+spinner() {
 	local pid=$1
-    local delay=0.50
-    local spinstr='/-\|'
-    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
+	local delay=0.50
+	local spinstr='/-\|'
+	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
 		local temp=${spinstr#?}
-        printf " [%c]  " "$spinstr"
-        local spinstr=${temp}${spinstr%"$temp"}
-        sleep ${delay}
-        printf "\b\b\b\b\b\b"
-    done
-    printf "    \b\b\b\b"
+		printf " [%c]  " "${spinstr}"
+		local spinstr=${temp}${spinstr%"$temp"}
+		sleep ${delay}
+		printf "\b\b\b\b\b\b"
+	done
+	printf "    \b\b\b\b"
 }
 
 find_IPv4_information() {
@@ -135,7 +152,7 @@ find_IPv4_information() {
 }
 
 get_available_interfaces() {
-  # Get available interfaces. Consider only getting UP interfaces in the future, and leaving DOWN interfaces out of list.
+	# Get available interfaces. Consider only getting UP interfaces in the future, and leaving DOWN interfaces out of list.
 	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
 }
 
@@ -162,21 +179,21 @@ verifyFreeDiskSpace() {
 	local existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
 
 	# - Unknown free disk space , not a integer
-	if ! [[ "$existing_free_kilobytes" =~ ^([0-9])+$ ]]; then
-        echo "::: Unknown free disk space!"
-        echo "::: We were unable to determine available free disk space on this system."
-        echo "::: You may override this check and force the installation, however, it is not recommended"
-        echo "::: To do so, pass the argument '--i_do_not_follow_recommendations' to the install script"
-        echo "::: eg. curl -L https://install.pi-hole.net | bash /dev/stdin --i_do_not_follow_recommendations"
-        exit 1
+	if ! [[ "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
+		echo "::: Unknown free disk space!"
+		echo "::: We were unable to determine available free disk space on this system."
+		echo "::: You may override this check and force the installation, however, it is not recommended"
+		echo "::: To do so, pass the argument '--i_do_not_follow_recommendations' to the install script"
+		echo "::: eg. curl -L https://install.pi-hole.net | bash /dev/stdin --i_do_not_follow_recommendations"
+		exit 1
 	# - Insufficient free disk space
 	elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
-	    echo "::: Insufficient Disk Space!"
-	    echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
-	    echo "::: You only have $existing_free_kilobytes KiloBytes free."
-	    echo "::: If this is a new install you may need to expand your disk."
-	    echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
-	    echo "::: After rebooting, run this installation again. (curl -L https://install.pi-hole.net | bash)"
+		echo "::: Insufficient Disk Space!"
+		echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+		echo "::: You only have ${existing_free_kilobytes} KiloBytes free."
+		echo "::: If this is a new install you may need to expand your disk."
+		echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
+		echo "::: After rebooting, run this installation again. (curl -L https://install.pi-hole.net | bash)"
 
 		echo "Insufficient free space, exiting..."
 		exit 1
@@ -198,23 +215,21 @@ chooseInterface() {
 	# Loop sentinel variable
 	local firstLoop=1
 
-	while read -r line
-	do
+	while read -r line; do
 		mode="OFF"
 		if [[ ${firstLoop} -eq 1 ]]; then
 			firstLoop=0
 			mode="ON"
 		fi
-		interfacesArray+=("$line" "available" "$mode")
-	done <<< "$availableInterfaces"
+		interfacesArray+=("${line}" "available" "${mode}")
+	done <<< "${availableInterfaces}"
 
 	# Find out how many interfaces are available to choose from
-	interfaceCount=$(echo "$availableInterfaces" | wc -l)
+	interfaceCount=$(echo "${availableInterfaces}" | wc -l)
 	chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
 	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]]; then
-		for desiredInterface in ${chooseInterfaceOptions}
-		do
+		for desiredInterface in ${chooseInterfaceOptions}; do
 			piholeInterface=${desiredInterface}
 			echo "::: Using interface: $piholeInterface"
 		done
@@ -248,15 +263,15 @@ use4andor6() {
 			esac
 		done
 		if [[ ${useIPv4} ]]; then
-		  find_IPv4_information
-		  getStaticIPv4Settings
-		  setStaticIPv4
+			find_IPv4_information
+			getStaticIPv4Settings
+			setStaticIPv4
 		fi
 		if [[ ${useIPv6} ]]; then
-		  useIPv6dialog
-    fi
-    echo "::: IPv4 address: ${IPv4_address}"
-    echo "::: IPv6 address: ${IPv6_address}"
+			useIPv6dialog
+		fi
+			echo "::: IPv4 address: ${IPv4_address}"
+			echo "::: IPv6 address: ${IPv6_address}"
 		if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
 			echo "::: Cannot continue, neither IPv4 or IPv6 selected"
 			echo "::: Exiting"
@@ -271,8 +286,8 @@ use4andor6() {
 getStaticIPv4Settings() {
 	# Ask if the user wants to use DHCP settings as their static IP
 	if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
-					IP address:    $IPv4_address
-					Gateway:       $IPv4gw" ${r} ${c}); then
+					IP address:    ${IPv4_address}
+					Gateway:       ${IPv4gw}" ${r} ${c}); then
 		# If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
 		whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
@@ -282,20 +297,19 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 		# Otherwise, we need to ask the user to input their desired settings.
 		# Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
 		# Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-		until [[ ${ipSettingsCorrect} = True ]]
-		do
+		until [[ ${ipSettingsCorrect} = True ]]; do
 			# Ask for the IPv4 address
-			IPv4_address=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "$IPv4_address" 3>&1 1>&2 2>&3)
-			if [[ $? = 0 ]];then
-			echo "::: Your static IPv4 address:    $IPv4_address"
+			IPv4_address=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPv4_address}" 3>&1 1>&2 2>&3)
+			if [[ $? = 0 ]]; then
+			echo "::: Your static IPv4 address:    ${IPv4_address}"
 			# Ask for the gateway
-			IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "$IPv4gw" 3>&1 1>&2 2>&3)
-			if [[ $? = 0 ]];then
-				echo "::: Your static IPv4 gateway:    $IPv4gw"
+			IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPv4gw}" 3>&1 1>&2 2>&3)
+			if [[ $? = 0 ]]; then
+				echo "::: Your static IPv4 gateway:    ${IPv4gw}"
 				# Give the user a chance to review their settings before moving on
 				if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-					IP address:    $IPv4_address
-					Gateway:       $IPv4gw" ${r} ${c}); then
+					IP address:    ${IPv4_address}
+					Gateway:       ${IPv4gw}" ${r} ${c}); then
 					# After that's done, the loop ends and we move on
 					ipSettingsCorrect=True
 				else
@@ -321,51 +335,51 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 setDHCPCD() {
 	# Append these lines to dhcpcd.conf to enable a static IP
-	echo "## interface $piholeInterface
-	static ip_address=$IPv4_address
-	static routers=$IPv4gw
-	static domain_name_servers=$IPv4gw" | tee -a /etc/dhcpcd.conf >/dev/null
+	echo "## interface ${piholeInterface}
+	static ip_address=${IPv4_address}
+	static routers=${IPv4gw}
+	static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
-  local IFCFG_FILE
-  local IPADDR
-  local CIDR
-	if [[ -f /etc/dhcpcd.conf ]];then
+	local IFCFG_FILE
+	local IPADDR
+	local CIDR
+	if [[ -f /etc/dhcpcd.conf ]]; then
 		# Debian Family
-		if grep -q "$IPv4_address" /etc/dhcpcd.conf; then
+		if grep -q "${IPv4_address}" /etc/dhcpcd.conf; then
 			echo "::: Static IP already configured"
 		else
 			setDHCPCD
-			ip addr replace dev "$piholeInterface" "$IPv4_address"
+			ip addr replace dev "${piholeInterface}" "${IPv4_address}"
 			echo ":::"
-			echo "::: Setting IP to $IPv4_address.  You may need to restart after the install is complete."
+			echo "::: Setting IP to ${IPv4_address}.  You may need to restart after the install is complete."
 			echo ":::"
 		fi
 	elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${piholeInterface} ]];then
 		# Fedora Family
 		IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${piholeInterface}
-		if grep -q "$IPv4_address" "${IFCFG_FILE}"; then
+		if grep -q "${IPv4_address}" "${IFCFG_FILE}"; then
 			echo "::: Static IP already configured"
 		else
 			IPADDR=$(echo "${IPv4_address}" | cut -f1 -d/)
 			CIDR=$(echo "${IPv4_address}" | cut -f2 -d/)
 			# Backup existing interface configuration:
-			cp "${IFCFG_FILE}" "${IFCFG_FILE}".backup-"$(date +%Y-%m-%d-%H%M%S)"
+			cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
 			# Build Interface configuration file:
 			{
-			echo "# Configured via Pi-Hole installer"
-			echo "DEVICE=$piholeInterface"
-			echo "BOOTPROTO=none"
-			echo "ONBOOT=yes"
-			echo "IPADDR=$IPADDR"
-			echo "PREFIX=$CIDR"
-			echo "GATEWAY=$IPv4gw"
-			echo "DNS1=$piholeDNS1"
-			echo "DNS2=$piholeDNS2"
-			echo "USERCTL=no"
+				echo "# Configured via Pi-Hole installer"
+				echo "DEVICE=$piholeInterface"
+				echo "BOOTPROTO=none"
+				echo "ONBOOT=yes"
+				echo "IPADDR=$IPADDR"
+				echo "PREFIX=$CIDR"
+				echo "GATEWAY=$IPv4gw"
+				echo "DNS1=$piholeDNS1"
+				echo "DNS2=$piholeDNS2"
+				echo "USERCTL=no"
 			}>> "${IFCFG_FILE}"
-			ip addr replace dev "$piholeInterface" "$IPv4_address"
+			ip addr replace dev "${piholeInterface}" "${IPv4_address}"
 			if [ -x "$(command -v nmcli)" ];then
 				# Tell NetworkManager to read our new sysconfig file
 				nmcli con load "${IFCFG_FILE}" > /dev/null
@@ -380,10 +394,9 @@ setStaticIPv4() {
 	fi
 }
 
-function valid_ip()
-{
-	local  ip=$1
-	local  stat=1
+valid_ip() {
+	local ip=${1}
+	local stat=1
 
 	if [[ ${ip} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
 		OIFS=$IFS
@@ -397,7 +410,7 @@ function valid_ip()
 	return ${stat}
 }
 
-setDNS(){
+setDNS() {
 	DNSChooseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6)
 	DNSChooseOptions=(Google "" on
 			OpenDNS "" off
@@ -408,87 +421,88 @@ setDNS(){
 	DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
 		case ${DNSchoices} in
-            Google)
-                echo "::: Using Google DNS servers."
-                piholeDNS1="8.8.8.8"
-                piholeDNS2="8.8.4.4"
-                ;;
-            OpenDNS)
-                echo "::: Using OpenDNS servers."
-                piholeDNS1="208.67.222.222"
-                piholeDNS2="208.67.220.220"
-                ;;
-            Level3)
-                echo "::: Using Level3 servers."
-                piholeDNS1="4.2.2.1"
-                piholeDNS2="4.2.2.2"
-                ;;
-            Norton)
-                echo "::: Using Norton ConnectSafe servers."
-                piholeDNS1="199.85.126.10"
-                piholeDNS2="199.85.127.10"
-                ;;
-            Comodo)
-                echo "::: Using Comodo Secure servers."
-                piholeDNS1="8.26.56.26"
-                piholeDNS2="8.20.247.20"
-                ;;
-            Custom)
-                until [[ ${DNSSettingsCorrect} = True ]]
-                do
-                    strInvalid="Invalid"
-                    if [ ! ${piholeDNS1} ]; then
-                        if [ ! ${piholeDNS2} ]; then
-                            prePopulate=""
-                        else
-                            prePopulate=", $piholeDNS2"
-                        fi
-                    elif  [ ${piholeDNS1} ] && [ ! ${piholeDNS2} ]; then
-                        prePopulate="$piholeDNS1"
-                    elif [ ${piholeDNS1} ] && [ ${piholeDNS2} ]; then
-                        prePopulate="$piholeDNS1, $piholeDNS2"
-                    fi
-                    piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "$prePopulate" 3>&1 1>&2 2>&3)
-                    if [[ $? = 0 ]];then
-                        piholeDNS1=$(echo "$piholeDNS" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
-                        piholeDNS2=$(echo "$piholeDNS" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
-                        if ! valid_ip "$piholeDNS1" || [ ! "$piholeDNS1" ]; then
-                            piholeDNS1=${strInvalid}
-                        fi
-                        if ! valid_ip "$piholeDNS2" && [ "$piholeDNS2" ]; then
-                            piholeDNS2=${strInvalid}
-                        fi
-                    else
-                        echo "::: Cancel selected, exiting...."
-                        exit 1
-                    fi
-                    if [[ ${piholeDNS1} == "$strInvalid" ]] || [[ ${piholeDNS2} == "$strInvalid" ]]; then
-                        whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" ${r} ${c}
-                        if [[ ${piholeDNS1} == "$strInvalid" ]]; then
-                            piholeDNS1=""
-                        fi
-                        if [[ ${piholeDNS2} == "$strInvalid" ]]; then
-                            piholeDNS2=""
-                        fi
-                        DNSSettingsCorrect=False
-                    else
-                        if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   $piholeDNS2" ${r} ${c}); then
-                            DNSSettingsCorrect=True
-                        else
-                            # If the settings are wrong, the loop continues
-                            DNSSettingsCorrect=False
-                        fi
-                    fi
-            done
-            ;;
-	    esac
+			Google)
+				echo "::: Using Google DNS servers."
+				piholeDNS1="8.8.8.8"
+				piholeDNS2="8.8.4.4"
+				;;
+			OpenDNS)
+				echo "::: Using OpenDNS servers."
+				piholeDNS1="208.67.222.222"
+				piholeDNS2="208.67.220.220"
+				;;
+			Level3)
+				echo "::: Using Level3 servers."
+				piholeDNS1="4.2.2.1"
+				piholeDNS2="4.2.2.2"
+				;;
+			Norton)
+				echo "::: Using Norton ConnectSafe servers."
+				piholeDNS1="199.85.126.10"
+				piholeDNS2="199.85.127.10"
+				;;
+			Comodo)
+				echo "::: Using Comodo Secure servers."
+				piholeDNS1="8.26.56.26"
+				piholeDNS2="8.20.247.20"
+				;;
+			Custom)
+				until [[ ${DNSSettingsCorrect} = True ]]; do
+				strInvalid="Invalid"
+				if [ ! ${piholeDNS1} ]; then
+					if [ ! ${piholeDNS2} ]; then
+						prePopulate=""
+					else
+						prePopulate=", ${piholeDNS2}"
+					fi
+				elif  [ ${piholeDNS1} ] && [ ! ${piholeDNS2} ]; then
+					prePopulate="${piholeDNS1}"
+				elif [ ${piholeDNS1} ] && [ ${piholeDNS2} ]; then
+					prePopulate="${piholeDNS1}, ${piholeDNS2}"
+				fi
+
+				piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3)
+
+				if [[ $? = 0 ]]; then
+					piholeDNS1=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
+					piholeDNS2=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
+					if ! valid_ip "${piholeDNS1}" || [ ! "${piholeDNS1}" ]; then
+						piholeDNS1=${strInvalid}
+					fi
+					if ! valid_ip "${piholeDNS2}" && [ "${piholeDNS2}" ]; then
+						piholeDNS2=${strInvalid}
+					fi
+				else
+					echo "::: Cancel selected, exiting...."
+					exit 1
+				fi
+				if [[ ${piholeDNS1} == "${strInvalid}" ]] || [[ ${piholeDNS2} == "${strInvalid}" ]]; then
+					whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   ${piholeDNS2}" ${r} ${c}
+					if [[ ${piholeDNS1} == "${strInvalid}" ]]; then
+						piholeDNS1=""
+					fi
+					if [[ ${piholeDNS2} == "${strInvalid}" ]]; then
+						piholeDNS2=""
+					fi
+					DNSSettingsCorrect=False
+				else
+					if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $piholeDNS1\n    DNS Server 2:   ${piholeDNS2}" ${r} ${c}); then
+					DNSSettingsCorrect=True
+				else
+				# If the settings are wrong, the loop continues
+					DNSSettingsCorrect=False
+					fi
+				fi
+				done
+				;;
+		esac
 	else
 		echo "::: Cancel selected. Exiting..."
 		exit 1
 	fi
 }
 
-version_check_dnsmasq(){
+version_check_dnsmasq() {
 	# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
 	local dnsmasq_conf="/etc/dnsmasq.conf"
 	local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
@@ -520,20 +534,51 @@ version_check_dnsmasq(){
 	cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
 	echo " done."
 	sed -i "s/@INT@/$piholeInterface/" ${dnsmasq_pihole_01_location}
-	if [[ "$piholeDNS1" != "" ]]; then
+	if [[ "${piholeDNS1}" != "" ]]; then
 		sed -i "s/@DNS1@/$piholeDNS1/" ${dnsmasq_pihole_01_location}
 	else
 		sed -i '/^server=@DNS1@/d' ${dnsmasq_pihole_01_location}
 	fi
-	if [[ "$piholeDNS2" != "" ]]; then
+	if [[ "${piholeDNS2}" != "" ]]; then
 		sed -i "s/@DNS2@/$piholeDNS2/" ${dnsmasq_pihole_01_location}
 	else
 		sed -i '/^server=@DNS2@/d' ${dnsmasq_pihole_01_location}
 	fi
+
+	#sed -i "s/@HOSTNAME@/$hostname/" ${dnsmasq_pihole_01_location}
+
+	if [[ -f /etc/hostname ]]; then
+		hostname=$(</etc/hostname)
+	elif [ -x "$(command -v hostname)" ]; then
+		hostname=$(hostname -f)
+	fi
+
+	#Replace IPv4 and IPv6 tokens in 01-pihole.conf for pi.hole resolution.
+	if [[ "${IPv4_address}" != "" ]]; then
+	    tmp=${IPv4_address%/*}
+	    sed -i "s/@IPv4@/$tmp/" ${dnsmasq_pihole_01_location}
+	else
+		sed -i '/^address=\/pi.hole\/@IPv4@/d' ${dnsmasq_pihole_01_location}
+		sed -i '/^address=\/@HOSTNAME@\/@IPv4@/d' ${dnsmasq_pihole_01_location}
+	fi
+
+	if [[ "${IPv6_address}" != "" ]]; then
+	    sed -i "s/@IPv6@/$IPv6_address/" ${dnsmasq_pihole_01_location}
+	else
+		sed -i '/^address=\/pi.hole\/@IPv6@/d' ${dnsmasq_pihole_01_location}
+		sed -i '/^address=\/@HOSTNAME@\/@IPv6@/d' ${dnsmasq_pihole_01_location}
+	fi
+
+	if [[ "${hostname}" != "" ]]; then
+	    sed -i "s/@HOSTNAME@/$hostname/" ${dnsmasq_pihole_01_location}
+	else
+		sed -i '/^address=\/@HOSTNAME@*/d' ${dnsmasq_pihole_01_location}
+	fi
+
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
 }
 
-remove_legacy_scripts(){
+remove_legacy_scripts() {
 	#Tidy up /usr/local/bin directory if installing over previous install.
 	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
 	for i in "${oldFiles[@]}"; do
@@ -547,12 +592,15 @@ installScripts() {
 	# Install the scripts from /etc/.pihole to their various locations
 	echo ":::"
 	echo -n "::: Installing scripts to /opt/pihole..."
+	#clear out /opt/pihole and recreate it. This allows us to remove scripts from future installs
+	rm -rf /opt/pihole
 	install -o "${USER}" -m755 -d /opt/pihole
 
 	cd /etc/.pihole/
 
 	install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
 	install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
+	install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
 	install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
 
 	install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
@@ -566,7 +614,7 @@ installConfigs() {
 	version_check_dnsmasq
 	if [ ! -d "/etc/lighttpd" ]; then
 		mkdir /etc/lighttpd
-		chown "$USER":root /etc/lighttpd
+		chown "${USER}":root /etc/lighttpd
 		mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	fi
 	cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
@@ -574,6 +622,8 @@ installConfigs() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
 	mkdir -p /var/cache/lighttpd/compress
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+	mkdir -p /var/cache/lighttpd/uploads
+	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
 }
 
 stop_service() {
@@ -590,8 +640,8 @@ stop_service() {
 }
 
 start_service() {
-  # Start/Restart service passed in as argument
-  # This should not fail, it's an error if it does
+	# Start/Restart service passed in as argument
+	# This should not fail, it's an error if it does
 	echo ":::"
 	echo -n "::: Starting ${1} service..."
 	if [ -x "$(command -v systemctl)" ]; then
@@ -603,7 +653,7 @@ start_service() {
 }
 
 enable_service() {
-  # Enable service so that it will start with next reboot
+	# Enable service so that it will start with next reboot
 	echo ":::"
 	echo -n "::: Enabling ${1} service to start on reboot..."
 	if [ -x "$(command -v systemctl)" ]; then
@@ -621,39 +671,39 @@ update_pacakge_cache() {
 	#Check to see if apt-get update has already been run today
 	#it needs to have been run at least once on new installs!
 	timestamp=$(stat -c %Y ${PKG_CACHE})
-	timestampAsDate=$(date -d @"$timestamp" "+%b %e")
+	timestampAsDate=$(date -d @"${timestamp}" "+%b %e")
 	today=$(date "+%b %e")
 
-	if [ ! "$today" == "$timestampAsDate" ]; then
+	if [ ! "${today}" == "${timestampAsDate}" ]; then
 		#update package lists
 		echo ":::"
-		echo -n "::: $PKG_MANAGER update has not been run today. Running now..."
+		echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
 		${UPDATE_PKG_CACHE} &> /dev/null & spinner $!
 		echo " done!"
 	fi
 }
 
-notify_package_updates_available(){
+notify_package_updates_available() {
   # Let user know if they have outdated packages on their system and
   # advise them to run a package update at soonest possible.
 	echo ":::"
-	echo -n "::: Checking $PKG_MANAGER for upgraded packages...."
+	echo -n "::: Checking ${PKG_MANAGER} for upgraded packages...."
 	updatesToInstall=$(eval "${PKG_COUNT}")
 	echo " done!"
 	echo ":::"
 	if [[ ${updatesToInstall} -eq "0" ]]; then
 		echo "::: Your system is up to date! Continuing with Pi-hole installation..."
 	else
-		echo "::: There are $updatesToInstall updates available for your system!"
-		echo "::: We recommend you run '$PKG_UPDATE' after installing Pi-Hole! "
+		echo "::: There are ${updatesToInstall} updates available for your system!"
+		echo "::: We recommend you run '${PKG_UPDATE}' after installing Pi-Hole! "
 		echo ":::"
 	fi
 }
 
-install_dependent_packages(){
-  # Install packages passed in via argument array
-  # No spinner - conflicts with set -e
-  declare -a argArray1=("${!1}")
+install_dependent_packages() {
+	# Install packages passed in via argument array
+	# No spinner - conflicts with set -e
+	declare -a argArray1=("${!1}")
 
 	for i in "${argArray1[@]}"; do
 		echo -n ":::    Checking for $i..."
@@ -671,36 +721,37 @@ getGitFiles() {
 	  update_repo "${1}"
 	else
 	  make_repo "${1}" "${2}"
-  fi
+	fi
 }
 
 is_repo() {
-  # Use git to check if directory is currently under VCS
+	# Use git to check if directory is currently under VCS
 	echo -n ":::    Checking $1 is a repo..."
 	cd "${1}" &> /dev/null || return 1
 	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
 }
 
 make_repo() {
-    # Remove the non-repod interface and clone the interface
-    echo -n ":::    Cloning $2 into $1..."
-    rm -rf "${1}"
-    git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
-    echo " done!"
+	# Remove the non-repod interface and clone the interface
+	echo -n ":::    Cloning $2 into $1..."
+	rm -rf "${1}"
+	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+	echo " done!"
 }
 
 update_repo() {
-    # Pull the latest commits
-    echo -n ":::     Updating repo in $1..."
-    cd "${1}" || exit 1
-    git pull -q > /dev/null & spinner $!
-    echo " done!"
+	# Pull the latest commits
+	echo -n ":::     Updating repo in $1..."
+	cd "${1}" || exit 1
+	git stash -q > /dev/null & spinner $!
+	git pull -q > /dev/null & spinner $!
+	echo " done!"
 }
 
 CreateLogFile() {
 	# Create logfiles if necessary
 	echo ":::"
-	 echo -n "::: Creating log file and changing owner to dnsmasq..."
+	echo -n "::: Creating log file and changing owner to dnsmasq..."
 	if [ ! -f /var/log/pihole.log ]; then
 		touch /var/log/pihole.log
 		chmod 644 /var/log/pihole.log
@@ -755,7 +806,7 @@ runGravity() {
 	/opt/pihole/gravity.sh
 }
 
-create_pihole_user(){
+create_pihole_user() {
 	# Check if user pihole exists and create if not
 	echo "::: Checking if user 'pihole' exists..."
 	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || (echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole)
@@ -777,19 +828,18 @@ configureFirewall() {
 }
 
 finalExports() {
-    #If it already exists, lets overwrite it with the new values.
-    if [[ -f ${setupVars} ]];then
-        rm ${setupVars}
-    fi
+	#If it already exists, lets overwrite it with the new values.
+	if [[ -f ${setupVars} ]]; then
+		rm ${setupVars}
+	fi
     {
-    echo "piholeInterface=${piholeInterface}"
-    echo "IPv4_address=${IPv4_address}"
-    echo "IPv6_address=${IPv6_address}"
-    echo "piholeDNS1=${piholeDNS1}"
-    echo "piholeDNS2=${piholeDNS2}"
+	echo "piholeInterface=${piholeInterface}"
+	echo "IPv4_address=${IPv4_address}"
+	echo "IPv6_address=${IPv6_address}"
+	echo "piholeDNS1=${piholeDNS1}"
+	echo "piholeDNS2=${piholeDNS2}"
     }>> "${setupVars}"
 }
-
 
 installPihole() {
 	# Install base files and web interface
@@ -817,6 +867,11 @@ installPihole() {
 }
 
 updatePihole() {
+	# Refactoring of install script has changed the name of a couple of variables. Sort them out here.
+	sed -i 's/IPv4addr/IPv4_address/g' ${setupVars}
+	sed -i 's/piholeIPv6/IPv6_address/g' ${setupVars}
+	# Source ${setupVars} for use in the rest of the functions.
+	. ${setupVars}
 	# Install base files and web interface
 	installScripts
 	installConfigs
@@ -834,9 +889,12 @@ configureSelinux() {
 		printf ":::\tChecking for SELinux policy development packages..."
 		package_check_install "selinux-policy-devel" > /dev/null
 		echo " installed!"
-		printf "::: Enabling httpd server side includes (SSI).. "
+		printf ":::\tEnabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
+		if ! [ -x "$(command -v systemctl)" ]; then
+			sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
+		fi
 		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
 		semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		semodule -i /etc/pihole/pihole.pp
@@ -850,7 +908,7 @@ displayFinalMessage() {
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
 IPv4:	${IPv4_address%/*}
-IPv6:	$IPv6_address
+IPv6:	${IPv6_address}
 
 If you set a new IP address, you should restart the Pi.
 
@@ -858,24 +916,35 @@ The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin" ${r} ${c}
 }
 
-update_dialogs(){
+update_dialogs() {
+	# reconfigure
+	if [ "${reconfigure}" = true ]; then
+		opt1a="Repair"
+		opt1b="This will retain existing settings"
+		strAdd="You will remain on the same version"
+	else
+		opt1a="Update"
+		opt1b="This will retain existing settings."
+		strAdd="You will be updated to the latest version."
+	fi
+	opt2a="Reconfigure"
+	opt2b="This will allow you to enter new settings"
 
-  UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease choose from the following options:" ${r} ${c} 2 \
-  "Update"  "Update install will retain existing settings." \
-  "Install"  "Install will allow you to enter new settings." 3>&2 2>&1 1>&3)
+	UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease choose from the following options: \n($strAdd)" ${r} ${c} 2 \
+	"${opt1a}"  "${opt1b}" \
+	"${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3)
 
-  if [[ $? = 0 ]];then
+	if [[ $? = 0 ]];then
 		case ${UpdateCmd} in
-            Update)
-                echo "::: Updating existing install"
-                . ${setupVars}
-                useUpdateVars=true
-                ;;
-            Install)
-                echo "::: Running complete install script"
-                useUpdateVars=false
-                ;;
-	    esac
+			${opt1a})
+				echo "::: ${opt1a} option selected."
+				useUpdateVars=true
+				;;
+			${opt2a})
+				echo "::: ${opt2a} option selected"
+				useUpdateVars=false
+				;;
+		esac
 	else
 		echo "::: Cancel selected. Exiting..."
 		exit 1
@@ -884,91 +953,105 @@ update_dialogs(){
 }
 
 main() {
-if [[ -f ${setupVars} ]];then
-  if [ "$1" == "pihole" ]; then
-    useUpdateVars=true
-  else
-    update_dialogs
-  fi
-fi
+# Check arguments for the undocumented flags
+	for var in "$@"; do
+		case "$var" in
+			"--reconfigure"  ) reconfigure=true;;
+			"--i_do_not_follow_recommendations"   ) skipSpaceCheck=false;;
+			"--unattended"     ) runUnattended=true;;
+		esac
+	done
 
-# Start the installer
-# Verify there is enough disk space for the install
-if [[ $1 = "--i_do_not_follow_recommendations" ]]; then
-    echo "::: --i_do_not_follow_recommendations passed to script"
-    echo "::: skipping free disk space verification!"
-else
-    verifyFreeDiskSpace
-fi
+	if [[ -f ${setupVars} ]]; then
+		if [[ "${runUnattended}" == true ]]; then
+			echo "::: --unattended passed to install script, no whiptail dialogs will be displayed"
+			useUpdateVars=true
+		else
+			update_dialogs
+		fi
+	fi
 
-# Update package cache
-update_pacakge_cache
+	# Start the installer
+	# Verify there is enough disk space for the install
+	if [[ "${skipSpaceCheck}" == true ]]; then
+		echo "::: --i_do_not_follow_recommendations passed to script, skipping free disk space verification!"
+	else
+		verifyFreeDiskSpace
+	fi
 
-# Notify user of package availability
-notify_package_updates_available
+	# Update package cache
+	update_pacakge_cache
 
-# Install packages used by this installation script
-install_dependent_packages INSTALLER_DEPS[@]
+	# Notify user of package availability
+	notify_package_updates_available
 
-# Install packages used by the Pi-hole
-install_dependent_packages PIHOLE_DEPS[@]
+	# Install packages used by this installation script
+	install_dependent_packages INSTALLER_DEPS[@]
 
-if [[ ${useUpdateVars} == false ]]; then
-    # Display welcome dialogs
-    welcomeDialogs
-    # Create directory for Pi-hole storage
-    mkdir -p /etc/pihole/
-    # Remove legacy scripts from previous storage location
-    remove_legacy_scripts
-    # Get Git files for Core and Admin
-    getGitFiles ${piholeFilesDir} ${piholeGitUrl}
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
-    # Stop resolver and webserver while installing proceses
-    stop_service dnsmasq
-    stop_service lighttpd
-    # Determine available interfaces
-    get_available_interfaces
-    # Find interfaces and let the user choose one
-    chooseInterface
-    # Let the user decide if they want to block ads over IPv4 and/or IPv6
-    use4andor6
-    # Decide what upstream DNS Servers to use
-    setDNS
-    # Install and log everything to a file
-    installPihole | tee ${tmpLog}
-else
-    updatePihole | tee ${tmpLog}
-fi
+	# Install packages used by the Pi-hole
+	install_dependent_packages PIHOLE_DEPS[@]
 
-# Move the log file into /etc/pihole for storage
-mv ${tmpLog} ${instalLogLoc}
+	if [[ "${reconfigure}" == true ]]; then
+		echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
+	else
+		# Get Git files for Core and Admin
+		getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+		getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+	fi
 
-if [[ ${useUpdateVars} == false ]]; then
-    displayFinalMessage
-fi
+	if [[ ${useUpdateVars} == false ]]; then
+		# Display welcome dialogs
+		welcomeDialogs
+		# Create directory for Pi-hole storage
+		mkdir -p /etc/pihole/
+		# Remove legacy scripts from previous storage location
+		remove_legacy_scripts
+		# Stop resolver and webserver while installing proceses
+		stop_service dnsmasq
+		stop_service lighttpd
+		# Determine available interfaces
+		get_available_interfaces
+		# Find interfaces and let the user choose one
+		chooseInterface
+		# Let the user decide if they want to block ads over IPv4 and/or IPv6
+		use4andor6
+		# Decide what upstream DNS Servers to use
+		setDNS
+		# Install and log everything to a file
+		installPihole | tee ${tmpLog}
+	else
+		updatePihole | tee ${tmpLog}
+	fi
 
-echo -n "::: Restarting services..."
-# Start services
-start_service dnsmasq
-enable_service dnsmasq
-start_service lighttpd
-enable_service lighttpd
-echo " done."
+	# Move the log file into /etc/pihole for storage
+	mv ${tmpLog} ${instalLogLoc}
 
-echo ":::"
-if [[ ${useUpdateVars} == false ]]; then
-    echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
-    echo ":::     ${IPv4_address%/*}"
-    echo ":::     $IPv6_address"
-    echo ":::"
-    echo "::: If you set a new IP address, you should restart the Pi."
-else
-    echo "::: Update complete!"
-fi
+	if [[ "${useUpdateVars}" == false ]]; then
+	    displayFinalMessage
+	fi
 
-echo ":::"
-echo "::: The install log is located at: /etc/pihole/install.log"
-echo "::: View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin"
+	echo "::: Restarting services..."
+	# Start services
+	start_service dnsmasq
+	enable_service dnsmasq
+	start_service lighttpd
+	enable_service lighttpd
+	echo "::: done."
+
+	echo ":::"
+	if [[ "${useUpdateVars}" == false ]]; then
+		echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
+		echo ":::     ${IPv4_address%/*}"
+		echo ":::     ${IPv6_address}"
+		echo ":::"
+		echo "::: If you set a new IP address, you should restart the Pi."
+	else
+		echo "::: Update complete!"
+	fi
+
+	echo ":::"
+	echo "::: The install log is located at: /etc/pihole/install.log"
+	echo "::: View the web interface at http://pi.hole/admin or http://${IPv4_address%/*}/admin"
 }
 
 if [[ -z "$PHTEST" ]] ; then
