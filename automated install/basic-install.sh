@@ -33,7 +33,7 @@ IPv4_address=""
 IPv6_address=""
 
 # Find the rows and columns will default to 80x24 is it can not be detected
-screen_size=$(stty size 2>/dev/null || echo 24 80) 
+screen_size=$(stty size 2>/dev/null || echo 24 80)
 rows=$(echo $screen_size | awk '{print $1}')
 columns=$(echo $screen_size | awk '{print $2}')
 
@@ -53,119 +53,123 @@ runUnattended=false
 # Must be root to install
 echo ":::"
 if [[ ${EUID} -eq 0 ]]; then
-	echo "::: You are root."
+  echo "::: You are root."
 else
-	echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
-	echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
-	echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
-	echo ":::"
-	echo "::: Detecting the presence of the sudo utility for continuation of this install..."
+  echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
+  echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
+  echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
+  echo ":::"
+  echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 
-	if [ -x "$(command -v sudo)" ]; then
-		echo "::: Utility sudo located."
-		exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
-		exit $?
-	else
-		echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
-		exit 1
-	fi
+  if [ -x "$(command -v sudo)" ]; then
+    echo "::: Utility sudo located."
+    exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+    exit $?
+  else
+    echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
+    exit 1
+  fi
 fi
 
 # Compatibility
 
 if [[ $(command -v apt-get) ]]; then
-	#Debian Family
-	#############################################
-	PKG_MANAGER="apt-get"
-	PKG_CACHE="/var/lib/apt/lists/"
-	UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-	PKG_UPDATE="${PKG_MANAGER} upgrade"
-	PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
-	# grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
-	PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-	# #########################################
-	# fixes for dependancy differences 
-	# Debian 7 doesn't have iproute2 use iproute
-	${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
-	# Ubuntu 16.04 LTS php / php5 fix
-	${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
-	# #########################################
-	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
-	LIGHTTPD_USER="www-data"
-	LIGHTTPD_GROUP="www-data"
-	LIGHTTPD_CFG="lighttpd.conf.debian"
-	DNSMASQ_USER="dnsmasq"
-	package_check_install() {
-		dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
-	}
+  #Debian Family
+  #############################################
+  PKG_MANAGER="apt-get"
+  PKG_CACHE="/var/lib/apt/lists/"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+  PKG_UPDATE="${PKG_MANAGER} upgrade"
+  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
+  # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
+  PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+  # #########################################
+  # fixes for dependancy differences
+  # Debian 7 doesn't have iproute2 use iproute
+  ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
+  # Ubuntu 16.04 LTS php / php5 fix
+  ${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
+  # #########################################
+  INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
+  PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+  LIGHTTPD_USER="www-data"
+  LIGHTTPD_GROUP="www-data"
+  LIGHTTPD_CFG="lighttpd.conf.debian"
+  DNSMASQ_USER="dnsmasq"
+
+  package_check_install() {
+    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
+  }
 elif [ $(command -v rpm) ]; then
-	# Fedora Family
-	if [ $(command -v dnf) ]; then
-		PKG_MANAGER="dnf"
-	else
-		PKG_MANAGER="yum"
-	fi
-	PKG_CACHE="/var/cache/${PKG_MANAGER}"
-	UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
-	PKG_UPDATE="${PKG_MANAGER} update -y"
-	PKG_INSTALL="${PKG_MANAGER} install -y"
-	PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
-	if grep -q 'Fedora' /etc/redhat-release; then
-		remove_deps=(epel-release);
-		PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
-	fi
-	LIGHTTPD_USER="lighttpd"
-	LIGHTTPD_GROUP="lighttpd"
-	LIGHTTPD_CFG="lighttpd.conf.fedora"
-	DNSMASQ_USER="nobody"
-	package_check_install() {
-		rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
-	}
+  # Fedora Family
+  if [ $(command -v dnf) ]; then
+    PKG_MANAGER="dnf"
+  else
+    PKG_MANAGER="yum"
+  fi
+  PKG_CACHE="/var/cache/${PKG_MANAGER}"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
+  PKG_UPDATE="${PKG_MANAGER} update -y"
+  PKG_INSTALL="${PKG_MANAGER} install -y"
+  PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
+  INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
+  PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+
+  if grep -q 'Fedora' /etc/redhat-release; then
+    remove_deps=(epel-release);
+    PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
+  fi
+    LIGHTTPD_USER="lighttpd"
+    LIGHTTPD_GROUP="lighttpd"
+    LIGHTTPD_CFG="lighttpd.conf.fedora"
+    DNSMASQ_USER="nobody"
+
+    package_check_install() {
+      rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
+    }
 else
-	echo "OS distribution not supported"
-	exit
+  echo "OS distribution not supported"
+  exit
 fi
 
 ####### FUNCTIONS ##########
 spinner() {
-	local pid=$1
-	local delay=0.50
-	local spinstr='/-\|'
-	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
-		local temp=${spinstr#?}
-		printf " [%c]  " "${spinstr}"
-		local spinstr=${temp}${spinstr%"$temp"}
-		sleep ${delay}
-		printf "\b\b\b\b\b\b"
-	done
-	printf "    \b\b\b\b"
+  local pid=$1
+  local delay=0.50
+  local spinstr='/-\|'
+
+  while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
+    local temp=${spinstr#?}
+    printf " [%c]  " "${spinstr}"
+    local spinstr=${temp}${spinstr%"$temp"}
+    sleep ${delay}
+    printf "\b\b\b\b\b\b"
+  done
+  printf "    \b\b\b\b"
 }
 
 is_repo() {
 	# Use git to check if directory is currently under VCS
 	echo -n ":::    Checking $1 is a repo..."
 	cd "${1}" &> /dev/null || return 1
-	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
+	git status &> /dev/null && (echo " OK!"; true) || (echo " not found!"; false)
 }
 
 make_repo() {
-	# Remove the non-repod interface and clone the interface
-	echo -n ":::    Cloning $2 into $1..."
-	rm -rf "${1}"
-	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
-	echo " done!"
+  # Remove the non-repod interface and clone the interface
+  echo -n ":::    Cloning $2 into $1..."
+  rm -rf "${1}"
+  git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+  echo " done!"
 }
 
 update_repo() {
-	# Pull the latest commits
-	echo -n ":::     Updating repo in $1..."
-	cd "${1}" || exit 1
-	git stash -q > /dev/null & spinner $!
-	git pull -q > /dev/null & spinner $!
-	echo " done!"
+  # Pull the latest commits
+  echo -n ":::     Updating repo in $1..."
+  cd "${1}" || exit 1
+  git stash -q > /dev/null & spinner $!
+  git pull -q > /dev/null & spinner $!
+  echo " done!"
 }
 
 getGitFiles() {
@@ -1035,7 +1039,7 @@ main() {
 		# Decide what upstream DNS Servers to use
 		setDNS
 		# Install and log everything to a file
-		installPihole | tee ${tmpLog}
+    installPihole | tee ${tmpLog}
 	else
 		updatePihole | tee ${tmpLog}
 	fi
