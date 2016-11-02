@@ -20,7 +20,7 @@ readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 is_repo() {
-	# Use git to check if directory is currently under VCS, do not exit if failed
+  # Use git to check if directory is currently under VCS, do not exit if failed
   local directory="${1}"
   cd "${directory}" &> /dev/null || false
   git status --short &> /dev/null
@@ -46,24 +46,24 @@ make_repo() {
 }
 
 update_repo() {
-# Pull the latest commits
-	echo -n ":::     Updating repo in $1..."
-	cd "${1}" || exit 1
-	git stash -q > /dev/null || exit 1
-	git pull -q > /dev/null || exit 1
-	echo " done!"
+  # Pull the latest commits
+  echo -n ":::     Updating repo in $1..."
+  cd "${1}" || exit 1
+  git stash -q > /dev/null || exit 1
+  git pull -q > /dev/null || exit 1
+  echo " done!"
 }
 
 getGitFiles() {
-	# Setup git repos for directory and repository passed
-	# as arguments 1 and 2
-	echo ":::"
-	echo "::: Checking for existing repository..."
-	if is_repo "${1}"; then
-		update_repo "${1}"
-	else
-		make_repo "${1}" "${2}"
-	fi
+  # Setup git repos for directory and repository passed
+  # as arguments 1 and 2
+  echo ":::"
+  echo "::: Checking for existing repository..."
+  if is_repo "${1}"; then
+    update_repo "${1}"
+  else
+    make_repo "${1}" "${2}"
+  fi
 }
 
 main() {
