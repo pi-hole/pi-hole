@@ -835,7 +835,7 @@ installPiholeWeb() {
 	  if [ -f "/var/www/html/pihole/index.js" ]; then
 	    echo ":::     Existing index.js detected, not overwriting"
 	  else
-	    echo -n ":::     index.html missing, replacing... "
+	    echo -n ":::     index.js missing, replacing... "
 	    cp /etc/.pihole/advanced/index.js /var/www/html/pihole/
 	    echo " done!"
 	  fi
