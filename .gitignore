@@ -3,3 +3,4 @@
 *.swp
 __pycache__
 .cache
+*.yml

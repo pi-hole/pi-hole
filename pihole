@@ -62,7 +62,7 @@ setupLCDFunction() {
 }
 
 queryFunc() {
-  domain=$2
+  domain="${2}"
   for list in /etc/pihole/list.*; do
     count=$(grep ${domain} $list | wc -l)
     echo "::: ${list} (${count} results)"
