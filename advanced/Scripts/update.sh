@@ -20,10 +20,9 @@ readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 is_repo() {
-  # Use git to check if directory is currently under VCS, do not exit if failed
+  # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
-  cd "${directory}" &> /dev/null || false
-  git status --short &> /dev/null
+  git -C "${directory}" status --short &> /dev/null
   return
 }
 
@@ -31,6 +30,7 @@ prep_dirs() {
   # Prepare directory for local repository building
   local dir_to_clean="${1}"
   rm -rf "${dir_to_clean}" &> /dev/null
+  return
 }
 
 make_repo() {
@@ -39,18 +39,18 @@ make_repo() {
   local dest_dir="${1}"
 
   echo -n ":::    Cloning ${source_repo} into ${dest_dir}..."
-  prep_dirs "${dest_dir}"
-  git clone -q --depth 1 "${source_repo}" "${dest_dir}" > /dev/null \
-  || (echo "Unable to clone directory, please contact support"; exit false)
-  echo " done!"
+  if (prep_dirs "${dest_dir}" && git clone -q --depth 1 "${source_repo}" "${dest_dir}" > /dev/null); then \
+    echo " done!" || (echo "Unable to clone repository, please contact support"; exit false)
+  fi
 }
 
 update_repo() {
+  local dest_dir="${1}"
   # Pull the latest commits
-  echo -n ":::     Updating repo in $1..."
+  echo -n ":::     Updating repository in ${dest_dir}..."
   cd "${1}" || exit 1
-  git stash -q > /dev/null || exit 1
-  git pull -q > /dev/null || exit 1
+  git stash -q > /dev/null || exit $?
+  git pull -q > /dev/null || exit $?
   echo " done!"
 }
 
@@ -98,49 +98,39 @@ main() {
   #            pull pihole repo run install --unattended
 
   if [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]]; then
-    echo "::: Pi-hole version is $pihole_version_current"
-    echo "::: Web Admin version is $web_version_current"
     echo "::: Everything is up to date!"
-    echo ""
-    exit 0
 
   elif [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" != "${web_version_latest}" ]]; then
     echo "::: Pi-hole Web Admin files out of date"
     getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
     echo ":::"
     web_version_current="$(/usr/local/bin/pihole -v -a -c)"
-    echo "::: Web Admin version is now at ${web_version_current}"
-    echo "::: If you had made any changes in '/var/www/html/admin', they have been stashed using 'git stash'"
-    echo ""
+
   elif [[ "${pihole_version_current}" != "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]]; then
     echo "::: Pi-hole core files out of date"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-
     /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
-
     echo ":::"
     pihole_version_current="$(/usr/local/bin/pihole -v -p -c)"
-    echo "::: Pi-hole version is now at ${pihole_version_current}"
-    echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
-    echo ""
+
+
   elif [[ "${pihole_version_current}" != "${pihole_version_latest}" ]] && [[ "${web_version_current}" != "${web_version_latest}" ]]; then
     echo "::: Updating Everything"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-
     /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
-
     # Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
     web_version_current="$(/usr/local/bin/pihole -v -a -c)"
     # Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
     pihole_version_current="$(/usr/local/bin/pihole -v -p -c)"
-    echo ":::"
-    echo "::: Pi-hole version is now at ${pihole_version_current}"
-    echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
-    echo ":::"
-    echo "::: Pi-hole version is now at ${pihole_version_current}"
-    echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
-    echo ""
   fi
+    echo ":::"
+    echo "::: Pi-hole version is now at ${pihole_version_current}"
+    echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+    echo ":::"
+    echo "::: Web Admin version is now at ${web_version_current}"
+    echo "::: If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
+    echo ""
+    exit 0
 }
 
 main
