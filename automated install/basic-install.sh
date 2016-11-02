@@ -932,18 +932,19 @@ accountForRefactor() {
 }
 
 updatePihole() {
-    accountForRefactor
-	# Source ${setupVars} for use in the rest of the functions.
-	. ${setupVars}
-	# Install base files and web interface
-	installScripts
-	installConfigs
-	CreateLogFile
-	configureSelinux
-	installPiholeWeb
-	installCron
-	configureFirewall
-	runGravity
+  accountForRefactor
+  # Source ${setupVars} for use in the rest of the functions.
+  . ${setupVars}
+  # Install base files and web interface
+  installScripts
+  installConfigs
+  CreateLogFile
+  configureSelinux
+  installPiholeWeb
+  installCron
+  configureFirewall
+  finalExports #re-export setupVars.conf to account for any new vars added in new versions
+  runGravity
 }
 
 configureSelinux() {
