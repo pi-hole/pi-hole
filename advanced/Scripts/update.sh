@@ -22,16 +22,15 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 is_repo() {
 	# Use git to check if directory is currently under VCS
 	local directory="${1}"
-	local gitRepo=0
 	echo -n ":::    Checking if ${directory} is a repo... "
-	cd "${directory}" &> /dev/null || return 1
-	if [[ $(git status --short &> /dev/null) ]]; then
+	cd "${directory}" &> /dev/null || false
+	if [[ $(git status --short &> /dev/null) -eq 0 ]]; then
 		echo "OK"
+		true
 	else
 		echo "not found!"
-		gitRepo=1
+		false
 	fi;
-	return ${gitRepo}
 }
 
 make_repo() {
@@ -65,7 +64,7 @@ getGitFiles() {
 
 main() {
 
-  is_repo "${PI_HOLE_FILES_DIR}" &> /dev/null
+  is_repo "${PI_HOLE_FILES_DIR}"
   if [[ $? -eq 1 ]]; then #This is unlikely
     echo "::: Critical Error: Pi-Hole repo missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
