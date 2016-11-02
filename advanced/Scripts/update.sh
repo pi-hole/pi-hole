@@ -82,11 +82,11 @@ main() {
   local web_version_current
   local web_version_latest
 
-#  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
-#    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
-#    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
-#    exit 1;
-#  fi
+  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
+    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
+    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+    exit 1;
+  fi
 
   echo "::: Checking for updates..."
   # Checks Pi-hole version string in format vX.X.X
