@@ -55,15 +55,17 @@ update_repo() {
 }
 
 getGitFiles() {
-  # Setup git repos for directory and repository passed
-  # as arguments 1 and 2
-  echo ":::"
-  echo "::: Checking for existing repository..."
-  if is_repo "${1}"; then
-    update_repo "${1}"
-  else
-    make_repo "${1}" "${2}"
-  fi
+	# Setup git repos for directory and repository passed
+	# as arguments 1 and 2
+	local directory="${1}"
+	local remoteRepo="{$2}"
+	echo ":::"
+	echo "::: Checking for existing repository..."
+	if is_repo "${directory}"; then
+	  update_repo "${directory}"
+	else
+	  make_repo "${directory}" "${remoteRepo}"
+	fi
 }
 
 main() {
