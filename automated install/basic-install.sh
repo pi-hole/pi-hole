@@ -712,6 +712,22 @@ install_dependent_packages() {
 	done
 }
 
+make_repo() {
+	# Remove the non-repod interface and clone the interface
+	echo -n ":::    Cloning $2 into $1..."
+	rm -rf "${1}"
+	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+	echo " done!"
+}
+
+update_repo() {
+	# Pull the latest commits
+	echo -n ":::     Updating repo in $1..."
+	cd "${1}" || exit 1
+	git stash -q > /dev/null & spinner $!
+	git pull -q > /dev/null & spinner $!
+	echo " done!"
+}
 getGitFiles() {
 	# Setup git repos for directory and repository passed
 	# as arguments 1 and 2
@@ -731,22 +747,6 @@ is_repo() {
 	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
 }
 
-make_repo() {
-	# Remove the non-repod interface and clone the interface
-	echo -n ":::    Cloning $2 into $1..."
-	rm -rf "${1}"
-	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
-	echo " done!"
-}
-
-update_repo() {
-	# Pull the latest commits
-	echo -n ":::     Updating repo in $1..."
-	cd "${1}" || exit 1
-	git stash -q > /dev/null & spinner $!
-	git pull -q > /dev/null & spinner $!
-	echo " done!"
-}
 
 CreateLogFile() {
 	# Create logfiles if necessary

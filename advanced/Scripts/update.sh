@@ -14,22 +14,10 @@
 
 # Variables
 
-readonly WEBINTERFACEGITURL="https://github.com/pi-hole/AdminLTE.git"
-readonly WEBINTERFACEDIR="/var/www/html/admin"
-readonly PIHOLEGITURL="https://github.com/pi-hole/pi-hole.git"
-readonly PIHOLEFILESDIR="/etc/.pihole"
-
-getGitFiles() {
-	# Setup git repos for directory and repository passed
-	# as arguments 1 and 2
-	echo ":::"
-	echo "::: Checking for existing repository..."
-	if is_repo "${1}"; then
-		update_repo "${1}"
-	else
-		make_repo "${1}" "${2}"
-	fi
-}
+readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
+readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
+readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 is_repo() {
 	# Use git to check if directory is currently under VCS
@@ -59,6 +47,18 @@ update_repo() {
 	git stash -q > /dev/null || exit 1
 	git pull -q > /dev/null || exit 1
 	echo " done!"
+}
+
+getGitFiles() {
+	# Setup git repos for directory and repository passed
+	# as arguments 1 and 2
+	echo ":::"
+	echo "::: Checking for existing repository..."
+	if is_repo "${1}"; then
+		update_repo "${1}"
+	else
+		make_repo "${1}" "${2}"
+	fi
 }
 
 if [ ! -d "/etc/.pihole" ]; then #This is unlikely
@@ -109,7 +109,7 @@ if [[ "${piholeVersion}" == "${piholeVersionLatest}" ]] && [[ "${webVersion}" ==
 
 elif [[ "${piholeVersion}" == "${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole Web Admin files out of date"
-	getGitFiles "${WEBINTERFACEDIR}" "${WEBINTERFACEGITURL}"
+	getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
 	echo ":::"
 	webVersion=$(/usr/local/bin/pihole -v -a -c)
 	echo "::: Web Admin version is now at ${webVersion}"
@@ -117,7 +117,7 @@ elif [[ "${piholeVersion}" == "${piholeVersionLatest}" ]] && [[ "${webVersion}" 
 	echo ""
 elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" == "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole core files out of date"
-	getGitFiles "${PIHOLEFILESDIR}" "${PIHOLEGITURL}"
+	getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
 
 	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
@@ -128,7 +128,7 @@ elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" 
 	echo ""
 elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Updating Everything"
-	getGitFiles "${PIHOLEFILESDIR}" "${PIHOLEGITURL}"
+	getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
 
 	/etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
