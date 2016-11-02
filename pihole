@@ -12,85 +12,84 @@
 
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
-	if [ -x "$(command -v sudo)" ];then
-		exec sudo bash "$0" "$@"
-		exit $?
-	else
-		echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
-		exit 1
-	fi
+  if [ -x "$(command -v sudo)" ];then
+    exec sudo bash "$0" "$@"
+    exit $?
+  else
+    echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+    exit 1
+  fi
 fi
 
 whitelistFunc() {
-	/opt/pihole/list.sh "$@"
-	exit 0
+  /opt/pihole/list.sh "$@"
+  exit 0
 }
 
 blacklistFunc() {
-	/opt/pihole/list.sh "$@"
-	exit 0
+  /opt/pihole/list.sh "$@"
+  exit 0
 }
 
 debugFunc() {
-	/opt/pihole/piholeDebug.sh
-	exit 0
+  /opt/pihole/piholeDebug.sh
+  exit 0
 }
 
 flushFunc() {
-	/opt/pihole/piholeLogFlush.sh
-	exit 0
+  /opt/pihole/piholeLogFlush.sh
+  exit 0
 }
 
-
 updatePiholeFunc() {
-	/opt/pihole/update.sh
-	exit 0
+  /opt/pihole/update.sh
+  exit 0
 }
 
 reconfigurePiholeFunc() {
-	/etc/.pihole/automated\ install/basic-install.sh --reconfigure
-	exit 0;
+  /etc/.pihole/automated\ install/basic-install.sh --reconfigure
+  exit 0;
 }
 
 updateGravityFunc() {
-	/opt/pihole/gravity.sh "$@"
-	exit 0
+  /opt/pihole/gravity.sh "$@"
+  exit 0
 }
 
 setupLCDFunction() {
-	/opt/pihole/setupLCD.sh
-	exit 0
+  /opt/pihole/setupLCD.sh
+  exit 0
 }
 
 queryFunc() {
-	domain=$2
-	for list in /etc/pihole/list.*; do
-		count=$(grep ${domain} $list | wc -l)
-		echo "::: ${list} (${count} results)"
-			if [[ ${count} > 0 ]]; then
-				grep ${domain} ${list}
-			fi
-		echo ""
-	done
-	exit 0
+  domain=$2
+  for list in /etc/pihole/list.*; do
+    count=$(grep ${domain} $list | wc -l)
+    echo "::: ${list} (${count} results)"
+    if [[ ${count} > 0 ]]; then
+      grep ${domain} ${list}
+    fi
+    echo ""
+  done
+  exit 0
 }
 
 chronometerFunc() {
-	shift
-	/opt/pihole/chronometer.sh "$@"
-	exit 0
+  shift
+  /opt/pihole/chronometer.sh "$@"
+  exit 0
 }
 
 
 uninstallFunc() {
-	/opt/pihole/uninstall.sh
-	exit 0
+  /opt/pihole/uninstall.sh
+  exit 0
 }
 
 versionFunc() {
-	shift
-	/opt/pihole/version.sh "$@"
-	exit 0
+  shift
+  /opt/pihole/version.sh "$@"
+  exit 0
 }
 
 restartDNS() {
@@ -201,32 +200,32 @@ helpFunc() {
 :::  disable                  Disable Pi-Hole DNS Blocking
 :::  restartdns               Restart dnsmasq
 EOM
-	exit 1
+  exit 1
 }
 
 if [[ $# = 0 ]]; then
-	helpFunc
+  helpFunc
 fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-	"-w" | "whitelist"			) whitelistFunc "$@";;
-	"-b" | "blacklist"			) blacklistFunc "$@";;
-	"-d" | "debug"				) debugFunc;;
-	"-f" | "flush"				) flushFunc;;
-	"-up" | "updatePihole"      ) updatePiholeFunc;;
-	"-r"  | "reconfigure"       ) reconfigurePiholeFunc;;
-	"-g" | "updateGravity"		) updateGravityFunc "$@";;
-	"-s" | "setupLCD"			) setupLCDFunction;;
-	"-c" | "chronometer"		) chronometerFunc "$@";;
-	"-h" | "help"				) helpFunc;;
-	"-v" | "version"            ) versionFunc "$@";;
-	"-q" | "query"              ) queryFunc "$@";;
-	"-l" | "logging"            ) piholeLogging "$@";;
-	"uninstall"					) uninstallFunc;;
-	"enable"                      ) piholeEnable 1;;
-    "disable"                     ) piholeEnable 0;;
-    "status"                      ) piholeStatus "$2";;
-    "restartdns"                  ) restartDNS;;
-	*                    		) helpFunc;;
+  "-w" | "whitelist"            ) whitelistFunc "$@";;
+  "-b" | "blacklist"            ) blacklistFunc "$@";;
+  "-d" | "debug"                ) debugFunc;;
+  "-f" | "flush"                ) flushFunc;;
+  "-up" | "updatePihole"        ) updatePiholeFunc;;
+  "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
+  "-g" | "updateGravity"        ) updateGravityFunc "$@";;
+  "-s" | "setupLCD"             ) setupLCDFunction;;
+  "-c" | "chronometer"          ) chronometerFunc "$@";;
+  "-h" | "help"                 ) helpFunc;;
+  "-v" | "version"              ) versionFunc "$@";;
+  "-q" | "query"                ) queryFunc "$@";;
+  "-l" | "logging"              ) piholeLogging "$@";;
+  "uninstall"                   ) uninstallFunc;;
+  "enable"                      ) piholeEnable 1;;
+  "disable"                     ) piholeEnable 0;;
+  "status"                      ) piholeStatus "$2";;
+  "restartdns"                  ) restartDNS;;
+  *                             ) helpFunc;;
 esac
