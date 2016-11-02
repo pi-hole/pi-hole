@@ -45,17 +45,17 @@ make_repo() {
 }
 
 update_repo() {
-  local dest_dir="${1}"
+  local directory="${1}"
+  local retVal=0
   # Pull the latest commits
-  echo -n ":::     Updating repository in ${dest_dir}..."
 
   # Stash all files not tracked for later retrieval
-  git -C "${dest_dir}" stash --all --quiet &> /dev/null || false
+  git -C "${directory}" stash --all --quiet &> /dev/null || ${retVal}=1
   # Force a clean working directory for cloning
-  git -C "${dest_dir}" clean --force -d &> /dev/null || false
+  git -C "${directory}" clean --force -d &> /dev/null || ${retVal}=1
   # Fetch latest changes and apply
-  git -C "${dest_dir}" pull --quiet &> /dev/null || false
-  echo " done!"
+  git -C "${directory}" pull --quiet &> /dev/null || ${retVal}=1
+  return ${retVal}
 }
 
 getGitFiles() {
@@ -66,7 +66,9 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
+    echo -n ":::     Updating repository in ${directory}..."
     update_repo "${directory}" || (echo "*** Error: Could not update local repository. Contact support."; exit 1)
+    echo " done!"
   else
     echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
     make_repo "${directory}" "${remoteRepo}" || (echo "Unable to clone repository, please contact support"; exit 1)
