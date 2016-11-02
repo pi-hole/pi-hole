@@ -22,6 +22,7 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
+
   git -C "${directory}" status --short &> /dev/null
   return
 }
@@ -29,18 +30,18 @@ is_repo() {
 prep_dirs() {
   # Prepare directory for local repository building
   local directory="${1}"
+
   rm -rf "${directory}" &> /dev/null
   return
 }
 
 make_repo() {
   # Remove the non-repod interface and clone the interface
-  local source_repo="${2}"
-  local dest_dir="${1}"
+  local remoteRepo="${2}"
+  local directory="${1}"
 
-  echo -n ":::    Cloning ${source_repo} into ${dest_dir}..."
-  if (prep_dirs "${dest_dir}" && git clone -q --depth 1 "${source_repo}" "${dest_dir}" > /dev/null); then \
-    echo " done!" || (echo "Unable to clone repository, please contact support"; exit false)
+  if ! (prep_dirs "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null); then \
+     return false
   fi
 }
 
@@ -68,7 +69,9 @@ getGitFiles() {
   if is_repo "${directory}"; then
     update_repo "${directory}" || (echo "*** Error: Could not update local repository. Contact support."; exit 1)
   else
-    make_repo "${directory}" "${remoteRepo}"
+    echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
+    make_repo "${directory}" "${remoteRepo}" || (echo "Unable to clone repository, please contact support"; exit 1)
+    echo " done!"
   fi
 }
 
