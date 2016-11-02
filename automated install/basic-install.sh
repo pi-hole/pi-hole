@@ -25,8 +25,8 @@ setupVars=/etc/pihole/setupVars.conf
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
-piholeFilesDir="/etc/.pihole"
-
+PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version)
 useUpdateVars=false
 
 IPv4_address=""
@@ -144,6 +144,42 @@ spinner() {
 	printf "    \b\b\b\b"
 }
 
+is_repo() {
+	# Use git to check if directory is currently under VCS
+	echo -n ":::    Checking $1 is a repo..."
+	cd "${1}" &> /dev/null || return 1
+	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
+}
+
+make_repo() {
+	# Remove the non-repod interface and clone the interface
+	echo -n ":::    Cloning $2 into $1..."
+	rm -rf "${1}"
+	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+	echo " done!"
+}
+
+update_repo() {
+	# Pull the latest commits
+	echo -n ":::     Updating repo in $1..."
+	cd "${1}" || exit 1
+	git stash -q > /dev/null & spinner $!
+	git pull -q > /dev/null & spinner $!
+	echo " done!"
+}
+
+getGitFiles() {
+	# Setup git repos for directory and repository passed
+	# as arguments 1 and 2
+	echo ":::"
+	echo "::: Checking for existing repository..."
+	if is_repo "${1}"; then
+	  update_repo "${1}"
+	else
+	  make_repo "${1}" "${2}"
+	fi
+}
+
 find_IPv4_information() {
 	# Find IP used to route to outside world
 	IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
@@ -168,7 +204,6 @@ welcomeDialogs() {
 
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." ${r} ${c}
 }
-
 
 verifyFreeDiskSpace() {
 
@@ -588,22 +623,41 @@ remove_legacy_scripts() {
 	done
 }
 
+clean_existing() {
+  # Clean an exiting installation to prepare for upgrade/reinstall
+  # ${1} Directory to clean; ${2} Array of files to remove
+  local clean_directory="${1}"
+  local old_files=${2}
+
+	for script in "${old_files[@]}"; do
+		rm -f "${clean_directory}${script}.sh"
+	done
+
+}
+
 installScripts() {
-	# Install the scripts from /etc/.pihole to their various locations
+  # Install the scripts from repository to their various locations
+  readonly install_dir="/opt/pihole/"
+
 	echo ":::"
-	echo -n "::: Installing scripts to /opt/pihole..."
-	#clear out /opt/pihole and recreate it. This allows us to remove scripts from future installs
-	rm -f /opt/pihole/*.sh
+	echo -n "::: Installing scripts to ${PI_HOLE_LOCAL_REPO}..."
 
-	cd /etc/.pihole/
+	# Clear out script files from Pi-hole scripts directory.
+	clean_existing "${install_dir}" "${PI_HOLE_FILES}"
 
-	install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
-	install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
-	install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
-	install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
-
-	install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
-	echo " done."
+  # Install files from local core repository
+  if [[ $(is_repo "${PI_HOLE_LOCAL_REPO}") ]]; then
+    cd "${PI_HOLE_LOCAL_REPO}"
+    install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
+    install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
+    install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
+    install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+	  echo " done."
+  else
+    echo " *** ERROR: Local repo ${core_repo} not found, exiting."
+    exit 1
+  fi
 }
 
 installConfigs() {
@@ -710,42 +764,6 @@ install_dependent_packages() {
 		echo " installed!"
 	done
 }
-
-make_repo() {
-	# Remove the non-repod interface and clone the interface
-	echo -n ":::    Cloning $2 into $1..."
-	rm -rf "${1}"
-	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
-	echo " done!"
-}
-
-update_repo() {
-	# Pull the latest commits
-	echo -n ":::     Updating repo in $1..."
-	cd "${1}" || exit 1
-	git stash -q > /dev/null & spinner $!
-	git pull -q > /dev/null & spinner $!
-	echo " done!"
-}
-getGitFiles() {
-	# Setup git repos for directory and repository passed
-	# as arguments 1 and 2
-	echo ":::"
-	echo "::: Checking for existing repository..."
-	if is_repo "${1}"; then
-	  update_repo "${1}"
-	else
-	  make_repo "${1}" "${2}"
-	fi
-}
-
-is_repo() {
-	# Use git to check if directory is currently under VCS
-	echo -n ":::    Checking $1 is a repo..."
-	cd "${1}" &> /dev/null || return 1
-	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
-}
-
 
 CreateLogFile() {
 	# Create logfiles if necessary
@@ -994,7 +1012,7 @@ main() {
 		echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
 	else
 		# Get Git files for Core and Admin
-		getGitFiles ${piholeFilesDir} ${piholeGitUrl}
+		getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl}
 		getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
 	fi
 
