@@ -95,7 +95,7 @@ main() {
   web_version_current="$(/usr/local/bin/pihole version --admin --current)"
   web_version_latest="$(/usr/local/bin/pihole version --admin --latest)"
 
-  if [[ "${pihole_version_latest}" -eq "-1" || "${web_version_latest}" -eq -1 ]]; then
+  if [[ "${pihole_version_latest}" -eq "-1" || "${web_version_latest}" -eq "-1" ]]; then
     echo "*** Unable to contact GitHub for latest version. Please try again later, contact support if this continues."
     exit 1
   fi
