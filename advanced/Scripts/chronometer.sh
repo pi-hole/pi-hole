@@ -17,11 +17,12 @@ gravity="/etc/pihole/gravity.list"
 
 today=$(date "+%b %e")
 
+. /etc/pihole/setupVars.conf
+
 CalcBlockedDomains() {
-	CheckIPv6
 	if [ -e "${gravity}" ]; then
 		#Are we IPV6 or IPV4?
-		if [[ -n ${piholeIPv6} ]]; then
+		if [[ -n "${IPv6_address}" ]]; then
 			#We are IPV6
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
