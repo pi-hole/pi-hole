@@ -146,24 +146,27 @@ spinner() {
 }
 
 is_repo() {
-	# Use git to check if directory is currently under VCS
-	echo -n ":::    Checking $1 is a repo..."
-	cd "${1}" &> /dev/null || return 1
-	git status &> /dev/null && echo " OK!"; return 0 || echo " not found!"; return 1
+  # Use git to check if directory is currently under VCS, return the value
+  local directory="${1}"
+  git -C "${directory}" status --short &> /dev/null
+  return
 }
 
 make_repo() {
+  local directory="${1}"
+	local remoteRepo="${2}"
 	# Remove the non-repod interface and clone the interface
-	echo -n ":::    Cloning $2 into $1..."
-	rm -rf "${1}"
-	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+	echo -n ":::    Cloning $remoteRepo into $directory..."
+	rm -rf "${directory}"
+	git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null & spinner $!
 	echo " done!"
 }
 
 update_repo() {
+	local directory="${1}"
 	# Pull the latest commits
 	echo -n ":::     Updating repo in $1..."
-	cd "${1}" || exit 1
+	cd "${directory}" || exit 1
 	git stash -q > /dev/null & spinner $!
 	git pull -q > /dev/null & spinner $!
 	echo " done!"
@@ -172,12 +175,14 @@ update_repo() {
 getGitFiles() {
 	# Setup git repos for directory and repository passed
 	# as arguments 1 and 2
+	local directory="${1}"
+	local remoteRepo="${2}"
 	echo ":::"
 	echo "::: Checking for existing repository..."
-	if is_repo "${1}"; then
-	  update_repo "${1}"
+	if is_repo "${directory}"; then
+	  update_repo "${directory}"
 	else
-	  make_repo "${1}" "${2}"
+	  make_repo "${directory}" "${remoteRepo}"
 	fi
 }
 
@@ -671,13 +676,13 @@ installScripts() {
   readonly install_dir="/opt/pihole/"
 
 	echo ":::"
-	echo -n "::: Installing scripts to ${PI_HOLE_LOCAL_REPO}..."
+	echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
 
 	# Clear out script files from Pi-hole scripts directory.
 	clean_existing "${install_dir}" "${PI_HOLE_FILES}"
 
   # Install files from local core repository
-  if [[ $(is_repo "${PI_HOLE_LOCAL_REPO}") ]]; then
+  if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
     install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
