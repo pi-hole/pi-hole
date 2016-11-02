@@ -89,15 +89,11 @@ main() {
   fi
 
   echo "::: Checking for updates..."
-  # Checks Pi-hole version > pihole only > current local git repo version : returns string in format vX.X.X
-  pihole_version_current="$(/usr/local/bin/pihole -v -p -c)"
-  # Checks Pi-hole version > pihole only > remote upstream repo version : returns string in format vX.X.X
-  pihole_version_latest="$(/usr/local/bin/pihole -v -p -l)"
-
-  # Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
-  web_version_current="$(/usr/local/bin/pihole -v -a -c)"
-  # Checks Pi-hole version > admin only > remote upstream repo version : returns string in format vX.X.X
-  web_version_latest="$(/usr/local/bin/pihole -v -a -l)"
+  # Checks Pi-hole version string in format vX.X.X
+  pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
+  pihole_version_latest="$(/usr/local/bin/pihole version --pihole --latest)"
+  web_version_current="$(/usr/local/bin/pihole version --admin --current)"
+  web_version_latest="$(/usr/local/bin/pihole version --admin --latest)"
 
   # Logic
   # If latest versions are blank - we've probably hit Github rate limit (stop running `pihole -up so often!):

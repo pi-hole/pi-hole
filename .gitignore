@@ -3,4 +3,5 @@
 *.swp
 __pycache__
 .cache
-*.yml
+.pullapprove.yml
+
