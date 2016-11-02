@@ -1061,9 +1061,6 @@ main() {
 	# Install packages used by this installation script
 	install_dependent_packages INSTALLER_DEPS[@]
 
-	# Install packages used by the Pi-hole
-	install_dependent_packages PIHOLE_DEPS[@]
-
 	if [[ "${reconfigure}" == true ]]; then
 		echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
 	else
@@ -1094,11 +1091,14 @@ main() {
 		setLogging
 
 		# Install packages used by the Pi-hole
-	    install_dependent_packages PIHOLE_DEPS[@]
+	  install_dependent_packages PIHOLE_DEPS[@]
 
 		# Install and log everything to a file
     installPihole | tee ${tmpLog}
 	else
+	  # update packages used by the Pi-hole
+	  install_dependent_packages PIHOLE_DEPS[@]
+
 		updatePihole | tee ${tmpLog}
 	fi
 
@@ -1124,13 +1124,13 @@ main() {
 		echo ":::     ${IPV6_ADDRESS}"
 		echo ":::"
 		echo "::: If you set a new IP address, you should restart the Pi."
+    echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
 	else
 		echo "::: Update complete!"
 	fi
 
 	echo ":::"
 	echo "::: The install log is located at: /etc/pihole/install.log"
-	echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
 }
 
 if [[ -z "$PHTEST" ]] ; then
