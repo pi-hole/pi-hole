@@ -23,16 +23,25 @@ is_repo() {
 	# Use git to check if directory is currently under VCS
 	local directory="${1}"
 	cd "${directory}" &> /dev/null || false
-  $(git status --short &> /dev/null)
+  git status --short &> /dev/null
   return
 }
 
- make_repo() {
-	# Remove the non-repod interface and clone the interface
-	echo -n ":::    Cloning $2 into $1..."
-	rm -rf "${1}"
-	git clone -q --depth 1 "${2}" "${1}" > /dev/null || exit 1
-	echo " done!"
+prep_dirs() {
+  # Prepare directory for local repository building
+  local dir_to_clean="${1}"
+  cd "${dir_to_clean}" &> /dev/null || (echo "Unable to prepare directory, please contact support"; exit false)
+  rm -rf "${dir_to_clean}" &> /dev/null || (echo "Unable to prepare directory, please contact support"; exit false)
+}
+
+make_repo() {
+  # Remove the non-repod interface and clone the interface
+  local source_repo="${2}"
+  local dest_dir="${1}"
+  echo -n ":::    Cloning ${source_repo} into ${dest_dir}..."
+  rm -rf "${dest_dir}"
+  git clone -q --depth 1 "${2}" "${1}" > /dev/null || exit 1
+  echo " done!"
 }
 
 update_repo() {
@@ -58,14 +67,8 @@ getGitFiles() {
 
 main() {
 
-  if ! is_repo "${PI_HOLE_FILES_DIR}"; then #This is unlikely
-    echo "::: Critical Error: Pi-Hole repo missing from system!"
-    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
-    exit 1;
-  fi
-
-  if ! $(is_repo "${ADMIN_INTERFACE_DIR}"); then #This is unlikely
-    echo "::: Critical Error: Pi-Hole repo missing from system!"
+  if ! is_repo "${PI_HOLE_FILES_DIR}" && ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
+    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
   fi
