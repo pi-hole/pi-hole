@@ -18,123 +18,59 @@ _________________________ test_scripts_pass_shellcheck _________________________
 
     def test_scripts_pass_shellcheck():
         ''' Make sure shellcheck does not find anything wrong with our shell scripts '''
-        shellcheck = "find . -name 'basic-install.sh' | while read file; do shellcheck \"$file\"; done;"
+        shellcheck = "find . -name 'update.sh' | while read file; do shellcheck \"$file\"; done;"
         results = run_local(shellcheck)
         print results.stdout
 >       assert '' == results.stdout
-E       assert '' == '\nIn ./automated install/bas...C may run when A is true.\n\n'
+E       assert '' == '\nIn ./advanced/Scripts/upda...vent glob interpretation.\n\n'
 E         + 
-E         + In ./automated install/basic-install.sh line 79:
-E         + 	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-E         +         ^-- SC2034: INSTALLER_DEPS appears unused. Verify it or export it.
+E         + In ./advanced/Scripts/update.sh line 24:
+E         + 	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
+E         +                 ^-- SC2143: Instead of [ -n $(foo | grep bar) ], use foo | grep -q bar .
 E         + 
 E         + 
-E         + In ./automated install/basic-install.sh line 80:
-E         + 	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
-E         +         ^-- SC2034: PIHOLE_DEPS appears unused. Verify it or export it.
-E         Detailed information truncated (91 more lines), use "-vv" to show
+E         + In ./advanced/Scripts/update.sh line 57:
+E         + 	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+E         +                                                                    ^-- SC2086: Double quote to prevent globbing and word splitting.
+E         Detailed information truncated (27 more lines), use "-vv" to show
 
 test/test_shellcheck.py:13: AssertionError
 ----------------------------- Captured stdout call -----------------------------
 
-In ./automated install/basic-install.sh line 79:
-	INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-        ^-- SC2034: INSTALLER_DEPS appears unused. Verify it or export it.
+In ./advanced/Scripts/update.sh line 24:
+	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
+                ^-- SC2143: Instead of [ -n $(foo | grep bar) ], use foo | grep -q bar .
 
 
-In ./automated install/basic-install.sh line 80:
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron iproute2 )
-        ^-- SC2034: PIHOLE_DEPS appears unused. Verify it or export it.
+In ./advanced/Scripts/update.sh line 57:
+	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+                                                                   ^-- SC2086: Double quote to prevent globbing and word splitting.
 
 
-In ./automated install/basic-install.sh line 86:
-		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "$1"
-                                 ^-- SC2016: Expressions don't expand in single quotes, use double quotes for that.
+In ./advanced/Scripts/update.sh line 65:
+	git stash -q > /dev/null & spinner $!
+                                           ^-- SC2086: Double quote to prevent globbing and word splitting.
 
 
-In ./automated install/basic-install.sh line 100:
-	INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-        ^-- SC2034: INSTALLER_DEPS appears unused. Verify it or export it.
+In ./advanced/Scripts/update.sh line 66:
+	git pull -q > /dev/null & spinner $!
+                                          ^-- SC2086: Double quote to prevent globbing and word splitting.
 
 
-In ./automated install/basic-install.sh line 101:
-	PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
-        ^-- SC2034: PIHOLE_DEPS appears unused. Verify it or export it.
+In ./advanced/Scripts/update.sh line 107:
+if [[ ${piholeVersion} == ${piholeVersionLatest} && ${webVersion} == ${webVersionLatest} ]]; then
+                          ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
+                                                                     ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
 
 
-In ./automated install/basic-install.sh line 120:
-    while [ "$(ps a | awk '{print $1}' | grep "$pid")" ]; do
-            ^-- SC2143: Instead of [ -n $(foo | grep bar) ], use foo | grep -q bar .
+In ./advanced/Scripts/update.sh line 112:
+elif [[ ${piholeVersion} == ${piholeVersionLatest} && ${webVersion} != ${webVersionLatest} ]]; then
+                            ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
 
 
-In ./automated install/basic-install.sh line 214:
-	chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-                                                                                    ^-- SC2069: The order of the 2>&1 and the redirect matters. The 2>&1 has to be last.
+In ./advanced/Scripts/update.sh line 120:
+elif [[ ${piholeVersion} != ${piholeVersionLatest} && ${webVersion} == ${webVersionLatest} ]]; then
+                                                                       ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
 
 
-In ./automated install/basic-install.sh line 241:
-	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-                                              ^-- SC2069: The order of the 2>&1 and the redirect matters. The 2>&1 has to be last.
-
-
-In ./automated install/basic-install.sh line 354:
-			cp "${IFCFG_FILE}" "${IFCFG_FILE}".backup-"$(date +%Y-%m-%d-%H%M%S)"
-                                                          ^-- SC2140: The double quotes around this do nothing. Remove or escape them.
-
-
-In ./automated install/basic-install.sh line 408:
-	DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
-                                                                   ^-- SC2069: The order of the 2>&1 and the redirect matters. The 2>&1 has to be last.
-
-
-In ./automated install/basic-install.sh line 585:
-		systemctl stop "${1}" &> /dev/null & spinner $! || true
-                                                             ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 587:
-		service "${1}" stop &> /dev/null & spinner $! || true
-                                                           ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 598:
-		systemctl restart "${1}" &> /dev/null & spinner $!
-                                                                ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 600:
-		service "${1}" restart &> /dev/null  & spinner $!
-                                                               ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 610:
-		systemctl enable "${1}" &> /dev/null & spinner $!
-                                                               ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 612:
-		update-rc.d "${1}" defaults &> /dev/null  & spinner $!
-                                                                    ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 631:
-		${UPDATE_PKG_CACHE} &> /dev/null & spinner $!
-                                                           ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 688:
-    git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
-                                                               ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 696:
-    git pull -q > /dev/null & spinner $!
-                                      ^-- SC2086: Double quote to prevent globbing and word splitting.
-
-
-In ./automated install/basic-install.sh line 761:
-	id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || (echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole)
-                                  ^-- SC2015: Note that A && B || C is not if-then-else. C may run when A is true.
-
-
-===================== 1 failed, 6 passed in 20.79 seconds ======================
+===================== 1 failed, 6 passed in 24.01 seconds ======================

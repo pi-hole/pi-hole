@@ -7,7 +7,7 @@ run_local = testinfra.get_backend(
 
 def test_scripts_pass_shellcheck():
     ''' Make sure shellcheck does not find anything wrong with our shell scripts '''
-    shellcheck = "find . -name 'basic-install.sh' | while read file; do shellcheck \"$file\"; done;"
+    shellcheck = "find . -name 'update.sh' | while read file; do shellcheck \"$file\"; done;"
     results = run_local(shellcheck)
     print results.stdout
     assert '' == results.stdout
