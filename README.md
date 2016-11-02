@@ -14,7 +14,7 @@ Works on most Debian and CentOS/RHEL based distributions!
 
 ```bash
 wget -O basic-install.sh https://install.pi-hole.net
-cat basic-install.sh | bash
+bash basic-install.sh
 ```
 If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 
