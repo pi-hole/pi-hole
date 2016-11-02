@@ -1,0 +1,76 @@
+============================= test session starts ==============================
+platform linux2 -- Python 2.7.6, pytest-2.9.2, py-1.4.31, pluggy-0.3.1 -- /usr/bin/python
+cachedir: .cache
+rootdir: /home/a/opensource/pi-hole, inifile: 
+plugins: cov-2.3.0, bdd-2.17.0, xdist-1.14, testinfra-1.4.0
+collecting ... collected 7 items
+
+test/test_000_build_containers.py::test_build_pihole_image[test/debian.Dockerfile-pytest_pihole:debian] PASSED
+test/test_000_build_containers.py::test_build_pihole_image[test/centos.Dockerfile-pytest_pihole:centos] PASSED
+test/test_automated_install.py::test_setupVars_are_sourced_to_global_scope[debian] PASSED
+test/test_automated_install.py::test_setupVars_are_sourced_to_global_scope[centos] PASSED
+test/test_automated_install.py::test_setupVars_saved_to_file[debian] PASSED
+test/test_automated_install.py::test_setupVars_saved_to_file[centos] PASSED
+test/test_shellcheck.py::test_scripts_pass_shellcheck FAILED
+
+=================================== FAILURES ===================================
+_________________________ test_scripts_pass_shellcheck _________________________
+
+    def test_scripts_pass_shellcheck():
+        ''' Make sure shellcheck does not find anything wrong with our shell scripts '''
+        shellcheck = "find . -name 'update.sh' | while read file; do shellcheck \"$file\"; done;"
+        results = run_local(shellcheck)
+        print results.stdout
+>       assert '' == results.stdout
+E       assert '' == '\nIn ./advanced/Scripts/upda...vent glob interpretation.\n\n'
+E         + 
+E         + In ./advanced/Scripts/update.sh line 24:
+E         + 	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
+E         +                 ^-- SC2143: Instead of [ -n $(foo | grep bar) ], use foo | grep -q bar .
+E         + 
+E         + 
+E         + In ./advanced/Scripts/update.sh line 57:
+E         + 	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+E         +                                                                    ^-- SC2086: Double quote to prevent globbing and word splitting.
+E         Detailed information truncated (27 more lines), use "-vv" to show
+
+test/test_shellcheck.py:13: AssertionError
+----------------------------- Captured stdout call -----------------------------
+
+In ./advanced/Scripts/update.sh line 24:
+	while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
+                ^-- SC2143: Instead of [ -n $(foo | grep bar) ], use foo | grep -q bar .
+
+
+In ./advanced/Scripts/update.sh line 57:
+	git clone -q --depth 1 "${2}" "${1}" > /dev/null & spinner $!
+                                                                   ^-- SC2086: Double quote to prevent globbing and word splitting.
+
+
+In ./advanced/Scripts/update.sh line 65:
+	git stash -q > /dev/null & spinner $!
+                                           ^-- SC2086: Double quote to prevent globbing and word splitting.
+
+
+In ./advanced/Scripts/update.sh line 66:
+	git pull -q > /dev/null & spinner $!
+                                          ^-- SC2086: Double quote to prevent globbing and word splitting.
+
+
+In ./advanced/Scripts/update.sh line 107:
+if [[ ${piholeVersion} == ${piholeVersionLatest} && ${webVersion} == ${webVersionLatest} ]]; then
+                          ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
+                                                                     ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
+
+
+In ./advanced/Scripts/update.sh line 112:
+elif [[ ${piholeVersion} == ${piholeVersionLatest} && ${webVersion} != ${webVersionLatest} ]]; then
+                            ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
+
+
+In ./advanced/Scripts/update.sh line 120:
+elif [[ ${piholeVersion} != ${piholeVersionLatest} && ${webVersion} == ${webVersionLatest} ]]; then
+                                                                       ^-- SC2053: Quote the rhs of = in [[ ]] to prevent glob interpretation.
+
+
+===================== 1 failed, 6 passed in 24.01 seconds ======================

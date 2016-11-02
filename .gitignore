@@ -1,1 +1,7 @@
 .DS_Store
+*.pyc
+*.swp
+__pycache__
+.cache
+.pullapprove.yml
+
