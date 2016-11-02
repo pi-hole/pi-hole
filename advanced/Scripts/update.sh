@@ -74,14 +74,14 @@ fi
 
 echo "::: Checking for updates..."
 # Checks Pi-hole version > pihole only > current local git repo version : returns string in format vX.X.X
-piholeVersion=$(/usr/local/bin/pihole -v -p -c)
+piholeVersion="$(/usr/local/bin/pihole -v -p -c)"
 # Checks Pi-hole version > pihole only > remote upstream repo version : returns string in format vX.X.X
-piholeVersionLatest=$(/usr/local/bin/pihole -v -p -l)
+piholeVersionLatest="$(/usr/local/bin/pihole -v -p -l)"
 
 # Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
-webVersion=$(/usr/local/bin/pihole -v -a -c)
+webVersion="$(/usr/local/bin/pihole -v -a -c)"
 # Checks Pi-hole version > admin only > remote upstream repo version : returns string in format vX.X.X
-webVersionLatest=$(/usr/local/bin/pihole -v -a -l)
+webVersionLatest="$(/usr/local/bin/pihole -v -a -l)"
 
 echo ":::"
 echo "::: Pi-hole version is $piholeVersion (Latest version is $piholeVersionLatest)"
@@ -111,7 +111,7 @@ elif [[ "${piholeVersion} == ${piholeVersionLatest}" ]] && [[ "${webVersion}" !=
 	echo "::: Pi-hole Web Admin files out of date"
 	getGitFiles "${WEBINTERFACEDIR}" "${WEBINTERFACEGITURL}"
 	echo ":::"
-	webVersion=$(/usr/local/bin/pihole -v -a -c)
+	webVersion="$(/usr/local/bin/pihole -v -a -c)"
 	echo "::: Web Admin version is now at ${webVersion}"
 	echo "::: If you had made any changes in '/var/www/html/admin', they have been stashed using 'git stash'"
 	echo ""
@@ -122,7 +122,7 @@ elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" 
 	/etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
 	echo ":::"
-	piholeVersion=$(/usr/local/bin/pihole -v -p -c)
+	piholeVersion="$(/usr/local/bin/pihole -v -p -c)"
 	echo "::: Pi-hole version is now at ${piholeVersion}"
 	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
 	echo ""
@@ -133,9 +133,9 @@ elif [[ "${piholeVersion}" != "${piholeVersionLatest}" ]] && [[ "${webVersion}" 
 	/etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
 	# Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
-	webVersion=$(/usr/local/bin/pihole -v -a -c)
+	webVersion="$(/usr/local/bin/pihole -v -a -c)"
 	# Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
-	piholeVersion=$(/usr/local/bin/pihole -v -p -c)
+	piholeVersion="$(/usr/local/bin/pihole -v -p -c)"
 	echo ":::"
 	echo "::: Pi-hole version is now at ${piholeVersion}"
 	echo "::: If you had made any changes in '/etc/.pihole', they have been stashed using 'git stash'"
