@@ -132,6 +132,7 @@ piholeLogging() {
     #Disable Logging
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
+    pihole -f
     echo "::: Logging has been disabled!"
   elif [[ "${1}" == "on" ]] ; then
     #Enable logging
