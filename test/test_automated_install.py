@@ -5,8 +5,8 @@ SETUPVARS = {
     'PIHOLE_INTERFACE' : 'eth99',
     'IPV4_ADDRESS' : '1.1.1.1',
     'IPV6_ADDRESS' : 'FE80::240:D0FF:FE48:4672',
-    'PIHOLE_DNS1' : '4.2.2.1',
-    'PIHOLE_DNS2' : '4.2.2.2'
+    'PIHOLE_DNS_1' : '4.2.2.1',
+    'PIHOLE_DNS_2' : '4.2.2.2'
 }
 
 def test_setupVars_are_sourced_to_global_scope(Pihole):
@@ -26,8 +26,8 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
         echo "PIHOLE_INTERFACE=\${PIHOLE_INTERFACE}"
         echo "IPV4_ADDRESS=\${IPV4_ADDRESS}"
         echo "IPV6_ADDRESS=\${IPV6_ADDRESS}"
-        echo "PIHOLE_DNS1=\${PIHOLE_DNS1}"
-        echo "PIHOLE_DNS2=\${PIHOLE_DNS2}"
+        echo "PIHOLE_DNS_1=\${PIHOLE_DNS_1}"
+        echo "PIHOLE_DNS_2=\${PIHOLE_DNS_2}"
     }
     update_dialogs() {
         . /etc/pihole/setupVars.conf
