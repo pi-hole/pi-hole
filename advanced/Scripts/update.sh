@@ -58,15 +58,13 @@ getGitFiles() {
 
 main() {
 
-  is_repo "${PI_HOLE_FILES_DIR}"
-  if [[ $? -ne 0 ]]; then #This is unlikely
+  if ! is_repo "${PI_HOLE_FILES_DIR}"; then #This is unlikely
     echo "::: Critical Error: Pi-Hole repo missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
   fi
 
-  is_repo "${ADMIN_INTERFACE_DIR}" &> /dev/null
-  if [[ $? -ne 0 ]]; then #This is unlikely
+  if ! $(is_repo "${ADMIN_INTERFACE_DIR}"); then #This is unlikely
     echo "::: Critical Error: Pi-Hole repo missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
