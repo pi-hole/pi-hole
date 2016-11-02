@@ -20,39 +20,44 @@ readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 is_repo() {
-	# Use git to check if directory is currently under VCS
-	local directory="${1}"
-	cd "${directory}" &> /dev/null || false
-  $(git status --short &> /dev/null)
+  # Use git to check if directory is currently under VCS, return the value
+  local directory="${1}"
+  git -C "${directory}" status --short &> /dev/null
   return
 }
 
- make_repo() {
+make_repo() {
+  local directory="${1}"
+	local remoteRepo="{$2}"
 	# Remove the non-repod interface and clone the interface
-	echo -n ":::    Cloning $2 into $1..."
-	rm -rf "${1}"
-	git clone -q --depth 1 "${2}" "${1}" > /dev/null || exit 1
+	echo -n ":::    Cloning $remoteRepo into $directory..."
+	rm -rf "${directory}"
+	git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null
 	echo " done!"
 }
 
 update_repo() {
-# Pull the latest commits
+echo "update" && exit 1
+	local directory="${1}"
+	# Pull the latest commits
 	echo -n ":::     Updating repo in $1..."
-	cd "${1}" || exit 1
-	git stash -q > /dev/null || exit 1
-	git pull -q > /dev/null || exit 1
+	cd "${directory}" || exit 1
+	git stash -q > /dev/null
+	git pull -q > /dev/null
 	echo " done!"
 }
 
 getGitFiles() {
 	# Setup git repos for directory and repository passed
 	# as arguments 1 and 2
+	local directory="${1}"
+	local remoteRepo="{$2}"
 	echo ":::"
 	echo "::: Checking for existing repository..."
-	if is_repo "${1}"; then
-		update_repo "${1}"
+	if is_repo "${directory}"; then
+	  update_repo "${directory}"
 	else
-		make_repo "${1}" "${2}"
+	  make_repo "${directory}" "${remoteRepo}"
 	fi
 }
 
