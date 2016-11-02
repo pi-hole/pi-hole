@@ -2,11 +2,11 @@ import pytest
 from textwrap import dedent
 
 SETUPVARS = {
-    'piholeInterface' : 'eth99',
-    'IPv4_address' : '1.1.1.1',
-    'IPv6_address' : '2:2:2:2:2:2',
-    'piholeDNS1' : '4.2.2.1',
-    'piholeDNS2' : '4.2.2.2'
+    'PIHOLE_INTERFACE' : 'eth99',
+    'IPV4_ADDRESS' : '1.1.1.1',
+    'IPV6_ADDRESS' : 'FE80::240:D0FF:FE48:4672',
+    'PIHOLE_DNS1' : '4.2.2.1',
+    'PIHOLE_DNS2' : '4.2.2.2'
 }
 
 def test_setupVars_are_sourced_to_global_scope(Pihole):
@@ -23,11 +23,11 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     printSetupVars() {
         # Currently debug test function only
         echo "Outputting sourced variables"
-        echo "PIHOLE_INTERFAC=\${piholeInterface}"
-        echo "IPv4_ADDRESS=\${IPv4_address}"
-        echo "IPv6_ADDRESS=\${IPv6_address}"
-        echo "PIHOLE_DNS1=\${piholeDNS1}"
-        echo "PIHOLE_DNS2=\${piholeDNS2}"
+        echo "PIHOLE_INTERFACE=\${PIHOLE_INTERFACE}"
+        echo "IPv4_ADDRESS=\${IPv4_ADDRESS}"
+        echo "IPv6_ADDRESS=\${IPv6_ADDRESS}"
+        echo "PIHOLE_DNS1=\${PIHOLE_DNS1}"
+        echo "PIHOLE_DNS2=\${PIHOLE_DNS2}"
     }
     update_dialogs() {
         . /etc/pihole/setupVars.conf
