@@ -27,7 +27,7 @@ is_repo() {
   return
 }
 
-prep_dirs() {
+prep_repo() {
   # Prepare directory for local repository building
   local directory="${1}"
 
@@ -40,7 +40,7 @@ make_repo() {
   local remoteRepo="${2}"
   local directory="${1}"
 
-  (prep_dirs "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null)
+  (prep_repo "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null)
      return
 }
 
