@@ -33,15 +33,17 @@ getGitFiles() {
 
 is_repo() {
 	# Use git to check if directory is currently under VCS
-	echo -n ":::    Checking $1 is a repo..."
-	cd "${1}" &> /dev/null || return 1
-	if [[ $(git status --short) ]]; then
-    echo " OK!"
-    return 0
-  else
-    echo " not found!"
-    return 1
-  fi
+	local directory="${1}"
+	local gitRepo=0
+	echo -n ":::    Checking if ${directory} is a repo... "
+	cd "${directory}" &> /dev/null || return 1
+	if [[ $(git status --short > /dev/null) ]]; then
+		echo "OK"
+	else
+		echo "not found!"
+		gitRepo=1
+	fi;
+	return ${gitRepo}
 }
 
 make_repo() {
