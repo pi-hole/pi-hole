@@ -593,8 +593,7 @@ installScripts() {
 	echo ":::"
 	echo -n "::: Installing scripts to /opt/pihole..."
 	#clear out /opt/pihole and recreate it. This allows us to remove scripts from future installs
-	rm -rf /opt/pihole
-	install -o "${USER}" -m755 -d /opt/pihole
+	rm -f /opt/pihole/*.sh
 
 	cd /etc/.pihole/
 
