@@ -22,18 +22,12 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 is_repo() {
 	# Use git to check if directory is currently under VCS
 	local directory="${1}"
-	echo -n ":::    Checking if ${directory} is a repo... "
 	cd "${directory}" &> /dev/null || false
-	if [[ $(git status --short &> /dev/null) -eq 0 ]]; then
-		echo "OK"
-		true
-	else
-		echo "not found!"
-		false
-	fi;
+  $(git status --short &> /dev/null)
+  return
 }
 
-make_repo() {
+ make_repo() {
 	# Remove the non-repod interface and clone the interface
 	echo -n ":::    Cloning $2 into $1..."
 	rm -rf "${1}"
@@ -65,14 +59,14 @@ getGitFiles() {
 main() {
 
   is_repo "${PI_HOLE_FILES_DIR}"
-  if [[ $? -eq 1 ]]; then #This is unlikely
+  if [[ $? -ne 0 ]]; then #This is unlikely
     echo "::: Critical Error: Pi-Hole repo missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
   fi
 
   is_repo "${ADMIN_INTERFACE_DIR}" &> /dev/null
-  if [[ $? -eq 1 ]]; then #This is unlikely
+  if [[ $? -ne 0 ]]; then #This is unlikely
     echo "::: Critical Error: Pi-Hole repo missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
