@@ -40,9 +40,8 @@ make_repo() {
   local remoteRepo="${2}"
   local directory="${1}"
 
-  if ! (prep_dirs "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null); then \
-     return false
-  fi
+  (prep_dirs "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null)
+     return
 }
 
 update_repo() {
@@ -63,7 +62,7 @@ getGitFiles() {
   # Setup git repos for directory and repository passed
   # as arguments 1 and 2
   local directory="${1}"
-  local remoteRepo="{$2}"
+  local remoteRepo="${2}"
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
@@ -76,6 +75,10 @@ getGitFiles() {
 }
 
 main() {
+  local pihole_version_current
+  local pihole_version_latest
+  local web_version_current
+  local web_version_latest
 
   if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
     echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
@@ -85,14 +88,14 @@ main() {
 
   echo "::: Checking for updates..."
   # Checks Pi-hole version > pihole only > current local git repo version : returns string in format vX.X.X
-  local pihole_version_current="$(/usr/local/bin/pihole -v -p -c)"
+  pihole_version_current="$(/usr/local/bin/pihole -v -p -c)"
   # Checks Pi-hole version > pihole only > remote upstream repo version : returns string in format vX.X.X
-  local pihole_version_latest="$(/usr/local/bin/pihole -v -p -l)"
+  pihole_version_latest="$(/usr/local/bin/pihole -v -p -l)"
 
   # Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
-  local web_version_current="$(/usr/local/bin/pihole -v -a -c)"
+  web_version_current="$(/usr/local/bin/pihole -v -a -c)"
   # Checks Pi-hole version > admin only > remote upstream repo version : returns string in format vX.X.X
-  local web_version_latest="$(/usr/local/bin/pihole -v -a -l)"
+  web_version_latest="$(/usr/local/bin/pihole -v -a -l)"
 
   # Logic
   # If latest versions are blank - we've probably hit Github rate limit (stop running `pihole -up so often!):
