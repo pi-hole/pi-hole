@@ -28,8 +28,8 @@ is_repo() {
 
 prep_dirs() {
   # Prepare directory for local repository building
-  local dir_to_clean="${1}"
-  rm -rf "${dir_to_clean}" &> /dev/null
+  local directory="${1}"
+  rm -rf "${directory}" &> /dev/null
   return
 }
 
@@ -48,9 +48,13 @@ update_repo() {
   local dest_dir="${1}"
   # Pull the latest commits
   echo -n ":::     Updating repository in ${dest_dir}..."
-  cd "${1}" || exit 1
-  git stash -q > /dev/null || exit $?
-  git pull -q > /dev/null || exit $?
+
+  # Stash all files not tracked for later retrieval
+  git -C "${dest_dir}" stash --all --quiet &> /dev/null || false
+  # Force a clean working directory for cloning
+  git -C "${dest_dir}" clean --force -d &> /dev/null || false
+  # Fetch latest changes and apply
+  git -C "${dest_dir}" pull --quiet &> /dev/null || false
   echo " done!"
 }
 
@@ -62,7 +66,7 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    update_repo "${directory}"
+    update_repo "${directory}" || (echo "*** Error: Could not update local repository. Contact support."; exit 1)
   else
     make_repo "${directory}" "${remoteRepo}"
   fi

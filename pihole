@@ -10,6 +10,7 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
   if [ -x "$(command -v sudo)" ];then
@@ -22,27 +23,27 @@ if [[ ! $EUID -eq 0 ]];then
 fi
 
 whitelistFunc() {
-  /opt/pihole/list.sh "$@"
+ "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
   exit 0
 }
 
 blacklistFunc() {
-  /opt/pihole/list.sh "$@"
+  "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
   exit 0
 }
 
 debugFunc() {
-  /opt/pihole/piholeDebug.sh
+  "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
 }
 
 flushFunc() {
-  /opt/pihole/piholeLogFlush.sh
+  "${PI_HOLE_SCRIPT_DIR}"/piholeLogFlush.sh
   exit 0
 }
 
 updatePiholeFunc() {
-  /opt/pihole/update.sh
+  "${PI_HOLE_SCRIPT_DIR}"/update.sh
   exit 0
 }
 
@@ -52,12 +53,12 @@ reconfigurePiholeFunc() {
 }
 
 updateGravityFunc() {
-  /opt/pihole/gravity.sh "$@"
+  "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@"
   exit 0
 }
 
 setupLCDFunction() {
-  /opt/pihole/setupLCD.sh
+  "${PI_HOLE_SCRIPT_DIR}"/setupLCD.sh
   exit 0
 }
 
@@ -76,19 +77,19 @@ queryFunc() {
 
 chronometerFunc() {
   shift
-  /opt/pihole/chronometer.sh "$@"
+  "${PI_HOLE_SCRIPT_DIR}"/chronometer.sh "$@"
   exit 0
 }
 
 
 uninstallFunc() {
-  /opt/pihole/uninstall.sh
+  "${PI_HOLE_SCRIPT_DIR}"/uninstall.sh
   exit 0
 }
 
 versionFunc() {
   shift
-  /opt/pihole/version.sh "$@"
+  "${PI_HOLE_SCRIPT_DIR}"/version.sh "$@"
   exit 0
 }
 
