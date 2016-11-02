@@ -14,6 +14,8 @@
 latest=false
 current=false
 
+DEFAULT="-1"
+
 normalOutput() {
 	piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
 	webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
@@ -21,8 +23,8 @@ normalOutput() {
 	piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
 	webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
 
-	echo "::: Pi-hole version is ${piholeVersion} (Latest version is ${piholeVersionLatest})"
-	echo "::: Web-Admin version is ${webVersion} (Latest version is ${webVersionLatest})"
+	echo "::: Pi-hole version is ${piholeVersion} (Latest version is ${piholeVersionLatest:-${DEFAULT}})"
+	echo "::: Web-Admin version is ${webVersion} (Latest version is ${webVersionLatest:-${DEFAULT}})"
 }
 
 webOutput() {
@@ -36,14 +38,14 @@ webOutput() {
 
 	if [[ "${latest}" == true && "${current}" == false ]]; then
 		webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
-		echo ${webVersionLatest}
+		echo "${webVersionLatest:--1}"
 	elif [[ "${latest}" == false && "${current}" == true ]]; then
 		webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
-		echo ${webVersion}
+		echo "${webVersion}"
 	else
 		webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
 		webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
-		echo "::: Web-Admin version is $webVersion (Latest version is $webVersionLatest)"
+		echo "::: Web-Admin version is ${webVersion} (Latest version is ${webVersionLatest:-${DEFAULT}})"
 	fi
 }
 
@@ -58,14 +60,14 @@ coreOutput() {
 
 	if [[ "${latest}" == true && "${current}" == false ]]; then
 		piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
-		echo ${piholeVersionLatest:-"-1"}
+		echo "${piholeVersionLatest:--1}"
 	elif [[ "${latest}" == false && "${current}" == true ]]; then
 		piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
-		echo ${piholeVersion:-"-1"}
+		echo "${piholeVersion}"
 	else
 		piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
 		piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
-		echo "::: Pi-hole version is $piholeVersion (Latest version is $piholeVersionLatest)"
+		echo "::: Pi-hole version is ${piholeVersion} (Latest version is ${piholeVersionLatest:-${DEFAULT}})"
 	fi
 }
 
