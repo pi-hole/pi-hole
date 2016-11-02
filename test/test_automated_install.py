@@ -23,11 +23,11 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     printSetupVars() {
         # Currently debug test function only
         echo "Outputting sourced variables"
-        echo "piholeInterface=\${piholeInterface}"
-        echo "IPv4_address=\${IPv4_address}"
-        echo "IPv6_address=\${IPv6_address}"
-        echo "piholeDNS1=\${piholeDNS1}"
-        echo "piholeDNS2=\${piholeDNS2}"
+        echo "PIHOLE_INTERFAC=\${piholeInterface}"
+        echo "IPv4_ADDRESS=\${IPv4_address}"
+        echo "IPv6_ADDRESS=\${IPv6_address}"
+        echo "PIHOLE_DNS1=\${piholeDNS1}"
+        echo "PIHOLE_DNS2=\${piholeDNS2}"
     }
     update_dialogs() {
         . /etc/pihole/setupVars.conf
