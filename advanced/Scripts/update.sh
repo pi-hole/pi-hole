@@ -107,7 +107,7 @@ if [[ "${piholeVersion}" == "${piholeVersionLatest}" ]] && [[ "${webVersion}" ==
 	echo ""
 	exit 0
 
-elif [[ "${piholeVersion} == ${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
+elif [[ "${piholeVersion}" == "${piholeVersionLatest}" ]] && [[ "${webVersion}" != "${webVersionLatest}" ]]; then
 	echo "::: Pi-hole Web Admin files out of date"
 	getGitFiles "${WEBINTERFACEDIR}" "${WEBINTERFACEGITURL}"
 	echo ":::"
