@@ -22,7 +22,7 @@ today=$(date "+%b %e")
 CalcBlockedDomains() {
 	if [ -e "${gravity}" ]; then
 		#Are we IPV6 or IPV4?
-		if [[ -n "${IPv6_address}" ]]; then
+		if [[ -n "${IPV6_ADDRESS}" ]]; then
 			#We are IPV6
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
