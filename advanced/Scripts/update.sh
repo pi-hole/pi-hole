@@ -20,9 +20,9 @@ readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 is_repo() {
-	# Use git to check if directory is currently under VCS
-	local directory="${1}"
-	cd "${directory}" &> /dev/null || false
+	# Use git to check if directory is currently under VCS, do not exit if failed
+  local directory="${1}"
+  cd "${directory}" &> /dev/null || false
   git status --short &> /dev/null
   return
 }
@@ -30,17 +30,18 @@ is_repo() {
 prep_dirs() {
   # Prepare directory for local repository building
   local dir_to_clean="${1}"
-  cd "${dir_to_clean}" &> /dev/null || (echo "Unable to prepare directory, please contact support"; exit false)
-  rm -rf "${dir_to_clean}" &> /dev/null || (echo "Unable to prepare directory, please contact support"; exit false)
+  rm -rf "${dir_to_clean}" &> /dev/null
 }
 
 make_repo() {
   # Remove the non-repod interface and clone the interface
   local source_repo="${2}"
   local dest_dir="${1}"
+
   echo -n ":::    Cloning ${source_repo} into ${dest_dir}..."
-  rm -rf "${dest_dir}"
-  git clone -q --depth 1 "${2}" "${1}" > /dev/null || exit 1
+  prep_dirs "${dest_dir}"
+  git clone -q --depth 1 "${source_repo}" "${dest_dir}" > /dev/null \
+  || (echo "Unable to clone directory, please contact support"; exit false)
   echo " done!"
 }
 
@@ -67,7 +68,7 @@ getGitFiles() {
 
 main() {
 
-  if ! is_repo "${PI_HOLE_FILES_DIR}" && ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
+  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
     echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
