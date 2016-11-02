@@ -822,9 +822,24 @@ CreateLogFile() {
 installPiholeWeb() {
 	# Install the web interface
 	echo ":::"
-	echo -n "::: Installing pihole custom index page..."
+	echo "::: Installing pihole custom index page..."
 	if [ -d "/var/www/html/pihole" ]; then
-		echo " Existing page detected, not overwriting"
+	  if [ -f "/var/www/html/pihole/index.html" ]; then
+	    echo ":::     Existing index.html detected, not overwriting"
+	  else
+	    echo -n ":::     index.html missing, replacing... "
+	    cp /etc/.pihole/advanced/index.html /var/www/html/pihole/
+	    echo " done!"
+	  fi
+
+	  if [ -f "/var/www/html/pihole/index.js" ]; then
+	    echo ":::     Existing index.js detected, not overwriting"
+	  else
+	    echo -n ":::     index.html missing, replacing... "
+	    cp /etc/.pihole/advanced/index.js /var/www/html/pihole/
+	    echo " done!"
+	  fi
+
 	else
 		mkdir /var/www/html/pihole
 		if [ -f /var/www/html/index.lighttpd.html ]; then
