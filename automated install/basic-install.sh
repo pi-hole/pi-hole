@@ -73,7 +73,7 @@ fi
 
 # Compatibility
 
-if [ -x "$(command -v apt-get)" ]; then
+if [[ $(command -v apt-get) ]]; then
 	#Debian Family
 	#############################################
 	PKG_MANAGER="apt-get"
@@ -99,9 +99,9 @@ if [ -x "$(command -v apt-get)" ]; then
 	package_check_install() {
 		dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
 	}
-elif [ -x "$(command -v rpm)" ]; then
+elif [ $(command -v rpm) ]; then
 	# Fedora Family
-	if [ -x "$(command -v dnf)" ]; then
+	if [ $(command -v dnf) ]; then
 		PKG_MANAGER="dnf"
 	else
 		PKG_MANAGER="yum"

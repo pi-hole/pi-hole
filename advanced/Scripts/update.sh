@@ -25,7 +25,7 @@ is_repo() {
 	local gitRepo=0
 	echo -n ":::    Checking if ${directory} is a repo... "
 	cd "${directory}" &> /dev/null || return 1
-	if [[ $(git status --short > /dev/null) ]]; then
+	if [[ $(git status --short &> /dev/null) ]]; then
 		echo "OK"
 	else
 		echo "not found!"
@@ -63,12 +63,16 @@ getGitFiles() {
 	fi
 }
 
-if [ ! -d "/etc/.pihole" ]; then #This is unlikely
+
+is_repo "${PI_HOLE_FILES_DIR}" &> /dev/null
+if [[ $? -eq 1 ]]; then #This is unlikely
 	echo "::: Critical Error: Pi-Hole repo missing from system!"
 	echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
 	exit 1;
 fi
-if [ ! -d "/var/www/html/admin" ]; then #This is unlikely
+
+is_repo "${ADMIN_INTERFACE_DIR}" &> /dev/null
+if [[ $? -eq 1 ]]; then #This is unlikely
 	echo "::: Critical Error: Pi-Hole repo missing from system!"
 	echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
 	exit 1;
