@@ -58,10 +58,10 @@ coreOutput() {
 
 	if [[ "${latest}" == true && "${current}" == false ]]; then
 		piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
-		echo ${piholeVersionLatest}
+		echo ${piholeVersionLatest:-"-1"}
 	elif [[ "${latest}" == false && "${current}" == true ]]; then
 		piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
-		echo ${piholeVersion}
+		echo ${piholeVersion:-"-1"}
 	else
 		piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
 		piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')

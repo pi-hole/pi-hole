@@ -82,11 +82,11 @@ main() {
   local web_version_current
   local web_version_latest
 
-  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
-    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
-    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
-    exit 1;
-  fi
+#  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
+#    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
+#    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+#    exit 1;
+#  fi
 
   echo "::: Checking for updates..."
   # Checks Pi-hole version string in format vX.X.X
@@ -94,6 +94,11 @@ main() {
   pihole_version_latest="$(/usr/local/bin/pihole version --pihole --latest)"
   web_version_current="$(/usr/local/bin/pihole version --admin --current)"
   web_version_latest="$(/usr/local/bin/pihole version --admin --latest)"
+
+  if [[ "${pihole_version_latest}" -eq "-1" || "${web_version_latest}" -eq -1 ]]; then
+    echo "*** Unable to contact GitHub for latest version. Please try again later, contact support if this continues."
+    exit 1
+  fi
 
   # Logic
   # If latest versions are blank - we've probably hit Github rate limit (stop running `pihole -up so often!):
@@ -120,35 +125,34 @@ main() {
     echo "::: Pi-hole Web Admin files out of date"
     getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
 
-    web_version_current="$(/usr/local/bin/pihole -v -a -c)"
     web_updated=true
 
   elif [[ "${pihole_version_current}" < "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]]; then
     echo "::: Pi-hole core files out of date"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
     /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
-    pihole_version_current="$(/usr/local/bin/pihole -v -p -c)"
     core_updated=true
 
   elif [[ "${pihole_version_current}" < "${pihole_version_latest}" ]] && [[ "${web_version_current}" < "${web_version_latest}" ]]; then
     echo "::: Updating Everything"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
     /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
-    # Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
-    web_version_current="$(/usr/local/bin/pihole -v -a -c)"
-    # Checks Pi-hole version > admin only > current local git repo version : returns string in format vX.X.X
-    pihole_version_current="$(/usr/local/bin/pihole -v -p -c)"
     web_updated=true
     core_updated=true
+  else
+    echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
+    exit 1
   fi
 
   if [[ "${web_updated}" == true ]]; then
+    web_version_current="$(/usr/local/bin/pihole version --admin --current)"
     echo ":::"
     echo "::: Web Admin version is now at ${web_version_current}"
     echo "::: If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
   fi
 
   if [[ "${core_updated}" == true ]]; then
+    pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
     echo ":::"
     echo "::: Pi-hole version is now at ${pihole_version_current}"
     echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
