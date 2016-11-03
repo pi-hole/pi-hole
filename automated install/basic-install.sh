@@ -986,7 +986,7 @@ configureSelinux() {
 		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
 		semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		semodule -i /etc/pihole/pihole.pp
-		rm -f /etc/pihole/pihole.mod
+		rm -f /etc/pihole/pihole.mod /etc/pihole/pihole.pp
 		semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || echo "::: Warning: Pi-Hole SELinux policy did not install."
 	fi
 }
