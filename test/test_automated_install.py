@@ -110,5 +110,8 @@ def run_script(Pihole, script, file="/test.sh"):
 def _write_test_script(Pihole, script, file):
     ''' Running the test script blocks directly can behave differently with regard to global vars '''
     ''' this is a cheap work around to that until all functions no longer rely on global variables '''
+    ''' found out why, dash: is the default in testinfra run() for Docker
+        Should try and convert the tests using this to firewalld style test
+        or override the run() function to use bash instead  '''
     Pihole.run('cat <<EOF> {file}\n{script}\nEOF'.format(file=file, script=script))
     Pihole.run('chmod +x {}'.format(file))
