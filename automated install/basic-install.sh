@@ -980,6 +980,8 @@ configureSelinux() {
 		echo " installed!"
 		printf ":::\tEnabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
+		printf ":::\tEnabling httpd execmem.. "
+		setsebool -P httpd_execmem on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
 		if ! [ -x "$(command -v systemctl)" ]; then
 			sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
