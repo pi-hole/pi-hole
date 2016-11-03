@@ -20,15 +20,15 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     Pihole.run(setup_var_file)
 
     script = dedent('''\
-    #!/bin/bash -e
+    set -e
     printSetupVars() {
         # Currently debug test function only
         echo "Outputting sourced variables"
-        echo "PIHOLE_INTERFACE=\${PIHOLE_INTERFACE}"
-        echo "IPV4_ADDRESS=\${IPV4_ADDRESS}"
-        echo "IPV6_ADDRESS=\${IPV6_ADDRESS}"
-        echo "PIHOLE_DNS_1=\${PIHOLE_DNS_1}"
-        echo "PIHOLE_DNS_2=\${PIHOLE_DNS_2}"
+        echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
+        echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
+        echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
+        echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
+        echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
     }
     update_dialogs() {
         . /etc/pihole/setupVars.conf
@@ -50,7 +50,7 @@ def test_setupVars_saved_to_file(Pihole):
     Pihole.run(set_setup_vars).stdout
 
     script = dedent('''\
-    #!/bin/bash -e
+    set -e
     echo start
     TERM=xterm
     PHTEST=TRUE
@@ -100,17 +100,7 @@ def mock_command(script, result, container):
     print container.run('cat {}'.format(full_script_path)).stdout
 
 
-def run_script(Pihole, script, file="/test.sh"):
-    _write_test_script(Pihole, script, file=file)
-    result = Pihole.run(file)
+def run_script(Pihole, script):
+    result = Pihole.run(script)
     assert result.rc == 0
     return result
-
-def _write_test_script(Pihole, script, file):
-    ''' Running the test script blocks directly can behave differently with regard to global vars '''
-    ''' this is a cheap work around to that until all functions no longer rely on global variables '''
-    ''' found out why, dash: is the default in testinfra run() for Docker
-        Should try and convert the tests using this to firewalld style test
-        or override the run() function to use bash instead  '''
-    Pihole.run('cat <<EOF> {file}\n{script}\nEOF'.format(file=file, script=script))
-    Pihole.run('chmod +x {}'.format(file))
