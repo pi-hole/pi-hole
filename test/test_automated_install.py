@@ -69,11 +69,10 @@ def test_configureFirewall_firewalld_no_errors(Pihole):
     ''' confirms firewalld rules are applied when appopriate '''
     mock_command('firewall-cmd', '0', Pihole)
     configureFirewall = Pihole.run('''
-    bash -c "
     PHTEST=TRUE
     source /opt/pihole/basic-install.sh
     configureFirewall
-    " ''')
+    ''')
     expected_stdout = '::: Configuring firewalld for httpd and dnsmasq.'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
