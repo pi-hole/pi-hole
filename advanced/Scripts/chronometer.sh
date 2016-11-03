@@ -21,12 +21,11 @@ today=$(date "+%b %e")
 
 CalcBlockedDomains() {
 	if [ -e "${gravity}" ]; then
-		#Are we IPV6 or IPV4?
-		if [[ -n "${IPV6_ADDRESS}" ]]; then
-			#We are IPV6
+		# if BOTH IPV4 and IPV6 are in use, then we need to divide total domains by 2.
+		if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]]; then
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
-			#We are IPV4
+			# only one is set.
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1}')
 		fi
 	else
@@ -104,8 +103,6 @@ normalChrono() {
 		CalcBlockedDomains
 
 		echo "Blocking:      ${blockedDomainsTotal}"
-		#below commented line does not add up to todaysQueryCount
-		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
 		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
 	  echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
 
