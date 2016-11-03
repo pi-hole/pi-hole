@@ -1149,6 +1149,6 @@ main() {
 	echo "::: The install log is located at: /etc/pihole/install.log"
 }
 
-if [[ -z "$PHTEST" ]] ; then
+if [[ "${PHTEST}" != "TRUE" ]] ; then
     main "$@"
 fi
