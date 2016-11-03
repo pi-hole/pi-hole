@@ -17,15 +17,15 @@ gravity="/etc/pihole/gravity.list"
 
 today=$(date "+%b %e")
 
+. /etc/pihole/setupVars.conf
+
 CalcBlockedDomains() {
-	CheckIPv6
 	if [ -e "${gravity}" ]; then
-		#Are we IPV6 or IPV4?
-		if [[ -n ${piholeIPv6} ]]; then
-			#We are IPV6
+		# if BOTH IPV4 and IPV6 are in use, then we need to divide total domains by 2.
+		if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]]; then
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
-			#We are IPV4
+			# only one is set.
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1}')
 		fi
 	else
@@ -58,14 +58,6 @@ CalcPercentBlockedToday() {
 		else
 			percentBlockedToday=0
 		fi
-	fi
-}
-
-CheckIPv6() {
-	piholeIPv6file="/etc/pihole/.useIPv6"
-	if [[ -f ${piholeIPv6file} ]];then
-		# If the file exists, then the user previously chose to use IPv6 in the automated installer
-		piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
 	fi
 }
 
@@ -111,8 +103,6 @@ normalChrono() {
 		CalcBlockedDomains
 
 		echo "Blocking:      ${blockedDomainsTotal}"
-		#below commented line does not add up to todaysQueryCount
-		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
 		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
 	  echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
 
