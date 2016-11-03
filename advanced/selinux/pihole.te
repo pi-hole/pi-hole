@@ -3,20 +3,20 @@ module pihole 1.0;
 require {
         type var_log_t;
         type httpd_t;
-	type httpd_sys_script_t;
+        type httpd_sys_script_t;
         type dnsmasq_t;
         type init_t;
         type sysfs_t;
         type shadow_t;
         type pam_var_run_t;
         type sudo_db_t;
-	type system_dbusd_var_run_t;
+        type system_dbusd_var_run_t;
         class dir { search add_name write create getattr };
         class file { read write open create lock setattr getattr };
         class process { setrlimit };
         class netlink_audit_socket { create nlmsg_relay };
         class unix_stream_socket { ioctl };
-	class sock_file { write };
+        class sock_file { write };
         class capability { setgid setuid dac_override dac_read_search sys_resource audit_write };
 }
 
