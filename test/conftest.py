@@ -7,7 +7,8 @@ check_output = testinfra.get_backend(
 
 @pytest.fixture
 def Pihole(Docker):
-    ''' used to contain some script stubbing, now pretty much an alias '''
+    ''' used to contain some script stubbing, now pretty much an alias.
+    Also provides bash as the default run function shell '''
     def run_bash(self, command, *args, **kwargs):
         cmd = self.get_command(command, *args)
         if self.user is not None:
