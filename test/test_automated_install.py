@@ -97,8 +97,6 @@ def mock_command(script, result, container):
     cat <<EOF> {script}\n{content}\nEOF
     chmod +x {script}
     '''.format(script=full_script_path, content=mock_script))
-    print container.run('cat {}'.format(full_script_path)).stdout
-
 
 def run_script(Pihole, script):
     result = Pihole.run(script)
