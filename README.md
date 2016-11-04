@@ -1,4 +1,4 @@
-[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE) [![Code Climate](https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg)](https://codeclimate.com/github/pi-hole/pi-hole)
+[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE) [![Code Climate](https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg)](https://codeclimate.com/github/pi-hole/pi-hole) [![Build Status](https://travis-ci.org/pi-hole/pi-hole.svg?branch=development)](https://travis-ci.org/pi-hole/pi-hole)
 
 # Automated Install
 
@@ -14,7 +14,7 @@ Works on most Debian and CentOS/RHEL based distributions!
 
 ```bash
 wget -O basic-install.sh https://install.pi-hole.net
-cat basic-install.sh | bash
+bash basic-install.sh
 ```
 If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 
