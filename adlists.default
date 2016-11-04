@@ -1,4 +1,4 @@
-## Pi-hole ad-list default sources. Updated 22/05/2016 #########################
+## Pi-hole ad-list default sources. Updated 29/10/2016 #########################
 #                                                                              #
 #  To make changes to this file:                                               #
 #    1. run `cp /etc/pihole/adlists.default /etc/pihole/adlists.list`          #
