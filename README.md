@@ -103,6 +103,7 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 -   [Pi-hole on/off button](http://thetimmy.silvernight.org/pages/endisbutton/)
 -   [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 -   [Windows Tray Stat Application](https://github.com/goldbattle/copernicus)
+-   [Let your blink1 device blink when Pi-hole filters ads](https://gist.github.com/elpatron68/ec0b4c582e5abf604885ac1e068d233f)
 
 ## Coverage
 
