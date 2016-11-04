@@ -53,7 +53,6 @@ def test_setupVars_saved_to_file(Pihole):
     set -e
     echo start
     TERM=xterm
-    PHTEST=TRUE
     source /opt/pihole/basic-install.sh
     {}
     finalExports
@@ -69,7 +68,6 @@ def test_configureFirewall_firewalld_no_errors(Pihole):
     ''' confirms firewalld rules are applied when appopriate '''
     mock_command('firewall-cmd', '0', Pihole)
     configureFirewall = Pihole.run('''
-    PHTEST=TRUE
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
