@@ -10,13 +10,24 @@ Works on most Debian and CentOS/RHEL based distributions!
 
 ### `curl -sSL https://install.pi-hole.net | bash`
 
-### Alternative Semi-Automated install
+### Alternative Semi-Automated Install Methods
 
+Clone our repository and run the automated installer from your device.
+
+```
+git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
+cd Pi-hole/automated_installer/
+(Optionally nano|vi|vim|cat the basic-install.sh file to verify the actions it will take)
+bash basic-install.sh
+```
+
+Or
+
+If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 ```bash
 wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
-If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
