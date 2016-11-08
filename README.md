@@ -10,7 +10,7 @@
 <a href=http://www.digitalocean.com/?refcode=344d234950><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
 </p>
 
-## Designed For Raspberry Pi A+, B, B+, 2, 3B, and Zero (with an Ethernet/Wi-Fi adapter) Now Works on most Debian and Fedora based distributions!
+## Originally Designed For the Raspberry Pi Family of Products. Now Works on most Debian and Fedora based distributions on the x86_64 Platform!
 
 ### Automated Install
 1.  Install Raspbian
