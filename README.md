@@ -1,13 +1,11 @@
 <p align="center">
-<img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Vortex%20with%20text.png" width=210>
-</p>
-<p align="center">
 <a href=https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"></a>
 <a href=https://codeclimate.com/github/pi-hole/pi-hole><img src="https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg"></a>
 <a href=https://travis-ci.org/pi-hole/pi-hole><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"></a>
 </p>
+
 <p align="center">
-<a href=http://www.digitalocean.com/?refcode=344d234950><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
+<img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Vortex%20with%20text.png" width=210>
 </p>
 
 ## Originally Designed For the Raspberry Pi Family of Products. Now Works on most Debian and Fedora based distributions on the x86_64 Platform!
@@ -32,6 +30,11 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 <p align="center">
 <a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG"></a>
 </p>
+
+<p align="center">
+<a href=http://www.digitalocean.com/?refcode=344d234950><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
+</p>
+
 
 ## How It Works
 
