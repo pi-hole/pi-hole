@@ -6,12 +6,13 @@
 <a href=https://codeclimate.com/github/pi-hole/pi-hole><img src="https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg"></a>
 <a href=https://travis-ci.org/pi-hole/pi-hole><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"></a>
 </p>
+<p align="center">
+<a href=http://www.digitalocean.com/?refcode=344d234950><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
+</p>
 
-# Automated Install
+## Designed For Raspberry Pi A+, B, B+, 2, 3B, and Zero (with an Ethernet/Wi-Fi adapter) Now Works on most Debian and Fedora based distributions!
 
-Designed For Raspberry Pi A+, B, B+, 2, 3B, and Zero (with an Ethernet/Wi-Fi adapter)
-Works on most Debian and CentOS/RHEL based distributions!
-
+### Automated Install
 1.  Install Raspbian
 2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
@@ -55,8 +56,6 @@ Send a one-time donation using our link below to provide us with a small portion
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Digital Ocean](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png)](http://www.digitalocean.com/?refcode=344d234950e)
 
 ## Technical Details
 
