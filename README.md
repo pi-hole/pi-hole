@@ -8,10 +8,12 @@
 <img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Vortex%20with%20text.png" width=210>
 </p>
 
-## Originally Designed For the Raspberry Pi Family of Products. Now Works on most Debian and Fedora based distributions on the x86_64 Platform!
+## The multi-platform, network-wide ad blocker
+
+Block ads for **all** your devices _without_ the need to install client-side software.  Because Pi-hole blocks ads the DNS-level, ads can be blocked in non-traditional places such as in apps or on smart TVs.
 
 ### Automated Install
-1.  Install Raspbian
+1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
 2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
 ### `curl -sSL https://install.pi-hole.net | bash`
@@ -43,7 +45,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 </p>
 
 <p align="center">
-<a href=http://www.digitalocean.com/?refcode=344d234950><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
+<a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
 </p>
 
 ## How It Works
