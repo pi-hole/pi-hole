@@ -35,19 +35,18 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 <a href=http://www.digitalocean.com/?refcode=344d234950><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
 </p>
 
-
 ## How It Works
 
 **Watch the 60-second video below to get a quick overview**
-
-[![Pi-hole exlplained](http://i.imgur.com/pG1m937.png)](https://youtu.be/9Eti3xibiho)
+<p align="center">
+<a href=https://youtu.be/9Eti3xibiho><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Blackhole.PNG"></a>
+</p>
 
 ## Pi-hole Is Free, But Powered By Your Donations
 
-Send a one-time donation using our link below to provide us with a small portion of the monthly fee.
+Send a one-time donation using our links below to help us with a small portion of our monthly costs.
 
 -   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
--   ![Flattr](http://i.imgur.com/ZFceFRu.png) : [Donate](https://flattr.com/submit/auto?user_id=jacobsalmela&url=https://github.com/pi-hole/pi-hole)
 -   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
 ## Get Help Or Connect With Us On The Web
