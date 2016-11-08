@@ -20,7 +20,7 @@
 ---
 **[FEATURE REQUEST | QUESTION | OTHER]:**
 
-_{replace this section with your content or delete if not a FEATURE REQUEST/QUESTION/OTHER}_
+Please [submit your feature request here](https://discourse.pi-hole.net/c/feature-requests), so it is votable by the community.  It's also easier for us to track.
 
 **[BUG | ISSUE] Expected Behaviour:**
 
