@@ -10,7 +10,13 @@
 
 ## The multi-platform, network-wide ad blocker
 
-Block ads for **all** your devices _without_ the need to install client-side software.  Because Pi-hole blocks ads the DNS-level, ads can be blocked in non-traditional places such as in apps or on smart TVs.
+Block ads for **all** your devices _without_ the need to install client-side software.  The Pi-hole blocks ads the DNS-level, so all your devices are protected.
+
+- Web Browsers
+- Cell Phones
+- Smart TV's
+- Internet-connected home automation
+- Anything that communicates with the Internet
 
 <p align="center">
 <a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
@@ -50,22 +56,26 @@ bash basic-install.sh
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
-## How To Install Pi-hole (Click to Watch!)
+## Installing the Pi-hole (Click to Watch!)
 <p align="center">
 <a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG"></a>
 </p>
 
-## How It Works
+## How does it work?
 
 **Watch the 60-second video below to get a quick overview**
 <p align="center">
 <a href=https://youtu.be/9Eti3xibiho><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Blackhole.PNG"></a>
 </p>
 
+### Gravity
+
+The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)). This script is controlled by the `pihole` command. Please run `pihole -h` to see what commands can be run via `pihole`.
+
 ## Get Help Or Connect With Us On The Web
 
--   [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
 -   [Discourse](https://discourse.pi-hole.net/)
+-   [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
 -   [/r/pihole](https://www.reddit.com/r/pihole/)
 -   [Pi-hole YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
@@ -78,11 +88,7 @@ The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queri
 
 #### Other Operating Systems
 
-This script will work for other UNIX-like systems with some slight **modifications**. As long as you can install `dnsmasq` and a Webserver, it should work OK. The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. If there are other platforms you'd like supported, let us know.
-
-### Gravity
-
-The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)). This script is controlled by the `pihole` command. Please run `pihole -h` to see what commands can be run via `pihole`.
+The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a Webserver, it should work OK. If there are other platforms you'd like supported, let us know.
 
 ## Web Interface
 
