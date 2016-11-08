@@ -59,6 +59,8 @@ Send a one-time donation using our link below to provide us with a small portion
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Digital Ocean](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png)](http://www.digitalocean.com/?refcode=344d234950e)
+
 ## Technical Details
 
 The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
