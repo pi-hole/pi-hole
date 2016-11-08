@@ -12,7 +12,7 @@ Works on most Debian and CentOS/RHEL based distributions!
 
 ### Alternative Semi-Automated install
 
-```bash
+``` bash
 wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
@@ -21,8 +21,9 @@ If you wish to read over the script before running it, then after the [`wget`](h
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
 ## How To Install Pi-hole (Click to Watch!)
-
-[![60-second install tutorial](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG)](https://www.youtube.com/watch?v=TzFLJqUeirA)
+<p align="center">
+<a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG"></a>
+</p>
 
 ## How It Works
 
