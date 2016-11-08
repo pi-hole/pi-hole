@@ -12,6 +12,17 @@
 
 Block ads for **all** your devices _without_ the need to install client-side software.  Because Pi-hole blocks ads the DNS-level, ads can be blocked in non-traditional places such as in apps or on smart TVs.
 
+<p align="center">
+<a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
+</p>
+
+## Your Support Still Matters
+
+Digital Ocean helps with our infrastructure, but our developers are all volunteers, so *your donations are what help keep us motivated* to keep working on the project.  Send a one-time donation using our links below to help us with a small portion of our monthly costs.
+
+-   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
+-   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+
 ### Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
 2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
@@ -44,23 +55,12 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 <a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG"></a>
 </p>
 
-<p align="center">
-<a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
-</p>
-
 ## How It Works
 
 **Watch the 60-second video below to get a quick overview**
 <p align="center">
 <a href=https://youtu.be/9Eti3xibiho><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Blackhole.PNG"></a>
 </p>
-
-## Pi-hole Is Free, But Powered By Your Donations
-
-Send a one-time donation using our links below to help us with a small portion of our monthly costs.
-
--   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
--   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
 ## Get Help Or Connect With Us On The Web
 
