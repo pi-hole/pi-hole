@@ -33,7 +33,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## How To Install Pi-hole
 
-[![60-second install tutorial](http://i.imgur.com/5TEc3a6.png)](https://www.youtube.com/watch?v=TzFLJqUeirA)
+[![60-second install tutorial](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG)](https://www.youtube.com/watch?v=TzFLJqUeirA)
 
 ## How It Works
 
