@@ -1,7 +1,6 @@
 <p align="center">
 <img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Vortex%20with%20text.png" width=160>
 </p>
-</br>
 <p align="center">
 <a href=https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"></a>
 <a href=https://codeclimate.com/github/pi-hole/pi-hole><img src="https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg"></a>
