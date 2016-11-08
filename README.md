@@ -1,10 +1,16 @@
-[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE) [![Build Status](https://travis-ci.org/pi-hole/pi-hole.svg?branch=development)](https://travis-ci.org/pi-hole/pi-hole)
+<p align="center">
+<a href=https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"></a>
+<a href=https://codeclimate.com/github/pi-hole/pi-hole><img src="https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg"></a>
+<a href=https://travis-ci.org/pi-hole/pi-hole><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"></a>
+</p>
 
-# Automated Install
+<p align="center">
+<img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Vortex%20with%20text.png" width=210>
+</p>
 
-Designed For Raspberry Pi A+, B, B+, 2, 3B, and Zero (with an Ethernet/Wi-Fi adapter)
-Works on most Debian and CentOS/RHEL based distributions!
+## Originally Designed For the Raspberry Pi Family of Products. Now Works on most Debian and Fedora based distributions on the x86_64 Platform!
 
+### Automated Install
 1.  Install Raspbian
 2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
@@ -36,18 +42,22 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 <a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG"></a>
 </p>
 
+<p align="center">
+<a href=http://www.digitalocean.com/?refcode=344d234950><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
+</p>
+
 ## How It Works
 
 **Watch the 60-second video below to get a quick overview**
-
-[![Pi-hole exlplained](http://i.imgur.com/pG1m937.png)](https://youtu.be/9Eti3xibiho)
+<p align="center">
+<a href=https://youtu.be/9Eti3xibiho><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Blackhole.PNG"></a>
+</p>
 
 ## Pi-hole Is Free, But Powered By Your Donations
 
-Send a one-time donation using our link below to provide us with a small portion of the monthly fee.
+Send a one-time donation using our links below to help us with a small portion of our monthly costs.
 
 -   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
--   ![Flattr](http://i.imgur.com/ZFceFRu.png) : [Donate](https://flattr.com/submit/auto?user_id=jacobsalmela&url=https://github.com/pi-hole/pi-hole)
 -   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
 ## Get Help Or Connect With Us On The Web
@@ -59,8 +69,6 @@ Send a one-time donation using our link below to provide us with a small portion
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Digital Ocean](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png)](http://www.digitalocean.com/?refcode=344d234950e)
 
 ## Technical Details
 
