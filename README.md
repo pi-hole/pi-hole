@@ -25,7 +25,7 @@ Digital Ocean helps with our infrastructure, but our developers are all voluntee
 
 ### Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
-2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
+2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
 ### `curl -sSL https://install.pi-hole.net | bash`
 
