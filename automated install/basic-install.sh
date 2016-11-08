@@ -423,7 +423,7 @@ setStaticIPv4() {
 				echo "DNS1=$PIHOLE_DNS_1"
 				echo "DNS2=$PIHOLE_DNS_2"
 				echo "USERCTL=no"
-			}>> "${IFCFG_FILE}"
+			}> "${IFCFG_FILE}"
 			ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
 			if [ -x "$(command -v nmcli)" ];then
 				# Tell NetworkManager to read our new sysconfig file
