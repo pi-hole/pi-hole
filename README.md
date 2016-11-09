@@ -72,9 +72,9 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 -   [Users Forum](https://discourse.pi-hole.net/)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
--   [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
--   ![Reddit](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/reddit.png)[Reddit /r/pihole](https://www.reddit.com/r/pihole/)
--   [YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
+-   ![Twitter](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+-   ![Reddit](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
+-   ![YouTube](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Technical Details
