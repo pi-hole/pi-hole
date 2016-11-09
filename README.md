@@ -35,9 +35,21 @@ Digital Ocean helps with our infrastructure, but our developers are all voluntee
 
 ### `curl -sSL https://install.pi-hole.net | bash`
 
-### Alternative Semi-Automated install
+### Alternative Semi-Automated Install Methods
 
-``` bash
+Clone our repository and run the automated installer from your device.
+
+```
+git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
+cd Pi-hole/automated_installer/
+(Optionally nano|vi|vim|cat the basic-install.sh file to verify the actions it will take)
+bash basic-install.sh
+```
+
+Or
+
+If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
+```bash
 wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
