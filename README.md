@@ -24,36 +24,34 @@ Block ads for **all** your devices _without_ the need to install client-side sof
 
 ## Your Support Still Matters
 
-Digital Ocean helps with our infrastructure, but our developers are all volunteers, so *your donations are what help keep us motivated* to keep working on the project.  Send a one-time donation using our links below to help us with a small portion of our monthly costs.
+Digital Ocean helps with our infrastructure, but our developers are all volunteers so *your donations help keep us innovating*. Sending a donation using our links below helps us with a portion of our monthly costs.
 
 -   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
 -   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
-### Automated Install
+### One-Step Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
 2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
 ### `curl -sSL https://install.pi-hole.net | bash`
 
-### Alternative Semi-Automated Install Methods
+#### Alternative Semi-Automated Install Methods
+_If you wish to read over the script before running it, run `nano basic-install.sh` to open the file in a text viewer._
 
-Clone our repository and run the automated installer from your device.
+##### Clone our repository and run the automated installer from your device.
 
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
 cd Pi-hole/automated_installer/
-(Optionally nano|vi|vim|cat the basic-install.sh file to verify the actions it will take)
 bash basic-install.sh
 ```
 
-Or
+##### Or
 
-If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 ```bash
 wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
-If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
@@ -62,36 +60,38 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 <a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG"></a>
 </p>
 
-## How does it work?
+## Would you like to know more?
 
 **Watch the 60-second video below to get a quick overview**
 <p align="center">
 <a href=https://youtu.be/9Eti3xibiho><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Blackhole.PNG"></a>
 </p>
 
-### Gravity
-
-The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)). This script is controlled by the `pihole` command. Please run `pihole -h` to see what commands can be run via `pihole`.
-
 ## Get Help Or Connect With Us On The Web
 
--   [Discourse](https://discourse.pi-hole.net/)
+-   [Users Forum](https://discourse.pi-hole.net/)
+-   [FAQs](https://discourse.pi-hole.net/c/faqs)
+-   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
 -   [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
 -   [/r/pihole](https://www.reddit.com/r/pihole/)
--   [Pi-hole YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
--   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
--   [FAQs](https://discourse.pi-hole.net/c/faqs)
+-   [YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Technical Details
 
 The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
 
+### Gravity
+
+The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)). This script is controlled by the `pihole` command. Please run `pihole -h` to see what commands can be run via `pihole`.
+
+
+
 #### Other Operating Systems
 
 The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a Webserver, it should work OK. If there are other platforms you'd like supported, let us know.
 
-## Web Interface
+### Web Interface
 
 The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings. You can find it at:
 
