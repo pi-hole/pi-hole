@@ -27,7 +27,7 @@ Block ads for **all** your devices _without_ the need to install client-side sof
 Digital Ocean helps with our infrastructure, but our developers are all volunteers so *your donations help keep us innovating*. Sending a donation using our links below helps us offset a portion of our monthly costs.
 
 -   ![Paypal](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
--   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+-   ![Bitcoin](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
 ### One-Step Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
