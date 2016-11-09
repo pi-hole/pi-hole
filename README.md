@@ -24,9 +24,9 @@ Block ads for **all** your devices _without_ the need to install client-side sof
 
 ## Your Support Still Matters
 
-Digital Ocean helps with our infrastructure, but our developers are all volunteers so *your donations help keep us innovating*. Sending a donation using our links below helps us with a portion of our monthly costs.
+Digital Ocean helps with our infrastructure, but our developers are all volunteers so *your donations help keep us innovating*. Sending a donation using our links below helps us offset a portion of our monthly costs.
 
--   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
+-   ![Paypal](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
 -   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
 ### One-Step Automated Install
@@ -73,7 +73,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
 -   [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
--   [/r/pihole](https://www.reddit.com/r/pihole/)
+-   ![Reddit](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/reddit.png)[Reddit /r/pihole](https://www.reddit.com/r/pihole/)
 -   [YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
