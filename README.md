@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-<img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Vortex%20with%20text.png" width=210>
+<img src="https://assets.pi-hole.net/static/Vortex_text.png" width=210>
 </p>
 
 ## The multi-platform, network-wide ad blocker
@@ -19,15 +19,15 @@ Block ads for **all** your devices _without_ the need to install client-side sof
 - Anything that communicates with the Internet
 
 <p align="center">
-<a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/DOHostingSlug.png"></a>
+<a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://assets.pi-hole.net/static/DOHostingSlug.png"></a>
 </p>
 
 ## Your Support Still Matters
 
 Digital Ocean helps with our infrastructure, but our developers are all volunteers so *your donations help keep us innovating*. Sending a donation using our links below helps us offset a portion of our monthly costs.
 
--   ![Paypal](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
--   ![Bitcoin](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+-   ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
+-   ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
 ### One-Step Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
@@ -57,14 +57,14 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Installing the Pi-hole (Click to Watch!)
 <p align="center">
-<a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Global.PNG"></a>
+<a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://assets.pi-hole.net/static/global.png"></a>
 </p>
 
 ## Would you like to know more?
 
 **Watch the 60-second video below to get a quick overview**
 <p align="center">
-<a href=https://youtu.be/9Eti3xibiho><img src="https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/Blackhole.PNG"></a>
+<a href=https://youtu.be/9Eti3xibiho><img src="https://assets.pi-hole.net/static/blackhole_web.png"></a>
 </p>
 
 ## Get Help Or Connect With Us On The Web
@@ -72,9 +72,9 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 -   [Users Forum](https://discourse.pi-hole.net/)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
--   ![Twitter](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
--   ![Reddit](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
--   ![YouTube](https://gitlab.pi-hole.net/Pi-hole/assets/raw/master/StaticFiles/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
+-   ![Twitter](https://assets.pi-hole.net/static/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+-   ![Reddit](https://assets.pi-hole.net/static/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
+-   ![YouTube](https://assets.pi-hole.net/static/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Technical Details
