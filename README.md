@@ -103,7 +103,10 @@ The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard)
 
 ### Whitelist and blacklist
 
-Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details ![Whitelist editor in the Web interface](http://i.imgur.com/ogu2ewg.png)
+Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details 
+<p align="center">
+<a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/controlpanel.png"></a>
+</p>
 
 ## API
 
