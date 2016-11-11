@@ -130,13 +130,13 @@ main() {
   elif [[ "${pihole_version_current}" < "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]]; then
     echo "::: Pi-hole core files out of date"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    /etc/.pihole/automated_install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
     core_updated=true
 
   elif [[ "${pihole_version_current}" < "${pihole_version_latest}" ]] && [[ "${web_version_current}" < "${web_version_latest}" ]]; then
     echo "::: Updating Everything"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    /etc/.pihole/automated_install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
     web_updated=true
     core_updated=true
   else

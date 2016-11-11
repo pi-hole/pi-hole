@@ -48,7 +48,7 @@ updatePiholeFunc() {
 }
 
 reconfigurePiholeFunc() {
-  /etc/.pihole/automated\ install/basic-install.sh --reconfigure
+  /etc/.pihole/automated_install/basic-install.sh --reconfigure
   exit 0;
 }
 

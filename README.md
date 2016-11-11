@@ -31,7 +31,7 @@ Digital Ocean helps with our infrastructure, but our developers are all voluntee
 
 ### One-Step Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
-2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
+2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated_install/basic-install.sh) in case you want to read over it first!)
 
 ### `curl -sSL https://install.pi-hole.net | bash`
 
@@ -42,7 +42,7 @@ _If you wish to read over the script before running it, run `nano basic-install.
 
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
-cd Pi-hole/automated_installer/
+cd Pi-hole/automated_install/
 bash basic-install.sh
 ```
 
