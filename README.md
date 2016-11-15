@@ -107,6 +107,7 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 -   [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 -   [Windows Tray Stat Application](https://github.com/goldbattle/copernicus)
 -   [Let your blink1 device blink when Pi-hole filters ads](https://gist.github.com/elpatron68/ec0b4c582e5abf604885ac1e068d233f)
+-   [Pi-Hole Prometheus exporter](https://github.com/nlamirault/pihole_exporter) : a [Prometheus](https://prometheus.io/) exporter for Pi-Hole
 
 ## Coverage
 
