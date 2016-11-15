@@ -384,10 +384,13 @@ finalWork() {
 	# Check if tricorder.pi-hole.net is reachable and provide token.
 	if [ -n "${tricorder}" ]; then
 		echo "::: Your debug token is : ${tricorder}"
-		echo "::: Please contact the Pi-hole team with your token to being assistance."
+		echo "::: Please contact the Pi-hole team with your token for assistance."
 		echo "::: Thank you."
+	else
+		echo "::: There was an error uploading your debug log."
+		echo "::: Please try again or contact the Pi-hole team for assistance."
 	fi
-		echo "::: Debug log can be found at : /var/log/pihole_debug.log"
+		echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
 }
 
 trap finalWork EXIT
