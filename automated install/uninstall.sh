@@ -154,6 +154,12 @@ removeNoPurge() {
 	${SUDO} rm /usr/local/bin/pihole &> /dev/null
 	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
 	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null
+	
+	# If the pihole user exists, then remove
+	if id "pihole" >/dev/null 2>&1; then
+        	echo "::: Removing pihole user..."
+		${SUDO} userdel -r pihole
+	fi
 
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
