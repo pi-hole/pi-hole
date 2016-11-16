@@ -22,6 +22,11 @@ if [[ ! $EUID -eq 0 ]];then
   fi
 fi
 
+webpageFunc() {
+  /opt/pihole/webpage.sh "$@"
+  exit 0
+}
+
 whitelistFunc() {
  "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
   exit 0
@@ -180,7 +185,7 @@ helpFunc() {
 ::: Control all PiHole specific functions!
 :::
 ::: Usage: pihole [options]
-:::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage
+:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -web (webpage)  for more information on usage
 :::
 ::: Options:
 :::  -w, whitelist            Whitelist domains
@@ -195,6 +200,7 @@ helpFunc() {
 :::  -v, version              Show current versions
 :::  -q, query                Query the adlists for a specific domain
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
+:::  -web, webpage            Webpage options
 :::  uninstall                Uninstall Pi-Hole from your system :(!
 :::  status                   Is Pi-Hole Enabled or Disabled
 :::  enable                   Enable Pi-Hole DNS Blocking
@@ -228,5 +234,6 @@ case "${1}" in
   "disable"                     ) piholeEnable 0;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
+  "-web" | "webpage"            ) webpageFunc "$@";;
   *                             ) helpFunc;;
 esac
