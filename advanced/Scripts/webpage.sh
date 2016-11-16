@@ -10,9 +10,7 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-#globals
-basename=pihole
-piholeDir=/etc/${basename}
+args=("$@")
 
 helpFunc() {
 	cat << EOM
@@ -28,8 +26,6 @@ helpFunc() {
 EOM
 	exit 1
 }
-
-args=("$@")
 
 SetTemperatureUnit(){
 
