@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015, 2016 by Jacob Salmela
 # Network-wide ad blocking via your Raspberry Pi
 # http://pi-hole.net
-# Whitelists and blacklists domains
+# Web interface settings
 #
 # Pi-hole is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,8 +43,9 @@ SetWebPassword(){
 
 	# Remove password from file (create backup setupVars.conf.bak)
 	sed -i.bak '/webpassword/d' /etc/pihole/setupVars.conf
-	# Compute password hash
+	# Compute password hash twice to avoid rainbow table vulnerability
 	hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
+	hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
 	# Save hash to file
 	echo "webpassword=${hash}" >> /etc/pihole/setupVars.conf
 
