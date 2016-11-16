@@ -29,12 +29,12 @@ EOM
 SetTemperatureUnit(){
 
 	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/temperatureunit/d' /etc/pihole/setupVars.conf
+	sed -i.bak '/TEMPERATUREUNIT/d' /etc/pihole/setupVars.conf
 	# Save setting to file
 	if [[ $unit == "F" ]] ; then
-		echo "temperatureunit=F" >> /etc/pihole/setupVars.conf
+		echo "TEMPERATUREUNIT=F" >> /etc/pihole/setupVars.conf
 	else
-		echo "temperatureunit=C" >> /etc/pihole/setupVars.conf
+		echo "TEMPERATUREUNIT=C" >> /etc/pihole/setupVars.conf
 	fi
 
 }
@@ -42,12 +42,12 @@ SetTemperatureUnit(){
 SetWebPassword(){
 
 	# Remove password from file (create backup setupVars.conf.bak)
-	sed -i.bak '/webpassword/d' /etc/pihole/setupVars.conf
+	sed -i.bak '/WEBPASSWORD/d' /etc/pihole/setupVars.conf
 	# Compute password hash twice to avoid rainbow table vulnerability
 	hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
 	hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
 	# Save hash to file
-	echo "webpassword=${hash}" >> /etc/pihole/setupVars.conf
+	echo "WEBPASSWORD=${hash}" >> /etc/pihole/setupVars.conf
 
 }
 
