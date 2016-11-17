@@ -27,7 +27,7 @@ PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 IPV6_READY=false
-TIMEOUT=15
+TIMEOUT=60
 # Header info and introduction
 cat << EOM
 ::: Beginning Pi-hole debug at $(date)!
