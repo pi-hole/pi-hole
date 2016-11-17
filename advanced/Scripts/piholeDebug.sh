@@ -401,7 +401,9 @@ finalWork() {
     esac
 
     if [[ "${tricorder}" ]]; then
-      echo "::: Your debug token is : ${tricorder}"
+      echo ":::"
+      log_echo "::: Your debug token is : ${tricorder}"
+      echo ":::"
       echo "::: Please contact the Pi-hole team with your token for assistance."
       echo "::: Thank you."
     else
@@ -414,7 +416,16 @@ finalWork() {
 echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
 }
 
+count_gravity() {
+header_write "Analyzing gravity.list"
 
+  gravity_length=$(wc -l "${GRAVITYFILE}")
+  if [[ "${gravity_length}" ]]; then
+    log_write "${GRAVITYFILE} is ${gravity_length} lines long."
+  else
+    log_echo "Warning: No gravity.list file found!"
+  fi
+}
 ### END FUNCTIONS ###
 
 # Gather version of required packages / repositories
@@ -440,13 +451,7 @@ files_check "${WHITELISTFILE}"
 files_check "${BLACKLISTFILE}"
 files_check "${ADLISTFILE}"
 
-
-header_write "Analyzing gravity.list"
-
-  gravity_length=$(wc -l "${GRAVITYFILE}") \
-  && log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
-  || log_echo "Warning: No gravity.list file found!"
-
+count_gravity
 dumpPiHoleLog
 
 trap finalWork EXIT
