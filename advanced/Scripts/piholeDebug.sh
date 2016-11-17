@@ -215,32 +215,32 @@ ip_check() {
     IPv6_address_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')"
     IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
     IPv6_default_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
-    IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3)
 
     if [[ "${IPv6_address_list}" ]]; then
       log_echo "IPv6 addresses found"
       block_parse "${IPv6_address_list}"
+      if [[ -n ${IPv6_default_gateway} ]]; then
+        echo -n ":::        Pinging default IPv6 gateway: "
+        IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_default_gateway}" -I "${IPv6_interface}"| tail -n3)"
+        if [[ -n ${IPv6_def_gateway_check} ]]; then
+          echo "Gateway Responded."
+          block_parse "${IPv6_def_gateway_check}"
+          echo -n ":::        Pinging Internet via IPv6: "
+          IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3)
+          if [[ ${IPv6_inet_check} ]]; then
+            echo "Query responded."
+            block_parse "${IPv6_inet_check}"
+          else
+            echo "Query did not respond."
+          fi
+        else
+          echo "Gateway did not respond."
+        fi
+      else
+        log_echo "No IPv6 Gateway Detected"
+      fi
     else
       log_echo "IPV6 addresses not found"
-    fi
-    if [[ -n ${IPv6_default_gateway} ]]; then
-      echo -n ":::        Pinging default IPv6 gateway: "
-      IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_default_gateway}" -I "${IPv6_interface}"| tail -n3)"
-      if [[ -n ${IPv6_def_gateway_check} ]]; then
-        echo "Gateway Responded."
-        block_parse "${IPv6_def_gateway_check}"
-      else
-        echo "Gateway did not respond."
-      fi
-      echo -n ":::        Pinging Internet via IPv6: "
-      if [[ ${IPv6_inet_check} ]]; then
-        echo "Query responded."
-        block_parse "${IPv6_inet_check}"
-      else
-        echo "Query did not respond."
-      fi
-    else
-      log_echo "No IPv6 Gateway Detected"
     fi
   fi
 
