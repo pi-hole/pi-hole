@@ -14,6 +14,7 @@ set -o pipefail
 
 ######## GLOBAL VARS ########
 PIHOLE_DIR="/etc/pihole"
+LOG_DIR="/var/log"
 
 VARS="$PIHOLE_DIR/setupVars.conf"
 
@@ -26,11 +27,14 @@ DNSMASQ_CONF="/etc/dnsmasq.conf"
 DNSMASQ_PH_CONF="/etc/dnsmasq.d/01-pihole.conf"
 LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
 
-LIGHTTPD_ERR_LOG="/var/log/lighttpd/error.log"
-DEBUG_LOG="/var/log/pihole_debug.log"
-PI_HOLE_LOG="/var/log/pihole.log"
+LIGHTTPD_ERR_LOG="$LOG_DIR/lighttpd/error.log"
+DEBUG_LOG="$LOG_DIR/pihole_debug.log"
+PI_HOLE_LOG="$LOG_DIR/pihole.log"
 
 WHITELIST_MATCHES="/tmp/whitelistmatches.list"
+
+IPV6_ENABLED=""
+IPV4_ENABLED=""
 
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
@@ -85,21 +89,17 @@ version_check() {
   local light_ver
   local php_ver
 
-  pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)"
+  pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" || error_found=1
   log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
-  [[ "${pi_hole_ver}" ]] || error_found=1
 
-  admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)"
+  admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" || error_found=1
   log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
-  [[ "${admin_ver}" ]] || error_found=1
 
-  light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)"
+  light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" || error_found=1
   log_echo "${light_ver:-"lighttpd not located"}"
-  [[ "${light_ver}" ]] || error_found=1
 
-  php_ver="$(php -v |& head -n1)"
+  php_ver="$(php -v |& head -n1)" || error_found=1
   log_echo "${php_ver:-"PHP not located"}"
-  [[ "${php_ver}" ]] || error_found=1
 
   return "${error_found:-0}"
 }
@@ -124,8 +124,7 @@ source_file() {
   file_found=$(files_check "${1}")
   if [[ "${file_found}" ]]; then
     # shellcheck source=/dev/null
-   (source "${1}" &> /dev/null && echo "${file_found} and was successfully sourced") \
-   || log_echo -l "${file_found} and could not be sourced"
+    source "${1}" &> /dev/null || -l "${file_found} and could not be sourced"
   fi
 }
 
@@ -152,14 +151,10 @@ processor_check() {
 
 ipv6_check() {
   # Check if system is IPv6 enabled, for use in other functions
-  if [[ "${IPv6_ADDRESS:?}" ]]; then
-    ls /proc/net/if_inet6 &>/dev/null
-    return 0
-  else
-    return 1
+  if [[ "${IPV6_ADDRESS}" ]]; then
+    ls /proc/net/if_inet6 &>/dev/null && IPV6_ENABLED="true"
   fi
 }
-
 
 ip_check() {
   header_write "IP Address Information"
@@ -178,9 +173,9 @@ ip_check() {
   # If declared in setupVars.conf use it, otherwise defer to default
   # http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
 
-  if [[ $(ipv6_check) -eq 0 ]]; then
+  if [[ "${IPV6_ENABLED}" ]]; then
     IPv6_address_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')"
-    IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
+    IPv6_interface=${PIHOLE_INTERFACE:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
     IPv6_default_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
 
     if [[ "${IPv6_address_list}" ]]; then
@@ -196,7 +191,7 @@ ip_check() {
           IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3)
           if [[ ${IPv6_inet_check} ]]; then
             echo "Query responded."
-            block_parse "${IPv6_inet_check}"
+            log_write "${IPv6_inet_check}"
           else
             echo "Query did not respond."
           fi
@@ -211,7 +206,7 @@ ip_check() {
     fi
   fi
 
-  IPv4_interface=${piholeInterface:-$(ip r | grep default | cut -d ' ' -f 5)}
+  IPv4_interface=${PIHOLE_INTERFACE:-$(ip r | grep default | cut -d ' ' -f 5)}
   IPv4_address_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')"
   if [[ "${IPv4_address_list}" ]]; then
     log_echo "IPv4 addresses found"
@@ -268,7 +263,7 @@ daemon_check() {
 
   echo ":::     Checking ${2} port for ${1} listener."
 
-  if [[ $(ipv6_check) -eq 0 ]]; then
+  if [[ "${IPV6_ENABLED}" ]]; then
     port_check 6 "${2}" "${1}"
   fi
   port_check 4 "${2}" "${1}"
@@ -284,6 +279,7 @@ testResolver() {
   local remote_dig
 
   # Find a blocked url that has not been whitelisted.
+  # None of this worked
   test_url="doubleclick.com"
   if [ -s "${WHITELIST_MATCHES}" ]; then
     while read -r line; do
@@ -431,6 +427,9 @@ source_file "$VARS" || eecho "REQUIRED FILE MISSING"
 truncate --size=0 "${DEBUG_LOG}"
 chmod 644 ${DEBUG_LOG}
 chown "$USER":pihole ${DEBUG_LOG}
+
+# Check for IPv6
+ipv6_check
 
 # Gather version of required packages / repositories
 version_check || echo "REQUIRED FILES MISSING"
