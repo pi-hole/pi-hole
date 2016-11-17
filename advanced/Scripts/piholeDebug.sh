@@ -13,20 +13,25 @@
 set -o pipefail
 
 ######## GLOBAL VARS ########
-VARSFILE="/etc/pihole/setupVars.conf"
-DEBUG_LOG="/var/log/pihole_debug.log"
-DNSMASQFILE="/etc/dnsmasq.conf"
-DNSMASQCONFFILE="/etc/dnsmasq.d/01-pihole.conf"
-LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
-LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
-GRAVITYFILE="/etc/pihole/gravity.list"
-WHITELISTFILE="/etc/pihole/whitelist.txt"
-BLACKLISTFILE="/etc/pihole/blacklist.txt"
-ADLISTFILE="/etc/pihole/adlists.list"
-PIHOLELOG="/var/log/pihole.log"
-WHITELISTMATCHES="/tmp/whitelistmatches.list"
+BASE_DIR="/etc/pihole"
+ADLIST_FILE="${BASE_DIR}/adlists.list"
+BLACKLIST_FILE="${BASE_DIR}/blacklist.txt"
+GRAVITY_FILE="${BASE_DIR}/gravity.list"
+VARS_FILE="${BASE_DIR}/setupVars.conf"
+WHITELIST_FILE="${BASE_DIR}/whitelist.txt"
+
+LOG_DIR="/var/log"
+DEBUG_LOG="${LOG_DIR}/pihole_debug.log"
+LIGHTTPD_ERR_FILE="${LOG_DIR}/lighttpd/error.log"
+PIHOLE_LOG="${LOG_DIR}/pihole.log"
+
+DNSMASQ_FILE="/etc/dnsmasq.conf"
+DNSMASQ_CONF_FILE="/etc/dnsmasq.d/01-pihole.conf"
+LIGHTTPD_FILE="/etc/lighttpd/lighttpd.conf"
 
 IPV6_READY=false
+TIMEOUT=60
+WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
 # Header info and introduction
 cat << EOM
@@ -47,9 +52,9 @@ truncate --size=0 "${DEBUG_LOG}"
 chmod 644 ${DEBUG_LOG}
 chown "$USER":pihole ${DEBUG_LOG}
 
-source ${VARSFILE}
+# Pull Pi-hole values from global configuration
+source ${VARS_FILE}
 
-### Private functions exist here ###
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
 }
@@ -116,6 +121,7 @@ version_check() {
 
 	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
 	&& log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
+
 	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
 	&& log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
 	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
@@ -253,7 +259,7 @@ testResolver() {
 
 	# Find a blocked url that has not been whitelisted.
 	TESTURL="doubleclick.com"
-	if [ -s "${WHITELISTMATCHES}" ]; then
+	if [ -s "${WHITELIST_MATCHES}" ]; then
 		while read -r line; do
 			CUTURL=${line#*" "}
 			if [ "${CUTURL}" != "Pi-Hole.IsWorking.OK" ]; then
@@ -263,9 +269,9 @@ testResolver() {
 						TESTURL="${CUTURL}"
 						break 2
 					fi
-				done < "${WHITELISTMATCHES}"
+				done < "${WHITELIST_MATCHES}"
 			fi
-		done < "${GRAVITYFILE}"
+		done < "${GRAVITY_FILE}"
 	fi
 
 	log_write "Resolution of ${TESTURL} from Pi-hole:"
@@ -311,8 +317,8 @@ checkProcesses() {
 
 debugLighttpd() {
   echo ":::     Checking for necessary lighttpd files."
-  files_check "${LIGHTTPDFILE}"
-  files_check "${LIGHTTPDERRFILE}"
+  files_check "${LIGHTTPD_FILE}"
+  files_check "${LIGHTTPD_ERR_FILE}"
   echo ":::"
 }
 
@@ -335,41 +341,40 @@ checkProcesses
 testResolver
 debugLighttpd
 
-files_check "${DNSMASQFILE}"
-files_check "${DNSMASQCONFFILE}"
-files_check "${WHITELISTFILE}"
-files_check "${BLACKLISTFILE}"
-files_check "${ADLISTFILE}"
+files_check "${DNSMASQ_FILE}"
+files_check "${DNSMASQ_CONF_FILE}"
+files_check "${WHITELIST_FILE}"
+files_check "${BLACKLIST_FILE}"
+files_check "${ADLIST_FILE}"
 
 
 header_write "Analyzing gravity.list"
 
-	gravity_length=$(wc -l "${GRAVITYFILE}") \
-	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
-	|| log_echo "Warning: No gravity.list file found!"
+  gravity_length=$(wc -l "${GRAVITY_FILE}") \
+  && log_write "${GRAVITY_FILE} is ${gravity_length} lines long." \
+  || log_echo "Warning: No gravity.list file found!"
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
-	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo "::: "
-	echo "::: --= User Action Required =--"
-	echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
-	header_write "pihole.log"
-	if [ -e "${PIHOLELOG}" ]; then
-		while true; do
-			tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
-			log_write ""
-		done
-	else
-		log_write "No pihole.log file found!"
-		printf ":::\tNo pihole.log file found!\n"
-	fi
+  trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
+  echo "::: "
+  echo "::: --= User Action Required =--"
+  echo -e "::: Try loading a site that you are having trouble with now from a client web browser... \n:::\t(Press CTRL+C to finish logging.)"
+  header_write "pihole.log"
+  if [ -e "${PIHOLE_LOG}" ]; then
+    # Need a dummy process to signal tail to terminate
+    sleep ${TIMEOUT} &
+    tail -n0 -f --pid=$! "${PIHOLE_LOG}" >> ${DEBUG_LOG}
+  else
+    log_write "No pihole.log file found!"
+    printf ":::\tNo pihole.log file found!\n"
+  fi
 }
 
 # Anything to be done after capturing of pihole.log terminates
 finalWork() {
   local tricorder
-	echo "::: Finshed debugging!"
+	echo "::: Finished debugging!"
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	read -r -p "::: Would you like to upload the log? [y/N] " response
 	case ${response} in
