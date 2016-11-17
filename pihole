@@ -120,16 +120,13 @@ piholeEnable() {
     if [[ $# > 1 ]] ; then
       if [ -x "$(command -v nohup)" ]; then
         if [[ ${2} == *"s"* ]] ; then
-          echo "Seconds"
           tt=${2%"s"}
           echo "::: Blocking will be reenabled in ${tt} seconds"
-          echo "sleep ${tt}; pihole enable"
           nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
         elif [[ ${2} == *"m"* ]] ; then
           tt=${2%"m"}
           echo "::: Blocking will be reenabled in ${tt} minutes"
           tt=$((${tt}*60))
-          echo "sleep ${tt}; pihole enable"
           nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
         else
           echo "::: Unknown format for delayed reactivation of the blocking!"
