@@ -51,9 +51,9 @@ truncate --size=0 "${DEBUG_LOG}"
 chmod 644 ${DEBUG_LOG}
 chown "$USER":pihole ${DEBUG_LOG}
 
+# Pull Pi-hole values from global configuration
 source ${VARS_FILE}
 
-### Private functions exist here ###
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
 }
@@ -120,6 +120,7 @@ version_check() {
 
 	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
 	&& log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
+
 	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
 	&& log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
 	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
@@ -348,26 +349,25 @@ files_check "${ADLIST_FILE}"
 
 header_write "Analyzing gravity.list"
 
-	gravity_length=$(wc -l "${GRAVITY_FILE}") \
-	&& log_write "${GRAVITY_FILE} is ${gravity_length} lines long." \
-	|| log_echo "Warning: No gravity.list file found!"
+  gravity_length=$(wc -l "${GRAVITY_FILE}") \
+  && log_write "${GRAVITY_FILE} is ${gravity_length} lines long." \
+  || log_echo "Warning: No gravity.list file found!"
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
-	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-	echo "::: "
-	echo "::: --= User Action Required =--"
-	echo -e "::: Try loading a site that you are having trouble with now from a client web browser... \n:::\t(Press CTRL+C to finish logging.)"
-	header_write "pihole.log"
-	if [ -e "${PIHOLE_LOG}" ]; then
-		while true; do
-			tail -f "${PIHOLE_LOG}" >> ${DEBUG_LOG}
-			log_write ""
-		done
-	else
-		log_write "No pihole.log file found!"
-		printf ":::\tNo pihole.log file found!\n"
-	fi
+  trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
+  echo "::: "
+  echo "::: --= User Action Required =--"
+  echo -e "::: Try loading a site that you are having trouble with now from a client web browser... \n:::\t(Press CTRL+C to finish logging.)"
+  header_write "pihole.log"
+  if [ -e "${PIHOLE_LOG}" ]; then
+    # Need a dummy process to signal tail to terminate
+    sleep 10 &
+    tail -n0 -f --pid=$! "${PIHOLE_LOG}" >> ${DEBUG_LOG}
+  else
+    log_write "No pihole.log file found!"
+    printf ":::\tNo pihole.log file found!\n"
+  fi
 }
 
 # Anything to be done after capturing of pihole.log terminates
