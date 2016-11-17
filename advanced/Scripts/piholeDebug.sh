@@ -36,6 +36,8 @@ WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 IPV6_ENABLED=""
 IPV4_ENABLED=""
 
+declare -a ERRORS
+
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
 }
@@ -89,19 +91,22 @@ version_check() {
   local light_ver
   local php_ver
 
-  pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" || error_found=1
+  pi_hole_ver="$(cd /etc/.pihole/ &> /dev/null && git describe --tags --abbrev=0)" \
+  || ERRORS+=('MISSING CORE REPOSITORY')
+  admin_ver="$(cd /var/www/html/admin &> /dev/null && git describe --tags --abbrev=0)" \
+  || ERRORS+=('MISSING ADMIN REPOSITORY')
+  light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
+  || ERRORS+=('MISSING LIGHTTPD')
+  php_ver="$(php -v |& head -n1)" \
+  || ERRORS+=('MISSING PHP')
+
+
   log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
-
-  admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" || error_found=1
   log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
-
-  light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" || error_found=1
   log_echo "${light_ver:-"lighttpd not located"}"
-
-  php_ver="$(php -v |& head -n1)" || error_found=1
   log_echo "${php_ver:-"PHP not located"}"
 
-  return "${error_found:-0}"
+  return ${#ERRORS[@]}
 }
 
 files_check() {
@@ -399,6 +404,7 @@ finalWork() {
     echo "::: Please try again or contact the Pi-hole team for assistance."
   fi
 echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
+exit
 }
 
 count_gravity() {
@@ -411,6 +417,18 @@ header_write "Analyzing gravity.list"
     log_echo "Warning: No gravity.list file found!"
   fi
 }
+
+error_handler() {
+  log_echo "${1} Errors found"
+
+  for (( i=0; i< ${#ERRORS[@]}; i++ ));
+  do
+    echo "!!!      ${2} ${ERRORS[$i]}"
+  done
+  echo "::: Please upload a copy of you log and contact support."
+  finalWork
+}
+
 ### END FUNCTIONS ###
 
 # Header info and introduction
@@ -428,7 +446,7 @@ cat << EOM
 EOM
 
 # Check for newer setupVars storage file
-source_file "$VARS" || eecho "REQUIRED FILE MISSING"
+source_file "$VARS" || echo "REQUIRED FILE MISSING"
 
 # Ensure the file exists, create if not, clear if exists.
 truncate --size=0 "${DEBUG_LOG}"
@@ -439,7 +457,7 @@ chown "$USER":pihole ${DEBUG_LOG}
 ipv6_check
 
 # Gather version of required packages / repositories
-version_check || echo "REQUIRED FILES MISSING"
+version_check || error_handler $? "major"
 
 # Gather information about the running distribution
 distro_check || echo "Distro Check soft fail"
