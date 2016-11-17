@@ -368,7 +368,7 @@ debugLighttpd() {
 }
 
 dumpPiHoleLog() {
-  trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
+  trap '{ echo -e "\n::: Finishing debug write from interrupt..." ; break;}' SIGINT
   echo "::: "
   echo "::: --= User Action Required =--"
   echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
@@ -447,11 +447,7 @@ header_write "Analyzing gravity.list"
   && log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
   || log_echo "Warning: No gravity.list file found!"
 
-# Continuously append the pihole.log file to the pihole_debug.log file
-
-# Anything to be done after capturing of pihole.log terminates
+dumpPiHoleLog
 
 trap finalWork EXIT
 
-### Method calls for additional logging ###
-dumpPiHoleLog
