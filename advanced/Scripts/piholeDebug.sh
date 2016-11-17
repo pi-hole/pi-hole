@@ -159,16 +159,25 @@ source_file() {
 
   file_found=$(files_check "${1}")
   if [[ "${file_found}" ]]; then
+    # shellcheck source=/dev/null
    (source "${1}" &> /dev/null && echo "${file_found} and was successfully sourced") \
    || log_echo -l "${file_found} and could not be sourced"
   fi
 }
 
 distro_check() {
+  header_write "Detecting installed OS distribution:"
   local soft_fail
-  header_write "Detecting installed OS Distribution"
+  local distro
+
   soft_fail=0
-  local distro="$(cat /etc/*release)" && block_parse "${distro}" || (log_echo "Distribution details not found." && soft_fail=1)
+  distro="$(cat /etc/*release)"
+  if [[ "${distro}" ]]; then
+    block_parse "${distro}"
+  else
+    log_echo "Distribution details not found."
+    soft_fail=1
+  fi
   return "${soft_fail}"
 }
 
