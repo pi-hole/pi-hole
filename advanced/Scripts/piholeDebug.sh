@@ -47,6 +47,7 @@ truncate --size=0 "${DEBUG_LOG}"
 chmod 644 ${DEBUG_LOG}
 chown "$USER":pihole ${DEBUG_LOG}
 
+# shellcheck source=/dev/null
 source ${VARSFILE}
 
 ### Private functions exist here ###
@@ -98,12 +99,13 @@ lsof_parse() {
   local user
   local process
 
-  user=$(echo ${1} | cut -f 3 -d ' ' | cut -c 2-)
-  process=$(echo ${1} | cut -f 2 -d ' ' | cut -c 2-)
-  [[ ${2} -eq ${process} ]] \
-  && echo ":::       Correctly configured." \
-  || log_echo ":::       Failure: Incorrectly configured daemon."
-
+  user=$(echo "${1}" | cut -f 3 -d ' ' | cut -c 2-)
+  process=$(echo "${1}" | cut -f 2 -d ' ' | cut -c 2-)
+  if [[ ${2} -eq ${process} ]]; then
+    echo ":::       Correctly configured."
+  else
+    log_echo ":::       Failure: Incorrectly configured daemon."
+  fi
   log_write "Found user ${user} with process ${process}"
 }
 
@@ -112,16 +114,29 @@ version_check() {
   header_write "Detecting Installed Package Versions:"
 
   local error_found
+  local pi_hole_ver
+  local admin_ver
+  local light_ver
+  local php_ver
+
   error_found=0
 
-  local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
-  && log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
-  local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
-  && log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
-  local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
-  && log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
-  local php_ver="$(php -v |& head -n1)" \
-  && log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
+  pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)"
+  log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
+  [[ "${pi_hole_ver}" ]] || error_found=1
+
+  admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)"
+  log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
+  [[ "${admin_ver}" ]] || error_found=1
+
+  light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)"
+  log_echo "${light_ver:-"lighttpd not located"}"
+  [[ "${light_ver}" ]] || error_found=1
+
+  php_ver="$(php -v |& head -n1)"
+  log_echo "${php_ver:-"PHP not located"}"
+  [[ "${php_ver}" ]] || error_found=1
+
   return "${error_found}"
 }
 
@@ -172,32 +187,44 @@ ipv6_check() {
 
 ip_check() {
   header_write "IP Address Information"
-  # Get the current interface for Internet traffic
 
-  # Check if IPv6 enabled
   local IPv6_interface
   local IPv4_interface
-  ipv6_check &&	IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
+  local IPv6_address_list
+  local IPv6_default_gateway
+  local IPv6_def_gateway_check
+  local IPv6_inet_check
+  local IPv4_addr_list
+  local IPv4_def_gateway
+  local IPv4_def_gateway_check
+  local IPv4_inet_check
+
+  # Check if IPv6 enabled
+  ipv6_check && IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
   # If declared in setupVars.conf use it, otherwise defer to default
   # http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
+
   IPv4_interface=${piholeInterface:-$(ip r | grep default | cut -d ' ' -f 5)}
 
 
-  if [[ IPV6_READY ]]; then
-    local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
-    && (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") \
-    || log_echo "No IPv6 addresses found."
+  if [[ $IPV6_READY ]]; then
+    IPv6_address_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')"
+    log_echo "IPv6 addresses: ${IPv6_address_list:-"not found"}"
 
-    local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
-    if [[ $? = 0 ]] && [[ -n ${IPv6_def_gateway} ]]; then
-      echo -n ":::        Pinging default IPv6 gateway: "
-      local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
-      && echo "Gateway Responded." \
-      || echo "Gateway did not respond."
+    IPv6_default_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
+    if [[ -n ${IPv6_default_gateway} ]]; then
+
+      echo -n ":::        Pinging default IPv6 gateway ${IPv6_default_gateway}: "
+      IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_default_gateway}" -I "${IPv6_interface}"| tail -n3)"
+      if [[ -n ${IPv6_def_gateway_check} ]]; then
+        echo "Gateway Responded."
+      else
+        echo "Gateway did not respond."
       block_parse "${IPv6_def_gateway_check}"
+      fi
 
       echo -n ":::        Pinging Internet via IPv6: "
-      local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
+      IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
       && echo "Query responded." \
       || echo "Query did not respond."
       block_parse "${IPv6_inet_check}"
@@ -205,20 +232,20 @@ ip_check() {
       log_echo="No IPv6 Gateway Detected"
     fi
 
-local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
+  IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
   && (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
   || log_echo "No IPv4 addresses found."
 
-  local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
+  IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
   if [[ $? = 0 ]]; then
     echo -n ":::        Pinging default IPv4 gateway: "
-    local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}"  -I "${IPv4_interface}" | tail -n3)" \
+    IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}"  -I "${IPv4_interface}" | tail -n3)" \
     && echo "Gateway responded." \
     || echo "Gateway did not respond."
     block_parse "${IPv4_def_gateway_check}"
 
     echo -n ":::        Pinging Internet via IPv4: "
-    local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
+    IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
     && echo "Query responded." \
     || echo "Query did not respond."
     block_parse "${IPv4_inet_check}"
