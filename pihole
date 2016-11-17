@@ -132,7 +132,7 @@ piholeEnable() {
         echo "::: Example:"
         echo ":::    pihole disable 5s    -    will disable blocking for 5 seconds"
         echo ":::    pihole disable 7m    -    will disable blocking for 7 minutes"
-        echo "::: Blocking will not automatically be reenabled!"
+        echo "::: Blocking will not automatically be re-enabled!"
       fi
     fi
   else
