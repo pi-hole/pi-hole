@@ -393,7 +393,7 @@ finalWork() {
     read -r -p "::: Would you like to upload the log? [y/N] " response
     case ${response} in
       [yY][eE][sS]|[yY])
-        tricorder=$(cat /var/log/pihole_debug.log | nc -w 10 tricorder.pi-hole.net 9999)
+        tricorder=$(nc -w 10 tricorder.pi-hole.net 9999 < /var/log/pihole_debug.log)
         ;;
       *)
         echo "::: Log will NOT be uploaded to tricorder."
