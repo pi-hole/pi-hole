@@ -118,25 +118,20 @@ piholeEnable() {
     sed -i 's/^addn-hosts/#addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
     echo "::: Blocking has been disabled!"
     if [[ $# > 1 ]] ; then
-      if [ -x "$(command -v nohup)" ]; then
-        if [[ ${2} == *"s"* ]] ; then
-          tt=${2%"s"}
-          echo "::: Blocking will be reenabled in ${tt} seconds"
-          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
-        elif [[ ${2} == *"m"* ]] ; then
-          tt=${2%"m"}
-          echo "::: Blocking will be reenabled in ${tt} minutes"
-          tt=$((${tt}*60))
-          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
-        else
-          echo "::: Unknown format for delayed reactivation of the blocking!"
-          echo "::: Example:"
-          echo ":::    pihole disable 5s    -    will disable blocking for 5 seconds"
-          echo ":::    pihole disable 7m    -    will disable blocking for 7 minutes"
-          echo "::: Blocking will not automatically be reenabled!"
-        fi
+      if [[ ${2} == *"s"* ]] ; then
+        tt=${2%"s"}
+        echo "::: Blocking will be reenabled in ${tt} seconds"
+        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+      elif [[ ${2} == *"m"* ]] ; then
+        tt=${2%"m"}
+        echo "::: Blocking will be reenabled in ${tt} minutes"
+        tt=$((${tt}*60))
+        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
       else
-        echo "::: Command 'nohup' has to be available for this feature."
+        echo "::: Unknown format for delayed reactivation of the blocking!"
+        echo "::: Example:"
+        echo ":::    pihole disable 5s    -    will disable blocking for 5 seconds"
+        echo ":::    pihole disable 7m    -    will disable blocking for 7 minutes"
         echo "::: Blocking will not automatically be reenabled!"
       fi
     fi
@@ -247,7 +242,7 @@ case "${1}" in
   "-q" | "query"                ) queryFunc "$@";;
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
-  "enable"                      ) piholeEnable 1 $2;;
+  "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 $2;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
