@@ -27,7 +27,7 @@ PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 IPV6_READY=false
-TIMEOUT=60
+TIMEOUT=15
 # Header info and introduction
 cat << EOM
 ::: Beginning Pi-hole debug at $(date)!
@@ -358,9 +358,7 @@ dumpPiHoleLog() {
 	if [ -e "${PIHOLELOG}" ]; then
 	# Dummy process to use for flagging down tail to terminate
 	  sleep ${TIMEOUT} &
-		while true; do
-			tail -n0 -f --pid=$! "${PIHOLELOG}" >> ${DEBUG_LOG}
-		done
+		tail -n0 -f --pid=$! "${PIHOLELOG}" >> ${DEBUG_LOG}
 	else
 		log_write "No pihole.log file found!"
 		printf ":::\tNo pihole.log file found!\n"
