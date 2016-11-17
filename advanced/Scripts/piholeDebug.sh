@@ -30,6 +30,7 @@ DNSMASQ_CONF_FILE="/etc/dnsmasq.d/01-pihole.conf"
 LIGHTTPD_FILE="/etc/lighttpd/lighttpd.conf"
 
 IPV6_READY=false
+TIMEOUT=60
 WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
 # Header info and introduction
@@ -362,7 +363,7 @@ dumpPiHoleLog() {
   header_write "pihole.log"
   if [ -e "${PIHOLE_LOG}" ]; then
     # Need a dummy process to signal tail to terminate
-    sleep 10 &
+    sleep ${TIMEOUT} &
     tail -n0 -f --pid=$! "${PIHOLE_LOG}" >> ${DEBUG_LOG}
   else
     log_write "No pihole.log file found!"
