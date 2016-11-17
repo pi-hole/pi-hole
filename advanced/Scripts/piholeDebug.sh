@@ -94,21 +94,6 @@ block_parse() {
   log_write "${1}"
 }
 
-lsof_parse() {
-  local user
-  local process
-
-  user=$(echo "${1}" | cut -f 3 -d ' ' | cut -c 2-)
-  process=$(echo "${1}" | cut -f 2 -d ' ' | cut -c 2-)
-  if [[ ${2} -eq ${process} ]]; then
-    echo ":::       Correctly configured."
-  else
-    log_echo ":::       Failure: Incorrectly configured daemon."
-  fi
-  log_write "Found user ${user} with process ${process}"
-}
-
-
 version_check() {
   header_write "Detecting Installed Package Versions:"
 
@@ -270,12 +255,29 @@ ip_check() {
   fi
 }
 
+lsof_parse() {
+  local user
+  local process
+
+  user=$(echo "${1}" | cut -f 3 -d ' ' | cut -c 2-)
+  process=$(echo "${1}" | cut -f 2 -d ' ' | cut -c 2-)
+  if [[ ${2} -eq ${process} ]]; then
+    echo ":::       Correctly configured."
+  else
+    log_echo ":::       Failure: Incorrectly configured daemon."
+  fi
+  log_write "Found user ${user} with process ${process}"
+}
+
 port_check() {
   local lsof_value
 
-  lsof_value=$(lsof -i ${1}:${2} -FcL | tr '\n' ' ') \
-  && lsof_parse "${lsof_value}" "${3}" \
-  || log_echo "Failure: IPv${1} Port not in use"
+  lsof_value=$(lsof -i "${1}":"${2}" -FcL | tr '\n' ' ')
+  if [[ "${lsof_value}" ]]; then
+    lsof_parse "${lsof_value}" "${3}"
+  else
+    log_echo "Failure: IPv${1} Port not in use"
+  fi
 }
 
 daemon_check() {
@@ -284,11 +286,10 @@ daemon_check() {
 
   echo ":::     Checking ${2} port for ${1} listener."
 
-  if [[ ${IPV6_READY} ]]; then
+  if [[ $(ipv6_check) -eq 0 ]]; then
     port_check 6 "${2}" "${1}"
   fi
-  lsof_value=$(lsof -i 4:${2} -FcL | tr '\n' ' ') \
-    port_check 4 "${2}" "${1}"
+  port_check 4 "${2}" "${1}"
 }
 
 testResolver() {
