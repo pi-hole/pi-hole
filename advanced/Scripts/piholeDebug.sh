@@ -152,7 +152,7 @@ processor_check() {
 
 ipv6_check() {
   # Check if system is IPv6 enabled, for use in other functions
-  if [[ "${IPv6_ADDRESS}" ]]; then
+  if [[ "${IPv6_ADDRESS:?}" ]]; then
     ls /proc/net/if_inet6 &>/dev/null
     return 0
   else
@@ -350,7 +350,7 @@ debugLighttpd() {
 }
 
 dumpPiHoleLog() {
-  trap '{ echo -e "\n::: Finishing debug write from interrupt..." ; break;}' SIGINT
+  trap 'echo -e "\n::: Finishing debug write from interrupt..." ; break' SIGINT
   echo "::: "
   echo "::: --= User Action Required =--"
   echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
@@ -425,7 +425,7 @@ cat << EOM
 EOM
 
 # Check for newer setupVars storage file
-source_file "$VARS"
+source_file "$VARS" || eecho "REQUIRED FILE MISSING"
 
 # Ensure the file exists, create if not, clear if exists.
 truncate --size=0 "${DEBUG_LOG}"
