@@ -425,7 +425,7 @@ cat << EOM
 EOM
 
 # Check for newer setupVars storage file
-source_file "/etc/pihole/setupVars.conf"
+source_file "$VARS"
 
 # Ensure the file exists, create if not, clear if exists.
 truncate --size=0 "${DEBUG_LOG}"
