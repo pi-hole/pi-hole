@@ -13,25 +13,25 @@
 set -o pipefail
 
 ######## GLOBAL VARS ########
-PIHOLE_DIR="/etc/pihole"
-LOG_DIR="/var/log"
+readonly PIHOLE_DIR="/etc/pihole"
+readonly LOG_DIR="/var/log"
 
-VARS="$PIHOLE_DIR/setupVars.conf"
+readonly VARS="$PIHOLE_DIR/setupVars.conf"
 
-AD_LIST="$PIHOLE_DIR/adlists.list"
-GRAVITY_LIST="$PIHOLE_DIR/gravity.list"
-BLACKLIST="$PIHOLE_DIR/blacklist.txt"
-WHITELIST="$PIHOLE_DIR/whitelist.txt"
+readonly AD_LIST="$PIHOLE_DIR/adlists.list"
+readonly GRAVITY_LIST="$PIHOLE_DIR/gravity.list"
+readonly BLACKLIST="$PIHOLE_DIR/blacklist.txt"
+readonly WHITELIST="$PIHOLE_DIR/whitelist.txt"
 
-DNSMASQ_CONF="/etc/dnsmasq.conf"
-DNSMASQ_PH_CONF="/etc/dnsmasq.d/01-pihole.conf"
-LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
+readonly DNSMASQ_CONF="/etc/dnsmasq.conf"
+readonly DNSMASQ_PH_CONF="/etc/dnsmasq.d/01-pihole.conf"
+readonly LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
 
-LIGHTTPD_ERR_LOG="$LOG_DIR/lighttpd/error.log"
-DEBUG_LOG="$LOG_DIR/pihole_debug.log"
-PI_HOLE_LOG="$LOG_DIR/pihole.log"
+readonly LIGHTTPD_ERR_LOG="$LOG_DIR/lighttpd/error.log"
+readonly DEBUG_LOG="$LOG_DIR/pihole_debug.log"
+readonly PI_HOLE_LOG="$LOG_DIR/pihole.log"
 
-WHITELIST_MATCHES="/tmp/whitelistmatches.list"
+readonly WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
 IPV6_ENABLED=""
 IPV4_ENABLED=""
@@ -429,10 +429,11 @@ error_handler() {
   finalWork
 }
 
-### END FUNCTIONS ###
+script_header () {
 
 # Header info and introduction
 cat << EOM
+:::
 ::: Beginning Pi-hole debug at $(date)!
 :::
 ::: This process collects information from your Pi-hole, and optionally uploads
@@ -443,7 +444,14 @@ cat << EOM
 ::: secure your data and will work to further reduce any personal information gathered.
 :::
 ::: Please read and note any issues, and follow any directions advised during this process.
+:::
 EOM
+
+}
+### END FUNCTIONS ###
+
+script_header
+
 
 # Check for newer setupVars storage file
 source_file "$VARS" || echo "REQUIRED FILE MISSING"
