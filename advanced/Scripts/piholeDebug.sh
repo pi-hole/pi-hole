@@ -141,11 +141,10 @@ version_check() {
 }
 
 files_check() {
-  #Check non-zero length existence of ${1}
   header_write "Detecting existence of ${1}:"
   local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-     echo ":::       File exists"
+     log_echo "File exists"
      file_parse "${search_file}"
      return 0
   else
@@ -156,9 +155,13 @@ files_check() {
 }
 
 source_file() {
-  local file_found=$(files_check "${1}") \
-   && (source "${1}" &> /dev/null && echo "${file_found} and was successfully sourced") \
+  local file_found
+
+  file_found=$(files_check "${1}")
+  if [[ "${file_found}" ]]; then
+   (source "${1}" &> /dev/null && echo "${file_found} and was successfully sourced") \
    || log_echo -l "${file_found} and could not be sourced"
+  fi
 }
 
 distro_check() {
