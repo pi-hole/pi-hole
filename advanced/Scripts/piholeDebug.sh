@@ -13,19 +13,24 @@
 set -o pipefail
 
 ######## GLOBAL VARS ########
-VARSFILE="/etc/pihole/setupVars.conf"
-DEBUG_LOG="/var/log/pihole_debug.log"
-DNSMASQFILE="/etc/dnsmasq.conf"
-DNSMASQCONFFILE="/etc/dnsmasq.d/01-pihole.conf"
-LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
-LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
-GRAVITYFILE="/etc/pihole/gravity.list"
-WHITELISTFILE="/etc/pihole/whitelist.txt"
-BLACKLISTFILE="/etc/pihole/blacklist.txt"
-ADLISTFILE="/etc/pihole/adlists.list"
-PIHOLELOG="/var/log/pihole.log"
-WHITELISTMATCHES="/tmp/whitelistmatches.list"
+PIHOLE_DIR="/etc/pihole"
 
+VARS="$PIHOLE_DIR/setupVars.conf"
+
+AD_LIST="$PIHOLE_DIR/adlists.list"
+GRAVITY_LIST="$PIHOLE_DIR/gravity.list"
+BLACKLIST="$PIHOLE_DIR/blacklist.txt"
+WHITELIST="$PIHOLE_DIR/whitelist.txt"
+
+DNSMASQ_CONF="/etc/dnsmasq.conf"
+DNSMASQ_PH_CONF="/etc/dnsmasq.d/01-pihole.conf"
+LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
+
+LIGHTTPD_ERR_LOG="/var/log/lighttpd/error.log"
+DEBUG_LOG="/var/log/pihole_debug.log"
+PI_HOLE_LOG="/var/log/pihole.log"
+
+WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
 # Header info and introduction
 cat << EOM
@@ -47,7 +52,7 @@ chmod 644 ${DEBUG_LOG}
 chown "$USER":pihole ${DEBUG_LOG}
 
 # shellcheck source=/dev/null
-source ${VARSFILE}
+source ${VARS}
 
 ### Private functions exist here ###
 log_write() {
@@ -303,7 +308,7 @@ testResolver() {
 
   # Find a blocked url that has not been whitelisted.
   test_url="doubleclick.com"
-  if [ -s "${WHITELISTMATCHES}" ]; then
+  if [ -s "${WHITELIST_MATCHES}" ]; then
     while read -r line; do
       cut_url=${line#*" "}
       if [ "${cut_url}" != "Pi-Hole.IsWorking.OK" ]; then
@@ -313,9 +318,9 @@ testResolver() {
             test_url="${cut_url}"
             break 2
           fi
-        done < "${WHITELISTMATCHES}"
+        done < "${WHITELIST_MATCHES}"
       fi
-    done < "${GRAVITYFILE}"
+    done < "${GRAVITY_LIST}"
   fi
 
   log_write "Resolution of ${test_url} from Pi-hole:"
@@ -362,8 +367,8 @@ checkProcesses() {
 
 debugLighttpd() {
   echo ":::     Checking for necessary lighttpd files."
-  files_check "${LIGHTTPDFILE}"
-  files_check "${LIGHTTPDERRFILE}"
+  files_check "${LIGHTTPD_CONF}"
+  files_check "${LIGHTTPD_ERR_LOG}"
   echo ":::"
 }
 
@@ -373,9 +378,9 @@ dumpPiHoleLog() {
   echo "::: --= User Action Required =--"
   echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
   header_write "pihole.log"
-  if [ -e "${PIHOLELOG}" ]; then
+  if [ -e "${PI_HOLE_LOG}" ]; then
     while true; do
-      tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
+      tail -f "${PI_HOLE_LOG}" >> ${DEBUG_LOG}
       log_write ""
     done
   else
@@ -419,9 +424,9 @@ echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.
 count_gravity() {
 header_write "Analyzing gravity.list"
 
-  gravity_length=$(wc -l "${GRAVITYFILE}")
+  gravity_length=$(wc -l "${GRAVITY_LIST}")
   if [[ "${gravity_length}" ]]; then
-    log_write "${GRAVITYFILE} is ${gravity_length} lines long."
+    log_write "${GRAVITY_LIST} is ${gravity_length} lines long."
   else
     log_echo "Warning: No gravity.list file found!"
   fi
@@ -445,11 +450,11 @@ checkProcesses
 testResolver
 debugLighttpd
 
-files_check "${DNSMASQFILE}"
-files_check "${DNSMASQCONFFILE}"
-files_check "${WHITELISTFILE}"
-files_check "${BLACKLISTFILE}"
-files_check "${ADLISTFILE}"
+files_check "${DNSMASQ_CONF}"
+files_check "${DNSMASQ_PH_CONF}"
+files_check "${WHITELIST}"
+files_check "${BLACKLIST}"
+files_check "${AD_LIST}"
 
 count_gravity
 dumpPiHoleLog
