@@ -32,29 +32,6 @@ PI_HOLE_LOG="/var/log/pihole.log"
 
 WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
-# Header info and introduction
-cat << EOM
-::: Beginning Pi-hole debug at $(date)!
-:::
-::: This process collects information from your Pi-hole, and optionally uploads
-::: it to a unique and random directory on tricorder.pi-hole.net.
-:::
-::: NOTE: All log files auto-delete after 24 hours and ONLY the Pi-hole developers
-::: can access your data via the given token. We have taken these extra steps to
-::: secure your data and will work to further reduce any personal information gathered.
-:::
-::: Please read and note any issues, and follow any directions advised during this process.
-EOM
-
-# Ensure the file exists, create if not, clear if exists.
-truncate --size=0 "${DEBUG_LOG}"
-chmod 644 ${DEBUG_LOG}
-chown "$USER":pihole ${DEBUG_LOG}
-
-# shellcheck source=/dev/null
-source ${VARS}
-
-### Private functions exist here ###
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
 }
@@ -170,12 +147,12 @@ distro_check() {
 
 processor_check() {
   header_write "Checking processor variety"
-  log_write "$(uname -m)" && return 0 || return 1
+  log_write "$(uname -m)"
 }
 
 ipv6_check() {
   # Check if system is IPv6 enabled, for use in other functions
-  if [[ "${IPv6_address}" ]]; then
+  if [[ "${IPv6_ADDRESS}" ]]; then
     ls /proc/net/if_inet6 &>/dev/null
     return 0
   else
@@ -433,10 +410,31 @@ header_write "Analyzing gravity.list"
 }
 ### END FUNCTIONS ###
 
-# Gather version of required packages / repositories
-version_check || echo "REQUIRED FILES MISSING"
+# Header info and introduction
+cat << EOM
+::: Beginning Pi-hole debug at $(date)!
+:::
+::: This process collects information from your Pi-hole, and optionally uploads
+::: it to a unique and random directory on tricorder.pi-hole.net.
+:::
+::: NOTE: All log files auto-delete after 24 hours and ONLY the Pi-hole developers
+::: can access your data via the given token. We have taken these extra steps to
+::: secure your data and will work to further reduce any personal information gathered.
+:::
+::: Please read and note any issues, and follow any directions advised during this process.
+EOM
+
 # Check for newer setupVars storage file
 source_file "/etc/pihole/setupVars.conf"
+
+# Ensure the file exists, create if not, clear if exists.
+truncate --size=0 "${DEBUG_LOG}"
+chmod 644 ${DEBUG_LOG}
+chown "$USER":pihole ${DEBUG_LOG}
+
+# Gather version of required packages / repositories
+version_check || echo "REQUIRED FILES MISSING"
+
 # Gather information about the running distribution
 distro_check || echo "Distro Check soft fail"
 # Gather processor type
