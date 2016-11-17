@@ -119,8 +119,6 @@ version_check() {
   local light_ver
   local php_ver
 
-  error_found=0
-
   pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)"
   log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
   [[ "${pi_hole_ver}" ]] || error_found=1
@@ -137,7 +135,7 @@ version_check() {
   log_echo "${php_ver:-"PHP not located"}"
   [[ "${php_ver}" ]] || error_found=1
 
-  return "${error_found}"
+  return "${error_found:-0}"
 }
 
 files_check() {
@@ -167,18 +165,18 @@ source_file() {
 
 distro_check() {
   header_write "Detecting installed OS distribution:"
-  local soft_fail
+  local error_found
   local distro
 
-  soft_fail=0
+  error_found=0
   distro="$(cat /etc/*release)"
   if [[ "${distro}" ]]; then
     block_parse "${distro}"
   else
     log_echo "Distribution details not found."
-    soft_fail=1
+    error_found=1
   fi
-  return "${soft_fail}"
+  return "${error_found}"
 }
 
 processor_check() {
