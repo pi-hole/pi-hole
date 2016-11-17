@@ -295,16 +295,22 @@ daemon_check() {
 testResolver() {
   header_write "Resolver Functions Check"
 
+  local test_url
+  local cut_url
+  local cut_url_2
+  local local_dig
+  local remote_dig
+
   # Find a blocked url that has not been whitelisted.
-  TESTURL="doubleclick.com"
+  test_url="doubleclick.com"
   if [ -s "${WHITELISTMATCHES}" ]; then
     while read -r line; do
-      CUTURL=${line#*" "}
-      if [ "${CUTURL}" != "Pi-Hole.IsWorking.OK" ]; then
+      cut_url=${line#*" "}
+      if [ "${cut_url}" != "Pi-Hole.IsWorking.OK" ]; then
         while read -r line2; do
-          CUTURL2=${line2#*" "}
-          if [ "${CUTURL}" != "${CUTURL2}" ]; then
-            TESTURL="${CUTURL}"
+          cut_url_2=${line2#*" "}
+          if [ "${cut_url}" != "${cut_url_2}" ]; then
+            test_url="${cut_url}"
             break 2
           fi
         done < "${WHITELISTMATCHES}"
@@ -312,22 +318,22 @@ testResolver() {
     done < "${GRAVITYFILE}"
   fi
 
-  log_write "Resolution of ${TESTURL} from Pi-hole:"
-  LOCALDIG=$(dig "${TESTURL}" @127.0.0.1)
-  if [[ $? = 0 ]]; then
-    log_write "${LOCALDIG}"
+  log_write "Resolution of ${test_url} from Pi-hole:"
+  local_dig=$(dig "${test_url}" @127.0.0.1)
+  if [[ "${local_dig}" ]]; then
+    log_write "${local_dig}"
   else
-    log_write "Failed to resolve ${TESTURL} on Pi-hole"
+    log_write "Failed to resolve ${test_url} on Pi-hole"
   fi
   log_write ""
 
 
-  log_write "Resolution of ${TESTURL} from 8.8.8.8:"
-  REMOTEDIG=$(dig "${TESTURL}" @8.8.8.8)
-  if [[ $? = 0 ]]; then
-    log_write "${REMOTEDIG}"
+  log_write "Resolution of ${test_url} from 8.8.8.8:"
+  remote_dig=$(dig "${test_url}" @8.8.8.8)
+  if [[ "${remote_dig}" ]]; then
+    log_write "${remote_dig}"
   else
-    log_write "Failed to resolve ${TESTURL} on 8.8.8.8"
+    log_write "Failed to resolve ${test_url} on 8.8.8.8"
   fi
   log_write ""
 
@@ -342,9 +348,10 @@ testResolver() {
 checkProcesses() {
   header_write "Processes Check"
 
+  local processes
   echo ":::     Logging status of lighttpd and dnsmasq..."
-  PROCESSES=( lighttpd dnsmasq )
-  for i in "${PROCESSES[@]}"; do
+  processes=( lighttpd dnsmasq )
+  for i in "${processes[@]}"; do
     log_write ""
     log_write "${i}"
     log_write " processes status:"
@@ -359,6 +366,54 @@ debugLighttpd() {
   files_check "${LIGHTTPDERRFILE}"
   echo ":::"
 }
+
+dumpPiHoleLog() {
+  trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
+  echo "::: "
+  echo "::: --= User Action Required =--"
+  echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
+  header_write "pihole.log"
+  if [ -e "${PIHOLELOG}" ]; then
+    while true; do
+      tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
+      log_write ""
+    done
+  else
+    log_write "No pihole.log file found!"
+    printf ":::\tNo pihole.log file found!\n"
+  fi
+}
+
+finalWork() {
+  local tricorder
+  echo "::: Finshed debugging!"
+
+  if [[ $(nc -w5 tricorder.pi-hole.net 9999) -eq 0 ]]; then
+    echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+    read -r -p "::: Would you like to upload the log? [y/N] " response
+    case ${response} in
+      [yY][eE][sS]|[yY])
+        tricorder=$(cat /var/log/pihole_debug.log | nc -w 10 tricorder.pi-hole.net 9999)
+        ;;
+      *)
+        echo "::: Log will NOT be uploaded to tricorder."
+        ;;
+    esac
+
+    if [[ "${tricorder}" ]]; then
+      echo "::: Your debug token is : ${tricorder}"
+      echo "::: Please contact the Pi-hole team with your token for assistance."
+      echo "::: Thank you."
+    else
+      echo "::: No debug logs will be transmitted..."
+    fi
+  else
+    echo "::: There was an error uploading your debug log."
+    echo "::: Please try again or contact the Pi-hole team for assistance."
+  fi
+echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
+}
+
 
 ### END FUNCTIONS ###
 
@@ -393,49 +448,8 @@ header_write "Analyzing gravity.list"
   || log_echo "Warning: No gravity.list file found!"
 
 # Continuously append the pihole.log file to the pihole_debug.log file
-dumpPiHoleLog() {
-  trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
-  echo "::: "
-  echo "::: --= User Action Required =--"
-  echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
-  header_write "pihole.log"
-  if [ -e "${PIHOLELOG}" ]; then
-    while true; do
-      tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
-      log_write ""
-    done
-  else
-    log_write "No pihole.log file found!"
-    printf ":::\tNo pihole.log file found!\n"
-  fi
-}
 
 # Anything to be done after capturing of pihole.log terminates
-finalWork() {
-  local tricorder
-  echo "::: Finshed debugging!"
-  echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-  read -r -p "::: Would you like to upload the log? [y/N] " response
-  case ${response} in
-    [yY][eE][sS]|[yY])
-      tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
-      ;;
-    *)
-      echo "::: Log will NOT be uploaded to tricorder."
-      ;;
-  esac
-
-  # Check if tricorder.pi-hole.net is reachable and provide token.
-  if [ -n "${tricorder}" ]; then
-    echo "::: Your debug token is : ${tricorder}"
-    echo "::: Please contact the Pi-hole team with your token for assistance."
-    echo "::: Thank you."
-  else
-    echo "::: There was an error uploading your debug log."
-    echo "::: Please try again or contact the Pi-hole team for assistance."
-  fi
-    echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
-}
 
 trap finalWork EXIT
 
