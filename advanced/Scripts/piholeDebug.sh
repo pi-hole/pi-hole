@@ -28,11 +28,11 @@ readonly DNSMASQ_PH_CONF="/etc/dnsmasq.d/01-pihole.conf"
 readonly LIGHTTPD_CONF="/etc/lighttpd/lighttpd.conf"
 
 readonly LIGHTTPD_ERR_LOG="$LOG_DIR/lighttpd/error.log"
-readonly DEBUG_LOG="$LOG_DIR/pihole_debug.log"
 readonly PI_HOLE_LOG="$LOG_DIR/pihole.log"
 
 readonly WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
+DEBUG_LOG="$LOG_DIR/pihole_debug.log"
 IPV6_ENABLED=""
 IPV4_ENABLED=""
 
@@ -43,22 +43,28 @@ log_write() {
 }
 
 log_echo() {
-  case ${1} in
+  local arg
+  local message
+
+  arg="${1}"
+  message="${2}"
+
+  case "${arg}" in
     -n)
-      echo -n ":::       ${2}"
-      log_write "${2}"
+      echo -n ":::       ${message}"
+      log_write "${message}"
       ;;
     -r)
-      echo ":::       ${2}"
-      log_write "${2}"
+      echo ":::       ${message}"
+      log_write "${message}"
       ;;
     -l)
-      echo "${2}"
-      log_write "${2}"
+      echo "${message}"
+      log_write "${message}"
       ;;
      *)
-      echo ":::  ${1}"
-      log_write "${1}"
+      echo ":::  ${arg}"
+      log_write "${arg}"
   esac
 }
 
@@ -69,17 +75,18 @@ header_write() {
 }
 
 file_parse() {
+    # Read file input and write directly to log
+    local file
+
+    file=${1}
+
     while read -r line; do
       if [ ! -z "${line}" ]; then
         [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
         log_write "${line}"
       fi
-    done < "${1}"
+    done < "${file}"
     log_write ""
-}
-
-block_parse() {
-  log_write "${1}"
 }
 
 version_check() {
@@ -91,12 +98,14 @@ version_check() {
   local light_ver
   local php_ver
 
-  pi_hole_ver="$(cd /etc/.pihole/ &> /dev/null && git describe --tags --abbrev=0)" \
-  || ERRORS+=('MISSING CORE REPOSITORY')
-  admin_ver="$(cd /var/www/html/admin &> /dev/null && git describe --tags --abbrev=0)" \
-  || ERRORS+=('MISSING ADMIN REPOSITORY')
+  pi_hole_ver="$(git -C /etc/.pihole describe --tags --abbrev=0 2&>/dev/null)" \
+  || ERRORS+=('CORE REPOSITORY DAMAGED')
+  admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2&>/dev/null)" \
+  || ERRORS+=('ADMIN REPOSITORY DAMAGED')
+
   light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
   || ERRORS+=('MISSING LIGHTTPD')
+
   php_ver="$(php -v |& head -n1)" \
   || ERRORS+=('MISSING PHP')
 
@@ -129,7 +138,7 @@ source_file() {
   file_found=$(files_check "${1}")
   if [[ "${file_found}" ]]; then
     # shellcheck source=/dev/null
-    source "${1}" &> /dev/null || -l "${file_found} and could not be sourced"
+    source "${1}" &> /dev/null || echo "${file_found} and could not be sourced"
   fi
 }
 
@@ -141,7 +150,7 @@ distro_check() {
   error_found=0
   distro="$(cat /etc/*release)"
   if [[ "${distro}" ]]; then
-    block_parse "${distro}"
+    log_write "${distro}"
   else
     log_echo "Distribution details not found."
     error_found=1
@@ -378,7 +387,7 @@ finalWork() {
   local tricorder
   echo "::: Finshed debugging!"
 
-  if [[ $(nc -w5 tricorder.pi-hole.net 9999) -eq 0 ]]; then
+  if which nc &> /dev/null && nc -w5 tricorder.pi-hole.net 9999; then
     echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
     read -r -p "::: Would you like to upload the log? [y/N] " response
     case ${response} in
@@ -419,13 +428,14 @@ header_write "Analyzing gravity.list"
 }
 
 error_handler() {
-  log_echo "${1} Errors found"
+  echo "***"
+  log_echo -l "***   ${1} Errors found"
 
   for (( i=0; i< ${#ERRORS[@]}; i++ ));
   do
-    echo "!!!      ${2} ${ERRORS[$i]}"
+    log_echo -l "***      ${2} ${ERRORS[$i]}"
   done
-  echo "::: Please upload a copy of you log and contact support."
+  echo "*** Please upload a copy of you log and contact support."
   finalWork
 }
 
@@ -446,20 +456,30 @@ cat << EOM
 ::: Please read and note any issues, and follow any directions advised during this process.
 :::
 EOM
-
 }
-### END FUNCTIONS ###
+
+log_prep () {
+  local file
+  local user
+
+  file="${1}"
+  user="${2}"
+
+  truncate --size=0 "${file}" &> /dev/null \
+  || DEBUG_LOG="/dev/null" && return 1
+  chmod 644 "${file}"
+  chown "${user}":root "${file}"
+}
+
+# Ensure the file exists, create if not, clear if exists.
+log_prep "${DEBUG_LOG}" "$USER" || echo ":::   Unable to open logfile, debugging to console only."
 
 script_header
-
 
 # Check for newer setupVars storage file
 source_file "$VARS" || echo "REQUIRED FILE MISSING"
 
-# Ensure the file exists, create if not, clear if exists.
-truncate --size=0 "${DEBUG_LOG}"
-chmod 644 ${DEBUG_LOG}
-chown "$USER":pihole ${DEBUG_LOG}
+
 
 # Check for IPv6
 ipv6_check
