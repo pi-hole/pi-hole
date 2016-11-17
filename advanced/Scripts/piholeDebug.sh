@@ -180,24 +180,24 @@ ip_check() {
 
     if [[ "${IPv6_address_list}" ]]; then
       log_echo "IPv6 addresses found"
-      block_parse "${IPv6_address_list}"
+      log_write "${IPv6_address_list}"
       if [[ -n ${IPv6_default_gateway} ]]; then
-        echo -n ":::        Pinging default IPv6 gateway: "
+        echo -n ":::      Pinging default IPv6 gateway: "
         IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_default_gateway}" -I "${IPv6_interface}"| tail -n3)"
         if [[ -n ${IPv6_def_gateway_check} ]]; then
           echo "Gateway Responded."
-          block_parse "${IPv6_def_gateway_check}"
-          echo -n ":::        Pinging Internet via IPv6: "
+          echo -n ":::      Pinging Internet via IPv6: "
           IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3)
           if [[ ${IPv6_inet_check} ]]; then
             echo "Query responded."
-            log_write "${IPv6_inet_check}"
           else
             echo "Query did not respond."
           fi
+          log_write "${IPv6_inet_check}"
         else
           echo "Gateway did not respond."
         fi
+        log_write "${IPv6_def_gateway_check}"
       else
         log_echo "No IPv6 Gateway Detected"
       fi
@@ -208,28 +208,35 @@ ip_check() {
 
   IPv4_interface=${PIHOLE_INTERFACE:-$(ip r | grep default | cut -d ' ' -f 5)}
   IPv4_address_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')"
+  IPv4_defaut_gateway=$(ip r | grep default | cut -d ' ' -f 3)
+
   if [[ "${IPv4_address_list}" ]]; then
     log_echo "IPv4 addresses found"
-    block_parse "${IPv4_address_list}"
+    log_write "${IPv4_address_list}"
+    if [[ "${IPv4_defaut_gateway}" ]]; then
+      echo -n ":::      Pinging default IPv4 gateway: "
+      IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_defaut_gateway}"  -I "${IPv4_interface}" | tail -n3)"
+      if [[ "${IPv4_def_gateway_check}" ]]; then
+        echo "Gateway responded."
+        echo -n ":::      Pinging Internet via IPv4: "
+        IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)"
+        if [[ "${IPv4_inet_check}" ]]; then
+          echo "Query responded."
+        else
+          echo "Query did not respond."
+        fi
+        log_write "${IPv4_inet_check}"
+      else
+        echo "Gateway did not respond."
+      fi
+      log_write "${IPv4_def_gateway_check}"
+    else
+      log_echo "No IPv4 Gateway Detected"
+    fi
   else
     log_echo "IPv4 addresses not found."
   fi
-  IPv4_defaut_gateway=$(ip r | grep default | cut -d ' ' -f 3)
-  if [[ "${IPv4_defaut_gateway}" ]]; then
-    echo -n ":::        Pinging default IPv4 gateway: "
-    IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_defaut_gateway}"  -I "${IPv4_interface}" | tail -n3)"
-    if [[ "${IPv4_def_gateway_check}" ]]; then
-      echo "Gateway responded."
-      block_parse "${IPv4_def_gateway_check}"
-    else
-      echo "Gateway did not respond."
-    fi
-    echo -n ":::        Pinging Internet via IPv4: "
-    IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
-    && echo "Query responded." \
-    || echo "Query did not respond."
-    block_parse "${IPv4_inet_check}"
-  fi
+
 }
 
 lsof_parse() {
