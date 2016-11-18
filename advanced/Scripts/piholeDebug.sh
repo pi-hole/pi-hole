@@ -50,27 +50,19 @@ log_echo() {
 
   case "${arg}" in
     -n)
-      echo -n ":::       ${message}"
-      log_write "${message}"
-      ;;
-    -r)
-      echo ":::       ${message}"
-      log_write "${message}"
-      ;;
-    -l)
-      echo "${message}"
+      printf "${message}"
       log_write "${message}"
       ;;
      *)
-      echo ":::  ${arg}"
+      printf ":::${arg}"
       log_write "${arg}"
   esac
 }
 
 header_write() {
-  log_echo ""
-  log_echo "${1}"
-  log_echo ""
+  log_echo "\n"
+  log_echo "\t${1}\n"
+  log_echo "\n"
 }
 
 file_parse() {
@@ -98,12 +90,12 @@ repository_test() {
   admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2>/dev/null)" \
   || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
 
-  log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
-  log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
+  log_echo "\t\tPi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}\n"
+  log_echo "\t\tPi-hole WebUI Version: ${admin_ver:-"git repository not detected"}\n"
 
   error_count=${#ERRORS[@]}
-  if (( ${error_count} != 0 )); then
-    return $error_count
+  if (( error_count != 0 )); then
+    return "$error_count"
   else
     log_echo "SUCCESS: All repositories located."
   fi
@@ -127,12 +119,12 @@ package_test() {
                 | awk '/cli/ {print $2}')"
 
 
-  log_echo "Lighttpd Webserver Version: ${light_ver:-"not located"}"
-  log_echo "PHP Processor Version: ${php_ver:-"not located"}"
+  log_echo "\t\tLighttpd Webserver Version: ${light_ver:-"not located"\n}"
+  log_echo "\t\tPHP Processor Version: ${php_ver:-"not located"\n}"
 
   error_count=${#ERRORS[@]}
-  if (( ${error_count} != 0 )); then
-    return $error_count
+  if (( error_count != 0 )); then
+    return "$error_count"
   else
     log_echo "SUCCESS: All packages located."
   fi
@@ -142,14 +134,14 @@ files_check() {
   header_write "Detecting existence of ${1}:"
   local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-     log_echo "File exists"
+     log_echo "\tFile exists"
      file_parse "${search_file}"
      return 0
   else
-    log_echo "${1} not found!"
+    log_echo "\t\t${1} not found!\n"
     return 1
   fi
-  echo ":::"
+  #echo ":::"
 }
 
 source_file() {
@@ -449,11 +441,11 @@ header_write "Analyzing gravity.list"
 
 error_handler() {
   echo "***"
-  log_echo -l "***   ${#ERRORS[@]} Errors found"
+  log_echo -n "***\t${#ERRORS[@]} Errors found\n"
 
   for K in "${!ERRORS[@]}";
   do
-    log_echo -l "***       ${ERRORS[$K]} -- ${K}"
+    log_echo -n "***\t\t${ERRORS[$K]} -- ${K}\n"
     if [[ ${ERRORS[$K]} == "major" ]]; then
       ((MAJOR_ERRORS++))
     else
@@ -464,7 +456,7 @@ error_handler() {
 }
 
 final_error_handler() {
-  echo "***"
+  printf "***\n"
   log_echo -l "***   ${#ERRORS[@]} Errors found"
 
   for K in "${!ERRORS[@]}";
