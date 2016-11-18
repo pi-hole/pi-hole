@@ -437,7 +437,10 @@ error_handler() {
   do
     log_echo -l "***      ${2} ${ERRORS[$i]}"
   done
-  echo "*** Please upload a copy of you log and contact support."
+  echo "*** Please upload a copy of your log and contact support."
+  echo "*** For immediate support, please visit https://discourse.pi-hole.net"
+  echo "*** and read the FAQ and Wiki sections to find fixes for common errors."
+  echo "***"
   finalWork
 }
 
@@ -473,6 +476,7 @@ log_prep () {
   chown "${user}":root "${file}"
 }
 
+main() {
 # Ensure the file exists, create if not, clear if exists.
 log_prep "${DEBUG_LOG}" "$USER" || echo ":::   Unable to open logfile, debugging to console only."
 
@@ -512,4 +516,5 @@ count_gravity
 dumpPiHoleLog
 
 trap finalWork EXIT
-
+}
+main
