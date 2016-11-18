@@ -33,6 +33,8 @@ readonly PI_HOLE_LOG="$LOG_DIR/pihole.log"
 readonly WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
 DEBUG_LOG="$LOG_DIR/pihole_debug.log"
+MAJOR_ERRORS=0
+MINOR_ERRORS=0
 IPV6_ENABLED=""
 IPV4_ENABLED=""
 
@@ -59,7 +61,7 @@ log_echo() {
       echo "${message}"
       log_write "${message}"
       ;;
-     ?*)
+     *)
       echo ":::  ${arg}"
       log_write "${arg}"
   esac
@@ -84,18 +86,36 @@ file_parse() {
     log_write ""
 }
 
-version_check() {
-  header_write "Detecting Installed Package Versions:"
+repository_test() {
+  header_write "Detecting Local Repositories:"
 
   local pi_hole_ver
   local admin_ver
-  local light_ver
-  local php_ver
+  local error_count
 
   pi_hole_ver="$(git -C /etc/.pihole describe --tags --abbrev=0 2>/dev/null)" \
   || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
   admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2>/dev/null)" \
   || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
+
+  log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
+  log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
+
+  error_count=${#ERRORS[@]}
+  if (( ${error_count} != 0 )); then
+    return $error_count
+  else
+    log_echo "SUCCESS: All repositories located."
+  fi
+}
+
+package_test() {
+  header_write "Detecting Installed Package Versions:"
+
+  local light_ver
+  local php_ver
+  local error_count
+
   which lighttpd &>/dev/null \
   || ERRORS+=(['MISSING LIGHTTPD EXECUTABLE']=major) \
   && light_ver="$(lighttpd -v 2> /dev/null \
@@ -107,12 +127,15 @@ version_check() {
                 | awk '/cli/ {print $2}')"
 
 
-  log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
-  log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
   log_echo "Lighttpd Webserver Version: ${light_ver:-"not located"}"
   log_echo "PHP Processor Version: ${php_ver:-"not located"}"
 
-  return ${#ERRORS[@]}
+  error_count=${#ERRORS[@]}
+  if (( ${error_count} != 0 )); then
+    return $error_count
+  else
+    log_echo "SUCCESS: All packages located."
+  fi
 }
 
 files_check() {
@@ -409,7 +432,7 @@ finalWork() {
     echo "::: There was an error uploading your debug log."
     echo "::: Please try again or contact the Pi-hole team for assistance."
   fi
-echo "::: A local copy of the Debug log can be found at : {$DEBUG_LOG}"
+echo "::: A local copy of the Debug log can be found at : ${DEBUG_LOG}"
 exit
 }
 
@@ -425,6 +448,22 @@ header_write "Analyzing gravity.list"
 }
 
 error_handler() {
+  echo "***"
+  log_echo -l "***   ${#ERRORS[@]} Errors found"
+
+  for K in "${!ERRORS[@]}";
+  do
+    log_echo -l "***       ${ERRORS[$K]} -- ${K}"
+    if [[ ${ERRORS[$K]} == "major" ]]; then
+      ((MAJOR_ERRORS++))
+    else
+      ((MINOR_ERRORS++))
+    fi
+    unset ERRORS["$K"]
+  done
+}
+
+final_error_handler() {
   echo "***"
   log_echo -l "***   ${#ERRORS[@]} Errors found"
 
@@ -462,8 +501,8 @@ log_prep () {
   local file="${1}"
   local user="${2}"
 
-  truncate --size=0 "${file}" \
-  || DEBUG_LOG="/dev/null"
+  truncate --size=0 "${file}" &> /dev/null\
+  || DEBUG_LOG="/dev/null" && return 1
   chmod 644 "${file}"
   chown "${user}":root "${file}"
 }
@@ -479,7 +518,8 @@ source_file "$VARS" || echo "REQUIRED FILE MISSING"
 ipv6_check
 
 # Gather version of required packages / repositories
-version_check || error_handler
+repository_test || error_handler
+package_test || error_handler
 
 ip_check
 
