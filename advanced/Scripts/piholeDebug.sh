@@ -36,18 +36,15 @@ DEBUG_LOG="$LOG_DIR/pihole_debug.log"
 IPV6_ENABLED=""
 IPV4_ENABLED=""
 
-declare -a ERRORS
+declare -A ERRORS
 
 log_write() {
     echo "${1}" >> "${DEBUG_LOG}"
 }
 
 log_echo() {
-  local arg
-  local message
-
-  arg="${1}"
-  message="${2}"
+  local arg="${1}"
+  local message="${2}"
 
   case "${arg}" in
     -n)
@@ -76,9 +73,7 @@ header_write() {
 
 file_parse() {
     # Read file input and write directly to log
-    local file
-
-    file=${1}
+    local file=${1}
 
     while read -r line; do
       if [ ! -z "${line}" ]; then
@@ -98,16 +93,16 @@ version_check() {
   local php_ver
 
   pi_hole_ver="$(git -C /etc/.pihole describe --tags --abbrev=0 2>/dev/null)" \
-  || ERRORS+=('CORE REPOSITORY DAMAGED')
+  || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
   admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2>/dev/null)" \
-  || ERRORS+=('ADMIN REPOSITORY DAMAGED')
+  || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
   which lighttpd &>/dev/null \
-  || ERRORS+=('MISSING LIGHTTPD EXECUTABLE') \
+  || ERRORS+=(['MISSING LIGHTTPD EXECUTABLE']=major) \
   && light_ver="$(lighttpd -v 2> /dev/null \
                 | awk -F "/" '/lighttpd/ {print $2}' \
                 | awk -F "-" '{print $1}')"
   which php &>/dev/null \
-  || ERRORS+=('MISSING PHP PROCESSOR') \
+  || ERRORS+=(['MISSING PHP PROCESSOR']=major) \
   && php_ver="$(php -v 2> /dev/null \
                 | awk '/cli/ {print $2}')"
 
@@ -431,11 +426,11 @@ header_write "Analyzing gravity.list"
 
 error_handler() {
   echo "***"
-  log_echo -l "***   ${1} Errors found"
+  log_echo -l "***   ${#ERRORS[@]} Errors found"
 
-  for (( i=0; i< ${#ERRORS[@]}; i++ ));
+  for K in "${!ERRORS[@]}";
   do
-    log_echo -l "***      ${2} ${ERRORS[$i]}"
+    log_echo -l "***       ${ERRORS[$K]} -- ${K}"
   done
   echo "*** Please upload a copy of your log and contact support."
   echo "*** For immediate support, please visit https://discourse.pi-hole.net"
@@ -477,26 +472,17 @@ log_prep () {
 }
 
 main() {
-# Ensure the file exists, create if not, clear if exists.
+
+# Ensure the file exists, create if not, clear if exists, and debug to terminal if none of the above.
 log_prep "${DEBUG_LOG}" "$USER" || echo ":::   Unable to open logfile, debugging to console only."
-
 script_header
-
-# Check for newer setupVars storage file
 source_file "$VARS" || echo "REQUIRED FILE MISSING"
-
-
 
 # Check for IPv6
 ipv6_check
 
 # Gather version of required packages / repositories
-version_check || error_handler $? "major"
-
-# Gather information about the running distribution
-distro_check || echo "Distro Check soft fail"
-# Gather processor type
-processor_check || echo "Processor Check soft fail"
+version_check || error_handler
 
 ip_check
 
@@ -505,6 +491,12 @@ daemon_check dnsmasq domain
 checkProcesses
 testResolver
 debugLighttpd
+
+# Gather information about the running distribution
+distro_check || echo "Distro Check soft fail"
+# Gather processor type
+processor_check || echo "Processor Check soft fail"
+
 
 files_check "${DNSMASQ_CONF}"
 files_check "${DNSMASQ_PH_CONF}"
