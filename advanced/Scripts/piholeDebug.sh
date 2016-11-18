@@ -316,6 +316,16 @@ debugLighttpd() {
   echo ":::"
 }
 
+countdown() {
+  tuvix=${TIMEOUT}
+  printf "::: Logging will automatically teminate in ${TIMEOUT} seconds\n"
+  while [ $tuvix -ge 1 ]
+  do
+    printf ":::\t${tuvix} seconds left. \r"
+    sleep 5
+    tuvix=$(( tuvix - 5 ))
+  done
+}
 ### END FUNCTIONS ###
 
 # Gather version of required packages / repositories
@@ -357,7 +367,7 @@ dumpPiHoleLog() {
 	header_write "pihole.log"
 	if [ -e "${PIHOLELOG}" ]; then
 	# Dummy process to use for flagging down tail to terminate
-	  sleep ${TIMEOUT} &
+	  countdown &
 		tail -n0 -f --pid=$! "${PIHOLELOG}" >> ${DEBUG_LOG}
 	else
 		log_write "No pihole.log file found!"
