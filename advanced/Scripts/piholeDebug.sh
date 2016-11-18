@@ -59,7 +59,7 @@ log_echo() {
       echo "${message}"
       log_write "${message}"
       ;;
-     *)
+     ?*)
       echo ":::  ${arg}"
       log_write "${arg}"
   esac
@@ -409,7 +409,7 @@ finalWork() {
     echo "::: There was an error uploading your debug log."
     echo "::: Please try again or contact the Pi-hole team for assistance."
   fi
-echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
+echo "::: A local copy of the Debug log can be found at : {$DEBUG_LOG}"
 exit
 }
 
@@ -459,14 +459,11 @@ EOM
 }
 
 log_prep () {
-  local file
-  local user
+  local file="${1}"
+  local user="${2}"
 
-  file="${1}"
-  user="${2}"
-
-  truncate --size=0 "${file}" &> /dev/null \
-  || DEBUG_LOG="/dev/null" && return 1
+  truncate --size=0 "${file}" \
+  || DEBUG_LOG="/dev/null"
   chmod 644 "${file}"
   chown "${user}":root "${file}"
 }
