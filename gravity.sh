@@ -264,6 +264,7 @@ gravity_hostFormat() {
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp ${piholeDir}/${accretionDisc} ${adList}
+	echo " done!"
 }
 
 # blackbody - remove any remnant files from script processes
