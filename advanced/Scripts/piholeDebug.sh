@@ -41,7 +41,7 @@ IPV4_ENABLED=""
 declare -A ERRORS
 
 log_write() {
-    echo "${1}" >> "${DEBUG_LOG}"
+   echo "${1}" >> "${DEBUG_LOG}"
 }
 
 log_echo() {
@@ -119,14 +119,14 @@ package_test() {
                 | awk '/cli/ {print $2}')"
 
 
-  log_echo "\t\tLighttpd Webserver Version: ${light_ver:-"not located"\n}"
-  log_echo "\t\tPHP Processor Version: ${php_ver:-"not located"\n}"
+  log_echo "\t\tLighttpd Webserver Version: ${light_ver:-"not located"}\n"
+  log_echo "\t\tPHP Processor Version: ${php_ver:-"not located"}\n"
 
   error_count=${#ERRORS[@]}
   if (( error_count != 0 )); then
     return "$error_count"
   else
-    log_echo "SUCCESS: All packages located."
+    log_echo "\tSUCCESS: All packages located.\n"
   fi
 }
 
@@ -303,48 +303,34 @@ daemon_check() {
 }
 
 testResolver() {
-  header_write "Resolver Functions Check"
+  header_write "Checking Pi-hole DNS Resolver."
 
-  local test_url
-  local cut_url
-  local cut_url_2
+  local test_domain
+  local rand_domain
   local local_dig
   local remote_dig
 
-  # Find a blocked url that has not been whitelisted.
-  # None of this worked
-  test_url="doubleclick.com"
-  if [ -s "${WHITELIST_MATCHES}" ]; then
-    while read -r line; do
-      cut_url=${line#*" "}
-      if [ "${cut_url}" != "Pi-Hole.IsWorking.OK" ]; then
-        while read -r line2; do
-          cut_url_2=${line2#*" "}
-          if [ "${cut_url}" != "${cut_url_2}" ]; then
-            test_url="${cut_url}"
-            break 2
-          fi
-        done < "${WHITELIST_MATCHES}"
-      fi
-    done < "${GRAVITY_LIST}"
-  fi
 
-  log_write "Resolution of ${test_url} from Pi-hole:"
-  local_dig=$(dig "${test_url}" @127.0.0.1)
+  # Find a blocked url.
+  rand_domain=$(shuf -n 1 $GRAVITY_LIST | awk -F " " '{print $2}')
+  test_domain="${rand_domain:-"doubleclick.com"}"
+
+  printf ":::\tResolving %s via Pi-hole:\n" "${test_domain}"
+  local_dig=$(dig "${test_domain}" @127.0.0.1 +short)
   if [[ "${local_dig}" ]]; then
-    log_write "${local_dig}"
+    log_write "Pi-hole reports ${test_domain} is at ${local_dig}"
   else
-    log_write "Failed to resolve ${test_url} on Pi-hole"
+    log_write "Failed to resolve ${test_domain} on Pi-hole"
   fi
   log_write ""
 
 
-  log_write "Resolution of ${test_url} from 8.8.8.8:"
-  remote_dig=$(dig "${test_url}" @8.8.8.8)
+  printf ":::\tResolving %s via 8.8.8.8:\n" "${test_domain}"
+  remote_dig=$(dig "${test_domain}" @8.8.8.8 +short | tail -n1)
   if [[ "${remote_dig}" ]]; then
-    log_write "${remote_dig}"
+    log_write "Remote DNS reports ${test_domain} is at ${remote_dig}"
   else
-    log_write "Failed to resolve ${test_url} on 8.8.8.8"
+    log_write "Failed to resolve ${test_domain} on 8.8.8.8"
   fi
   log_write ""
 
@@ -357,7 +343,7 @@ testResolver() {
 }
 
 checkProcesses() {
-  header_write "Processes Check"
+  header_write "Checkig for neccssary daemon processes:"
 
   local processes
   echo ":::     Logging status of lighttpd and dnsmasq..."
@@ -372,7 +358,7 @@ checkProcesses() {
 }
 
 debugLighttpd() {
-  echo ":::     Checking for necessary lighttpd files."
+  header_write "Checking for necessary lighttpd files."
   files_check "${LIGHTTPD_CONF}"
   files_check "${LIGHTTPD_ERR_LOG}"
   echo ":::"
@@ -494,8 +480,8 @@ log_prep () {
   local user="${2}"
 
   truncate --size=0 "${file}" &> /dev/null\
-  || DEBUG_LOG="/dev/null" && return 1
-  chmod 644 "${file}"
+  || DEBUG_LOG="/dev/null"
+  chmod 644 "${file}" || return 1
   chown "${user}":root "${file}"
 }
 
@@ -509,6 +495,11 @@ source_file "$VARS" || echo "REQUIRED FILE MISSING"
 # Check for IPv6
 ipv6_check
 
+# Gather information about the running distribution
+distro_check || echo "Distro Check soft fail"
+# Gather processor type
+processor_check || echo "Processor Check soft fail"
+
 # Gather version of required packages / repositories
 repository_test || error_handler
 package_test || error_handler
@@ -520,12 +511,6 @@ daemon_check dnsmasq domain
 checkProcesses
 testResolver
 debugLighttpd
-
-# Gather information about the running distribution
-distro_check || echo "Distro Check soft fail"
-# Gather processor type
-processor_check || echo "Processor Check soft fail"
-
 
 files_check "${DNSMASQ_CONF}"
 files_check "${DNSMASQ_PH_CONF}"
