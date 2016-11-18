@@ -92,19 +92,23 @@ file_parse() {
 version_check() {
   header_write "Detecting Installed Package Versions:"
 
-  local error_found
   local pi_hole_ver
   local admin_ver
   local light_ver
   local php_ver
 
-  pi_hole_ver="$(git -C /etc/.pihole describe --tags --abbrev=0 2&>/dev/null)" \
+  pi_hole_ver="$(git -C /etc/.pihole describe --tags --abbrev=0 2>/dev/null)" \
   || ERRORS+=('CORE REPOSITORY DAMAGED')
-  admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2&>/dev/null)" \
+  admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2>/dev/null)" \
   || ERRORS+=('ADMIN REPOSITORY DAMAGED')
 
-  light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
-  || ERRORS+=('MISSING LIGHTTPD')
+  if which lighttpd 2>&1 >/dev/null; then
+    light_ver="$(lighttpd -v 2> /dev/null \
+                | awk -F "/" '/lighttpd/ {print $2}' \
+                | awk -F "-" '{print $1}')"
+  else
+    ERRORS+=('MISSING LIGHTTPD EXECUTABLE')
+  fi
 
   php_ver="$(php -v |& head -n1)" \
   || ERRORS+=('MISSING PHP')
@@ -112,7 +116,7 @@ version_check() {
 
   log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
   log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
-  log_echo "${light_ver:-"lighttpd not located"}"
+  log_echo "Lighttpd Webserver Version: ${light_ver:-"not located"}"
   log_echo "${php_ver:-"PHP not located"}"
 
   return ${#ERRORS[@]}
