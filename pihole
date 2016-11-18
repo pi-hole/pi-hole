@@ -120,11 +120,11 @@ piholeEnable() {
     if [[ $# > 1 ]] ; then
       if [[ ${2} == *"s"* ]] ; then
         tt=${2%"s"}
-        echo "::: Blocking will be reenabled in ${tt} seconds"
+        echo "::: Blocking will be re-enabled in ${tt} seconds"
         nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
       elif [[ ${2} == *"m"* ]] ; then
         tt=${2%"m"}
-        echo "::: Blocking will be reenabled in ${tt} minutes"
+        echo "::: Blocking will be re-enabled in ${tt} minutes"
         tt=$((${tt}*60))
         nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
       else
