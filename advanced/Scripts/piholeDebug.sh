@@ -41,7 +41,7 @@ IPV4_ENABLED=""
 declare -A ERRORS
 
 log_write() {
-   echo "${1}" >> "${DEBUG_LOG}"
+   printf "%b" "${1}" >&3
 }
 
 log_echo() {
@@ -50,11 +50,11 @@ log_echo() {
 
   case "${arg}" in
     -n)
-      printf "${message}"
+      printf "%b" "${message}"
       log_write "${message}"
       ;;
      *)
-      printf ":::${arg}"
+      printf ":::%b" "${arg}"
       log_write "${arg}"
   esac
 }
@@ -62,7 +62,6 @@ log_echo() {
 header_write() {
   log_echo "\n"
   log_echo "\t${1}\n"
-  log_echo "\n"
 }
 
 file_parse() {
@@ -72,12 +71,22 @@ file_parse() {
     while read -r line; do
       if [ ! -z "${line}" ]; then
         [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
-        log_write "${line}"
+        log_write "\t${line}\n"
       fi
     done < "${file}"
-    log_write ""
 }
 
+block_parse() {
+    local file=${1}
+
+    while read -r line; do
+      if [ ! -z "${line}" ]; then
+        [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
+        log_write "\t${line}\n"
+      fi
+    done <<< "${file}"
+    log_write "\n"
+}
 repository_test() {
   header_write "Detecting Local Repositories:"
 
@@ -94,11 +103,10 @@ repository_test() {
   log_echo "\t\tPi-hole WebUI Version: ${admin_ver:-"git repository not detected"}\n"
 
   error_count=${#ERRORS[@]}
-  if (( error_count != 0 )); then
-    return "$error_count"
-  else
-    log_echo "SUCCESS: All repositories located."
+  if (( ! error_count != 0 )); then
+    log_echo "\tSUCCESS: All repositories located.\n"
   fi
+  return "$error_count"
 }
 
 package_test() {
@@ -123,144 +131,111 @@ package_test() {
   log_echo "\t\tPHP Processor Version: ${php_ver:-"not located"}\n"
 
   error_count=${#ERRORS[@]}
-  if (( error_count != 0 )); then
-    return "$error_count"
-  else
+  if (( ! error_count != 0 )); then
     log_echo "\tSUCCESS: All packages located.\n"
   fi
+  return "$error_count"
 }
 
 files_check() {
-  header_write "Detecting existence of ${1}:"
+  header_write "Detecting existence of ${1}"
   local search_file="${1}"
-  if [[ -s ${search_file} ]]; then
-     log_echo "\tFile exists"
+  local result
+  local ret_val
+
+  if find "${search_file}" &> /dev/null; then
+     result="File exists"
+     ret_val=0
      file_parse "${search_file}"
-     return 0
   else
-    log_echo "\t\t${1} not found!\n"
-    return 1
+    result="not found!"
+    ret_val=1
   fi
-  #echo ":::"
+  log_write "\t${result}\n"
+  return ${ret_val}
 }
 
 source_file() {
-  local file_found
-
-  file_found=$(files_check "${1}")
-  if [[ "${file_found}" ]]; then
+  if files_check "${1}"; then
     # shellcheck source=/dev/null
-    source "${1}" &> /dev/null || echo "${file_found} and could not be sourced"
+    source "${1}" &> /dev/null
+  else
+    log_echo "\t\t\tand could not be sourced\n"
+    return 1
   fi
 }
 
 distro_check() {
-  header_write "Detecting installed OS distribution:"
+  header_write "Detecting installed OS distribution"
   local error_found
   local distro
+  local name
 
-  error_found=0
   distro="$(cat /etc/*release)"
+  error_found=$?
   if [[ "${distro}" ]]; then
-    log_write "${distro}"
+   name=$(awk -F '=' '/PRETTY_NAME/ {print $2}' <<< "${distro}")
+   log_write "\t${name}\n"
   else
     log_echo "Distribution details not found."
-    error_found=1
   fi
   return "${error_found}"
 }
 
 processor_check() {
   header_write "Checking processor variety"
-  log_write "$(uname -m)"
+  log_write "\t$(uname -m)\n"
 }
 
-ipv6_check() {
+ipv6_enabled_test() {
   # Check if system is IPv6 enabled, for use in other functions
   if [[ "${IPV6_ADDRESS}" ]]; then
     ls /proc/net/if_inet6 &>/dev/null && IPV6_ENABLED="true"
   fi
 }
 
-ip_check() {
-  header_write "IP Address Information"
+ip_test() {
+  header_write "Testing IPv4 interface"
 
-  local IPv6_interface
-  local IPv4_interface
-  local IPv6_address_list
-  local IPv6_default_gateway
-  local IPv6_def_gateway_check
-  local IPv6_inet_check
-  local IPv4_address_list
-  local IPv4_defaut_gateway
-  local IPv4_def_gateway_check
-  local IPv4_inet_check
+  local protocol_version=${1}
+  local IP_interface
+  local IP_address_list
+  local IP_defaut_gateway
+  local IP_def_gateway_check
+  local IP_inet_check
+  local dns_server=${2}
 
   # If declared in setupVars.conf use it, otherwise defer to default
-  # http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
 
-  if [[ "${IPV6_ENABLED}" ]]; then
-    IPv6_address_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')"
-    IPv6_interface=${PIHOLE_INTERFACE:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
-    IPv6_default_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
+  IP_interface=${PIHOLE_INTERFACE:-$(ip -"${protocol_version}" r | grep default | cut -d ' ' -f 5)}
+  IP_address_list="$(ip -"${protocol_version}" addr show | sed -e's/^.*inet* \([^ ]*\)\/.*$/\1/;t;d')"
+  IP_defaut_gateway=$(ip -"${protocol_version}" route | grep default | cut -d ' ' -f 3)
 
-    if [[ "${IPv6_address_list}" ]]; then
-      log_echo "IPv6 addresses found"
-      log_write "${IPv6_address_list}"
-      if [[ -n ${IPv6_default_gateway} ]]; then
-        echo -n ":::      Pinging default IPv6 gateway: "
-        IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_default_gateway}" -I "${IPv6_interface}"| tail -n3)"
-        if [[ -n ${IPv6_def_gateway_check} ]]; then
-          echo "Gateway Responded."
-          echo -n ":::      Pinging Internet via IPv6: "
-          IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3)
-          if [[ ${IPv6_inet_check} ]]; then
-            echo "Query responded."
-          else
-            echo "Query did not respond."
-          fi
-          log_write "${IPv6_inet_check}"
+  if [[ "${IP_address_list}" ]]; then
+    log_echo "\t\tIP addresses found\n"
+    log_write "${IP_address_list}\n"
+    if [[ "${IP_defaut_gateway}" ]]; then
+      printf ":::\t\tPinging default gateway: "
+      IP_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IP_defaut_gateway}"  -I "${IP_interface}" | tail -n3)"
+      if [[ "${IP_def_gateway_check}" ]]; then
+        printf "Gateway responded.\n"
+        printf ":::\t\tPinging Internet via IPv4: "
+        IP_inet_check="$(ping -q -w 5 -c 3 -n "${dns_server}" -I "${IP_interface}" | tail -n3)"
+        if [[ "${IP_inet_check}" ]]; then
+          printf "Query responded.\n"
         else
-          echo "Gateway did not respond."
+          printf "Query did not respond.\n"
         fi
-        log_write "${IPv6_def_gateway_check}"
+        log_write "${IP_inet_check}\n"
       else
-        log_echo "No IPv6 Gateway Detected"
+        printf "Gateway did not respond.\n"
       fi
+      log_write "${IP_def_gateway_check}\n"
     else
-      log_echo "IPV6 addresses not found"
-    fi
-  fi
-
-  IPv4_interface=${PIHOLE_INTERFACE:-$(ip r | grep default | cut -d ' ' -f 5)}
-  IPv4_address_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')"
-  IPv4_defaut_gateway=$(ip r | grep default | cut -d ' ' -f 3)
-
-  if [[ "${IPv4_address_list}" ]]; then
-    log_echo "IPv4 addresses found"
-    log_write "${IPv4_address_list}"
-    if [[ "${IPv4_defaut_gateway}" ]]; then
-      echo -n ":::      Pinging default IPv4 gateway: "
-      IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_defaut_gateway}"  -I "${IPv4_interface}" | tail -n3)"
-      if [[ "${IPv4_def_gateway_check}" ]]; then
-        echo "Gateway responded."
-        echo -n ":::      Pinging Internet via IPv4: "
-        IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)"
-        if [[ "${IPv4_inet_check}" ]]; then
-          echo "Query responded."
-        else
-          echo "Query did not respond."
-        fi
-        log_write "${IPv4_inet_check}"
-      else
-        echo "Gateway did not respond."
-      fi
-      log_write "${IPv4_def_gateway_check}"
-    else
-      log_echo "No IPv4 Gateway Detected"
+      log_echo "No Gateway Detected"
     fi
   else
-    log_echo "IPv4 addresses not found."
+    log_echo "Addresses not found."
   fi
 
 }
@@ -302,48 +277,51 @@ daemon_check() {
   port_check 4 "${2}" "${1}"
 }
 
-testResolver() {
+resolve_and_log(){
+  local resolver=${1}
+  local test_domain=${2}
+  local scope=${3}
+
+  dig=$(dig "${test_domain}" @"${resolver}" +short)
+  if [[ "${dig}" ]]; then
+    log_write "\t${resolver} found ${test_domain} at ${dig}\n"
+    if [[ "${scope}" != "remote" ]]; then
+      log=$(grep "${test_domain}" "${PI_HOLE_LOG}")
+      block_parse "${log}"
+    fi
+  else
+    log_write "\tFailed to resolve ${test_domain} on Pi-hole\n"
+  fi
+}
+
+resolver_test() {
   header_write "Checking Pi-hole DNS Resolver."
 
-  local test_domain
+  local black_domain
   local rand_domain
-  local local_dig
   local remote_dig
 
+  rand_domain=$(shuf -n 1 "${GRAVITY_LIST}" | awk -F " " '{print $2}')
+  black_domain="${rand_domain:-"doubleclick.com"}"
 
-  # Find a blocked url.
-  rand_domain=$(shuf -n 1 $GRAVITY_LIST | awk -F " " '{print $2}')
-  test_domain="${rand_domain:-"doubleclick.com"}"
+  rand_domain=$(shuf -n 1 "${WHITELIST}")
+  white_domain="${rand_domain:-"tricorder.pihole.net"}"
 
-  printf ":::\tResolving %s via Pi-hole:\n" "${test_domain}"
-  local_dig=$(dig "${test_domain}" @127.0.0.1 +short)
-  if [[ "${local_dig}" ]]; then
-    log_write "Pi-hole reports ${test_domain} is at ${local_dig}"
-  else
-    log_write "Failed to resolve ${test_domain} on Pi-hole"
-  fi
-  log_write ""
+  resolve_and_log 127.0.0.1 "${black_domain}" local
+  resolve_and_log 127.0.0.1 "${white_domain}" local
 
+  resolve_and_log 8.8.8.8 "${black_domain}" remote
+  resolve_and_log 8.8.8.8 "${white_domain}" remote
 
-  printf ":::\tResolving %s via 8.8.8.8:\n" "${test_domain}"
-  remote_dig=$(dig "${test_domain}" @8.8.8.8 +short | tail -n1)
-  if [[ "${remote_dig}" ]]; then
-    log_write "Remote DNS reports ${test_domain} is at ${remote_dig}"
-  else
-    log_write "Failed to resolve ${test_domain} on 8.8.8.8"
-  fi
-  log_write ""
-
-  log_write "Pi-hole dnsmasq specific records lookups"
-  log_write "Cache Size:"
-  dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
-  log_write "Upstream Servers:"
-  dig +short chaos txt servers.bind >> ${DEBUG_LOG}
+  log_write "\tPi-hole dnsmasq specific records lookups\n"
+  log_write "\tUpstream Servers:\n"
+  upstreams=$(dig +short chaos txt servers.bind)
+  log_write "\t${upstreams}"
   log_write ""
 }
 
 checkProcesses() {
-  header_write "Checkig for neccssary daemon processes:"
+  header_write "Checking for necessary daemon processes:"
 
   local processes
   echo ":::     Logging status of lighttpd and dnsmasq..."
@@ -352,7 +330,8 @@ checkProcesses() {
     log_write ""
     log_write "${i}"
     log_write " processes status:"
-    systemctl -l status "${i}" >> "${DEBUG_LOG}"
+    status=$(systemctl status "${i}") &> /dev/null
+    log_write "$status"
   done
   log_write ""
 }
@@ -365,35 +344,66 @@ debugLighttpd() {
 }
 
 dumpPiHoleLog() {
-  trap 'echo -e "\n::: Finishing debug write from interrupt..." ; break' SIGINT
+  trap 'echo -e "\n::: Finishing debug write from interrupt..." ; finalWork' SIGINT
   echo "::: "
-  echo "::: --= User Action Required =--"
-  echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
+  printf ":::\t\t\t--= User Action Required =--\n"
+  printf ":::\tTry loading a site that you are having trouble with from a client web browser.\n"
+  printf ":::\t(Press CTRL+C to finish logging.)"
   header_write "pihole.log"
   if [ -e "${PI_HOLE_LOG}" ]; then
     while true; do
-      tail -f "${PI_HOLE_LOG}" >> ${DEBUG_LOG}
-      log_write ""
+      tail -f -n0 "${PI_HOLE_LOG}" >&4
     done
   else
     log_write "No pihole.log file found!"
     printf ":::\tNo pihole.log file found!\n"
   fi
 }
+final_error_handler() {
+  printf "***\n"
+  log_echo "***\t${MAJOR_ERRORS} Major Errors Detected\n"
+  log_echo "***\t${MINOR_ERRORS} Minor Errors Detected\n"
+  if [[ "${MAJOR_ERRORS}" -gt 0 ]] || [[ "${MINOR_ERRORS}" -gt 0 ]]; then
+    printf "***\tFor immediate support, please visit https://discourse.pi-hole.net\n"
+    printf "***\tand read the FAQ and Wiki sections to find fixes for common errors.\n"
+    printf "***\n"
+  fi
+}
+
+log_prep () {
+  local file="${1}"
+  local user="${2}"
+
+  truncate --size=0 "$file" &> /dev/null || { DEBUG_LOG=""; return 1; }
+  chmod 644 "${file}"
+  chown "${user}":root "${file}"
+  DEBUG_LOG="${file}"
+  cp /proc/$$/fd/3 $DEBUG_LOG
+}
 
 finalWork() {
   local tricorder
-  echo "::: Finshed debugging!"
+  printf ":::\tFinshed debugging!"
 
+  final_error_handler
+
+  log_prep "${DEBUG_LOG}" "$USER"
+
+  if [[ ! "$DEBUG_LOG" ]]; then
+    printf ":::\tWARNING: No local log available, please select upload when instructed\n"
+    printf ":::\tto provide a copy to the developers.\n"
+  else
+    printf ":::\tA local copy of the Debug log can be found at : %s\n"  "${DEBUG_LOG}"
+  fi
   if which nc &> /dev/null && nc -w5 tricorder.pi-hole.net 9999; then
-    echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+    printf ":::\tThe debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only.\n"
     read -r -p "::: Would you like to upload the log? [y/N] " response
     case ${response} in
       [yY][eE][sS]|[yY])
         tricorder=$(nc -w 10 tricorder.pi-hole.net 9999 < /var/log/pihole_debug.log)
         ;;
       *)
-        echo "::: Log will NOT be uploaded to tricorder."
+        printf ":::\tLog will NOT be uploaded to tricorder.\n"
         ;;
     esac
 
@@ -410,8 +420,7 @@ finalWork() {
     echo "::: There was an error uploading your debug log."
     echo "::: Please try again or contact the Pi-hole team for assistance."
   fi
-echo "::: A local copy of the Debug log can be found at : ${DEBUG_LOG}"
-exit
+exit 0
 }
 
 count_gravity() {
@@ -433,27 +442,12 @@ error_handler() {
   do
     log_echo -n "***\t\t${ERRORS[$K]} -- ${K}\n"
     if [[ ${ERRORS[$K]} == "major" ]]; then
-      ((MAJOR_ERRORS++))
+      MAJOR_ERRORS=$((MAJOR_ERRORS+1))
     else
-      ((MINOR_ERRORS++))
+      MINOR_ERRORS=$((MINOR_ERRORS+1))
     fi
     unset ERRORS["$K"]
   done
-}
-
-final_error_handler() {
-  printf "***\n"
-  log_echo -l "***   ${#ERRORS[@]} Errors found"
-
-  for K in "${!ERRORS[@]}";
-  do
-    log_echo -l "***       ${ERRORS[$K]} -- ${K}"
-  done
-  echo "*** Please upload a copy of your log and contact support."
-  echo "*** For immediate support, please visit https://discourse.pi-hole.net"
-  echo "*** and read the FAQ and Wiki sections to find fixes for common errors."
-  echo "***"
-  finalWork
 }
 
 script_header () {
@@ -475,25 +469,23 @@ cat << EOM
 EOM
 }
 
-log_prep () {
-  local file="${1}"
-  local user="${2}"
-
-  truncate --size=0 "${file}" &> /dev/null\
-  || DEBUG_LOG="/dev/null"
-  chmod 644 "${file}" || return 1
-  chown "${user}":root "${file}"
-}
-
 main() {
+# Create temporary file for log
+templog=$(mktemp /tmp/pihole_temp.XXXXXX)
+exec 3>"$templog"
+rm "$templog"
+
+# Create temporary file for logdump
+logdump=$(mktemp /tmp/pihole_temp.XXXXXX)
+exec 4>"$logdump"
+rm "$logdump"
 
 # Ensure the file exists, create if not, clear if exists, and debug to terminal if none of the above.
-log_prep "${DEBUG_LOG}" "$USER" || echo ":::   Unable to open logfile, debugging to console only."
 script_header
-source_file "$VARS" || echo "REQUIRED FILE MISSING"
+source_file "$VARS" || printf "***\tREQUIRED FILE MISSING\n"
 
 # Check for IPv6
-ipv6_check
+ipv6_enabled_test
 
 # Gather information about the running distribution
 distro_check || echo "Distro Check soft fail"
@@ -504,12 +496,15 @@ processor_check || echo "Processor Check soft fail"
 repository_test || error_handler
 package_test || error_handler
 
-ip_check
+if [[ "${IPV6_ENABLED}" ]]; then
+  ip_test "6" "2001:4860:4860::8888"
+fi
+ip_test "4" "8.8.8.8"
 
 daemon_check lighttpd http
 daemon_check dnsmasq domain
 checkProcesses
-testResolver
+resolver_test
 debugLighttpd
 
 files_check "${DNSMASQ_CONF}"
@@ -520,7 +515,7 @@ files_check "${AD_LIST}"
 
 count_gravity
 dumpPiHoleLog
+finalWork
 
-trap finalWork EXIT
 }
 main
