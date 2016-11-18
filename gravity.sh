@@ -240,7 +240,7 @@ gravity_unique() {
 
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
-	echo "::: Formatting domains into a HOSTS file..."
+	echo -n "::: Formatting domains into a HOSTS file..."
     # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
     if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
