@@ -71,7 +71,7 @@ log_echo() {
 header_write() {
   log_echo ""
   log_echo "${1}"
-  log_write ""
+  log_echo ""
 }
 
 file_parse() {
@@ -101,23 +101,21 @@ version_check() {
   || ERRORS+=('CORE REPOSITORY DAMAGED')
   admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2>/dev/null)" \
   || ERRORS+=('ADMIN REPOSITORY DAMAGED')
-
-  if which lighttpd 2>&1 >/dev/null; then
-    light_ver="$(lighttpd -v 2> /dev/null \
+  which lighttpd &>/dev/null \
+  || ERRORS+=('MISSING LIGHTTPD EXECUTABLE') \
+  && light_ver="$(lighttpd -v 2> /dev/null \
                 | awk -F "/" '/lighttpd/ {print $2}' \
                 | awk -F "-" '{print $1}')"
-  else
-    ERRORS+=('MISSING LIGHTTPD EXECUTABLE')
-  fi
-
-  php_ver="$(php -v |& head -n1)" \
-  || ERRORS+=('MISSING PHP')
+  which php &>/dev/null \
+  || ERRORS+=('MISSING PHP PROCESSOR') \
+  && php_ver="$(php -v 2> /dev/null \
+                | awk '/cli/ {print $2}')"
 
 
   log_echo "Pi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}"
   log_echo "Pi-hole WebUI Version: ${admin_ver:-"git repository not detected"}"
   log_echo "Lighttpd Webserver Version: ${light_ver:-"not located"}"
-  log_echo "${php_ver:-"PHP not located"}"
+  log_echo "PHP Processor Version: ${php_ver:-"not located"}"
 
   return ${#ERRORS[@]}
 }
