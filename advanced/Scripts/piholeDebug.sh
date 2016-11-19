@@ -27,7 +27,7 @@ PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 IPV6_READY=false
-
+TIMEOUT=60
 # Header info and introduction
 cat << EOM
 ::: Beginning Pi-hole debug at $(date)!
@@ -316,6 +316,16 @@ debugLighttpd() {
   echo ":::"
 }
 
+countdown() {
+  tuvix=${TIMEOUT}
+  printf "::: Logging will automatically teminate in ${TIMEOUT} seconds\n"
+  while [ $tuvix -ge 1 ]
+  do
+    printf ":::\t${tuvix} seconds left. \r"
+    sleep 5
+    tuvix=$(( tuvix - 5 ))
+  done
+}
 ### END FUNCTIONS ###
 
 # Gather version of required packages / repositories
@@ -356,10 +366,9 @@ dumpPiHoleLog() {
 	echo -e "::: Try loading a site that you are having trouble with now from a client web browser.. \n:::\t(Press CTRL+C to finish logging.)"
 	header_write "pihole.log"
 	if [ -e "${PIHOLELOG}" ]; then
-		while true; do
-			tail -f "${PIHOLELOG}" >> ${DEBUG_LOG}
-			log_write ""
-		done
+	# Dummy process to use for flagging down tail to terminate
+	  countdown &
+		tail -n0 -f --pid=$! "${PIHOLELOG}" >> ${DEBUG_LOG}
 	else
 		log_write "No pihole.log file found!"
 		printf ":::\tNo pihole.log file found!\n"
