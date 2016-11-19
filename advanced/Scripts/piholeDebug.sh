@@ -71,7 +71,7 @@ file_parse() {
     while read -r line; do
       if [ ! -z "${line}" ]; then
         [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
-        log_write "\t${line}\n"
+        log_write "\t\t${line}\n"
       fi
     done < "${file}"
 }
@@ -140,19 +140,15 @@ package_test() {
 files_check() {
   header_write "Detecting existence of ${1}"
   local search_file="${1}"
-  local result
-  local ret_val
 
-  if find "${search_file}" &> /dev/null; then
-     result="File exists"
-     ret_val=0
+  if find "${search_file}" &>/dev/null
+   then
      file_parse "${search_file}"
+     return 0
   else
-    result="not found!"
-    ret_val=1
+    log_write="\tnot found!\n"
+    return=1
   fi
-  log_write "\t${result}\n"
-  return ${ret_val}
 }
 
 source_file() {
@@ -305,7 +301,7 @@ resolver_test() {
   black_domain="${rand_domain:-"doubleclick.com"}"
 
   rand_domain=$(shuf -n 1 "${WHITELIST}")
-  white_domain="${rand_domain:-"tricorder.pihole.net"}"
+  white_domain="tricorder.pihole.net"
 
   resolve_and_log 127.0.0.1 "${black_domain}" local
   resolve_and_log 127.0.0.1 "${white_domain}" local
@@ -320,20 +316,15 @@ resolver_test() {
   log_write ""
 }
 
-checkProcesses() {
+process_test() {
   header_write "Checking for necessary daemon processes:"
 
   local processes
-  echo ":::     Logging status of lighttpd and dnsmasq..."
   processes=( lighttpd dnsmasq )
   for i in "${processes[@]}"; do
-    log_write ""
-    log_write "${i}"
-    log_write " processes status:"
-    status=$(systemctl status "${i}") &> /dev/null
-    log_write "$status"
+    status=$(systemctl show "${i}" --property=ActiveState) &> /dev/null
+    log_write "\t\t${i} $status\n"
   done
-  log_write ""
 }
 
 debugLighttpd() {
@@ -359,6 +350,7 @@ dumpPiHoleLog() {
     printf ":::\tNo pihole.log file found!\n"
   fi
 }
+
 final_error_handler() {
   printf "***\n"
   log_echo "***\t${MAJOR_ERRORS} Major Errors Detected\n"
@@ -378,7 +370,18 @@ log_prep () {
   chmod 644 "${file}"
   chown "${user}":root "${file}"
   DEBUG_LOG="${file}"
-  cp /proc/$$/fd/3 $DEBUG_LOG
+  cp /proc/$$/fd/3 "$DEBUG_LOG"
+}
+
+debug_log_parse(){
+  while read -r line; do
+    if [[ ! -z "${line}" ]]; then
+      if $(echo "${line}" | egrep -q 'cached|gravity')
+      then
+        log_write "\t\t${line}\n"
+      fi
+    fi
+  done < /proc/$$/fd/4
 }
 
 finalWork() {
@@ -387,6 +390,7 @@ finalWork() {
 
   final_error_handler
 
+  debug_log_parse
   log_prep "${DEBUG_LOG}" "$USER"
 
   if [[ ! "$DEBUG_LOG" ]]; then
@@ -413,8 +417,6 @@ finalWork() {
       echo ":::"
       echo "::: Please contact the Pi-hole team with your token for assistance."
       echo "::: Thank you."
-    else
-      echo "::: No debug logs will be transmitted..."
     fi
   else
     echo "::: There was an error uploading your debug log."
@@ -503,7 +505,7 @@ ip_test "4" "8.8.8.8"
 
 daemon_check lighttpd http
 daemon_check dnsmasq domain
-checkProcesses
+process_test
 resolver_test
 debugLighttpd
 
