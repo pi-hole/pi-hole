@@ -71,7 +71,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 -   [Users Forum](https://discourse.pi-hole.net/)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
--   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
+-   [Wiki](https://github.com/pi-hole/pi-hole/wiki)
 -   ![Twitter](https://assets.pi-hole.net/static/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
 -   ![Reddit](https://assets.pi-hole.net/static/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
 -   ![YouTube](https://assets.pi-hole.net/static/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
