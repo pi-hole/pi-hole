@@ -18,7 +18,7 @@ helpFunc() {
 ::: Usage: pihole -web [options]
 :::
 ::: Options:
-:::  -p, password		Set web interface password
+:::  -p, password		Set web interface password, an empty input will remove any previously set password
 :::  -c, celsius		Set Celcius temperature unit
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
 :::  -h, --help			Show this help dialog
