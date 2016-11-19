@@ -43,11 +43,17 @@ SetWebPassword(){
 
 	# Remove password from file (create backup setupVars.conf.bak)
 	sed -i.bak '/WEBPASSWORD/d' /etc/pihole/setupVars.conf
-	# Compute password hash twice to avoid rainbow table vulnerability
-	hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
-	hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
-	# Save hash to file
-	echo "WEBPASSWORD=${hash}" >> /etc/pihole/setupVars.conf
+	# Set password only if there is one to be set
+	if (( ${#args[2]} > 0 )) ; then
+		# Compute password hash twice to avoid rainbow table vulnerability
+		hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
+		hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
+		# Save hash to file
+		echo "WEBPASSWORD=${hash}" >> /etc/pihole/setupVars.conf
+		echo "New password set"
+	else
+		echo "Password removed"
+	fi
 
 }
 
