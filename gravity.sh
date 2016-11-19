@@ -189,7 +189,7 @@ gravity_Blacklist() {
 	if [[ -f "${blacklistFile}" ]]; then
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	    echo -n "::: BlackListing $numBlacklisted domain${plural}..."
+	    echo -n "::: Blacklisting $numBlacklisted domain${plural}..."
 	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
 	    echo " done!"
 	else
@@ -240,7 +240,7 @@ gravity_unique() {
 
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
-	echo "::: Formatting domains into a HOSTS file..."
+	echo -n "::: Formatting domains into a HOSTS file..."
     # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
     if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
@@ -264,6 +264,7 @@ gravity_hostFormat() {
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp ${piholeDir}/${accretionDisc} ${adList}
+	echo " done!"
 }
 
 # blackbody - remove any remnant files from script processes
