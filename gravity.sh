@@ -189,7 +189,7 @@ gravity_Blacklist() {
 	if [[ -f "${blacklistFile}" ]]; then
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	    echo -n "::: BlackListing $numBlacklisted domain${plural}..."
+	    echo -n "::: Blacklisting $numBlacklisted domain${plural}..."
 	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
 	    echo " done!"
 	else
