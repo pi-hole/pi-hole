@@ -93,11 +93,11 @@ The automated install is only for a clean install of a Debian family or Fedora b
 
 ### Web Interface
 
-The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings. You can find it at:
+The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings. You can find it at:
 
 `http://192.168.1.x/admin/index.php` or `http://pi.hole/admin`
 
-![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/gTq2GbS.png)
+![Pi-hole Advanced Stats Dashboard](https://assets.pi-hole.net/static/dashboard.png)
 
 ### Whitelist and blacklist
 
