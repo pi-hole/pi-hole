@@ -1,76 +1,110 @@
-[![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=3011939)](https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE) [![Code Climate](https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg)](https://codeclimate.com/github/pi-hole/pi-hole) [![Build Status](https://travis-ci.org/pi-hole/pi-hole.svg?branch=development)](https://travis-ci.org/pi-hole/pi-hole)
+<p align="center">
+<a href=https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"></a>
+<a href="https://www.codacy.com/app/Pi-hole/pi-hole?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pi-hole/pi-hole&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/c558a0f8d7124c99b02b84f0f5564238"/></a>
+<a href=https://travis-ci.org/pi-hole/pi-hole><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"></a>
+</p>
 
-# Automated Install
+<p align="center">
+<a href=https://discourse.pi-hole.net><img src="https://assets.pi-hole.net/static/Vortex_text.png" width=210></a>
+</p>
 
-Designed For Raspberry Pi A+, B, B+, 2, 3B, and Zero (with an Ethernet/Wi-Fi adapter)
-Works on most Debian and CentOS/RHEL based distributions!
+## The multi-platform, network-wide ad blocker
 
-1.  Install Raspbian
-2.  Run the command below (downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
+Block ads for **all** your devices _without_ the need to install client-side software.  The Pi-hole blocks ads the DNS-level, so all your devices are protected.
+
+- Web Browsers
+- Cell Phones
+- Smart TV's
+- Internet-connected home automation
+- Anything that communicates with the Internet
+
+<p align="center">
+<a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://assets.pi-hole.net/static/DOHostingSlug.png"></a>
+</p>
+
+## Your Support Still Matters
+
+Digital Ocean helps with our infrastructure, but our developers are all volunteers so *your donations help keep us innovating*. Sending a donation using our links below helps us offset a portion of our monthly costs.
+
+-   ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
+-   ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+
+### One-Step Automated Install
+1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
+2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
 ### `curl -sSL https://install.pi-hole.net | bash`
 
-### Alternative Semi-Automated install
+#### Alternative Semi-Automated Install Methods
+_If you wish to read over the script before running it, run `nano basic-install.sh` to open the file in a text viewer._
+
+##### Clone our repository and run the automated installer from your device.
+
+```
+git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
+cd Pi-hole/automated_installer/
+bash basic-install.sh
+```
+
+##### Or
 
 ```bash
 wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
-If you wish to read over the script before running it, then after the [`wget`](https://linux.die.net/man/1/wget) command, run `nano basic-install.sh` to open the file in a text viewer.
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
-## How To Install Pi-hole
+## Installing the Pi-hole (Click to Watch!)
+<p align="center">
+<a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://assets.pi-hole.net/static/global.png"></a>
+</p>
 
-[![60-second install tutorial](http://i.imgur.com/5TEc3a6.png)](https://www.youtube.com/watch?v=TzFLJqUeirA)
-
-## How It Works
+## Would you like to know more?
 
 **Watch the 60-second video below to get a quick overview**
-
-[![Pi-hole exlplained](http://i.imgur.com/pG1m937.png)](https://youtu.be/9Eti3xibiho)
-
-## Pi-hole Is Free, But Powered By Your Donations
-
-Send a one-time donation using our link below to provide us with a small portion of the monthly fee.
-
--   ![Paypal](http://i.imgur.com/3muNfxu.png) : [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
--   ![Flattr](http://i.imgur.com/ZFceFRu.png) : [Donate](https://flattr.com/submit/auto?user_id=jacobsalmela&url=https://github.com/pi-hole/pi-hole)
--   ![Bitcoin](http://i.imgur.com/FIlmOMG.png) : 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+<p align="center">
+<a href=https://youtu.be/9Eti3xibiho><img src="https://assets.pi-hole.net/static/blackhole_web.png"></a>
+</p>
 
 ## Get Help Or Connect With Us On The Web
 
--   [@The_Pi_Hole](https://twitter.com/The_Pi_Hole)
--   [Discourse](https://discourse.pi-hole.net/)
--   [/r/pihole](https://www.reddit.com/r/pihole/)
--   [Pi-hole YouTube channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
--   [Wiki](https://github.com/pi-hole/pi-hole/wiki/Customization)
+-   [Users Forum](https://discourse.pi-hole.net/)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
+-   [Wiki](https://github.com/pi-hole/pi-hole/wiki)
+-   ![Twitter](https://assets.pi-hole.net/static/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+-   ![Reddit](https://assets.pi-hole.net/static/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
+-   ![YouTube](https://assets.pi-hole.net/static/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Technical Details
 
 The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
 
-#### Other Operating Systems
-
-This script will work for other UNIX-like systems with some slight **modifications**. As long as you can install `dnsmasq` and a Webserver, it should work OK. The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. If there are other platforms you'd like supported, let us know.
-
 ### Gravity
 
 The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)). This script is controlled by the `pihole` command. Please run `pihole -h` to see what commands can be run via `pihole`.
 
-## Web Interface
 
-The [Web interface](https://github.com/jacobsalmela/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings. You can find it at:
+
+#### Other Operating Systems
+
+The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a Webserver, it should work OK. If there are other platforms you'd like supported, let us know.
+
+### Web Interface
+
+The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings. You can find it at:
 
 `http://192.168.1.x/admin/index.php` or `http://pi.hole/admin`
 
-![Pi-hole Advanced Stats Dashboard](http://i.imgur.com/gTq2GbS.png)
+![Pi-hole Advanced Stats Dashboard](https://assets.pi-hole.net/static/dashboard.png)
 
 ### Whitelist and blacklist
 
-Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details ![Whitelist editor in the Web interface](http://i.imgur.com/ogu2ewg.png)
+Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details 
+<p align="center">
+<a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/controlpanel.png"></a>
+</p>
 
 ## API
 
