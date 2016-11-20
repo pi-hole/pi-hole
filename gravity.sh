@@ -316,7 +316,7 @@ gravity_reload() {
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
 	pihole restartdns
-	echo "done."
+	echo " done!"
 }
 
 for var in "$@"; do
