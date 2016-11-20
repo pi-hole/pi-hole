@@ -1,11 +1,10 @@
 <p align="center">
 <a href=https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"></a>
-<a href=https://codeclimate.com/github/pi-hole/pi-hole><img src="https://codeclimate.com/github/pi-hole/pi-hole/badges/gpa.svg"></a>
 <a href=https://travis-ci.org/pi-hole/pi-hole><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"></a>
 </p>
 
 <p align="center">
-<img src="https://assets.pi-hole.net/static/Vortex_text.png" width=210>
+<a href=https://discourse.pi-hole.net><img src="https://assets.pi-hole.net/static/Vortex_text.png" width=210></a>
 </p>
 
 ## The multi-platform, network-wide ad blocker
