@@ -13,9 +13,9 @@ args=("$@")
 
 helpFunc() {
 	cat << EOM
-::: Set options for the web interface of pihole
+::: Set admin options for the web interface of pihole
 :::
-::: Usage: pihole -web [options]
+::: Usage: pihole -a [options]
 :::
 ::: Options:
 :::  -p, password		Set web interface password, an empty input will remove any previously set password

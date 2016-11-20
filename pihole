@@ -185,7 +185,7 @@ helpFunc() {
 ::: Control all PiHole specific functions!
 :::
 ::: Usage: pihole [options]
-:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -web (webpage)  for more information on usage
+:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin)  for more information on usage
 :::
 ::: Options:
 :::  -w, whitelist            Whitelist domains
@@ -200,7 +200,7 @@ helpFunc() {
 :::  -v, version              Show current versions
 :::  -q, query                Query the adlists for a specific domain
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
-:::  -web, webpage            Webpage options
+:::  -a, admin                Admin webpage options
 :::  uninstall                Uninstall Pi-Hole from your system :(!
 :::  status                   Is Pi-Hole Enabled or Disabled
 :::  enable                   Enable Pi-Hole DNS Blocking
@@ -234,6 +234,6 @@ case "${1}" in
   "disable"                     ) piholeEnable 0;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
-  "-web" | "webpage"            ) webpageFunc "$@";;
+  "-a" | "admin"                ) webpageFunc "$@";;
   *                             ) helpFunc;;
 esac
