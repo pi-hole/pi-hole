@@ -217,6 +217,8 @@ helpFunc() {
 :::  status                   Is Pi-Hole Enabled or Disabled
 :::  enable                   Enable Pi-Hole DNS Blocking
 :::  disable                  Disable Pi-Hole DNS Blocking
+:::                           Blocking can also be disabled only temporarily, e.g.,
+:::                           pihole disable 5m - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
 EOM
   exit 1
