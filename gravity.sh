@@ -289,7 +289,7 @@ gravity_advanced() {
 	#awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' ${piholeDir}/${matterAndLight} | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
 	#Above line does not correctly grab domains where comment is on the same line (e.g 'addomain.com #comment')
 	#Add additional awk command to read all lines up to a '#', and then continue as we were
-	cat ${piholeDir}/${matterAndLight} | awk -F'#' '{print $1}' | awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+	cat ${piholeDir}/${matterAndLight} | awk -F'#' '{print $1}' | awk -F'/' '{print $1}' | awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
 	echo " done!"
 
 	numberOf=$(wc -l < ${piholeDir}/${supernova})
