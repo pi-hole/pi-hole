@@ -55,7 +55,7 @@ HandleOther(){
 	domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
 
 	#check validity of domain
-	validDomain=$(echo "$domain" | perl -ne'print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
+	validDomain=$(perl -ne "print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/" <<< "$domain")
 	if [ -z "${validDomain}" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
