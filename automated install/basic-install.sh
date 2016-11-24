@@ -114,8 +114,10 @@ elif [ $(command -v rpm) ]; then
   # Fedora Family
   if [ $(command -v dnf) ]; then
     PKG_MANAGER="dnf"
+    PKG_CONFIG_FILE="/etc/dnf/dnf.conf"
   else
     PKG_MANAGER="yum"
+    PKG_CONFIG_FILE="/etc/yum.conf"
   fi
   PKG_CACHE="/var/cache/${PKG_MANAGER}"
   UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
@@ -139,21 +141,21 @@ elif [ $(command -v rpm) ]; then
     }
 
     package_hold() {
-      count=$(cat /etc/yum.conf | sed -n "/\exclude=/p" | wc -l)
+      count=$(cat ${PKG_CONFIG_FILE} | sed -n "/\exclude=/p" | wc -l)
       if [ count -gt 0 ]; then
         # Go through all lines and look for "exclude=".
         # If found, append the argument
-        sed '/exclude=/s/$/ ${1}/g' /etc/yum.conf
+        sed '/exclude=/s/$/ ${1}/g' ${PKG_CONFIG_FILE}
       else
         # "exclude=" has not been found, create new line
-        echo "exclude= ${1}" >> /etc/yum.conf
+        echo "exclude= ${1}" >> ${PKG_CONFIG_FILE}
       fi
     }
 
     package_unhold() {
       # Go through all lines and look for "exclude=".
       # If found, replace the argument by an empty string
-      sed -i '/exclude=/ s/ ${1}//g' /etc/yum.conf
+      sed -i '/exclude=/ s/ ${1}//g' ${PKG_CONFIG_FILE}
     }
 
 else
