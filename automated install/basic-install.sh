@@ -139,11 +139,21 @@ elif [ $(command -v rpm) ]; then
     }
 
     package_hold() {
-      echo "Still to be implemented"
+      count=$(cat /etc/yum.conf | sed -n "/\exclude=/p" | wc -l)
+      if [ count -gt 0 ]; then
+        # Go through all lines and look for "exclude=".
+        # If found, append the argument
+        sed '/exclude=/s/$/ ${1}/g' /etc/yum.conf
+      else
+        # "exclude=" has not been found, create new line
+        echo "exclude= ${1}" >> /etc/yum.conf
+      fi
     }
 
     package_unhold() {
-      echo "Still to be implemented"
+      # Go through all lines and look for "exclude=".
+      # If found, replace the argument by an empty string
+      sed -i '/exclude=/ s/ ${1}//g' /etc/yum.conf
     }
 
 else
