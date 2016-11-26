@@ -159,7 +159,7 @@ main() {
     /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
     web_updated=true
     core_updated=true
-  elif [[ ${OPTION} != "devel" ]] ; then
+  elif [[ ${OPTION} == "devel" ]] ; then
     echo "::: Updating Everything to development version"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
     gitCheckoutDevelopment "${PI_HOLE_FILES_DIR}"
