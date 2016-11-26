@@ -71,8 +71,9 @@ gitCheckoutDevelopment() {
     echo "Unable to change branch for repository ${directory} to development branch, please contact support"; exit 1
   fi
 
-  # Check out development branch
+  # Fetch and check out development branch
   echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
+  git -C "${directory}" fetch --quiet &> /dev/null || ${retVal}=1
   git -C "${directory}" checkout ${branch} --quiet &> /dev/null || ${retVal}=1
   echo " done!"
   return ${retVal}
@@ -97,7 +98,7 @@ getGitFiles() {
 }
 
 confirm () {
-    read -r -p "Are you sure you want to continue? [y/N] " response
+    read -r -p "Are you sure you want to continue? [yes/N] " response
     case $response in
         [yY]) # Y is not enough for us - we want to see "Yes"
             echo "Type:"
