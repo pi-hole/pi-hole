@@ -82,14 +82,13 @@ gitCheckoutDevelopment() {
     git -C "${directory}" checkout -b ${branch} refs/remotes/origin/${branch} --quiet &> /dev/null
     echo " done!"
   fi
-  exit 1
 
   # Stash, clean, and pull latest changes
   git -C "${directory}" stash --all --quiet &> /dev/null
   git -C "${directory}" clean --force -d &> /dev/null
   git -C "${directory}" pull --quiet &> /dev/null
   echo " done!"
-  return ${retVal}
+  return 1
 }
 
 getGitFiles() {
