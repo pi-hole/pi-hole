@@ -79,7 +79,7 @@ gitCheckoutDevelopment() {
   else
        echo ":::     Branch ${branch} does not yet exist in ${directory}!"
     echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
-    git -C "${directory}" checkout -b ${branch} origin/${branch} --quiet &> /dev/null
+    git -C "${directory}" checkout -b ${branch} refs/remotes/origin/${branch} --quiet &> /dev/null
     echo " done!"
   fi
   exit 1
