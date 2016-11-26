@@ -73,8 +73,8 @@ gitCheckoutDevelopment() {
 
   # Fetch and check out development branch
   echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
-  git -C "${directory}" remote update &> /dev/null || ${retVal}=1
-  git -C "${directory}" checkout -t origin/${branch} --quiet &> /dev/null || ${retVal}=1
+  git -C "${directory}" fetch origin ${branch}:${branch} &> /dev/null || ${retVal}=1
+  git -C "${directory}" checkout ${branch} --quiet &> /dev/null || ${retVal}=1
   echo " done!"
   return ${retVal}
 }
