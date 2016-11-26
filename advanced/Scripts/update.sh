@@ -18,6 +18,7 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+readonly OPTION=${1}
 
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
@@ -55,6 +56,23 @@ update_repo() {
   git -C "${directory}" clean --force -d &> /dev/null || ${retVal}=1
   # Fetch latest changes and apply
   git -C "${directory}" pull --quiet &> /dev/null || ${retVal}=1
+  return ${retVal}
+}
+
+gitCheckoutDevelopment() {
+  local directory="${1}"
+  local retVal=0
+
+  if [[ ${directory} == ${PI_HOLE_FILES_DIR} ]] ; then
+    local branch="development"
+  elif [[ ${directory} == ${ADMIN_INTERFACE_DIR} ]] ; then
+    local branch="devel"
+  else
+    echo "Unable to change branch for repository ${directory} to development branch, please contact support"; exit 1
+  fi
+
+  # Fetch latest changes and apply
+  git -C "${directory}" checkout ${branch} --quiet &> /dev/null || ${retVal}=1
   return ${retVal}
 }
 
@@ -111,8 +129,10 @@ main() {
   #            pull pihole repo, run install --unattended -- reconfigure
   # if Core NOT up to date AND web NOT up to date:
   #            pull pihole repo run install --unattended
+  # if nothing of the things above apply and the option "devel" is set
+  #            pull pihole repo, checkout development, run install --unattended --reconfigure
 
-  if [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]]; then
+  if [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]] && [[ ${OPTION} != "devel" ]]; then
     echo ":::"
     echo "::: Pi-hole version is $pihole_version_current"
     echo "::: Web Admin version is $web_version_current"
@@ -137,6 +157,15 @@ main() {
     echo "::: Updating Everything"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
     /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    web_updated=true
+    core_updated=true
+  elif [[ ${OPTION} != "devel" ]] ; then
+    echo "::: Updating Everything to development version"
+    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+    gitCheckoutDevelopment "${PI_HOLE_FILES_DIR}"
+    getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
+    gitCheckoutDevelopment "${ADMIN_INTERFACE_DIR}"
+    /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
     web_updated=true
     core_updated=true
   else
