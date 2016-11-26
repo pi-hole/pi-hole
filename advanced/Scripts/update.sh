@@ -72,7 +72,7 @@ gitCheckoutDevelopment() {
   fi
 
   # Fetch latest changes and apply
-  echo -n ":::    Checking out repository in ${directory} to branch ${branch}..."
+  echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
   git -C "${directory}" checkout ${branch} --quiet &> /dev/null || ${retVal}=1
   echo " done!"
   return ${retVal}
