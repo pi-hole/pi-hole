@@ -68,7 +68,7 @@ gitCheckoutDevelopment() {
   elif [[ ${directory} == ${ADMIN_INTERFACE_DIR} ]] ; then
     local branch="devel"
   else
-    echo "Unable to change branch for repository ${directory} to development branch, please contact support"; exit 1
+    echo "Unable to change branch for repository ${directory} to development branch."; exit 1
   fi
 
   # Fetch and check out development branch
