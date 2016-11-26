@@ -96,6 +96,23 @@ getGitFiles() {
   fi
 }
 
+confirm () {
+    read -r -p "Are you sure you want to continue? [y/N] " response
+    case $response in
+        [yY]) # Y is not enough for us - we want to see "Yes"
+            echo "Type:"
+            echo "      Yes"
+            confirm
+            ;;
+        [yY][eE][sS]) # Accepted
+            true
+            ;;
+        *) # Everything that is not "y" or "yes"
+            false
+            ;;
+    esac
+}
+
 main() {
   local pihole_version_current
   local pihole_version_latest
@@ -164,6 +181,23 @@ main() {
     core_updated=true
   elif [[ ${OPTION} == "devel" ]] ; then
     echo "::: Updating Everything to development version"
+    echo ":::"
+    echo "::: Be aware:"
+    echo "::: Running the development version is not recommended"
+    echo "::: for end-users. Do this only if you know what you are"
+    echo "::: doing. Note that this route is not officially supported"
+    echo "::: and you may end up with a system that is not fully"
+    echo "::: functional! If something breaks, you cannot expect"
+    echo "::: support from the developers. Furthermore, you may not"
+    echo "::: be able to switch back to the master branch easily."
+    echo "::: If you switch and there are changes which prevent you"
+    echo "::: from chaning back to master, you will have to perform a"
+    echo "::: full installation again."
+    echo "::: Note that, though this is possible, it is not recommended!"
+    echo ":::"
+
+    confirm || exit 1
+
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
     gitCheckoutDevelopment "${PI_HOLE_FILES_DIR}"
     getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
