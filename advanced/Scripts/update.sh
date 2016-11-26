@@ -130,7 +130,8 @@ main() {
   # if Core NOT up to date AND web NOT up to date:
   #            pull pihole repo run install --unattended
   # if nothing of the things above apply and the option "devel" is set
-  #            pull pihole repo, checkout development, run install --unattended --reconfigure
+  #            pull pihole repo + checkout development, pull web repo + checkout devel, and
+  #            run install --unattended --reconfigure
 
   if [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]] && [[ ${OPTION} != "devel" ]]; then
     echo ":::"
