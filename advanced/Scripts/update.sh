@@ -61,7 +61,6 @@ update_repo() {
 
 gitCheckoutDevelopment() {
   local directory="${1}"
-  local retVal=0
 
   if [[ ${directory} == ${PI_HOLE_FILES_DIR} ]] ; then
     local branch="development"
@@ -73,10 +72,10 @@ gitCheckoutDevelopment() {
 
   # Fetch and check out development branch
   echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
-  git -C "${directory}" fetch origin ${branch}:${branch} &> /dev/null || ${retVal}=1
-  git -C "${directory}" checkout ${branch} --quiet &> /dev/null || ${retVal}=1
+  git -C "${directory}" fetch &> /dev/null
+  git -C "${directory}" checkout ${branch} --quiet &> /dev/null
   # Fetch latest changes and apply
-  git -C "${directory}" pull --quiet &> /dev/null || ${retVal}=1
+  git -C "${directory}" pull --quiet &> /dev/null
   echo " done!"
   return ${retVal}
 }
