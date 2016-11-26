@@ -71,7 +71,7 @@ gitCheckoutDevelopment() {
     echo "Unable to change branch for repository ${directory} to development branch, please contact support"; exit 1
   fi
 
-  # Fetch latest changes and apply
+  # Check out development branch
   echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
   git -C "${directory}" checkout ${branch} --quiet &> /dev/null || ${retVal}=1
   echo " done!"
