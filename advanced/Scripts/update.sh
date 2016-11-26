@@ -71,10 +71,22 @@ gitCheckoutDevelopment() {
   fi
 
   # Fetch and check out development branch
-  echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
-  git -C "${directory}" fetch &> /dev/null
-  git -C "${directory}" checkout ${branch} --quiet &> /dev/null
-  # Fetch latest changes and apply
+  if [ `git -C "${directory}" branch --list ${branch} ` ] ; then
+       echo ":::     Branch ${branch} already exists in ${directory}!"
+    echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
+    git -C "${directory}" checkout ${branch} --quiet &> /dev/null
+    echo " done!"
+  else
+       echo ":::     Branch ${branch} does not yet exist in ${directory}!"
+    echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
+    git -C "${directory}" checkout -b ${branch} origin/${branch} --quiet &> /dev/null
+    echo " done!"
+  fi
+  exit 1
+
+  # Stash, clean, and pull latest changes
+  git -C "${directory}" stash --all --quiet &> /dev/null
+  git -C "${directory}" clean --force -d &> /dev/null
   git -C "${directory}" pull --quiet &> /dev/null
   echo " done!"
   return ${retVal}
