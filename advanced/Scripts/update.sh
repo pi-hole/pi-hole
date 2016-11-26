@@ -75,6 +75,8 @@ gitCheckoutDevelopment() {
   echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
   git -C "${directory}" fetch origin ${branch}:${branch} &> /dev/null || ${retVal}=1
   git -C "${directory}" checkout ${branch} --quiet &> /dev/null || ${retVal}=1
+  # Fetch latest changes and apply
+  git -C "${directory}" pull --quiet &> /dev/null || ${retVal}=1
   echo " done!"
   return ${retVal}
 }
