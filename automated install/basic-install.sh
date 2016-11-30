@@ -80,7 +80,7 @@ if command -v apt-get &> /dev/null; then
   PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_UPDATE="${PKG_MANAGER} upgrade"
-  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
+  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
@@ -740,19 +740,23 @@ notify_package_updates_available() {
 	fi
 }
 
-install_dependent_packages() {
-  # Install packages passed in via argument array
-  # No spinner - conflicts with set -e
-  local PKG_MGR_OUT
-  declare -a argArray1=("${!1}")
 
-  for i in "${argArray1[@]}"; do
-    echo ":::    Installing $i..."
-    ${PKG_INSTALL} "${i}" &> /dev/null || \
-    (echo "PACKAGE INSTALL ERROR"; \
-     echo "::: Sometimes this can be a transitory error, check connectivity and retry"; \
-     exit 1)
-  done
+install_dependent_packages() {
+	# Install packages passed in via argument array
+	# No spinner - conflicts with set -e
+	declare -a argArray1=("${!1}")
+
+	if command -v debconf-apt-progress &> /dev/null; then
+	  debconf-apt-progress -- ${PKG_INSTALL} "${argArray1[@]}"
+	else
+    for i in "${argArray1[@]}"; do
+      echo ":::    Installing $i..."
+      ${PKG_INSTALL} "${i}" &> /dev/null || \
+      (echo "PACKAGE INSTALL ERROR"; \
+      echo "::: Sometimes this can be a transitory error, check connectivity and retry"; \
+      exit 1)
+    done
+  fi
 }
 
 CreateLogFile() {
