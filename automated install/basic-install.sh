@@ -154,7 +154,7 @@ make_repo() {
 	# Remove the non-repod interface and clone the interface
 	echo -n ":::    Cloning $remoteRepo into $directory..."
 	rm -rf "${directory}"
-	git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null & spinner $!
+	git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null
 	echo " done!"
 }
 
@@ -163,8 +163,8 @@ update_repo() {
 	# Pull the latest commits
 	echo -n ":::     Updating repo in $1..."
 	cd "${directory}" || exit 1
-	git stash -q > /dev/null & spinner $!
-	git pull -q > /dev/null & spinner $!
+	git stash -q > /dev/null
+	git pull -q > /dev/null
 	echo " done!"
 }
 
@@ -717,9 +717,9 @@ stop_service() {
 	echo ":::"
 	echo -n "::: Stopping ${1} service..."
 	if [ -x "$(command -v systemctl)" ]; then
-		systemctl stop "${1}" &> /dev/null & spinner $! || true
+		systemctl stop "${1}" &> /dev/null || true
 	else
-		service "${1}" stop &> /dev/null & spinner $! || true
+		service "${1}" stop &> /dev/null || true
 	fi
 	echo " done."
 }
@@ -870,7 +870,7 @@ runGravity() {
 		rm /etc/pihole/list.*
 	fi
 	echo "::: Running gravity.sh"
-	/opt/pihole/gravity.sh
+	(/opt/pihole/gravity.sh)
 }
 
 create_pihole_user() {
