@@ -26,6 +26,7 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
 IPV4_ADDRESS=""
@@ -648,14 +649,15 @@ installScripts() {
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
-    install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
+    install -o "${USER}" -dm755 "$PI_HOLE_INSTALL_DIR"
+    install -o "${USER}" -Dm755 -t "$PI_HOLE_INSTALL_DIR" gravity.sh
+    install -o "${USER}" -Dm755 -t "$PI_HOLE_INSTALL_DIR" ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t "$PI_HOLE_INSTALL_DIR" ./automated\ install/uninstall.sh
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	  echo " done."
   else
-    echo " *** ERROR: Local repo ${core_repo} not found, exiting."
+    echo " *** ERROR: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting."
     exit 1
   fi
 }
