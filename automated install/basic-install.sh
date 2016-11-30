@@ -91,8 +91,8 @@ if [[ $(command -v apt-get) ]]; then
   # Prefer the php metapackage if it's there, fall back on the php5 pacakges
   ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1 && phpVer="php" || phpVer="php5"
   # #########################################
-  INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-  PIHOLE_DEPS=( iputils-ping lsof dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+  INSTALLER_DEPS=(apt-utils whiptail git dhcpcd5)
+  PIHOLE_DEPS=(iputils-ping lsof dnsutils bc lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} dnsmasq)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -730,9 +730,9 @@ start_service() {
 	echo ":::"
 	echo -n "::: Starting ${1} service..."
 	if [ -x "$(command -v systemctl)" ]; then
-		systemctl restart "${1}" &> /dev/null & spinner $!
+		systemctl restart "${1}" &> /dev/null
 	else
-		service "${1}" restart &> /dev/null  & spinner $!
+		service "${1}" restart &> /dev/null
 	fi
 	echo " done."
 }
@@ -742,9 +742,9 @@ enable_service() {
 	echo ":::"
 	echo -n "::: Enabling ${1} service to start on reboot..."
 	if [ -x "$(command -v systemctl)" ]; then
-		systemctl enable "${1}" &> /dev/null & spinner $!
+		systemctl enable "${1}" &> /dev/null
 	else
-		update-rc.d "${1}" defaults &> /dev/null  & spinner $!
+		update-rc.d "${1}" defaults &> /dev/null
 	fi
 	echo " done."
 }
@@ -1103,11 +1103,16 @@ main() {
 		# Install packages used by the Pi-hole
 	  install_dependent_packages PIHOLE_DEPS[@]
 
+    start_service dnsmasq
+	  enable_service dnsmasq
+
 		# Install and log everything to a file
     installPihole | tee ${tmpLog}
 	else
 	  # update packages used by the Pi-hole
 	  install_dependent_packages PIHOLE_DEPS[@]
+
+    start_service dnsmasq
 
 		updatePihole | tee ${tmpLog}
 	fi
@@ -1121,8 +1126,6 @@ main() {
 
 	echo "::: Restarting services..."
 	# Start services
-	start_service dnsmasq
-	enable_service dnsmasq
 	start_service lighttpd
 	enable_service lighttpd
 	echo "::: done."
