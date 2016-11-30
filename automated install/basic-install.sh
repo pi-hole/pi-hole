@@ -26,7 +26,6 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version)
 useUpdateVars=false
 
 IPV4_ADDRESS=""
@@ -655,27 +654,11 @@ remove_legacy_scripts() {
 	done
 }
 
-clean_existing() {
-  # Clean an exiting installation to prepare for upgrade/reinstall
-  # ${1} Directory to clean; ${2} Array of files to remove
-  local clean_directory="${1}"
-  local old_files=${2}
-
-	for script in "${old_files[@]}"; do
-		rm -f "${clean_directory}${script}.sh"
-	done
-
-}
 
 installScripts() {
-  # Install the scripts from repository to their various locations
-  readonly install_dir="/opt/pihole/"
 
 	echo ":::"
 	echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
-
-	# Clear out script files from Pi-hole scripts directory.
-	clean_existing "${install_dir}" "${PI_HOLE_FILES}"
 
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
