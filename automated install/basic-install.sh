@@ -716,7 +716,7 @@ start_service() {
 	# This should not fail, it's an error if it does
 	echo ":::"
 	echo -n "::: Starting ${1} service..."
-	if [ -x "$(command -v systemctl)" ]; then
+	if command -v systemctl &> /dev/null; then
 		systemctl restart "${1}" &> /dev/null
 	else
 		service "${1}" restart &> /dev/null
@@ -728,7 +728,7 @@ enable_service() {
 	# Enable service so that it will start with next reboot
 	echo ":::"
 	echo -n "::: Enabling ${1} service to start on reboot..."
-	if [ -x "$(command -v systemctl)" ]; then
+	if command -v systemctl &> /dev/null; then
 		systemctl enable "${1}" &> /dev/null
 	else
 		update-rc.d "${1}" defaults &> /dev/null
