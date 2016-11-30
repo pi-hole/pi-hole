@@ -1,4 +1,4 @@
-**By submitting this pull request, I confirm the following (please check boxes, eg [X])Failure to fill the template will close your PR:**
+**By submitting this pull request, I confirm the following (please check boxes, eg [X]) _Failure to fill the template will close your PR_:**
 
 ***Please submit all pull requests against the `development` branch. Failure to do so will delay or deny your request***
 

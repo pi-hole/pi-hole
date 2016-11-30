@@ -33,5 +33,6 @@ When requesting or submitting new features, first consider whether it might be u
 
 - Submit Pull Requests to the **development branch only**.
 - Before Submitting your Pull Request, merge `development` with your new branch and fix any conflicts. (Make sure you don't break anything in development!)
+- Please use the [Google Style Guide for Shell](https://google.github.io/styleguide/shell.xml) for your code submission styles. 
 - Commit Unix line endings.
 - (Optional fun) keep to the theme of Star Trek/black holes/gravity.
