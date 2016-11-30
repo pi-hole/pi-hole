@@ -125,21 +125,6 @@ else
 fi
 
 ####### FUNCTIONS ##########
-spinner() {
-  local pid=$1
-  local delay=0.50
-  local spinstr='/-\|'
-
-  while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
-    local temp=${spinstr#?}
-    printf " [%c]  " "${spinstr}"
-    local spinstr=${temp}${spinstr%"$temp"}
-    sleep ${delay}
-    printf "\b\b\b\b\b\b"
-  done
-  printf "    \b\b\b\b"
-}
-
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
@@ -762,10 +747,11 @@ install_dependent_packages() {
   declare -a argArray1=("${!1}")
 
   for i in "${argArray1[@]}"; do
-    echo -n ":::    Installing $i..."
-    PKG_MGR_OUT=$(${PKG_INSTALL} "${i}" 2>&1 ) && echo "Installed!" || \
-    (echo "PACKAGE INSTALL ERROR" && echo "$PKG_MGR_OUT" && \
-    echo "::: Sometimes this can be a transitory error, check connectivity and retry" && exit 1 )
+    echo ":::    Installing $i..."
+    ${PKG_INSTALL} "${i}" &> /dev/null || \
+    (echo "PACKAGE INSTALL ERROR"; \
+     echo "::: Sometimes this can be a transitory error, check connectivity and retry"; \
+     exit 1)
   done
 }
 
@@ -851,7 +837,7 @@ create_pihole_user() {
 
 configureFirewall() {
 	# Allow HTTP and DNS traffic
-	if command -v firewall-cmd & /dev/null; then
+	if command -v firewall-cmd &> /dev/null; then
 		firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
 		&& firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
 	elif command -v iptables &> /dev/null; then
