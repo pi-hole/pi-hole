@@ -711,19 +711,6 @@ installConfigs() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
 }
 
-stop_service() {
-	# Stop service passed in as argument.
-	# Can softfail, as process may not be installed when this is called
-	echo ":::"
-	echo -n "::: Stopping ${1} service..."
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl stop "${1}" &> /dev/null || true
-	else
-		service "${1}" stop &> /dev/null || true
-	fi
-	echo " done."
-}
-
 start_service() {
 	# Start/Restart service passed in as argument
 	# This should not fail, it's an error if it does
@@ -1086,9 +1073,6 @@ main() {
 		mkdir -p /etc/pihole/
 		# Remove legacy scripts from previous storage location
 		remove_legacy_scripts
-		# Stop resolver and webserver while installing proceses
-		stop_service dnsmasq
-		stop_service lighttpd
 		# Determine available interfaces
 		get_available_interfaces
 		# Find interfaces and let the user choose one
