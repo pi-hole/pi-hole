@@ -61,7 +61,7 @@ else
   echo ":::"
   echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 
-  if [ -x "$(command -v sudo)" ]; then
+  if command -v sudo &> /dev/null; then
     echo "::: Utility sudo located."
     exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
     exit $?
@@ -73,7 +73,7 @@ fi
 
 # Compatibility
 
-if [[ $(command -v apt-get) ]]; then
+if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
@@ -96,9 +96,9 @@ if [[ $(command -v apt-get) ]]; then
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
-elif [ $(command -v rpm) ]; then
+elif command -v rpm &> /dev/null; then
   # Fedora Family
-  if [ $(command -v dnf) ]; then
+  if command -v dnf &> /dev/null; then
     PKG_MANAGER="dnf"
   else
     PKG_MANAGER="yum"
@@ -108,8 +108,8 @@ elif [ $(command -v rpm) ]; then
   PKG_UPDATE="${PKG_MANAGER} update -y"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-  PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+  INSTALLER_DEPS=(iproute net-tools procps-ng newt git)
+  PIHOLE_DEPS=(epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat)
 
   if grep -q 'Fedora' /etc/redhat-release; then
     remove_deps=(epel-release);
@@ -851,10 +851,10 @@ create_pihole_user() {
 
 configureFirewall() {
 	# Allow HTTP and DNS traffic
-	if [ -x "$(command -v firewall-cmd)" ]; then
+	if command -v firewall-cmd & /dev/null; then
 		firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
 		&& firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
-	elif [ -x "$(command -v iptables)" ]; then
+	elif command -v iptables &> /dev/null; then
 		echo "::: Configuring iptables for httpd and dnsmasq.."
 		iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
 		iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
@@ -888,7 +888,7 @@ installPihole() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
 	chmod 775 /var/www/html
 	usermod -a -G ${LIGHTTPD_GROUP} pihole
-	if [ -x "$(command -v lighty-enable-mod)" ]; then
+	if command -v lighty-enable-mod &> /dev/null; then
 		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
 	else
 		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
@@ -937,7 +937,7 @@ updatePihole() {
 }
 
 configureSelinux() {
-	if [ -x "$(command -v getenforce)" ]; then
+	if command -v getenforce &> /dev/null; then
 		printf "\n::: SELinux Detected\n"
 		printf ":::\tChecking for SELinux policy development packages..."
 		${PKG_INSTALL} "selinux-policy-devel" > /dev/null
@@ -945,7 +945,7 @@ configureSelinux() {
 		printf ":::\tEnabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
-		if ! [ -x "$(command -v systemctl)" ]; then
+		if ! command -v systemctl &> /dev/null; then
 			sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
 		fi
 		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
