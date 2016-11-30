@@ -22,6 +22,11 @@ if [[ ! $EUID -eq 0 ]];then
   fi
 fi
 
+webpageFunc() {
+  /opt/pihole/webpage.sh "$@"
+  exit 0
+}
+
 whitelistFunc() {
  "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
   exit 0
@@ -129,6 +134,24 @@ piholeEnable() {
     #Disable Pihole
     sed -i 's/^addn-hosts/#addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
     echo "::: Blocking has been disabled!"
+    if [[ $# > 1 ]] ; then
+      if [[ ${2} == *"s"* ]] ; then
+        tt=${2%"s"}
+        echo "::: Blocking will be re-enabled in ${tt} seconds"
+        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+      elif [[ ${2} == *"m"* ]] ; then
+        tt=${2%"m"}
+        echo "::: Blocking will be re-enabled in ${tt} minutes"
+        tt=$((${tt}*60))
+        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+      else
+        echo "::: Unknown format for delayed reactivation of the blocking!"
+        echo "::: Example:"
+        echo ":::    pihole disable 5s    -    will disable blocking for 5 seconds"
+        echo ":::    pihole disable 7m    -    will disable blocking for 7 minutes"
+        echo "::: Blocking will not automatically be re-enabled!"
+      fi
+    fi
   else
     #Enable pihole
     echo "::: Blocking has been enabled!"
@@ -192,7 +215,7 @@ helpFunc() {
 ::: Control all PiHole specific functions!
 :::
 ::: Usage: pihole [options]
-:::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage
+:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin)  for more information on usage
 :::
 ::: Options:
 :::  -w, whitelist            Whitelist domains
@@ -207,10 +230,13 @@ helpFunc() {
 :::  -v, version              Show current versions
 :::  -q, query                Query the adlists for a specific domain
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
+:::  -a, admin                Admin webpage options
 :::  uninstall                Uninstall Pi-Hole from your system :(!
 :::  status                   Is Pi-Hole Enabled or Disabled
 :::  enable                   Enable Pi-Hole DNS Blocking
 :::  disable                  Disable Pi-Hole DNS Blocking
+:::                           Blocking can also be disabled only temporarily, e.g.,
+:::                           pihole disable 5m - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
 EOM
   exit 1
@@ -238,8 +264,9 @@ case "${1}" in
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0;;
+  "disable"                     ) piholeEnable 0 $2;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
+  "-a" | "admin"                ) webpageFunc "$@";;
   *                             ) helpFunc;;
 esac
