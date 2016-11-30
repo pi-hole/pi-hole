@@ -763,7 +763,7 @@ update_pacakge_cache() {
 		#update package lists
 		echo ":::"
 		echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
-		${UPDATE_PKG_CACHE} &> /dev/null & spinner $!
+		${UPDATE_PKG_CACHE} &> /dev/null
 		echo " done!"
 	fi
 }
