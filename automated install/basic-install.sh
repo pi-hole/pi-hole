@@ -86,12 +86,12 @@ if command -v apt-get &> /dev/null; then
   # #########################################
   # fixes for dependancy differences
   # Debian 7 doesn't have iproute2 use iproute
-  ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
+  ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && iproute_pkg="iproute2" || iproute_pkg="iproute"
   # Prefer the php metapackage if it's there, fall back on the php5 pacakges
   ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1 && phpVer="php" || phpVer="php5"
   # #########################################
-  INSTALLER_DEPS=(apt-utils whiptail git dhcpcd5)
-  PIHOLE_DEPS=(iputils-ping lsof dnsutils bc lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} dnsmasq)
+  INSTALLER_DEPS=(apt-utils git debconf dhcpcd5 whiptail)
+  PIHOLE_DEPS=(bc cron curl dnsutils ${iproute_pkg} iputils-ping lsof lighttpd netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget dnsmasq)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
