@@ -290,7 +290,7 @@ gravity_advanced() {
 	#Above line does not correctly grab domains where comment is on the same line (e.g 'addomain.com #comment')
 	#Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
 	#Last awk command takes non-commented lines and if they have 2 fields, take the left field (the domain) and leave
-	#+ and leave the right (IP address), otherwise grab the single field.
+	#+ the right (IP address), otherwise grab the single field.
 	cat ${piholeDir}/${matterAndLight} | \
 	    awk -F '#' '{print $1}' | \
 	    awk -F '/' '{print $1}' | \
