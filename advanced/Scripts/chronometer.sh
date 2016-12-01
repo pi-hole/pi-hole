@@ -121,7 +121,7 @@ displayHelp() {
 :::  -j, --json		output stats as JSON formatted string
 :::  -h, --help		display this help text
 EOM
-    exit 1
+    exit 0
 }
 
 if [[ $# = 0 ]]; then
