@@ -23,7 +23,7 @@ helpFunc() {
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
 :::  -h, --help			Show this help dialog
 EOM
-	exit 1
+	exit 0
 }
 
 SetTemperatureUnit(){
