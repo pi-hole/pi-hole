@@ -25,7 +25,7 @@ groups:
         - development        
     required: 2
     teams:
-      - gravity
+      - approvers
   
   master:
     approve_by_comment:
@@ -33,6 +33,6 @@ groups:
     conditions:
       branches:
         - master
-    required: 3
+    required: -1
     teams:
-      - gravity
+      - admin

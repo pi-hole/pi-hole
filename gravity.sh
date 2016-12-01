@@ -23,7 +23,7 @@ helpFunc() {
 :::  -f, --force			Force lists to be downloaded, even if they don't need updating.
 :::  -h, --help				Show this help dialog
 EOM
-	exit 1
+	exit 0
 }
 
 
@@ -44,7 +44,7 @@ else
 fi
 
 #Remove the /* from the end of the IPv4addr.
-IPv4_address=${IPv4_address%/*}
+IPV4_ADDRESS=${IPV4_ADDRESS%/*}
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
@@ -189,7 +189,7 @@ gravity_Blacklist() {
 	if [[ -f "${blacklistFile}" ]]; then
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	    echo -n "::: BlackListing $numBlacklisted domain${plural}..."
+	    echo -n "::: Blacklisting $numBlacklisted domain${plural}..."
 	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
 	    echo " done!"
 	else
@@ -240,30 +240,31 @@ gravity_unique() {
 
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
-	echo "::: Formatting domains into a HOSTS file..."
+	echo -n "::: Formatting domains into a HOSTS file..."
     # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
-    if [[ -n "${IPv4_address}" && -n "${IPv6_address}" ]];then
+    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
         # Both IPv4 and IPv6
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-    elif [[ -n "${IPv4_address}" && -z "${IPv6_address}" ]];then
+    elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
 
         # Only IPv4
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPv4_address" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-    elif [[ -z "${IPv4_address}" && -n "${IPv6_address}" ]];then
+    elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
         # Only IPv6
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPv6_address" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+        cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-    elif [[ -z "${IPv4_address}" && -z "${IPv6_address}" ]];then
+    elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
         echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
         exit 1
     fi
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp ${piholeDir}/${accretionDisc} ${adList}
+	echo " done!"
 }
 
 # blackbody - remove any remnant files from script processes
@@ -306,7 +307,7 @@ gravity_reload() {
 
 	# Reload hosts file
 	echo ":::"
-	echo "::: Refresh lists in dnsmasq..."
+	echo -n "::: Refresh lists in dnsmasq..."
 
 	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
 	#First escape forward slashes in the path:
@@ -314,7 +315,8 @@ gravity_reload() {
 	#Now replace the line in dnsmasq file
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
-        pihole restartdns
+	pihole restartdns
+	echo " done!"
 }
 
 for var in "$@"; do

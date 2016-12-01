@@ -1,4 +1,6 @@
-**By submitting this pull request, I confirm the following (please check boxes, eg [X])Failure to fill the template will close your PR:**
+**By submitting this pull request, I confirm the following (please check boxes, eg [X]) _Failure to fill the template will close your PR_:**
+
+***Please submit all pull requests against the `development` branch. Failure to do so will delay or deny your request***
 
 - [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
 - [] I have checked that [another pull request](https://github.com/pi-hole/pi-hole/pulls) for this purpose does not exist.

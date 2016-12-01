@@ -47,7 +47,7 @@ helpFunc() {
 :::  -h, --help				Show this help dialog
 :::  -l, --list				Display your ${word}listed domains
 EOM
-	exit 1
+	exit 0
 }
 
 HandleOther(){
