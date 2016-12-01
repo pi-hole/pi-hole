@@ -23,7 +23,7 @@ helpFunc() {
 :::  -f, --force			Force lists to be downloaded, even if they don't need updating.
 :::  -h, --help				Show this help dialog
 EOM
-	exit 1
+	exit 0
 }
 
 

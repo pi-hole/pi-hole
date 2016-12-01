@@ -227,7 +227,7 @@ helpFunc() {
 :::                           pihole disable 5m - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
 EOM
-  exit 1
+  exit 0
 }
 
 if [[ $# = 0 ]]; then
