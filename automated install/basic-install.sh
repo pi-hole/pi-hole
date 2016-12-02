@@ -708,6 +708,7 @@ installConfigs() {
 	if [ ! -d "/etc/lighttpd" ]; then
 		mkdir /etc/lighttpd
 		chown "${USER}":root /etc/lighttpd
+	elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
 		mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	fi
 	cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
