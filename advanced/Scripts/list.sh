@@ -53,7 +53,7 @@ EOM
 EscapeRegexp() {
     # This way we may safely insert an arbitrary
     # string in our regular expressions
-    echo $* | sed "s/[]\\.|$(){}?+*^]/\\\\&/g"
+    echo $* | sed "s/[]\\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
 }
 
 HandleOther(){
