@@ -50,6 +50,12 @@ EOM
 	exit 1
 }
 
+EscapeRegexp() {
+    # This way we may safely insert an arbitrary
+    # string in our regular expressions
+    echo $* | sed 's/[]\.|$(){}?+*^]/\\&/g' | sed 's/\//\\\//g'
+}
+
 HandleOther(){
 	# First, convert everything to lowercase
 	domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
@@ -80,12 +86,12 @@ PoplistFile() {
 }
 
 AddDomain() {
-
 	list="$2"
+    domain=$(EscapeRegexp "$1")
 
 	bool=true
 	#Is the domain in the list we want to add it to?
-	grep -Ex -q "$1" ${list} > /dev/null 2>&1 || bool=false
+	grep -Ex -q "${domain}" ${list} > /dev/null 2>&1 || bool=false
 
 	if [[ "${bool}" == false ]]; then
 	  #domain not found in the whitelist file, add it!
@@ -104,14 +110,16 @@ AddDomain() {
 
 RemoveDomain() {
     list="$2"
+    domain=$(EscapeRegexp "$1")
 
     bool=true
-    #Is it in the other list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
-    grep -Ex -q "$1" ${list} > /dev/null 2>&1 || bool=false
+    #Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
+    grep -Ex -q "${domain}" ${list} > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
         # Remove it from the other one
         echo "::: Removing $1 from $list..."
-        echo "$1" | sed 's/\./\\./g' | xargs -I {} perl -i -ne'print unless /'{}'(?!.)/;' ${list}
+        # /I flag: search case-insensitive
+        sed -i "/${domain}/Id" ${list}
         reload=true
     else
         if [[ "${verbose}" == true ]]; then
