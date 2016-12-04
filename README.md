@@ -158,3 +158,4 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 -   [Foolish Tech Show](https://youtu.be/bYyena0I9yc?t=2m4s)
 -   [Pi-hole on Ubuntu](http://www.boyter.org/2015/12/pi-hole-ubuntu-14-04/)
 -   [Catchpoint: iOS 9 Ad Blocking](http://blog.catchpoint.com/2015/09/14/ad-blocking-apple/)
+-   [Build an Ad-Blocker for less than 10$ with Orange-Pi](http://www.devacron.com/orangepi-zero-as-an-ad-block-server-with-pi-hole/)
