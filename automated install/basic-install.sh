@@ -21,6 +21,7 @@ set -e
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 setupVars=/etc/pihole/setupVars.conf
+lighttpdConfig=/etc/lighttpd/lighttpd.conf
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
@@ -709,9 +710,9 @@ installConfigs() {
 		mkdir /etc/lighttpd
 		chown "${USER}":root /etc/lighttpd
 	elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
-		mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+		mv ${lighttpdConfig} ${lighttpdConfig}.orig
 	fi
-	cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+	cp /etc/.pihole/advanced/${LIGHTTPD_CFG} ${lighttpdConfig}
 	mkdir -p /var/run/lighttpd
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
 	mkdir -p /var/cache/lighttpd/compress
@@ -825,11 +826,11 @@ installPiholeWeb() {
 	echo ":::"
 	echo "::: Installing pihole custom index page..."
 	if [ -d "/var/www/html/pihole" ]; then
-	  if [ -f "/var/www/html/pihole/index.html" ]; then
-	    echo ":::     Existing index.html detected, not overwriting"
+	  if [ -f "/var/www/html/pihole/index.php" ]; then
+	    echo ":::     Existing index.php detected, not overwriting"
 	  else
-	    echo -n ":::     index.html missing, replacing... "
-	    cp /etc/.pihole/advanced/index.html /var/www/html/pihole/
+	    echo -n ":::     index.php missing, replacing... "
+	    cp /etc/.pihole/advanced/index.php /var/www/html/pihole/
 	    echo " done!"
 	  fi
 
@@ -954,6 +955,9 @@ accountForRefactor() {
 	sed -i 's/IPv6_address/IPV6_ADDRESS/g' ${setupVars}
 	sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}
 	sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}
+
+	# Account for change in lighttpd config file
+	sed -i 's:pihole/index.html:pihole/index.php:' ${lighttpdConfig}
 
 }
 
