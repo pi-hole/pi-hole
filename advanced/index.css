@@ -1,0 +1,212 @@
+/* CSS Reset */
+html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video { margin: 0; padding: 0; border: 0; font-size: 100%; font: inherit; vertical-align: baseline; }
+article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section { display: block; }
+body { line-height: 1; }
+ol, ul { list-style: none; }
+blockquote, q { quotes: none; }
+blockquote:before, blockquote:after, q:before, q:after { content: ''; content: none; }
+table { border-collapse: collapse; border-spacing: 0; }
+html { height: 100%; overflow-x: hidden; }
+
+/* General Style */
+a	{ color: rgba(0,60,120,0.95); text-decoration: none; } /* 1E3C5A */
+a:hover { color: rgba(210,120,0,0.95); transition-duration: .2s; } /* 255, 128, 0 */
+divs a		{ border-bottom: 1px dashed rgba(30,60,90,0.3); }
+b	{ font-weight: bold; }
+i	{ font-style: italic; }
+
+footer, .pre, input[type='url'], input[type='text'], .alist, .transparent td { font-family: monospace; }
+body, header { background: #E1E1E1; }
+
+body {
+	background-image: url('http://firebog.net/bg.png'), -webkit-linear-gradient(top, rgba(220,220,220,0.95), rgba(240,240,240,0.95));
+	background-image: url('http://firebog.net/bg.png'), linear-gradient(to bottom, rgba(220,220,220,0.95), rgba(240,240,240,0.95));
+	background-attachment: fixed;
+	color: rgba(64,64,64,0.95);
+	text-shadow: 0 1px rgba(0,0,0,0.04);
+	font: 14px Arial, sans-serif;
+	line-height: 1em;
+}
+
+header {
+	min-width: 320px;
+	width: 100%;
+	text-shadow: 0 1px rgba(255,255,255,0.6);
+	display: table;
+	table-layout: fixed;
+	border: 1px solid rgba(0,0,0,0.25);
+	border-top-color: rgba(255,255,255,0.85);
+	border-style: solid none;
+	background-image: -webkit-linear-gradient(top, rgba(240,240,240,0.95), rgba(220,220,220,0.95));
+	background-image: linear-gradient(to bottom, rgba(240,240,240,0.95), rgba(220,220,220,0.95));
+	box-shadow:  0 0 1px 1px rgba(0,0,0,0.04);
+}
+
+header h1, header div {
+	display: table-cell;
+	color: inherit;
+	font-weight: bold;
+	vertical-align: middle;
+	white-space: nowrap;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+header h1 {
+	font: bold 1.6em "Trebuchet MS", sans-serif;
+	width: 100%;
+	padding: 8px 0;
+	text-indent: 32px;
+	background: url("http://firebog.net/PHV.svg") left no-repeat;
+}
+
+header h1 a, h1 a:hover { color: inherit; }
+header .alt { width: 85px; font-size: 0.8em; padding-right: 4px; text-align: right; line-height: 1.25em; }
+.active { color: green; }
+.inactive { color: red; }
+
+main {
+	display: block;
+	width: 80%;
+	padding: 8px;
+	font-size: 1em;
+	background-color: rgba(255,255,255,0.85);
+	margin: 8px auto;
+	box-sizing: border-box;
+	border: 1px solid rgba(0,0,0,0.25);
+	box-shadow:  0 0 1px 1px rgba(0,0,0,0.04);
+	line-height: 1.2em;
+	border-radius: 8px;	
+}
+
+h2 { /* Rgba is shared with .transparent th */
+	font: 1.15em sans-serif;
+	background-color: rgba(255,0,0,0.4);
+	text-shadow: none;
+	line-height: 1.1em;
+	padding-bottom: 1px;
+	margin-top: 8px;
+	margin-bottom: 4px;
+	background: -webkit-linear-gradient(left, rgba(0,0,0,0.25), transparent 80%) no-repeat;
+	background: linear-gradient(to right, rgba(0,0,0,0.25), transparent 80%) no-repeat;
+	background-size: 100% 1px;
+	background-position: 0 17px;
+}
+
+h2:first-child { margin-top: 0; }
+h2 ~ *:not(h2) { margin-left: 4px; }
+li { padding: 2px 0; }
+li::before { content: "\00BB\00a0"; }
+li a { position: relative; top: 1px; } /* Center bullet-point arrows */
+
+/* Button Style */
+.buttons a, input, .transparent th a { /* Swapped rgba is shared with input[type='url'] */
+	display: inline-block;
+	color: rgba(32,32,32,0.9);
+	font-weight: bold;
+	text-align: center;
+	cursor: pointer;
+	text-shadow: 0 1px rgba(255,255,255,0.2);
+	line-height: 0.86em;
+	font-size: 1em;
+	padding: 4px 8px;
+	background: #FAFAFA;
+	background-image: -webkit-linear-gradient(top, rgba(255,255,255,0.05), rgba(0,0,0,0.05));
+	background-image: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.05));
+	border: 1px solid rgba(0,0,0,0.25);
+	border-radius: 4px;
+	box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+}
+
+.buttons { white-space: nowrap; width: 100%; display: table; }
+.mini a { width: 50%; }
+a.safe { background-color: rgba(0,220,0,0.5); }
+a.warn { background-color: rgba(220,0,0,0.5); }
+
+.blocked, .toggle, .sourcever, .mini, .addurl a, .editurl a { margin-top: 8px; }
+.blocked a, .mini a { display: table-cell; }
+.blocked a.safe { width: 100%; }
+
+.ministatus { text-align: center; }
+
+input[type='url'], input[type='text'] { /* Swapped rgba is shared with .buttons a */
+	font-size: 1.15em;
+	padding: 2px 4px;
+	text-align: left;
+	cursor: text;
+	width: 100%;
+	box-sizing: border-box;
+	background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.05), rgba(255,255,255,0.05));
+	background-image: linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(255,255,255,0.05));
+} 
+
+input:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(0,128,240,0.4);
+	border-radius: 4px;
+}
+
+/* Types of text */
+.pre { white-space: pre; overflow: auto; -webkit-overflow-scrolling: touch; }
+.msg { display: block; line-height: 1.2em; font-weight: bold; font-size: 1.15em; margin: 4px 8px 8px 8px; white-space: pre-line; }
+.request, .finalresults, .sourcever, .invocation, .parameters, .transparent td, .actionfilecontent, .actionslist { font-size: 0.9em; line-height: 1.2em; } /* "Pre sized" */
+
+.request, .finalresults, .parameters, .actionfilecontent, .actionslist { /* Dashed outline for excessive text */
+	line-height: 1.2em;
+	padding: 4px;
+	border: 1px dashed rgba(0,0,0,0.25);
+	border-right: 0;
+	background-image: -webkit-linear-gradient(left, #FFF 70%, rgba(255,255,255,0));
+	background-image: linear-gradient(to right, #FFF 70%, rgba(255,255,255,0));
+	border-radius: 4px 0 0 4px;
+}
+
+.parameters, .finalresults { /* Small scrollbox for excessive text */
+	max-height: 116px;
+	overflow-y: scroll;
+	-webkit-overflow-scrolling: touch;
+}
+
+.editactions { font-size: 0.8em; }
+.actionslist { margin: 4px 0; }
+
+/* Matching actions in show-url-info */
+.transparent { width: 100%; margin: 0; }
+.transparent th { display: block; box-sizing: border-box; text-align: left; padding: 2px 4px; border-radius: 4px; background-image: -webkit-linear-gradient(left, rgba(0,0,0,0.08), transparent 80%); background-image: linear-gradient(to right, rgba(0,0,0,0.08), transparent 80%); } /* Rgba is shared with h2 */
+.transparent td { margin: 4px; display: block; }
+.transparent th a { display: none; position: relative; top: -1px; font-size: 0.75em; padding: 2px 5px 1px 3px; } /* Buttons 0.75 0.86 */
+.transparent tr:first-child a, .transparent tr:nth-last-child(2) a { display: inline-block; } /* Only show buttons for First/Last files */
+
+footer { font-size: 0.8em; text-align: center; width: 87%; margin: 4px auto; }
+
+/* Specific Fixes */
+.alist br:first-child { display: none; } /* Final results is displayed in "pre format", so remove first BR */
+.filter a[href*="show-status"] { margin-left: 12px; } /* Margin for View/Edit on show-status */
+
+/* Safari & iOS */
+@media screen and (min-color-index:0) and(-webkit-min-device-pixel-ratio:0) { @media { 
+	::-webkit-input-placeholder { position: relative; top: 3px; }
+	.transparent th a { padding: 2px 4px 1px 4px; }
+	a.safe { background-color: rgba(0,220,0,0.4); }
+	a.warn { background-color: rgba(220,0,0,0.4); }
+}}
+
+@media only screen and (orientation:portrait) {
+	main { width: 100%; border-radius: 0; margin: 0; border-style: none; border-bottom-style: solid; }
+	header h1 { display: block; overflow: auto; -webkit-overflow-scrolling: touch; }
+	::-webkit-input-placeholder { top: 2px; }
+}
+
+@media only screen and (min-device-width : 320px) and (max-device-width : 667px) and (orientation : landscape) { 
+	main { width: 100%;  border-radius: 0; margin: 0; border-style: none; border-bottom-style: solid; }
+	h2 { padding-bottom: 2px; } /* Necessary for underline to show */
+	main { font-size: 0.6em; }
+	ul li { font-size: 1.7em; }
+	ul li a { font-size: 0.6em; }
+	input[type='url'] { font-size: 1.85em; }
+	.buttons { font-size: 1.7em; }
+	.editactions  { font-size: 1.3em; }
+	.request { font-size: 1.5em; }
+	.transparent th a { font-size: 1.35em; }
+	::-webkit-input-placeholder { top: 2px; }
+}

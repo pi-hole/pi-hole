@@ -842,6 +842,14 @@ installPiholeWeb() {
 	    echo " done!"
 	  fi
 
+	  if [ -f "/var/www/html/pihole/index.css" ]; then
+	    echo ":::     Existing index.css detected, not overwriting"
+	  else
+	    echo -n ":::     index.css missing, replacing... "
+	    cp /etc/.pihole/advanced/index.css /var/www/html/pihole/
+	    echo " done!"
+	  fi
+
 	else
 		mkdir /var/www/html/pihole
 		if [ -f /var/www/html/index.lighttpd.html ]; then
