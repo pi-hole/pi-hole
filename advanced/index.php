@@ -68,8 +68,8 @@ if($uri == "/")
 	<input id="quiet" type="hidden" value="yes">
 	<button id="btnSearch" class="buttons blocked" type="button" style="visibility: hidden;"></button>
 	This page is blocked because it is explicitly contained within the following block list(s):
-	<pre id="output" style="width: 100%; height: 100%;" hidden="true"></pre>
-	<div class='buttons blocked'><a class='safe' href='javascript:history.back()'>Back to safety</a>
+	<pre id="output" style="width: 100%; height: 100%;" hidden="true"></pre><br/>
+	<div class='buttons blocked'><a class='safe' href='javascript:history.back()'>Go back</a>
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
 <script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/other/jquery.min.js"></script>
