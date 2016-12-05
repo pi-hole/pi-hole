@@ -30,6 +30,7 @@ if (!$showPage)
 <head>
 <script>window.close();</script></head>
 <body>
+<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
 </body>
 </html>
 <?php
