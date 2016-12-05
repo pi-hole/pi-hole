@@ -44,7 +44,7 @@ $piHoleVersion = exec('cd /etc/.pihole/ && git describe --tags --abbrev=0');
 <head>
 	<meta charset='UTF-8'/>
 	<title>Website Blocked</title>
-	<link rel='stylesheet' href='index.css'/>
+	<link rel='stylesheet' href='http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/blockingpage.css'/>
 	<link rel='shortcut icon' href='http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/img/favicon.png' type='image/png'/>
 	<meta name='viewport' content='width=device-width,initial-scale=1.0,maximum-scale=1.0, user-scalable=no'/>
 	<meta name='robots' content='noindex,nofollow'/>
