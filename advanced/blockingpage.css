@@ -15,7 +15,7 @@ divs a		{ border-bottom: 1px dashed rgba(30,60,90,0.3); }
 b	{ font-weight: bold; }
 i	{ font-style: italic; }
 
-footer, .pre, input[type='url'], input[type='text'], .alist, .transparent td { font-family: monospace; }
+footer, pre, input[type='url'], input[type='text'], .alist, .transparent td { font-family: monospace; }
 body, header { background: #E1E1E1; }
 
 body {
@@ -76,7 +76,7 @@ main {
 	border: 1px solid rgba(0,0,0,0.25);
 	box-shadow:  0 0 1px 1px rgba(0,0,0,0.04);
 	line-height: 1.2em;
-	border-radius: 8px;	
+	border-radius: 8px;
 }
 
 h2 { /* Rgba is shared with .transparent th */
@@ -138,7 +138,7 @@ input[type='url'], input[type='text'] { /* Swapped rgba is shared with .buttons 
 	box-sizing: border-box;
 	background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.05), rgba(255,255,255,0.05));
 	background-image: linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(255,255,255,0.05));
-} 
+}
 
 input:focus {
 	outline: none;
@@ -184,7 +184,7 @@ footer { font-size: 0.8em; text-align: center; width: 87%; margin: 4px auto; }
 .filter a[href*="show-status"] { margin-left: 12px; } /* Margin for View/Edit on show-status */
 
 /* Safari & iOS */
-@media screen and (min-color-index:0) and(-webkit-min-device-pixel-ratio:0) { @media { 
+@media screen and (min-color-index:0) and(-webkit-min-device-pixel-ratio:0) { @media {
 	::-webkit-input-placeholder { position: relative; top: 3px; }
 	.transparent th a { padding: 2px 4px 1px 4px; }
 	a.safe { background-color: rgba(0,220,0,0.4); }
@@ -197,7 +197,7 @@ footer { font-size: 0.8em; text-align: center; width: 87%; margin: 4px auto; }
 	::-webkit-input-placeholder { top: 2px; }
 }
 
-@media only screen and (min-device-width : 320px) and (max-device-width : 667px) and (orientation : landscape) { 
+@media only screen and (min-device-width : 320px) and (max-device-width : 667px) and (orientation : landscape) {
 	main { width: 100%;  border-radius: 0; margin: 0; border-style: none; border-bottom-style: solid; }
 	h2 { padding-bottom: 2px; } /* Necessary for underline to show */
 	main { font-size: 0.6em; }
