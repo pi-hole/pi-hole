@@ -56,7 +56,7 @@ $piHoleVersion = exec('cd /etc/.pihole/ && git describe --tags --abbrev=0');
 <main>
 	<div>Access to the following site has been blocked:<br/>
 	<span class='pre msg'><?php echo $serverName.$uri; ?></span></div>
-	<div>If you have an ongoing use for this website, please ask to owner of the Pi-Hole in your network to have it whitelisted.</div>
+	<div>If you have an ongoing use for this website, please ask the owner of the Pi-Hole in your network to have it whitelisted.</div>
 	<div class='buttons blocked'><a class='safe' href='javascript:history.back()'>Back to safety</a>
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
