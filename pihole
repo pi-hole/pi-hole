@@ -70,7 +70,7 @@ setupLCDFunction() {
 queryFunc() {
   domain="${2}"
   for list in /etc/pihole/list.*; do
-    count=$(grep ${domain} $list | wc -l)
+    count=$(grep -c ${domain} $list)
     echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
       grep ${domain} ${list}
