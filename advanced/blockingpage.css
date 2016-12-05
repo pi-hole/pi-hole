@@ -15,7 +15,7 @@ divs a		{ border-bottom: 1px dashed rgba(30,60,90,0.3); }
 b	{ font-weight: bold; }
 i	{ font-style: italic; }
 
-footer, pre, input[type='url'], input[type='text'], .alist, .transparent td { font-family: monospace; }
+footer, pre, td { font-family: monospace; padding-left: 15px; }
 /*body, header { background: #E1E1E1; }*/
 
 body {
