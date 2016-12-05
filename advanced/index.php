@@ -39,6 +39,12 @@ if (!$showPage)
 // Get Pi-Hole version
 $piHoleVersion = exec('cd /etc/.pihole/ && git describe --tags --abbrev=0');
 
+// Don't show the URI if it is the root directory
+if($uri == "/")
+{
+	$uri = "";
+}
+
 ?>
 <!DOCTYPE html>
 <head>
@@ -57,8 +63,18 @@ $piHoleVersion = exec('cd /etc/.pihole/ && git describe --tags --abbrev=0');
 	<div>Access to the following site has been blocked:<br/>
 	<span class='pre msg'><?php echo $serverName.$uri; ?></span></div>
 	<div>If you have an ongoing use for this website, please ask the owner of the Pi-Hole in your network to have it whitelisted.</div>
+	<input id="domain" type="hidden" value="<?php echo $serverName; ?>">
+	<input id="quiet" type="hidden" value="yes">
+	<button id="btnSearch" class="buttons blocked" type="button" style="visibility: hidden;"></button>
+	This page is blocked because it is explicitly contained within the following block list(s):
+	<pre id="output" style="width: 100%; height: 100%;" hidden="true"></pre>
 	<div class='buttons blocked'><a class='safe' href='javascript:history.back()'>Back to safety</a>
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
+<script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/other/jquery.min.js"></script>
+<script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/pihole/queryads.js"></script>
+<script>
+	$( "#btnSearch" ).click();
+</script>
 </body>
 </html>
