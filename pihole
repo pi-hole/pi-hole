@@ -49,7 +49,8 @@ flushFunc() {
 
 updatePiholeFunc() {
   if [[ ${1} == "-webbased" ]] ; then
-    nohup "${PI_HOLE_SCRIPT_DIR}"/update.sh -webbased > /etc/pihole/webupdate.log 2>&1 < /dev/null &
+    touch /etc/pihole/webupdate.running
+    nohup "${PI_HOLE_SCRIPT_DIR}"/update.sh > /etc/pihole/webupdate.log 2>&1 < /dev/null &
   else
     "${PI_HOLE_SCRIPT_DIR}"/update.sh
   fi
