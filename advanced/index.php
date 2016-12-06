@@ -91,8 +91,10 @@ if($uri == "/")
 		// set white background
 		document.body.style.backgroundImage = "none";
 	}
-
-	$( "#btnSearch" ).click();
+	else
+	{
+		$( "#btnSearch" ).click();
+	}
 // }
 </script>
 </body>
