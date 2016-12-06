@@ -71,10 +71,10 @@ queryFunc() {
   domain="${2}"
   lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
   for list in ${lists[@]}; do
-    count=$(grep -c ${domain} $list)
+    count=$(grep -c -E "(^|\s)${domain}($|\s)" $list)
     echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
-      grep ${domain} ${list}
+      grep -E "(^|\s)${domain}($|\s)" ${list}
     fi
     echo ""
   done
