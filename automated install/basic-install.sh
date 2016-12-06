@@ -757,7 +757,7 @@ stop_service() {
 	echo " done."
 }
 
-start_service() {
+restart_service() {
 	# Start/Restart service passed in as argument
 	# This should not fail, it's an error if it does
 	echo ":::"
@@ -1099,6 +1099,23 @@ main() {
 	# Notify user of package availability
 	notify_package_updates_available
 
+	if [ -f /etc/pihole/webupdate.running ] ; then
+		lighttpdupdate=package_check_update_available "lighttpd"
+		if [[ $lighttpdupdate > 0 ]]; then
+			echo "::: ------------------> WEBUPDATE FAILED <------------------"
+			echo ":::"
+			echo "::: An update for lighttpd is available."
+			echo "::: The webupdate process cannot be continued, since"
+			echo "::: we cannot change webserver settings while running"
+			echo "::: the update via the web user interface!"
+			echo "::: Please update lighttpd manually and continue afterwards!"
+			echo "::: Alternatively, you can also run sudo pihole -up manually"
+			echo "::: which will update lighttpd automatically."
+			echo ":::"
+			echo "::: ------------------> WEBUPDATE FAILED <------------------"
+		fi
+	fi
+
 	# Install packages used by this installation script
 	install_dependent_packages INSTALLER_DEPS[@]
 
@@ -1152,10 +1169,14 @@ main() {
 
 	echo "::: Restarting services..."
 	# Start services
-	start_service dnsmasq
+	restart_service dnsmasq
 	enable_service dnsmasq
-	start_service lighttpd
-	enable_service lighttpd
+	if [ ! -f /etc/pihole/webupdate.running ] ; then
+		restart_service lighttpd
+		enable_service lighttpd
+	else
+		rm /etc/pihole/webupdate.running
+	fi
 	echo "::: done."
 
 	echo ":::"
