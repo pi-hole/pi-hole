@@ -964,9 +964,6 @@ accountForRefactor() {
 	sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}
 	sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}
 
-	# Account for change in lighttpd config file
-	sed -i 's:pihole/index.html:pihole/index.php:' ${lighttpdConfig}
-
 }
 
 updatePihole() {
