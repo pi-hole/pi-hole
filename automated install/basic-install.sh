@@ -1174,6 +1174,14 @@ main() {
 	if [ ! -f /etc/pihole/webupdate.running ] ; then
 		restart_service lighttpd
 		enable_service lighttpd
+	else
+		echo "::: --------------> Please restart the Pi-Hole <--------------"
+		echo "::: Pro Tip: You can also restart the webserver using"
+		if [ -x "$(command -v systemctl)" ]; then
+			echo ":::          systemctl restart lighttpd"
+		else
+			echo ":::          service lighttpd restart"
+		fi
 	fi
 	echo "::: done."
 
