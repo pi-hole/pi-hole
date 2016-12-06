@@ -101,6 +101,18 @@ if [[ $(command -v apt-get) ]]; then
   package_check_install() {
     dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
   }
+
+  package_check_update_available()
+  {
+    # Check if package would be upgraded.
+    # return values:
+    #  0   if no
+    #  1   if yes
+    #  >1  if more than one package containing the name
+    #      ( might make restarting the core package necessary )
+    apt-get -u upgrade --assume-no | grep "$1" | wc -l
+  }
+
 elif [ $(command -v rpm) ]; then
   # Fedora Family
   if [ $(command -v dnf) ]; then
