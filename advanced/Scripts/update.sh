@@ -118,6 +118,11 @@ main() {
     echo "::: Web Admin version is $web_version_current"
     echo ":::"
     echo "::: Everything is up to date!"
+
+    # Remove webupdate.running if there was no update available
+    if [ -f /etc/pihole/webupdate.running ] ; then
+      rm /etc/pihole/webupdate.running
+    fi
     exit 0
 
   elif [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" < "${web_version_latest}" ]]; then
@@ -156,6 +161,11 @@ main() {
     echo ":::"
     echo "::: Pi-hole version is now at ${pihole_version_current}"
     echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+  fi
+
+  # Remove webupdate.running after update procedure succeeded
+  if [ -f /etc/pihole/webupdate.running ] ; then
+    rm /etc/pihole/webupdate.running
   fi
 
   echo ""

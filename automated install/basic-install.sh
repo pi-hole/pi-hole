@@ -1174,8 +1174,6 @@ main() {
 	if [ ! -f /etc/pihole/webupdate.running ] ; then
 		restart_service lighttpd
 		enable_service lighttpd
-	else
-		rm /etc/pihole/webupdate.running
 	fi
 	echo "::: done."
 
