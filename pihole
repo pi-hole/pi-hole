@@ -67,14 +67,20 @@ setupLCDFunction() {
   exit 0
 }
 
+scanList(){
+    grep -E "(^|\s)${domain}($|\s)" "$1"
+}
+
 queryFunc() {
   domain="${2}"
   lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
   for list in ${lists[@]}; do
-    count=$(grep -c -E "(^|\s)${domain}($|\s)" $list)
+    result=$(scanList $list)
+    # Remove empty lines before couting number of results
+    count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
     echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
-      grep -E "(^|\s)${domain}($|\s)" ${list}
+        echo $result
     fi
     echo ""
   done
