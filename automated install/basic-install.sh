@@ -132,14 +132,15 @@ elif [ $(command -v rpm) ]; then
     remove_deps=(epel-release);
     PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
   fi
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
-    DNSMASQ_USER="nobody"
+  LIGHTTPD_USER="lighttpd"
+  LIGHTTPD_GROUP="lighttpd"
+  LIGHTTPD_CFG="lighttpd.conf.fedora"
+  DNSMASQ_USER="nobody"
 
-    package_check_install() {
-      rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
-    }
+  package_check_install() {
+    rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
+  }
+
 else
   echo "OS distribution not supported"
   exit
