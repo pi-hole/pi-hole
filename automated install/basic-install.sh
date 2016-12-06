@@ -1113,6 +1113,7 @@ main() {
 			echo "::: which will update lighttpd automatically."
 			echo ":::"
 			echo "::: ------------------> WEBUPDATE FAILED <------------------"
+			exit 1
 		fi
 	fi
 
