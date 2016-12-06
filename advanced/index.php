@@ -86,13 +86,15 @@ if($uri == "/")
 	// Try to detect if page is loaded within iframe
 	if(inIframe())
 	{
-		// Within iframe -> hide page
+		// Within iframe
+		// hide content of page
 		$('#body').hide();
-		// set white background
+		// remove background
 		document.body.style.backgroundImage = "none";
 	}
 	else
 	{
+		// Query adlists
 		$( "#btnSearch" ).click();
 	}
 // }
