@@ -141,6 +141,17 @@ elif [ $(command -v rpm) ]; then
     rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
   }
 
+  package_check_update_available()
+  {
+    # Check if package would be upgraded.
+    # return values:
+    #  0   if no
+    #  1   if yes
+    #  >1  if more than one package containing the name
+    #      ( might make restarting the core package necessary )
+    ${PKG_MANAGER} check-update | grep "$1" | wc -l
+  }
+
 else
   echo "OS distribution not supported"
   exit
