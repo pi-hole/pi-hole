@@ -48,6 +48,11 @@ flushFunc() {
 }
 
 updatePiholeFunc() {
+  if [[ ${1} == "-webbased" ]] ; then
+    nohup "${PI_HOLE_SCRIPT_DIR}"/update.sh -webbased > /etc/pihole/webupdate.log 2>&1 < /dev/null &
+  else
+    "${PI_HOLE_SCRIPT_DIR}"/update.sh
+  fi
   "${PI_HOLE_SCRIPT_DIR}"/update.sh
   exit 0
 }
@@ -241,7 +246,7 @@ case "${1}" in
   "-b" | "blacklist"            ) blacklistFunc "$@";;
   "-d" | "debug"                ) debugFunc;;
   "-f" | "flush"                ) flushFunc;;
-  "-up" | "updatePihole"        ) updatePiholeFunc;;
+  "-up" | "updatePihole"        ) updatePiholeFunc "$2";;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
   "-s" | "setupLCD"             ) setupLCDFunction;;
