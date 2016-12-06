@@ -56,7 +56,7 @@ if($uri == "/")
 	<meta name='viewport' content='width=device-width,initial-scale=1.0,maximum-scale=1.0, user-scalable=no'/>
 	<meta name='robots' content='noindex,nofollow'/>
 </head>
-<body>
+<body id="body">
 <header>
 	<h1><a href='/'>Website Blocked</a></h1>
 </header>
@@ -75,7 +75,25 @@ if($uri == "/")
 <script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/other/jquery.min.js"></script>
 <script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/pihole/queryads.js"></script>
 <script>
+	function inIframe () {
+		try {
+			return window.self !== window.top;
+		} catch (e) {
+			return true;
+		}
+	}
+
+	// Try to detect if page is loaded within iframe
+	if(inIframe())
+	{
+		// Within iframe -> hide page
+		$('#body').hide();
+		// set white background
+		document.body.style.backgroundImage = "none";
+	}
+
 	$( "#btnSearch" ).click();
+// }
 </script>
 </body>
 </html>
