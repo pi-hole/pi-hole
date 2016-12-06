@@ -68,19 +68,27 @@ setupLCDFunction() {
 }
 
 scanList(){
-    grep -E "(^|\s)${domain}($|\s)" "$1"
+  domain="${1}"
+  list="${2}"
+  method="${3}"
+  if [[ ${method} == "-exact" ]] ; then
+    grep -E "(^|\s)${domain}($|\s)" "${list}"
+  else
+    grep "${domain}" "${list}"
+  fi
 }
 
 queryFunc() {
   domain="${2}"
+  method="${3}"
   lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
   for list in ${lists[@]}; do
-    result=$(scanList $list)
+    result=$(scanList ${domain} ${list} ${method})
     # Remove empty lines before couting number of results
     count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
     echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
-        echo $result
+      echo "${result}"
     fi
     echo ""
   done
@@ -224,6 +232,7 @@ helpFunc() {
 :::  -h, help                 Show this help dialog
 :::  -v, version              Show current versions
 :::  -q, query                Query the adlists for a specific domain
+:::                           Use pihole -q domain -exact if you want to see exact matches only
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
 :::  -a, admin                Admin webpage options
 :::  uninstall                Uninstall Pi-Hole from your system :(!
