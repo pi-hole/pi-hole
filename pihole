@@ -198,6 +198,10 @@ piholeStatus() {
   fi
 }
 
+tailFunc() {
+  tail -F /var/log/pihole.log
+  exit 0
+}
 
 helpFunc() {
 	cat << EOM
@@ -211,6 +215,7 @@ helpFunc() {
 :::  -b, blacklist            Blacklist domains
 :::  -d, debug                Start a debugging session if having trouble
 :::  -f, flush                Flush the pihole.log file
+:::  -t, tail                 Output the last lines of the pihole.log file. Lines are appended as the file grows
 :::  -up, updatePihole        Update Pi-hole
 :::  -g, updateGravity        Update the list of ad-serving domains
 :::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it
@@ -256,5 +261,6 @@ case "${1}" in
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
   "-a" | "admin"                ) webpageFunc "$@";;
+  "-t" | "tail"                 ) tailFunc;;
   *                             ) helpFunc;;
 esac
