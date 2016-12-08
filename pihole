@@ -212,6 +212,7 @@ helpFunc() {
 :::  -d, debug                Start a debugging session if having trouble
 :::  -f, flush                Flush the pihole.log file
 :::  -up, updatePihole        Update Pi-hole
+:::  -r, reconfigure          Reconfigure or Repair Pi-hole
 :::  -g, updateGravity        Update the list of ad-serving domains
 :::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it
 :::  -c, chronometer          Calculates stats and displays to an LCD
