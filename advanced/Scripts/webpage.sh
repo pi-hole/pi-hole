@@ -67,12 +67,30 @@ SetDNSServers(){
 
 }
 
+SetExcludeDomains(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/API_EXCLUDE_DOMAINS/d;' /etc/pihole/setupVars.conf
+	# Save setting to file
+	echo "API_EXCLUDE_DOMAINS=${args[2]}" >> /etc/pihole/setupVars.conf
+}
+
+SetExcludeClients(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/API_EXCLUDE_CLIENTS/d;' /etc/pihole/setupVars.conf
+	# Save setting to file
+	echo "API_EXCLUDE_CLIENTS=${args[2]}" >> /etc/pihole/setupVars.conf
+}
+
 for var in "$@"; do
 	case "${var}" in
 		"-p" | "password"   ) SetWebPassword;;
 		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
 		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
 		"setdns"            ) SetDNSServers;;
+		"setexcludedomains" ) SetExcludeDomains;;
+		"setexcludeclients" ) SetExcludeClients;;
 		"-h" | "--help"     ) helpFunc;;
 	esac
 done
