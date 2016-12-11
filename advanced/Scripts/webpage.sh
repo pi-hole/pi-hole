@@ -83,6 +83,12 @@ SetExcludeClients(){
 	echo "API_EXCLUDE_CLIENTS=${args[2]}" >> /etc/pihole/setupVars.conf
 }
 
+Reboot(){
+
+	reboot
+
+}
+
 for var in "$@"; do
 	case "${var}" in
 		"-p" | "password"   ) SetWebPassword;;
@@ -91,6 +97,7 @@ for var in "$@"; do
 		"setdns"            ) SetDNSServers;;
 		"setexcludedomains" ) SetExcludeDomains;;
 		"setexcludeclients" ) SetExcludeClients;;
+		"reboot"            ) Reboot;;
 		"-h" | "--help"     ) helpFunc;;
 	esac
 done
