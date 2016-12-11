@@ -57,11 +57,22 @@ SetWebPassword(){
 
 }
 
+SetDNSServers(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;' /etc/pihole/setupVars.conf
+	# Save setting to file
+	echo "PIHOLE_DNS_1=${args[2]}" >> /etc/pihole/setupVars.conf
+	echo "PIHOLE_DNS_2=${args[3]}" >> /etc/pihole/setupVars.conf
+
+}
+
 for var in "$@"; do
 	case "${var}" in
 		"-p" | "password"   ) SetWebPassword;;
 		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
 		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
+		"setdns"            ) SetDNSServers;;
 		"-h" | "--help"     ) helpFunc;;
 	esac
 done
