@@ -115,6 +115,40 @@ SetQueryLogOptions(){
 	echo "API_QUERY_LOG_SHOW=${args[2]}" >> /etc/pihole/setupVars.conf
 }
 
+EnableDHCP(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/DHCP_/d;' /etc/pihole/setupVars.conf
+	echo "DHCP_ACTIVE=true" >> /etc/pihole/setupVars.conf
+	echo "DHCP_START=${args[2]}" >> /etc/pihole/setupVars.conf
+	echo "DHCP_END=${args[3]}" >> /etc/pihole/setupVars.conf
+	echo "DHCP_ROUTER=${args[4]}" >> /etc/pihole/setupVars.conf
+
+	# Remove setting from file
+	sed -i '/dhcp-/d;' /etc/dnsmasq.d/01-pihole.conf
+	# Save setting to file
+	echo "dhcp-range=${args[2]},${args[3]},infinite" >> /etc/dnsmasq.d/01-pihole.conf
+	echo "dhcp-option=option:router,${args[4]}" >> /etc/dnsmasq.d/01-pihole.conf
+	# Changes the behaviour from strict RFC compliance so that DHCP requests on unknown leases from unknown hosts are not ignored. This allows new hosts to get a lease without a tedious timeout under all circumstances. It also allows dnsmasq to rebuild its lease database without each client needing to reacquire a lease, if the database is lost.
+	echo "dhcp-authoritative" >> /etc/dnsmasq.d/01-pihole.conf
+	# Use the specified file to store DHCP lease information
+	echo "dhcp-leasefile=/etc/pihole/dhcp.leases" >> /etc/dnsmasq.d/01-pihole.conf
+
+	RestartDNS
+}
+
+DisableDHCP(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/DHCP_ACTIVE/d;' /etc/pihole/setupVars.conf
+	echo "DHCP_ACTIVE=false" >> /etc/pihole/setupVars.conf
+
+	# Remove setting from file
+	sed -i '/dhcp-/d;' /etc/dnsmasq.d/01-pihole.conf
+
+	RestartDNS
+}
+
 for var in "$@"; do
 	case "${var}" in
 		"-p" | "password"   ) SetWebPassword;;
@@ -126,6 +160,8 @@ for var in "$@"; do
 		"reboot"            ) Reboot;;
 		"restartdns"        ) RestartDNS;;
 		"setquerylog"       ) SetQueryLogOptions;;
+		"enabledhcp"        ) EnableDHCP;;
+		"disabledhcp"       ) DisableDHCP;;
 		"-h" | "--help"     ) helpFunc;;
 	esac
 done
