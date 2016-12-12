@@ -133,6 +133,9 @@ EnableDHCP(){
 	echo "dhcp-authoritative" >> /etc/dnsmasq.d/01-pihole.conf
 	# Use the specified file to store DHCP lease information
 	echo "dhcp-leasefile=/etc/pihole/dhcp.leases" >> /etc/dnsmasq.d/01-pihole.conf
+	# Suppress logging of the routine operation of these protocols. Errors and problems will still be logged, though.
+	echo "quiet-dhcp" >> /etc/dnsmasq.d/01-pihole.conf
+	echo "quiet-dhcp6" >> /etc/dnsmasq.d/01-pihole.conf
 
 	RestartDNS
 }
