@@ -28,7 +28,7 @@ https://hosts-file.net/ad_servers.txt
 #http://adblock.mahakala.is/
 
 # ADZHOSTS list. Has been known to block legitimate domains
-#http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt
+#http://pilotfiber.dl.sourceforge.net/project/adzhosts/HOSTS.txt
 
 # Windows 10 telemetry list
 #https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/win10/spy.txt
