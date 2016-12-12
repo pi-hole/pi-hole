@@ -89,6 +89,16 @@ Reboot(){
 
 }
 
+RestartDNS(){
+
+	if [ -x "$(command -v systemctl)" ]; then
+		systemctl restart dnsmasq &> /dev/null
+	else
+		service dnsmasq restart &> /dev/null
+	fi
+
+}
+
 for var in "$@"; do
 	case "${var}" in
 		"-p" | "password"   ) SetWebPassword;;
@@ -98,6 +108,7 @@ for var in "$@"; do
 		"setexcludedomains" ) SetExcludeDomains;;
 		"setexcludeclients" ) SetExcludeClients;;
 		"reboot"            ) Reboot;;
+		"restartdns"        ) RestartDNS;;
 		"-h" | "--help"     ) helpFunc;;
 	esac
 done
