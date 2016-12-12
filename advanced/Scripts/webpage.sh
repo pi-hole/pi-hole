@@ -99,6 +99,14 @@ RestartDNS(){
 
 }
 
+SetQueryLogOptions(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/API_QUERY_LOG_SHOW/d;' /etc/pihole/setupVars.conf
+	# Save setting to file
+	echo "API_QUERY_LOG_SHOW=${args[2]}" >> /etc/pihole/setupVars.conf
+}
+
 for var in "$@"; do
 	case "${var}" in
 		"-p" | "password"   ) SetWebPassword;;
@@ -109,6 +117,7 @@ for var in "$@"; do
 		"setexcludeclients" ) SetExcludeClients;;
 		"reboot"            ) Reboot;;
 		"restartdns"        ) RestartDNS;;
+		"setquerylog"       ) SetQueryLogOptions;;
 		"-h" | "--help"     ) helpFunc;;
 	esac
 done
