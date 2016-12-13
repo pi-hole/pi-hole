@@ -41,13 +41,13 @@ SetTemperatureUnit(){
 
 SetWebPassword(){
 
-	if[ "$SUDO_USER" == "www-data" ]; then
+	if [ "${SUDO_USER}" == "www-data" ]; then
 		echo "Security measure: user www-data is not allowed to change webUI password!"
 		echo "Exiting"
 		exit 1
 	fi
 
-	if[ "$SUDO_USER" == "lighttpd" ]; then
+	if [ "${SUDO_USER}" == "lighttpd" ]; then
 		echo "Security measure: user lighttpd is not allowed to change webUI password!"
 		echo "Exiting"
 		exit 1
