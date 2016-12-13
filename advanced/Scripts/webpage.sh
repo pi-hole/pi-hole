@@ -93,7 +93,7 @@ SetExcludeClients(){
 
 Reboot(){
 
-	reboot
+	nohup bash -c "sleep 5; reboot" &> /dev/null </dev/null &
 
 }
 
