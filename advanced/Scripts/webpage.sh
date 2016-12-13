@@ -41,6 +41,18 @@ SetTemperatureUnit(){
 
 SetWebPassword(){
 
+	if [ "${SUDO_USER}" == "www-data" ]; then
+		echo "Security measure: user www-data is not allowed to change webUI password!"
+		echo "Exiting"
+		exit 1
+	fi
+
+	if [ "${SUDO_USER}" == "lighttpd" ]; then
+		echo "Security measure: user lighttpd is not allowed to change webUI password!"
+		echo "Exiting"
+		exit 1
+	fi
+
 	# Remove password from file (create backup setupVars.conf.bak)
 	sed -i.bak '/WEBPASSWORD/d' /etc/pihole/setupVars.conf
 	# Set password only if there is one to be set
