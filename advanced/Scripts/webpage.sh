@@ -152,6 +152,14 @@ DisableDHCP(){
 	RestartDNS
 }
 
+SetWebUILayout(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/WEBUIBOXEDLAYOUT/d;' /etc/pihole/setupVars.conf
+	echo "WEBUIBOXEDLAYOUT=${args[2]}" >> /etc/pihole/setupVars.conf
+
+}
+
 for var in "$@"; do
 	case "${var}" in
 		"-p" | "password"   ) SetWebPassword;;
@@ -165,6 +173,7 @@ for var in "$@"; do
 		"setquerylog"       ) SetQueryLogOptions;;
 		"enabledhcp"        ) EnableDHCP;;
 		"disabledhcp"       ) DisableDHCP;;
+		"layout"            ) SetWebUILayout;;
 		"-h" | "--help"     ) helpFunc;;
 	esac
 done
