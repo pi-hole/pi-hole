@@ -90,9 +90,21 @@ SetDNSServers(){
 		echo "domain-needed" >> /etc/dnsmasq.d/01-pihole.conf
 		echo "DNS_FQDN_REQUIRED=true" >> /etc/pihole/setupVars.conf
 	else
+		# Leave it deleted if not wanted
 		echo "DNS_FQDN_REQUIRED=false" >> /etc/pihole/setupVars.conf
 	fi
-	# Leave it deleted if not wanted
+
+	# Remove bogus-priv entry
+	sed -i '/bogus-priv/d;' /etc/dnsmasq.d/01-pihole.conf
+
+	# Readd it if required
+	if [[ "${args[5]}" == "bogus-priv" ]]; then
+		echo "bogus-priv" >> /etc/dnsmasq.d/01-pihole.conf
+		echo "DNS_BOGUS_PRIV=true" >> /etc/pihole/setupVars.conf
+	else
+		# Leave it deleted if not wanted
+		echo "DNS_BOGUS_PRIV=false" >> /etc/pihole/setupVars.conf
+	fi
 
 	# Restart dnsmasq to load new configuration
 	RestartDNS
