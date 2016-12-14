@@ -45,11 +45,13 @@ fi
 
 #Remove the /* from the end of the IPv4addr.
 IPV4_ADDRESS=${IPV4_ADDRESS%/*}
+IPV6_ADDRESS=${IPV6_ADDRESS}
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
 piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
+localList=${piholeDir}/local.list
 justDomainsExtension=domains
 matterAndLight=${basename}.0.matterandlight.txt
 supernova=${basename}.1.supernova.txt
@@ -241,26 +243,37 @@ gravity_unique() {
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo -n "::: Formatting domains into a HOSTS file..."
-    # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
-    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+	rm ${localList}
+	if [[ -f /etc/hostname ]]; then
+		hostname=$(</etc/hostname)
+	elif [ -x "$(command -v hostname)" ]; then
+		hostname=$(hostname -f)
+	else
+		echo "::: Error: Unable to determine fully qualified domain name of host"
+	fi
+  # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
+  if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
-        # Both IPv4 and IPv6
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV6_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole\n${IPV6_ADDRESS} pi.hole" > ${localList}
+      # Both IPv4 and IPv6
+      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-    elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
+  elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
 
-        # Only IPv4
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
+      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole" > ${localList}
+      # Only IPv4
+      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-    elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+  elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
-        # Only IPv6
-        cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+      echo -e "${IPV6_ADDRESS} ${hostname}\n${IPV6_ADDRESS} pi.hole" > ${localList}
+      # Only IPv6
+      cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-    elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
-        echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
-        exit 1
-    fi
+  elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
+      echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
+      exit 1
+  fi
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp ${piholeDir}/${accretionDisc} ${adList}
