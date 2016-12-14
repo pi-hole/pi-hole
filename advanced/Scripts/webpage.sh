@@ -172,23 +172,39 @@ SetWebUILayout(){
 
 }
 
-for var in "$@"; do
-	case "${var}" in
-		"-p" | "password"   ) SetWebPassword;;
-		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
-		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
-		"setdns"            ) SetDNSServers;;
-		"setexcludedomains" ) SetExcludeDomains;;
-		"setexcludeclients" ) SetExcludeClients;;
-		"reboot"            ) Reboot;;
-		"restartdns"        ) RestartDNS;;
-		"setquerylog"       ) SetQueryLogOptions;;
-		"enabledhcp"        ) EnableDHCP;;
-		"disabledhcp"       ) DisableDHCP;;
-		"layout"            ) SetWebUILayout;;
-		"-h" | "--help"     ) helpFunc;;
-	esac
-done
+SetDNSDomainName(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/PIHOLE_DOMAIN/d;' /etc/pihole/setupVars.conf
+	# Save setting to file
+	echo "PIHOLE_DOMAIN=${args[2]}" >> /etc/pihole/setupVars.conf
+
+	# Replace within actual dnsmasq config file
+	sed -i '/domain=/d;' /etc/dnsmasq.d/01-pihole.conf
+	echo "domain=${args[2]}" >> /etc/dnsmasq.d/01-pihole.conf
+
+	# Restart dnsmasq to load new configuration
+	RestartDNS
+
+}
+
+case "${args[1]}" in
+	"-p" | "password"   ) SetWebPassword;;
+	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
+	"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
+	"setdns"            ) SetDNSServers;;
+	"setexcludedomains" ) SetExcludeDomains;;
+	"setexcludeclients" ) SetExcludeClients;;
+	"reboot"            ) Reboot;;
+	"restartdns"        ) RestartDNS;;
+	"setquerylog"       ) SetQueryLogOptions;;
+	"enabledhcp"        ) EnableDHCP;;
+	"disabledhcp"       ) DisableDHCP;;
+	"layout"            ) SetWebUILayout;;
+	"-h" | "--help"     ) helpFunc;;
+	"domainname"        ) SetDNSDomainName;;
+	*                   ) helpFunc;;
+esac
 
 shift
 
