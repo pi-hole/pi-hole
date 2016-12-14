@@ -72,7 +72,7 @@ SetWebPassword(){
 SetDNSServers(){
 
 	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;' /etc/pihole/setupVars.conf
+	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;' /etc/pihole/setupVars.conf
 	# Save setting to file
 	echo "PIHOLE_DNS_1=${args[2]}" >> /etc/pihole/setupVars.conf
 	echo "PIHOLE_DNS_2=${args[3]}" >> /etc/pihole/setupVars.conf
@@ -81,6 +81,30 @@ SetDNSServers(){
 	sed -i '/server=/d;' /etc/dnsmasq.d/01-pihole.conf
 	echo "server=${args[2]}" >> /etc/dnsmasq.d/01-pihole.conf
 	echo "server=${args[3]}" >> /etc/dnsmasq.d/01-pihole.conf
+
+	# Remove domain-needed entry
+	sed -i '/domain-needed/d;' /etc/dnsmasq.d/01-pihole.conf
+
+	# Readd it if required
+	if [[ "${args[4]}" == "domain-needed" ]]; then
+		echo "domain-needed" >> /etc/dnsmasq.d/01-pihole.conf
+		echo "DNS_FQDN_REQUIRED=true" >> /etc/pihole/setupVars.conf
+	else
+		# Leave it deleted if not wanted
+		echo "DNS_FQDN_REQUIRED=false" >> /etc/pihole/setupVars.conf
+	fi
+
+	# Remove bogus-priv entry
+	sed -i '/bogus-priv/d;' /etc/dnsmasq.d/01-pihole.conf
+
+	# Readd it if required
+	if [[ "${args[5]}" == "bogus-priv" ]]; then
+		echo "bogus-priv" >> /etc/dnsmasq.d/01-pihole.conf
+		echo "DNS_BOGUS_PRIV=true" >> /etc/pihole/setupVars.conf
+	else
+		# Leave it deleted if not wanted
+		echo "DNS_BOGUS_PRIV=false" >> /etc/pihole/setupVars.conf
+	fi
 
 	# Restart dnsmasq to load new configuration
 	RestartDNS
@@ -137,7 +161,7 @@ EnableDHCP(){
 	echo "DHCP_ROUTER=${args[4]}" >> /etc/pihole/setupVars.conf
 
 	# Remove setting from file
-	sed -i '/dhcp-/d;' /etc/dnsmasq.d/01-pihole.conf
+	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
 	# Save setting to file
 	echo "dhcp-range=${args[2]},${args[3]},infinite" >> /etc/dnsmasq.d/01-pihole.conf
 	echo "dhcp-option=option:router,${args[4]}" >> /etc/dnsmasq.d/01-pihole.conf
@@ -159,7 +183,7 @@ DisableDHCP(){
 	echo "DHCP_ACTIVE=false" >> /etc/pihole/setupVars.conf
 
 	# Remove setting from file
-	sed -i '/dhcp-/d;' /etc/dnsmasq.d/01-pihole.conf
+	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
 
 	RestartDNS
 }
@@ -172,23 +196,39 @@ SetWebUILayout(){
 
 }
 
-for var in "$@"; do
-	case "${var}" in
-		"-p" | "password"   ) SetWebPassword;;
-		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
-		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
-		"setdns"            ) SetDNSServers;;
-		"setexcludedomains" ) SetExcludeDomains;;
-		"setexcludeclients" ) SetExcludeClients;;
-		"reboot"            ) Reboot;;
-		"restartdns"        ) RestartDNS;;
-		"setquerylog"       ) SetQueryLogOptions;;
-		"enabledhcp"        ) EnableDHCP;;
-		"disabledhcp"       ) DisableDHCP;;
-		"layout"            ) SetWebUILayout;;
-		"-h" | "--help"     ) helpFunc;;
-	esac
-done
+SetDNSDomainName(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/PIHOLE_DOMAIN/d;' /etc/pihole/setupVars.conf
+	# Save setting to file
+	echo "PIHOLE_DOMAIN=${args[2]}" >> /etc/pihole/setupVars.conf
+
+	# Replace within actual dnsmasq config file
+	sed -i '/domain=/d;' /etc/dnsmasq.d/01-pihole.conf
+	echo "domain=${args[2]}" >> /etc/dnsmasq.d/01-pihole.conf
+
+	# Restart dnsmasq to load new configuration
+	RestartDNS
+
+}
+
+case "${args[1]}" in
+	"-p" | "password"   ) SetWebPassword;;
+	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
+	"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
+	"setdns"            ) SetDNSServers;;
+	"setexcludedomains" ) SetExcludeDomains;;
+	"setexcludeclients" ) SetExcludeClients;;
+	"reboot"            ) Reboot;;
+	"restartdns"        ) RestartDNS;;
+	"setquerylog"       ) SetQueryLogOptions;;
+	"enabledhcp"        ) EnableDHCP;;
+	"disabledhcp"       ) DisableDHCP;;
+	"layout"            ) SetWebUILayout;;
+	"-h" | "--help"     ) helpFunc;;
+	"domainname"        ) SetDNSDomainName;;
+	*                   ) helpFunc;;
+esac
 
 shift
 
