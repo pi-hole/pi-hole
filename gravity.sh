@@ -243,7 +243,11 @@ gravity_unique() {
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo -n "::: Formatting domains into a HOSTS file..."
-	rm ${localList}
+
+	if [[ -f ${localList} ]]; then
+	  rm ${localList}
+	fi
+
 	if [[ -f /etc/hostname ]]; then
 		hostname=$(</etc/hostname)
 	elif [ -x "$(command -v hostname)" ]; then
