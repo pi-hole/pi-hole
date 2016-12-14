@@ -137,7 +137,7 @@ EnableDHCP(){
 	echo "DHCP_ROUTER=${args[4]}" >> /etc/pihole/setupVars.conf
 
 	# Remove setting from file
-	sed -i '/dhcp-/d;' /etc/dnsmasq.d/01-pihole.conf
+	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
 	# Save setting to file
 	echo "dhcp-range=${args[2]},${args[3]},infinite" >> /etc/dnsmasq.d/01-pihole.conf
 	echo "dhcp-option=option:router,${args[4]}" >> /etc/dnsmasq.d/01-pihole.conf
@@ -159,7 +159,7 @@ DisableDHCP(){
 	echo "DHCP_ACTIVE=false" >> /etc/pihole/setupVars.conf
 
 	# Remove setting from file
-	sed -i '/dhcp-/d;' /etc/dnsmasq.d/01-pihole.conf
+	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
 
 	RestartDNS
 }
