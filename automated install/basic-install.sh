@@ -891,14 +891,19 @@ configureFirewall() {
 	if [ -x "$(command -v firewall-cmd)" ]; then
 		firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
 		&& firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
-	elif [ -x "$(command -v iptables)" ]; then
+        return
+    fi
+    if [ -x "$(command -v iptables)" ]; then
+        iptables -L INPUT &> /dev/null && (
 		echo "::: Configuring iptables for httpd and dnsmasq.."
-		iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
-		iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
-		iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
-	else
-		echo "::: No firewall detected.. skipping firewall configuration."
-	fi
+        # Insert these 3 rules at the front of the INPUT chain only if they do not already exist
+		iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
+		iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 2 -p tcp -m tcp --dport 53 -j ACCEPT
+		iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 3 -p udp -m udp --dport 53 -j ACCEPT
+            ) || echo "::: iptables commands errored out, please confirm ports 53/udp, 53/tcp, and 80/tcp are open"
+        return
+    fi
+	echo "::: No firewall detected.. skipping firewall configuration."
 }
 
 finalExports() {
