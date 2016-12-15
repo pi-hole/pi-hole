@@ -63,7 +63,7 @@ if($uri == "/")
 <main>
 	<div>Access to the following site has been blocked:<br/>
 	<span class='pre msg'><?php echo $serverName.$uri; ?></span></div>
-	<div>If you have an ongoing use for this website, please ask the owner of the Pi-Hole in your network to have it whitelisted.</div>
+	<div>If you have an ongoing use for this website, please ask the owner of the Pi-hole in your network to have it whitelisted.</div>
 	<input id="domain" type="hidden" value="<?php echo $serverName; ?>">
 	<input id="quiet" type="hidden" value="yes">
 	<button id="btnSearch" class="buttons blocked" type="button" style="visibility: hidden;"></button>
