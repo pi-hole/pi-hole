@@ -1164,15 +1164,16 @@ main() {
     echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
 	else
 		echo "::: Update complete!"
-		if (( ${#pw} > 0 )) ; then
-			echo ":::"
-			echo "::: Note: As security measure a password has been installed for your web interface"
-			echo "::: The currently set password is"
-			echo ":::                                ${pw}"
-			echo ":::"
-			echo "::: You can always change it using"
-			echo ":::                                pihole -a -p new_password"
-		fi
+	fi
+
+	if (( ${#pw} > 0 )) ; then
+		echo ":::"
+		echo "::: Note: As security measure a password has been installed for your web interface"
+		echo "::: The currently set password is"
+		echo ":::                                ${pw}"
+		echo ":::"
+		echo "::: You can always change it using"
+		echo ":::                                pihole -a -p new_password"
 	fi
 
 	echo ":::"
