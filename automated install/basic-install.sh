@@ -994,11 +994,7 @@ configureSelinux() {
 }
 
 displayFinalMessage() {
-	if [ ! -z $pw ]; then
-		pwstring="Note: As security measure a password has been installed for your web interface\n The currently set password is\n                                ${pw}\n\n You can always change it using\n                                pihole -a -p new_password"
-	else
-		pswsting=""
-	fi
+	if (( ${#1} > 0 )) ; then
 	# Final completion message to user
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
@@ -1009,7 +1005,23 @@ If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
-${string}" ${r} ${c}
+
+Note: As security measure a password has been installed for your web interface
+The currently set password is
+                                ${1}
+You can always change it using
+                                pihole -a -p new_password" ${r} ${c}
+	else
+	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
+
+IPv4:	${IPV4_ADDRESS%/*}
+IPv6:	${IPV6_ADDRESS}
+
+If you set a new IP address, you should restart the Pi.
+
+The install log is in /etc/pihole.
+View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin" ${r} ${c}
+	fi
 }
 
 update_dialogs() {
@@ -1129,13 +1141,14 @@ main() {
 	mv ${tmpLog} ${instalLogLoc}
 
 	# Add password to web UI if there is none
+	pw=""
 	if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
 	    pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
 	    pihole -a -p ${pw}
 	fi
 
 	if [[ "${useUpdateVars}" == false ]]; then
-	    displayFinalMessage
+	    displayFinalMessage ${pw}
 	fi
 
 	echo "::: Restarting services..."
