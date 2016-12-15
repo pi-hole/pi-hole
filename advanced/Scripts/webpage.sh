@@ -212,6 +212,18 @@ SetDNSDomainName(){
 
 }
 
+CustomizeAdLists() {
+
+	action=${args[2]}
+	list=${args[3]}
+
+	if [[ "$action" == "enable" ]] ; then
+		sed -i "\\@${list}@s/^#http/http/g" /etc/pihole/adlists.default
+	else
+		sed -i "\\@${list}@s/^http/#http/g" /etc/pihole/adlists.default
+	fi
+}
+
 case "${args[1]}" in
 	"-p" | "password"   ) SetWebPassword;;
 	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
@@ -227,6 +239,7 @@ case "${args[1]}" in
 	"layout"            ) SetWebUILayout;;
 	"-h" | "--help"     ) helpFunc;;
 	"domainname"        ) SetDNSDomainName;;
+	"adlist"            ) CustomizeAdLists;;
 	*                   ) helpFunc;;
 esac
 
