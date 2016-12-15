@@ -43,8 +43,20 @@ debugFunc() {
 }
 
 flushFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/piholeLogFlush.sh
-  exit 0
+    echo "::: Saving current summary..."
+    python /opt/pihole/summaryDB.py
+    echo "::: Flushing queries from database..."
+    sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS queries"
+    sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS forwards"
+    sqlite3 /etc/pihole/pihole.db "DROP TABLE IF EXISTS replies"
+    exit 1
+}
+
+databaseFunc() {
+    echo "::: Importing /var/log/pihole/log to /etc/pihole/pihole.db"
+    python /opt/pihole/dnsmasq_parse.py /var/log/pihole.log
+    ${SUDO} /opt/pihole/piholeLogFlush.sh
+    exit 1
 }
 
 updatePiholeFunc() {
@@ -263,6 +275,7 @@ case "${1}" in
   "-b" | "blacklist"            ) blacklistFunc "$@";;
   "-d" | "debug"                ) debugFunc;;
   "-f" | "flush"                ) flushFunc;;
+  "-i" | "importLogToDatabase") databaseFunc;;
   "-up" | "updatePihole"        ) updatePiholeFunc;;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;

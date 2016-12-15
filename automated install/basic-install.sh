@@ -88,11 +88,14 @@ if [[ $(command -v apt-get) ]]; then
   # fixes for dependancy differences
   # Debian 7 doesn't have iproute2 use iproute
   ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
-  # Prefer the php metapackage if it's there, fall back on the php5 pacakges
-  ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1 && phpVer="php" || phpVer="php5"
+
+  # Ubuntu 16.04 LTS php / php5 fix
+  ${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
+
+  ${PKG_MANAGER} install --dry-run php5-sqlite > /dev/null 2>&1 && phpSqliteVer="php5-sqlite" || phpVer="php-sqlite3"
   # #########################################
+  PIHOLE_DEPS=( iputils-ping lsof dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi ${phpSqliteVer} curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
   INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-  PIHOLE_DEPS=( iputils-ping lsof dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -201,6 +204,7 @@ get_available_interfaces() {
 	# Get available interfaces. Consider only getting UP interfaces in the future, and leaving DOWN interfaces out of list.
 	availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
 }
+
 
 welcomeDialogs() {
 	# Display the welcome dialog
@@ -660,6 +664,7 @@ installScripts() {
     cd "${PI_HOLE_LOCAL_REPO}"
     install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.py
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
