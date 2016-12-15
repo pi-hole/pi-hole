@@ -1005,12 +1005,7 @@ If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
-
-Note: As security measure a password has been installed for your web interface
-The currently set password is
-                                ${1}
-You can always change it using
-                                pihole -a -p new_password" ${r} ${c}
+The currently set password is ${1}" ${r} ${c}
 	else
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
@@ -1169,7 +1164,7 @@ main() {
     echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
 	else
 		echo "::: Update complete!"
-		if [ ! -z $pw ]; then
+		if (( ${#pw} > 0 )) ; then
 			echo ":::"
 			echo "::: Note: As security measure a password has been installed for your web interface"
 			echo "::: The currently set password is"
