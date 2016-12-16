@@ -872,10 +872,8 @@ configureFirewall() {
 }
 
 finalExports() {
-	#If it already exists, lets overwrite it with the new values.
-	if [[ -f ${setupVars} ]]; then
-		rm ${setupVars}
-	fi
+	# Update variables in setupVars.conf file
+	sed -i.update.bak '/PIHOLE_DOMAIN/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;' "${setupVars}"
     {
 	echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
 	echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
