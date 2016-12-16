@@ -915,13 +915,12 @@ accountForRefactor() {
     # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
 
 	# Refactoring of install script has changed the name of a couple of variables. Sort them out here.
-	sed -i 's/IPv4addr/IPv4_address/g' ${setupVars}
-	sed -i 's/piholeIPv6/IPv6_address/g' ${setupVars}
 
-	# Account for renaming of global variables.
 	sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' ${setupVars}
 	sed -i 's/IPv4_address/IPV4_ADDRESS/g' ${setupVars}
+	sed -i 's/IPv4addr/IPV4_ADDRESS/g' ${setupVars}
 	sed -i 's/IPv6_address/IPV6_ADDRESS/g' ${setupVars}
+	sed -i 's/piholeIPv6/IPV6_ADDRESS/g' ${setupVars}
 	sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}
 	sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}
 
