@@ -214,15 +214,24 @@ SetDNSDomainName(){
 
 CustomizeAdLists() {
 
-	action=${args[2]}
-	list=${args[3]}
+	if [[ "${args[3]}" == "default" ]] ; then
+		list="/etc/pihole/adlists.default"
+	elif [[ "${args[3]}" == "user" ]] ; then
+		list="/etc/pihole/adlists.user"
+	else
+		echo "Not permitted"
+		return 1
+	fi
 
-	if [[ "$action" == "enable" ]] ; then
-		sed -i "\\@${list}@s/^#http/http/g" /etc/pihole/adlists.default
-	elif [[ "$action" == "disable" ]] ; then
-		sed -i "\\@${list}@s/^http/#http/g" /etc/pihole/adlists.default
-	elif [[ "$action" == "adduser" ]] ; then
-		echo "${list}" >> /etc/pihole/adlists.user
+	if [[ "${args[2]}" == "enable" ]] ; then
+		sed -i "\\@${args[4]}@s/^#http/http/g" "${list}"
+	elif [[ "${args[2]}" == "disable" ]] ; then
+		sed -i "\\@${args[4]}@s/^http/#http/g" "${list}"
+	elif [[ "${args[2]}" == "add" && "${args[3]}" == "user" ]] ; then
+		echo "${args[4]}" >> /etc/pihole/adlists.user
+	else
+		echo "Not permitted"
+		return 1
 	fi
 }
 
