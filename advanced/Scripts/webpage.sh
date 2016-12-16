@@ -221,8 +221,8 @@ CustomizeAdLists() {
 		sed -i "\\@${list}@s/^#http/http/g" /etc/pihole/adlists.default
 	elif [[ "$action" == "disable" ]] ; then
 		sed -i "\\@${list}@s/^http/#http/g" /etc/pihole/adlists.default
-	elif [[ "$action" == "addextra" ]] ; then
-		echo "${list}" >> /etc/pihole/adlists.extra
+	elif [[ "$action" == "adduser" ]] ; then
+		echo "${list}" >> /etc/pihole/adlists.user
 	fi
 }
 
