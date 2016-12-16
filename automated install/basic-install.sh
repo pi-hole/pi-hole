@@ -884,6 +884,10 @@ finalExports() {
 	echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
 	echo "QUERY_LOGGING=${QUERY_LOGGING}"
     }>> "${setupVars}"
+
+	#Overwrite adlists.lists from /etc/.pihole in case any changes have been made.
+	#Changes should be saved in /etc/adlists.user
+	cp /etc/.pihole/adlists.default /etc/pihole/adlists.defaults
 }
 
 installPihole() {
