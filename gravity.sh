@@ -104,16 +104,26 @@ gravity_collapse() {
 # patternCheck - check to see if curl downloaded any new files.
 gravity_patternCheck() {
 	patternBuffer=$1
+	success=$2
 	# check if the patternbuffer is a non-zero length file
-	if [[ -s "${patternBuffer}" ]]; then
-		# Some of the blocklists are copyright, they need to be downloaded
-		# and stored as is. They can be processed for content after they
-		# have been saved.
-		mv "${patternBuffer}" "${saveLocation}"
-		echo " List updated, transport successful!"
+	if [ $success = true ]; then
+		if [[ -s "${patternBuffer}" ]]; then
+			# Some of the blocklists are copyright, they need to be downloaded
+			# and stored as is. They can be processed for content after they
+			# have been saved.
+			mv "${patternBuffer}" "${saveLocation}"
+			echo ":::   List updated, transport successful!"
+		else
+			# Empty file -> use previously downloaded list
+			echo ":::   Received empty file, using cached one (list not updated!)"
+		fi
 	else
-		# curl didn't download any host files, probably because of the date check
-		echo " No changes detected, transport skipped!"
+		# check if cached list exists
+		if [[ -r "${saveLocation}" ]]; then
+			echo ":::   List download failed, using cached list (list not updated!)"
+		else
+			echo ":::   Download failed and no cached list available (list will not be considered)"
+		fi
 	fi
 }
 
@@ -132,9 +142,27 @@ gravity_transport() {
 	fi
 
 	# Silently curl url
-	curl -s -L ${cmd_ext} ${heisenbergCompensator} -A "${agent}" ${url} > ${patternBuffer}
-	# Check for list updates
-	gravity_patternCheck "${patternBuffer}"
+	err=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w %{http_code} -A "${agent}" ${url} -o ${patternBuffer})
+
+	echo " done"
+	# Analyze http response
+	echo -n ":::   Status: "
+	case "$err" in
+		"200"          ) echo "Success (OK)"; success=true;;
+		"304"          ) echo "Not modified"; success=false;;
+		"403"          ) echo "Forbidden"; success=false;;
+		"404"          ) echo "Not found"; success=false;;
+		"408"          ) echo "Time-out"; success=false;;
+		"451"          ) echo "Unavailable For Legal Reasons"; success=false;;
+		"521"          ) echo "Web Server Is Down (Cloudflare)"; success=false;;
+		"522"          ) echo "Connection Timed Out (Cloudflare)"; success=false;;
+		"500"          ) echo "Internal Server Error"; success=false;;
+		*              ) echo "Status $err"; success=false;;
+	esac
+
+	# Process result
+	gravity_patternCheck "${patternBuffer}" ${success}
+
 }
 
 # spinup - main gravity function
@@ -181,7 +209,10 @@ gravity_Schwarzchild() {
 	echo -n "::: Aggregating list of domains..."
 	truncate -s 0 ${piholeDir}/${matterAndLight}
 	for i in "${activeDomains[@]}"; do
-		cat "${i}" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
+		# Only assimilate list if it is available (download might have faild permanently)
+		if [[ -r "${i}" ]]; then
+			cat "${i}" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
+		fi
 	done
 	echo " done!"
 }
@@ -353,7 +384,7 @@ if [[ "${forceGrav}" == true ]]; then
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+#cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
