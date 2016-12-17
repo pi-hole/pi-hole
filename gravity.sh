@@ -105,9 +105,13 @@ gravity_collapse() {
 gravity_patternCheck() {
 	patternBuffer=$1
 	success=$2
-	# check if the patternbuffer is a non-zero length file
+	error=$3
 	if [ $success = true ]; then
-		if [[ -s "${patternBuffer}" ]]; then
+		# check if download was successful but list has not been modified
+		if [ "${error}" == "304" ]; then
+			echo ":::   No changes detected, transport skipped!"
+		# check if the patternbuffer is a non-zero length file
+		elif [[ -s "${patternBuffer}" ]]; then
 			# Some of the blocklists are copyright, they need to be downloaded
 			# and stored as is. They can be processed for content after they
 			# have been saved.
@@ -148,20 +152,20 @@ gravity_transport() {
 	# Analyze http response
 	echo -n ":::   Status: "
 	case "$err" in
-		"200"          ) echo "Success (OK)"; success=true;;
-		"304"          ) echo "Not modified"; success=false;;
-		"403"          ) echo "Forbidden"; success=false;;
-		"404"          ) echo "Not found"; success=false;;
-		"408"          ) echo "Time-out"; success=false;;
-		"451"          ) echo "Unavailable For Legal Reasons"; success=false;;
-		"521"          ) echo "Web Server Is Down (Cloudflare)"; success=false;;
-		"522"          ) echo "Connection Timed Out (Cloudflare)"; success=false;;
-		"500"          ) echo "Internal Server Error"; success=false;;
-		*              ) echo "Status $err"; success=false;;
+		"200"  ) echo "Success (OK)"; success=true;;
+		"304"  ) echo "Not modified"; success=true;;
+		"403"  ) echo "Forbidden"; success=false;;
+		"404"  ) echo "Not found"; success=false;;
+		"408"  ) echo "Time-out"; success=false;;
+		"451"  ) echo "Unavailable For Legal Reasons"; success=false;;
+		"521"  ) echo "Web Server Is Down (Cloudflare)"; success=false;;
+		"522"  ) echo "Connection Timed Out (Cloudflare)"; success=false;;
+		"500"  ) echo "Internal Server Error"; success=false;;
+		*      ) echo "Status $err"; success=false;;
 	esac
 
 	# Process result
-	gravity_patternCheck "${patternBuffer}" ${success}
+	gravity_patternCheck "${patternBuffer}" ${success} "${err}"
 
 }
 
