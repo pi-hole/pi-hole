@@ -75,12 +75,18 @@ SetDNSServers(){
 	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;' /etc/pihole/setupVars.conf
 	# Save setting to file
 	echo "PIHOLE_DNS_1=${args[2]}" >> /etc/pihole/setupVars.conf
-	echo "PIHOLE_DNS_2=${args[3]}" >> /etc/pihole/setupVars.conf
+	if [[ "${args[3]}" != "none" ]]; then
+		echo "PIHOLE_DNS_2=${args[3]}" >> /etc/pihole/setupVars.conf
+	else
+		echo "PIHOLE_DNS_2=" >> /etc/pihole/setupVars.conf
+	fi
 
 	# Replace within actual dnsmasq config file
 	sed -i '/server=/d;' /etc/dnsmasq.d/01-pihole.conf
 	echo "server=${args[2]}" >> /etc/dnsmasq.d/01-pihole.conf
-	echo "server=${args[3]}" >> /etc/dnsmasq.d/01-pihole.conf
+	if [[ "${args[3]}" != "none" ]]; then
+		echo "server=${args[3]}" >> /etc/dnsmasq.d/01-pihole.conf
+	fi
 
 	# Remove domain-needed entry
 	sed -i '/domain-needed/d;' /etc/dnsmasq.d/01-pihole.conf
