@@ -101,12 +101,23 @@ if [[ $(command -v apt-get) ]]; then
   package_check_install() {
     dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
   }
+
+  package_hold() {
+    apt-mark hold "${1}"
+  }
+  package_unhold() {
+    apt-mark unhold "${1}"
+  }
+
+
 elif [ $(command -v rpm) ]; then
   # Fedora Family
   if [ $(command -v dnf) ]; then
     PKG_MANAGER="dnf"
+    PKG_CONFIG_FILE="/etc/dnf/dnf.conf"
   else
     PKG_MANAGER="yum"
+    PKG_CONFIG_FILE="/etc/yum.conf"
   fi
   PKG_CACHE="/var/cache/${PKG_MANAGER}"
   UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
@@ -128,6 +139,25 @@ elif [ $(command -v rpm) ]; then
     package_check_install() {
       rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
     }
+
+    package_hold() {
+      count=$(cat ${PKG_CONFIG_FILE} | sed -n "/\exclude=/p" | wc -l)
+      if [ count -gt 0 ]; then
+        # Go through all lines and look for "exclude=".
+        # If found, append the argument
+        sed '/exclude=/s/$/ ${1}/g' ${PKG_CONFIG_FILE}
+      else
+        # "exclude=" has not been found, create new line
+        echo "exclude= ${1}" >> ${PKG_CONFIG_FILE}
+      fi
+    }
+
+    package_unhold() {
+      # Go through all lines and look for "exclude=".
+      # If found, replace the argument by an empty string
+      sed -i '/exclude=/ s/ ${1}//g' ${PKG_CONFIG_FILE}
+    }
+
 else
   echo "OS distribution not supported"
   exit
@@ -709,6 +739,19 @@ start_service() {
 	echo ":::"
 	echo -n "::: Starting ${1} service..."
 	if [ -x "$(command -v systemctl)" ]; then
+		systemctl start "${1}" &> /dev/null & spinner $!
+	else
+		service "${1}" start &> /dev/null  & spinner $!
+	fi
+	echo " done."
+}
+
+restart_service() {
+	# Start/Restart service passed in as argument
+	# This should not fail, it's an error if it does
+	echo ":::"
+	echo -n "::: Re-/starting ${1} service..."
+	if [ -x "$(command -v systemctl)" ]; then
 		systemctl restart "${1}" &> /dev/null & spinner $!
 	else
 		service "${1}" restart &> /dev/null  & spinner $!
@@ -728,7 +771,7 @@ enable_service() {
 	echo " done."
 }
 
-update_pacakge_cache() {
+update_package_cache() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
 
@@ -773,6 +816,30 @@ install_dependent_packages() {
 		echo -n ":::    Checking for $i..."
 		package_check_install "${i}" &> /dev/null
 		echo " installed!"
+	done
+}
+
+hold_packages() {
+	# Hold packages passed in via argument array
+	# No spinner - conflicts with set -e
+	declare -a argArray1=("${!1}")
+
+	for i in "${argArray1[@]}"; do
+		echo -n ":::    Holding package $i..."
+		package_hold "${i}" &> /dev/null
+		echo " OK!"
+	done
+}
+
+unhold_packages() {
+	# Hold packages passed in via argument array
+	# No spinner - conflicts with set -e
+	declare -a argArray1=("${!1}")
+
+	for i in "${argArray1[@]}"; do
+		echo -n ":::    Unholding package $i..."
+		package_unhold "${i}" &> /dev/null
+		echo " OK!"
 	done
 }
 
@@ -1052,7 +1119,7 @@ main() {
 	fi
 
 	# Update package cache
-	update_pacakge_cache
+	update_package_cache
 
 	# Notify user of package availability
 	notify_package_updates_available
@@ -1095,8 +1162,16 @@ main() {
 		# Install and log everything to a file
     installPihole | tee ${tmpLog}
 	else
+	  # Prevent update of lighttpd during dependency installation
+	  # since it might lead to a restart of lighttpd which would
+	  # inevitably kill the webupdater
+	  hold_package "lighttpd"
+
 	  # update packages used by the Pi-hole
 	  install_dependent_packages PIHOLE_DEPS[@]
+
+	  # Allow update of lighttpd
+	  unhold_package "lighttpd"
 
 		updatePihole | tee ${tmpLog}
 	fi
@@ -1117,8 +1192,10 @@ main() {
 
 	echo "::: Restarting services..."
 	# Start services
-	start_service dnsmasq
+	restart_service dnsmasq
 	enable_service dnsmasq
+
+	# Don't REstart lighttpd
 	start_service lighttpd
 	enable_service lighttpd
 	echo "::: done."
