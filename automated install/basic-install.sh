@@ -950,14 +950,13 @@ configureSelinux() {
 		echo " installed!"
 		printf ":::\tEnabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
+		printf ":::\tEnabling httpd execmem.. "
+		setsebool -P httpd_execmem on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
-		if ! [ -x "$(command -v systemctl)" ]; then
-			sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
-		fi
 		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
 		semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
 		semodule -i /etc/pihole/pihole.pp
-		rm -f /etc/pihole/pihole.mod
+		rm -f /etc/pihole/pihole.mod /etc/pihole/pihole.pp
 		semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || echo "::: Warning: Pi-Hole SELinux policy did not install."
 	fi
 }
