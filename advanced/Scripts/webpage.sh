@@ -19,8 +19,9 @@ helpFunc() {
 :::
 ::: Options:
 :::  -p, password		Set web interface password, an empty input will remove any previously set password
-:::  -c, celsius		Set Celcius temperature unit
+:::  -c, celsius		Set Celsius temperature unit
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
+:::  -k, kelvin			Set Kelvin temperature unit
 :::  -h, --help			Show this help dialog
 EOM
 	exit 0
