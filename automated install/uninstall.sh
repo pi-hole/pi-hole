@@ -82,7 +82,7 @@ removeAndPurge() {
 				read -rp "::: Do you wish to remove ${i} from your system? [y/n]: " yn
 				case ${yn} in
 					[Yy]* ) printf ":::\tRemoving %s..." "${i}"; ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null & spinner $!; printf "done!\n"; break;;
-					[Nn]* ) printf ":::\tSkipping %s" "${i}\n"; break;;
+					[Nn]* ) printf ":::\tSkipping %s\n" "${i}"; break;;
 					* ) printf "::: You must answer yes or no!\n";;
 				esac
 			done
@@ -136,7 +136,7 @@ removeNoPurge() {
 	fi
 
 	echo "::: Removing config files and scripts..."
-	package_check ${i} > /dev/null
+	package_check lighttpd > /dev/null
 	if [ $? -eq 1 ]; then
 		${SUDO} rm -rf /etc/lighttpd/ &> /dev/null
 	else
@@ -154,6 +154,12 @@ removeNoPurge() {
 	${SUDO} rm /usr/local/bin/pihole &> /dev/null
 	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
 	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null
+	
+	# If the pihole user exists, then remove
+	if id "pihole" >/dev/null 2>&1; then
+        	echo "::: Removing pihole user..."
+		${SUDO} userdel -r pihole
+	fi
 
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"

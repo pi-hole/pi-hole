@@ -17,15 +17,15 @@ gravity="/etc/pihole/gravity.list"
 
 today=$(date "+%b %e")
 
+. /etc/pihole/setupVars.conf
+
 CalcBlockedDomains() {
-	CheckIPv6
 	if [ -e "${gravity}" ]; then
-		#Are we IPV6 or IPV4?
-		if [[ -n ${piholeIPv6} ]]; then
-			#We are IPV6
+		# if BOTH IPV4 and IPV6 are in use, then we need to divide total domains by 2.
+		if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]]; then
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
 		else
-			#We are IPV4
+			# only one is set.
 			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1}')
 		fi
 	else
@@ -61,14 +61,6 @@ CalcPercentBlockedToday() {
 	fi
 }
 
-CheckIPv6() {
-	piholeIPv6file="/etc/pihole/.useIPv6"
-	if [[ -f ${piholeIPv6file} ]];then
-		# If the file exists, then the user previously chose to use IPv6 in the automated installer
-		piholeIPv6=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-	fi
-}
-
 outputJSON() {
 	CalcQueriesToday
 	CalcblockedToday
@@ -88,7 +80,7 @@ normalChrono() {
 		echo "[0;1;33;93m|[0m  [0;1;32;92m_[0;1;36;96m/[0m [0;1;34;94m|_[0;1;35;95m__[0;1;31;91m|[0m [0;1;33;93m'[0m [0;1;32;92m\/[0m [0;1;36;96m_[0m [0;1;34;94m\[0m [0;1;35;95m/[0m [0;1;31;91m-[0;1;33;93m_)[0m"
 		echo "[0;1;32;92m|_[0;1;36;96m|[0m [0;1;34;94m|_[0;1;35;95m|[0m   [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m"
 		echo ""
-		echo "        $(ifconfig eth0 | awk '/inet addr/ {print $2}' | cut -d':' -f2)"
+		echo "        ${IPV4_ADDRESS}"
 		echo ""
 		uptime | cut -d' ' -f11-
 		#uptime -p	#Doesn't work on all versions of uptime
@@ -111,8 +103,6 @@ normalChrono() {
 		CalcBlockedDomains
 
 		echo "Blocking:      ${blockedDomainsTotal}"
-		#below commented line does not add up to todaysQueryCount
-		#echo "Queries:       $todaysQueryCountV4 / $todaysQueryCountV6"
 		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
 	  echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
 
@@ -131,7 +121,7 @@ displayHelp() {
 :::  -j, --json		output stats as JSON formatted string
 :::  -h, --help		display this help text
 EOM
-    exit 1
+    exit 0
 }
 
 if [[ $# = 0 ]]; then

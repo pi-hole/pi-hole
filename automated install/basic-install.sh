@@ -88,11 +88,11 @@ if [[ $(command -v apt-get) ]]; then
   # fixes for dependancy differences
   # Debian 7 doesn't have iproute2 use iproute
   ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
-  # Ubuntu 16.04 LTS php / php5 fix
-  ${PKG_MANAGER} install --dry-run php5 > /dev/null 2>&1 && phpVer="php5" || phpVer="php"
+  # Prefer the php metapackage if it's there, fall back on the php5 pacakges
+  ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1 && phpVer="php" || phpVer="php5"
   # #########################################
   INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-  PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+  PIHOLE_DEPS=( iputils-ping lsof dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -297,7 +297,7 @@ use4andor6() {
 	# Let use select IPv4 and/or IPv6
 	cmd=(whiptail --separate-output --checklist "Select Protocols (press space to select)" ${r} ${c} 2)
 	options=(IPv4 "Block ads over IPv4" on
-	IPv6 "Block ads over IPv6" off)
+	IPv6 "Block ads over IPv6" on)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	if [[ $? = 0 ]];then
 		for choice in ${choices}
@@ -423,7 +423,7 @@ setStaticIPv4() {
 				echo "DNS1=$PIHOLE_DNS_1"
 				echo "DNS2=$PIHOLE_DNS_2"
 				echo "USERCTL=no"
-			}>> "${IFCFG_FILE}"
+			}> "${IFCFG_FILE}"
 			ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
 			if [ -x "$(command -v nmcli)" ];then
 				# Tell NetworkManager to read our new sysconfig file
@@ -612,36 +612,6 @@ version_check_dnsmasq() {
 		sed -i '/^server=@DNS2@/d' ${dnsmasq_pihole_01_location}
 	fi
 
-	#sed -i "s/@HOSTNAME@/$hostname/" ${dnsmasq_pihole_01_location}
-
-	if [[ -f /etc/hostname ]]; then
-		hostname=$(</etc/hostname)
-	elif [ -x "$(command -v hostname)" ]; then
-		hostname=$(hostname -f)
-	fi
-
-	#Replace IPv4 and IPv6 tokens in 01-pihole.conf for pi.hole resolution.
-	if [[ "${IPV4_ADDRESS}" != "" ]]; then
-	    tmp=${IPV4_ADDRESS%/*}
-	    sed -i "s/@IPv4@/$tmp/" ${dnsmasq_pihole_01_location}
-	else
-		sed -i '/^address=\/pi.hole\/@IPv4@/d' ${dnsmasq_pihole_01_location}
-		sed -i '/^address=\/@HOSTNAME@\/@IPv4@/d' ${dnsmasq_pihole_01_location}
-	fi
-
-	if [[ "${IPV6_ADDRESS}" != "" ]]; then
-	    sed -i "s/@IPv6@/$IPV6_ADDRESS/" ${dnsmasq_pihole_01_location}
-	else
-		sed -i '/^address=\/pi.hole\/@IPv6@/d' ${dnsmasq_pihole_01_location}
-		sed -i '/^address=\/@HOSTNAME@\/@IPv6@/d' ${dnsmasq_pihole_01_location}
-	fi
-
-	if [[ "${hostname}" != "" ]]; then
-	    sed -i "s/@HOSTNAME@/$hostname/" ${dnsmasq_pihole_01_location}
-	else
-		sed -i '/^address=\/@HOSTNAME@*/d' ${dnsmasq_pihole_01_location}
-	fi
-
 	sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
 
 	if [[ "${QUERY_LOGGING}" == false ]] ; then
@@ -708,6 +678,7 @@ installConfigs() {
 	if [ ! -d "/etc/lighttpd" ]; then
 		mkdir /etc/lighttpd
 		chown "${USER}":root /etc/lighttpd
+	elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
 		mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
 	fi
 	cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
@@ -901,9 +872,9 @@ configureFirewall() {
 }
 
 finalExports() {
-	#If it already exists, lets overwrite it with the new values.
-	if [[ -f ${setupVars} ]]; then
-		rm ${setupVars}
+	# Update variables in setupVars.conf file
+	if [ -e "${setupVars}" ]; then
+		sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;' "${setupVars}"
 	fi
     {
 	echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
@@ -944,13 +915,12 @@ accountForRefactor() {
     # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
 
 	# Refactoring of install script has changed the name of a couple of variables. Sort them out here.
-	sed -i 's/IPv4addr/IPv4_address/g' ${setupVars}
-	sed -i 's/piholeIPv6/IPv6_address/g' ${setupVars}
 
-	# Account for renaming of global variables.
 	sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' ${setupVars}
 	sed -i 's/IPv4_address/IPV4_ADDRESS/g' ${setupVars}
+	sed -i 's/IPv4addr/IPV4_ADDRESS/g' ${setupVars}
 	sed -i 's/IPv6_address/IPV6_ADDRESS/g' ${setupVars}
+	sed -i 's/piholeIPv6/IPV6_ADDRESS/g' ${setupVars}
 	sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}
 	sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}
 
@@ -992,6 +962,7 @@ configureSelinux() {
 }
 
 displayFinalMessage() {
+	if (( ${#1} > 0 )) ; then
 	# Final completion message to user
 	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
@@ -1001,7 +972,19 @@ IPv6:	${IPV6_ADDRESS}
 If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
+View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
+The currently set password is ${1}" ${r} ${c}
+	else
+	whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
+
+IPv4:	${IPV4_ADDRESS%/*}
+IPv6:	${IPV6_ADDRESS}
+
+If you set a new IP address, you should restart the Pi.
+
+The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin" ${r} ${c}
+	fi
 }
 
 update_dialogs() {
@@ -1120,8 +1103,15 @@ main() {
 	# Move the log file into /etc/pihole for storage
 	mv ${tmpLog} ${instalLogLoc}
 
+	# Add password to web UI if there is none
+	pw=""
+	if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
+	    pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
+	    pihole -a -p ${pw}
+	fi
+
 	if [[ "${useUpdateVars}" == false ]]; then
-	    displayFinalMessage
+	    displayFinalMessage ${pw}
 	fi
 
 	echo "::: Restarting services..."
@@ -1144,10 +1134,20 @@ main() {
 		echo "::: Update complete!"
 	fi
 
+	if (( ${#pw} > 0 )) ; then
+		echo ":::"
+		echo "::: Note: As security measure a password has been installed for your web interface"
+		echo "::: The currently set password is"
+		echo ":::                                ${pw}"
+		echo ":::"
+		echo "::: You can always change it using"
+		echo ":::                                pihole -a -p new_password"
+	fi
+
 	echo ":::"
 	echo "::: The install log is located at: /etc/pihole/install.log"
 }
 
-if [[ -z "$PHTEST" ]] ; then
+if [[ "${PH_TEST}" != true ]] ; then
     main "$@"
 fi

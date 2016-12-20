@@ -86,7 +86,7 @@ helpFunc() {
 :::  -h, --help           Show this help dialog
 :::
 EOM
-	exit 1
+	exit 0
 }
 
 if [[ $# = 0 ]]; then
