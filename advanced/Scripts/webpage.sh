@@ -31,11 +31,7 @@ SetTemperatureUnit(){
 	# Remove setting from file (create backup setupVars.conf.bak)
 	sed -i.bak '/TEMPERATUREUNIT/d' /etc/pihole/setupVars.conf
 	# Save setting to file
-	if [[ $unit == "F" ]] ; then
-		echo "TEMPERATUREUNIT=F" >> /etc/pihole/setupVars.conf
-	else
-		echo "TEMPERATUREUNIT=C" >> /etc/pihole/setupVars.conf
-	fi
+	echo "TEMPERATUREUNIT=${unit}" >> /etc/pihole/setupVars.conf
 
 }
 
@@ -222,6 +218,7 @@ case "${args[1]}" in
 	"-p" | "password"   ) SetWebPassword;;
 	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
 	"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
+	"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
 	"setdns"            ) SetDNSServers;;
 	"setexcludedomains" ) SetExcludeDomains;;
 	"setexcludeclients" ) SetExcludeClients;;
