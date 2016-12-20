@@ -101,6 +101,18 @@ if [[ $(command -v apt-get) ]]; then
   package_check_install() {
     dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
   }
+
+  package_check_update_available()
+  {
+    # Check if package would be upgraded.
+    # return values:
+    #  0   if no
+    #  1   if yes
+    #  >1  if more than one package containing the name
+    #      ( might make restarting the core package necessary )
+    apt-get -u upgrade --assume-no | grep "$1" | wc -l
+  }
+
 elif [ $(command -v rpm) ]; then
   # Fedora Family
   if [ $(command -v dnf) ]; then
@@ -120,14 +132,26 @@ elif [ $(command -v rpm) ]; then
     remove_deps=(epel-release);
     PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
   fi
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
-    DNSMASQ_USER="nobody"
+  LIGHTTPD_USER="lighttpd"
+  LIGHTTPD_GROUP="lighttpd"
+  LIGHTTPD_CFG="lighttpd.conf.fedora"
+  DNSMASQ_USER="nobody"
 
-    package_check_install() {
-      rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
-    }
+  package_check_install() {
+    rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
+  }
+
+  package_check_update_available()
+  {
+    # Check if package would be upgraded.
+    # return values:
+    #  0   if no
+    #  1   if yes
+    #  >1  if more than one package containing the name
+    #      ( might make restarting the core package necessary )
+    ${PKG_MANAGER} check-update | grep "$1" | wc -l
+  }
+
 else
   echo "OS distribution not supported"
   exit
@@ -703,7 +727,7 @@ stop_service() {
 	echo " done."
 }
 
-start_service() {
+restart_service() {
 	# Start/Restart service passed in as argument
 	# This should not fail, it's an error if it does
 	echo ":::"
@@ -728,7 +752,7 @@ enable_service() {
 	echo " done."
 }
 
-update_pacakge_cache() {
+update_package_cache() {
 	#Running apt-get update/upgrade with minimal output can cause some issues with
 	#requiring user input (e.g password for phpmyadmin see #218)
 
@@ -1052,10 +1076,28 @@ main() {
 	fi
 
 	# Update package cache
-	update_pacakge_cache
+	update_package_cache
 
 	# Notify user of package availability
 	notify_package_updates_available
+
+	if [ -f /etc/pihole/webupdate.running ] ; then
+		lighttpdupdate=package_check_update_available "lighttpd"
+		if [[ $lighttpdupdate > 0 ]]; then
+			echo "::: ------------------> WEBUPDATE FAILED <------------------"
+			echo ":::"
+			echo "::: An update for lighttpd is available."
+			echo "::: The webupdate process cannot be continued, since"
+			echo "::: we cannot change webserver settings while running"
+			echo "::: the update via the web user interface!"
+			echo "::: Please update lighttpd manually and continue afterwards!"
+			echo "::: Alternatively, you can also run sudo pihole -up manually"
+			echo "::: which will update lighttpd automatically."
+			echo ":::"
+			echo "::: ------------------> WEBUPDATE FAILED <------------------"
+			exit 1
+		fi
+	fi
 
 	# Install packages used by this installation script
 	install_dependent_packages INSTALLER_DEPS[@]
@@ -1117,10 +1159,20 @@ main() {
 
 	echo "::: Restarting services..."
 	# Start services
-	start_service dnsmasq
+	restart_service dnsmasq
 	enable_service dnsmasq
-	start_service lighttpd
-	enable_service lighttpd
+	if [ ! -f /etc/pihole/webupdate.running ] ; then
+		restart_service lighttpd
+		enable_service lighttpd
+	else
+		echo "::: --------------> Please restart the Pi-Hole <--------------"
+		echo "::: Pro Tip: You can also restart the webserver using"
+		if [ -x "$(command -v systemctl)" ]; then
+			echo ":::          systemctl restart lighttpd"
+		else
+			echo ":::          service lighttpd restart"
+		fi
+	fi
 	echo "::: done."
 
 	echo ":::"
