@@ -26,7 +26,7 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version)
+PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
 IPV4_ADDRESS=""
@@ -62,7 +62,7 @@ else
   echo ":::"
   echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 
-  if [ -x "$(command -v sudo)" ]; then
+  if command -v sudo &> /dev/null; then
     echo "::: Utility sudo located."
     exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
     exit $?
@@ -74,36 +74,32 @@ fi
 
 # Compatibility
 
-if [[ $(command -v apt-get) ]]; then
+if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
   PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_UPDATE="${PKG_MANAGER} upgrade"
-  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
+  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
   # fixes for dependancy differences
   # Debian 7 doesn't have iproute2 use iproute
-  ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
+  ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && iproute_pkg="iproute2" || iproute_pkg="iproute"
   # Prefer the php metapackage if it's there, fall back on the php5 pacakges
   ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1 && phpVer="php" || phpVer="php5"
   # #########################################
-  INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-  PIHOLE_DEPS=( iputils-ping lsof dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+  INSTALLER_DEPS=(apt-utils git debconf dhcpcd5 whiptail)
+  PIHOLE_DEPS=(bc cron curl dnsutils ${iproute_pkg} iputils-ping lsof lighttpd netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget dnsmasq)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
-
-  package_check_install() {
-    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
-  }
-elif [ $(command -v rpm) ]; then
+elif command -v rpm &> /dev/null; then
   # Fedora Family
-  if [ $(command -v dnf) ]; then
+  if command -v dnf &> /dev/null; then
     PKG_MANAGER="dnf"
   else
     PKG_MANAGER="yum"
@@ -113,8 +109,8 @@ elif [ $(command -v rpm) ]; then
   PKG_UPDATE="${PKG_MANAGER} update -y"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-  PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+  INSTALLER_DEPS=(iproute net-tools procps-ng newt git)
+  PIHOLE_DEPS=(epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat)
 
   if grep -q 'Fedora' /etc/redhat-release; then
     remove_deps=(epel-release);
@@ -124,31 +120,12 @@ elif [ $(command -v rpm) ]; then
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
-
-    package_check_install() {
-      rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
-    }
 else
   echo "OS distribution not supported"
   exit
 fi
 
 ####### FUNCTIONS ##########
-spinner() {
-  local pid=$1
-  local delay=0.50
-  local spinstr='/-\|'
-
-  while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
-    local temp=${spinstr#?}
-    printf " [%c]  " "${spinstr}"
-    local spinstr=${temp}${spinstr%"$temp"}
-    sleep ${delay}
-    printf "\b\b\b\b\b\b"
-  done
-  printf "    \b\b\b\b"
-}
-
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
@@ -162,7 +139,7 @@ make_repo() {
 	# Remove the non-repod interface and clone the interface
 	echo -n ":::    Cloning $remoteRepo into $directory..."
 	rm -rf "${directory}"
-	git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null & spinner $!
+	git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null
 	echo " done!"
 }
 
@@ -171,8 +148,8 @@ update_repo() {
 	# Pull the latest commits
 	echo -n ":::     Updating repo in $1..."
 	cd "${directory}" || exit 1
-	git stash -q > /dev/null & spinner $!
-	git pull -q > /dev/null & spinner $!
+	git stash -q > /dev/null
+	git pull -q > /dev/null
 	echo " done!"
 }
 
@@ -633,39 +610,24 @@ remove_legacy_scripts() {
 	done
 }
 
-clean_existing() {
-  # Clean an exiting installation to prepare for upgrade/reinstall
-  # ${1} Directory to clean; ${2} Array of files to remove
-  local clean_directory="${1}"
-  local old_files=${2}
-
-	for script in "${old_files[@]}"; do
-		rm -f "${clean_directory}${script}.sh"
-	done
-
-}
 
 installScripts() {
-  # Install the scripts from repository to their various locations
-  readonly install_dir="/opt/pihole/"
 
 	echo ":::"
 	echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
 
-	# Clear out script files from Pi-hole scripts directory.
-	clean_existing "${install_dir}" "${PI_HOLE_FILES}"
-
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
-    install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
+    install -o "${USER}" -dm755 "$PI_HOLE_INSTALL_DIR"
+    install -o "${USER}" -Dm755 -t "$PI_HOLE_INSTALL_DIR" gravity.sh
+    install -o "${USER}" -Dm755 -t "$PI_HOLE_INSTALL_DIR" ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t "$PI_HOLE_INSTALL_DIR" ./automated\ install/uninstall.sh
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 	  echo " done."
   else
-    echo " *** ERROR: Local repo ${core_repo} not found, exiting."
+    echo " *** ERROR: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting."
     exit 1
   fi
 }
@@ -690,28 +652,15 @@ installConfigs() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
 }
 
-stop_service() {
-	# Stop service passed in as argument.
-	# Can softfail, as process may not be installed when this is called
-	echo ":::"
-	echo -n "::: Stopping ${1} service..."
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl stop "${1}" &> /dev/null & spinner $! || true
-	else
-		service "${1}" stop &> /dev/null & spinner $! || true
-	fi
-	echo " done."
-}
-
 start_service() {
 	# Start/Restart service passed in as argument
 	# This should not fail, it's an error if it does
 	echo ":::"
 	echo -n "::: Starting ${1} service..."
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl restart "${1}" &> /dev/null & spinner $!
+	if command -v systemctl &> /dev/null; then
+		systemctl restart "${1}" &> /dev/null
 	else
-		service "${1}" restart &> /dev/null  & spinner $!
+		service "${1}" restart &> /dev/null
 	fi
 	echo " done."
 }
@@ -720,10 +669,10 @@ enable_service() {
 	# Enable service so that it will start with next reboot
 	echo ":::"
 	echo -n "::: Enabling ${1} service to start on reboot..."
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl enable "${1}" &> /dev/null & spinner $!
+	if command -v systemctl &> /dev/null; then
+		systemctl enable "${1}" &> /dev/null
 	else
-		update-rc.d "${1}" defaults &> /dev/null  & spinner $!
+		update-rc.d "${1}" defaults &> /dev/null
 	fi
 	echo " done."
 }
@@ -742,7 +691,7 @@ update_pacakge_cache() {
 		#update package lists
 		echo ":::"
 		echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
-		${UPDATE_PKG_CACHE} &> /dev/null & spinner $!
+		${UPDATE_PKG_CACHE} &> /dev/null
 		echo " done!"
 	fi
 }
@@ -764,16 +713,23 @@ notify_package_updates_available() {
 	fi
 }
 
+
 install_dependent_packages() {
 	# Install packages passed in via argument array
 	# No spinner - conflicts with set -e
 	declare -a argArray1=("${!1}")
 
-	for i in "${argArray1[@]}"; do
-		echo -n ":::    Checking for $i..."
-		package_check_install "${i}" &> /dev/null
-		echo " installed!"
-	done
+	if command -v debconf-apt-progress &> /dev/null; then
+	  debconf-apt-progress -- ${PKG_INSTALL} "${argArray1[@]}"
+	else
+    for i in "${argArray1[@]}"; do
+      echo ":::    Installing $i..."
+      ${PKG_INSTALL} "${i}" &> /dev/null || \
+      (echo "PACKAGE INSTALL ERROR"; \
+      echo "::: Sometimes this can be a transitory error, check connectivity and retry"; \
+      exit 1)
+    done
+  fi
 }
 
 CreateLogFile() {
@@ -847,7 +803,7 @@ runGravity() {
 		rm /etc/pihole/list.*
 	fi
 	echo "::: Running gravity.sh"
-	/opt/pihole/gravity.sh
+	(/opt/pihole/gravity.sh)
 }
 
 create_pihole_user() {
@@ -858,10 +814,10 @@ create_pihole_user() {
 
 configureFirewall() {
 	# Allow HTTP and DNS traffic
-	if [ -x "$(command -v firewall-cmd)" ]; then
+	if command -v firewall-cmd &> /dev/null; then
 		firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
 		&& firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
-	elif [ -x "$(command -v iptables)" ]; then
+	elif command -v iptables &> /dev/null; then
 		echo "::: Configuring iptables for httpd and dnsmasq.."
 		iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
 		iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
@@ -895,7 +851,7 @@ installPihole() {
 	chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
 	chmod 775 /var/www/html
 	usermod -a -G ${LIGHTTPD_GROUP} pihole
-	if [ -x "$(command -v lighty-enable-mod)" ]; then
+	if command -v lighty-enable-mod &> /dev/null; then
 		lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
 	else
 		printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
@@ -943,15 +899,15 @@ updatePihole() {
 }
 
 configureSelinux() {
-	if [ -x "$(command -v getenforce)" ]; then
+	if command -v getenforce &> /dev/null; then
 		printf "\n::: SELinux Detected\n"
 		printf ":::\tChecking for SELinux policy development packages..."
-		package_check_install "selinux-policy-devel" > /dev/null
+		${PKG_INSTALL} "selinux-policy-devel" > /dev/null
 		echo " installed!"
 		printf ":::\tEnabling httpd server side includes (SSI).. "
 		setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
 		printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
-		if ! [ -x "$(command -v systemctl)" ]; then
+		if ! command -v systemctl &> /dev/null; then
 			sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
 		fi
 		checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
@@ -1075,9 +1031,6 @@ main() {
 		mkdir -p /etc/pihole/
 		# Remove legacy scripts from previous storage location
 		remove_legacy_scripts
-		# Stop resolver and webserver while installing proceses
-		stop_service dnsmasq
-		stop_service lighttpd
 		# Determine available interfaces
 		get_available_interfaces
 		# Find interfaces and let the user choose one
@@ -1092,11 +1045,16 @@ main() {
 		# Install packages used by the Pi-hole
 	  install_dependent_packages PIHOLE_DEPS[@]
 
+    start_service dnsmasq
+	  enable_service dnsmasq
+
 		# Install and log everything to a file
     installPihole | tee ${tmpLog}
 	else
 	  # update packages used by the Pi-hole
 	  install_dependent_packages PIHOLE_DEPS[@]
+
+    start_service dnsmasq
 
 		updatePihole | tee ${tmpLog}
 	fi
@@ -1117,8 +1075,6 @@ main() {
 
 	echo "::: Restarting services..."
 	# Start services
-	start_service dnsmasq
-	enable_service dnsmasq
 	start_service lighttpd
 	enable_service lighttpd
 	echo "::: done."
