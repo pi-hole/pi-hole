@@ -80,8 +80,7 @@ if [[ $(command -v apt-get) ]]; then
   PKG_MANAGER="apt-get"
   PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-  PKG_UPDATE="${PKG_MANAGER} upgrade"
-  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
+  PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
@@ -91,8 +90,8 @@ if [[ $(command -v apt-get) ]]; then
   # Prefer the php metapackage if it's there, fall back on the php5 pacakges
   ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1 && phpVer="php" || phpVer="php5"
   # #########################################
-  INSTALLER_DEPS=( apt-utils whiptail git dhcpcd5)
-  PIHOLE_DEPS=( iputils-ping lsof dnsutils bc dnsmasq lighttpd ${phpVer}-common ${phpVer}-cgi curl unzip wget sudo netcat cron ${IPROUTE_PKG} )
+  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git whiptail)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${IPROUTE_PKG} iputils-ping lighttpd lsof netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -110,11 +109,10 @@ elif [ $(command -v rpm) ]; then
   fi
   PKG_CACHE="/var/cache/${PKG_MANAGER}"
   UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
-  PKG_UPDATE="${PKG_MANAGER} update -y"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=( iproute net-tools procps-ng newt git )
-  PIHOLE_DEPS=( epel-release bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-cli php curl unzip wget findutils cronie sudo nmap-ncat )
+  INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq epel-release findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
 
   if grep -q 'Fedora' /etc/redhat-release; then
     remove_deps=(epel-release);
@@ -134,21 +132,6 @@ else
 fi
 
 ####### FUNCTIONS ##########
-spinner() {
-  local pid=$1
-  local delay=0.50
-  local spinstr='/-\|'
-
-  while [ "$(ps a | awk '{print $1}' | grep "${pid}")" ]; do
-    local temp=${spinstr#?}
-    printf " [%c]  " "${spinstr}"
-    local spinstr=${temp}${spinstr%"$temp"}
-    sleep ${delay}
-    printf "\b\b\b\b\b\b"
-  done
-  printf "    \b\b\b\b"
-}
-
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
@@ -162,7 +145,7 @@ make_repo() {
   # Remove the non-repod interface and clone the interface
   echo -n ":::    Cloning $remoteRepo into $directory..."
   rm -rf "${directory}"
-  git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null & spinner $!
+  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null
   echo " done!"
 }
 
@@ -171,8 +154,8 @@ update_repo() {
   # Pull the latest commits
   echo -n ":::     Updating repo in $1..."
   cd "${directory}" || exit 1
-  git stash -q > /dev/null & spinner $!
-  git pull -q > /dev/null & spinner $!
+  git stash -q &> /dev/null
+  git pull -q &> /dev/null
   echo " done!"
 }
 
@@ -683,9 +666,9 @@ stop_service() {
   echo ":::"
   echo -n "::: Stopping ${1} service..."
   if [ -x "$(command -v systemctl)" ]; then
-    systemctl stop "${1}" &> /dev/null & spinner $! || true
+    systemctl stop "${1}" &> /dev/null || true
   else
-    service "${1}" stop &> /dev/null & spinner $! || true
+    service "${1}" stop &> /dev/null || true
   fi
   echo " done."
 }
@@ -696,9 +679,9 @@ start_service() {
   echo ":::"
   echo -n "::: Starting ${1} service..."
   if [ -x "$(command -v systemctl)" ]; then
-    systemctl restart "${1}" &> /dev/null & spinner $!
+    systemctl restart "${1}" &> /dev/null
   else
-    service "${1}" restart &> /dev/null  & spinner $!
+    service "${1}" restart &> /dev/null
   fi
   echo " done."
 }
@@ -708,9 +691,9 @@ enable_service() {
   echo ":::"
   echo -n "::: Enabling ${1} service to start on reboot..."
   if [ -x "$(command -v systemctl)" ]; then
-    systemctl enable "${1}" &> /dev/null & spinner $!
+    systemctl enable "${1}" &> /dev/null
   else
-    update-rc.d "${1}" defaults &> /dev/null  & spinner $!
+    update-rc.d "${1}" defaults &> /dev/null
   fi
   echo " done."
 }
@@ -729,7 +712,7 @@ update_pacakge_cache() {
     #update package lists
     echo ":::"
     echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
-    ${UPDATE_PKG_CACHE} &> /dev/null & spinner $!
+    ${UPDATE_PKG_CACHE} &> /dev/null
     echo " done!"
   fi
 }
@@ -746,7 +729,7 @@ notify_package_updates_available() {
     echo "::: Your system is up to date! Continuing with Pi-hole installation..."
   else
     echo "::: There are ${updatesToInstall} updates available for your system!"
-    echo "::: We recommend you run '${PKG_UPDATE}' after installing Pi-Hole! "
+    echo "::: We recommend you update your OS after installing Pi-Hole! "
     echo ":::"
   fi
 }
@@ -756,11 +739,15 @@ install_dependent_packages() {
   # No spinner - conflicts with set -e
   declare -a argArray1=("${!1}")
 
-  for i in "${argArray1[@]}"; do
-    echo -n ":::    Checking for $i..."
-    package_check_install "${i}" &> /dev/null
-    echo " installed!"
-  done
+  if command -v debconf-apt-progress &> /dev/null; then
+    debconf-apt-progress -- ${PKG_INSTALL} "${argArray1[@]}"
+  else
+    for i in "${argArray1[@]}"; do
+      echo -n ":::    Checking for $i..."
+      package_check_install "${i}" &> /dev/null
+      echo " installed!"
+    done
+  fi
 }
 
 CreateLogFile() {
