@@ -621,16 +621,6 @@ version_check_dnsmasq() {
     fi
 }
 
-remove_legacy_scripts() {
-  #Tidy up /usr/local/bin directory if installing over previous install.
-  oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
-  for i in "${oldFiles[@]}"; do
-    if [ -f "/usr/local/bin/$i.sh" ]; then
-      rm /usr/local/bin/"$i".sh
-    fi
-  done
-}
-
 clean_existing() {
   # Clean an exiting installation to prepare for upgrade/reinstall
   # ${1} Directory to clean; ${2} Array of files to remove
@@ -1069,8 +1059,6 @@ main() {
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-    # Remove legacy scripts from previous storage location
-    remove_legacy_scripts
     # Stop resolver and webserver while installing proceses
     stop_service dnsmasq
     stop_service lighttpd
