@@ -62,7 +62,7 @@ else
   echo ":::"
   echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 
-  if [ -x "$(command -v sudo)" ]; then
+  if command -v sudo; then
     echo "::: Utility sudo located."
     exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
     exit $?
@@ -74,7 +74,7 @@ fi
 
 # Compatibility
 
-if [[ $(command -v apt-get) ]]; then
+if command -v apt-get; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
@@ -101,9 +101,9 @@ if [[ $(command -v apt-get) ]]; then
   package_check_install() {
     dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
   }
-elif [ $(command -v rpm) ]; then
+elif command -v rpm; then
   # Fedora Family
-  if [ $(command -v dnf) ]; then
+  if command -v dnf; then
     PKG_MANAGER="dnf"
   else
     PKG_MANAGER="yum"
@@ -621,16 +621,6 @@ version_check_dnsmasq() {
         #Enable Logging
         sed -i 's/^#log-queries/log-queries/' ${dnsmasq_pihole_01_location}
     fi
-}
-
-remove_legacy_scripts() {
-	#Tidy up /usr/local/bin directory if installing over previous install.
-	oldFiles=( gravity chronometer whitelist blacklist piholeLogFlush updateDashboard uninstall setupLCD piholeDebug)
-	for i in "${oldFiles[@]}"; do
-		if [ -f "/usr/local/bin/$i.sh" ]; then
-			rm /usr/local/bin/"$i".sh
-		fi
-	done
 }
 
 clean_existing() {
