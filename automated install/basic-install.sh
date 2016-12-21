@@ -1059,8 +1059,6 @@ main() {
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-    # Remove legacy scripts from previous storage location
-    remove_legacy_scripts
     # Stop resolver and webserver while installing proceses
     stop_service dnsmasq
     stop_service lighttpd
