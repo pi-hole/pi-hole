@@ -81,7 +81,7 @@ if [[ $(command -v apt-get) ]]; then
   PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_UPDATE="${PKG_MANAGER} upgrade"
-  PKG_INSTALL="${PKG_MANAGER} --yes --fix-missing install"
+  PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
