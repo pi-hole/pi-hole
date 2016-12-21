@@ -1,4 +1,4 @@
-## Pi-hole ad-list default sources. Updated 22/05/2016 #########################
+## Pi-hole ad-list default sources. Updated 29/10/2016 #########################
 #                                                                              #
 #  To make changes to this file:                                               #
 #    1. run `cp /etc/pihole/adlists.default /etc/pihole/adlists.list`          #
@@ -28,7 +28,7 @@ https://hosts-file.net/ad_servers.txt
 #http://adblock.mahakala.is/
 
 # ADZHOSTS list. Has been known to block legitimate domains
-#http://optimate.dl.sourceforge.net/project/adzhosts/HOSTS.txt
+#http://pilotfiber.dl.sourceforge.net/project/adzhosts/HOSTS.txt
 
 # Windows 10 telemetry list
 #https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/win10/spy.txt
