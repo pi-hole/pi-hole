@@ -80,7 +80,6 @@ if [[ $(command -v apt-get) ]]; then
   PKG_MANAGER="apt-get"
   PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-  PKG_UPDATE="${PKG_MANAGER} upgrade"
   PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -110,7 +109,6 @@ elif [ $(command -v rpm) ]; then
   fi
   PKG_CACHE="/var/cache/${PKG_MANAGER}"
   UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
-  PKG_UPDATE="${PKG_MANAGER} update -y"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
@@ -744,7 +742,7 @@ notify_package_updates_available() {
 		echo "::: Your system is up to date! Continuing with Pi-hole installation..."
 	else
 		echo "::: There are ${updatesToInstall} updates available for your system!"
-		echo "::: We recommend you run '${PKG_UPDATE}' after installing Pi-Hole! "
+		echo "::: We recommend you update your OS after installing Pi-Hole! "
 		echo ":::"
 	fi
 }
