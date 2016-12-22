@@ -165,7 +165,15 @@ EnableDHCP(){
 
 	# Remove possible old setting from file
 	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
+
+	# Get Pi-hole interface from setupVars.conf
 	interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
+	# Use eth0 as fallback interface
+	if [ -z ${interface} ]; then
+		interface="eth0"
+	fi
+
+	# Write settings to file
 	echo "###############################################################################
 #  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
 #            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
