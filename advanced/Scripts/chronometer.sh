@@ -33,7 +33,7 @@ CalcBlockedDomains() {
 
 CalcQueriesToday() {
 	if [ -e "${piLog}" ]; then
-		queriesToday=$(cat "${piLog}" | awk '/query/ {print $6}' | wc -l)
+		queriesToday=$(awk '/query/ {print $6}' < "${piLog}" | wc -l)
 	else
 		queriesToday="Err."
 	fi
@@ -41,7 +41,7 @@ CalcQueriesToday() {
 
 CalcblockedToday() {
 	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
-		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
+		blockedToday=$(awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' < "${piLog}" | wc -l)
 	else
 		blockedToday="Err."
 	fi
