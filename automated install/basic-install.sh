@@ -799,7 +799,7 @@ installPiholeWeb() {
     mkdir /var/www/html/pihole
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-      else
+    else
       printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
     fi
     cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
