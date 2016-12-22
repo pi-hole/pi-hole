@@ -822,7 +822,7 @@ runGravity() {
     rm /etc/pihole/list.*
   fi
   echo "::: Running gravity.sh"
-  /opt/pihole/gravity.sh
+  { /opt/pihole/gravity.sh; }
 }
 
 create_pihole_user() {
