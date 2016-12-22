@@ -130,8 +130,8 @@ fi
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
-  git -C "${directory}" status --short &> /dev/null
-  return
+  curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
+  return $rc
 }
 
 make_repo() {
@@ -623,6 +623,7 @@ installScripts() {
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
+    install -o "${USER}" -Dm755 -d /opt/pihole
     install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
@@ -818,6 +819,8 @@ installPiholeWeb() {
   echo -n "::: Installing sudoer file..."
   mkdir -p /etc/sudoers.d/
   cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
+  # Add lighttpd user (OS dependent) to sudoers file
+  echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
   chmod 0440 /etc/sudoers.d/pihole
   echo " done!"
 }
@@ -839,7 +842,7 @@ runGravity() {
     rm /etc/pihole/list.*
   fi
   echo "::: Running gravity.sh"
-  /opt/pihole/gravity.sh
+  { /opt/pihole/gravity.sh; }
 }
 
 create_pihole_user() {
