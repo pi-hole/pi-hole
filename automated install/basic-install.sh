@@ -801,6 +801,8 @@ installPiholeWeb() {
   echo -n "::: Installing sudoer file..."
   mkdir -p /etc/sudoers.d/
   cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
+  # Add lighttpd user (OS dependent) to sudoers file
+  echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
   chmod 0440 /etc/sudoers.d/pihole
   echo " done!"
 }
