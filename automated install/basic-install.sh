@@ -97,8 +97,9 @@ if [[ $(command -v apt-get) ]]; then
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
 
-  package_check_install() {
-    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
+  package_check() {
+    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep "ok installed"
+    return
   }
 elif [ $(command -v rpm) ]; then
   # Fedora Family
@@ -745,15 +746,24 @@ install_dependent_packages() {
   # Install packages passed in via argument array
   # No spinner - conflicts with set -e
   declare -a argArray1=("${!1}")
+  declare -a installArray
 
+  # Debian based package install - debconf will download the entire package list
+  # so we just create an array of packages not currently installed to cut down on the
+  # amount of download traffic.
+  # NOTE: We may be able to use this installArray in the future to create a list of package that were
+  # installed by us, and remove only the installed packages, and not the entire list.
   if command -v debconf-apt-progress &> /dev/null; then
-    debconf-apt-progress -- ${PKG_INSTALL} "${argArray1[@]}"
-  else
     for i in "${argArray1[@]}"; do
       echo -n ":::    Checking for $i..."
-      package_check_install "${i}" &> /dev/null
-      echo " installed!"
+      if package_check "${i}" &> /dev/null; then
+        echo " installed!"
+      else
+        echo " added to install list!"
+        installArray+=("${i}")
+      fi
     done
+       debconf-apt-progress -- ${PKG_INSTALL} "${installArray[@]}"
   fi
 }
 
