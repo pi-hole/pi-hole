@@ -771,7 +771,7 @@ install_dependent_packages() {
       installArray+=("${i}")
     fi
   done
-    ${PKG_INSTALL} "${installArray[@]}"
+    ${PKG_INSTALL} "${installArray[@]}" &> /dev/null
     return 0
 }
 
