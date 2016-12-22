@@ -178,6 +178,10 @@ dhcp-option=option:router,${args[4]}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 quiet-dhcp
 quiet-dhcp6
+
+enable-ra
+dhcp-option=option6:dns-server,[::]
+dhcp-range=::100,::1ff,constructor:eth0
 " > /etc/dnsmasq.d/02-pihole-dhcp.conf
 
 	RestartDNS
