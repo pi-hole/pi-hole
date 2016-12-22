@@ -135,7 +135,7 @@ fi
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
-  git -C "${directory}" status --short &> /dev/null
+  (cd ${directory} && git status --short) &> /dev/null
   return
 }
 
