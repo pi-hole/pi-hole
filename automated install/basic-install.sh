@@ -97,10 +97,6 @@ if [[ $(command -v apt-get) ]]; then
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
 
-  package_check() {
-    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep "ok installed"
-    return
-  }
 elif [ $(command -v rpm) ]; then
   # Fedora Family
   if [ $(command -v dnf) ]; then
@@ -116,8 +112,7 @@ elif [ $(command -v rpm) ]; then
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq epel-release findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
 
   if grep -q 'Fedora' /etc/redhat-release; then
-    remove_deps=(epel-release);
-    PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
+    PIHOLE_DEPS=(${PIHOLE_DEPS#epel-release});
   fi
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
@@ -756,7 +751,7 @@ install_dependent_packages() {
   if command -v debconf-apt-progress &> /dev/null; then
     for i in "${argArray1[@]}"; do
       echo -n ":::    Checking for $i..."
-      if package_check "${i}" &> /dev/null; then
+      if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
         echo " installed!"
       else
         echo " added to install list!"
