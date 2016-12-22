@@ -33,7 +33,7 @@ CalcBlockedDomains() {
 
 CalcQueriesToday() {
 	if [ -e "${piLog}" ]; then
-		queriesToday=$(awk '/query/ {print $6}' < "${piLog}" | wc -l)
+		queriesToday=$(awk '/query\[/ {print $6}' < "${piLog}" | wc -l)
 	else
 		queriesToday="Err."
 	fi
