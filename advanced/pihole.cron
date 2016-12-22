@@ -8,7 +8,7 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This file is under source-control of the Pi-hole installation and update
 # scripts, any changes made to this file will be overwritten when the softare
 # is updated or re-installed. Please make any changes to the appropriate crontab
@@ -16,11 +16,11 @@
 
 # Pi-hole: Update the ad sources once a week on Sunday at 01:59
 #          Download any updates from the adlists
-59 1    * * 7   root    /usr/local/bin/pihole updateGravity
+59 1    * * 7   root    PATH="$PATH:/usr/local/bin/" pihole updateGravity
 
 # Pi-hole: Update Pi-hole! Uncomment to enable auto update
-#30 2    * * 7   root    /usr/local/bin/pihole updatePihole
+#30 2    * * 7   root    PATH="$PATH:/usr/local/bin/" pihole updatePihole
 
 # Pi-hole: Flush the log daily at 00:00 so it doesn't get out of control
 #          Stats will be viewable in the Web interface thanks to the cron job above
-00 00   * * *   root    /usr/local/bin/pihole flush
+00 00   * * *   root    PATH="$PATH:/usr/local/bin/" pihole flush

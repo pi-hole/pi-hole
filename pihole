@@ -67,13 +67,28 @@ setupLCDFunction() {
   exit 0
 }
 
+scanList(){
+  domain="${1}"
+  list="${2}"
+  method="${3}"
+  if [[ ${method} == "-exact" ]] ; then
+    grep -E "(^|\s)${domain}($|\s)" "${list}"
+  else
+    grep "${domain}" "${list}"
+  fi
+}
+
 queryFunc() {
   domain="${2}"
-  for list in /etc/pihole/list.*; do
-    count=$(grep ${domain} $list | wc -l)
+  method="${3}"
+  lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
+  for list in ${lists[@]}; do
+    result=$(scanList ${domain} ${list} ${method})
+    # Remove empty lines before couting number of results
+    count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
     echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
-      grep ${domain} ${list}
+      echo "${result}"
     fi
     echo ""
   done
@@ -120,7 +135,7 @@ restartDNS() {
 piholeEnable() {
   if [[ "${1}" == "0" ]] ; then
     #Disable Pihole
-    sed -i 's/^addn-hosts/#addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+    sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
     echo "::: Blocking has been disabled!"
     if [[ $# > 1 ]] ; then
       if [[ ${2} == *"s"* ]] ; then
@@ -197,6 +212,11 @@ piholeStatus() {
   fi
 }
 
+tailFunc() {
+  echo "Press Ctrl-C to exit"
+  tail -F /var/log/pihole.log
+  exit 0
+}
 
 helpFunc() {
 	cat << EOM
@@ -210,13 +230,16 @@ helpFunc() {
 :::  -b, blacklist            Blacklist domains
 :::  -d, debug                Start a debugging session if having trouble
 :::  -f, flush                Flush the pihole.log file
+:::  -t, tail                 Output the last lines of the pihole.log file. Lines are appended as the file grows
 :::  -up, updatePihole        Update Pi-hole
+:::  -r, reconfigure          Reconfigure or Repair Pi-hole
 :::  -g, updateGravity        Update the list of ad-serving domains
 :::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it
 :::  -c, chronometer          Calculates stats and displays to an LCD
 :::  -h, help                 Show this help dialog
 :::  -v, version              Show current versions
 :::  -q, query                Query the adlists for a specific domain
+:::                           Use pihole -q domain -exact if you want to see exact matches only
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
 :::  -a, admin                Admin webpage options
 :::  uninstall                Uninstall Pi-Hole from your system :(!
@@ -255,5 +278,6 @@ case "${1}" in
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
   "-a" | "admin"                ) webpageFunc "$@";;
+  "-t" | "tail"                 ) tailFunc;;
   *                             ) helpFunc;;
 esac
