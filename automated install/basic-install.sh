@@ -628,6 +628,7 @@ installScripts() {
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
+    install -o "${USER}" -Dm755 -d /opt/pihole
     install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
