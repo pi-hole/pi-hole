@@ -102,7 +102,7 @@ normalChrono() {
 
 		echo "Blocking:      ${blockedDomainsTotal}"
 		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
-	  echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
+		echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
 
 		sleep 5
 	done
