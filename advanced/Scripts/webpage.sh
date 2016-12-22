@@ -165,6 +165,7 @@ EnableDHCP(){
 
 	# Remove possible old setting from file
 	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
+	interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
 	echo "###############################################################################
 #  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
 #            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
@@ -181,7 +182,7 @@ quiet-dhcp6
 
 enable-ra
 dhcp-option=option6:dns-server,[::]
-dhcp-range=::100,::1ff,constructor:eth0
+dhcp-range=::100,::1ff,constructor:${interface}
 " > /etc/dnsmasq.d/02-pihole-dhcp.conf
 
 	RestartDNS
