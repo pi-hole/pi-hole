@@ -15,8 +15,6 @@
 piLog="/var/log/pihole.log"
 gravity="/etc/pihole/gravity.list"
 
-today=$(date "+%b %e")
-
 . /etc/pihole/setupVars.conf
 
 CalcBlockedDomains() {
@@ -35,7 +33,7 @@ CalcBlockedDomains() {
 
 CalcQueriesToday() {
 	if [ -e "${piLog}" ]; then
-		queriesToday=$(cat "${piLog}" | grep "${today}" | awk '/query/ {print $6}' | wc -l)
+		queriesToday=$(cat "${piLog}" | awk '/query/ {print $6}' | wc -l)
 	else
 		queriesToday="Err."
 	fi
