@@ -754,10 +754,10 @@ install_dependent_packages() {
       return 0
   fi
 
-  #Fedora
+  #Fedora/CentOS
   for i in "${argArray1[@]}"; do
     echo -n ":::    Checking for $i..."
-    if dnf -q list installed "${i}" &> /dev/null; then
+    if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
       echo " installed!"
     else
       echo " added to install list!"
@@ -938,7 +938,7 @@ configureSelinux() {
   if [ -x "$(command -v getenforce)" ]; then
     printf "\n::: SELinux Detected\n"
     printf ":::\tChecking for SELinux policy development packages..."
-    package_check_install "selinux-policy-devel" > /dev/null
+    install_dependent_packages "selinux-policy-devel" > /dev/null
     echo " installed!"
     printf ":::\tEnabling httpd server side includes (SSI).. "
     setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
