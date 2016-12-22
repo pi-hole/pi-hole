@@ -761,10 +761,10 @@ install_dependent_packages() {
       return 0
   fi
 
-  #Fedora
+  #Fedora/CentOS
   for i in "${argArray1[@]}"; do
     echo -n ":::    Checking for $i..."
-    if dnf -q list installed "${i}" &> /dev/null; then
+    if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
       echo " installed!"
     else
       echo " added to install list!"
