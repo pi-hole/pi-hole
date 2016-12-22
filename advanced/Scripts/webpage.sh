@@ -188,7 +188,7 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
 quiet-dhcp
 quiet-dhcp6
 
-enable-ra
+#enable-ra
 dhcp-option=option6:dns-server,[::]
 dhcp-range=::100,::1ff,constructor:${interface}
 " > /etc/dnsmasq.d/02-pihole-dhcp.conf
