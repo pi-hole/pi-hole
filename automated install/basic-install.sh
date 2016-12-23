@@ -938,7 +938,8 @@ updatePihole() {
 
 checkSelinux() {
   if [ -x "$(command -v getenforce)" ]; then
-    echo -n "\n::: SELinux Support Detected... Mode: "
+    echo ":::"
+    echo -n "::: SELinux Support Detected... Mode: "
     enforceMode=$(getenforce)
     echo "${enforceMode}"
     if [[ "${enforceMode}" == "Enforcing" ]]; then
