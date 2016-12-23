@@ -945,11 +945,11 @@ checkSelinux() {
     if [[ "${enforceMode}" == "Enforcing" ]]; then
       if (whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c}); then
           echo ":::"
-          echo "::: Continuing installation with SELinux Enforcing.."
+          echo "::: Continuing installation with SELinux Enforcing."
           echo "::: Please refer to official SELinux documentation to create a custom policy."
       else
           echo ":::"
-          echo "::: Not continuing install after SELinux Enforcing detected"
+          echo "::: Not continuing install after SELinux Enforcing detected."
           exit 1
       fi
     fi
