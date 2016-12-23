@@ -938,13 +938,16 @@ updatePihole() {
 
 checkSelinux() {
   if [ -x "$(command -v getenforce)" ]; then
-    printf "\n::: SELinux Support Detected.."
+    echo -n "\n::: SELinux Support Detected... Mode: "
     enforceMode=$(getenforce)
+    echo "${enforceMode}"
     if [[ "${enforceMode}" == "Enforcing" ]]; then
-      if (whiptail --title "SELinux Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c}); then
+      echo "Enforcing"
+      if (whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c}); then
           printf "\n::: Continuing installation with SELinux Enforcing.."
           printf "\n::: Please refer to official SELinux documentation to create a custom policy."
       else
+          printf "\n::: Not continuing install after SELinux Enforcing detected"
           exit 1
       fi
     fi
