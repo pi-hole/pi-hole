@@ -72,9 +72,9 @@ scanList(){
   list="${2}"
   method="${3}"
   if [[ ${method} == "-exact" ]] ; then
-    grep -E "(^|\s)${domain}($|\s)" "${list}"
+    grep -i -E "(^|\s)${domain}($|\s)" "${list}"
   else
-    grep "${domain}" "${list}"
+    grep -i "${domain}" "${list}"
   fi
 }
 
