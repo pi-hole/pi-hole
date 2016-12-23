@@ -69,7 +69,7 @@ SetWebPassword(){
 SetDNSServers(){
 
 	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;' /etc/pihole/setupVars.conf
+	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;' /etc/pihole/setupVars.conf
 	# Save setting to file
 	echo "PIHOLE_DNS_1=${args[2]}" >> /etc/pihole/setupVars.conf
 	if [[ "${args[3]}" != "none" ]]; then
@@ -215,6 +215,20 @@ SetDNSDomainName(){
 
 }
 
+ResolutionSettings() {
+
+	typ=${args[2]}
+	state=${args[3]}
+
+	if [[ "${typ}" == "forward" ]]; then
+		sed -i.bak '/API_GET_UPSTREAM_DNS_HOSTNAME/d;' /etc/pihole/setupVars.conf
+		echo "API_GET_UPSTREAM_DNS_HOSTNAME=${state}" >> /etc/pihole/setupVars.conf
+	elif [[ "${typ}" == "clients" ]]; then
+		sed -i.bak '/API_GET_CLIENT_HOSTNAME/d;' /etc/pihole/setupVars.conf
+		echo "API_GET_CLIENT_HOSTNAME=${state}" >> /etc/pihole/setupVars.conf
+	fi
+}
+
 case "${args[1]}" in
 	"-p" | "password"   ) SetWebPassword;;
 	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
@@ -231,6 +245,7 @@ case "${args[1]}" in
 	"layout"            ) SetWebUILayout;;
 	"-h" | "--help"     ) helpFunc;;
 	"domainname"        ) SetDNSDomainName;;
+	"resolve"           ) ResolutionSettings;;
 	*                   ) helpFunc;;
 esac
 

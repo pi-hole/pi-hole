@@ -130,8 +130,14 @@ fi
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
-  curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
-  return $rc
+  if [ -d $directory ]; then
+    # git -C is not used here to support git versions older than 1.8.4
+    curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
+    return $rc
+  else
+    # non-zero return code if directory does not exist OR is not a valid git repository
+    return 1
+  fi
 }
 
 make_repo() {
@@ -147,7 +153,7 @@ make_repo() {
 update_repo() {
   local directory="${1}"
   # Pull the latest commits
-  echo -n ":::     Updating repo in $1..."
+  echo -n ":::    Updating repo in $1..."
   cd "${directory}" || exit 1
   git stash -q &> /dev/null
   git pull -q &> /dev/null
@@ -821,6 +827,13 @@ installPiholeWeb() {
   cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
   # Add lighttpd user (OS dependent) to sudoers file
   echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
+
+  if [[ "$LIGHTTPD_USER" == "lighttpd" ]]; then
+    # Allow executing pihole via sudo with Fedora
+    # Usually /usr/local/bin is not permitted as directory for sudoable programms
+    echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin" >> /etc/sudoers.d/pihole
+  fi
+
   chmod 0440 /etc/sudoers.d/pihole
   echo " done!"
 }
@@ -840,6 +853,10 @@ runGravity() {
   if ls /etc/pihole/list* 1> /dev/null 2>&1; then
     echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
     rm /etc/pihole/list.*
+  fi
+  # Test if /etc/pihole/adlists.default exists
+  if [[ ! -e /etc/pihole/adlists.default ]]; then
+    cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
   fi
   echo "::: Running gravity.sh"
   { /opt/pihole/gravity.sh; }
@@ -898,7 +915,6 @@ installPihole() {
   installScripts
   installConfigs
   CreateLogFile
-  configureSelinux
   installPiholeWeb
   installCron
   configureFirewall
@@ -929,7 +945,6 @@ updatePihole() {
   installScripts
   installConfigs
   CreateLogFile
-  configureSelinux
   installPiholeWeb
   installCron
   configureFirewall
@@ -941,7 +956,7 @@ configureSelinux() {
   if [ -x "$(command -v getenforce)" ]; then
     printf "\n::: SELinux Detected\n"
     printf ":::\tChecking for SELinux policy development packages..."
-    install_dependent_packages "selinux-policy-devel" > /dev/null
+    package_check_install "selinux-policy-devel" > /dev/null
     echo " installed!"
     printf ":::\tEnabling httpd server side includes (SSI).. "
     setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
@@ -949,11 +964,6 @@ configureSelinux() {
     if ! [ -x "$(command -v systemctl)" ]; then
       sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
     fi
-    checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
-    semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
-    semodule -i /etc/pihole/pihole.pp
-    rm -f /etc/pihole/pihole.mod
-    semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || echo "::: Warning: Pi-Hole SELinux policy did not install."
   fi
 }
 
@@ -1019,7 +1029,8 @@ update_dialogs() {
 }
 
 main() {
-# Check arguments for the undocumented flags
+
+  # Check arguments for the undocumented flags
   for var in "$@"; do
     case "$var" in
       "--reconfigure"  ) reconfigure=true;;
@@ -1054,6 +1065,9 @@ main() {
   # Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
 
+   # Check if SELinux is Enforcing
+  checkSelinux
+
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
@@ -1074,10 +1088,10 @@ main() {
     get_available_interfaces
     # Find interfaces and let the user choose one
     chooseInterface
-    # Let the user decide if they want to block ads over IPv4 and/or IPv6
-    use4andor6
     # Decide what upstream DNS Servers to use
     setDNS
+    # Let the user decide if they want to block ads over IPv4 and/or IPv6
+    use4andor6
     # Let the user decide if they want query logging enabled...
     setLogging
 

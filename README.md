@@ -10,7 +10,7 @@
 
 ## The multi-platform, network-wide ad blocker
 
-Block ads for **all** your devices _without_ the need to install client-side software.  The Pi-hole blocks ads the DNS-level, so all your devices are protected.
+Block ads for **all** your devices _without_ the need to install client-side software.  The Pi-hole blocks ads at the DNS-level, so all your devices are protected.
 
 - Web Browsers
 - Cell Phones
@@ -53,7 +53,7 @@ wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
 
-Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](http://pi-hole.net/faq/can-i-set-the-pi-hole-to-be-the-dns-server-at-my-router-so-i-dont-have-to-change-settings-for-my-devices/) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
+Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
 ## Installing the Pi-hole (Click to Watch!)
 <p align="center">
