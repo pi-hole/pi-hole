@@ -949,7 +949,7 @@ checkSelinux() {
           echo "::: Please refer to official SELinux documentation to create a custom policy."
       else
           echo ":::"
-          echo "::: Not continuing install after SELinux Enforcing detected."
+          echo "::: Not continuing install after SELinux Enforcing detected.\n"
           exit 1
       fi
     fi
