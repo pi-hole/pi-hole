@@ -809,6 +809,13 @@ installPiholeWeb() {
   cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
   # Add lighttpd user (OS dependent) to sudoers file
   echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
+
+  if [[ "$LIGHTTPD_USER" == "lighttpd" ]]; then
+    # Allow executing pihole via sudo with Fedora
+    # Usually /usr/local/bin is not permitted as directory for sudoable programms
+    echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin" >> /etc/sudoers.d/pihole
+  fi
+
   chmod 0440 /etc/sudoers.d/pihole
   echo " done!"
 }
