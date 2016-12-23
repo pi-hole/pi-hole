@@ -135,8 +135,14 @@ fi
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
-  curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
-  return $rc
+  if [ -d $directory ]; then
+    # git -C is not used here to support git versions older than 1.8.4
+    curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
+    return $rc
+  else
+    # non-zero return code if directory does not exist OR is not a valid git repository
+    return 1
+  fi
 }
 
 make_repo() {
