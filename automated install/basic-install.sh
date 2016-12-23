@@ -941,7 +941,7 @@ checkSelinux() {
     printf "\n::: SELinux Support Detected.."
     getenforce | grep 'Enforcing'
     if [ $? -eq 0 ]; then
-      if (whiptail --title "SELinux Detected" --yesno "SELinux is being Enforced on your system. \n Pi-hole does not support SELinux at this time...\nContinue with SELinux Enforcing?" 8 78); then
+      if (whiptail --title "SELinux Detected" --yesno "SELinux is being Enforced on your system. \nPi-hole does not support SELinux at this time...\nContinue with SELinux Enforcing?" ${r} ${c}); then
           printf "\n::: Continuing installation with SELinux Enforcing.."
           printf "\n::: Please refer to official SELinux documentation to create a custom policy."
       else
