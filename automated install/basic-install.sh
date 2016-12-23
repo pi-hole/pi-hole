@@ -1013,8 +1013,6 @@ update_dialogs() {
 }
 
 main() {
-  # Check if SELinux is Enforcing
-  checkSelinux
 
   # Check arguments for the undocumented flags
   for var in "$@"; do
@@ -1050,6 +1048,9 @@ main() {
 
   # Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
+
+   # Check if SELinux is Enforcing
+  checkSelinux
 
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
