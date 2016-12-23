@@ -69,7 +69,7 @@ SetWebPassword(){
 SetDNSServers(){
 
 	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;' /etc/pihole/setupVars.conf
+	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;' /etc/pihole/setupVars.conf
 	# Save setting to file
 	echo "PIHOLE_DNS_1=${args[2]}" >> /etc/pihole/setupVars.conf
 	if [[ "${args[3]}" != "none" ]]; then
