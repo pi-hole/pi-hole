@@ -829,6 +829,10 @@ runGravity() {
     echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
     rm /etc/pihole/list.*
   fi
+  # Test if /etc/pihole/adlists.default exists
+  if [[ ! -e /etc/pihole/adlists.default ]]; then
+    cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+  fi
   echo "::: Running gravity.sh"
   { /opt/pihole/gravity.sh; }
 }
