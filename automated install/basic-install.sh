@@ -897,7 +897,6 @@ installPihole() {
   installScripts
   installConfigs
   CreateLogFile
-  configureSelinux
   installPiholeWeb
   installCron
   configureFirewall
@@ -928,7 +927,6 @@ updatePihole() {
   installScripts
   installConfigs
   CreateLogFile
-  configureSelinux
   installPiholeWeb
   installCron
   configureFirewall
@@ -936,23 +934,22 @@ updatePihole() {
   runGravity
 }
 
-configureSelinux() {
+checkSelinux() {
   if [ -x "$(command -v getenforce)" ]; then
-    printf "\n::: SELinux Detected\n"
-    printf ":::\tChecking for SELinux policy development packages..."
-    package_check_install "selinux-policy-devel" > /dev/null
-    echo " installed!"
-    printf ":::\tEnabling httpd server side includes (SSI).. "
-    setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
-    printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
-    if ! [ -x "$(command -v systemctl)" ]; then
-      sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
+    printf "\n::: SELinux Support Detected.."
+    getenforce | grep 'Enforcing'
+    if [ $? -eq 0 ]; then
+      printf "\n::: SELinux is being Enforced on your system"
+      printf "\n::: WARNING: PiHole does not support SELinux at this time.."
+      read -r -p "Continue with SELinux Enforcing? [y/N]" continue
+      if [[ $continue =~ ^([yY][eE][sS]|[yY])$ ]]
+      then
+          printf "\n::: Continuing installation with SELinux Enforcing.."
+          printf "\n::: Please refer to official SELinux documentation to create a custom policy."
+      else
+          exit 1
+      fi
     fi
-    checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
-    semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
-    semodule -i /etc/pihole/pihole.pp
-    rm -f /etc/pihole/pihole.mod
-    semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || echo "::: Warning: Pi-Hole SELinux policy did not install."
   fi
 }
 
@@ -1018,7 +1015,10 @@ update_dialogs() {
 }
 
 main() {
-# Check arguments for the undocumented flags
+  # Check if SELinux is Enforcing
+  checkSelinux
+
+  # Check arguments for the undocumented flags
   for var in "$@"; do
     case "$var" in
       "--reconfigure"  ) reconfigure=true;;
