@@ -158,7 +158,7 @@ make_repo() {
 update_repo() {
   local directory="${1}"
   # Pull the latest commits
-  echo -n ":::     Updating repo in $1..."
+  echo -n ":::    Updating repo in $1..."
   cd "${directory}" || exit 1
   git stash -q &> /dev/null
   git pull -q &> /dev/null
