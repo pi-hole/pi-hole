@@ -1056,10 +1056,10 @@ main() {
     get_available_interfaces
     # Find interfaces and let the user choose one
     chooseInterface
-    # Let the user decide if they want to block ads over IPv4 and/or IPv6
-    use4andor6
     # Decide what upstream DNS Servers to use
     setDNS
+    # Let the user decide if they want to block ads over IPv4 and/or IPv6
+    use4andor6
     # Let the user decide if they want query logging enabled...
     setLogging
 
