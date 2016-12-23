@@ -130,8 +130,14 @@ fi
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
-  git -C "${directory}" status --short &> /dev/null
-  return
+  if [ -d $directory ]; then
+    # git -C is not used here to support git versions older than 1.8.4
+    curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
+    return $rc
+  else
+    # non-zero return code if directory does not exist OR is not a valid git repository
+    return 1
+  fi
 }
 
 make_repo() {
@@ -147,7 +153,7 @@ make_repo() {
 update_repo() {
   local directory="${1}"
   # Pull the latest commits
-  echo -n ":::     Updating repo in $1..."
+  echo -n ":::    Updating repo in $1..."
   cd "${directory}" || exit 1
   git stash -q &> /dev/null
   git pull -q &> /dev/null
@@ -623,6 +629,7 @@ installScripts() {
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
+    install -o "${USER}" -Dm755 -d /opt/pihole
     install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
     install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
@@ -818,6 +825,15 @@ installPiholeWeb() {
   echo -n "::: Installing sudoer file..."
   mkdir -p /etc/sudoers.d/
   cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
+  # Add lighttpd user (OS dependent) to sudoers file
+  echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
+
+  if [[ "$LIGHTTPD_USER" == "lighttpd" ]]; then
+    # Allow executing pihole via sudo with Fedora
+    # Usually /usr/local/bin is not permitted as directory for sudoable programms
+    echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin" >> /etc/sudoers.d/pihole
+  fi
+
   chmod 0440 /etc/sudoers.d/pihole
   echo " done!"
 }
@@ -838,8 +854,12 @@ runGravity() {
     echo "::: Cleaning up previous install (preserving whitelist/blacklist)"
     rm /etc/pihole/list.*
   fi
+  # Test if /etc/pihole/adlists.default exists
+  if [[ ! -e /etc/pihole/adlists.default ]]; then
+    cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+  fi
   echo "::: Running gravity.sh"
-  /opt/pihole/gravity.sh
+  { /opt/pihole/gravity.sh; }
 }
 
 create_pihole_user() {
@@ -895,7 +915,6 @@ installPihole() {
   installScripts
   installConfigs
   CreateLogFile
-  configureSelinux
   installPiholeWeb
   installCron
   configureFirewall
@@ -926,7 +945,6 @@ updatePihole() {
   installScripts
   installConfigs
   CreateLogFile
-  configureSelinux
   installPiholeWeb
   installCron
   configureFirewall
@@ -934,23 +952,25 @@ updatePihole() {
   runGravity
 }
 
-configureSelinux() {
+
+
+checkSelinux() {
   if [ -x "$(command -v getenforce)" ]; then
-    printf "\n::: SELinux Detected\n"
-    printf ":::\tChecking for SELinux policy development packages..."
-    install_dependent_packages "selinux-policy-devel" > /dev/null
-    echo " installed!"
-    printf ":::\tEnabling httpd server side includes (SSI).. "
-    setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
-    printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
-    if ! [ -x "$(command -v systemctl)" ]; then
-      sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
+    echo ":::"
+    echo -n "::: SELinux Support Detected... Mode: "
+    enforceMode=$(getenforce)
+    echo "${enforceMode}"
+    if [[ "${enforceMode}" == "Enforcing" ]]; then
+      if (whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c}); then
+          echo ":::"
+          echo "::: Continuing installation with SELinux Enforcing."
+          echo "::: Please refer to official SELinux documentation to create a custom policy."
+      else
+          echo ":::"
+          echo "::: Not continuing install after SELinux Enforcing detected."
+          exit 1
+      fi
     fi
-    checkmodule -M -m -o /etc/pihole/pihole.mod /etc/.pihole/advanced/selinux/pihole.te
-    semodule_package -o /etc/pihole/pihole.pp -m /etc/pihole/pihole.mod
-    semodule -i /etc/pihole/pihole.pp
-    rm -f /etc/pihole/pihole.mod
-    semodule -l | grep pihole &> /dev/null && echo "::: Installed Pi-Hole SELinux policy" || echo "::: Warning: Pi-Hole SELinux policy did not install."
   fi
 }
 
@@ -1016,7 +1036,8 @@ update_dialogs() {
 }
 
 main() {
-# Check arguments for the undocumented flags
+
+  # Check arguments for the undocumented flags
   for var in "$@"; do
     case "$var" in
       "--reconfigure"  ) reconfigure=true;;
@@ -1051,6 +1072,9 @@ main() {
   # Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
 
+   # Check if SELinux is Enforcing
+  checkSelinux
+
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
@@ -1071,10 +1095,10 @@ main() {
     get_available_interfaces
     # Find interfaces and let the user choose one
     chooseInterface
-    # Let the user decide if they want to block ads over IPv4 and/or IPv6
-    use4andor6
     # Decide what upstream DNS Servers to use
     setDNS
+    # Let the user decide if they want to block ads over IPv4 and/or IPv6
+    use4andor6
     # Let the user decide if they want query logging enabled...
     setLogging
 
