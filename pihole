@@ -22,6 +22,11 @@ if [[ ! $EUID -eq 0 ]];then
   fi
 fi
 
+webpageFunc() {
+  /opt/pihole/webpage.sh "$@"
+  exit 0
+}
+
 whitelistFunc() {
  "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
   exit 0
@@ -62,13 +67,28 @@ setupLCDFunction() {
   exit 0
 }
 
+scanList(){
+  domain="${1}"
+  list="${2}"
+  method="${3}"
+  if [[ ${method} == "-exact" ]] ; then
+    grep -i -E "(^|\s)${domain}($|\s)" "${list}"
+  else
+    grep -i "${domain}" "${list}"
+  fi
+}
+
 queryFunc() {
   domain="${2}"
-  for list in /etc/pihole/list.*; do
-    count=$(grep ${domain} $list | wc -l)
+  method="${3}"
+  lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
+  for list in ${lists[@]}; do
+    result=$(scanList ${domain} ${list} ${method})
+    # Remove empty lines before couting number of results
+    count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
     echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
-      grep ${domain} ${list}
+      echo "${result}"
     fi
     echo ""
   done
@@ -115,8 +135,26 @@ restartDNS() {
 piholeEnable() {
   if [[ "${1}" == "0" ]] ; then
     #Disable Pihole
-    sed -i 's/^addn-hosts/#addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+    sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
     echo "::: Blocking has been disabled!"
+    if [[ $# > 1 ]] ; then
+      if [[ ${2} == *"s"* ]] ; then
+        tt=${2%"s"}
+        echo "::: Blocking will be re-enabled in ${tt} seconds"
+        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+      elif [[ ${2} == *"m"* ]] ; then
+        tt=${2%"m"}
+        echo "::: Blocking will be re-enabled in ${tt} minutes"
+        tt=$((${tt}*60))
+        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+      else
+        echo "::: Unknown format for delayed reactivation of the blocking!"
+        echo "::: Example:"
+        echo ":::    pihole disable 5s    -    will disable blocking for 5 seconds"
+        echo ":::    pihole disable 7m    -    will disable blocking for 7 minutes"
+        echo "::: Blocking will not automatically be re-enabled!"
+      fi
+    fi
   else
     #Enable pihole
     echo "::: Blocking has been enabled!"
@@ -174,34 +212,45 @@ piholeStatus() {
   fi
 }
 
+tailFunc() {
+  echo "Press Ctrl-C to exit"
+  tail -F /var/log/pihole.log
+  exit 0
+}
 
 helpFunc() {
 	cat << EOM
 ::: Control all PiHole specific functions!
 :::
 ::: Usage: pihole [options]
-:::		Add -h after -w (whitelist), -b (blacklist), or -c (chronometer)  for more information on usage
+:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin)  for more information on usage
 :::
 ::: Options:
 :::  -w, whitelist            Whitelist domains
 :::  -b, blacklist            Blacklist domains
 :::  -d, debug                Start a debugging session if having trouble
 :::  -f, flush                Flush the pihole.log file
+:::  -t, tail                 Output the last lines of the pihole.log file. Lines are appended as the file grows
 :::  -up, updatePihole        Update Pi-hole
+:::  -r, reconfigure          Reconfigure or Repair Pi-hole
 :::  -g, updateGravity        Update the list of ad-serving domains
 :::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it
 :::  -c, chronometer          Calculates stats and displays to an LCD
 :::  -h, help                 Show this help dialog
 :::  -v, version              Show current versions
 :::  -q, query                Query the adlists for a specific domain
+:::                           Use pihole -q domain -exact if you want to see exact matches only
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
+:::  -a, admin                Admin webpage options
 :::  uninstall                Uninstall Pi-Hole from your system :(!
 :::  status                   Is Pi-Hole Enabled or Disabled
 :::  enable                   Enable Pi-Hole DNS Blocking
 :::  disable                  Disable Pi-Hole DNS Blocking
+:::                           Blocking can also be disabled only temporarily, e.g.,
+:::                           pihole disable 5m - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
 EOM
-  exit 1
+  exit 0
 }
 
 if [[ $# = 0 ]]; then
@@ -225,8 +274,10 @@ case "${1}" in
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0;;
+  "disable"                     ) piholeEnable 0 $2;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
+  "-a" | "admin"                ) webpageFunc "$@";;
+  "-t" | "tail"                 ) tailFunc;;
   *                             ) helpFunc;;
 esac

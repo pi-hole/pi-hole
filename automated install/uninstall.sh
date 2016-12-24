@@ -136,7 +136,7 @@ removeNoPurge() {
 	fi
 
 	echo "::: Removing config files and scripts..."
-	package_check ${i} > /dev/null
+	package_check lighttpd > /dev/null
 	if [ $? -eq 1 ]; then
 		${SUDO} rm -rf /etc/lighttpd/ &> /dev/null
 	else
