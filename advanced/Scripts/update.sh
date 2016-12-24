@@ -23,7 +23,11 @@ is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
 
-  curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
+  curdir=$PWD;
+  cd $directory;
+  git status --short &> /dev/null;
+  rc=$?;
+  cd $curdir
   return $rc
 }
 
@@ -73,29 +77,42 @@ getGitFiles() {
   fi
 }
 
+GitCheckUpdateAvail() {
+  local directory="${1}"
+  curdir=$PWD;
+  cd "${directory}"
+
+  # Fetch latest changes in this repo
+  git fetch origin
+  status="$(git status -sb)"
+
+  cd "${curdir}"
+
+  if [[ $status == *"behind"* ]]; then
+    # Local branch is behind remote branch -> Update
+    return 1
+  else
+    # Local branch is up-to-date
+    return 0
+  fi
+}
+
 main() {
   local pihole_version_current
   local pihole_version_latest
   local web_version_current
   local web_version_latest
 
-  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then #This is unlikely
+  #This is unlikely
+  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
     echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
   fi
 
   echo "::: Checking for updates..."
-  # Checks Pi-hole version string in format vX.X.X
-  pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
-  pihole_version_latest="$(/usr/local/bin/pihole version --pihole --latest)"
-  web_version_current="$(/usr/local/bin/pihole version --admin --current)"
-  web_version_latest="$(/usr/local/bin/pihole version --admin --latest)"
 
-  if [[ "${pihole_version_latest}" == "-1" || "${web_version_latest}" == "-1" ]]; then
-    echo "*** Unable to contact GitHub for latest version. Please try again later, contact support if this continues."
-    exit 1
-  fi
+
 
   # Logic
   # If latest versions are blank - we've probably hit Github rate limit (stop running `pihole -up so often!):
