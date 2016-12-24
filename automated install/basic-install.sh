@@ -952,17 +952,22 @@ updatePihole() {
   runGravity
 }
 
-configureSelinux() {
+checkSelinux() {
   if [ -x "$(command -v getenforce)" ]; then
-    printf "\n::: SELinux Detected\n"
-    printf ":::\tChecking for SELinux policy development packages..."
-    package_check_install "selinux-policy-devel" > /dev/null
-    echo " installed!"
-    printf ":::\tEnabling httpd server side includes (SSI).. "
-    setsebool -P httpd_ssi_exec on &> /dev/null && echo "Success" || echo "SELinux not enabled"
-    printf "\n:::\tCompiling Pi-Hole SELinux policy..\n"
-    if ! [ -x "$(command -v systemctl)" ]; then
-      sed -i.bak '/systemd/d' /etc/.pihole/advanced/selinux/pihole.te
+    echo ":::"
+    echo -n "::: SELinux Support Detected... Mode: "
+    enforceMode=$(getenforce)
+    echo "${enforceMode}"
+    if [[ "${enforceMode}" == "Enforcing" ]]; then
+      if (whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c}); then
+          echo ":::"
+          echo "::: Continuing installation with SELinux Enforcing."
+          echo "::: Please refer to official SELinux documentation to create a custom policy."
+      else
+          echo ":::"
+          echo "::: Not continuing install after SELinux Enforcing detected."
+          exit 1
+      fi
     fi
   fi
 }
