@@ -86,14 +86,17 @@ GitCheckUpdateAvail() {
   git fetch origin
   status="$(git status -sb)"
 
+  # Change back to original directory
   cd "${curdir}"
 
   if [[ $status == *"behind"* ]]; then
     # Local branch is behind remote branch -> Update
-    return 1
-  else
-    # Local branch is up-to-date
     return 0
+  else
+    # Local branch is up-to-date or in a situation
+    # where this updater cannot be used (like on a
+    # branch that exists only locally)
+    return 1
   fi
 }
 
@@ -112,7 +115,18 @@ main() {
 
   echo "::: Checking for updates..."
 
+  if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
+    core_update=true
+    echo "Pi-hole Core update available"
+  fi
 
+  if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
+    web_update=true
+    echo "Web Interface update available"
+  fi
+
+
+  exit
 
   # Logic
   # If latest versions are blank - we've probably hit Github rate limit (stop running `pihole -up so often!):
