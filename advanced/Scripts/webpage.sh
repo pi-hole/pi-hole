@@ -61,6 +61,7 @@ SetWebPassword(){
 		echo "WEBPASSWORD=${hash}" >> /etc/pihole/setupVars.conf
 		echo "New password set"
 	else
+		echo "WEBPASSWORD=" >> /etc/pihole/setupVars.conf
 		echo "Password removed"
 	fi
 
