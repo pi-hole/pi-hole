@@ -188,13 +188,13 @@ processor_check() {
 ipv6_enabled_test() {
   # Check if system is IPv6 enabled, for use in other functions
   if [[ "${IPV6_ADDRESS}" ]]; then
-    ls /proc/net/if_inet6 &>/dev/null && IPV6_ENABLED="true"
+    if [[ -f /proc/net/if_inet6 ]]; then
+      IPV6_ENABLED="true"
+    fi
   fi
 }
 
 ip_test() {
-  header_write "Testing IPv4 interface"
-
   local protocol_version=${1}
   local IP_interface
   local IP_address_list
@@ -203,8 +203,9 @@ ip_test() {
   local IP_inet_check
   local dns_server=${2}
 
-  # If declared in setupVars.conf use it, otherwise defer to default
+  header_write "Testing IPv${protocol_version} interface"
 
+  # If declared in setupVars.conf use it, otherwise defer to default
   IP_interface=${PIHOLE_INTERFACE:-$(ip -"${protocol_version}" r | grep default | cut -d ' ' -f 5)}
   IP_address_list="$(ip -"${protocol_version}" addr show | sed -e's/^.*inet* \([^ ]*\)\/.*$/\1/;t;d')"
   IP_defaut_gateway=$(ip -"${protocol_version}" route | grep default | cut -d ' ' -f 3)
@@ -233,7 +234,7 @@ ip_test() {
       log_echo "No Gateway Detected"
     fi
   else
-    log_echo "Addresses not found."
+    log_echo "\t\tAddresses not found.\n"
   fi
 
 }
@@ -486,7 +487,9 @@ EOM
 main() {
 # Create temporary file for log
 templog=$(mktemp /tmp/pihole_temp.XXXXXX)
+# Open handle for templog
 exec 3>"$templog"
+# Delete templog, but allow for addressing via file handle.
 rm "$templog"
 
 # Create temporary file for logdump
@@ -494,8 +497,9 @@ logdump=$(mktemp /tmp/pihole_temp.XXXXXX)
 exec 4>"$logdump"
 rm "$logdump"
 
-# Ensure the file exists, create if not, clear if exists, and debug to terminal if none of the above.
 script_header
+
+# Ensure the file exists, create if not, clear if exists, and debug to terminal if none of the above.
 source_file "$VARS" || printf "***\tREQUIRED FILE MISSING\n"
 
 # Check for IPv6
