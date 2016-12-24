@@ -22,13 +22,15 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
+  local curdir
+  local rc
 
-  curdir=$PWD
-  cd $directory
+  curdir="${PWD}"
+  cd "${directory}" || { echo "Unable to change to ${directory}, exiting."; exit 1; }
   git status --short &> /dev/null
   rc=$?
-  cd $curdir
-  return $rc
+  cd "${curdir}" || { echo "Unable to change to ${curdir}, exiting."; exit 1; }
+  return "${rc}"
 }
 
 prep_repo() {
