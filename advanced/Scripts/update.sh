@@ -23,8 +23,8 @@ is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
 
-  git -C "${directory}" status --short &> /dev/null
-  return
+  curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
+  return $rc
 }
 
 prep_repo() {
