@@ -33,6 +33,7 @@ readonly PI_HOLE_LOG="$LOG_DIR/pihole.log"
 readonly WHITELIST_MATCHES="/tmp/whitelistmatches.list"
 
 DEBUG_LOG="$LOG_DIR/pihole_debug.log"
+TIMEOUT=60
 MAJOR_ERRORS=0
 MINOR_ERRORS=0
 IPV6_ENABLED=""
@@ -87,6 +88,7 @@ block_parse() {
     done <<< "${file}"
     log_write "\n"
 }
+
 repository_test() {
   header_write "Detecting Local Repositories:"
 
@@ -334,6 +336,17 @@ debugLighttpd() {
   echo ":::"
 }
 
+countdown() {
+  tuvix=${TIMEOUT}
+  printf "::: Logging will automatically teminate in ${TIMEOUT} seconds\n"
+  while [ $tuvix -ge 1 ]
+  do
+    printf ":::\t${tuvix} seconds left. \r"
+    sleep 5
+    tuvix=$(( tuvix - 5 ))
+  done
+}
+
 dumpPiHoleLog() {
   trap 'echo -e "\n::: Finishing debug write from interrupt..." ; finalWork' SIGINT
   echo "::: "
@@ -342,9 +355,8 @@ dumpPiHoleLog() {
   printf ":::\t(Press CTRL+C to finish logging.)"
   header_write "pihole.log"
   if [ -e "${PI_HOLE_LOG}" ]; then
-    while true; do
-      tail -f -n0 "${PI_HOLE_LOG}" >&4
-    done
+    countdown &
+      tail -f -n0 --pid=$! "${PI_HOLE_LOG}" >&4
   else
     log_write "No pihole.log file found!"
     printf ":::\tNo pihole.log file found!\n"
