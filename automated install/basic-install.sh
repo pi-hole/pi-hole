@@ -187,8 +187,8 @@ find_IPv4_information() {
 }
 
 get_available_interfaces() {
-  # Get available interfaces. Consider only getting UP interfaces in the future, and leaving DOWN interfaces out of list.
-  availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
+  # Get available UP interfaces.
+  availableInterfaces=$(ip -o link | grep "state UP" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 welcomeDialogs() {
