@@ -182,7 +182,7 @@ getGitFiles() {
 find_IPv4_information() {
   # Find IP used to route to outside world
   IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-  IPV4_ADDRESS=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+  IPV4_ADDRESS=$(ip route get 8.8.8.8| awk '{print $7}')
   IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 }
 
