@@ -40,22 +40,19 @@ make_repo() {
   local remoteRepo="${2}"
   local directory="${1}"
 
-  (prep_repo "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}" > /dev/null)
+  (prep_repo "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}")
      return
 }
 
 update_repo() {
   local directory="${1}"
-  local retVal=0
   # Pull the latest commits
-
   # Stash all files not tracked for later retrieval
-  git -C "${directory}" stash --all --quiet &> /dev/null || ${retVal}=1
+  git -C "${directory}" stash --all --quiet
   # Force a clean working directory for cloning
-  git -C "${directory}" clean --force -d &> /dev/null || ${retVal}=1
+  git -C "${directory}" clean --force -d
   # Fetch latest changes and apply
-  git -C "${directory}" pull --quiet &> /dev/null || ${retVal}=1
-  return ${retVal}
+  git -C "${directory}" pull --quiet
 }
 
 getGitFiles() {
