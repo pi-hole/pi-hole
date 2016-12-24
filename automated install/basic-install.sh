@@ -273,8 +273,11 @@ chooseInterface() {
 
 useIPv6dialog() {
   # Show the IPv6 address used for blocking
-  IPV6_ADDRESS=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-  whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." ${r} ${c}
+  IPV6_ADDRESS=$(ip -6 route get 2001:4860:4860::8888 | grep -v "unreachable" | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+
+  if [[ ! -z "${IPV6_ADDRESS}" ]]; then
+    whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." ${r} ${c}
+  fi
 }
 
 
