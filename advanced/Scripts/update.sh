@@ -102,9 +102,7 @@ GitCheckUpdateAvail() {
 
 main() {
   local pihole_version_current
-  local pihole_version_latest
   local web_version_current
-  local web_version_latest
 
   #This is unlikely
   if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
