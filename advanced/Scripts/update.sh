@@ -26,10 +26,10 @@ is_repo() {
   local rc
 
   curdir="${PWD}"
-  cd "${directory}" || { echo "Unable to change to ${directory}, exiting."; exit 1; }
+  cd "${directory}" &> /dev/null || return 1
   git status --short &> /dev/null
   rc=$?
-  cd "${curdir}" || { echo "Unable to change to ${curdir}, exiting."; exit 1; }
+  cd "${curdir}" &> /dev/null || return 1
   return "${rc}"
 }
 
