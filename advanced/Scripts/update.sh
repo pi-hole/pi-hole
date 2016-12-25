@@ -52,13 +52,18 @@ make_repo() {
 
 update_repo() {
   local directory="${1}"
+  local curdir
+
+  curdir="${PWD}"
+  cd "${directory}" &> /dev/null || return 1
   # Pull the latest commits
   # Stash all files not tracked for later retrieval
-  git -C "${directory}" stash --all --quiet
+  git stash --all --quiet
   # Force a clean working directory for cloning
-  git -C "${directory}" clean --force -d
+  git clean --force -d
   # Fetch latest changes and apply
-  git -C "${directory}" pull --quiet
+  git pull --quiet
+  cd "${curdir}" &> /dev/null || return 1
 }
 
 getGitFiles() {
