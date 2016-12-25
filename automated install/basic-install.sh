@@ -757,7 +757,10 @@ install_dependent_packages() {
         installArray+=("${i}")
       fi
     done
+    if [[ ${#installArray[@]} -gt 0 ]]; then
       debconf-apt-progress -- ${PKG_INSTALL} "${installArray[@]}"
+      return
+    fi
       return 0
   fi
 
@@ -771,7 +774,10 @@ install_dependent_packages() {
       installArray+=("${i}")
     fi
   done
-    ${PKG_INSTALL} "${installArray[@]}" &> /dev/null
+    if [[ ${#installArray[@]} -gt 0 ]]; then
+      ${PKG_INSTALL} "${installArray[@]}" &> /dev/null
+      return
+    fi
     return 0
 }
 
