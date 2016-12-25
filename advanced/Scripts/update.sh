@@ -90,7 +90,7 @@ GitCheckUpdateAvail() {
   cd "${directory}"
 
   # Fetch latest changes in this repo
-  git fetch origin
+  git fetch --quiet origin
   status="$(git status -sb)"
 
   # Change back to original directory
