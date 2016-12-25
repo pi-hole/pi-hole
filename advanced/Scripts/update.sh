@@ -63,7 +63,7 @@ update_repo() {
   git clean --force -d &> /dev/null
   # Fetch latest changes and apply
   git pull --quiet &> /dev/null
-  cd "{$curdir}" &> /dev/null || return 1
+  cd "${curdir}" &> /dev/null || return 1
 
   return
 }
