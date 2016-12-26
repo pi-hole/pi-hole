@@ -238,14 +238,14 @@ piholeCheckoutFunc() {
   fi
 
   echo -n "::: Fetching remote branches for Pi-hole core from ${PI_HOLE_GIT_URL} ... "
-#  fully_fetch_repo ${PI_HOLE_FILES_DIR}
+  fully_fetch_repo ${PI_HOLE_FILES_DIR}
   corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
   echo " done!"
   echo "::: ${#corebranches[@]} branches available"
   echo ":::"
 
-  echo -n "::: Fetching remote branches for web UI from ${ADMIN_INTERFACE_GIT_URL} ... "
-#  fully_fetch_repo ${PI_HOLE_FILES_DIR}
+  echo -n "::: Fetching remote branches for the web interface from ${ADMIN_INTERFACE_GIT_URL} ... "
+  fully_fetch_repo ${ADMIN_INTERFACE_DIR}
   webbranches=($(get_available_branches "${ADMIN_INTERFACE_DIR}"))
   echo " done!"
   echo "::: ${#webbranches[@]} branches available"
@@ -254,8 +254,10 @@ piholeCheckoutFunc() {
   # Shortcut to check out development version
   if [[ "${2}" == "dev" ]] ; then
     echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
-    checkout_branch "${PI_HOLE_FILES_DIR}" "refs/remotes/origin/development"
-    checkout_branch "${ADMIN_INTERFACE_DIR}" "refs/remotes/origin/devel"
+    echo "::: Pi-hole core"
+    checkout_branch "${PI_HOLE_FILES_DIR}" "development"
+    echo "::: Web interface"
+    checkout_branch "${ADMIN_INTERFACE_DIR}" "devel"
     echo "::: done!"
   fi
   exit 0
