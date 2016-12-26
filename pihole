@@ -230,6 +230,9 @@ piholeCheckoutFunc() {
   local corebranches
   local webbranches
 
+  # Avoid globbing
+  set -f
+
   #This is unlikely
   if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
     echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
@@ -238,27 +241,30 @@ piholeCheckoutFunc() {
   fi
 
   echo -n "::: Fetching remote branches for Pi-hole core from ${PI_HOLE_GIT_URL} ... "
-  fully_fetch_repo ${PI_HOLE_FILES_DIR}
+#  fully_fetch_repo ${PI_HOLE_FILES_DIR}
   corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
   echo " done!"
   echo "::: ${#corebranches[@]} branches available"
   echo ":::"
 
   echo -n "::: Fetching remote branches for the web interface from ${ADMIN_INTERFACE_GIT_URL} ... "
-  fully_fetch_repo ${ADMIN_INTERFACE_DIR}
+#  fully_fetch_repo ${ADMIN_INTERFACE_DIR}
   webbranches=($(get_available_branches "${ADMIN_INTERFACE_DIR}"))
   echo " done!"
   echo "::: ${#webbranches[@]} branches available"
   echo ":::"
 
-  # Shortcut to check out development version
   if [[ "${2}" == "dev" ]] ; then
+    # Shortcut to check out development version
     echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
     echo "::: Pi-hole core"
     checkout_branch "${PI_HOLE_FILES_DIR}" "development"
     echo "::: Web interface"
     checkout_branch "${ADMIN_INTERFACE_DIR}" "devel"
     echo "::: done!"
+  else
+    # Have to user chosing the branch he wants
+    select_branch "${corebranches[@]}"
   fi
   exit 0
 }
