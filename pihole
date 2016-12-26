@@ -10,7 +10,14 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-PI_HOLE_SCRIPT_DIR="/opt/pihole"
+# Variables
+
+readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
+readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
+readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
   if [ -x "$(command -v sudo)" ];then
@@ -218,6 +225,42 @@ tailFunc() {
   exit 0
 }
 
+piholeCheckoutFunc() {
+  source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
+  local corebranches
+  local webbranches
+
+  #This is unlikely
+  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
+    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
+    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+    exit 1
+  fi
+
+  echo -n "::: Fetching remote branches for Pi-hole core from ${PI_HOLE_GIT_URL} ... "
+#  fully_fetch_repo ${PI_HOLE_FILES_DIR}
+  corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
+  echo " done!"
+  echo "::: ${#corebranches[@]} branches available"
+  echo ":::"
+
+  echo -n "::: Fetching remote branches for web UI from ${ADMIN_INTERFACE_GIT_URL} ... "
+#  fully_fetch_repo ${PI_HOLE_FILES_DIR}
+  webbranches=($(get_available_branches "${ADMIN_INTERFACE_DIR}"))
+  echo " done!"
+  echo "::: ${#webbranches[@]} branches available"
+  echo ":::"
+
+  # Shortcut to check out development version
+  if [[ "${2}" == "dev" ]] ; then
+    echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
+    checkout_branch "${PI_HOLE_FILES_DIR}" "refs/remotes/origin/development"
+    checkout_branch "${ADMIN_INTERFACE_DIR}" "refs/remotes/origin/devel"
+    echo "::: done!"
+  fi
+  exit 0
+}
+
 helpFunc() {
 	cat << EOM
 ::: Control all PiHole specific functions!
@@ -249,6 +292,7 @@ helpFunc() {
 :::                           Blocking can also be disabled only temporarily, e.g.,
 :::                           pihole disable 5m - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
+:::  checkout                 Check out different branch than master
 EOM
   exit 0
 }
@@ -277,6 +321,7 @@ case "${1}" in
   "disable"                     ) piholeEnable 0 $2;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
+  "checkout"                    ) piholeCheckoutFunc "$@";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
   *                             ) helpFunc;;
