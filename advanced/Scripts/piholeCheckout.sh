@@ -53,11 +53,14 @@ get_available_branches(){
   return
 }
 
+branch=""
 select_branch() {
   branches=($@)
   # Divide by two so the dialogs take up half of the screen, which looks nice.
-  r=$(( rows / 2 ))
-  c=$(( columns / 2 ))
+  # r=$(( rows / 2 ))
+  # c=$(( columns / 2 ))
+  r=$(( rows ))
+  c=$(( columns ))
   # Unless the screen is tiny
   r=$(( r < 20 ? 20 : r ))
   c=$(( c < 70 ? 70 : c ))
@@ -75,10 +78,11 @@ select_branch() {
 
   # Display dialog
   ChooseCmd=(whiptail --radiolist \"Select target branch\" ${r} ${c} ${#branches[@]})
-
   echo "${ChooseCmd[@]}" "${branches[@]}" | bash
-  if [[ $? = 0 ]];then
-    echo $choices
+
+  branch=""
+  if [[ $? = 0 ]]; then
+    branch=$choices
   fi
 }
 

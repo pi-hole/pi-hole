@@ -265,6 +265,12 @@ piholeCheckoutFunc() {
   else
     # Have to user chosing the branch he wants
     select_branch "${corebranches[@]}"
+    corebranch=${branch}
+    select_branch "${webbranches[@]}"
+    webbranch=${branch}
+    # Call git checkout
+    checkout_branch "${PI_HOLE_FILES_DIR}" "${corebranch}"
+    checkout_branch "${ADMIN_INTERFACE_DIR}" "${webbranch}"
   fi
   exit 0
 }
