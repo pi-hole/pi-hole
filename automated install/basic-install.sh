@@ -21,6 +21,7 @@ set -e
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 setupVars=/etc/pihole/setupVars.conf
+lighttpdConfig=/etc/lighttpd/lighttpd.conf
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
@@ -78,7 +79,6 @@ if [[ $(command -v apt-get) ]]; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
@@ -107,8 +107,8 @@ elif [ $(command -v rpm) ]; then
   else
     PKG_MANAGER="yum"
   fi
-  PKG_CACHE="/var/cache/${PKG_MANAGER}"
-  UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
+  # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
+  UPDATE_PKG_CACHE=":"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
@@ -182,13 +182,13 @@ getGitFiles() {
 find_IPv4_information() {
   # Find IP used to route to outside world
   IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-  IPV4_ADDRESS=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+  IPV4_ADDRESS=$(ip route get 8.8.8.8| awk '{print $7}')
   IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 }
 
 get_available_interfaces() {
-  # Get available interfaces. Consider only getting UP interfaces in the future, and leaving DOWN interfaces out of list.
-  availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
+  # Get available UP interfaces.
+  availableInterfaces=$(ip -o link | grep "state UP" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 welcomeDialogs() {
@@ -247,6 +247,11 @@ chooseInterface() {
   # Loop sentinel variable
   local firstLoop=1
 
+  if [[ $(echo ${availableInterfaces} | wc -l) -eq 1 ]]; then
+      PIHOLE_INTERFACE=${availableInterfaces}
+      return
+  fi
+
   while read -r line; do
     mode="OFF"
     if [[ ${firstLoop} -eq 1 ]]; then
@@ -273,8 +278,11 @@ chooseInterface() {
 
 useIPv6dialog() {
   # Show the IPv6 address used for blocking
-  IPV6_ADDRESS=$(ip -6 route get 2001:4860:4860::8888 | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
-  whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." ${r} ${c}
+  IPV6_ADDRESS=$(ip -6 route get 2001:4860:4860::8888 | grep -v "unreachable" | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+
+  if [[ ! -z "${IPV6_ADDRESS}" ]]; then
+    whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." ${r} ${c}
+  fi
 }
 
 
@@ -709,19 +717,13 @@ update_pacakge_cache() {
   #Running apt-get update/upgrade with minimal output can cause some issues with
   #requiring user input (e.g password for phpmyadmin see #218)
 
-  #Check to see if apt-get update has already been run today
-  #it needs to have been run at least once on new installs!
-  timestamp=$(stat -c %Y ${PKG_CACHE})
-  timestampAsDate=$(date -d @"${timestamp}" "+%b %e")
-  today=$(date "+%b %e")
+  #Update package cache on apt based OSes. Do this every time since
+  #it's quick and packages can be updated at any time.
 
-  if [ ! "${today}" == "${timestampAsDate}" ]; then
-    #update package lists
-    echo ":::"
-    echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
-    ${UPDATE_PKG_CACHE} &> /dev/null
-    echo " done!"
-  fi
+  echo ":::"
+  echo -n "::: Updating local cache of available packages..."
+  ${UPDATE_PKG_CACHE} &> /dev/null
+  echo " done!"
 }
 
 notify_package_updates_available() {
@@ -776,11 +778,11 @@ installPiholeWeb() {
   echo ":::"
   echo "::: Installing pihole custom index page..."
   if [ -d "/var/www/html/pihole" ]; then
-    if [ -f "/var/www/html/pihole/index.html" ]; then
-      echo ":::     Existing index.html detected, not overwriting"
+    if [ -f "/var/www/html/pihole/index.php" ]; then
+      echo ":::     Existing index.php detected, not overwriting"
     else
-      echo -n ":::     index.html missing, replacing... "
-      cp /etc/.pihole/advanced/index.html /var/www/html/pihole/
+      echo -n ":::     index.php missing, replacing... "
+      cp /etc/.pihole/advanced/index.php /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -789,6 +791,14 @@ installPiholeWeb() {
     else
       echo -n ":::     index.js missing, replacing... "
       cp /etc/.pihole/advanced/index.js /var/www/html/pihole/
+      echo " done!"
+    fi
+
+    if [ -f "/var/www/html/admin/blockingpage.css" ]; then
+      echo ":::     Existing blockingpage.css detected, not overwriting"
+    else
+      echo -n ":::     index.css missing, replacing... "
+      cp /etc/.pihole/advanced/blockingpage.css /var/www/html/admin
       echo " done!"
     fi
 

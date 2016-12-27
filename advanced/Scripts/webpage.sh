@@ -216,6 +216,18 @@ SetDNSDomainName(){
 
 }
 
+SetPrivacyMode(){
+
+	# Remove setting from file (create backup setupVars.conf.bak)
+	sed -i.bak '/API_PRIVACY_MODE/d' /etc/pihole/setupVars.conf
+	# Save setting to file
+	if [[ "${args[2]}" == "true" ]] ; then
+		echo "API_PRIVACY_MODE=true" >> /etc/pihole/setupVars.conf
+	else
+		echo "API_PRIVACY_MODE=false" >> /etc/pihole/setupVars.conf
+	fi
+}
+
 ResolutionSettings() {
 
 	typ=${args[2]}
@@ -246,6 +258,7 @@ case "${args[1]}" in
 	"layout"            ) SetWebUILayout;;
 	"-h" | "--help"     ) helpFunc;;
 	"domainname"        ) SetDNSDomainName;;
+	"privacymode"       ) SetPrivacyMode;;
 	"resolve"           ) ResolutionSettings;;
 	*                   ) helpFunc;;
 esac
