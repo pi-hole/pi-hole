@@ -116,8 +116,12 @@ version_check() {
 
 	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
 	&& log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
+	local pi_hole_branch="$(cd /etc/.pihole/ && git status | grep "On branch")" \
+	&& log_echo -r "Pi-hole branch: $pi_hole_branch"
 	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
 	&& log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
+	local admin_branch="$(cd /var/www/html/admin && git status | grep "On branch")" \
+	&& log_echo -r "WebUI branch: $admin_branch"
 	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
 	&& log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
 	local php_ver="$(php -v |& head -n1)" \

@@ -18,6 +18,7 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+readonly OPTION=${1}
 
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
@@ -68,6 +69,38 @@ update_repo() {
   return
 }
 
+gitCheckoutDevelopment() {
+  local directory="${1}"
+
+  if [[ ${directory} == ${PI_HOLE_FILES_DIR} ]] ; then
+    local branch="development"
+  elif [[ ${directory} == ${ADMIN_INTERFACE_DIR} ]] ; then
+    local branch="devel"
+  else
+    echo "Unable to change branch for repository ${directory} to development branch."; exit 1
+  fi
+
+  # Fetch and check out development branch
+  if [ $(git -C "${directory}" branch --list ${branch} | wc -l) > 0 ] ; then
+       echo ":::     Branch ${branch} already exists in ${directory}!"
+    echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
+    git -C "${directory}" checkout ${branch} --quiet &> /dev/null
+    echo " done!"
+  else
+       echo ":::     Branch ${branch} does not yet exist in ${directory}!"
+    echo -n ":::     Checking out repository in ${directory} to branch ${branch}..."
+    git -C "${directory}" checkout -b ${branch} refs/remotes/origin/${branch} --quiet &> /dev/null
+    echo " done!"
+  fi
+
+  # Stash, clean, and pull latest changes
+  git -C "${directory}" stash --all --quiet &> /dev/null
+  git -C "${directory}" clean --force -d &> /dev/null
+  git -C "${directory}" pull --quiet &> /dev/null
+
+  return 1
+}
+
 getGitFiles() {
   # Setup git repos for directory and repository passed
   # as arguments 1 and 2
@@ -84,6 +117,23 @@ getGitFiles() {
     make_repo "${directory}" "${remoteRepo}" || (echo "Unable to clone repository, please contact support"; exit 1)
     echo " done!"
   fi
+}
+
+confirm () {
+    read -r -p "Are you sure you want to continue? [yes/N] " response
+    case $response in
+        [yY]) # Y is not enough for us - we want to see "Yes"
+            echo "Type:"
+            echo "      Yes"
+            confirm
+            ;;
+        [yY][eE][sS]) # Accepted
+            true
+            ;;
+        *) # Everything that is not "y" or "yes"
+            false
+            ;;
+    esac
 }
 
 main() {
@@ -121,8 +171,11 @@ main() {
   #            pull pihole repo, run install --unattended -- reconfigure
   # if Core NOT up to date AND web NOT up to date:
   #            pull pihole repo run install --unattended
+  # if nothing of the things above apply and the option "devel" is set
+  #            pull pihole repo + checkout development, pull web repo + checkout devel, and
+  #            run install --unattended --reconfigure
 
-  if [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]]; then
+  if [[ "${pihole_version_current}" == "${pihole_version_latest}" ]] && [[ "${web_version_current}" == "${web_version_latest}" ]] && [[ ${OPTION} != "devel" ]]; then
     echo ":::"
     echo "::: Pi-hole version is $pihole_version_current"
     echo "::: Web Admin version is $web_version_current"
@@ -147,6 +200,32 @@ main() {
     echo "::: Updating Everything"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
     /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    web_updated=true
+    core_updated=true
+  elif [[ ${OPTION} == "devel" ]] ; then
+    echo "::: Updating Everything to development version"
+    echo ":::"
+    echo "::: Be aware:"
+    echo "::: Running the development version is not recommended"
+    echo "::: for end-users. Do this only if you know what you are"
+    echo "::: doing. Note that this route is not officially supported"
+    echo "::: and you may end up with a system that is not fully"
+    echo "::: functional! If something breaks, you cannot expect"
+    echo "::: support from the developers. Furthermore, you may not"
+    echo "::: be able to switch back to the master branch easily."
+    echo "::: If you switch and there are changes which prevent you"
+    echo "::: from chaning back to master, you will have to perform a"
+    echo "::: full installation again."
+    echo "::: Note that, though this is possible, it is not recommended!"
+    echo ":::"
+
+    confirm || exit 1
+
+    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+    gitCheckoutDevelopment "${PI_HOLE_FILES_DIR}"
+    getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
+    gitCheckoutDevelopment "${ADMIN_INTERFACE_DIR}"
+    /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
     web_updated=true
     core_updated=true
   else

@@ -48,7 +48,7 @@ flushFunc() {
 }
 
 updatePiholeFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/update.sh
+  "${PI_HOLE_SCRIPT_DIR}"/update.sh "$@"
   exit 0
 }
 
@@ -249,6 +249,7 @@ helpFunc() {
 :::                           Blocking can also be disabled only temporarily, e.g.,
 :::                           pihole disable 5m - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
+:::  development              Update to current development version
 EOM
   exit 0
 }
@@ -277,6 +278,7 @@ case "${1}" in
   "disable"                     ) piholeEnable 0 $2;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
+  "development"                 ) updatePiholeFunc "devel";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
   *                             ) helpFunc;;
