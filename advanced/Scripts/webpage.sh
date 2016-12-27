@@ -269,11 +269,8 @@ case "${args[1]}" in
 	"layout"            ) SetWebUILayout;;
 	"-h" | "--help"     ) helpFunc;;
 	"domainname"        ) SetDNSDomainName;;
-<<<<<<< HEAD
 	"adlist"            ) CustomizeAdLists;;
-=======
 	"resolve"           ) ResolutionSettings;;
->>>>>>> development
 	*                   ) helpFunc;;
 esac
 
