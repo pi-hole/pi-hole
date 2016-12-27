@@ -98,9 +98,6 @@ if [[ $(command -v apt-get) ]]; then
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
 
-  package_check_install() {
-    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
-  }
 elif [ $(command -v rpm) ]; then
   # Fedora Family
   if [ $(command -v dnf) ]; then
@@ -109,24 +106,22 @@ elif [ $(command -v rpm) ]; then
     PKG_MANAGER="yum"
   fi
   PKG_CACHE="/var/cache/${PKG_MANAGER}"
-  UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
+  #Every yum/dnf call will autmomatically update the cache. No-op here, cach updates when
+  #We get available package count.
+  #Also a bare `dnf check-update will return 100 as a retval, blows up set -e
+  UPDATE_PKG_CACHE=":"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq epel-release findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
 
-  if grep -q 'Fedora' /etc/redhat-release; then
-    remove_deps=(epel-release);
-    PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
+  if ! grep -q 'Fedora' /etc/redhat-release; then
+    PIHOLE_DEPS=("${PIHOLE_DEPS[@]}" "epel-release");
   fi
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
-
-    package_check_install() {
-      rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
-    }
 else
   echo "OS distribution not supported"
   exit
@@ -728,7 +723,7 @@ update_pacakge_cache() {
     #update package lists
     echo ":::"
     echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
-    ${UPDATE_PKG_CACHE} &> /dev/null
+    ${UPDATE_PKG_CACHE}
     echo " done!"
   fi
 }
@@ -754,16 +749,39 @@ install_dependent_packages() {
   # Install packages passed in via argument array
   # No spinner - conflicts with set -e
   declare -a argArray1=("${!1}")
+  declare -a installArray
 
+  # Debian based package install - debconf will download the entire package list
+  # so we just create an array of packages not currently installed to cut down on the
+  # amount of download traffic.
+  # NOTE: We may be able to use this installArray in the future to create a list of package that were
+  # installed by us, and remove only the installed packages, and not the entire list.
   if command -v debconf-apt-progress &> /dev/null; then
-    debconf-apt-progress -- ${PKG_INSTALL} "${argArray1[@]}"
-  else
     for i in "${argArray1[@]}"; do
       echo -n ":::    Checking for $i..."
-      package_check_install "${i}" &> /dev/null
-      echo " installed!"
+      if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
+        echo " installed!"
+      else
+        echo " added to install list!"
+        installArray+=("${i}")
+      fi
     done
+      debconf-apt-progress -- ${PKG_INSTALL} "${installArray[@]}"
+      return 0
   fi
+
+  #Fedora
+  for i in "${argArray1[@]}"; do
+    echo -n ":::    Checking for $i..."
+    if dnf -q list installed "${i}" &> /dev/null; then
+      echo " installed!"
+    else
+      echo " added to install list!"
+      installArray+=("${i}")
+    fi
+  done
+    ${PKG_INSTALL} "${installArray[@]}"
+    return 0
 }
 
 CreateLogFile() {
