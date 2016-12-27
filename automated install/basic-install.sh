@@ -720,10 +720,10 @@ update_pacakge_cache() {
   #Update package cache on apt based OSes. Do this every time since
   #it's quick and packages can be updated at any time.
 
-    echo ":::"
-    echo -n "::: Updating local cache of available packages..."
-    ${UPDATE_PKG_CACHE} &> /dev/null
-    echo " done!"
+  echo ":::"
+  echo -n "::: Updating local cache of available packages..."
+  ${UPDATE_PKG_CACHE} &> /dev/null
+  echo " done!"
 }
 
 notify_package_updates_available() {
