@@ -274,8 +274,8 @@ piholeCheckoutFunc() {
     select_branch "${webbranches[@]}"
     webbranch=$(cat /etc/pihole/checkout-choice)
     # Call git checkout
-    checkout_branch "${PI_HOLE_FILES_DIR}" "${corebranch}"
-    checkout_branch "${ADMIN_INTERFACE_DIR}" "${webbranch}"
+    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${corebranch}"
+    checkout_pull_branch "${ADMIN_INTERFACE_DIR}" "${webbranch}"
   fi
   exit 0
 }

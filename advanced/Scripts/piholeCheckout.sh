@@ -82,7 +82,7 @@ select_branch() {
   echo "${ChooseCmd[@]}" "${branches[@]}" | bash 2> "/etc/pihole/checkout-choice"
 }
 
-checkout_branch() {
+checkout_pull_branch() {
   # Check out specified branch
   local directory="${1}"
   local branch="${2}"
@@ -91,6 +91,7 @@ checkout_branch() {
   curdir="${PWD}"
   cd "${directory}" || return 1
   git checkout "${branch}"
+  git pull
   cd "${curdir}" || return 1
   return
 }
