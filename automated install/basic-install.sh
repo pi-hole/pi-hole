@@ -21,6 +21,7 @@ set -e
 tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 setupVars=/etc/pihole/setupVars.conf
+lighttpdConfig=/etc/lighttpd/lighttpd.conf
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
@@ -784,11 +785,11 @@ installPiholeWeb() {
   echo ":::"
   echo "::: Installing pihole custom index page..."
   if [ -d "/var/www/html/pihole" ]; then
-    if [ -f "/var/www/html/pihole/index.html" ]; then
-      echo ":::     Existing index.html detected, not overwriting"
+    if [ -f "/var/www/html/pihole/index.php" ]; then
+      echo ":::     Existing index.php detected, not overwriting"
     else
-      echo -n ":::     index.html missing, replacing... "
-      cp /etc/.pihole/advanced/index.html /var/www/html/pihole/
+      echo -n ":::     index.php missing, replacing... "
+      cp /etc/.pihole/advanced/index.php /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -797,6 +798,14 @@ installPiholeWeb() {
     else
       echo -n ":::     index.js missing, replacing... "
       cp /etc/.pihole/advanced/index.js /var/www/html/pihole/
+      echo " done!"
+    fi
+
+    if [ -f "/var/www/html/admin/blockingpage.css" ]; then
+      echo ":::     Existing blockingpage.css detected, not overwriting"
+    else
+      echo -n ":::     index.css missing, replacing... "
+      cp /etc/.pihole/advanced/blockingpage.css /var/www/html/admin
       echo " done!"
     fi
 
