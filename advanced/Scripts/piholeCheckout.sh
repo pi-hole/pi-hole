@@ -57,6 +57,8 @@ choice=""
 select_branch() {
   branches=($@)
   # Divide by two so the dialogs take up half of the screen, which looks nice.
+  rows=$(echo $screen_size | awk '{print $1}')
+  columns=$(echo $screen_size | awk '{print $2}')
   # r=$(( rows / 2 ))
   # c=$(( columns / 2 ))
   r=$(( rows ))
@@ -71,19 +73,13 @@ select_branch() {
     if [[ ${branches[i]} == "master" ]]; then
       branches[i]="\"${branches[i]}\" \"\" on"
     else
-      # Remove first two characters
       branches[i]="\"${branches[i]}\" \"\" off"
     fi
   done
 
   # Display dialog
   ChooseCmd=(whiptail --radiolist \"Select target branch\" ${r} ${c} ${#branches[@]})
-  echo "${ChooseCmd[@]}" "${branches[@]}" | bash
-
-  choice=""
-  if [[ $? = 0 ]]; then
-    choice=$choices
-  fi
+  echo "${ChooseCmd[@]}" "${branches[@]}" | bash 2> "/etc/pihole/checkout-choice"
 }
 
 checkout_branch() {
