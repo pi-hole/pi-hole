@@ -22,9 +22,15 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
+  local curdir
+  local rc
 
-  git -C "${directory}" status --short &> /dev/null
-  return
+  curdir="${PWD}"
+  cd "${directory}" &> /dev/null || return 1
+  git status --short &> /dev/null
+  rc=$?
+  cd "${curdir}" &> /dev/null || return 1
+  return $rc
 }
 
 prep_repo() {
@@ -46,16 +52,20 @@ make_repo() {
 
 update_repo() {
   local directory="${1}"
-  local retVal=0
+  local curdir
   # Pull the latest commits
 
+  curdir="${PWD}"
+  cd "${directory}" &> /dev/null || return 1
   # Stash all files not tracked for later retrieval
-  git -C "${directory}" stash --all --quiet &> /dev/null || ${retVal}=1
+  git stash --all --quiet &> /dev/null
   # Force a clean working directory for cloning
-  git -C "${directory}" clean --force -d &> /dev/null || ${retVal}=1
+  git clean --force -d &> /dev/null
   # Fetch latest changes and apply
-  git -C "${directory}" pull --quiet &> /dev/null || ${retVal}=1
-  return ${retVal}
+  git pull --quiet &> /dev/null
+  cd "${curdir}" &> /dev/null || return 1
+
+  return
 }
 
 getGitFiles() {
