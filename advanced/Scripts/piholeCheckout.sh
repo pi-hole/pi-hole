@@ -47,7 +47,8 @@ get_available_branches(){
 
   curdir="${PWD}"
   cd "${directory}" || return 1
-  git branch -a --list --no-color --no-column
+  # Get reachable remote branches
+  git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'
   cd "${curdir}" || return 1
   return
 }
@@ -62,23 +63,15 @@ select_branch() {
   c=$(( c < 70 ? 70 : c ))
 
   local cnt=${#branches[@]}
-  local active=-2
 
   for ((i=0;i<cnt;i++)); do
-    if [[ ${branches[i]} == "*" ]]; then
-      # This is the currently active branch
-      active=$i
-    elif [[ $i == $((active+1)) ]] ; then
+    if [[ ${branches[i]} == "master" ]]; then
       branches[i]="\"${branches[i]}\" \"\" on"
     else
       # Remove first two characters
       branches[i]="\"${branches[i]}\" \"\" off"
     fi
   done
-
-  # Strip "*"
-  unset branches[$active]
-  branches=( "${branches[@]}" )
 
   # Display dialog
   ChooseCmd=(whiptail --radiolist \"Select target branch\" ${r} ${c} ${#branches[@]})
