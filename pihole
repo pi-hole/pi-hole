@@ -277,6 +277,10 @@ piholeCheckoutFunc() {
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${corebranch}"
     checkout_pull_branch "${ADMIN_INTERFACE_DIR}" "${webbranch}"
   fi
+
+  # Force updating everything
+  /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+
   exit 0
 }
 
