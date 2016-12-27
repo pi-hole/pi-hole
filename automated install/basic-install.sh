@@ -182,13 +182,13 @@ getGitFiles() {
 find_IPv4_information() {
   # Find IP used to route to outside world
   IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-  IPV4_ADDRESS=$(ip -o -f inet addr show dev "$IPv4dev" | awk '{print $4}' | awk 'END {print}')
+  IPV4_ADDRESS=$(ip route get 8.8.8.8| awk '{print $7}')
   IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
 }
 
 get_available_interfaces() {
-  # Get available interfaces. Consider only getting UP interfaces in the future, and leaving DOWN interfaces out of list.
-  availableInterfaces=$(ip -o link | awk '{print $2}' | grep -v "lo" | cut -d':' -f1 | cut -d'@' -f1)
+  # Get available UP interfaces.
+  availableInterfaces=$(ip -o link | grep "state UP" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 welcomeDialogs() {
@@ -246,6 +246,11 @@ chooseInterface() {
   local chooseInterfaceOptions
   # Loop sentinel variable
   local firstLoop=1
+
+  if [[ $(echo ${availableInterfaces} | wc -l) -eq 1 ]]; then
+      PIHOLE_INTERFACE=${availableInterfaces}
+      return
+  fi
 
   while read -r line; do
     mode="OFF"
