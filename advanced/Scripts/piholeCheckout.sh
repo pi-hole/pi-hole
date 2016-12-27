@@ -53,7 +53,7 @@ get_available_branches(){
   return
 }
 
-branch=""
+choice=""
 select_branch() {
   branches=($@)
   # Divide by two so the dialogs take up half of the screen, which looks nice.
@@ -80,9 +80,9 @@ select_branch() {
   ChooseCmd=(whiptail --radiolist \"Select target branch\" ${r} ${c} ${#branches[@]})
   echo "${ChooseCmd[@]}" "${branches[@]}" | bash
 
-  branch=""
+  choice=""
   if [[ $? = 0 ]]; then
-    branch=$choices
+    choice=$choices
   fi
 }
 
@@ -91,7 +91,6 @@ checkout_branch() {
   local directory="${1}"
   local branch="${2}"
   local curdir
-  local branches
 
   curdir="${PWD}"
   cd "${directory}" || return 1
