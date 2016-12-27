@@ -113,7 +113,7 @@ elif [ $(command -v rpm) ]; then
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
 
   if ! grep -q 'Fedora' /etc/redhat-release; then
-    PIHOLE_DEPS=("${PIHOLE_DEPS[@]}" "epel-release");
+    INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
   fi
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
