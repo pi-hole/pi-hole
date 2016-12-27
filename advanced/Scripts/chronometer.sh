@@ -15,8 +15,6 @@
 piLog="/var/log/pihole.log"
 gravity="/etc/pihole/gravity.list"
 
-today=$(date "+%b %e")
-
 . /etc/pihole/setupVars.conf
 
 CalcBlockedDomains() {
@@ -35,7 +33,7 @@ CalcBlockedDomains() {
 
 CalcQueriesToday() {
 	if [ -e "${piLog}" ]; then
-		queriesToday=$(cat "${piLog}" | grep "${today}" | awk '/query/ {print $6}' | wc -l)
+		queriesToday=$(awk '/query\[/ {print $6}' < "${piLog}" | wc -l)
 	else
 		queriesToday="Err."
 	fi
@@ -43,7 +41,7 @@ CalcQueriesToday() {
 
 CalcblockedToday() {
 	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
-		blockedToday=$(cat ${piLog} | awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' | wc -l)
+		blockedToday=$(awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' < "${piLog}" | wc -l)
 	else
 		blockedToday="Err."
 	fi
@@ -104,7 +102,7 @@ normalChrono() {
 
 		echo "Blocking:      ${blockedDomainsTotal}"
 		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
-	  echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
+		echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
 
 		sleep 5
 	done

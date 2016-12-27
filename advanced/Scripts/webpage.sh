@@ -19,8 +19,9 @@ helpFunc() {
 :::
 ::: Options:
 :::  -p, password		Set web interface password, an empty input will remove any previously set password
-:::  -c, celsius		Set Celcius temperature unit
+:::  -c, celsius		Set Celsius temperature unit
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
+:::  -k, kelvin			Set Kelvin temperature unit
 :::  -h, --help			Show this help dialog
 EOM
 	exit 0
@@ -31,11 +32,7 @@ SetTemperatureUnit(){
 	# Remove setting from file (create backup setupVars.conf.bak)
 	sed -i.bak '/TEMPERATUREUNIT/d' /etc/pihole/setupVars.conf
 	# Save setting to file
-	if [[ $unit == "F" ]] ; then
-		echo "TEMPERATUREUNIT=F" >> /etc/pihole/setupVars.conf
-	else
-		echo "TEMPERATUREUNIT=C" >> /etc/pihole/setupVars.conf
-	fi
+	echo "TEMPERATUREUNIT=${unit}" >> /etc/pihole/setupVars.conf
 
 }
 
@@ -64,6 +61,7 @@ SetWebPassword(){
 		echo "WEBPASSWORD=${hash}" >> /etc/pihole/setupVars.conf
 		echo "New password set"
 	else
+		echo "WEBPASSWORD=" >> /etc/pihole/setupVars.conf
 		echo "Password removed"
 	fi
 
@@ -72,15 +70,21 @@ SetWebPassword(){
 SetDNSServers(){
 
 	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;' /etc/pihole/setupVars.conf
+	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;' /etc/pihole/setupVars.conf
 	# Save setting to file
 	echo "PIHOLE_DNS_1=${args[2]}" >> /etc/pihole/setupVars.conf
-	echo "PIHOLE_DNS_2=${args[3]}" >> /etc/pihole/setupVars.conf
+	if [[ "${args[3]}" != "none" ]]; then
+		echo "PIHOLE_DNS_2=${args[3]}" >> /etc/pihole/setupVars.conf
+	else
+		echo "PIHOLE_DNS_2=" >> /etc/pihole/setupVars.conf
+	fi
 
 	# Replace within actual dnsmasq config file
 	sed -i '/server=/d;' /etc/dnsmasq.d/01-pihole.conf
 	echo "server=${args[2]}" >> /etc/dnsmasq.d/01-pihole.conf
-	echo "server=${args[3]}" >> /etc/dnsmasq.d/01-pihole.conf
+	if [[ "${args[3]}" != "none" ]]; then
+		echo "server=${args[3]}" >> /etc/dnsmasq.d/01-pihole.conf
+	fi
 
 	# Remove domain-needed entry
 	sed -i '/domain-needed/d;' /etc/dnsmasq.d/01-pihole.conf
@@ -222,13 +226,27 @@ SetPrivacyMode(){
 	else
 		echo "API_PRIVACY_MODE=false" >> /etc/pihole/setupVars.conf
 	fi
+}
 
+ResolutionSettings() {
+
+	typ=${args[2]}
+	state=${args[3]}
+
+	if [[ "${typ}" == "forward" ]]; then
+		sed -i.bak '/API_GET_UPSTREAM_DNS_HOSTNAME/d;' /etc/pihole/setupVars.conf
+		echo "API_GET_UPSTREAM_DNS_HOSTNAME=${state}" >> /etc/pihole/setupVars.conf
+	elif [[ "${typ}" == "clients" ]]; then
+		sed -i.bak '/API_GET_CLIENT_HOSTNAME/d;' /etc/pihole/setupVars.conf
+		echo "API_GET_CLIENT_HOSTNAME=${state}" >> /etc/pihole/setupVars.conf
+	fi
 }
 
 case "${args[1]}" in
 	"-p" | "password"   ) SetWebPassword;;
 	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
 	"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
+	"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
 	"setdns"            ) SetDNSServers;;
 	"setexcludedomains" ) SetExcludeDomains;;
 	"setexcludeclients" ) SetExcludeClients;;
@@ -241,6 +259,7 @@ case "${args[1]}" in
 	"-h" | "--help"     ) helpFunc;;
 	"domainname"        ) SetDNSDomainName;;
 	"privacymode"       ) SetPrivacyMode;;
+	"resolve"           ) ResolutionSettings;;
 	*                   ) helpFunc;;
 esac
 
