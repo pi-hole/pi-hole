@@ -240,6 +240,11 @@ piholeCheckoutFunc() {
     exit 1
   fi
 
+  if ! warning1 ; then
+    echo "::: Not confirmed. Back to safety"
+    exit 1
+  fi
+
   echo -n "::: Fetching remote branches for Pi-hole core from ${PI_HOLE_GIT_URL} ... "
 #  fully_fetch_repo ${PI_HOLE_FILES_DIR}
   corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))

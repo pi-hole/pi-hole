@@ -94,3 +94,21 @@ checkout_branch() {
   cd "${curdir}" || return 1
   return
 }
+
+warning1() {
+  rows=$(echo $screen_size | awk '{print $1}')
+  columns=$(echo $screen_size | awk '{print $2}')
+  r=$(( rows / 2 ))
+  c=$(( columns / 2 ))
+  # Unless the screen is tiny
+  r=$(( r < 20 ? 20 : r ))
+  c=$(( c < 70 ? 70 : c ))
+  if (whiptail --yesno "Note that changing the branch is a severe change of your Pi-hole system.
+This is not supported unless one of the developers explicitly asks you to do this!
+
+Have you read and understood this?" ${r} ${c} --title "----> WARNING <----") then
+    return 0
+  else
+    return 1
+  fi
+}
