@@ -79,7 +79,6 @@ if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
@@ -108,8 +107,8 @@ elif command -v rpm &> /dev/null; then
   else
     PKG_MANAGER="yum"
   fi
-  PKG_CACHE="/var/cache/${PKG_MANAGER}"
-  UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
+  # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
+  UPDATE_PKG_CACHE=":"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
@@ -718,19 +717,13 @@ update_pacakge_cache() {
   #Running apt-get update/upgrade with minimal output can cause some issues with
   #requiring user input (e.g password for phpmyadmin see #218)
 
-  #Check to see if apt-get update has already been run today
-  #it needs to have been run at least once on new installs!
-  timestamp=$(stat -c %Y ${PKG_CACHE})
-  timestampAsDate=$(date -d @"${timestamp}" "+%b %e")
-  today=$(date "+%b %e")
+  #Update package cache on apt based OSes. Do this every time since
+  #it's quick and packages can be updated at any time.
 
-  if [ ! "${today}" == "${timestampAsDate}" ]; then
-    #update package lists
-    echo ":::"
-    echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
-    ${UPDATE_PKG_CACHE} &> /dev/null
-    echo " done!"
-  fi
+  echo ":::"
+  echo -n "::: Updating local cache of available packages..."
+  ${UPDATE_PKG_CACHE} &> /dev/null
+  echo " done!"
 }
 
 notify_package_updates_available() {
