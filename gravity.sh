@@ -28,7 +28,7 @@ EOM
 
 
 adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
+adListDefault=/etc/pihole/adlists.defaults
 adListUserFile=/etc/pihole/adlists.user
 whitelistScript="pihole -w"
 whitelistFile=/etc/pihole/whitelist.txt
