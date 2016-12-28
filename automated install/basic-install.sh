@@ -888,6 +888,17 @@ finalExports() {
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
     }>> "${setupVars}"
+
+  # Look for DHCP / DNS server settings which would have to be reapplied
+  source "${setupVars}"
+  source "/etc/.pihole/advanced/Scripts/webpage.sh"
+  if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
+    ProcessDNSSettings
+  fi
+
+  if [[ "${DHCP_ACTIVE}" == "true" ]] ; then
+    ProcessDHCPSettings
+  fi
 }
 
 installPihole() {
