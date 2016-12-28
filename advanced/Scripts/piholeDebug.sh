@@ -106,23 +106,23 @@ repository_test() {
   cur_dir="${PWD}"
 
   if [[ -d "${PIHOLE_GIT_DIR}" ]]; then
-    cd "${PIHOLE_GIT_DIR}" || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
+    cd "${PIHOLE_GIT_DIR}" || ERRORS+=(['CORE REPOSITORY MISSING']=major)
     pi_hole_tag="$(git describe --tags --abbrev=0 2>/dev/null)" \
     || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
     pi_hole_hash=":$(git log --pretty=format:'%h' -n 1))"
     pi_hole_branch="($(git branch | grep '^\*')"
   else
-    ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
+    ERRORS+=(['CORE REPOSITORY MISSING']=major)
   fi
 
   if [[ -d "${ADMIN_GIT_DIR}" ]]; then
-    cd "${ADMIN_GIT_DIR}" || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
+    cd "${ADMIN_GIT_DIR}" || ERRORS+=(['WEBADMIN REPOSITORY MISSING']=major)
     admin_tag="$(git describe --tags --abbrev=0 2>/dev/null)" \
     || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
     admin_hash=":$(git log --pretty=format:'%h' -n 1))"
     admin_branch="($(git branch | grep '^\*')"
   else
-    ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
+    ERRORS+=(['WEBADMIN REPOSITORY MISSING']=major)
   fi
 
   log_echo "\tPi-hole Core Version: ${pi_hole_tag:-"git repository not detected"} ${pi_hole_branch}${pi_hole_hash}\n"
@@ -144,16 +144,15 @@ package_test() {
   local php_ver
   local error_count
 
-  which lighttpd &>/dev/null \
-  || ERRORS+=(['MISSING LIGHTTPD EXECUTABLE']=major) \
+  command -v lighttpd &>/dev/null \
+  || ERRORS+=(['LIGHTTPD EXECUTABLE MISSING']=major) \
   && light_ver="$(lighttpd -v 2> /dev/null \
                 | awk -F "/" '/lighttpd/ {print $2}' \
                 | awk -F "-" '{print $1}')"
-  which php &>/dev/null \
-  || ERRORS+=(['MISSING PHP PROCESSOR']=major) \
+  command -v php &>/dev/null \
+  || ERRORS+=(['PHP PROCESSOR MISSING']=major) \
   && php_ver="$(php -v 2> /dev/null \
                 | awk '/cli/ {print $2}')"
-
 
   log_echo "\t\tLighttpd Webserver Version: ${light_ver:-"not located"}\n"
   log_echo "\t\tPHP Processor Version: ${php_ver:-"not located"}\n"
@@ -224,7 +223,7 @@ ip_test() {
   local protocol_version=${1}
   local IP_interface
   local IP_address_list
-  local IP_defaut_gateway
+  local IP_default_gateway
   local IP_def_gateway_check
   local IP_inet_check
   local dns_server=${2}
@@ -233,15 +232,15 @@ ip_test() {
 
   # If declared in setupVars.conf use it, otherwise defer to default
   IP_interface=${PIHOLE_INTERFACE:-$(ip -"${protocol_version}" r | grep default | cut -d ' ' -f 5)}
-  IP_address_list="$(ip -"${protocol_version}" addr show | sed -e's/^.*inet* \([^ ]*\)\/.*$/\1/;t;d')"
-  IP_defaut_gateway=$(ip -"${protocol_version}" route | grep default | cut -d ' ' -f 3)
+  IP_address_list="$(ip -"${protocol_version}" addr show | grep ${IP_interface} | sed -e's/^.*inet* \([^ ]*\)\/.*$/\1/;t;d')"
+  IP_default_gateway=$(ip -"${protocol_version}" route | grep default | cut -d ' ' -f 3)
 
   if [[ "${IP_address_list}" ]]; then
     log_echo "\t\tIP addresses found\n"
     log_write "${IP_address_list}\n"
-    if [[ "${IP_defaut_gateway}" ]]; then
+    if [[ "${IP_default_gateway}" ]]; then
       printf ":::\t\tPinging default gateway: "
-      IP_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IP_defaut_gateway}"  -I "${IP_interface}" | tail -n3)"
+      IP_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IP_default_gateway}"  -I "${IP_interface}" | tail -n3)"
       if [[ "${IP_def_gateway_check}" ]]; then
         printf "Gateway responded.\n"
         printf ":::\t\tPinging Internet via IPv4: "
