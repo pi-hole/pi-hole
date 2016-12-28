@@ -185,7 +185,7 @@ piholeLogging() {
 }
 
 piholeStatus() {
-  if [[ $(netstat -plnt | grep -c ':53') > 0 ]]; then
+  if [[ $(netstat -plnt | grep -c ':53 ') > 0 ]]; then
     if [[ "${1}" != "web" ]] ; then
       echo "::: DNS service is running"
     fi
