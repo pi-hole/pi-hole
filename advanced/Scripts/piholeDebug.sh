@@ -168,24 +168,22 @@ files_check() {
   header_write "Detecting existence of ${1}"
   local search_file="${1}"
 
-  if find "${search_file}" &>/dev/null
-   then
-     file_parse "${search_file}"
-     return 0
+  if find "${search_file}" &>/dev/null; then
+     file_parse "${search_file}" || return 1
   else
     log_echo "\tnot found!\n"
     return 1
   fi
+  return 0
 }
 
 source_file() {
   if files_check "${1}"; then
     # shellcheck source=/dev/null
-    source "${1}" &> /dev/null
-  else
-    log_echo "\t\t\tand could not be sourced\n"
-    return 1
+    source "${1}" &> /dev/null || return 1
+    return 0
   fi
+  return 1
 }
 
 distro_check() {
@@ -544,29 +542,34 @@ rm "$logdump"
 # Welcome to the debugger
 script_header
 
+# Gather information about the running distribution
+distro_check
+# Gather processor type
+processor_check
+
 # Get global configuration information from setupVars
 source_file "${VARS}" || \
   { ERRORS+=(['SETUPVARS FILE MISSING']=major); \
     error_handler; \
-    if repository_test; then
+    if repository_test && command -v pihole &> /dev/null; then
       printf "!!!\n!!!\t Please run \"pihole -r\" to generate required configuration file\n!!!\n"
     else
       error_handler
       printf "!!!\n!!!\t Please re-install Pi-hole, you are missing the configuration file and\n"
       printf "!!!\t required source files.\n!!!\n"
     fi; \
-    exit 1; }
+    finalWork; }
+
+# Check for required repositories
+repository_test || \
+  { error_handler; \
+      printf "!!!\n!!!\t Please re-install Pi-hole, you are missing the required source files.\n!!!\n";
+      finalWork; }
 
 # Check for IPv6
 ipv6_enabled_test
 
-# Gather information about the running distribution
-distro_check || echo "Distro Check soft fail"
-# Gather processor type
-processor_check || echo "Processor Check soft fail"
-
-# Gather version of required packages / repositories
-repository_test || error_handler
+# Gather version of required packages
 package_test || error_handler
 
 if [[ "${IPV6_ENABLED}" ]]; then
