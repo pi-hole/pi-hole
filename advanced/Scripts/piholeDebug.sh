@@ -349,12 +349,28 @@ resolver_test() {
 process_test() {
   header_write "Checking for necessary daemon processes:"
 
-  local processes
-  processes=( lighttpd dnsmasq )
-  for i in "${processes[@]}"; do
-    status=$(systemctl show "${i}" --property=ActiveState) &> /dev/null
-    log_write "\t\t${i} $status\n"
-  done
+  local status
+
+  if command -v systemctl &> /dev/null; then
+    status=$(awk -F '=' '/ActiveState/ {print $2}' <<< "$(systemctl show "${1}" --property=ActiveState)")
+  elif service "${1}" status &> /dev/null; then
+    status="active"
+  else
+    status="inactive"
+  fi
+  log_echo "\t\t${1} ${status}\n"
+
+  if [[ "${status}" = "active" ]]; then
+    daemon_check "${1}" "${2}"
+  else
+    ERRORS+=(['DAEMON INACTIVE']=major)
+  fi
+
+  error_count=${#ERRORS[@]}
+  if (( ! error_count != 0 )); then
+    log_echo "\tSUCCESS: ${1} FUNCTIONAL.\n"
+  fi
+  return "$error_count"
 }
 
 debugLighttpd() {
@@ -547,9 +563,9 @@ if [[ "${IPV6_ENABLED}" ]]; then
 fi
 ip_test "4" "8.8.8.8"
 
-daemon_check lighttpd http
-daemon_check dnsmasq domain
-process_test
+
+process_test lighttpd http || error_handler
+process_test dnsmasq domain || error_handler
 resolver_test
 debugLighttpd
 
