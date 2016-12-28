@@ -14,6 +14,8 @@ set -o pipefail
 
 ######## GLOBAL VARS ########
 readonly PIHOLE_DIR="/etc/pihole"
+readonly PIHOLE_GIT_DIR="/etc/.pihole"
+readonly ADMIN_GIT_DIR="/var/www/html/admin"
 readonly LOG_DIR="/var/log"
 
 readonly VARS="$PIHOLE_DIR/setupVars.conf"
@@ -90,20 +92,43 @@ block_parse() {
 }
 
 repository_test() {
-  header_write "Detecting Local Repositories:"
+  header_write "Checking for local repositories:"
 
-  local pi_hole_ver
-  local admin_ver
+  local pi_hole_tag
+  local pi_hole_hash
+  local pi_hole_branch
+  local admin_tag
+  local admin_hash
+  local admin_branch
   local error_count
+  local cur_dir
 
-  pi_hole_ver="$(git -C /etc/.pihole describe --tags --abbrev=0 2>/dev/null)" \
-  || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
-  admin_ver="$(git -C /var/www/html/admin describe --tags --abbrev=0 2>/dev/null)" \
-  || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
+  cur_dir="${PWD}"
 
-  log_echo "\t\tPi-hole Core Version: ${pi_hole_ver:-"git repository not detected"}\n"
-  log_echo "\t\tPi-hole WebUI Version: ${admin_ver:-"git repository not detected"}\n"
+  if [[ -d "${PIHOLE_GIT_DIR}" ]]; then
+    cd "${PIHOLE_GIT_DIR}"
+    pi_hole_tag="$(git describe --tags --abbrev=0 2>/dev/null)" \
+    || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
+    pi_hole_hash=":$(git log --pretty=format:'%h' -n 1))"
+    pi_hole_branch="($(git branch | grep '*')"
+  else
+    ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
+  fi
 
+  if [[ -d "${ADMIN_GIT_DIR}" ]]; then
+    cd "${ADMIN_GIT_DIR}"
+    admin_tag="$(git describe --tags --abbrev=0 2>/dev/null)" \
+    || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
+    admin_hash=":$(git log --pretty=format:'%h' -n 1))"
+    admin_branch="($(git branch | grep '*')"
+  else
+    ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
+  fi
+
+  log_echo "\tPi-hole Core Version: ${pi_hole_tag:-"git repository not detected"} ${pi_hole_branch}${pi_hole_hash}\n"
+  log_echo "\tPi-hole WebUI Version: ${admin_tag:-"git repository not detected"} ${admin_branch}${admin_hash}\n"
+
+  cd "${cur_dir}"
   error_count=${#ERRORS[@]}
   if (( ! error_count != 0 )); then
     log_echo "\tSUCCESS: All repositories located.\n"
