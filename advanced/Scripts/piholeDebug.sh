@@ -236,32 +236,34 @@ ip_test() {
   IP_default_gateway=$(ip -"${protocol_version}" route | grep default | cut -d ' ' -f 3)
 
   if [[ "${IP_address_list}" ]]; then
-    log_echo "\t\tIP addresses found\n"
-    log_write "${IP_address_list}\n"
-    if [[ "${IP_default_gateway}" ]]; then
-      printf ":::\t\tPinging default gateway: "
-      IP_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IP_default_gateway}"  -I "${IP_interface}" | tail -n3)"
-      if [[ "${IP_def_gateway_check}" ]]; then
-        printf "Gateway responded.\n"
-        printf ":::\t\tPinging Internet via IPv4: "
-        IP_inet_check="$(ping -q -w 5 -c 3 -n "${dns_server}" -I "${IP_interface}" | tail -n3)"
-        if [[ "${IP_inet_check}" ]]; then
-          printf "Query responded.\n"
-        else
-          printf "Query did not respond.\n"
-        fi
-        log_write "${IP_inet_check}\n"
-      else
-        printf "Gateway did not respond.\n"
-      fi
-      log_write "${IP_def_gateway_check}\n"
-    else
-      log_echo "No Gateway Detected"
-    fi
+    log_echo "\t\tIPv${protocol_version} addresses found\n"
+    block_parse "${IP_address_list}\n"
   else
-    log_echo "\t\tAddresses not found.\n"
+    log_echo "\t\tIPv${protocol_version} addresses not found.\n"
   fi
 
+  if [[ "${IP_default_gateway}" ]]; then
+    printf ":::\t\tPinging default gateway: "
+    IP_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IP_default_gateway}"  -I "${IP_interface}" | tail -n3 | head -n2)"
+  else
+    log_echo "No Gateway Detected"
+  fi
+
+  if [[ "${IP_def_gateway_check}" ]]; then
+    printf "Gateway responded.\n"
+    log_write "${IP_def_gateway_check}\n"
+    printf ":::\t\tPinging remote server: "
+    IP_inet_check="$(ping -q -w 5 -c 3 -n "${dns_server}" -I "${IP_interface}" | tail -n3 | head -n2)"
+  else
+    printf "Gateway did not respond.\n"
+  fi
+
+  if [[ "${IP_inet_check}" ]]; then
+    printf "Query responded.\n"
+    log_write "${IP_inet_check}\n"
+  else
+    printf "Query did not respond.\n"
+  fi
 }
 
 lsof_parse() {
