@@ -467,7 +467,7 @@ exit 0
 count_gravity() {
 header_write "Analyzing gravity.list"
 
-  gravity_length=$(wc -l "${GRAVITY_LIST}")
+  gravity_length=$(echo "${GRAVITY_LIST}" | wc -l)
   if [[ "${gravity_length}" ]]; then
     log_write "${GRAVITY_LIST} is ${gravity_length} lines long."
   else
@@ -523,10 +523,11 @@ logdump=$(mktemp /tmp/pihole_temp.XXXXXX)
 exec 4>"$logdump"
 rm "$logdump"
 
+# Welcome to the debugger
 script_header
 
 # Ensure the file exists, create if not, clear if exists, and debug to terminal if none of the above.
-source_file "$VARS" || printf "***\tREQUIRED FILE MISSING\n"
+source_file "$VARS" || ERRORS+=(['SETUPVARS FILE MISSING']=major); error_handler
 
 # Check for IPv6
 ipv6_enabled_test
