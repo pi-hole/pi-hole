@@ -9,8 +9,6 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-args=("$@")
-
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
@@ -275,30 +273,35 @@ ResolutionSettings() {
 	fi
 }
 
-case "${args[1]}" in
-	"-p" | "password"   ) SetWebPassword;;
-	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
-	"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
-	"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
-	"setdns"            ) SetDNSServers;;
-	"setexcludedomains" ) SetExcludeDomains;;
-	"setexcludeclients" ) SetExcludeClients;;
-	"reboot"            ) Reboot;;
-	"restartdns"        ) RestartDNS;;
-	"setquerylog"       ) SetQueryLogOptions;;
-	"enabledhcp"        ) EnableDHCP;;
-	"disabledhcp"       ) DisableDHCP;;
-	"layout"            ) SetWebUILayout;;
-	"-h" | "--help"     ) helpFunc;;
-	"domainname"        ) SetDHCPDomainName;;
-	"privacymode"       ) SetPrivacyMode;;
-	"resolve"           ) ResolutionSettings;;
-	*                   ) helpFunc;;
-esac
+main() {
 
-shift
+	args=("$@")
 
-if [[ $# = 0 ]]; then
-	helpFunc
-fi
+	case "${args[1]}" in
+		"-p" | "password"   ) SetWebPassword;;
+		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
+		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
+		"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
+		"setdns"            ) SetDNSServers;;
+		"setexcludedomains" ) SetExcludeDomains;;
+		"setexcludeclients" ) SetExcludeClients;;
+		"reboot"            ) Reboot;;
+		"restartdns"        ) RestartDNS;;
+		"setquerylog"       ) SetQueryLogOptions;;
+		"enabledhcp"        ) EnableDHCP;;
+		"disabledhcp"       ) DisableDHCP;;
+		"layout"            ) SetWebUILayout;;
+		"-h" | "--help"     ) helpFunc;;
+		"domainname"        ) SetDHCPDomainName;;
+		"privacymode"       ) SetPrivacyMode;;
+		"resolve"           ) ResolutionSettings;;
+		*                   ) helpFunc;;
+	esac
 
+	shift
+
+	if [[ $# = 0 ]]; then
+		helpFunc
+	fi
+
+}
