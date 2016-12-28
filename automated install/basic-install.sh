@@ -849,7 +849,7 @@ runGravity() {
 
   #Overwrite adlists.lists from /etc/.pihole in case any changes have been made.
   #Changes should be saved in /etc/adlists.user
-  cp /etc/.pihole/adlists.default /etc/pihole/adlists.defaults
+  cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 
   echo "::: Running gravity.sh"
   { /opt/pihole/gravity.sh; }
