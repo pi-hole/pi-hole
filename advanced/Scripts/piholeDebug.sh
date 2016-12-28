@@ -158,7 +158,7 @@ package_test() {
   log_echo "\t\tPHP Processor Version: ${php_ver:-"not located"}\n"
 
   error_count=${#ERRORS[@]}
-  if (( ! error_count != 0 )); then
+  if [[ "$error_count" -eq "0" ]]; then
     log_echo "\tSUCCESS: All packages located.\n"
   fi
   return "$error_count"
@@ -173,7 +173,7 @@ files_check() {
      file_parse "${search_file}"
      return 0
   else
-    log_echo="\tnot found!\n"
+    log_echo "\tnot found!\n"
     return 1
   fi
 }
@@ -368,7 +368,7 @@ process_test() {
   fi
 
   error_count=${#ERRORS[@]}
-  if (( ! error_count != 0 )); then
+  if [[ "$error_count" -eq "0" ]]; then
     log_echo "\tSUCCESS: ${1} FUNCTIONAL.\n"
   fi
   return "$error_count"
