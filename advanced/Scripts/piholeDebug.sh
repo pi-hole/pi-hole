@@ -131,7 +131,7 @@ repository_test() {
   cd "${cur_dir}" || echo "You can't go home again."
 
   error_count=${#ERRORS[@]}
-  if (( ! error_count != 0 )); then
+  if [[ "$error_count" -eq "0" ]]; then
     log_echo "\tSUCCESS: All repositories located.\n"
   fi
   return "$error_count"
@@ -173,8 +173,8 @@ files_check() {
      file_parse "${search_file}"
      return 0
   else
-    log_write="\tnot found!\n"
-    return=1
+    log_echo="\tnot found!\n"
+    return 1
   fi
 }
 
@@ -240,6 +240,7 @@ ip_test() {
     block_parse "${IP_address_list}\n"
   else
     log_echo "\t\tIPv${protocol_version} addresses not found.\n"
+    return
   fi
 
   if [[ "${IP_default_gateway}" ]]; then
@@ -543,8 +544,18 @@ rm "$logdump"
 # Welcome to the debugger
 script_header
 
-# Ensure the file exists, create if not, clear if exists, and debug to terminal if none of the above.
-source_file "$VARS" || ERRORS+=(['SETUPVARS FILE MISSING']=major); error_handler
+# Get global configuration information from setupVars
+source_file "${VARS}" || \
+  { ERRORS+=(['SETUPVARS FILE MISSING']=major); \
+    error_handler; \
+    if repository_test; then
+      printf "!!!\n!!!\t Please run \"pihole -r\" to generate required configuration file\n!!!\n"
+    else
+      error_handler
+      printf "!!!\n!!!\t Please re-install Pi-hole, you are missing the configuration file and\n"
+      printf "!!!\t required source files.\n!!!\n"
+    fi; \
+    exit 1; }
 
 # Check for IPv6
 ipv6_enabled_test
