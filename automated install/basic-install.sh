@@ -63,7 +63,7 @@ else
   echo ":::"
   echo "::: Detecting the presence of the sudo utility for continuation of this install..."
 
-  if [ -x "$(command -v sudo)" ]; then
+  if command -v sudo &> /dev/null; then
     echo "::: Utility sudo located."
     exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
     exit $?
@@ -75,11 +75,10 @@ fi
 
 # Compatibility
 
-if [[ $(command -v apt-get) ]]; then
+if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  PKG_CACHE="/var/lib/apt/lists/"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
@@ -101,15 +100,15 @@ if [[ $(command -v apt-get) ]]; then
   package_check_install() {
     dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
   }
-elif [ $(command -v rpm) ]; then
+elif command -v rpm &> /dev/null; then
   # Fedora Family
-  if [ $(command -v dnf) ]; then
+  if command -v dnf &> /dev/null; then
     PKG_MANAGER="dnf"
   else
     PKG_MANAGER="yum"
   fi
-  PKG_CACHE="/var/cache/${PKG_MANAGER}"
-  UPDATE_PKG_CACHE="${PKG_MANAGER} check-update"
+  # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
+  UPDATE_PKG_CACHE=":"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
@@ -421,7 +420,7 @@ setStaticIPv4() {
         echo "USERCTL=no"
       }> "${IFCFG_FILE}"
       ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-      if [ -x "$(command -v nmcli)" ];then
+      if command -v nmcli &> /dev/null;then
         # Tell NetworkManager to read our new sysconfig file
         nmcli con load "${IFCFG_FILE}" > /dev/null
       fi
@@ -681,7 +680,7 @@ stop_service() {
   # Can softfail, as process may not be installed when this is called
   echo ":::"
   echo -n "::: Stopping ${1} service..."
-  if [ -x "$(command -v systemctl)" ]; then
+  if command -v systemctl &> /dev/null; then
     systemctl stop "${1}" &> /dev/null || true
   else
     service "${1}" stop &> /dev/null || true
@@ -694,7 +693,7 @@ start_service() {
   # This should not fail, it's an error if it does
   echo ":::"
   echo -n "::: Starting ${1} service..."
-  if [ -x "$(command -v systemctl)" ]; then
+  if command -v systemctl &> /dev/null; then
     systemctl restart "${1}" &> /dev/null
   else
     service "${1}" restart &> /dev/null
@@ -706,7 +705,7 @@ enable_service() {
   # Enable service so that it will start with next reboot
   echo ":::"
   echo -n "::: Enabling ${1} service to start on reboot..."
-  if [ -x "$(command -v systemctl)" ]; then
+  if command -v systemctl &> /dev/null; then
     systemctl enable "${1}" &> /dev/null
   else
     update-rc.d "${1}" defaults &> /dev/null
@@ -718,19 +717,13 @@ update_pacakge_cache() {
   #Running apt-get update/upgrade with minimal output can cause some issues with
   #requiring user input (e.g password for phpmyadmin see #218)
 
-  #Check to see if apt-get update has already been run today
-  #it needs to have been run at least once on new installs!
-  timestamp=$(stat -c %Y ${PKG_CACHE})
-  timestampAsDate=$(date -d @"${timestamp}" "+%b %e")
-  today=$(date "+%b %e")
+  #Update package cache on apt based OSes. Do this every time since
+  #it's quick and packages can be updated at any time.
 
-  if [ ! "${today}" == "${timestampAsDate}" ]; then
-    #update package lists
-    echo ":::"
-    echo -n "::: ${PKG_MANAGER} update has not been run today. Running now..."
-    ${UPDATE_PKG_CACHE} &> /dev/null
-    echo " done!"
-  fi
+  echo ":::"
+  echo -n "::: Updating local cache of available packages..."
+  ${UPDATE_PKG_CACHE} &> /dev/null
+  echo " done!"
 }
 
 notify_package_updates_available() {
@@ -870,10 +863,10 @@ create_pihole_user() {
 
 configureFirewall() {
   # Allow HTTP and DNS traffic
-  if [ -x "$(command -v firewall-cmd)" ]; then
+  if command -v firewall-cmd &> /dev/null; then
     firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
     && firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
-  elif [ -x "$(command -v iptables)" ]; then
+  elif command -v iptables &> /dev/null; then
     echo "::: Configuring iptables for httpd and dnsmasq.."
     iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
     iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
@@ -955,7 +948,7 @@ updatePihole() {
 
 
 checkSelinux() {
-  if [ -x "$(command -v getenforce)" ]; then
+  if command -v getenforce &> /dev/null; then
     echo ":::"
     echo -n "::: SELinux Support Detected... Mode: "
     enforceMode=$(getenforce)
