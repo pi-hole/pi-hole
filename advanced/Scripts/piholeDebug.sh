@@ -106,21 +106,21 @@ repository_test() {
   cur_dir="${PWD}"
 
   if [[ -d "${PIHOLE_GIT_DIR}" ]]; then
-    cd "${PIHOLE_GIT_DIR}"
+    cd "${PIHOLE_GIT_DIR}" || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
     pi_hole_tag="$(git describe --tags --abbrev=0 2>/dev/null)" \
     || ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
     pi_hole_hash=":$(git log --pretty=format:'%h' -n 1))"
-    pi_hole_branch="($(git branch | grep '*')"
+    pi_hole_branch="($(git branch | grep '^\*')"
   else
     ERRORS+=(['CORE REPOSITORY DAMAGED']=major)
   fi
 
   if [[ -d "${ADMIN_GIT_DIR}" ]]; then
-    cd "${ADMIN_GIT_DIR}"
+    cd "${ADMIN_GIT_DIR}" || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
     admin_tag="$(git describe --tags --abbrev=0 2>/dev/null)" \
     || ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
     admin_hash=":$(git log --pretty=format:'%h' -n 1))"
-    admin_branch="($(git branch | grep '*')"
+    admin_branch="($(git branch | grep '^\*')"
   else
     ERRORS+=(['WEBADMIN REPOSITORY DAMAGED']=major)
   fi
@@ -128,7 +128,8 @@ repository_test() {
   log_echo "\tPi-hole Core Version: ${pi_hole_tag:-"git repository not detected"} ${pi_hole_branch}${pi_hole_hash}\n"
   log_echo "\tPi-hole WebUI Version: ${admin_tag:-"git repository not detected"} ${admin_branch}${admin_hash}\n"
 
-  cd "${cur_dir}"
+  cd "${cur_dir}" || echo "You can't go home again."
+
   error_count=${#ERRORS[@]}
   if (( ! error_count != 0 )); then
     log_echo "\tSUCCESS: All repositories located.\n"
