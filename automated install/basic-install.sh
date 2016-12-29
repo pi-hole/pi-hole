@@ -734,12 +734,15 @@ notify_package_updates_available() {
   updatesToInstall=$(eval "${PKG_COUNT}")
   echo " done!"
   echo ":::"
-  if [[ ${updatesToInstall} -eq "0" ]]; then
-    echo "::: Your system is up to date! Continuing with Pi-hole installation..."
-  else
-    echo "::: There are ${updatesToInstall} updates available for your system!"
-    echo "::: We recommend you update your OS after installing Pi-Hole! "
-    echo ":::"
+  if [[ -d "/lib/modules/$(uname -r)" ]]; then
+    if [[ ${updatesToInstall} -eq "0" ]]; then
+      echo "::: Your system is up to date! Continuing with Pi-hole installation..."
+    else
+      echo "::: There are ${updatesToInstall} updates available for your system!"
+      echo "::: We recommend you update your OS after installing Pi-Hole! "
+      echo ":::"
+    fi
+    echo "::: Kernel update detected, please reboot your system and try again if your installation fails."
   fi
 }
 
