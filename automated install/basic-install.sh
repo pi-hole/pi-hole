@@ -866,16 +866,17 @@ create_pihole_user() {
 
 configureFirewall() {
   # Allow HTTP and DNS traffic
-  if command -v firewall-cmd &> /dev/null; then
-    firewall-cmd --state &> /dev/null && ( echo "::: Configuring firewalld for httpd and dnsmasq.." && firewall-cmd --permanent --add-port=80/tcp && firewall-cmd --permanent --add-port=53/tcp \
-    && firewall-cmd --permanent --add-port=53/udp && firewall-cmd --reload) || echo "::: FirewallD not enabled"
-  elif command -v iptables &> /dev/null; then
+  if firewall-cmd --state &> /dev/null; then
+    echo "::: Configuring FirewallD for httpd and dnsmasq.."
+    firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
+    firewall-cmd --reload
+  elif modinfo ip_tables &> /dev/null && iptables -S INPUT | head -n1 | grep -v "ACCEPT" &> /dev/null ; then
     echo "::: Configuring iptables for httpd and dnsmasq.."
     iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
     iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
     iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
   else
-    echo "::: No firewall detected.. skipping firewall configuration."
+    echo "::: No active firewall detected.. skipping firewall configuration."
   fi
 }
 
