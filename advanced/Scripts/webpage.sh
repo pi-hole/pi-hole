@@ -207,7 +207,7 @@ quiet-dhcp
 quiet-dhcp6
 #enable-ra
 dhcp-option=option6:dns-server,[::]
-dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac
+dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
 ra-param=*,0,0
 " > "${dhcpconfig}"
 
