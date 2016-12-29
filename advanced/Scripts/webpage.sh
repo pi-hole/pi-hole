@@ -187,13 +187,19 @@ ProcessDHCPSettings() {
 		interface="eth0"
 	fi
 
+	if [[ "${DHCP_LEASETIME}" == "0" ]]; then
+		leasetime="infinite"
+	else
+		leasetime="${DHCP_LEASETIME}h"
+	fi
+
 	# Write settings to file
 	echo "###############################################################################
 #  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
 #            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
 ###############################################################################
 dhcp-authoritative
-dhcp-range=${DHCP_START},${DHCP_END},infinite
+dhcp-range=${DHCP_START},${DHCP_END},${leasetime}
 dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 domain=${PIHOLE_DOMAIN}
@@ -213,6 +219,8 @@ EnableDHCP(){
 	change_setting "DHCP_START" "${args[2]}"
 	change_setting "DHCP_END" "${args[3]}"
 	change_setting "DHCP_ROUTER" "${args[4]}"
+	change_setting "DHCP_LEASETIME" "${args[5]}"
+	change_setting "PIHOLE_DOMAIN" "${args[6]}"
 
 	# Remove possible old setting from file
 	delete_dnsmasq_setting "dhcp-"
@@ -239,16 +247,6 @@ DisableDHCP(){
 SetWebUILayout(){
 
 	change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
-
-}
-
-SetDHCPDomainName(){
-
-	change_setting "PIHOLE_DOMAIN" "${args[2]}"
-
-	ProcessDHCPSettings
-
-	RestartDNS
 
 }
 
@@ -293,7 +291,6 @@ main() {
 		"disabledhcp"       ) DisableDHCP;;
 		"layout"            ) SetWebUILayout;;
 		"-h" | "--help"     ) helpFunc;;
-		"domainname"        ) SetDHCPDomainName;;
 		"privacymode"       ) SetPrivacyMode;;
 		"resolve"           ) ResolutionSettings;;
 		*                   ) helpFunc;;
