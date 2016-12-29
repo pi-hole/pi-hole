@@ -742,6 +742,7 @@ notify_package_updates_available() {
       echo "::: We recommend you update your OS after installing Pi-Hole! "
       echo ":::"
     fi
+  else
     echo "::: Kernel update detected, please reboot your system and try again if your installation fails."
   fi
 }
