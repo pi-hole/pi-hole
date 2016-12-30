@@ -69,7 +69,22 @@ if($uri == "/")
 	<button id="btnSearch" class="buttons blocked" type="button" style="visibility: hidden;"></button>
 	This page is blocked because it is explicitly contained within the following block list(s):
 	<pre id="output" style="width: 100%; height: 100%;" hidden="true"></pre><br/>
-	<div class='buttons blocked'><a class='safe' href='javascript:history.back()'>Go back</a>
+	<div class='buttons blocked'>
+		<a class='safe33' href='javascript:history.back()'>Go back</a>
+		<a class='safe33' id="whitelisting">Whitelist this page</a>
+		<a class='safe33' href='javascript:window.close()'>Close window</a>
+	</div>
+		<div style="width: 98%; text-align: center; padding: 10px;" hidden="true" id="whitelistingform">Password required!<br/>
+		<form action="admin/php/add.php" method="post">
+			<input name="list" type="hidden" value="white"><br/>
+			Domain:<br/>
+			<input name="domain" value="<?php echo $serverName ?>" disabled><br/><br/>
+			Password:<br/>
+			<input type="password" id="pw" name="pw"><br/><br/>
+			<button class="buttons33 safe" id="btnAdd" type="button">Whitelist</button>
+		</form><br/>
+		<pre id="whitelistingoutput" style="width: 100%; height: 100%; padding: 5px;" hidden="true"></pre><br/>
+		</div>
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
 <script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/other/jquery.min.js"></script>
@@ -97,7 +112,51 @@ if($uri == "/")
 		// Query adlists
 		$( "#btnSearch" ).click();
 	}
-// }
+
+	$( "#whitelisting" ).on( "click", function(){ $( "#whitelistingform" ).removeAttr( "hidden" ); });
+
+	function add() {
+	var domain = $("#domain");
+	var pw = $("#pw");
+	if(domain.val().length === 0){
+		return;
+	}
+
+	$.ajax({
+		url: "admin/php/add.php",
+		method: "post",
+		data: {"domain":domain.val(), "list":"white", "pw":pw.val()},
+		success: function(response) {
+			$( "#whitelistingoutput" ).removeAttr( "hidden" );
+			if(response.indexOf("Pi-hole blocking") !== -1)
+			{
+				// Reload page after 5 seconds
+				setTimeout(function(){window.location.reload(1);}, 5000);
+				$( "#whitelistingoutput" ).html("---> Success <---");
+			}
+			else
+			{
+				$( "#whitelistingoutput" ).html("---> "+response+" <---");
+			}
+
+		},
+		error: function(jqXHR, exception) {
+			$( "#whitelistingoutput" ).removeAttr( "hidden" );
+			$( "#whitelistingoutput" ).html("---> "+response+" <---");
+		}
+	});
+}
+// Handle enter button for adding domains
+$(document).keypress(function(e) {
+    if(e.which === 13 && $("#password").is(":focus")) {
+        add();
+    }
+});
+
+// Handle buttons
+$("#btnAdd").on("click", function() {
+    add();
+});
 </script>
 </body>
 </html>
