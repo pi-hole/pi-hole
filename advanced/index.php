@@ -87,8 +87,8 @@ if($uri == "/")
 		</div>
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
-<script src="http://pi.hole/admin/js/other/jquery.min.js"></script>
-<script src="http://pi.hole/admin/js/pihole/queryads.js"></script>
+<script src="http://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+<script src="http://pi.hole/admin/scripts/pi-hole/js/queryads.js"></script>
 <script>
 function inIframe () {
     try {
@@ -123,7 +123,7 @@ function add() {
 	}
 
 	$.ajax({
-		url: "admin/php/add.php",
+		url: "admin/scripts/pi-hole/php/add.php",
 		method: "post",
 		data: {"domain":domain.val(), "list":"white", "pw":pw.val()},
 		success: function(response) {
