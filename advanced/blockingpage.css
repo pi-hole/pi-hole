@@ -101,7 +101,7 @@ li::before { content: "\00BB\00a0"; }
 li a { position: relative; top: 1px; } /* Center bullet-point arrows */
 
 /* Button Style */
-.buttons a, input, .transparent th a { /* Swapped rgba is shared with input[type='url'] */
+.buttons a, button, input, .transparent th a { /* Swapped rgba is shared with input[type='url'] */
 	display: inline-block;
 	color: rgba(32,32,32,0.9);
 	font-weight: bold;
@@ -120,12 +120,15 @@ li a { position: relative; top: 1px; } /* Center bullet-point arrows */
 }
 
 .buttons { white-space: nowrap; width: 100%; display: table; }
+.buttons33 { white-space: nowrap; width: 33.333%; display: table; text-align: center; margin-left: 33.333% }
 .mini a { width: 50%; }
 a.safe { background-color: rgba(0,220,0,0.5); }
+button.safe { background-color: rgba(0,220,0,0.5); }
 a.warn { background-color: rgba(220,0,0,0.5); }
 
 .blocked a, .mini a { display: table-cell; }
-.blocked a.safe { width: 100%; }
+.blocked a.safe50 { width: 50%; background-color: rgba(0,220,0,0.5); }
+.blocked a.safe33 { width: 33.333%; background-color: rgba(0,220,0,0.5); }
 
 /* Types of text */
 .msg { white-space: pre; overflow: auto; -webkit-overflow-scrolling: touch; display: block; line-height: 1.2em; font-weight: bold; font-size: 1.15em; margin: 4px 8px 8px 8px; white-space: pre-line; }
