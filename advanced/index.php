@@ -132,7 +132,7 @@ if($uri == "/")
 			{
 				// Reload page after 5 seconds
 				setTimeout(function(){window.location.reload(1);}, 5000);
-				$( "#whitelistingoutput" ).html("---> Success <---");
+				$( "#whitelistingoutput" ).html("---> Success <---<br/>You may have to flush your DNS cache");
 			}
 			else
 			{
