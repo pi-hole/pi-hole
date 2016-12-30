@@ -51,8 +51,8 @@ if($uri == "/")
 <head>
 	<meta charset='UTF-8'/>
 	<title>Website Blocked</title>
-	<link rel='stylesheet' href='http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/blockingpage.css'/>
-	<link rel='shortcut icon' href='http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/img/favicon.png' type='image/png'/>
+	<link rel='stylesheet' href='http://pi.hole/admin/blockingpage.css'/>
+	<link rel='shortcut icon' href='http://pi.hole/admin/img/favicon.png' type='image/png'/>
 	<meta name='viewport' content='width=device-width,initial-scale=1.0,maximum-scale=1.0, user-scalable=no'/>
 	<meta name='robots' content='noindex,nofollow'/>
 </head>
@@ -87,8 +87,8 @@ if($uri == "/")
 		</div>
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
-<script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/other/jquery.min.js"></script>
-<script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/pihole/queryads.js"></script>
+<script src="http://pi.hole/admin/js/other/jquery.min.js"></script>
+<script src="http://pi.hole/admin/js/pihole/queryads.js"></script>
 <script>
 function inIframe () {
     try {
@@ -142,7 +142,7 @@ function add() {
 		},
 		error: function(jqXHR, exception) {
 			$( "#whitelistingoutput" ).removeAttr( "hidden" );
-			$( "#whitelistingoutput" ).html("---> "+response+" <---");
+			$( "#whitelistingoutput" ).html("---> Unknown Error <---");
 		}
 	});
 }
