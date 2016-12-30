@@ -27,18 +27,21 @@ EOM
 }
 
 
-adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
-whitelistScript="pihole -w"
-whitelistFile=/etc/pihole/whitelist.txt
-blacklistFile=/etc/pihole/blacklist.txt
+piholeDir=${piholeDir:=/etc/pihole}
+piholeBin=${piholeBin:=pihole}
+
+adListFile=${piholeDir}/adlists.list
+adListDefault=${piholeDir}/adlists.default
+whitelistScript="${piholeBin} -w"
+whitelistFile=${piholeDir}/whitelist.txt
+blacklistFile=${piholeDir}/blacklist.txt
 
 #Source the setupVars from install script for the IP
-setupVars=/etc/pihole/setupVars.conf
+setupVars=${piholeDir}/setupVars.conf
 if [[ -f ${setupVars} ]];then
-	. /etc/pihole/setupVars.conf
+	. ${piholeDir}/setupVars.conf
 else
-	echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
+	echo "::: WARNING: ${piholeDir}/setupVars.conf missing. Possible installation failure."
 	echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
 	exit 1
 fi
@@ -49,7 +52,6 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
-piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
 localList=${piholeDir}/local.list
 justDomainsExtension=domains
@@ -310,7 +312,7 @@ gravity_hostFormat() {
       exit 1
   fi
 
-	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
+	# Copy the file over as ${piholeDir}/gravity.list so dnsmasq can use it
 	cp ${piholeDir}/${accretionDisc} ${adList}
 	echo " done!"
 }
@@ -369,7 +371,7 @@ gravity_reload() {
 	#Now replace the line in dnsmasq file
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
-	pihole restartdns
+	${piholeBin} restartdns
 	echo " done!"
 }
 
@@ -383,12 +385,12 @@ done
 
 if [[ "${forceGrav}" == true ]]; then
 	echo -n "::: Deleting exising list cache..."
-	rm /etc/pihole/list.*
+	rm ${piholeDir}/list.*
 	echo " done!"
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-#cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+#cp /etc/.pihole/adlists.default ${piholeDir}/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
@@ -406,4 +408,4 @@ gravity_hostFormat
 gravity_blackbody
 
 gravity_reload
-pihole status
+${piholeBin} status
