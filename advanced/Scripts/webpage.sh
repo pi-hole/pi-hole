@@ -203,8 +203,8 @@ dhcp-range=${DHCP_START},${DHCP_END},${leasetime}
 dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 domain=${PIHOLE_DOMAIN}
-quiet-dhcp
-quiet-dhcp6
+#quiet-dhcp
+#quiet-dhcp6
 #enable-ra
 dhcp-option=option6:dns-server,[::]
 dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
