@@ -90,32 +90,32 @@ if($uri == "/")
 <script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/other/jquery.min.js"></script>
 <script src="http://<?php echo $_SERVER['SERVER_ADDR']; ?>/admin/js/pihole/queryads.js"></script>
 <script>
-	function inIframe () {
-		try {
-			return window.self !== window.top;
-		} catch (e) {
-			return true;
-		}
-	}
+function inIframe () {
+    try {
+        return window.self !== window.top;
+    } catch (e) {
+        return true;
+    }
+}
 
-	// Try to detect if page is loaded within iframe
-	if(inIframe())
-	{
-		// Within iframe
-		// hide content of page
-		$('#body').hide();
-		// remove background
-		document.body.style.backgroundImage = "none";
-	}
-	else
-	{
-		// Query adlists
-		$( "#btnSearch" ).click();
-	}
+// Try to detect if page is loaded within iframe
+if(inIframe())
+{
+    // Within iframe
+    // hide content of page
+    $('#body').hide();
+    // remove background
+    document.body.style.backgroundImage = "none";
+}
+else
+{
+    // Query adlists
+    $( "#btnSearch" ).click();
+}
 
-	$( "#whitelisting" ).on( "click", function(){ $( "#whitelistingform" ).removeAttr( "hidden" ); });
+$( "#whitelisting" ).on( "click", function(){ $( "#whitelistingform" ).removeAttr( "hidden" ); });
 
-	function add() {
+function add() {
 	var domain = $("#domain");
 	var pw = $("#pw");
 	if(domain.val().length === 0){
