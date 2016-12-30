@@ -794,11 +794,11 @@ installPiholeWeb() {
       echo " done!"
     fi
 
-    if [ -f "/var/www/html/admin/blockingpage.css" ]; then
+    if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
       echo ":::     Existing blockingpage.css detected, not overwriting"
     else
       echo -n ":::     index.css missing, replacing... "
-      cp /etc/.pihole/advanced/blockingpage.css /var/www/html/admin
+      cp /etc/.pihole/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
 
