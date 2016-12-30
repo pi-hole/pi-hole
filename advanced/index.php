@@ -75,7 +75,7 @@ if($uri == "/")
 		<a class='safe33' href='javascript:window.close()'>Close window</a>
 	</div>
 		<div style="width: 98%; text-align: center; padding: 10px;" hidden="true" id="whitelistingform">Password required!<br/>
-		<form action="admin/php/add.php" method="post">
+		<form>
 			<input name="list" type="hidden" value="white"><br/>
 			Domain:<br/>
 			<input name="domain" value="<?php echo $serverName ?>" disabled><br/><br/>
@@ -148,7 +148,7 @@ function add() {
 }
 // Handle enter button for adding domains
 $(document).keypress(function(e) {
-    if(e.which === 13 && $("#password").is(":focus")) {
+    if(e.which === 13 && $("#pw").is(":focus")) {
         add();
     }
 });
