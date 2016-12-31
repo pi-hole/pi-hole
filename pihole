@@ -37,6 +37,11 @@ blacklistFunc() {
   exit 0
 }
 
+wildcardFunc() {
+  "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
+  exit 0
+}
+
 debugFunc() {
   "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
@@ -274,6 +279,7 @@ fi
 case "${1}" in
   "-w" | "whitelist"            ) whitelistFunc "$@";;
   "-b" | "blacklist"            ) blacklistFunc "$@";;
+  "-wild" | "wildcard"          ) wildcardFunc "$@";;
   "-d" | "debug"                ) debugFunc;;
   "-f" | "flush"                ) flushFunc;;
   "-up" | "updatePihole"        ) updatePiholeFunc;;
