@@ -48,7 +48,7 @@ helpFunc() {
 :::  -h, --help				Show this help dialog
 :::  -l, --list				Display your ${word}listed domains
 EOM
-if [[ "letter" == "b" ]]; then
+if [[ "${letter}" == "b" ]]; then
 	echo ":::  -wild, --wildcard		Add whitecard entry (only blacklist)"
 fi
 	exit 0
