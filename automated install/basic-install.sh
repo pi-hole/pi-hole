@@ -874,7 +874,7 @@ configureFirewall() {
   elif modinfo ip_tables &> /dev/null; then
     # If chain Policy is not ACCEPT or last Rule is not ACCEPT
     # then check and insert our Rules above the DROP/REJECT Rule.
-    if iptables -S INPUT | head -n1 | grep -qv 'ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-A.*ACCEPT$'; then
+    if iptables -S INPUT | head -n1 | grep -qv 'ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '(^-A\|^-P).*ACCEPT$'; then
       # Check chain first, otherwise a new rule will duplicate old ones
       echo "::: Configuring iptables for httpd and dnsmasq.."
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
