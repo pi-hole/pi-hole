@@ -168,12 +168,16 @@ make_repo() {
 
 update_repo() {
   local directory="${1}"
+
   # Pull the latest commits
-  echo -n ":::    Updating repo in $1..."
-  cd "${directory}" || exit 1
-  git stash -q &> /dev/null
-  git pull -q &> /dev/null
-  echo " done!"
+  echo -n ":::    Updating repo in ${1}..."
+  if [[ -d "${directory}" ]]; then
+    cd "${directory}"
+    git stash -q &> /dev/null || true # Okay for stash failure
+    git pull -q &> /dev/null || return $?
+    echo " done!"
+  fi
+  return 0
 }
 
 getGitFiles() {
@@ -184,12 +188,9 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    update_repo "${directory}"
+    update_repo "${directory}" || return 1
   else
-    make_repo "${directory}" "${remoteRepo}" || \
-      { echo "!!! Unable to clone ${remoteRepo} into ${directory}"; \
-      return 1; \
-      }
+    make_repo "${directory}" "${remoteRepo}" || return 1
   fi
   return 0
 }
@@ -1091,8 +1092,14 @@ main() {
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
     # Get Git files for Core and Admin
-    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || { echo "Unable to clone ${piholeGitUrl}"; exit 1; }
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || { echo "Unable to clone ${webInterfaceGitUrl}"; exit 1; }
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
   fi
 
   if [[ ${useUpdateVars} == false ]]; then
