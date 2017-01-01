@@ -51,28 +51,6 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 
-######## FIRST CHECK ########
-# Must be root to install
-echo ":::"
-if [[ ${EUID} -eq 0 ]]; then
-  echo "::: You are root."
-else
-  echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
-  echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
-  echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
-  echo ":::"
-  echo "::: Detecting the presence of the sudo utility for continuation of this install..."
-
-  if command -v sudo &> /dev/null; then
-    echo "::: Utility sudo located."
-    exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
-    exit $?
-  else
-    echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
-    exit 1
-  fi
-fi
-
 # Compatibility
 
 if command -v apt-get &> /dev/null; then
@@ -1049,6 +1027,28 @@ update_dialogs() {
 }
 
 main() {
+
+  ######## FIRST CHECK ########
+  # Must be root to install
+  echo ":::"
+  if [[ ${EUID} -eq 0 ]]; then
+    echo "::: You are root."
+  else
+    echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
+    echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
+    echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
+    echo ":::"
+    echo "::: Detecting the presence of the sudo utility for continuation of this install..."
+
+    if command -v sudo &> /dev/null; then
+      echo "::: Utility sudo located."
+      exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+      exit $?
+    else
+      echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
+      exit 1
+    fi
+  fi
 
   # Check arguments for the undocumented flags
   for var in "$@"; do
