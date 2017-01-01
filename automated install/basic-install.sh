@@ -161,11 +161,8 @@ make_repo() {
   if [[ -d "${directory}" ]]; then
     rm -rf "${directory}"
   fi
-  if ! git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null; then
-   return $?
-  else
-    echo " done!"
-  fi
+  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+  echo " done!"
   return 0
 }
 
@@ -189,7 +186,10 @@ getGitFiles() {
   if is_repo "${directory}"; then
     update_repo "${directory}"
   else
-    make_repo "${directory}" "${remoteRepo}" || { echo "!!! Unable to clone ${remoteRepo}"; return 1; }
+    make_repo "${directory}" "${remoteRepo}" || \
+      { echo "!!! Unable to clone ${remoteRepo} into ${directory}"; \
+      return 1; \
+      }
   fi
   return 0
 }
@@ -1091,8 +1091,8 @@ main() {
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
     # Get Git files for Core and Admin
-    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl}
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || { echo "Unable to clone ${piholeGitUrl}"; exit 1; }
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || { echo "Unable to clone ${webInterfaceGitUrl}"; exit 1; }
   fi
 
   if [[ ${useUpdateVars} == false ]]; then
