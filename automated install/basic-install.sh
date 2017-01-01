@@ -133,26 +133,40 @@ fi
 
 ####### FUNCTIONS ##########
 is_repo() {
-  # Use git to check if directory is currently under VCS, return the value
+  # Use git to check if directory is currently under VCS, return the value 128
+  # if directory is not a repo. Return 1 if directory does not exist.
   local directory="${1}"
-  if [ -d $directory ]; then
+  local curdir
+  local rc
+
+  curdir="${PWD}"
+  if [[ -d "${directory}" ]]; then
     # git -C is not used here to support git versions older than 1.8.4
-    curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
-    return $rc
+    cd "${directory}"
+    git status --short &> /dev/null || rc=$?
   else
-    # non-zero return code if directory does not exist OR is not a valid git repository
-    return 1
+    # non-zero return code if directory does not exist
+    rc=1
   fi
+  cd "${curdir}"
+  return "${rc:-0}"
 }
 
 make_repo() {
   local directory="${1}"
   local remoteRepo="${2}"
-  # Remove the non-repod interface and clone the interface
-  echo -n ":::    Cloning $remoteRepo into $directory..."
-  rm -rf "${directory}"
-  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null
-  echo " done!"
+
+  echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
+  # Clean out the directory if it exists for git to clone into
+  if [[ -d "${directory}" ]]; then
+    rm -rf "${directory}"
+  fi
+  if ! git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null; then
+   return $?
+  else
+    echo " done!"
+  fi
+  return 0
 }
 
 update_repo() {
@@ -175,8 +189,9 @@ getGitFiles() {
   if is_repo "${directory}"; then
     update_repo "${directory}"
   else
-    make_repo "${directory}" "${remoteRepo}"
+    make_repo "${directory}" "${remoteRepo}" || { echo "!!! Unable to clone ${remoteRepo}"; return 1; }
   fi
+  return 0
 }
 
 find_IPv4_information() {
