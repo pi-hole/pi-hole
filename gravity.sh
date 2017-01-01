@@ -29,6 +29,7 @@ EOM
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
+adListUserFile=/etc/pihole/adlists.user
 whitelistScript="pihole -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
@@ -72,32 +73,40 @@ gravity_collapse() {
 	echo "::: Neutrino emissions detected..."
 	echo ":::"
 	#Decide if we're using a custom ad block list, or defaults.
-	if [ -f ${adListFile} ]; then
-		#custom file found, use this instead of default
-		echo -n "::: Custom adList file detected. Reading..."
-		sources=()
+
+	if [ ! -f "${adListFile}" ]; then
+		# Create adlist from defaults
+		cp "${adListDefault}" "${adListFile}"
+	fi
+
+	# Read standard adlist
+	echo -n "::: Reading adlist.list..."
+	sources=()
+	count=0
+	while read -r line; do
+		#Do not read commented out or blank lines
+		if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
+			echo "" > /dev/null
+		else
+			sources+=(${line})
+			let count+=1
+		fi
+	done < ${adListFile}
+	echo " done! (assimilated ${count} lists)"
+
+	if [ -f "${adListUserFile}" ]; then
+		count=0
+		echo -n "::: Reading adlist.user..."
 		while read -r line; do
 			#Do not read commented out or blank lines
 			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
 				echo "" > /dev/null
 			else
 				sources+=(${line})
+				let count+=1
 			fi
-		done < ${adListFile}
-		echo " done!"
-	else
-		#no custom file found, use defaults!
-		echo -n "::: No custom adlist file detected, reading from default file..."
-		sources=()
-		while read -r line; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListDefault}
-		echo " done!"
+		done < ${adListUserFile}
+		echo " done! (assimilated ${count} lists)"
 	fi
 }
 
@@ -387,8 +396,6 @@ if [[ "${forceGrav}" == true ]]; then
 	echo " done!"
 fi
 
-#Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-#cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then

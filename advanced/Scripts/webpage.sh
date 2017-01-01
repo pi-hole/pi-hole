@@ -216,6 +216,29 @@ SetDNSDomainName(){
 
 }
 
+CustomizeAdLists() {
+
+	if [[ "${args[3]}" == "default" ]] ; then
+		list="/etc/pihole/adlists.default"
+	elif [[ "${args[3]}" == "user" ]] ; then
+		list="/etc/pihole/adlists.user"
+	else
+		echo "Not permitted"
+		return 1
+	fi
+
+	if [[ "${args[2]}" == "enable" ]] ; then
+		sed -i "\\@${args[4]}@s/^#http/http/g" "${list}"
+	elif [[ "${args[2]}" == "disable" ]] ; then
+		sed -i "\\@${args[4]}@s/^http/#http/g" "${list}"
+	elif [[ "${args[2]}" == "add" && "${args[3]}" == "user" ]] ; then
+		echo "${args[4]}" >> /etc/pihole/adlists.user
+	else
+		echo "Not permitted"
+		return 1
+  fi
+}
+
 SetPrivacyMode(){
 
 	# Remove setting from file (create backup setupVars.conf.bak)
@@ -258,6 +281,7 @@ case "${args[1]}" in
 	"layout"            ) SetWebUILayout;;
 	"-h" | "--help"     ) helpFunc;;
 	"domainname"        ) SetDNSDomainName;;
+	"adlist"            ) CustomizeAdLists;;
 	"privacymode"       ) SetPrivacyMode;;
 	"resolve"           ) ResolutionSettings;;
 	*                   ) helpFunc;;
