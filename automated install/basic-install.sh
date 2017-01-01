@@ -36,8 +36,8 @@ QUERY_LOGGING=true
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
-rows=$(echo $screen_size | awk '{print $1}')
-columns=$(echo $screen_size | awk '{print $2}')
+rows=$(echo "${screen_size}" | awk '{print $1}')
+columns=$(echo "${screen_size}" | awk '{print $2}')
 
 # Divide by two so the dialogs take up half of the screen, which looks nice.
 r=$(( rows / 2 ))
@@ -50,28 +50,6 @@ c=$(( c < 70 ? 70 : c ))
 skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
-
-######## FIRST CHECK ########
-# Must be root to install
-echo ":::"
-if [[ ${EUID} -eq 0 ]]; then
-  echo "::: You are root."
-else
-  echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
-  echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
-  echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
-  echo ":::"
-  echo "::: Detecting the presence of the sudo utility for continuation of this install..."
-
-  if command -v sudo &> /dev/null; then
-    echo "::: Utility sudo located."
-    exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
-    exit $?
-  else
-    echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
-    exit 1
-  fi
-fi
 
 # Compatibility
 
@@ -127,36 +105,51 @@ fi
 
 ####### FUNCTIONS ##########
 is_repo() {
-  # Use git to check if directory is currently under VCS, return the value
+  # Use git to check if directory is currently under VCS, return the value 128
+  # if directory is not a repo. Return 1 if directory does not exist.
   local directory="${1}"
-  if [ -d $directory ]; then
+  local curdir
+  local rc
+
+  curdir="${PWD}"
+  if [[ -d "${directory}" ]]; then
     # git -C is not used here to support git versions older than 1.8.4
-    curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
-    return $rc
+    cd "${directory}"
+    git status --short &> /dev/null || rc=$?
   else
-    # non-zero return code if directory does not exist OR is not a valid git repository
-    return 1
+    # non-zero return code if directory does not exist
+    rc=1
   fi
+  cd "${curdir}"
+  return "${rc:-0}"
 }
 
 make_repo() {
   local directory="${1}"
   local remoteRepo="${2}"
-  # Remove the non-repod interface and clone the interface
-  echo -n ":::    Cloning $remoteRepo into $directory..."
-  rm -rf "${directory}"
-  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null
+
+  echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
+  # Clean out the directory if it exists for git to clone into
+  if [[ -d "${directory}" ]]; then
+    rm -rf "${directory}"
+  fi
+  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
   echo " done!"
+  return 0
 }
 
 update_repo() {
   local directory="${1}"
+
   # Pull the latest commits
-  echo -n ":::    Updating repo in $1..."
-  cd "${directory}" || exit 1
-  git stash -q &> /dev/null
-  git pull -q &> /dev/null
-  echo " done!"
+  echo -n ":::    Updating repo in ${1}..."
+  if [[ -d "${directory}" ]]; then
+    cd "${directory}"
+    git stash -q &> /dev/null || true # Okay for stash failure
+    git pull -q &> /dev/null || return $?
+    echo " done!"
+  fi
+  return 0
 }
 
 getGitFiles() {
@@ -167,10 +160,11 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    update_repo "${directory}"
+    update_repo "${directory}" || return 1
   else
-    make_repo "${directory}" "${remoteRepo}"
+    make_repo "${directory}" "${remoteRepo}" || return 1
   fi
+  return 0
 }
 
 find_IPv4_information() {
@@ -995,29 +989,18 @@ checkSelinux() {
 }
 
 displayFinalMessage() {
-  if (( ${#1} > 0 )) ; then
   # Final completion message to user
   whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
 IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS}
+IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
 If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
-The currently set password is ${1}" ${r} ${c}
-  else
-  whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS}
-
-If you set a new IP address, you should restart the Pi.
-
-The install log is in /etc/pihole.
-View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin" ${r} ${c}
-  fi
+Your Admin Webpage login password is ${1:-"NOT SET"}" ${r} ${c}
 }
 
 update_dialogs() {
@@ -1056,6 +1039,28 @@ update_dialogs() {
 }
 
 main() {
+
+  ######## FIRST CHECK ########
+  # Must be root to install
+  echo ":::"
+  if [[ ${EUID} -eq 0 ]]; then
+    echo "::: You are root."
+  else
+    echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
+    echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
+    echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
+    echo ":::"
+    echo "::: Detecting the presence of the sudo utility for continuation of this install..."
+
+    if command -v sudo &> /dev/null; then
+      echo "::: Utility sudo located."
+      exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+      exit $?
+    else
+      echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
+      exit 1
+    fi
+  fi
 
   # Check arguments for the undocumented flags
   for var in "$@"; do
@@ -1099,8 +1104,14 @@ main() {
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
     # Get Git files for Core and Admin
-    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl}
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
   fi
 
   if [[ ${useUpdateVars} == false ]]; then
