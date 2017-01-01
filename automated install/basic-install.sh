@@ -966,29 +966,18 @@ checkSelinux() {
 }
 
 displayFinalMessage() {
-  if (( ${#1} > 0 )) ; then
   # Final completion message to user
   whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
 IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS}
+IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
 If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
-The currently set password is ${1}" ${r} ${c}
-  else
-  whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS}
-
-If you set a new IP address, you should restart the Pi.
-
-The install log is in /etc/pihole.
-View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin" ${r} ${c}
-  fi
+Your Admin Webpage login password is ${1:-"NOT SET"}" ${r} ${c}
 }
 
 update_dialogs() {
