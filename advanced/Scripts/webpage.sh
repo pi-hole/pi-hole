@@ -9,7 +9,9 @@
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 
-args=("$@")
+readonly setupVars="/etc/pihole/setupVars.conf"
+readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
+readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 
 helpFunc() {
 	cat << EOM
@@ -27,12 +29,34 @@ EOM
 	exit 0
 }
 
+add_setting() {
+	echo "${1}=${2}" >> "${setupVars}"
+}
+
+delete_setting() {
+	sed -i "/${1}/d" "${setupVars}"
+}
+
+change_setting() {
+	delete_setting "${1}"
+	add_setting "${1}" "${2}"
+}
+
+add_dnsmasq_setting() {
+	if [[ "${2}" != "" ]]; then
+		echo "${1}=${2}" >> "${dnsmasqconfig}"
+	else
+		echo "${1}" >> "${dnsmasqconfig}"
+	fi
+}
+
+delete_dnsmasq_setting() {
+	sed -i "/${1}/d" "${dnsmasqconfig}"
+}
+
 SetTemperatureUnit(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/TEMPERATUREUNIT/d' /etc/pihole/setupVars.conf
-	# Save setting to file
-	echo "TEMPERATUREUNIT=${unit}" >> /etc/pihole/setupVars.conf
+	change_setting "TEMPERATUREUNIT" "${unit}"
 
 }
 
@@ -50,65 +74,69 @@ SetWebPassword(){
 		exit 1
 	fi
 
-	# Remove password from file (create backup setupVars.conf.bak)
-	sed -i.bak '/WEBPASSWORD/d' /etc/pihole/setupVars.conf
 	# Set password only if there is one to be set
 	if (( ${#args[2]} > 0 )) ; then
 		# Compute password hash twice to avoid rainbow table vulnerability
 		hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
 		hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
 		# Save hash to file
-		echo "WEBPASSWORD=${hash}" >> /etc/pihole/setupVars.conf
+		change_setting "WEBPASSWORD" "${hash}"
 		echo "New password set"
 	else
-		echo "WEBPASSWORD=" >> /etc/pihole/setupVars.conf
+		change_setting "WEBPASSWORD" ""
 		echo "Password removed"
+	fi
+
+}
+
+ProcessDNSSettings() {
+	source "${setupVars}"
+
+	delete_dnsmasq_setting "server="
+	add_dnsmasq_setting "server" "${PIHOLE_DNS_1}"
+
+	if [[ "${PIHOLE_DNS_2}" != "" ]]; then
+		add_dnsmasq_setting "server" "${PIHOLE_DNS_2}"
+	fi
+
+	delete_dnsmasq_setting "domain-needed"
+
+	if [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
+		add_dnsmasq_setting "domain-needed"
+	fi
+
+	delete_dnsmasq_setting "bogus-priv"
+
+	if [[ "${DNS_BOGUS_PRIV}" == true ]]; then
+		add_dnsmasq_setting "bogus-priv"
 	fi
 
 }
 
 SetDNSServers(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;' /etc/pihole/setupVars.conf
 	# Save setting to file
-	echo "PIHOLE_DNS_1=${args[2]}" >> /etc/pihole/setupVars.conf
+	change_setting "PIHOLE_DNS_1" "${args[2]}"
+
 	if [[ "${args[3]}" != "none" ]]; then
-		echo "PIHOLE_DNS_2=${args[3]}" >> /etc/pihole/setupVars.conf
+		change_setting "PIHOLE_DNS_2" "${args[3]}"
 	else
-		echo "PIHOLE_DNS_2=" >> /etc/pihole/setupVars.conf
+		change_setting "PIHOLE_DNS_2" ""
 	fi
 
-	# Replace within actual dnsmasq config file
-	sed -i '/server=/d;' /etc/dnsmasq.d/01-pihole.conf
-	echo "server=${args[2]}" >> /etc/dnsmasq.d/01-pihole.conf
-	if [[ "${args[3]}" != "none" ]]; then
-		echo "server=${args[3]}" >> /etc/dnsmasq.d/01-pihole.conf
-	fi
-
-	# Remove domain-needed entry
-	sed -i '/domain-needed/d;' /etc/dnsmasq.d/01-pihole.conf
-
-	# Readd it if required
 	if [[ "${args[4]}" == "domain-needed" ]]; then
-		echo "domain-needed" >> /etc/dnsmasq.d/01-pihole.conf
-		echo "DNS_FQDN_REQUIRED=true" >> /etc/pihole/setupVars.conf
+		change_setting "DNS_FQDN_REQUIRED" "true"
 	else
-		# Leave it deleted if not wanted
-		echo "DNS_FQDN_REQUIRED=false" >> /etc/pihole/setupVars.conf
+		change_setting "DNS_FQDN_REQUIRED" "false"
 	fi
 
-	# Remove bogus-priv entry
-	sed -i '/bogus-priv/d;' /etc/dnsmasq.d/01-pihole.conf
-
-	# Readd it if required
-	if [[ "${args[5]}" == "bogus-priv" ]]; then
-		echo "bogus-priv" >> /etc/dnsmasq.d/01-pihole.conf
-		echo "DNS_BOGUS_PRIV=true" >> /etc/pihole/setupVars.conf
+	if [[ "${args[4]}" == "bogus-priv" || "${args[5]}" == "bogus-priv" ]]; then
+		change_setting "DNS_BOGUS_PRIV" "true"
 	else
-		# Leave it deleted if not wanted
-		echo "DNS_BOGUS_PRIV=false" >> /etc/pihole/setupVars.conf
+		change_setting "DNS_BOGUS_PRIV" "false"
 	fi
+
+	ProcessDnsmasqSettings
 
 	# Restart dnsmasq to load new configuration
 	RestartDNS
@@ -117,18 +145,14 @@ SetDNSServers(){
 
 SetExcludeDomains(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/API_EXCLUDE_DOMAINS/d;' /etc/pihole/setupVars.conf
-	# Save setting to file
-	echo "API_EXCLUDE_DOMAINS=${args[2]}" >> /etc/pihole/setupVars.conf
+	change_setting "API_EXCLUDE_DOMAINS" "${args[2]}"
+
 }
 
 SetExcludeClients(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/API_EXCLUDE_CLIENTS/d;' /etc/pihole/setupVars.conf
-	# Save setting to file
-	echo "API_EXCLUDE_CLIENTS=${args[2]}" >> /etc/pihole/setupVars.conf
+	change_setting "API_EXCLUDE_CLIENTS" "${args[2]}"
+
 }
 
 Reboot(){
@@ -149,123 +173,146 @@ RestartDNS(){
 
 SetQueryLogOptions(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/API_QUERY_LOG_SHOW/d;' /etc/pihole/setupVars.conf
-	# Save setting to file
-	echo "API_QUERY_LOG_SHOW=${args[2]}" >> /etc/pihole/setupVars.conf
+	change_setting "API_QUERY_LOG_SHOW" "${args[2]}"
+
+}
+
+ProcessDHCPSettings() {
+
+	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
+
+	source "${setupVars}"
+	interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
+
+	# Use eth0 as fallback interface
+	if [ -z ${interface} ]; then
+		interface="eth0"
+	fi
+
+	if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
+		PIHOLE_DOMAIN="local"
+		change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
+	fi
+
+	if [[ "${DHCP_LEASETIME}" == "0" ]]; then
+		leasetime="infinite"
+	elif [[ "${DHCP_LEASETIME}" == "" ]]; then
+		leasetime="24h"
+		change_setting "DHCP_LEASETIME" "${leasetime}"
+	else
+		leasetime="${DHCP_LEASETIME}h"
+	fi
+
+	# Write settings to file
+	echo "###############################################################################
+#  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
+#            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
+###############################################################################
+dhcp-authoritative
+dhcp-range=${DHCP_START},${DHCP_END},${leasetime}
+dhcp-option=option:router,${DHCP_ROUTER}
+dhcp-leasefile=/etc/pihole/dhcp.leases
+domain=${PIHOLE_DOMAIN}
+#quiet-dhcp
+#quiet-dhcp6
+#enable-ra
+dhcp-option=option6:dns-server,[::]
+dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
+ra-param=*,0,0
+" > "${dhcpconfig}"
+
+	else
+		rm "${dhcpconfig}"
+	fi
 }
 
 EnableDHCP(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/DHCP_/d;' /etc/pihole/setupVars.conf
-	echo "DHCP_ACTIVE=true" >> /etc/pihole/setupVars.conf
-	echo "DHCP_START=${args[2]}" >> /etc/pihole/setupVars.conf
-	echo "DHCP_END=${args[3]}" >> /etc/pihole/setupVars.conf
-	echo "DHCP_ROUTER=${args[4]}" >> /etc/pihole/setupVars.conf
+	change_setting "DHCP_ACTIVE" "true"
+	change_setting "DHCP_START" "${args[2]}"
+	change_setting "DHCP_END" "${args[3]}"
+	change_setting "DHCP_ROUTER" "${args[4]}"
+	change_setting "DHCP_LEASETIME" "${args[5]}"
+	change_setting "PIHOLE_DOMAIN" "${args[6]}"
 
-	# Remove setting from file
-	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
-	# Save setting to file
-	echo "dhcp-range=${args[2]},${args[3]},infinite" >> /etc/dnsmasq.d/01-pihole.conf
-	echo "dhcp-option=option:router,${args[4]}" >> /etc/dnsmasq.d/01-pihole.conf
-	# Changes the behaviour from strict RFC compliance so that DHCP requests on unknown leases from unknown hosts are not ignored. This allows new hosts to get a lease without a tedious timeout under all circumstances. It also allows dnsmasq to rebuild its lease database without each client needing to reacquire a lease, if the database is lost.
-	echo "dhcp-authoritative" >> /etc/dnsmasq.d/01-pihole.conf
-	# Use the specified file to store DHCP lease information
-	echo "dhcp-leasefile=/etc/pihole/dhcp.leases" >> /etc/dnsmasq.d/01-pihole.conf
-	# Suppress logging of the routine operation of these protocols. Errors and problems will still be logged, though.
-	echo "quiet-dhcp" >> /etc/dnsmasq.d/01-pihole.conf
-	echo "quiet-dhcp6" >> /etc/dnsmasq.d/01-pihole.conf
+	# Remove possible old setting from file
+	delete_dnsmasq_setting "dhcp-"
+	delete_dnsmasq_setting "quiet-dhcp"
+
+	ProcessDHCPSettings
 
 	RestartDNS
 }
 
 DisableDHCP(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/DHCP_ACTIVE/d;' /etc/pihole/setupVars.conf
-	echo "DHCP_ACTIVE=false" >> /etc/pihole/setupVars.conf
+	change_setting "DHCP_ACTIVE" "false"
 
-	# Remove setting from file
-	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
+	# Remove possible old setting from file
+	delete_dnsmasq_setting "dhcp-"
+	delete_dnsmasq_setting "quiet-dhcp"
+
+	ProcessDHCPSettings
 
 	RestartDNS
 }
 
 SetWebUILayout(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/WEBUIBOXEDLAYOUT/d;' /etc/pihole/setupVars.conf
-	echo "WEBUIBOXEDLAYOUT=${args[2]}" >> /etc/pihole/setupVars.conf
-
-}
-
-SetDNSDomainName(){
-
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/PIHOLE_DOMAIN/d;' /etc/pihole/setupVars.conf
-	# Save setting to file
-	echo "PIHOLE_DOMAIN=${args[2]}" >> /etc/pihole/setupVars.conf
-
-	# Replace within actual dnsmasq config file
-	sed -i '/domain=/d;' /etc/dnsmasq.d/01-pihole.conf
-	echo "domain=${args[2]}" >> /etc/dnsmasq.d/01-pihole.conf
-
-	# Restart dnsmasq to load new configuration
-	RestartDNS
+	change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 
 }
 
 SetPrivacyMode(){
 
-	# Remove setting from file (create backup setupVars.conf.bak)
-	sed -i.bak '/API_PRIVACY_MODE/d' /etc/pihole/setupVars.conf
-	# Save setting to file
 	if [[ "${args[2]}" == "true" ]] ; then
-		echo "API_PRIVACY_MODE=true" >> /etc/pihole/setupVars.conf
+		change_setting "API_PRIVACY_MODE" "true"
 	else
-		echo "API_PRIVACY_MODE=false" >> /etc/pihole/setupVars.conf
+		change_setting "API_PRIVACY_MODE" "false"
 	fi
+
 }
 
 ResolutionSettings() {
 
-	typ=${args[2]}
-	state=${args[3]}
+	typ="${args[2]}"
+	state="${args[3]}"
 
 	if [[ "${typ}" == "forward" ]]; then
-		sed -i.bak '/API_GET_UPSTREAM_DNS_HOSTNAME/d;' /etc/pihole/setupVars.conf
-		echo "API_GET_UPSTREAM_DNS_HOSTNAME=${state}" >> /etc/pihole/setupVars.conf
+		change_setting "API_GET_UPSTREAM_DNS_HOSTNAME" "${state}"
 	elif [[ "${typ}" == "clients" ]]; then
-		sed -i.bak '/API_GET_CLIENT_HOSTNAME/d;' /etc/pihole/setupVars.conf
-		echo "API_GET_CLIENT_HOSTNAME=${state}" >> /etc/pihole/setupVars.conf
+		change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
 	fi
 }
 
-case "${args[1]}" in
-	"-p" | "password"   ) SetWebPassword;;
-	"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
-	"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
-	"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
-	"setdns"            ) SetDNSServers;;
-	"setexcludedomains" ) SetExcludeDomains;;
-	"setexcludeclients" ) SetExcludeClients;;
-	"reboot"            ) Reboot;;
-	"restartdns"        ) RestartDNS;;
-	"setquerylog"       ) SetQueryLogOptions;;
-	"enabledhcp"        ) EnableDHCP;;
-	"disabledhcp"       ) DisableDHCP;;
-	"layout"            ) SetWebUILayout;;
-	"-h" | "--help"     ) helpFunc;;
-	"domainname"        ) SetDNSDomainName;;
-	"privacymode"       ) SetPrivacyMode;;
-	"resolve"           ) ResolutionSettings;;
-	*                   ) helpFunc;;
-esac
+main() {
 
-shift
+	args=("$@")
 
-if [[ $# = 0 ]]; then
-	helpFunc
-fi
+	case "${args[1]}" in
+		"-p" | "password"   ) SetWebPassword;;
+		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
+		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
+		"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
+		"setdns"            ) SetDNSServers;;
+		"setexcludedomains" ) SetExcludeDomains;;
+		"setexcludeclients" ) SetExcludeClients;;
+		"reboot"            ) Reboot;;
+		"restartdns"        ) RestartDNS;;
+		"setquerylog"       ) SetQueryLogOptions;;
+		"enabledhcp"        ) EnableDHCP;;
+		"disabledhcp"       ) DisableDHCP;;
+		"layout"            ) SetWebUILayout;;
+		"-h" | "--help"     ) helpFunc;;
+		"privacymode"       ) SetPrivacyMode;;
+		"resolve"           ) ResolutionSettings;;
+		*                   ) helpFunc;;
+	esac
 
+	shift
+
+	if [[ $# = 0 ]]; then
+		helpFunc
+	fi
+
+}

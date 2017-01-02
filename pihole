@@ -23,7 +23,8 @@ if [[ ! $EUID -eq 0 ]];then
 fi
 
 webpageFunc() {
-  /opt/pihole/webpage.sh "$@"
+  source /opt/pihole/webpage.sh
+  main "$@"
   exit 0
 }
 
