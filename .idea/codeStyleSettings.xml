@@ -15,6 +15,9 @@
             <option name="USE_RELATIVE_INDENTS" value="false" />
           </value>
         </option>
+        <MarkdownNavigatorCodeStyleSettings>
+          <option name="RIGHT_MARGIN" value="72" />
+        </MarkdownNavigatorCodeStyleSettings>
       </value>
     </option>
     <option name="USE_PER_PROJECT_SETTINGS" value="true" />

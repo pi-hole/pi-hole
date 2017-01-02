@@ -71,13 +71,11 @@ def test_configureFirewall_firewalld_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = '::: Configuring firewalld for httpd and dnsmasq.'
+    expected_stdout = '::: Configuring FirewallD for httpd and dnsmasq.'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
     assert 'firewall-cmd --state' in firewall_calls
-    assert 'firewall-cmd --permanent --add-port=80/tcp' in firewall_calls
-    assert 'firewall-cmd --permanent --add-port=53/tcp' in firewall_calls
-    assert 'firewall-cmd --permanent --add-port=53/udp' in firewall_calls
+    assert 'firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp' in firewall_calls
     assert 'firewall-cmd --reload' in firewall_calls
 
 

@@ -23,7 +23,8 @@ if [[ ! $EUID -eq 0 ]];then
 fi
 
 webpageFunc() {
-  /opt/pihole/webpage.sh "$@"
+  source /opt/pihole/webpage.sh
+  main "$@"
   exit 0
 }
 
@@ -185,6 +186,19 @@ piholeLogging() {
 }
 
 piholeStatus() {
+  if [[ $(netstat -plnt | grep -c ':53 ') > 0 ]]; then
+    if [[ "${1}" != "web" ]] ; then
+      echo "::: DNS service is running"
+    fi
+  else
+    if [[ "${1}" == "web" ]] ; then
+      echo "-1";
+    else
+      echo "::: DNS service is NOT running"
+    fi
+    return
+  fi
+
   if [[ $(grep -i "^#addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf) ]] ; then
     #list is commented out
     if [[ "${1}" == "web" ]] ; then
