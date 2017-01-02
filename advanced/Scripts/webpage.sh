@@ -189,7 +189,7 @@ ProcessDHCPSettings() {
 		interface="eth0"
 	fi
 
-	if [[ "${PIHOLE_DOMAIN}" == "0" ]]; then
+	if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
 		PIHOLE_DOMAIN="local"
 		change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
 	fi
