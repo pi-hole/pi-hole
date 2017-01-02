@@ -189,10 +189,15 @@ ProcessDHCPSettings() {
 		interface="eth0"
 	fi
 
+	if [[ "${PIHOLE_DOMAIN}" == "0" ]]; then
+		PIHOLE_DOMAIN="local"
+		change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
+	fi
+
 	if [[ "${DHCP_LEASETIME}" == "0" ]]; then
 		leasetime="infinite"
 	elif [[ "${DHCP_LEASETIME}" == "" ]]; then
-		leasetime="24"
+		leasetime="24h"
 		change_setting "DHCP_LEASETIME" "${leasetime}"
 	else
 		leasetime="${DHCP_LEASETIME}h"
