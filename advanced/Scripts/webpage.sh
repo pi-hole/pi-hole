@@ -164,18 +164,35 @@ EnableDHCP(){
 	echo "DHCP_END=${args[3]}" >> /etc/pihole/setupVars.conf
 	echo "DHCP_ROUTER=${args[4]}" >> /etc/pihole/setupVars.conf
 
-	# Remove setting from file
+	# Remove possible old setting from file
 	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
-	# Save setting to file
-	echo "dhcp-range=${args[2]},${args[3]},infinite" >> /etc/dnsmasq.d/01-pihole.conf
-	echo "dhcp-option=option:router,${args[4]}" >> /etc/dnsmasq.d/01-pihole.conf
-	# Changes the behaviour from strict RFC compliance so that DHCP requests on unknown leases from unknown hosts are not ignored. This allows new hosts to get a lease without a tedious timeout under all circumstances. It also allows dnsmasq to rebuild its lease database without each client needing to reacquire a lease, if the database is lost.
-	echo "dhcp-authoritative" >> /etc/dnsmasq.d/01-pihole.conf
-	# Use the specified file to store DHCP lease information
-	echo "dhcp-leasefile=/etc/pihole/dhcp.leases" >> /etc/dnsmasq.d/01-pihole.conf
-	# Suppress logging of the routine operation of these protocols. Errors and problems will still be logged, though.
-	echo "quiet-dhcp" >> /etc/dnsmasq.d/01-pihole.conf
-	echo "quiet-dhcp6" >> /etc/dnsmasq.d/01-pihole.conf
+
+	# Get Pi-hole interface from setupVars.conf
+	interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
+	# Use eth0 as fallback interface
+	if [ -z ${interface} ]; then
+		interface="eth0"
+	fi
+
+	# Write settings to file
+	echo "###############################################################################
+#  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
+#            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
+###############################################################################
+
+dhcp-authoritative
+
+dhcp-range=${args[2]},${args[3]},infinite
+dhcp-option=option:router,${args[4]}
+
+dhcp-leasefile=/etc/pihole/dhcp.leases
+quiet-dhcp
+quiet-dhcp6
+
+#enable-ra
+dhcp-option=option6:dns-server,[::]
+dhcp-range=::100,::1ff,constructor:${interface}
+" > /etc/dnsmasq.d/02-pihole-dhcp.conf
 
 	RestartDNS
 }
@@ -186,8 +203,11 @@ DisableDHCP(){
 	sed -i.bak '/DHCP_ACTIVE/d;' /etc/pihole/setupVars.conf
 	echo "DHCP_ACTIVE=false" >> /etc/pihole/setupVars.conf
 
-	# Remove setting from file
+	# Remove possibly set setting from file
 	sed -i '/dhcp-/d;/quiet-dhcp/d;' /etc/dnsmasq.d/01-pihole.conf
+
+	# Remove settings file
+	rm /etc/dnsmasq.d/02-pihole-dhcp.conf
 
 	RestartDNS
 }
