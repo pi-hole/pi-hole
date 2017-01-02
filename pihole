@@ -11,6 +11,7 @@
 # (at your option) any later version.
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
+readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
   if [ -x "$(command -v sudo)" ];then
@@ -83,19 +84,52 @@ scanList(){
   fi
 }
 
+processWildcards() {
+  IFS="." read -r -a array <<< "${1}"
+  for (( i=${#array[@]}-1; i>=0; i-- )); do
+    ar=""
+    for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
+      if [[ $j == $((${#array[@]}-1)) ]]; then
+        ar="${array[$j]}"
+      else
+        ar="${array[$j]}.${ar}"
+      fi
+    done
+    echo "${ar}"
+  done
+}
+
 queryFunc() {
   domain="${2}"
   method="${3}"
   lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
   for list in ${lists[@]}; do
-    result=$(scanList ${domain} ${list} ${method})
+    if [ -e "${list}" ]; then
+      result=$(scanList ${domain} ${list} ${method})
+      # Remove empty lines before couting number of results
+      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+      echo "::: ${list} (${count} results)"
+      if [[ ${count} > 0 ]]; then
+        echo "${result}"
+      fi
+      echo ""
+    else
+      echo "::: ${list} does not exist"
+      echo ""
+    fi
+  done
+
+  # Scan for possible wildcard matches
+  local wildcards=($(processWildcards "${domain}"))
+  for domain in ${wildcards[@]}; do
+    result=$(scanList "\/${domain}\/" ${wildcardlist})
     # Remove empty lines before couting number of results
     count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-    echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
+      echo "::: Wildcard blocking ${domain} (${count} results)"
       echo "${result}"
+      echo ""
     fi
-    echo ""
   done
   exit 0
 }
