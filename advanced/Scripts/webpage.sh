@@ -179,6 +179,8 @@ SetQueryLogOptions(){
 
 ProcessDHCPSettings() {
 
+	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
+
 	source "${setupVars}"
 	interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
 
@@ -211,6 +213,9 @@ dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
 ra-param=*,0,0
 " > "${dhcpconfig}"
 
+	else
+		rm "${dhcpconfig}"
+	fi
 }
 
 EnableDHCP(){
@@ -239,7 +244,7 @@ DisableDHCP(){
 	delete_dnsmasq_setting "dhcp-"
 	delete_dnsmasq_setting "quiet-dhcp"
 
-	rm "${dhcpconfig}"
+	ProcessDHCPSettings
 
 	RestartDNS
 }
