@@ -179,9 +179,10 @@ SetQueryLogOptions(){
 
 ProcessDHCPSettings() {
 
+	source "${setupVars}"
+
 	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
 
-	source "${setupVars}"
 	interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
 
 	# Use eth0 as fallback interface
