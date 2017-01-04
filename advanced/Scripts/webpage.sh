@@ -179,9 +179,10 @@ SetQueryLogOptions(){
 
 ProcessDHCPSettings() {
 
+	source "${setupVars}"
+
 	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
 
-	source "${setupVars}"
 	interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
 
 	# Use eth0 as fallback interface
@@ -214,12 +215,16 @@ dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 domain=${PIHOLE_DOMAIN}
 #quiet-dhcp
-#quiet-dhcp6
+" > "${dhcpconfig}"
+
+	if [[ "${DHCP_IPv6}" == "true" ]]; then
+echo "#quiet-dhcp6
 #enable-ra
 dhcp-option=option6:dns-server,[::]
 dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
 ra-param=*,0,0
-" > "${dhcpconfig}"
+" >> "${dhcpconfig}"
+	fi
 
 	else
 		rm "${dhcpconfig}"
@@ -234,6 +239,7 @@ EnableDHCP(){
 	change_setting "DHCP_ROUTER" "${args[4]}"
 	change_setting "DHCP_LEASETIME" "${args[5]}"
 	change_setting "PIHOLE_DOMAIN" "${args[6]}"
+	change_setting "DHCP_IPv6" "${args[7]}"
 
 	# Remove possible old setting from file
 	delete_dnsmasq_setting "dhcp-"
