@@ -101,7 +101,7 @@ The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard)
 
 ### Whitelist and blacklist
 
-Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details 
+Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
 <p align="center">
 <a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/controlpanel.png"></a>
 </p>
@@ -128,7 +128,7 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 ## Pi-hole Projects
 
 -   [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
--   [Get LED alerts for each blocked ad](http://www.stinebaugh.info/get-led-alerts-for-each-blocked-ad-using-pi-hole/)
+-   [Get LED alerts for each blocked ad](http://thetimmy.silvernight.org/pages/endisbutton/)
 -   [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
 -   [Docker Pi-hole container (x86 and ARM)](https://hub.docker.com/r/diginc/pi-hole/)
 -   [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
