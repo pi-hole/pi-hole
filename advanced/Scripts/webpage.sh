@@ -136,7 +136,7 @@ SetDNSServers(){
 		change_setting "DNS_BOGUS_PRIV" "false"
 	fi
 
-	ProcessDnsmasqSettings
+	ProcessDNSSettings
 
 	# Restart dnsmasq to load new configuration
 	RestartDNS
