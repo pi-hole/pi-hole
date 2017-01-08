@@ -235,7 +235,7 @@ chooseInterface() {
   # Loop sentinel variable
   local firstLoop=1
 
-  if [[ $(echo ${availableInterfaces} | wc -l) -eq 1 ]]; then
+  if [[ $(echo "${availableInterfaces}" | wc -l) -eq 1 ]]; then
       PIHOLE_INTERFACE=${availableInterfaces}
       return
   fi
