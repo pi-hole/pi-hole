@@ -122,6 +122,13 @@ version_check() {
 	&& log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
 	local php_ver="$(php -v |& head -n1)" \
 	&& log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
+
+	local pi_hole_branch="$(cd /etc/.pihole/ && git rev-parse --abbrev-ref HEAD)" && log_echo -r "Pi-hole branch: ${pi_hole_branch}" || log_echo "Unable to obtain Pi-hole branch"
+	local pi_hole_rev="$(cd /etc/.pihole/ && git describe --long --dirty --tags)" && log_echo -r "Pi-hole rev:    ${pi_hole_rev}" || log_echo "Unable to obtain Pi-hole revision"
+
+	local admin_branch="$(cd /var/www/html/admin && git rev-parse --abbrev-ref HEAD)" && log_echo -r "AminLTE branch: ${admin_branch}" || log_echo "Unable to obtain AminLTE branch"
+	local admin_rev="$(cd /var/www/html/admin && git describe --long --dirty --tags)" && log_echo -r "AminLTE rev:    ${admin_rev}" || log_echo "Unable to obtain AminLTE revision"
+
 	return "${error_found}"
 }
 
