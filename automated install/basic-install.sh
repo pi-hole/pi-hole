@@ -236,7 +236,7 @@ chooseInterface() {
   local firstLoop=1
 
   if [[ $(echo "${availableInterfaces}" | wc -l) -eq 1 ]]; then
-      PIHOLE_INTERFACE=${availableInterfaces}
+      PIHOLE_INTERFACE="${availableInterfaces}"
       return
   fi
 
