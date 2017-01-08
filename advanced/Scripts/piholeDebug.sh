@@ -126,8 +126,8 @@ version_check() {
 	local pi_hole_branch="$(cd /etc/.pihole/ && git rev-parse --abbrev-ref HEAD)" && log_echo -r "Pi-hole branch: ${pi_hole_branch}" || log_echo "Unable to obtain Pi-hole branch"
 	local pi_hole_rev="$(cd /etc/.pihole/ && git describe --long --dirty --tags)" && log_echo -r "Pi-hole rev:    ${pi_hole_rev}" || log_echo "Unable to obtain Pi-hole revision"
 
-	local admin_branch="$(cd /var/www/html/admin && git rev-parse --abbrev-ref HEAD)" && log_echo -r "AminLTE branch: ${admin_branch}" || log_echo "Unable to obtain AminLTE branch"
-	local admin_rev="$(cd /var/www/html/admin && git describe --long --dirty --tags)" && log_echo -r "AminLTE rev:    ${admin_rev}" || log_echo "Unable to obtain AminLTE revision"
+	local admin_branch="$(cd /var/www/html/admin && git rev-parse --abbrev-ref HEAD)" && log_echo -r "AdminLTE branch: ${admin_branch}" || log_echo "Unable to obtain AdminLTE branch"
+	local admin_rev="$(cd /var/www/html/admin && git describe --long --dirty --tags)" && log_echo -r "AdminLTE rev:    ${admin_rev}" || log_echo "Unable to obtain AdminLTE revision"
 
 	return "${error_found}"
 }
