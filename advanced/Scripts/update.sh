@@ -91,12 +91,37 @@ GitCheckUpdateAvail() {
 
   # Fetch latest changes in this repo
   git fetch --quiet origin
-  status="$(git status -sb)"
+
+  # @ alone is a shortcut for HEAD. Older versions of git
+  # need @{0}
+  LOCAL="$(git rev-parse @{0})"
+
+  # The suffix @{upstream} to a branchname
+  # (short form <branchname>@{u}) refers
+  # to the branch that the branch specified
+  # by branchname is set to build on top of#
+  # (configured with branch.<name>.remote and
+  # branch.<name>.merge). A missing branchname
+  # defaults to the current one.
+  REMOTE="$(git rev-parse @{upstream})"
 
   # Change back to original directory
   cd "${curdir}"
 
-  if [[ $status == *"behind"* ]]; then
+  if [[ ${#LOCAL} == 0 ]]; then
+    echo "::: Error: Local revision could not be optained, ask Pi-hole support."
+    echo "::: Additional debugging output:"
+    git status
+    exit
+  fi
+  if [[ ${#REMOTE} == 0 ]]; then
+    echo "::: Error: Remote revision could not be optained, ask Pi-hole support."
+    echo "::: Additional debugging output:"
+    git status
+    exit
+  fi
+
+  if [[ "${LOCAL}" != "${REMOTE}" ]]; then
     # Local branch is behind remote branch -> Update
     return 0
   else
