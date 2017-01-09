@@ -168,10 +168,13 @@ getGitFiles() {
 }
 
 find_IPv4_information() {
+  local route
   # Find IP used to route to outside world
-  IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-  IPV4_ADDRESS=$(ip route get 8.8.8.8| awk '{print $7}')
-  IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
+  route=$(ip route get 8.8.8.8)
+  IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
+  IPV4_ADDRESS=$(awk '{print $7}' <<< "${route}")
+  IPv4gw=$(awk '{print $3}' <<< "${route}")
+
 }
 
 get_available_interfaces() {
