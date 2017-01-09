@@ -308,9 +308,9 @@ use4andor6() {
 
 getStaticIPv4Settings() {
   # Ask if the user wants to use DHCP settings as their static IP
-  if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
+  if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
           IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" ${r} ${c}); then
+          Gateway:       ${IPv4gw}" ${r} ${c}; then
     # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
     whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
@@ -335,9 +335,9 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
       echo "::: Your static IPv4 gateway:    ${IPv4gw}"
 
       # Give the user a chance to review their settings before moving on
-      if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
+      if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
         IP address:    ${IPV4_ADDRESS}
-        Gateway:       ${IPv4gw}" ${r} ${c}); then
+        Gateway:       ${IPv4gw}" ${r} ${c}; then
         # After that's done, the loop ends and we move on
         ipSettingsCorrect=True
         else
@@ -972,15 +972,11 @@ checkSelinux() {
     enforceMode=$(getenforce)
     echo "${enforceMode}"
     if [[ "${enforceMode}" == "Enforcing" ]]; then
-      if (whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c}); then
-          echo ":::"
-          echo "::: Continuing installation with SELinux Enforcing."
-          echo "::: Please refer to official SELinux documentation to create a custom policy."
-      else
-          echo ":::"
-          echo "::: Not continuing install after SELinux Enforcing detected."
-          exit 1
-      fi
+      whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c} || \
+      { echo ":::"; echo "::: Not continuing install after SELinux Enforcing detected."; exit 1; }
+      echo ":::"
+      echo "::: Continuing installation with SELinux Enforcing."
+      echo "::: Please refer to official SELinux documentation to create a custom policy."
     fi
   fi
 }
