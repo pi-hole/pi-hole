@@ -609,15 +609,15 @@ installScripts() {
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
-    install -o "${USER}" -Dm755 -d /opt/pihole
-    install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
+    install -o "${USER}" -Dm755 -d "${install_dir}"
+    install -o "${USER}" -Dm755 -t "${install_dir}" gravity.sh
+    install -o "${USER}" -Dm755 -t "${install_dir}" ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t "${install_dir}" ./automated\ install/uninstall.sh
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
     echo " done."
   else
-    echo " *** ERROR: Local repo ${core_repo} not found, exiting."
+    echo " *** ERROR: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting."
     exit 1
   fi
 }
