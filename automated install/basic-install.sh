@@ -1013,23 +1013,19 @@ update_dialogs() {
 
   UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease choose from the following options: \n($strAdd)" ${r} ${c} 2 \
   "${opt1a}"  "${opt1b}" \
-  "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3)
+  "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3) || \
+  { echo "::: Cancel selected. Exiting"; exit 1; }
 
-  if [[ $? = 0 ]];then
-    case ${UpdateCmd} in
-      ${opt1a})
-        echo "::: ${opt1a} option selected."
-        useUpdateVars=true
-        ;;
-      ${opt2a})
-        echo "::: ${opt2a} option selected"
-        useUpdateVars=false
-        ;;
+  case ${UpdateCmd} in
+    ${opt1a})
+      echo "::: ${opt1a} option selected."
+      useUpdateVars=true
+      ;;
+    ${opt2a})
+      echo "::: ${opt2a} option selected"
+      useUpdateVars=false
+      ;;
     esac
-  else
-    echo "::: Cancel selected. Exiting..."
-    exit 1
-  fi
 }
 
 main() {
