@@ -252,16 +252,13 @@ chooseInterface() {
   # Find out how many interfaces are available to choose from
   interfaceCount=$(echo "${availableInterfaces}" | wc -l)
   chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
-  chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-  if [[ $? = 0 ]]; then
-    for desiredInterface in ${chooseInterfaceOptions}; do
-      PIHOLE_INTERFACE=${desiredInterface}
-      echo "::: Using interface: $PIHOLE_INTERFACE"
-    done
-  else
-    echo "::: Cancel selected, exiting...."
-    exit 1
-  fi
+  chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
+  { echo "::: Cancel selected. Exiting"; exit 1; }
+  for desiredInterface in ${chooseInterfaceOptions}; do
+    PIHOLE_INTERFACE=${desiredInterface}
+    echo "::: Using interface: $PIHOLE_INTERFACE"
+  done
+
 }
 
 useIPv6dialog() {
@@ -281,32 +278,27 @@ use4andor6() {
   cmd=(whiptail --separate-output --checklist "Select Protocols (press space to select)" ${r} ${c} 2)
   options=(IPv4 "Block ads over IPv4" on
   IPv6 "Block ads over IPv6" on)
-  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-  if [[ $? = 0 ]];then
-    for choice in ${choices}
-    do
-      case ${choice} in
-      IPv4  )   useIPv4=true;;
-      IPv6  )   useIPv6=true;;
-      esac
-    done
-    if [[ ${useIPv4} ]]; then
-      find_IPv4_information
-      getStaticIPv4Settings
-      setStaticIPv4
-    fi
-    if [[ ${useIPv6} ]]; then
-      useIPv6dialog
-    fi
-      echo "::: IPv4 address: ${IPV4_ADDRESS}"
-      echo "::: IPv6 address: ${IPV6_ADDRESS}"
-    if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
-      echo "::: Cannot continue, neither IPv4 or IPv6 selected"
-      echo "::: Exiting"
-      exit 1
-    fi
-  else
-    echo "::: Cancel selected. Exiting..."
+  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo "::: Cancel selected. Exiting"; exit 1; }
+  for choice in ${choices}
+  do
+    case ${choice} in
+    IPv4  )   useIPv4=true;;
+    IPv6  )   useIPv6=true;;
+    esac
+  done
+  if [[ ${useIPv4} ]]; then
+    find_IPv4_information
+    getStaticIPv4Settings
+    setStaticIPv4
+  fi
+  if [[ ${useIPv6} ]]; then
+    useIPv6dialog
+  fi
+    echo "::: IPv4 address: ${IPV4_ADDRESS}"
+    echo "::: IPv6 address: ${IPV6_ADDRESS}"
+  if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
+    echo "::: Cannot continue, neither IPv4 or IPv6 selected"
+    echo "::: Exiting"
     exit 1
   fi
 }
@@ -326,36 +318,29 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
     # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
     # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
     until [[ ${ipSettingsCorrect} = True ]]; do
+
       # Ask for the IPv4 address
-      IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3)
-      if [[ $? = 0 ]]; then
-      echo "::: Your static IPv4 address:    ${IPV4_ADDRESS}"
-      # Ask for the gateway
-      IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPv4gw}" 3>&1 1>&2 2>&3)
-      if [[ $? = 0 ]]; then
-        echo "::: Your static IPv4 gateway:    ${IPv4gw}"
-        # Give the user a chance to review their settings before moving on
-        if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-          IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" ${r} ${c}); then
-          # After that's done, the loop ends and we move on
-          ipSettingsCorrect=True
-        else
-          # If the settings are wrong, the loop continues
-          ipSettingsCorrect=False
-        fi
-      else
-        # Cancelling gateway settings window
-        ipSettingsCorrect=False
-        echo "::: Cancel selected. Exiting..."
-        exit 1
-      fi
-    else
+      IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
       # Cancelling IPv4 settings window
-      ipSettingsCorrect=False
-      echo "::: Cancel selected. Exiting..."
-      exit 1
-    fi
+      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
+      echo "::: Your static IPv4 address:    ${IPV4_ADDRESS}"
+
+      # Ask for the gateway
+      IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPv4gw}" 3>&1 1>&2 2>&3) || \
+      # Cancelling gateway settings window
+      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
+      echo "::: Your static IPv4 gateway:    ${IPv4gw}"
+
+      # Give the user a chance to review their settings before moving on
+      if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
+        IP address:    ${IPV4_ADDRESS}
+        Gateway:       ${IPv4gw}" ${r} ${c}); then
+        # After that's done, the loop ends and we move on
+        ipSettingsCorrect=True
+        else
+        # If the settings are wrong, the loop continues
+        ipSettingsCorrect=False
+      fi
     done
     # End the if statement for DHCP vs. static
   fi
@@ -446,8 +431,8 @@ setDNS() {
       Norton "" off
       Comodo "" off
       Custom "" off)
-  DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
-  if [[ $? = 0 ]];then
+  DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
+  { echo "::: Cancel selected. Exiting"; exit 1; }
     case ${DNSchoices} in
       Google)
         echo "::: Using Google DNS servers."
@@ -489,20 +474,15 @@ setDNS() {
           prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
         fi
 
-        piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3)
-
-        if [[ $? = 0 ]]; then
-          PIHOLE_DNS_1=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
-          PIHOLE_DNS_2=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
-          if ! valid_ip "${PIHOLE_DNS_1}" || [ ! "${PIHOLE_DNS_1}" ]; then
-            PIHOLE_DNS_1=${strInvalid}
-          fi
-          if ! valid_ip "${PIHOLE_DNS_2}" && [ "${PIHOLE_DNS_2}" ]; then
-            PIHOLE_DNS_2=${strInvalid}
-          fi
-        else
-          echo "::: Cancel selected, exiting...."
-          exit 1
+        piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
+        { echo "::: Cancel selected. Exiting"; exit 1; }
+        PIHOLE_DNS_1=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
+        PIHOLE_DNS_2=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
+        if ! valid_ip "${PIHOLE_DNS_1}" || [ ! "${PIHOLE_DNS_1}" ]; then
+          PIHOLE_DNS_1=${strInvalid}
+        fi
+        if ! valid_ip "${PIHOLE_DNS_2}" && [ "${PIHOLE_DNS_2}" ]; then
+          PIHOLE_DNS_2=${strInvalid}
         fi
         if [[ ${PIHOLE_DNS_1} == "${strInvalid}" ]] || [[ ${PIHOLE_DNS_2} == "${strInvalid}" ]]; then
           whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $PIHOLE_DNS_1\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
@@ -524,10 +504,6 @@ setDNS() {
         done
         ;;
     esac
-  else
-    echo "::: Cancel selected. Exiting..."
-    exit 1
-  fi
 }
 
 setLogging() {
