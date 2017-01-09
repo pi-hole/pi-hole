@@ -36,8 +36,8 @@ QUERY_LOGGING=true
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
-rows=$(echo $screen_size | awk '{print $1}')
-columns=$(echo $screen_size | awk '{print $2}')
+rows=$(echo "${screen_size}" | awk '{print $1}')
+columns=$(echo "${screen_size}" | awk '{print $2}')
 
 # Divide by two so the dialogs take up half of the screen, which looks nice.
 r=$(( rows / 2 ))
@@ -50,28 +50,6 @@ c=$(( c < 70 ? 70 : c ))
 skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
-
-######## FIRST CHECK ########
-# Must be root to install
-echo ":::"
-if [[ ${EUID} -eq 0 ]]; then
-  echo "::: You are root."
-else
-  echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
-  echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
-  echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
-  echo ":::"
-  echo "::: Detecting the presence of the sudo utility for continuation of this install..."
-
-  if command -v sudo &> /dev/null; then
-    echo "::: Utility sudo located."
-    exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
-    exit $?
-  else
-    echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
-    exit 1
-  fi
-fi
 
 # Compatibility
 
@@ -97,9 +75,6 @@ if command -v apt-get &> /dev/null; then
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
 
-  package_check_install() {
-    dpkg-query -W -f='${Status}' "${1}" 2>/dev/null | grep -c "ok installed" || ${PKG_INSTALL} "${1}"
-  }
 elif command -v rpm &> /dev/null; then
   # Fedora Family
   if command -v dnf &> /dev/null; then
@@ -107,25 +82,22 @@ elif command -v rpm &> /dev/null; then
   else
     PKG_MANAGER="yum"
   fi
-  # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
+
+# Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL="${PKG_MANAGER} install -y"
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq epel-release findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
 
-  if grep -q 'Fedora' /etc/redhat-release; then
-    remove_deps=(epel-release);
-    PIHOLE_DEPS=( ${PIHOLE_DEPS[@]/$remove_deps} );
+  if ! grep -q 'Fedora' /etc/redhat-release; then
+    INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
   fi
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
 
-    package_check_install() {
-      rpm -qa | grep ^"${1}"- > /dev/null || ${PKG_INSTALL} "${1}"
-    }
 else
   echo "OS distribution not supported"
   exit
@@ -133,36 +105,51 @@ fi
 
 ####### FUNCTIONS ##########
 is_repo() {
-  # Use git to check if directory is currently under VCS, return the value
+  # Use git to check if directory is currently under VCS, return the value 128
+  # if directory is not a repo. Return 1 if directory does not exist.
   local directory="${1}"
-  if [ -d $directory ]; then
+  local curdir
+  local rc
+
+  curdir="${PWD}"
+  if [[ -d "${directory}" ]]; then
     # git -C is not used here to support git versions older than 1.8.4
-    curdir=$PWD; cd $directory; git status --short &> /dev/null; rc=$?; cd $curdir
-    return $rc
+    cd "${directory}"
+    git status --short &> /dev/null || rc=$?
   else
-    # non-zero return code if directory does not exist OR is not a valid git repository
-    return 1
+    # non-zero return code if directory does not exist
+    rc=1
   fi
+  cd "${curdir}"
+  return "${rc:-0}"
 }
 
 make_repo() {
   local directory="${1}"
   local remoteRepo="${2}"
-  # Remove the non-repod interface and clone the interface
-  echo -n ":::    Cloning $remoteRepo into $directory..."
-  rm -rf "${directory}"
-  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null
+
+  echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
+  # Clean out the directory if it exists for git to clone into
+  if [[ -d "${directory}" ]]; then
+    rm -rf "${directory}"
+  fi
+  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
   echo " done!"
+  return 0
 }
 
 update_repo() {
   local directory="${1}"
+
   # Pull the latest commits
-  echo -n ":::    Updating repo in $1..."
-  cd "${directory}" || exit 1
-  git stash -q &> /dev/null
-  git pull -q &> /dev/null
-  echo " done!"
+  echo -n ":::    Updating repo in ${1}..."
+  if [[ -d "${directory}" ]]; then
+    cd "${directory}"
+    git stash -q &> /dev/null || true # Okay for stash failure
+    git pull -q &> /dev/null || return $?
+    echo " done!"
+  fi
+  return 0
 }
 
 getGitFiles() {
@@ -173,17 +160,21 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    update_repo "${directory}"
+    update_repo "${directory}" || return 1
   else
-    make_repo "${directory}" "${remoteRepo}"
+    make_repo "${directory}" "${remoteRepo}" || return 1
   fi
+  return 0
 }
 
 find_IPv4_information() {
+  local route
   # Find IP used to route to outside world
-  IPv4dev=$(ip route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++)if($i~/dev/)print $(i+1)}')
-  IPV4_ADDRESS=$(ip route get 8.8.8.8| awk '{print $7}')
-  IPv4gw=$(ip route get 8.8.8.8 | awk '{print $3}')
+  route=$(ip route get 8.8.8.8)
+  IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
+  IPV4_ADDRESS=$(awk '{print $7}' <<< "${route}")
+  IPv4gw=$(awk '{print $3}' <<< "${route}")
+
 }
 
 get_available_interfaces() {
@@ -247,8 +238,8 @@ chooseInterface() {
   # Loop sentinel variable
   local firstLoop=1
 
-  if [[ $(echo ${availableInterfaces} | wc -l) -eq 1 ]]; then
-      PIHOLE_INTERFACE=${availableInterfaces}
+  if [[ $(echo "${availableInterfaces}" | wc -l) -eq 1 ]]; then
+      PIHOLE_INTERFACE="${availableInterfaces}"
       return
   fi
 
@@ -548,7 +539,7 @@ setLogging() {
   local LogChoices
 
   LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?\n (Disabling will render graphs on the Admin page useless):" ${r} ${c} 6)
-  LogChooseOptions=("On (Reccomended)" "" on
+  LogChooseOptions=("On (Recommended)" "" on
       Off "" off)
   LogChoices=$("${LogToggleCommand[@]}" "${LogChooseOptions[@]}" 2>&1 >/dev/tty) || (echo "::: Cancel selected. Exiting..." && exit 1)
     case ${LogChoices} in
@@ -751,16 +742,45 @@ install_dependent_packages() {
   # Install packages passed in via argument array
   # No spinner - conflicts with set -e
   declare -a argArray1=("${!1}")
+  declare -a installArray
 
+  # Debian based package install - debconf will download the entire package list
+  # so we just create an array of packages not currently installed to cut down on the
+  # amount of download traffic.
+  # NOTE: We may be able to use this installArray in the future to create a list of package that were
+  # installed by us, and remove only the installed packages, and not the entire list.
   if command -v debconf-apt-progress &> /dev/null; then
-    debconf-apt-progress -- ${PKG_INSTALL} "${argArray1[@]}"
-  else
     for i in "${argArray1[@]}"; do
       echo -n ":::    Checking for $i..."
-      package_check_install "${i}" &> /dev/null
-      echo " installed!"
+      if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
+        echo " installed!"
+      else
+        echo " added to install list!"
+        installArray+=("${i}")
+      fi
     done
+    if [[ ${#installArray[@]} -gt 0 ]]; then
+      debconf-apt-progress -- ${PKG_INSTALL} "${installArray[@]}"
+      return
+    fi
+      return 0
   fi
+
+  #Fedora/CentOS
+  for i in "${argArray1[@]}"; do
+    echo -n ":::    Checking for $i..."
+    if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
+      echo " installed!"
+    else
+      echo " added to install list!"
+      installArray+=("${i}")
+    fi
+  done
+    if [[ ${#installArray[@]} -gt 0 ]]; then
+      ${PKG_INSTALL} "${installArray[@]}" &> /dev/null
+      return
+    fi
+    return 0
 }
 
 CreateLogFile() {
@@ -870,11 +890,17 @@ configureFirewall() {
     echo "::: Configuring FirewallD for httpd and dnsmasq.."
     firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
     firewall-cmd --reload
-  elif modinfo ip_tables &> /dev/null && iptables -S INPUT | head -n1 | grep -v "ACCEPT" &> /dev/null ; then
-    echo "::: Configuring iptables for httpd and dnsmasq.."
-    iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
-    iptables -A INPUT -p tcp -m tcp --dport 53 -j ACCEPT
-    iptables -A INPUT -p udp -m udp --dport 53 -j ACCEPT
+  # Check for proper kernel modules to prevent failure
+  elif modinfo ip_tables &> /dev/null; then
+    # If chain Policy is not ACCEPT or last Rule is not ACCEPT
+    # then check and insert our Rules above the DROP/REJECT Rule.
+    if iptables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
+      # Check chain first, otherwise a new rule will duplicate old ones
+      echo "::: Configuring iptables for httpd and dnsmasq.."
+      iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
+      iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
+      iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+    fi
   else
     echo "::: No active firewall detected.. skipping firewall configuration."
   fi
@@ -893,6 +919,18 @@ finalExports() {
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
     }>> "${setupVars}"
+
+  # Look for DNS server settings which would have to be reapplied
+  source "${setupVars}"
+  source "/etc/.pihole/advanced/Scripts/webpage.sh"
+
+  if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
+    ProcessDNSSettings
+  fi
+
+  if [[ "${DHCP_ACTIVE}" != "" ]] ; then
+    ProcessDHCPSettings
+  fi
 }
 
 installPihole() {
@@ -972,29 +1010,18 @@ checkSelinux() {
 }
 
 displayFinalMessage() {
-  if (( ${#1} > 0 )) ; then
   # Final completion message to user
   whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
 IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS}
+IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
 If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
 View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
-The currently set password is ${1}" ${r} ${c}
-  else
-  whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS}
-
-If you set a new IP address, you should restart the Pi.
-
-The install log is in /etc/pihole.
-View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin" ${r} ${c}
-  fi
+Your Admin Webpage login password is ${1:-"NOT SET"}" ${r} ${c}
 }
 
 update_dialogs() {
@@ -1033,6 +1060,28 @@ update_dialogs() {
 }
 
 main() {
+
+  ######## FIRST CHECK ########
+  # Must be root to install
+  echo ":::"
+  if [[ ${EUID} -eq 0 ]]; then
+    echo "::: You are root."
+  else
+    echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
+    echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
+    echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
+    echo ":::"
+    echo "::: Detecting the presence of the sudo utility for continuation of this install..."
+
+    if command -v sudo &> /dev/null; then
+      echo "::: Utility sudo located."
+      exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+      exit $?
+    else
+      echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
+      exit 1
+    fi
+  fi
 
   # Check arguments for the undocumented flags
   for var in "$@"; do
@@ -1076,8 +1125,14 @@ main() {
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
     # Get Git files for Core and Admin
-    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl}
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl}
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
   fi
 
   if [[ ${useUpdateVars} == false ]]; then
