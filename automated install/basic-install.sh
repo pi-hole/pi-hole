@@ -28,6 +28,7 @@ webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version)
+PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
 IPV4_ADDRESS=""
@@ -58,7 +59,7 @@ if command -v apt-get &> /dev/null; then
   #############################################
   PKG_MANAGER="apt-get"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-  PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
+  PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
@@ -307,6 +308,7 @@ use4andor6() {
 }
 
 getStaticIPv4Settings() {
+  local ipSettingsCorrect
   # Ask if the user wants to use DHCP settings as their static IP
   if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
           IP address:    ${IPV4_ADDRESS}
@@ -598,21 +600,20 @@ clean_existing() {
 
 installScripts() {
   # Install the scripts from repository to their various locations
-  readonly install_dir="/opt/pihole/"
 
   echo ":::"
   echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
 
   # Clear out script files from Pi-hole scripts directory.
-  clean_existing "${install_dir}" "${PI_HOLE_FILES}"
+  clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES}"
 
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
-    install -o "${USER}" -Dm755 -d "${install_dir}"
-    install -o "${USER}" -Dm755 -t "${install_dir}" gravity.sh
-    install -o "${USER}" -Dm755 -t "${install_dir}" ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t "${install_dir}" ./automated\ install/uninstall.sh
+    install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
+    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
     echo " done."
@@ -736,7 +737,7 @@ install_dependent_packages() {
       fi
     done
     if [[ ${#installArray[@]} -gt 0 ]]; then
-      debconf-apt-progress -- ${PKG_INSTALL} "${installArray[@]}"
+      debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
       return
     fi
       return 0
@@ -1141,11 +1142,11 @@ main() {
   pw=""
   if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
       pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-      pihole -a -p ${pw}
+      /usr/local/bin/pihole -a -p "${pw}"
   fi
 
   if [[ "${useUpdateVars}" == false ]]; then
-      displayFinalMessage ${pw}
+      displayFinalMessage "${pw}"
   fi
 
   echo "::: Restarting services..."
