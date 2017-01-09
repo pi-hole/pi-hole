@@ -74,7 +74,9 @@ if($uri == "/")
 		<a class='safe33' id="whitelisting">Whitelist this page</a>
 		<a class='safe33' href='javascript:window.close()'>Close window</a>
 	</div>
-		<div style="width: 98%; text-align: center; padding: 10px;" hidden="true" id="whitelistingform">Password required!<br/>
+		<div style="width: 98%; text-align: center; padding: 10px;" hidden="true" id="whitelistingform">
+			<p>Note that whitelisting domains which are blocked using the wildcard method won't work.</p>
+			<p>Password required!</p><br/>
 		<form>
 			<input name="list" type="hidden" value="white"><br/>
 			Domain:<br/>
