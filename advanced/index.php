@@ -74,7 +74,9 @@ if($uri == "/")
 		<a class='safe33' id="whitelisting">Whitelist this page</a>
 		<a class='safe33' href='javascript:window.close()'>Close window</a>
 	</div>
-		<div style="width: 98%; text-align: center; padding: 10px;" hidden="true" id="whitelistingform">Password required!<br/>
+		<div style="width: 98%; text-align: center; padding: 10px;" hidden="true" id="whitelistingform">
+			<p>Note that whitelisting domains which are blocked using the wildcard method won't work.</p>
+			<p>Password required!</p><br/>
 		<form>
 			<input name="list" type="hidden" value="white"><br/>
 			Domain:<br/>
@@ -88,6 +90,16 @@ if($uri == "/")
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
 <script src="http://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+<script>
+// Create event for when the output is appended to
+(function($) {
+    var origAppend = $.fn.append;
+
+    $.fn.append = function () {
+        return origAppend.apply(this, arguments).trigger("append");
+    };
+})(jQuery);
+</script>
 <script src="http://pi.hole/admin/scripts/pi-hole/js/queryads.js"></script>
 <script>
 function inIframe () {
@@ -114,6 +126,15 @@ else
 }
 
 $( "#whitelisting" ).on( "click", function(){ $( "#whitelistingform" ).removeAttr( "hidden" ); });
+
+// Remove whitelist functionality if the domain was blocked because of a wildcard
+$( "#output" ).bind("append", function(){
+	if($( "#output" ).contents()[0].data.indexOf("Wildcard blocking") !== -1)
+	{
+		$( "#whitelisting" ).hide();
+		$( "#whitelistingform" ).hide();
+	}
+});
 
 function add() {
 	var domain = $("#domain");
