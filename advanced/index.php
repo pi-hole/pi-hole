@@ -90,6 +90,15 @@ if($uri == "/")
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
 <script src="http://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+<script>
+(function($) {
+    var origAppend = $.fn.append;
+
+    $.fn.append = function () {
+        return origAppend.apply(this, arguments).trigger("append");
+    };
+})(jQuery);
+</script>
 <script src="http://pi.hole/admin/scripts/pi-hole/js/queryads.js"></script>
 <script>
 function inIframe () {
@@ -116,6 +125,15 @@ else
 }
 
 $( "#whitelisting" ).on( "click", function(){ $( "#whitelistingform" ).removeAttr( "hidden" ); });
+
+$( "#output" ).bind("append", function(){
+	console.log("change");
+	if($( "#output" ).contents()[0].data.indexOf("Wildcard blocking") !== -1)
+	{
+		$( "#whitelisting" ).hide();
+		$( "#whitelistingform" ).hide();
+	}
+});
 
 function add() {
 	var domain = $("#domain");
