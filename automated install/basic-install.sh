@@ -28,6 +28,7 @@ webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version)
+PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
 IPV4_ADDRESS=""
@@ -58,7 +59,7 @@ if command -v apt-get &> /dev/null; then
   #############################################
   PKG_MANAGER="apt-get"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-  PKG_INSTALL="${PKG_MANAGER} --yes --no-install-recommends install"
+  PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
@@ -255,16 +256,13 @@ chooseInterface() {
   # Find out how many interfaces are available to choose from
   interfaceCount=$(echo "${availableInterfaces}" | wc -l)
   chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
-  chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty)
-  if [[ $? = 0 ]]; then
-    for desiredInterface in ${chooseInterfaceOptions}; do
-      PIHOLE_INTERFACE=${desiredInterface}
-      echo "::: Using interface: $PIHOLE_INTERFACE"
-    done
-  else
-    echo "::: Cancel selected, exiting...."
-    exit 1
-  fi
+  chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
+  { echo "::: Cancel selected. Exiting"; exit 1; }
+  for desiredInterface in ${chooseInterfaceOptions}; do
+    PIHOLE_INTERFACE=${desiredInterface}
+    echo "::: Using interface: $PIHOLE_INTERFACE"
+  done
+
 }
 
 useIPv6dialog() {
@@ -284,41 +282,37 @@ use4andor6() {
   cmd=(whiptail --separate-output --checklist "Select Protocols (press space to select)" ${r} ${c} 2)
   options=(IPv4 "Block ads over IPv4" on
   IPv6 "Block ads over IPv6" on)
-  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-  if [[ $? = 0 ]];then
-    for choice in ${choices}
-    do
-      case ${choice} in
-      IPv4  )   useIPv4=true;;
-      IPv6  )   useIPv6=true;;
-      esac
-    done
-    if [[ ${useIPv4} ]]; then
-      find_IPv4_information
-      getStaticIPv4Settings
-      setStaticIPv4
-    fi
-    if [[ ${useIPv6} ]]; then
-      useIPv6dialog
-    fi
-      echo "::: IPv4 address: ${IPV4_ADDRESS}"
-      echo "::: IPv6 address: ${IPV6_ADDRESS}"
-    if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
-      echo "::: Cannot continue, neither IPv4 or IPv6 selected"
-      echo "::: Exiting"
-      exit 1
-    fi
-  else
-    echo "::: Cancel selected. Exiting..."
+  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo "::: Cancel selected. Exiting"; exit 1; }
+  for choice in ${choices}
+  do
+    case ${choice} in
+    IPv4  )   useIPv4=true;;
+    IPv6  )   useIPv6=true;;
+    esac
+  done
+  if [[ ${useIPv4} ]]; then
+    find_IPv4_information
+    getStaticIPv4Settings
+    setStaticIPv4
+  fi
+  if [[ ${useIPv6} ]]; then
+    useIPv6dialog
+  fi
+    echo "::: IPv4 address: ${IPV4_ADDRESS}"
+    echo "::: IPv6 address: ${IPV6_ADDRESS}"
+  if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
+    echo "::: Cannot continue, neither IPv4 or IPv6 selected"
+    echo "::: Exiting"
     exit 1
   fi
 }
 
 getStaticIPv4Settings() {
+  local ipSettingsCorrect
   # Ask if the user wants to use DHCP settings as their static IP
-  if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
+  if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
           IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" ${r} ${c}); then
+          Gateway:       ${IPv4gw}" ${r} ${c}; then
     # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
     whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
@@ -329,36 +323,29 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
     # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
     # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
     until [[ ${ipSettingsCorrect} = True ]]; do
+
       # Ask for the IPv4 address
-      IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3)
-      if [[ $? = 0 ]]; then
-      echo "::: Your static IPv4 address:    ${IPV4_ADDRESS}"
-      # Ask for the gateway
-      IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPv4gw}" 3>&1 1>&2 2>&3)
-      if [[ $? = 0 ]]; then
-        echo "::: Your static IPv4 gateway:    ${IPv4gw}"
-        # Give the user a chance to review their settings before moving on
-        if (whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-          IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" ${r} ${c}); then
-          # After that's done, the loop ends and we move on
-          ipSettingsCorrect=True
-        else
-          # If the settings are wrong, the loop continues
-          ipSettingsCorrect=False
-        fi
-      else
-        # Cancelling gateway settings window
-        ipSettingsCorrect=False
-        echo "::: Cancel selected. Exiting..."
-        exit 1
-      fi
-    else
+      IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
       # Cancelling IPv4 settings window
-      ipSettingsCorrect=False
-      echo "::: Cancel selected. Exiting..."
-      exit 1
-    fi
+      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
+      echo "::: Your static IPv4 address:    ${IPV4_ADDRESS}"
+
+      # Ask for the gateway
+      IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPv4gw}" 3>&1 1>&2 2>&3) || \
+      # Cancelling gateway settings window
+      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
+      echo "::: Your static IPv4 gateway:    ${IPv4gw}"
+
+      # Give the user a chance to review their settings before moving on
+      if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
+        IP address:    ${IPV4_ADDRESS}
+        Gateway:       ${IPv4gw}" ${r} ${c}; then
+        # After that's done, the loop ends and we move on
+        ipSettingsCorrect=True
+        else
+        # If the settings are wrong, the loop continues
+        ipSettingsCorrect=False
+      fi
     done
     # End the if statement for DHCP vs. static
   fi
@@ -442,95 +429,88 @@ valid_ip() {
 }
 
 setDNS() {
-  DNSChooseCmd=(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6)
+  local DNSSettingsCorrect
+
   DNSChooseOptions=(Google "" on
       OpenDNS "" off
       Level3 "" off
       Norton "" off
       Comodo "" off
       Custom "" off)
-  DNSchoices=$("${DNSChooseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 >/dev/tty)
-  if [[ $? = 0 ]];then
-    case ${DNSchoices} in
-      Google)
-        echo "::: Using Google DNS servers."
-        PIHOLE_DNS_1="8.8.8.8"
-        PIHOLE_DNS_2="8.8.4.4"
-        ;;
-      OpenDNS)
-        echo "::: Using OpenDNS servers."
-        PIHOLE_DNS_1="208.67.222.222"
-        PIHOLE_DNS_2="208.67.220.220"
-        ;;
-      Level3)
-        echo "::: Using Level3 servers."
-        PIHOLE_DNS_1="4.2.2.1"
-        PIHOLE_DNS_2="4.2.2.2"
-        ;;
-      Norton)
-        echo "::: Using Norton ConnectSafe servers."
-        PIHOLE_DNS_1="199.85.126.10"
-        PIHOLE_DNS_2="199.85.127.10"
-        ;;
-      Comodo)
-        echo "::: Using Comodo Secure servers."
-        PIHOLE_DNS_1="8.26.56.26"
-        PIHOLE_DNS_2="8.20.247.20"
-        ;;
-      Custom)
-        until [[ ${DNSSettingsCorrect} = True ]]; do
-        strInvalid="Invalid"
-        if [ ! ${PIHOLE_DNS_1} ]; then
-          if [ ! ${PIHOLE_DNS_2} ]; then
-            prePopulate=""
-          else
-            prePopulate=", ${PIHOLE_DNS_2}"
-          fi
-        elif  [ ${PIHOLE_DNS_1} ] && [ ! ${PIHOLE_DNS_2} ]; then
-          prePopulate="${PIHOLE_DNS_1}"
-        elif [ ${PIHOLE_DNS_1} ] && [ ${PIHOLE_DNS_2} ]; then
-          prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
+  DNSchoices=$(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
+    "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
+    { echo "::: Cancel selected. Exiting"; exit 1; }
+  case ${DNSchoices} in
+    Google)
+      echo "::: Using Google DNS servers."
+      PIHOLE_DNS_1="8.8.8.8"
+      PIHOLE_DNS_2="8.8.4.4"
+      ;;
+    OpenDNS)
+      echo "::: Using OpenDNS servers."
+      PIHOLE_DNS_1="208.67.222.222"
+      PIHOLE_DNS_2="208.67.220.220"
+      ;;
+    Level3)
+      echo "::: Using Level3 servers."
+      PIHOLE_DNS_1="4.2.2.1"
+      PIHOLE_DNS_2="4.2.2.2"
+      ;;
+    Norton)
+      echo "::: Using Norton ConnectSafe servers."
+      PIHOLE_DNS_1="199.85.126.10"
+      PIHOLE_DNS_2="199.85.127.10"
+      ;;
+    Comodo)
+      echo "::: Using Comodo Secure servers."
+      PIHOLE_DNS_1="8.26.56.26"
+      PIHOLE_DNS_2="8.20.247.20"
+      ;;
+    Custom)
+      until [[ ${DNSSettingsCorrect} = True ]]; do
+      strInvalid="Invalid"
+      if [ ! ${PIHOLE_DNS_1} ]; then
+        if [ ! ${PIHOLE_DNS_2} ]; then
+          prePopulate=""
+        else
+          prePopulate=", ${PIHOLE_DNS_2}"
         fi
+      elif  [ ${PIHOLE_DNS_1} ] && [ ! ${PIHOLE_DNS_2} ]; then
+        prePopulate="${PIHOLE_DNS_1}"
+      elif [ ${PIHOLE_DNS_1} ] && [ ${PIHOLE_DNS_2} ]; then
+        prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
+      fi
 
-        piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3)
-
-        if [[ $? = 0 ]]; then
-          PIHOLE_DNS_1=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
-          PIHOLE_DNS_2=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
-          if ! valid_ip "${PIHOLE_DNS_1}" || [ ! "${PIHOLE_DNS_1}" ]; then
-            PIHOLE_DNS_1=${strInvalid}
-          fi
-          if ! valid_ip "${PIHOLE_DNS_2}" && [ "${PIHOLE_DNS_2}" ]; then
-            PIHOLE_DNS_2=${strInvalid}
-          fi
-        else
-          echo "::: Cancel selected, exiting...."
-          exit 1
+      piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\n\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
+      { echo "::: Cancel selected. Exiting"; exit 1; }
+      PIHOLE_DNS_1=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
+      PIHOLE_DNS_2=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
+      if ! valid_ip "${PIHOLE_DNS_1}" || [ ! "${PIHOLE_DNS_1}" ]; then
+        PIHOLE_DNS_1=${strInvalid}
+      fi
+      if ! valid_ip "${PIHOLE_DNS_2}" && [ "${PIHOLE_DNS_2}" ]; then
+        PIHOLE_DNS_2=${strInvalid}
+      fi
+      if [[ ${PIHOLE_DNS_1} == "${strInvalid}" ]] || [[ ${PIHOLE_DNS_2} == "${strInvalid}" ]]; then
+        whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $PIHOLE_DNS_1\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
+        if [[ ${PIHOLE_DNS_1} == "${strInvalid}" ]]; then
+          PIHOLE_DNS_1=""
         fi
-        if [[ ${PIHOLE_DNS_1} == "${strInvalid}" ]] || [[ ${PIHOLE_DNS_2} == "${strInvalid}" ]]; then
-          whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $PIHOLE_DNS_1\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
-          if [[ ${PIHOLE_DNS_1} == "${strInvalid}" ]]; then
-            PIHOLE_DNS_1=""
-          fi
-          if [[ ${PIHOLE_DNS_2} == "${strInvalid}" ]]; then
-            PIHOLE_DNS_2=""
-          fi
-          DNSSettingsCorrect=False
-        else
-          if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $PIHOLE_DNS_1\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}); then
-          DNSSettingsCorrect=True
-        else
-        # If the settings are wrong, the loop continues
-          DNSSettingsCorrect=False
-          fi
+        if [[ ${PIHOLE_DNS_2} == "${strInvalid}" ]]; then
+          PIHOLE_DNS_2=""
         fi
-        done
-        ;;
-    esac
-  else
-    echo "::: Cancel selected. Exiting..."
-    exit 1
-  fi
+        DNSSettingsCorrect=False
+      else
+        if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\n    DNS Server 1:   $PIHOLE_DNS_1\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}); then
+        DNSSettingsCorrect=True
+      else
+      # If the settings are wrong, the loop continues
+        DNSSettingsCorrect=False
+        fi
+      fi
+      done
+      ;;
+  esac
 }
 
 setLogging() {
@@ -622,26 +602,25 @@ clean_existing() {
 
 installScripts() {
   # Install the scripts from repository to their various locations
-  readonly install_dir="/opt/pihole/"
 
   echo ":::"
   echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
 
   # Clear out script files from Pi-hole scripts directory.
-  clean_existing "${install_dir}" "${PI_HOLE_FILES}"
+  clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES}"
 
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
-    install -o "${USER}" -Dm755 -d /opt/pihole
-    install -o "${USER}" -Dm755 -t /opt/pihole/ gravity.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t /opt/pihole/ ./automated\ install/uninstall.sh
+    install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
+    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
     echo " done."
   else
-    echo " *** ERROR: Local repo ${core_repo} not found, exiting."
+    echo " *** ERROR: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting."
     exit 1
   fi
 }
@@ -760,7 +739,7 @@ install_dependent_packages() {
       fi
     done
     if [[ ${#installArray[@]} -gt 0 ]]; then
-      debconf-apt-progress -- ${PKG_INSTALL} "${installArray[@]}"
+      debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
       return
     fi
       return 0
@@ -996,15 +975,11 @@ checkSelinux() {
     enforceMode=$(getenforce)
     echo "${enforceMode}"
     if [[ "${enforceMode}" == "Enforcing" ]]; then
-      if (whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c}); then
-          echo ":::"
-          echo "::: Continuing installation with SELinux Enforcing."
-          echo "::: Please refer to official SELinux documentation to create a custom policy."
-      else
-          echo ":::"
-          echo "::: Not continuing install after SELinux Enforcing detected."
-          exit 1
-      fi
+      whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c} || \
+      { echo ":::"; echo "::: Not continuing install after SELinux Enforcing detected."; exit 1; }
+      echo ":::"
+      echo "::: Continuing installation with SELinux Enforcing."
+      echo "::: Please refer to official SELinux documentation to create a custom policy."
     fi
   fi
 }
@@ -1040,23 +1015,19 @@ update_dialogs() {
 
   UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\n\nWe have detected an existing install.\n\nPlease choose from the following options: \n($strAdd)" ${r} ${c} 2 \
   "${opt1a}"  "${opt1b}" \
-  "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3)
+  "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3) || \
+  { echo "::: Cancel selected. Exiting"; exit 1; }
 
-  if [[ $? = 0 ]];then
-    case ${UpdateCmd} in
-      ${opt1a})
-        echo "::: ${opt1a} option selected."
-        useUpdateVars=true
-        ;;
-      ${opt2a})
-        echo "::: ${opt2a} option selected"
-        useUpdateVars=false
-        ;;
+  case ${UpdateCmd} in
+    ${opt1a})
+      echo "::: ${opt1a} option selected."
+      useUpdateVars=true
+      ;;
+    ${opt2a})
+      echo "::: ${opt2a} option selected"
+      useUpdateVars=false
+      ;;
     esac
-  else
-    echo "::: Cancel selected. Exiting..."
-    exit 1
-  fi
 }
 
 main() {
@@ -1173,11 +1144,11 @@ main() {
   pw=""
   if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
       pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-      pihole -a -p ${pw}
+      /usr/local/bin/pihole -a -p "${pw}"
   fi
 
   if [[ "${useUpdateVars}" == false ]]; then
-      displayFinalMessage ${pw}
+      displayFinalMessage "${pw}"
   fi
 
   echo "::: Restarting services..."
