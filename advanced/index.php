@@ -91,6 +91,7 @@ if($uri == "/")
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
 <script src="http://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
 <script>
+// Create event for when the output is appended to
 (function($) {
     var origAppend = $.fn.append;
 
@@ -126,8 +127,8 @@ else
 
 $( "#whitelisting" ).on( "click", function(){ $( "#whitelistingform" ).removeAttr( "hidden" ); });
 
+// Remove whitelist functionality if the domain was blocked because of a wildcard
 $( "#output" ).bind("append", function(){
-	console.log("change");
 	if($( "#output" ).contents()[0].data.indexOf("Wildcard blocking") !== -1)
 	{
 		$( "#whitelisting" ).hide();
