@@ -19,18 +19,18 @@ gravity="/etc/pihole/gravity.list"
 
 # Borrowed/modified from https://gist.github.com/cjus/1047794
 function GetJSONValue {
-    retVal=`echo $1 | sed 's/\\\\\//\//g' | \
+    retVal=$(echo $1 | sed 's/\\\\\//\//g' | \
                        sed 's/[{}]//g' | \
                        awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | \
                        sed 's/\"\:\"/\|/g' | \
                        sed 's/[\,]/ /g' | \
                        sed 's/\"//g' | \
-                       grep -w $2`
+                       grep -w $2)
     echo ${retVal##*|}
 }
 
 outputJSON() {
-	json=`curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw`
+	json=$(curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw)
 	echo ${json}
 }
 
@@ -53,11 +53,11 @@ normalChrono() {
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
 
 		json=`curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw`
-    LC_NUMERIC=C LC_COLLATE=C
-    domains=$(printf "%'.f" `GetJSONValue ${json} "domains_being_blocked"`) #add commas in
-    queries=$(printf "%'.f" `GetJSONValue ${json} "dns_queries_today"`)
-    blocked=$(printf "%'.f" `GetJSONValue ${json} "ads_blocked_today"`)
-    percentage=$(printf "%0.2f\n" `GetJSONValue ${json} "ads_percentage_today"`) #2 decimal places
+
+    domains=$(printf "%'.f" $(GetJSONValue ${json} "domains_being_blocked")) #add commas in
+    queries=$(printf "%'.f" $(GetJSONValue ${json} "dns_queries_today"))
+    blocked=$(printf "%'.f" $(GetJSONValue ${json} "ads_blocked_today"))
+    percentage=$(printf "%0.2f\n" $(GetJSONValue ${json} "ads_percentage_today")) #2 decimal places
 
 		echo "Blocking:      ${domains}"
 		echo "Queries:       ${queries}"
