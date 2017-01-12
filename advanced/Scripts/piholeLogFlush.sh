@@ -11,5 +11,10 @@
 # (at your option) any later version.
 
 echo -n "::: Flushing /var/log/pihole.log ..."
-echo " " > /var/log/pihole.log
+# Test if logrotate is available on this system
+if command -v /usr/sbin/logrotate &> /dev/null; then
+  /usr/sbin/logrotate --force /etc/.pihole/logrotate
+else
+  echo " " > /var/log/pihole.log
+fi
 echo "... done!"
