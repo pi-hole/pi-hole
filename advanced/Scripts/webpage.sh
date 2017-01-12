@@ -111,6 +111,15 @@ ProcessDNSSettings() {
 		add_dnsmasq_setting "bogus-priv"
 	fi
 
+	delete_dnsmasq_setting "dnssec"
+	delete_dnsmasq_setting "trust-anchor="
+
+	if [[ "${DNSSEC}" == true ]]; then
+		echo "dnssec
+trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
+" >> "${dnsmasqconfig}"
+	fi
+
 }
 
 SetDNSServers(){
@@ -130,10 +139,16 @@ SetDNSServers(){
 		change_setting "DNS_FQDN_REQUIRED" "false"
 	fi
 
-	if [[ "${args[4]}" == "bogus-priv" || "${args[5]}" == "bogus-priv" ]]; then
+	if [[ "${args[5]}" == "bogus-priv" ]]; then
 		change_setting "DNS_BOGUS_PRIV" "true"
 	else
 		change_setting "DNS_BOGUS_PRIV" "false"
+	fi
+
+	if [[ "${args[6]}" == "dnssec" ]]; then
+		change_setting "DNSSEC" "true"
+	else
+		change_setting "DNSSEC" "false"
 	fi
 
 	ProcessDNSSettings
