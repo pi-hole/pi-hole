@@ -52,7 +52,7 @@ normalChrono() {
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
 
-		json=`curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw`
+		json=$(curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw)
 
     domains=$(printf "%'.f" $(GetJSONValue ${json} "domains_being_blocked")) #add commas in
     queries=$(printf "%'.f" $(GetJSONValue ${json} "dns_queries_today"))
