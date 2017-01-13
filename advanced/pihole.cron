@@ -26,4 +26,4 @@
 #          The flush script will use logrotate if available
 00 00   * * *   root    PATH="$PATH:/usr/local/bin/" pihole flush
 
-@reboot /usr/sbin/logrotate /etc/.pihole/advanced/logrotate
+@reboot root /usr/sbin/logrotate /etc/.pihole/advanced/logrotate
