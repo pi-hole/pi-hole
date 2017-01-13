@@ -57,7 +57,7 @@ normalChrono() {
     domains=$(printf "%'.f" $(GetJSONValue ${json} "domains_being_blocked")) #add commas in
     queries=$(printf "%'.f" $(GetJSONValue ${json} "dns_queries_today"))
     blocked=$(printf "%'.f" $(GetJSONValue ${json} "ads_blocked_today"))
-    percentage=$(printf "%0.2f\n" $(GetJSONValue ${json} "ads_percentage_today")) #2 decimal places
+    LC_NUMERIC=C percentage=$(printf "%0.2f\n" $(GetJSONValue ${json} "ads_percentage_today")) #2 decimal places
 
 		echo "Blocking:      ${domains}"
 		echo "Queries:       ${queries}"
