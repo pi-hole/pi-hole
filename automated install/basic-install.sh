@@ -870,7 +870,7 @@ configureFirewall() {
     firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
     firewall-cmd --reload
   # Check for proper kernel modules to prevent failure
-  elif modinfo ip_tables &> /dev/null; then
+  elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
     # If chain Policy is not ACCEPT or last Rule is not ACCEPT
     # then check and insert our Rules above the DROP/REJECT Rule.
     if iptables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
