@@ -97,7 +97,6 @@ ProcessDNSSettings() {
 	COUNTER=1
 	while [[ 1 ]]; do
 		var=PIHOLE_DNS_${COUNTER}
-		echo "${COUNTER} ${var} ${!var}"
 		if [ -z "${!var}" ]; then
 			break;
 		fi
@@ -135,7 +134,6 @@ SetDNSServers(){
 	IFS=',' read -r -a array <<< "${args[2]}"
 	for index in "${!array[@]}"
 	do
-		echo "$index ${array[index]}"
 		add_setting "PIHOLE_DNS_$((index+1))" "${array[index]}"
 	done
 
