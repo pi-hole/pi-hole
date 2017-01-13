@@ -92,12 +92,18 @@ SetWebPassword(){
 ProcessDNSSettings() {
 	source "${setupVars}"
 
-	delete_dnsmasq_setting "server="
-	add_dnsmasq_setting "server" "${PIHOLE_DNS_1}"
+	delete_dnsmasq_setting "server"
 
-	if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-		add_dnsmasq_setting "server" "${PIHOLE_DNS_2}"
-	fi
+	COUNTER=1
+	while [[ 1 ]]; do
+		var=PIHOLE_DNS_${COUNTER}
+		echo "${COUNTER} ${var} ${!var}"
+		if [ -z "${!var}" ]; then
+			break;
+		fi
+		add_dnsmasq_setting "server" "${!var}"
+		let COUNTER=COUNTER+1
+	done
 
 	delete_dnsmasq_setting "domain-needed"
 
@@ -125,27 +131,27 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 SetDNSServers(){
 
 	# Save setting to file
-	change_setting "PIHOLE_DNS_1" "${args[2]}"
+	delete_setting "PIHOLE_DNS"
+	IFS=',' read -r -a array <<< "${args[2]}"
+	for index in "${!array[@]}"
+	do
+		echo "$index ${array[index]}"
+		add_setting "PIHOLE_DNS_$((index+1))" "${array[index]}"
+	done
 
-	if [[ "${args[3]}" != "none" ]]; then
-		change_setting "PIHOLE_DNS_2" "${args[3]}"
-	else
-		change_setting "PIHOLE_DNS_2" ""
-	fi
-
-	if [[ "${args[4]}" == "domain-needed" ]]; then
+	if [[ "${args[3]}" == "domain-needed" ]]; then
 		change_setting "DNS_FQDN_REQUIRED" "true"
 	else
 		change_setting "DNS_FQDN_REQUIRED" "false"
 	fi
 
-	if [[ "${args[5]}" == "bogus-priv" ]]; then
+	if [[ "${args[4]}" == "bogus-priv" ]]; then
 		change_setting "DNS_BOGUS_PRIV" "true"
 	else
 		change_setting "DNS_BOGUS_PRIV" "false"
 	fi
 
-	if [[ "${args[6]}" == "dnssec" ]]; then
+	if [[ "${args[5]}" == "dnssec" ]]; then
 		change_setting "DNSSEC" "true"
 	else
 		change_setting "DNSSEC" "false"
