@@ -51,3 +51,7 @@ https://hosts-file.net/ad_servers.txt
 #https://raw.github.com/notracking/hosts-blocklists/master/domains.txt
 # Combination of serveral host files on the internet (warning some facebook domains are also blocked but you can go to facebook.com). See https://github.com/mat1th/Dns-add-block for more information.
 #https://raw.githubusercontent.com/mat1th/Dns-add-block/master/hosts
+
+# Custom local source
+# You can include a local list of sites/IPs. Use the keyword string "file://" followed by the fully-qualified path to the file.
+#file://path/to/your/file.txt
