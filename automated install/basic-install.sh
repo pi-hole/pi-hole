@@ -86,7 +86,7 @@ elif command -v rpm &> /dev/null; then
 
 # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
   UPDATE_PKG_CACHE=":"
-  PKG_INSTALL="${PKG_MANAGER} install -y"
+  PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
@@ -239,7 +239,7 @@ chooseInterface() {
   # Loop sentinel variable
   local firstLoop=1
 
-  if [[ $(echo "${availableInterfaces}" | wc -l) -eq 1 ]]; then
+  if [[ "${#availableInterfaces[@]}" -eq 1 ]]; then
       PIHOLE_INTERFACE="${availableInterfaces}"
       return
   fi
@@ -756,7 +756,7 @@ install_dependent_packages() {
     fi
   done
     if [[ ${#installArray[@]} -gt 0 ]]; then
-      ${PKG_INSTALL} "${installArray[@]}" &> /dev/null
+      "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
       return
     fi
     return 0
@@ -860,7 +860,12 @@ runGravity() {
 create_pihole_user() {
   # Check if user pihole exists and create if not
   echo "::: Checking if user 'pihole' exists..."
-  id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || (echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole)
+  if id -u pihole &> /dev/null; then
+    echo "::: User 'pihole' already exists"
+  else
+    echo "::: User 'pihole' doesn't exist. Creating..."
+    useradd -r -s /usr/sbin/nologin pihole
+  fi
 }
 
 configureFirewall() {
@@ -954,7 +959,7 @@ accountForRefactor() {
 updatePihole() {
   accountForRefactor
   # Source ${setupVars} for use in the rest of the functions.
-  . ${setupVars}
+  source ${setupVars}
   # Install base files and web interface
   installScripts
   installConfigs
