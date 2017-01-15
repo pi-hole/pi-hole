@@ -27,7 +27,7 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version)
+PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
@@ -600,10 +600,11 @@ clean_existing() {
   # Clean an exiting installation to prepare for upgrade/reinstall
   # ${1} Directory to clean; ${2} Array of files to remove
   local clean_directory="${1}"
-  local old_files=${2}
+  shift
+  local old_files=( "$@" )
 
   for script in "${old_files[@]}"; do
-    rm -f "${clean_directory}${script}.sh"
+    rm -f "${clean_directory}/${script}.sh"
   done
 }
 
@@ -614,7 +615,7 @@ installScripts() {
   echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
 
   # Clear out script files from Pi-hole scripts directory.
-  clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES}"
+  clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES[@]}"
 
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
