@@ -1,0 +1,9 @@
+/var/log/pihole.log {
+	daily
+	copytruncate
+	rotate 5
+	compress
+	delaycompress
+	notifempty
+	nomail
+}
