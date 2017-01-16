@@ -50,6 +50,9 @@ normalChrono() {
 		uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes."}'
 		echo "-------------------------------"
 		# Uncomment to continually read the log file and display the current domain being blocked
+		domain=$(curl -s -X GET http://127.0.0.1/admin/api.php?recentBlocked)
+		echo "Recently blocked:"
+		echo "  $domain"
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
 
 		json=$(curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw)
