@@ -180,7 +180,7 @@ find_IPv4_information() {
 
 get_available_interfaces() {
   # Get available UP interfaces.
-  availableInterfaces=$(ip -o link | grep "state UP" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+  availableInterfaces=$(ip -o link | grep -v "state DOWN\|lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 welcomeDialogs() {
