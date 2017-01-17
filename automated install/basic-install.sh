@@ -967,7 +967,6 @@ updatePihole() {
   CreateLogFile
   installPiholeWeb
   installCron
-  configureFirewall
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   runGravity
 }
