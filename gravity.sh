@@ -388,7 +388,7 @@ if [[ "${forceGrav}" == true ]]; then
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-#cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
