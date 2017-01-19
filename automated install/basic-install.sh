@@ -173,7 +173,8 @@ find_IPv4_information() {
   # Find IP used to route to outside world
   route=$(ip route get 8.8.8.8)
   IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
-  IPV4_ADDRESS=$(awk '{print $7}' <<< "${route}")
+  IPv4bare=$(awk '{print $7}' <<< "${route}")
+  IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
   IPv4gw=$(awk '{print $3}' <<< "${route}")
 
 }
