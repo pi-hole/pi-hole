@@ -42,7 +42,7 @@ _If you wish to read over the script before running it, run `nano basic-install.
 
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
-cd Pi-hole/automated_installer/
+cd Pi-hole/automated\ install/
 bash basic-install.sh
 ```
 
