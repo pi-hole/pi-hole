@@ -53,7 +53,7 @@ reconfigure=false
 runUnattended=false
 
 # Compatibility
-
+distro_check() {
 if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
@@ -103,8 +103,8 @@ else
   echo "OS distribution not supported"
   exit
 fi
+}
 
-####### FUNCTIONS ##########
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value 128
   # if directory is not a repo. Return 1 if directory does not exist.
@@ -1054,6 +1054,9 @@ main() {
       exit 1
     fi
   fi
+
+  # Check for supported distribution
+  distro_check
 
   # Check arguments for the undocumented flags
   for var in "$@"; do
