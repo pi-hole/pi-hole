@@ -365,6 +365,17 @@ header_write "Analyzing gravity.list"
 	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
 	|| log_echo "Warning: No gravity.list file found!"
 
+header_write "Analyzing pihole.log"
+
+  pihole_length=$(wc -l "${PIHOLELOG}") \
+  && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
+  || log_echo "Warning: No pihole.log file found!"
+
+  pihole_size=$(du -h "${PIHOLELOG}") \
+  && log_write "${PIHOLELOG} is ${pihole_length}." \
+  || log_echo "Warning: No pihole.log file found!"
+
+
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
 	trap '{ echo -e "\n::: Finishing debug write from interrupt... Quitting!" ; exit 1; }' INT
