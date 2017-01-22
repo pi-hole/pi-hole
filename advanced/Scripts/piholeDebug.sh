@@ -371,7 +371,7 @@ header_write "Analyzing pihole.log"
   && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
   || log_echo "Warning: No pihole.log file found!"
 
-  pihole_size=$(du -h "${PIHOLELOG}") \
+  pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
   && log_write "${PIHOLELOG} is ${pihole_length}." \
   || log_echo "Warning: No pihole.log file found!"
 
