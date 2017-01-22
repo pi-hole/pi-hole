@@ -27,7 +27,7 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version)
+PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
@@ -65,12 +65,20 @@ if command -v apt-get &> /dev/null; then
   # #########################################
   # fixes for dependancy differences
   # Debian 7 doesn't have iproute2 use iproute
-  ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1 && IPROUTE_PKG="iproute2" || IPROUTE_PKG="iproute"
+  if ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1; then
+    iproute_pkg="iproute2"
+  else
+    iproute_pkg="iproute"
+  fi
   # Prefer the php metapackage if it's there, fall back on the php5 pacakges
-  ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1 && phpVer="php" || phpVer="php5"
+  if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
+    phpVer="php"
+  else
+    phpVer="php5"
+  fi
   # #########################################
   INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git whiptail)
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${IPROUTE_PKG} iputils-ping lighttpd lsof netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${iproute_pkg} iputils-ping lighttpd lsof netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -240,30 +248,29 @@ chooseInterface() {
   # Loop sentinel variable
   local firstLoop=1
 
-  if [[ $(echo "${availableInterfaces}" | wc -l) -eq 1 ]]; then
-      PIHOLE_INTERFACE="${availableInterfaces}"
-      return
-  fi
-
-  while read -r line; do
-    mode="OFF"
-    if [[ ${firstLoop} -eq 1 ]]; then
-      firstLoop=0
-      mode="ON"
-    fi
-    interfacesArray+=("${line}" "available" "${mode}")
-  done <<< "${availableInterfaces}"
-
   # Find out how many interfaces are available to choose from
   interfaceCount=$(echo "${availableInterfaces}" | wc -l)
-  chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
-  chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
-  { echo "::: Cancel selected. Exiting"; exit 1; }
-  for desiredInterface in ${chooseInterfaceOptions}; do
-    PIHOLE_INTERFACE=${desiredInterface}
-    echo "::: Using interface: $PIHOLE_INTERFACE"
-  done
 
+  if [[ ${interfaceCount} -eq 1 ]]; then
+      PIHOLE_INTERFACE="${availableInterfaces}"
+  else
+      while read -r line; do
+        mode="OFF"
+        if [[ ${firstLoop} -eq 1 ]]; then
+          firstLoop=0
+          mode="ON"
+        fi
+        interfacesArray+=("${line}" "available" "${mode}")
+      done <<< "${availableInterfaces}"
+
+      chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
+      chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
+      { echo "::: Cancel selected. Exiting"; exit 1; }
+      for desiredInterface in ${chooseInterfaceOptions}; do
+        PIHOLE_INTERFACE=${desiredInterface}
+        echo "::: Using interface: $PIHOLE_INTERFACE"
+      done
+  fi
 }
 
 useIPv6dialog() {
@@ -594,10 +601,11 @@ clean_existing() {
   # Clean an exiting installation to prepare for upgrade/reinstall
   # ${1} Directory to clean; ${2} Array of files to remove
   local clean_directory="${1}"
-  local old_files=${2}
+  shift
+  local old_files=( "$@" )
 
   for script in "${old_files[@]}"; do
-    rm -f "${clean_directory}${script}.sh"
+    rm -f "${clean_directory}/${script}.sh"
   done
 }
 
@@ -608,7 +616,7 @@ installScripts() {
   echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
 
   # Clear out script files from Pi-hole scripts directory.
-  clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES}"
+  clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES[@]}"
 
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
@@ -861,7 +869,12 @@ runGravity() {
 create_pihole_user() {
   # Check if user pihole exists and create if not
   echo "::: Checking if user 'pihole' exists..."
-  id -u pihole &> /dev/null && echo "::: User 'pihole' already exists" || (echo "::: User 'pihole' doesn't exist. Creating..." && useradd -r -s /usr/sbin/nologin pihole)
+  if id -u pihole &> /dev/null; then
+    echo "::: User 'pihole' already exists"
+  else
+    echo "::: User 'pihole' doesn't exist. Creating..."
+    useradd -r -s /usr/sbin/nologin pihole
+  fi
 }
 
 configureFirewall() {
@@ -955,7 +968,7 @@ accountForRefactor() {
 updatePihole() {
   accountForRefactor
   # Source ${setupVars} for use in the rest of the functions.
-  . ${setupVars}
+  source ${setupVars}
   # Install base files and web interface
   installScripts
   installConfigs
