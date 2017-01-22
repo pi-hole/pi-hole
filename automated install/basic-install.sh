@@ -432,13 +432,13 @@ valid_ip() {
 setDNS() {
   local DNSSettingsCorrect
 
-  DNSChooseOptions=(Google "" on
-      OpenDNS "" off
-      Level3 "" off
-      Norton "" off
-      Comodo "" off
-      Custom "" off)
-  DNSchoices=$(whiptail --separate-output --radiolist "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
+  DNSChooseOptions=(Google ""
+      OpenDNS ""
+      Level3 ""
+      Norton ""
+      Comodo ""
+      Custom "")
+  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
     { echo "::: Cancel selected. Exiting"; exit 1; }
   case ${DNSchoices} in
