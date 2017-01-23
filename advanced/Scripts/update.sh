@@ -145,21 +145,21 @@ main() {
 
   echo "::: Checking for updates..."
 
-  if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
-    core_update=true
-    echo "::: Pi-hole Core:   update available"
-  else
-    core_update=false
-    echo "::: Pi-hole Core:   up to date"
-  fi
+  # if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
+  #   core_update=true
+  #   echo "::: Pi-hole Core:   update available"
+  # else
+  #   core_update=false
+  #   echo "::: Pi-hole Core:   up to date"
+  # fi
 
-  if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
-    web_update=true
-    echo "::: Web Interface:  update available"
-  else
-    web_update=false
-    echo "::: Web Interface:  up to date"
-  fi
+  # if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
+  #   web_update=true
+  #   echo "::: Web Interface:  update available"
+  # else
+  #   web_update=false
+  #   echo "::: Web Interface:  up to date"
+  # fi
 
   # Logic
   # If Core up to date AND web up to date:

@@ -1118,10 +1118,10 @@ main() {
   fi
 
   # Update package cache
-  update_pacakge_cache
+#  update_pacakge_cache
 
   # Notify user of package availability
-  notify_package_updates_available
+#  notify_package_updates_available
 
   if [ -f /etc/pihole/webupdate.running ] ; then
     lighttpdupdate=package_check_update_available "lighttpd"
@@ -1150,15 +1150,16 @@ main() {
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
+    echo ""
     # Get Git files for Core and Admin
-    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
-        exit 1; \
-      }
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
-        exit 1; \
-      }
+    # getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+    #   { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+    #     exit 1; \
+    #   }
+    # getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+    #   { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+    #     exit 1; \
+    #   }
   fi
 
   if [[ ${useUpdateVars} == false ]]; then
@@ -1186,10 +1187,11 @@ main() {
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
   else
+    echo ""
     # update packages used by the Pi-hole
-    install_dependent_packages PIHOLE_DEPS[@]
+#    install_dependent_packages PIHOLE_DEPS[@]
 
-    updatePihole | tee ${tmpLog}
+#    updatePihole | tee ${tmpLog}
   fi
 
   # Move the log file into /etc/pihole for storage
