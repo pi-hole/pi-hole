@@ -92,6 +92,7 @@ if command -v apt-get &> /dev/null; then
     #  >1  if more than one package containing the name
     #      ( might still make restarting the core package necessary )
     ${PKG_MANAGER} -u upgrade --assume-no | grep -c "$1"
+    return 0
   }
 
 elif command -v rpm &> /dev/null; then
@@ -125,6 +126,7 @@ elif command -v rpm &> /dev/null; then
     #  >1  if more than one package containing the name
     #      ( might still make restarting the core package necessary )
     ${PKG_MANAGER} check-update | grep -c "$1"
+    return 0
   }
 
 else
@@ -1111,20 +1113,20 @@ main() {
 
   # Start the installer
   # Verify there is enough disk space for the install
-  if [[ "${skipSpaceCheck}" == true ]]; then
-    echo "::: --i_do_not_follow_recommendations passed to script, skipping free disk space verification!"
-  else
-    verifyFreeDiskSpace
-  fi
+  # if [[ "${skipSpaceCheck}" == true ]]; then
+  #   echo "::: --i_do_not_follow_recommendations passed to script, skipping free disk space verification!"
+  # else
+  #   verifyFreeDiskSpace
+  # fi
 
   # Update package cache
-  update_package_cache
+#  update_package_cache
 
   # Notify user of package availability
-  notify_package_updates_available
+#  notify_package_updates_available
 
   if [ -f /etc/pihole/webupdate.running ] ; then
-    lighttpdupdate="$(package_check_update_available lighttpd)"
+    lighttpdupdate=$(package_check_update_available lighttpd)
     if [[ ${lighttpdupdate} -gt 0 ]]; then
       echo "::: ------------------> WEBUPDATE FAILED <------------------"
       echo ":::"
