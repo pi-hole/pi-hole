@@ -174,6 +174,10 @@ main() {
   if ! ${core_update} && ! ${web_update} ; then
     echo ":::"
     echo "::: Everything is up to date!"
+    # /etc/.pihole/automated\ install/basic-install.sh --unattended
+    if [ -f /etc/pihole/webupdate.running ] ; then
+      rm /etc/pihole/webupdate.running
+    fi
     exit 0
 
   elif ! ${core_update} && ${web_update} ; then
@@ -212,6 +216,10 @@ main() {
   fi
 
   echo ""
+
+  if [ -f /etc/pihole/webupdate.running ] ; then
+    rm /etc/pihole/webupdate.running
+  fi
   exit 0
 
 }

@@ -84,6 +84,16 @@ if command -v apt-get &> /dev/null; then
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
 
+  package_check_update_available() {
+    # Check if package would be upgraded.
+    # return values:
+    #  0   if no
+    #  1   if yes
+    #  >1  if more than one package containing the name
+    #      ( might still make restarting the core package necessary )
+    apt-get -u upgrade --assume-no | grep -c "$1"
+  }
+
 elif command -v rpm &> /dev/null; then
   # Fedora Family
   if command -v dnf &> /dev/null; then
@@ -106,6 +116,16 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
+
+  package_check_update_available() {
+    # Check if package would be upgraded.
+    # return values:
+    #  0   if no
+    #  1   if yes
+    #  >1  if more than one package containing the name
+    #      ( might still make restarting the core package necessary )
+    ${PKG_MANAGER} check-update | grep -c "$1"
+  }
 
 else
   echo "OS distribution not supported"
@@ -667,7 +687,7 @@ stop_service() {
   echo " done."
 }
 
-start_service() {
+restart_service() {
   # Start/Restart service passed in as argument
   # This should not fail, it's an error if it does
   echo ":::"
@@ -1103,6 +1123,24 @@ main() {
   # Notify user of package availability
   notify_package_updates_available
 
+  if [ -f /etc/pihole/webupdate.running ] ; then
+    lighttpdupdate=package_check_update_available "lighttpd"
+    if [[ $lighttpdupdate > 0 ]]; then
+      echo "::: ------------------> WEBUPDATE FAILED <------------------"
+      echo ":::"
+      echo "::: An update for lighttpd is available."
+      echo "::: The webupdate process cannot be continued, since"
+      echo "::: we cannot change webserver settings while running"
+      echo "::: the update via the web user interface!"
+      echo "::: Please update lighttpd manually and continue afterwards!"
+      echo "::: Alternatively, you can also run sudo pihole -up manually"
+      echo "::: which will update lighttpd automatically."
+      echo ":::"
+      echo "::: ------------------> WEBUPDATE FAILED <------------------"
+      exit 1
+    fi
+  fi
+
   # Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
 
@@ -1170,11 +1208,24 @@ main() {
 
   echo "::: Restarting services..."
   # Start services
-  start_service dnsmasq
+  restart_service dnsmasq
   enable_service dnsmasq
-  start_service lighttpd
+  restart_service lighttpd
   enable_service lighttpd
-  echo "::: done."
+
+  # if [ ! -f /etc/pihole/webupdate.running ] ; then
+  #   restart_service lighttpd
+  #   enable_service lighttpd
+  #   echo "::: done."
+  # else
+  #   echo "::: --------------> Please restart the Pi-Hole <--------------"
+  #   echo "::: Pro Tip: You can also only restart the webserver using"
+  #   if [ -x "$(command -v systemctl)" ]; then
+  #     echo ":::          systemctl restart lighttpd"
+  #   else
+  #     echo ":::          service lighttpd restart"
+  #   fi
+  # fi
 
   echo ":::"
   if [[ "${useUpdateVars}" == false ]]; then
