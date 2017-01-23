@@ -92,7 +92,6 @@ if command -v apt-get &> /dev/null; then
     #  >1  if more than one package containing the name
     #      ( might still make restarting the core package necessary )
     ${PKG_MANAGER} -u upgrade --assume-no | grep -c "$1"
-    exit 0
   }
 
 elif command -v rpm &> /dev/null; then
@@ -126,7 +125,6 @@ elif command -v rpm &> /dev/null; then
     #  >1  if more than one package containing the name
     #      ( might still make restarting the core package necessary )
     ${PKG_MANAGER} check-update | grep -c "$1"
-    exit 0
   }
 
 else
@@ -700,7 +698,6 @@ restart_service() {
     service "${1}" restart &> /dev/null
   fi
   echo " done."
-  exit 0
 }
 
 enable_service() {
