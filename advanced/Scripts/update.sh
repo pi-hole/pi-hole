@@ -174,7 +174,6 @@ main() {
   if ! ${core_update} && ! ${web_update} ; then
     echo ":::"
     echo "::: Everything is up to date!"
-    # /etc/.pihole/automated\ install/basic-install.sh --unattended
     if [ -f /etc/pihole/webupdate.running ] ; then
       rm /etc/pihole/webupdate.running
     fi
@@ -194,8 +193,8 @@ main() {
   elif ${core_update} && ${web_update} ; then
     echo ":::"
     echo "::: Updating Everything"
-    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+#    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+    bash -x /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
   else
     echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
     exit 1

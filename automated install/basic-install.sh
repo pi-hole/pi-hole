@@ -91,7 +91,8 @@ if command -v apt-get &> /dev/null; then
     #  1   if yes
     #  >1  if more than one package containing the name
     #      ( might still make restarting the core package necessary )
-    apt-get -u upgrade --assume-no | grep -c "$1"
+    ${PKG_MANAGER} -u upgrade --assume-no | grep -c "$1"
+    exit 0
   }
 
 elif command -v rpm &> /dev/null; then
@@ -125,6 +126,7 @@ elif command -v rpm &> /dev/null; then
     #  >1  if more than one package containing the name
     #      ( might still make restarting the core package necessary )
     ${PKG_MANAGER} check-update | grep -c "$1"
+    exit 0
   }
 
 else
@@ -698,6 +700,7 @@ restart_service() {
     service "${1}" restart &> /dev/null
   fi
   echo " done."
+  exit 0
 }
 
 enable_service() {
@@ -712,7 +715,7 @@ enable_service() {
   echo " done."
 }
 
-update_pacakge_cache() {
+update_package_cache() {
   #Running apt-get update/upgrade with minimal output can cause some issues with
   #requiring user input (e.g password for phpmyadmin see #218)
 
@@ -1118,14 +1121,14 @@ main() {
   fi
 
   # Update package cache
-#  update_pacakge_cache
+  update_package_cache
 
   # Notify user of package availability
-#  notify_package_updates_available
+  notify_package_updates_available
 
   if [ -f /etc/pihole/webupdate.running ] ; then
-    lighttpdupdate=package_check_update_available "lighttpd"
-    if [[ $lighttpdupdate > 0 ]]; then
+    lighttpdupdate="$(package_check_update_available lighttpd)"
+    if [[ ${lighttpdupdate} -gt 0 ]]; then
       echo "::: ------------------> WEBUPDATE FAILED <------------------"
       echo ":::"
       echo "::: An update for lighttpd is available."
@@ -1141,7 +1144,7 @@ main() {
     fi
   fi
 
-  # Install packages used by this installation script
+  Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
 
    # Check if SELinux is Enforcing
@@ -1150,16 +1153,15 @@ main() {
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
-    echo ""
-    # Get Git files for Core and Admin
-    # getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-    #   { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
-    #     exit 1; \
-    #   }
-    # getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-    #   { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
-    #     exit 1; \
-    #   }
+    Get Git files for Core and Admin
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
+    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
   fi
 
   if [[ ${useUpdateVars} == false ]]; then
@@ -1189,9 +1191,9 @@ main() {
   else
     echo ""
     # update packages used by the Pi-hole
-#    install_dependent_packages PIHOLE_DEPS[@]
+    install_dependent_packages PIHOLE_DEPS[@]
 
-#    updatePihole | tee ${tmpLog}
+    updatePihole | tee ${tmpLog}
   fi
 
   # Move the log file into /etc/pihole for storage
@@ -1212,22 +1214,19 @@ main() {
   # Start services
   restart_service dnsmasq
   enable_service dnsmasq
-  restart_service lighttpd
-  enable_service lighttpd
 
-  # if [ ! -f /etc/pihole/webupdate.running ] ; then
-  #   restart_service lighttpd
-  #   enable_service lighttpd
-  #   echo "::: done."
-  # else
-  #   echo "::: --------------> Please restart the Pi-Hole <--------------"
-  #   echo "::: Pro Tip: You can also only restart the webserver using"
-  #   if [ -x "$(command -v systemctl)" ]; then
-  #     echo ":::          systemctl restart lighttpd"
-  #   else
-  #     echo ":::          service lighttpd restart"
-  #   fi
-  # fi
+  if [ ! -f /etc/pihole/webupdate.running ] ; then
+    restart_service lighttpd
+    enable_service lighttpd
+    echo "::: done."
+  else
+    trap "" SIGHUP SIGINT SIGTERM
+    if [ -x "$(command -v systemctl)" ]; then
+      setsid sh -c "nohup systemctl restart lighttpd </dev/null >/dev/null 2>&1 &"
+    else
+      setsid sh -c "nohup service lighttpd reload </dev/null >/dev/null 2>&1 &"
+    fi
+  fi
 
   echo ":::"
   if [[ "${useUpdateVars}" == false ]]; then
