@@ -1144,7 +1144,7 @@ main() {
     fi
   fi
 
-  Install packages used by this installation script
+  # Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
 
    # Check if SELinux is Enforcing
