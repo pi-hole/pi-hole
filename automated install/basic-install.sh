@@ -865,8 +865,10 @@ create_pihole_user() {
 
 configureFirewall() {
   # Allow HTTP and DNS traffic
-  if firewall-cmd --state &> /dev/null; then
-    echo "::: Configuring FirewallD for httpd and dnsmasq.."
+  if [[ $(firewall-cmd --state) == "running" ]]; then
+    whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
+    { echo -e ":::\n::: Not installing firewall rulesets."; return 1; }
+    echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
     firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
     firewall-cmd --reload
     return 0
