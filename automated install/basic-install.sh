@@ -1211,7 +1211,6 @@ main() {
   fi
 
   echo "::: Restarting services..."
-  # Start services
   restart_service dnsmasq
   enable_service dnsmasq
 
