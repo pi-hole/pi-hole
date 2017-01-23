@@ -1214,17 +1214,19 @@ main() {
   enable_service dnsmasq
 
   if [ ! -f /etc/pihole/webupdate.running ] ; then
-    echo "Restarting lighttpd"
     restart_service lighttpd
     enable_service lighttpd
+    echo ""
     echo "::: done."
   else
     trap "" SIGHUP SIGINT SIGTERM
+    echo "Restarting lighttpd...done."
     if [ -x "$(command -v systemctl)" ]; then
       setsid sh -c "nohup systemctl restart lighttpd </dev/null >/dev/null 2>&1 &"
     else
       setsid sh -c "nohup service lighttpd reload </dev/null >/dev/null 2>&1 &"
     fi
+    echo ""
     echo "::: done."
   fi
 
