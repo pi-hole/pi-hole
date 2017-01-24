@@ -84,7 +84,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
 def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
     ''' confirms firewalld rules are not applied when firewallD is not running '''
     # firewallD returns non-running status
-    mock_command('firewall-cmd', 'stopped', '0', Pihole)
+    mock_command('firewall-cmd', '', '1', Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
@@ -95,7 +95,7 @@ def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
 def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
     ''' confirms firewalld rules are not applied when firewallD is running, user declines ruleset '''
     # firewallD returns running status
-    mock_command('firewall-cmd', 'running', '0', Pihole)
+    mock_command('firewall-cmd', '', '0', Pihole)
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', '', '1', Pihole)
     configureFirewall = Pihole.run('''
