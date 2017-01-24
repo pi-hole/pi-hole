@@ -64,7 +64,7 @@ def test_setupVars_saved_to_file(Pihole):
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
 
-def test_configureFirewall_firewalld_no_errors(Pihole):
+def test_configureFirewall_firewalld_running_no_errors(Pihole):
     ''' confirms firewalld rules are applied when appropriate '''
     mock_command('firewall-cmd', 'running', '0', Pihole)
     configureFirewall = Pihole.run('''
