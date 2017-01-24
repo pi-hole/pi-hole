@@ -115,7 +115,7 @@ def test_configureFirewall_no_firewall(Pihole):
     assert expected_stdout in configureFirewall.stdout
 
 def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
-    ''' confirms firewalld rules are not applied when firewallD is running, user declines ruleset '''
+    ''' confirms IPTables rules are not applied when IPTables is running, user declines ruleset '''
     # iptables command exists
     mock_command('iptables', '', '0', Pihole)
     # modinfo returns always true (ip_tables module check)
@@ -128,6 +128,25 @@ def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
     ''')
     expected_stdout = 'Not installing firewall rulesets.'
     assert expected_stdout in configureFirewall.stdout
+
+def test_configureFirewall_IPTables_enabled_no_errors(Pihole):
+    ''' confirms IPTables rules are not applied when IPTables is running '''
+    # iptables command exists
+    mock_command('iptables', '', '0', Pihole)
+    # modinfo returns always true (ip_tables module check)
+    mock_command('modinfo', '', 0, Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', '', '0', Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'Installing new IPTables firewall rulesets'
+    assert expected_stdout in configureFirewall.stdout
+    firewall_calls = Pihole.run('cat /var/log/iptables').stdout
+    assert 'iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT' in firewall_calls
+    assert 'iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' in firewall_calls
+    assert 'iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' in firewall_calls
 
 # Helper functions
 def mock_command(script, result, retVal, container):
