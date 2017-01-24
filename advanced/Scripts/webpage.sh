@@ -232,9 +232,12 @@ dhcp-authoritative
 dhcp-range=${DHCP_START},${DHCP_END},${leasetime}
 dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
-domain=${PIHOLE_DOMAIN}
 #quiet-dhcp
 " > "${dhcpconfig}"
+
+if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
+	echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
+fi
 
 	if [[ "${DHCP_IPv6}" == "true" ]]; then
 echo "#quiet-dhcp6
@@ -246,7 +249,7 @@ ra-param=*,0,0
 	fi
 
 	else
-		rm "${dhcpconfig}"
+		rm "${dhcpconfig}" &> /dev/null
 	fi
 }
 

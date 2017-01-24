@@ -361,9 +361,20 @@ files_check "${ADLISTFILE}"
 
 header_write "Analyzing gravity.list"
 
-	gravity_length=$(wc -l "${GRAVITYFILE}") \
+	gravity_length=$(grep -c ^ "${GRAVITYFILE}") \
 	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
 	|| log_echo "Warning: No gravity.list file found!"
+
+header_write "Analyzing pihole.log"
+
+  pihole_length=$(grep -c ^ "${PIHOLELOG}") \
+  && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
+  || log_echo "Warning: No pihole.log file found!"
+
+  pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
+  && log_write "${PIHOLELOG} is ${pihole_size}." \
+  || log_echo "Warning: No pihole.log file found!"
+
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
