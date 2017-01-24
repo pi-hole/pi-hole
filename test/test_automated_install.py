@@ -65,8 +65,10 @@ def test_setupVars_saved_to_file(Pihole):
         assert "{}={}".format(k, v) in output
 
 def test_configureFirewall_firewalld_running_no_errors(Pihole):
-    ''' confirms firewalld rules are applied when appropriate '''
+    ''' confirms firewalld rules are applied when firewallD is running '''
+    # firewallD returns 'running' as status
     mock_command('firewall-cmd', 'running', '0', Pihole)
+    # Whiptail dialog returns Ok for user prompt
     mock_command('whiptail', '', '0', Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
@@ -78,6 +80,30 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     assert 'firewall-cmd --state' in firewall_calls
     assert 'firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp' in firewall_calls
     assert 'firewall-cmd --reload' in firewall_calls
+
+def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
+    ''' confirms firewalld rules are not applied when firewallD is not running '''
+    # firewallD returns non-running status
+    mock_command('firewall-cmd', 'stopped', '0', Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'No active firewall detected.. skipping firewall configuration.'
+    assert expected_stdout in configureFirewall.stdout
+
+def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
+    ''' confirms firewalld rules are not applied when firewallD is running, user declines ruleset '''
+    # firewallD returns running status
+    mock_command('firewall-cmd', 'running', '0', Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', '', '1', Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'Not installing firewall rulesets.'
+    assert expected_stdout in configureFirewall.stdout
 
 # Helper functions
 def mock_command(script, result, retVal, container):
