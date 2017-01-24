@@ -64,7 +64,7 @@ def test_setupVars_saved_to_file(Pihole):
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
 
-def test_configureFirewall_firewalld_running_no_errors(Pihole):
+def test_configureFirewall_firewalld_no_errors(Pihole):
     ''' confirms firewalld rules are applied when appropriate '''
     mock_command('firewall-cmd', 'running', '0', Pihole)
     configureFirewall = Pihole.run('''
@@ -83,18 +83,17 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
 def mock_command(script, result, retVal, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
     ''' TODO: support array of results that enable the results to change over multiple executions of a command '''
-    container.run('''
-    cat <<EOF> {script}\n{content}\nEOF
-    echo {result}
-    chmod +x {script}
-    '''.format(script=full_script_path, content=mock_script, result=result))
     full_script_path = '/usr/local/bin/{}'.format(script)
     mock_script = dedent('''\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
-
+    echo {result}
     exit {retcode}
-    '''.format(script=script, retcode=retVal))
+    '''.format(script=script, result=result,retcode=retVal))
+    container.run('''
+    cat <<EOF> {script}\n{content}\nEOF
+    chmod +x {script}
+    '''.format(script=full_script_path, content=mock_script))
 
 def run_script(Pihole, script):
     result = Pihole.run(script)
