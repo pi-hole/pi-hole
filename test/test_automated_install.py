@@ -105,6 +105,15 @@ def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
     expected_stdout = 'Not installing firewall rulesets.'
     assert expected_stdout in configureFirewall.stdout
 
+def test_configureFirewall_iptables_baseline(Pihole):
+    ''' confirms IPTables rules are not applied when firewallD is not running '''
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'Filler Text'
+    assert expected_stdout in configureFirewall.stdout
+
 # Helper functions
 def mock_command(script, result, retVal, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
