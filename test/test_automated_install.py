@@ -64,7 +64,7 @@ def test_setupVars_saved_to_file(Pihole):
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
 
-def test_configureFirewall_firewalld_no_errors(Pihole):
+def test_configureFirewall_firewalld_running_no_errors(Pihole):
     ''' confirms firewalld rules are applied when appropriate '''
     mock_command('firewall-cmd', 'running', '0', Pihole)
     mock_command('whiptail', '', '0', Pihole)
@@ -79,6 +79,15 @@ def test_configureFirewall_firewalld_no_errors(Pihole):
     assert 'firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp' in firewall_calls
     assert 'firewall-cmd --reload' in firewall_calls
 
+def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
+    ''' confirms firewalld rules are applied when appropriate '''
+    mock_command('firewall-cmd', 'stopped', '0', Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'No active firewall detected.. skipping firewall configuration.'
+    assert expected_stdout in configureFirewall.stdout
 
 # Helper functions
 def mock_command(script, result, retVal, container):
