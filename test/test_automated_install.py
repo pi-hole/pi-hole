@@ -105,13 +105,13 @@ def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
     expected_stdout = 'Not installing firewall rulesets.'
     assert expected_stdout in configureFirewall.stdout
 
-def test_configureFirewall_iptables_baseline(Pihole):
-    ''' confirms IPTables rules are not applied when firewallD is not running '''
+def test_configureFirewall_no_firewall(Pihole):
+    ''' confirms firewall skipped no daemon is running '''
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = 'Filler Text'
+    expected_stdout = 'No active firewall detected'
     assert expected_stdout in configureFirewall.stdout
 
 # Helper functions
