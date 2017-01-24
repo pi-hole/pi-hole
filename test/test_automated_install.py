@@ -116,8 +116,10 @@ def test_configureFirewall_no_firewall(Pihole):
 
 def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
     ''' confirms firewalld rules are not applied when firewallD is running, user declines ruleset '''
-    # firewallD returns running status
-    mock_command('IPTables', 'running', '0', Pihole)
+    # iptables command exists
+    mock_command('iptables', '', '0', Pihole)
+    # modinfo returns always true (ip_tables module check)
+    mock_command('modinfo', '', 0, Pihole)
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', '', '1', Pihole)
     configureFirewall = Pihole.run('''
