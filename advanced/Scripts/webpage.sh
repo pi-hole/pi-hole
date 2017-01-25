@@ -361,8 +361,8 @@ main() {
 		"-h" | "--help"     ) helpFunc;;
 		"privacymode"       ) SetPrivacyMode;;
 		"resolve"           ) ResolutionSettings;;
-		"addstatic"         ) AddDHCPStaticAddress;;
-		"removestatic"      ) RemoveDHCPStaticAddress;;
+		"addstaticdhcp"     ) AddDHCPStaticAddress;;
+		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
 		*                   ) helpFunc;;
 	esac
 
