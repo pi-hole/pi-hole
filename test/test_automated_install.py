@@ -163,8 +163,9 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # Only check the first rule, since iptables returns a 1 from the mock command.
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT' in firewall_calls
+    assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' in firewall_calls
+    assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' in firewall_calls
 
 # Helper functions
 def mock_command(script, args, container):
