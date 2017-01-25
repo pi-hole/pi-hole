@@ -323,14 +323,21 @@ AddDHCPStaticAddress() {
 
 	if [[ "${ip}" == "noip" ]]; then
 		# Static host name
-		echo "dhcp-host=${mac},${host}" >> "dhcpstaticconfig"
+		echo "dhcp-host=${mac},${host}" >> "${dhcpstaticconfig}"
 	elif [[ "${host}" == "nohost" ]]; then
 		# Static IP
-		echo "dhcp-host=${mac},${ip}" >> "dhcpstaticconfig"
+		echo "dhcp-host=${mac},${ip}" >> "${dhcpstaticconfig}"
 	else
 		# Full info given
-		echo "dhcp-host=${mac},${ip},${host}" >> "dhcpstaticconfig"
+		echo "dhcp-host=${mac},${ip},${host}" >> "${dhcpstaticconfig}"
 	fi
+}
+
+RemoveDHCPStaticAddress() {
+
+	mac="${args[2]}"
+	sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
+
 }
 
 main() {
@@ -355,6 +362,7 @@ main() {
 		"privacymode"       ) SetPrivacyMode;;
 		"resolve"           ) ResolutionSettings;;
 		"addstatic"         ) AddDHCPStaticAddress;;
+		"removestatic"      ) RemoveDHCPStaticAddress;;
 		*                   ) helpFunc;;
 	esac
 
