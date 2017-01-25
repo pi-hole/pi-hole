@@ -12,6 +12,8 @@
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
+# 03 -> wildcards
+readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
 helpFunc() {
 	cat << EOM
@@ -313,6 +315,24 @@ ResolutionSettings() {
 	fi
 }
 
+AddDHCPStaticAddress() {
+
+	mac="${args[2]}"
+	ip="${args[3]}"
+	host="${args[4]}"
+
+	if [[ "${ip}" == "noip" ]]; then
+		# Static host name
+		echo "dhcp-host=${mac},${host}" >> "dhcpstaticconfig"
+	elif [[ "${host}" == "nohost" ]]; then
+		# Static IP
+		echo "dhcp-host=${mac},${ip}" >> "dhcpstaticconfig"
+	else
+		# Full info given
+		echo "dhcp-host=${mac},${ip},${host}" >> "dhcpstaticconfig"
+	fi
+}
+
 main() {
 
 	args=("$@")
@@ -334,6 +354,7 @@ main() {
 		"-h" | "--help"     ) helpFunc;;
 		"privacymode"       ) SetPrivacyMode;;
 		"resolve"           ) ResolutionSettings;;
+		"addstatic"         ) AddDHCPStaticAddress;;
 		*                   ) helpFunc;;
 	esac
 
