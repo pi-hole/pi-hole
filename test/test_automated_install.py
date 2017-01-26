@@ -64,35 +64,130 @@ def test_setupVars_saved_to_file(Pihole):
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
 
-def test_configureFirewall_firewalld_no_errors(Pihole):
-    ''' confirms firewalld rules are applied when appopriate '''
-    mock_command('firewall-cmd', '0', Pihole)
+def test_configureFirewall_firewalld_running_no_errors(Pihole):
+    ''' confirms firewalld rules are applied when firewallD is running '''
+    # firewallD returns 'running' as status
+    mock_command('firewall-cmd', {'*':('running', 0)}, Pihole)
+    # Whiptail dialog returns Ok for user prompt
+    mock_command('whiptail', {'*':('', 0)}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = '::: Configuring FirewallD for httpd and dnsmasq.'
+    expected_stdout = 'Configuring FirewallD for httpd and dnsmasq.'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
     assert 'firewall-cmd --state' in firewall_calls
     assert 'firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp' in firewall_calls
     assert 'firewall-cmd --reload' in firewall_calls
 
+def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
+    ''' confirms firewalld rules are not applied when firewallD is not running '''
+    # firewallD returns non-running status
+    mock_command('firewall-cmd', {'*':('not running', '1')}, Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'No active firewall detected.. skipping firewall configuration.'
+    assert expected_stdout in configureFirewall.stdout
+
+def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
+    ''' confirms firewalld rules are not applied when firewallD is running, user declines ruleset '''
+    # firewallD returns running status
+    mock_command('firewall-cmd', {'*':('running', 0)}, Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*':('', 1)}, Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'Not installing firewall rulesets.'
+    assert expected_stdout in configureFirewall.stdout
+
+def test_configureFirewall_no_firewall(Pihole):
+    ''' confirms firewall skipped no daemon is running '''
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'No active firewall detected'
+    assert expected_stdout in configureFirewall.stdout
+
+def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
+    ''' confirms IPTables rules are not applied when IPTables is running, user declines ruleset '''
+    # iptables command exists
+    mock_command('iptables', {'*':('', '0')}, Pihole)
+    # modinfo returns always true (ip_tables module check)
+    mock_command('modinfo', {'*':('', '0')}, Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*':('', '1')}, Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'Not installing firewall rulesets.'
+    assert expected_stdout in configureFirewall.stdout
+
+def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
+    ''' confirms IPTables rules are not applied when IPTables is running and rules exist '''
+    # iptables command exists and returns 0 on calls (should return 0 on iptables -C)
+    mock_command('iptables', {'-S':('-P INPUT DENY', '0')}, Pihole)
+    # modinfo returns always true (ip_tables module check)
+    mock_command('modinfo', {'*':('', '0')}, Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*':('', '0')}, Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'Installing new IPTables firewall rulesets'
+    assert expected_stdout in configureFirewall.stdout
+    firewall_calls = Pihole.run('cat /var/log/iptables').stdout
+    assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT' not in firewall_calls
+    assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' not in firewall_calls
+    assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' not in firewall_calls
+
+def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
+    ''' confirms IPTables rules are applied when IPTables is running and rules do not exist '''
+    # iptables command and returns 0 on calls (should return 1 on iptables -C)
+    mock_command('iptables', {'-S':('-P INPUT DENY', '0'), '-C':('', 1), '-I':('', 0)}, Pihole)
+    # modinfo returns always true (ip_tables module check)
+    mock_command('modinfo', {'*':('', '0')}, Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*':('', '0')}, Pihole)
+    configureFirewall = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    configureFirewall
+    ''')
+    expected_stdout = 'Installing new IPTables firewall rulesets'
+    assert expected_stdout in configureFirewall.stdout
+    firewall_calls = Pihole.run('cat /var/log/iptables').stdout
+    assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT' in firewall_calls
+    assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' in firewall_calls
+    assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' in firewall_calls
 
 # Helper functions
-def mock_command(script, result, container):
+def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
-    ''' TODO: support array of results that enable the results to change over multiple executions of a command '''
     full_script_path = '/usr/local/bin/{}'.format(script)
     mock_script = dedent('''\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
-    exit {retcode}
-    '''.format(script=script, retcode=result))
+    case "\$1" in'''.format(script=script))
+    for k, v in args.iteritems():
+        case = dedent('''
+        {arg})
+        echo {res}
+        exit {retcode}
+        ;;'''.format(arg=k, res=v[0], retcode=v[1]))
+        mock_script += case
+    mock_script += dedent('''
+    esac''')
     container.run('''
     cat <<EOF> {script}\n{content}\nEOF
     chmod +x {script}
-    '''.format(script=full_script_path, content=mock_script))
+    rm -f /var/log/{scriptlog}'''.format(script=full_script_path, content=mock_script, scriptlog=script))
 
 def run_script(Pihole, script):
     result = Pihole.run(script)
