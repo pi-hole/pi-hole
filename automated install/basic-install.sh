@@ -881,7 +881,7 @@ configureFirewall() {
   # Allow HTTP and DNS traffic
   if firewall-cmd --state &> /dev/null; then
     whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
-    { echo -e ":::\n::: Not installing firewall rulesets."; return 1; }
+    { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
     echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
     firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
     firewall-cmd --reload
@@ -892,7 +892,7 @@ configureFirewall() {
     # then check and insert our Rules above the DROP/REJECT Rule.
     if iptables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
       whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
-      { echo -e ":::\n::: Not installing firewall rulesets."; return 1; }
+      { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
       echo -e ":::\n::: Installing new IPTables firewall rulesets."
       # Check chain first, otherwise a new rule will duplicate old ones
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
