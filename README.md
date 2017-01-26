@@ -55,17 +55,11 @@ bash basic-install.sh
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
-## Installing the Pi-hole (Click to Watch!)
+## What is Pi-hole and how do I install it?
 <p align="center">
-<a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://assets.pi-hole.net/static/global.png"></a>
+<a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/global.png"></a>
 </p>
 
-## Would you like to know more?
-
-**Watch the 60-second video below to get a quick overview**
-<p align="center">
-<a href=https://youtu.be/9Eti3xibiho><img src="https://assets.pi-hole.net/static/blackhole_web.png"></a>
-</p>
 
 ## Get Help Or Connect With Us On The Web
 
