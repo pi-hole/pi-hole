@@ -934,6 +934,18 @@ finalExports() {
   fi
 }
 
+installLogrotate() {
+  # Install the logrotate script
+  echo ":::"
+  echo -n "::: Installing latest logrotate script..."
+  cp /etc/.pihole/advanced/logrotate /etc/pihole/logrotate
+  # Raspbian will use the default "su root root"
+  # Ubuntu will use a custom user/group "su root syslog"
+  # We read the global config file and copy what we find into our file
+  echo $(sed '/^su/!d' /etc/logrotate.conf) >> /etc/pihole/logrotate
+  echo " done!"
+}
+
 installPihole() {
   # Install base files and web interface
   create_pihole_user
@@ -953,6 +965,7 @@ installPihole() {
   CreateLogFile
   installPiholeWeb
   installCron
+  installLogrotate
   configureFirewall
   finalExports
   runGravity
@@ -983,6 +996,7 @@ updatePihole() {
   CreateLogFile
   installPiholeWeb
   installCron
+  installLogrotate
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   runGravity
 }
