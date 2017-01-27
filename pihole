@@ -69,11 +69,6 @@ updateGravityFunc() {
   exit 0
 }
 
-setupLCDFunction() {
-  "${PI_HOLE_SCRIPT_DIR}"/setupLCD.sh
-  exit 0
-}
-
 scanList(){
   domain="${1}"
   list="${2}"
@@ -287,7 +282,6 @@ helpFunc() {
 :::  -up, updatePihole        Update Pi-hole
 :::  -r, reconfigure          Reconfigure or Repair Pi-hole
 :::  -g, updateGravity        Update the list of ad-serving domains
-:::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it
 :::  -c, chronometer          Calculates stats and displays to an LCD
 :::  -h, help                 Show this help dialog
 :::  -v, version              Show current versions
@@ -320,7 +314,6 @@ case "${1}" in
   "-up" | "updatePihole"        ) updatePiholeFunc;;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
-  "-s" | "setupLCD"             ) setupLCDFunction;;
   "-c" | "chronometer"          ) chronometerFunc "$@";;
   "-h" | "help"                 ) helpFunc;;
   "-v" | "version"              ) versionFunc "$@";;
