@@ -939,10 +939,16 @@ installLogrotate() {
   echo ":::"
   echo -n "::: Installing latest logrotate script..."
   cp /etc/.pihole/advanced/logrotate /etc/pihole/logrotate
-  # Raspbian will use the default "su root root"
-  # Ubuntu will use a custom user/group "su root syslog"
-  # We read the global config file and copy what we find into our file
-  echo $(sed '/^su/!d' /etc/logrotate.conf) >> /etc/pihole/logrotate
+  # Different operating systems have different user / group
+  # settings for logrotate that makes it impossible to create
+  # a static logrotate file that will work with e.g.
+  # Rasbian and Ubuntu at the same time. Hence, we have to
+  # customize the logrotate script here in order to reflect
+  # the local properties of the /var/log directory
+  logusergroup="$(stat -c '%U %G' /var/log)"
+  if [[ ! -z $logusergroup ]]; then
+    echo "su ${logusergroup}" >> /etc/pihole/logrotate
+  fi
   echo " done!"
 }
 
