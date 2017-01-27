@@ -66,11 +66,11 @@ HandleOther(){
 	domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
 
 	#check validity of domain
-	validDomain=$(echo "${domain}" | grep -P '^(?!.*[^a-z0-9-\.].*)\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b')
+	validDomain=$(echo "${domain}" | perl -lne 'print $1 if /^(?!.*[^a-z0-9-\.].*)\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/')
 	if [ -z "${validDomain}" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
-		domList=("${domList[@]}" ${validDomain})
+		domList=("${domList[@]}" ${domain})
 	fi
 }
 
