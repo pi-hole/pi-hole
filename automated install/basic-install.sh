@@ -934,6 +934,24 @@ finalExports() {
   fi
 }
 
+installLogrotate() {
+  # Install the logrotate script
+  echo ":::"
+  echo -n "::: Installing latest logrotate script..."
+  cp /etc/.pihole/advanced/logrotate /etc/pihole/logrotate
+  # Different operating systems have different user / group
+  # settings for logrotate that makes it impossible to create
+  # a static logrotate file that will work with e.g.
+  # Rasbian and Ubuntu at the same time. Hence, we have to
+  # customize the logrotate script here in order to reflect
+  # the local properties of the /var/log directory
+  logusergroup="$(stat -c '%U %G' /var/log)"
+  if [[ ! -z $logusergroup ]]; then
+    echo "su ${logusergroup}" >> /etc/pihole/logrotate
+  fi
+  echo " done!"
+}
+
 installPihole() {
   # Install base files and web interface
   create_pihole_user
@@ -953,6 +971,7 @@ installPihole() {
   CreateLogFile
   installPiholeWeb
   installCron
+  installLogrotate
   configureFirewall
   finalExports
   runGravity
@@ -983,6 +1002,7 @@ updatePihole() {
   CreateLogFile
   installPiholeWeb
   installCron
+  installLogrotate
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   runGravity
 }
