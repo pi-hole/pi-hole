@@ -1215,11 +1215,11 @@ main() {
     # Clone/Update the repos
     clone_or_update_repos
 
-    # Install packages used by the Pi-hole
+       # Install packages used by the Pi-hole
     if [[ ${INSTALL_WEB} == true ]]; then
-      DEPS=("${PIHOLE_DEPS}" "${PIHOLE_WEB_DEPS}")
+      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
     else
-      DEPS=("${PIHOLE_DEPS}")
+      DEPS=("${PIHOLE_DEPS[@]}")
     fi
     install_dependent_packages DEPS[@]
 
@@ -1232,9 +1232,9 @@ main() {
 
      # Install packages used by the Pi-hole
     if [[ ${INSTALL_WEB} == true ]]; then
-      DEPS=("${PIHOLE_DEPS}" "${PIHOLE_WEB_DEPS}")
+      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
     else
-      DEPS=("${PIHOLE_DEPS}")
+      DEPS=("${PIHOLE_DEPS[@]}")
     fi
     install_dependent_packages DEPS[@]
 
