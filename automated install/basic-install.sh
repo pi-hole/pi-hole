@@ -809,21 +809,23 @@ installPiholeWeb() {
     if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
       echo ":::     Existing blockingpage.css detected, not overwriting"
     else
-      echo -n ":::     index.css missing, replacing... "
+      echo -n ":::     blockingpage.css missing, replacing... "
       cp /etc/.pihole/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
 
   else
-    mkdir /var/www/html/pihole
+    echo ":::     Creating directory for blocking page"
+    install -d /var/www/html/pihole
+    install -D /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
       printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
     fi
-    cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
     echo " done!"
   fi
+
   # Install Sudoer file
   echo ":::"
   echo -n "::: Installing sudoer file..."
