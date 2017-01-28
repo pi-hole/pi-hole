@@ -815,7 +815,7 @@ installPiholeWeb() {
     fi
 
   else
-    mkdir /var/www/html/pihole
+    mkdir -p /var/www/html/pihole
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
