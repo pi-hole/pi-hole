@@ -1169,7 +1169,6 @@ main() {
       { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
         exit 1; \
       }
-      #TODO: Check if web flag is set here
     getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
       { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
         exit 1; \
@@ -1199,12 +1198,18 @@ main() {
 
     # Install packages used by the Pi-hole
     install_dependent_packages PIHOLE_DEPS[@]
+    if [[ ${INSTALL_WEB} == true ]]; then
+      install_dependent_packages PIHOLE_WEB_DEPS[@]
+    fi
 
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
   else
     # update packages used by the Pi-hole
     install_dependent_packages PIHOLE_DEPS[@]
+    if [[ ${INSTALL_WEB} == true ]]; then
+      install_dependent_packages PIHOLE_WEB_DEPS[@]
+    fi
 
     updatePihole | tee ${tmpLog}
   fi
