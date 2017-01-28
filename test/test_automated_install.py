@@ -274,6 +274,15 @@ def test_installPiholeWeb_already_populated_no_errors(Pihole):
     assert 'index.js' in web_directory
     assert 'blockingpage.css' in web_directory
 
+def test_update_package_cache_success_no_errors(Pihole):
+    ''' confirms package cache was updated without any errors'''
+    updateCache = Pihole.run('''
+    source /opt/pihole/basick-install.sh
+    update_pacakge_cache
+    ''')
+    assert 'Updating local cache of available packages...' in updateCache.stdout
+    assert 'done!' in updateCache.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''

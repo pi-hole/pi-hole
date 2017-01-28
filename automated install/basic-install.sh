@@ -701,8 +701,9 @@ update_pacakge_cache() {
 
   echo ":::"
   echo -n "::: Updating local cache of available packages..."
-  ${UPDATE_PKG_CACHE} &> /dev/null
-  echo " done!"
+  if ${UPDATE_PKG_CACHE}; then
+    echo " done!"
+  fi
 }
 
 notify_package_updates_available() {
