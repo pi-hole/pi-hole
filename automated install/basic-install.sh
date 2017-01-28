@@ -1055,6 +1055,13 @@ checkSelinux() {
 }
 
 displayFinalMessage() {
+
+   if [[ ${INSTALL_WEB} == true ]]; then
+       additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
+
+Your Admin Webpage login password is ${1:-"NOT SET"}"
+   fi
+
   # Final completion message to user
   whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
@@ -1064,9 +1071,8 @@ IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
-View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
-Your Admin Webpage login password is ${1:-"NOT SET"}" ${r} ${c}
+${additional}" ${r} ${c}
 }
 
 update_dialogs() {
