@@ -821,7 +821,7 @@ installPiholeWeb() {
     else
       printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
     fi
-    cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
+    install /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/.
     echo " done!"
   fi
   # Install Sudoer file
