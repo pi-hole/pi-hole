@@ -283,6 +283,16 @@ def test_update_package_cache_success_no_errors(Pihole):
     assert 'Updating local cache of available packages...' in updateCache.stdout
     assert 'done!' in updateCache.stdout
 
+def test_update_package_cache_failure_no_errors(Pihole):
+    ''' confirms package cache was updated without any errors'''
+    mock_command(apt-get, {'*':('', '1')}, Pihole)
+    updateCache = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    update_package_cache
+    ''')
+    assert 'Updating local cache of available packages...' in updateCache.stdout
+    assert 'done!' not in updateCache.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
