@@ -692,7 +692,7 @@ enable_service() {
   echo " done."
 }
 
-update_pacakge_cache() {
+update_package_cache() {
   #Running apt-get update/upgrade with minimal output can cause some issues with
   #requiring user input (e.g password for phpmyadmin see #218)
 
@@ -1128,7 +1128,7 @@ main() {
   fi
 
   # Update package cache
-  update_pacakge_cache
+  update_package_cache
 
   # Notify user of package availability
   notify_package_updates_available

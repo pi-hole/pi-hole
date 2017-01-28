@@ -278,7 +278,7 @@ def test_update_package_cache_success_no_errors(Pihole):
     ''' confirms package cache was updated without any errors'''
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    update_pacakge_cache
+    update_package_cache
     ''')
     assert 'Updating local cache of available packages...' in updateCache.stdout
     assert 'done!' in updateCache.stdout
