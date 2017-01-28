@@ -34,6 +34,8 @@ useUpdateVars=false
 IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
+INSTALL_WEB=true
+
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
@@ -70,7 +72,7 @@ if command -v apt-get &> /dev/null; then
   else
     iproute_pkg="iproute"
   fi
-  # Prefer the php metapackage if it's there, fall back on the php5 pacakges
+  # Prefer the php metapackage if it's there, fall back on the php5 packages
   if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
     phpVer="php"
   else
@@ -543,6 +545,27 @@ setLogging() {
     esac
 }
 
+setAdminFlag() {
+  local WebToggleCommand
+  local WebChooseOptions
+  local WebChoices
+
+  WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web admin interface?" ${r} ${c} 6)
+  WebChooseOptions=("On (Recommended)" "" on
+      Off "" off)
+  WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (echo "::: Cancel selected. Exiting..." && exit 1)
+    case ${WebChoices} in
+      "On (Recommended)")
+        echo "::: Web Interface On."
+        INSTALL_WEB=true
+        ;;
+      Off)
+        echo "::: Web Interface off."
+        INSTALL_WEB=false
+        ;;
+    esac
+}
+
 
 version_check_dnsmasq() {
   # Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
@@ -920,6 +943,7 @@ finalExports() {
   echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
+  echo "INSTALL_WEB=${INSTALL_WEB}"
     }>> "${setupVars}"
 
   # Look for DNS server settings which would have to be reapplied
@@ -1168,6 +1192,8 @@ main() {
     setDNS
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
     use4andor6
+    # Let the user decide if they want the web interface to be installed automatically
+    setAdminFlag
     # Let the user decide if they want query logging enabled...
     setLogging
 
