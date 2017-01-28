@@ -994,7 +994,9 @@ installPihole() {
   installScripts
   installConfigs
   CreateLogFile
-  installPiholeWeb
+  if [[ ${INSTALL_WEB} == true ]]; then
+    installPiholeWeb
+  fi
   installCron
   installLogrotate
   configureFirewall
@@ -1025,7 +1027,9 @@ updatePihole() {
   installScripts
   installConfigs
   CreateLogFile
-  installPiholeWeb
+  if [[ ${INSTALL_WEB} == true ]]; then
+    installPiholeWeb
+  fi
   installCron
   installLogrotate
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
@@ -1188,7 +1192,9 @@ main() {
     mkdir -p /etc/pihole/
     # Stop resolver and webserver while installing proceses
     stop_service dnsmasq
-    stop_service lighttpd
+    if [[ ${INSTALL_WEB} == true ]]; then
+      stop_service lighttpd
+    fi
     # Determine available interfaces
     get_available_interfaces
     # Find interfaces and let the user choose one
@@ -1227,24 +1233,30 @@ main() {
   # Move the log file into /etc/pihole for storage
   mv ${tmpLog} ${instalLogLoc}
 
-  # Add password to web UI if there is none
-  pw=""
-  if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
-      pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-      /usr/local/bin/pihole -a -p "${pw}"
-  fi
-
-  if [[ "${useUpdateVars}" == false ]]; then
-      displayFinalMessage "${pw}"
+  if [[ ${INSTALL_WEB} == true ]]; then
+    # Add password to web UI if there is none
+    pw=""
+    if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
+        pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
+        /usr/local/bin/pihole -a -p "${pw}"
+    fi
   fi
 
   echo "::: Restarting services..."
   # Start services
   start_service dnsmasq
   enable_service dnsmasq
-  start_service lighttpd
-  enable_service lighttpd
+
+  if [[ ${INSTALL_WEB} == true ]]; then
+    start_service lighttpd
+    enable_service lighttpd
+  fi
+
   echo "::: done."
+
+  if [[ "${useUpdateVars}" == false ]]; then
+      displayFinalMessage "${pw}"
+  fi
 
   echo ":::"
   if [[ "${useUpdateVars}" == false ]]; then
@@ -1253,19 +1265,23 @@ main() {
     echo ":::     ${IPV6_ADDRESS}"
     echo ":::"
     echo "::: If you set a new IP address, you should restart the Pi."
-    echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
+    if [[ ${INSTALL_WEB} == true ]]; then
+      echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
+    fi
   else
     echo "::: Update complete!"
   fi
 
-  if (( ${#pw} > 0 )) ; then
-    echo ":::"
-    echo "::: Note: As security measure a password has been installed for your web interface"
-    echo "::: The currently set password is"
-    echo ":::                                ${pw}"
-    echo ":::"
-    echo "::: You can always change it using"
-    echo ":::                                pihole -a -p new_password"
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if (( ${#pw} > 0 )) ; then
+      echo ":::"
+      echo "::: Note: As security measure a password has been installed for your web interface"
+      echo "::: The currently set password is"
+      echo ":::                                ${pw}"
+      echo ":::"
+      echo "::: You can always change it using"
+      echo ":::                                pihole -a -p new_password"
+    fi
   fi
 
   echo ":::"
