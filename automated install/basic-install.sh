@@ -1096,6 +1096,25 @@ update_dialogs() {
     esac
 }
 
+clone_or_update_repos() {
+if [[ "${reconfigure}" == true ]]; then
+      echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
+    else
+      # Get Git files for Core and Admin
+      getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+        { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+          exit 1; \
+        }
+
+      if [[ ${INSTALL_WEB} == true ]]; then
+        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+        { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+          exit 1; \
+        }
+      fi
+    fi
+}
+
 main() {
 
   ######## FIRST CHECK ########
@@ -1161,19 +1180,6 @@ main() {
    # Check if SELinux is Enforcing
   checkSelinux
 
-  if [[ "${reconfigure}" == true ]]; then
-    echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
-  else
-    # Get Git files for Core and Admin
-    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
-        exit 1; \
-      }
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
-        exit 1; \
-      }
-  fi
 
   if [[ ${useUpdateVars} == false ]]; then
     # Display welcome dialogs
@@ -1195,6 +1201,8 @@ main() {
     setAdminFlag
     # Let the user decide if they want query logging enabled...
     setLogging
+    # Clone/Update the repos
+    clone_or_update_repos
 
     # Install packages used by the Pi-hole
     install_dependent_packages PIHOLE_DEPS[@]
@@ -1205,6 +1213,8 @@ main() {
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
   else
+    # Clone/Update the repos
+    clone_or_update_repos
     # update packages used by the Pi-hole
     install_dependent_packages PIHOLE_DEPS[@]
     if [[ ${INSTALL_WEB} == true ]]; then
