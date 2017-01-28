@@ -285,7 +285,7 @@ def test_update_package_cache_success_no_errors(Pihole):
 
 def test_update_package_cache_failure_no_errors(Pihole):
     ''' confirms package cache was updated without any errors'''
-    mock_command(apt-get, {'*':('', '1')}, Pihole)
+    mock_command('apt-get', {'*':('', '1')}, Pihole)
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
     update_package_cache
