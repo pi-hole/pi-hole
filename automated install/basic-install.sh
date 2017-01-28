@@ -1198,6 +1198,10 @@ main() {
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
 
+    stop_service dnsmasq
+    if [[ ${INSTALL_WEB} == true ]]; then
+      stop_service lighttpd
+    fi
     # Determine available interfaces
     get_available_interfaces
     # Find interfaces and let the user choose one
