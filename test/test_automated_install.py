@@ -251,6 +251,29 @@ def test_installPiholeWeb_blockingpage_css_no_errors(Pihole):
     assert 'index.js' in web_directory
     assert 'blockingpage.css' in web_directory
 
+def test_installPiholeWeb_already_populated_no_errors(Pihole):
+    ''' confirms all web page assets from Core repo are installed when necessary '''
+    installWeb = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    mkdir -p /var/www/html/pihole
+    touch /var/www/html/pihole/index.php
+    touch /var/www/html/pihole/index.js
+    touch /var/www/html/pihole/blockingpage.css
+    installPiholeWeb
+    ''')
+    assert 'Installing pihole custom index page...' in installWeb.stdout
+    assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
+    assert 'Existing index.php detected, not overwriting' in installWeb.stdout
+    assert 'index.php missing, replacing...' not in installWeb.stdout
+    assert 'Existing index.js detected, not overwriting' in installWeb.stdout
+    assert 'index.js missing, replacing...' not in installWeb.stdout
+    assert 'Existing blockingpage.css detected, not overwriting' in installWeb.stdout
+    assert 'blockingpage.css missing, replacing... ' not in installWeb.stdout
+    web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
+    assert 'index.php' in web_directory
+    assert 'index.js' in web_directory
+    assert 'blockingpage.css' in web_directory
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
