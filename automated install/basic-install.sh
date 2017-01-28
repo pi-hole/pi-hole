@@ -815,15 +815,17 @@ installPiholeWeb() {
     fi
 
   else
-    mkdir -p /var/www/html/pihole
+    echo ":::     Creating directory for blocking page"
+    install -d /var/www/html/pihole
+    install -D /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
       printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
     fi
-    install /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/.
     echo " done!"
   fi
+
   # Install Sudoer file
   echo ":::"
   echo -n "::: Installing sudoer file..."
