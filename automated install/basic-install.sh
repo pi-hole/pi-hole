@@ -78,7 +78,8 @@ if command -v apt-get &> /dev/null; then
   fi
   # #########################################
   INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git whiptail)
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${iproute_pkg} iputils-ping lighttpd lsof netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${iproute_pkg} iputils-ping lsof netcat sudo unzip wget)
+  PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi}
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -97,8 +98,8 @@ elif command -v rpm &> /dev/null; then
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
-
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget)
+  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli)
   if ! grep -q 'Fedora' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
   fi
@@ -1144,6 +1145,7 @@ main() {
       { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
         exit 1; \
       }
+      #TODO: Check if web flag is set here
     getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
       { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
         exit 1; \
