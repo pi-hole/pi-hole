@@ -1024,8 +1024,6 @@ accountForRefactor() {
 
 updatePihole() {
   accountForRefactor
-  # Source ${setupVars} for use in the rest of the functions.
-  source ${setupVars}
   # Install base files and web interface
   installScripts
   installConfigs
@@ -1230,7 +1228,10 @@ main() {
     # Clone/Update the repos
     clone_or_update_repos
 
-     # Install packages used by the Pi-hole
+    # Source ${setupVars} for use in the rest of the functions.
+    source ${setupVars}
+
+    # Install packages used by the Pi-hole
     if [[ ${INSTALL_WEB} == true ]]; then
       DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
     else
