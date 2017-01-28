@@ -63,7 +63,7 @@ if command -v apt-get &> /dev/null; then
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
-  # fixes for dependancy differences
+  # fixes for dependency differences
   # Debian 7 doesn't have iproute2 use iproute
   if ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1; then
     iproute_pkg="iproute2"
