@@ -282,6 +282,7 @@ def test_update_package_cache_success_no_errors(Pihole):
     update_package_cache
     ''')
     assert 'Updating local cache of available packages...' in updateCache.stdout
+    assert 'ERROR' not in updateCache.stdout
     assert 'done!' in updateCache.stdout
 
 def test_update_package_cache_failure_no_errors(Pihole):
