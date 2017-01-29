@@ -20,7 +20,7 @@ readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 PH_TEST=true
-source ${PI_HOLE_GIT_URL}/automated\ install/basic-install.sh
+source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
 
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
@@ -29,7 +29,7 @@ source ${PI_HOLE_GIT_URL}/automated\ install/basic-install.sh
 
 GitCheckUpdateAvail() {
   local directory="${1}"
-  curdir=$PWD;
+  curdir=$PWD
   cd "${directory}"
 
   # Fetch latest changes in this repo
