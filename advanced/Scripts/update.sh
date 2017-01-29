@@ -106,13 +106,13 @@ GitCheckUpdateAvail() {
   REMOTE="$(git rev-parse @{upstream})"
 
   if [[ ${#LOCAL} == 0 ]]; then
-    echo "::: Error: Local revision could not be optained, ask Pi-hole support."
+    echo "::: Error: Local revision could not be obtained, ask Pi-hole support."
     echo "::: Additional debugging output:"
     git status
     exit
   fi
   if [[ ${#REMOTE} == 0 ]]; then
-    echo "::: Error: Remote revision could not be optained, ask Pi-hole support."
+    echo "::: Error: Remote revision could not be obtained, ask Pi-hole support."
     echo "::: Additional debugging output:"
     git status
     exit
