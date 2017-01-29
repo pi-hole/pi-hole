@@ -92,12 +92,17 @@ SetWebPassword(){
 ProcessDNSSettings() {
 	source "${setupVars}"
 
-	delete_dnsmasq_setting "server="
-	add_dnsmasq_setting "server" "${PIHOLE_DNS_1}"
+	delete_dnsmasq_setting "server"
 
-	if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-		add_dnsmasq_setting "server" "${PIHOLE_DNS_2}"
-	fi
+	COUNTER=1
+	while [[ 1 ]]; do
+		var=PIHOLE_DNS_${COUNTER}
+		if [ -z "${!var}" ]; then
+			break;
+		fi
+		add_dnsmasq_setting "server" "${!var}"
+		let COUNTER=COUNTER+1
+	done
 
 	delete_dnsmasq_setting "domain-needed"
 
@@ -111,29 +116,43 @@ ProcessDNSSettings() {
 		add_dnsmasq_setting "bogus-priv"
 	fi
 
+	delete_dnsmasq_setting "dnssec"
+	delete_dnsmasq_setting "trust-anchor="
+
+	if [[ "${DNSSEC}" == true ]]; then
+		echo "dnssec
+trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
+" >> "${dnsmasqconfig}"
+	fi
+
 }
 
 SetDNSServers(){
 
 	# Save setting to file
-	change_setting "PIHOLE_DNS_1" "${args[2]}"
+	delete_setting "PIHOLE_DNS"
+	IFS=',' read -r -a array <<< "${args[2]}"
+	for index in "${!array[@]}"
+	do
+		add_setting "PIHOLE_DNS_$((index+1))" "${array[index]}"
+	done
 
-	if [[ "${args[3]}" != "none" ]]; then
-		change_setting "PIHOLE_DNS_2" "${args[3]}"
-	else
-		change_setting "PIHOLE_DNS_2" ""
-	fi
-
-	if [[ "${args[4]}" == "domain-needed" ]]; then
+	if [[ "${args[3]}" == "domain-needed" ]]; then
 		change_setting "DNS_FQDN_REQUIRED" "true"
 	else
 		change_setting "DNS_FQDN_REQUIRED" "false"
 	fi
 
-	if [[ "${args[4]}" == "bogus-priv" || "${args[5]}" == "bogus-priv" ]]; then
+	if [[ "${args[4]}" == "bogus-priv" ]]; then
 		change_setting "DNS_BOGUS_PRIV" "true"
 	else
 		change_setting "DNS_BOGUS_PRIV" "false"
+	fi
+
+	if [[ "${args[5]}" == "dnssec" ]]; then
+		change_setting "DNSSEC" "true"
+	else
+		change_setting "DNSSEC" "false"
 	fi
 
 	ProcessDNSSettings
@@ -213,9 +232,12 @@ dhcp-authoritative
 dhcp-range=${DHCP_START},${DHCP_END},${leasetime}
 dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
-domain=${PIHOLE_DOMAIN}
 #quiet-dhcp
 " > "${dhcpconfig}"
+
+if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
+	echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
+fi
 
 	if [[ "${DHCP_IPv6}" == "true" ]]; then
 echo "#quiet-dhcp6
@@ -227,7 +249,7 @@ ra-param=*,0,0
 	fi
 
 	else
-		rm "${dhcpconfig}"
+		rm "${dhcpconfig}" &> /dev/null
 	fi
 }
 

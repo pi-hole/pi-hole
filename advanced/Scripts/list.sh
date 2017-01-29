@@ -15,6 +15,7 @@ basename=pihole
 piholeDir=/etc/${basename}
 whitelist=${piholeDir}/whitelist.txt
 blacklist=${piholeDir}/blacklist.txt
+readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 reload=false
 addmode=true
 verbose=true
@@ -47,13 +48,17 @@ helpFunc() {
 :::  -h, --help				Show this help dialog
 :::  -l, --list				Display your ${word}listed domains
 EOM
+if [[ "${letter}" == "b" ]]; then
+	echo ":::  -wild, --wildcard		Add whitecard entry (only blacklist)"
+fi
 	exit 0
 }
 
 EscapeRegexp() {
     # This way we may safely insert an arbitrary
     # string in our regular expressions
-    echo $* | sed "s/[]\\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
+    # Also remove leading "." if present
+    echo $* | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
 }
 
 HandleOther(){
@@ -61,7 +66,7 @@ HandleOther(){
 	domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
 
 	#check validity of domain
-	validDomain=$(perl -ne "print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/" <<< "$domain")
+	validDomain=$(echo "${domain}" | perl -lne 'print if /^(?!.*[^a-z0-9-\.].*)\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)*[a-z]{2,63}\b/')
 	if [ -z "${validDomain}" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
@@ -89,22 +94,51 @@ AddDomain() {
 	list="$2"
     domain=$(EscapeRegexp "$1")
 
-	bool=true
-	#Is the domain in the list we want to add it to?
-	grep -Ex -q "${domain}" ${list} > /dev/null 2>&1 || bool=false
+    if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
 
-	if [[ "${bool}" == false ]]; then
-	  #domain not found in the whitelist file, add it!
-	  if [[ "${verbose}" == true ]]; then
-		echo "::: Adding $1 to $list..."
-	  fi
-	  reload=true
-	  # Add it to the list we want to add it to
-	  echo "$1" >> ${list}
-	else
-        if [[ "${verbose}" == true ]]; then
-            echo "::: ${1} already exists in ${list}, no need to add!"
-        fi
+		bool=true
+		#Is the domain in the list we want to add it to?
+		grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
+
+		if [[ "${bool}" == false ]]; then
+		  #domain not found in the whitelist file, add it!
+		  if [[ "${verbose}" == true ]]; then
+			echo "::: Adding $1 to $list..."
+		  fi
+		  reload=true
+		  # Add it to the list we want to add it to
+		  echo "$1" >> "${list}"
+		else
+	        if [[ "${verbose}" == true ]]; then
+	            echo "::: ${1} already exists in ${list}, no need to add!"
+	        fi
+		fi
+
+	elif [[ "${list}" == "${wildcardlist}" ]]; then
+
+		source "${piholeDir}/setupVars.conf"
+		#Remove the /* from the end of the IPv4addr.
+		IPV4_ADDRESS=${IPV4_ADDRESS%/*}
+		IPV6_ADDRESS=${IPV6_ADDRESS}
+
+		bool=true
+		#Is the domain in the list?
+		grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
+
+		if [[ "${bool}" == false ]]; then
+		  if [[ "${verbose}" == true ]]; then
+			echo "::: Adding $1 to wildcard blacklist..."
+		  fi
+		  reload=true
+		  echo "address=/$1/${IPV4_ADDRESS}" >> "${wildcardlist}"
+		  if [[ ${#IPV6_ADDRESS} > 0 ]] ; then
+		    echo "address=/$1/${IPV6_ADDRESS}" >> "${wildcardlist}"
+		  fi
+		else
+	        if [[ "${verbose}" == true ]]; then
+	            echo "::: ${1} already exists in wildcard blacklist, no need to add!"
+	        fi
+		fi
 	fi
 }
 
@@ -112,18 +146,38 @@ RemoveDomain() {
     list="$2"
     domain=$(EscapeRegexp "$1")
 
-    bool=true
-    #Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
-    grep -Ex -q "${domain}" ${list} > /dev/null 2>&1 || bool=false
-    if [[ "${bool}" == true ]]; then
-        # Remove it from the other one
-        echo "::: Removing $1 from $list..."
-        # /I flag: search case-insensitive
-        sed -i "/${domain}/Id" ${list}
-        reload=true
-    else
-        if [[ "${verbose}" == true ]]; then
-            echo "::: ${1} does not exist in ${list}, no need to remove!"
+    if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
+
+        bool=true
+        #Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
+        grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
+        if [[ "${bool}" == true ]]; then
+            # Remove it from the other one
+            echo "::: Removing $1 from $list..."
+            # /I flag: search case-insensitive
+            sed -i "/${domain}/Id" "${list}"
+            reload=true
+        else
+            if [[ "${verbose}" == true ]]; then
+                echo "::: ${1} does not exist in ${list}, no need to remove!"
+            fi
+        fi
+
+    elif [[ "${list}" == "${wildcardlist}" ]]; then
+
+        bool=true
+        #Is it in the list?
+        grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
+        if [[ "${bool}" == true ]]; then
+            # Remove it from the other one
+            echo "::: Removing $1 from $list..."
+            # /I flag: search case-insensitive
+            sed -i "/address=\/${domain}/Id" "${list}"
+            reload=true
+        else
+            if [[ "${verbose}" == true ]]; then
+                echo "::: ${1} does not exist in ${list}, no need to remove!"
+            fi
         fi
     fi
 }
@@ -153,6 +207,7 @@ for var in "$@"; do
 	case "${var}" in
 	    "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
 	    "-b" | "blacklist"   ) listMain="${blacklist}"; listAlt="${whitelist}";;
+		"-wild" | "wildcard" ) listMain="${wildcardlist}";;
 		"-nr"| "--noreload"  ) reload=false;;
 		"-d" | "--delmode"   ) addmode=false;;
 		"-f" | "--force"     ) force=true;;

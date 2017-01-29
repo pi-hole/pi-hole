@@ -11,6 +11,7 @@
 # (at your option) any later version.
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
+readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
   if [ -x "$(command -v sudo)" ];then
@@ -34,6 +35,11 @@ whitelistFunc() {
 }
 
 blacklistFunc() {
+  "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
+  exit 0
+}
+
+wildcardFunc() {
   "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
   exit 0
 }
@@ -63,11 +69,6 @@ updateGravityFunc() {
   exit 0
 }
 
-setupLCDFunction() {
-  "${PI_HOLE_SCRIPT_DIR}"/setupLCD.sh
-  exit 0
-}
-
 scanList(){
   domain="${1}"
   list="${2}"
@@ -79,19 +80,52 @@ scanList(){
   fi
 }
 
+processWildcards() {
+  IFS="." read -r -a array <<< "${1}"
+  for (( i=${#array[@]}-1; i>=0; i-- )); do
+    ar=""
+    for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
+      if [[ $j == $((${#array[@]}-1)) ]]; then
+        ar="${array[$j]}"
+      else
+        ar="${array[$j]}.${ar}"
+      fi
+    done
+    echo "${ar}"
+  done
+}
+
 queryFunc() {
   domain="${2}"
   method="${3}"
   lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
   for list in ${lists[@]}; do
-    result=$(scanList ${domain} ${list} ${method})
+    if [ -e "${list}" ]; then
+      result=$(scanList ${domain} ${list} ${method})
+      # Remove empty lines before couting number of results
+      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+      echo "::: ${list} (${count} results)"
+      if [[ ${count} > 0 ]]; then
+        echo "${result}"
+      fi
+      echo ""
+    else
+      echo "::: ${list} does not exist"
+      echo ""
+    fi
+  done
+
+  # Scan for possible wildcard matches
+  local wildcards=($(processWildcards "${domain}"))
+  for domain in ${wildcards[@]}; do
+    result=$(scanList "\/${domain}\/" ${wildcardlist})
     # Remove empty lines before couting number of results
     count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-    echo "::: ${list} (${count} results)"
     if [[ ${count} > 0 ]]; then
+      echo "::: Wildcard blocking ${domain} (${count} results)"
       echo "${result}"
+      echo ""
     fi
-    echo ""
   done
   exit 0
 }
@@ -248,7 +282,6 @@ helpFunc() {
 :::  -up, updatePihole        Update Pi-hole
 :::  -r, reconfigure          Reconfigure or Repair Pi-hole
 :::  -g, updateGravity        Update the list of ad-serving domains
-:::  -s, setupLCD             Automatically configures the Pi to use the 2.8 LCD screen to display stats on it
 :::  -c, chronometer          Calculates stats and displays to an LCD
 :::  -h, help                 Show this help dialog
 :::  -v, version              Show current versions
@@ -275,12 +308,12 @@ fi
 case "${1}" in
   "-w" | "whitelist"            ) whitelistFunc "$@";;
   "-b" | "blacklist"            ) blacklistFunc "$@";;
+  "-wild" | "wildcard"          ) wildcardFunc "$@";;
   "-d" | "debug"                ) debugFunc;;
   "-f" | "flush"                ) flushFunc;;
   "-up" | "updatePihole"        ) updatePiholeFunc;;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
-  "-s" | "setupLCD"             ) setupLCDFunction;;
   "-c" | "chronometer"          ) chronometerFunc "$@";;
   "-h" | "help"                 ) helpFunc;;
   "-v" | "version"              ) versionFunc "$@";;

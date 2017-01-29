@@ -76,7 +76,7 @@ gravity_collapse() {
 		#custom file found, use this instead of default
 		echo -n "::: Custom adList file detected. Reading..."
 		sources=()
-		while read -r line; do
+		while IFS= read -r line || [[ -n "$line" ]]; do
 			#Do not read commented out or blank lines
 			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
 				echo "" > /dev/null
@@ -89,7 +89,7 @@ gravity_collapse() {
 		#no custom file found, use defaults!
 		echo -n "::: No custom adlist file detected, reading from default file..."
 		sources=()
-		while read -r line; do
+		while IFS= read -r line || [[ -n "$line" ]]; do
 			#Do not read commented out or blank lines
 			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
 				echo "" > /dev/null
@@ -388,7 +388,7 @@ if [[ "${forceGrav}" == true ]]; then
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-#cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then

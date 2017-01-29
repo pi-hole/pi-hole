@@ -17,56 +17,21 @@ gravity="/etc/pihole/gravity.list"
 
 . /etc/pihole/setupVars.conf
 
-CalcBlockedDomains() {
-	if [ -e "${gravity}" ]; then
-		# if BOTH IPV4 and IPV6 are in use, then we need to divide total domains by 2.
-		if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]]; then
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1/2}')
-		else
-			# only one is set.
-			blockedDomainsTotal=$(wc -l /etc/pihole/gravity.list | awk '{print $1}')
-		fi
-	else
-		blockedDomainsTotal="Err."
-	fi
-}
-
-CalcQueriesToday() {
-	if [ -e "${piLog}" ]; then
-		queriesToday=$(awk '/query\[/ {print $6}' < "${piLog}" | wc -l)
-	else
-		queriesToday="Err."
-	fi
-}
-
-CalcblockedToday() {
-	if [ -e "${piLog}" ] && [ -e "${gravity}" ];then
-		blockedToday=$(awk '/\/etc\/pihole\/gravity.list/ && !/address/ {print $6}' < "${piLog}" | wc -l)
-	else
-		blockedToday="Err."
-	fi
-}
-
-CalcPercentBlockedToday() {
-	if [ "${queriesToday}" != "Err." ] && [ "${blockedToday}" != "Err." ]; then
-		if [ "${queriesToday}" != 0 ]; then #Fixes divide by zero error :)
-			#scale 2 rounds the number down, so we'll do scale 4 and then trim the last 2 zeros
-			percentBlockedToday=$(echo "scale=4; ${blockedToday}/${queriesToday}*100" | bc)
-			percentBlockedToday=$(sed 's/.\{2\}$//' <<< "${percentBlockedToday}")
-		else
-			percentBlockedToday=0
-		fi
-	fi
+# Borrowed/modified from https://gist.github.com/cjus/1047794
+function GetJSONValue {
+    retVal=$(echo $1 | sed 's/\\\\\//\//g' | \
+                       sed 's/[{}]//g' | \
+                       awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | \
+                       sed 's/\"\:\"/\|/g' | \
+                       sed 's/[\,]/ /g' | \
+                       sed 's/\"//g' | \
+                       grep -w $2)
+    echo ${retVal##*|}
 }
 
 outputJSON() {
-	CalcQueriesToday
-	CalcblockedToday
-	CalcPercentBlockedToday
-
-	CalcBlockedDomains
-
-	printf '{"domains_being_blocked":"%s","dns_queries_today":"%s","ads_blocked_today":"%s","ads_percentage_today":"%s"}\n' "$blockedDomainsTotal" "$queriesToday" "$blockedToday" "$percentBlockedToday"
+	json=$(curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw)
+	echo ${json}
 }
 
 normalChrono() {
@@ -87,22 +52,17 @@ normalChrono() {
 		# Uncomment to continually read the log file and display the current domain being blocked
 		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
 
-		#uncomment next 4 lines to use original query count calculation
-		#today=$(date "+%b %e")
-		#todaysQueryCount=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ {print $7}' | wc -l)
-		#todaysQueryCountV4=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[A\]/ {print $7}' | wc -l)
-		#todaysQueryCountV6=$(cat /var/log/pihole.log | grep "$today" | awk '/query/ && /\[AAAA\]/ {print $7}' | wc -l)
+		json=$(curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw)
 
+    domains=$(printf "%'.f" $(GetJSONValue ${json} "domains_being_blocked")) #add commas in
+    queries=$(printf "%'.f" $(GetJSONValue ${json} "dns_queries_today"))
+    blocked=$(printf "%'.f" $(GetJSONValue ${json} "ads_blocked_today"))
+    LC_NUMERIC=C percentage=$(printf "%0.2f\n" $(GetJSONValue ${json} "ads_percentage_today")) #2 decimal places
 
-		CalcQueriesToday
-		CalcblockedToday
-		CalcPercentBlockedToday
+		echo "Blocking:      ${domains}"
+		echo "Queries:       ${queries}"
 
-		CalcBlockedDomains
-
-		echo "Blocking:      ${blockedDomainsTotal}"
-		echo "Queries:       ${queriesToday}" #same total calculation as dashboard
-		echo "Pi-holed:      ${blockedToday} (${percentBlockedToday}%)"
+		echo "Pi-holed:      ${blocked} (${percentage}%)"
 
 		sleep 5
 	done

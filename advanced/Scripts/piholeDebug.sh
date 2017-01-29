@@ -122,6 +122,13 @@ version_check() {
 	&& log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
 	local php_ver="$(php -v |& head -n1)" \
 	&& log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
+
+	(local pi_hole_branch="$(cd /etc/.pihole/ && git rev-parse --abbrev-ref HEAD)" && log_echo -r "Pi-hole branch:  ${pi_hole_branch}") || log_echo "Unable to obtain Pi-hole branch"
+	(local pi_hole_rev="$(cd /etc/.pihole/ && git describe --long --dirty --tags)" && log_echo -r "Pi-hole rev:     ${pi_hole_rev}") || log_echo "Unable to obtain Pi-hole revision"
+
+	(local admin_branch="$(cd /var/www/html/admin && git rev-parse --abbrev-ref HEAD)" && log_echo -r "AdminLTE branch: ${admin_branch}") || log_echo "Unable to obtain AdminLTE branch"
+	(local admin_rev="$(cd /var/www/html/admin && git describe --long --dirty --tags)" && log_echo -r "AdminLTE rev:    ${admin_rev}") || log_echo "Unable to obtain AdminLTE revision"
+
 	return "${error_found}"
 }
 
@@ -354,9 +361,20 @@ files_check "${ADLISTFILE}"
 
 header_write "Analyzing gravity.list"
 
-	gravity_length=$(wc -l "${GRAVITYFILE}") \
+	gravity_length=$(grep -c ^ "${GRAVITYFILE}") \
 	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
 	|| log_echo "Warning: No gravity.list file found!"
+
+header_write "Analyzing pihole.log"
+
+  pihole_length=$(grep -c ^ "${PIHOLELOG}") \
+  && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
+  || log_echo "Warning: No pihole.log file found!"
+
+  pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
+  && log_write "${PIHOLELOG} is ${pihole_size}." \
+  || log_echo "Warning: No pihole.log file found!"
+
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
