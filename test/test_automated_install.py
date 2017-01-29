@@ -285,14 +285,15 @@ def test_update_package_cache_success_no_errors(Pihole):
     assert 'done!' in updateCache.stdout
 
 def test_update_package_cache_failure_no_errors(Pihole):
-    ''' confirms package cache was updated without any errors'''
-    mock_command('apt-get', {'*':('', '1')}, Pihole)
+    ''' confirms package cache was not updated'''
+    mock_command('apt-get', {'update':('', '1')}, Pihole)
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
     distro_check
     update_package_cache
     ''')
     assert 'Updating local cache of available packages...' in updateCache.stdout
+    assert 'ERROR' in updateCache.stdout
     assert 'done!' not in updateCache.stdout
 
 # Helper functions
