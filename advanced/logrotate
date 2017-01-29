@@ -1,4 +1,5 @@
 /var/log/pihole.log {
+	# su #
 	daily
 	copytruncate
 	rotate 5

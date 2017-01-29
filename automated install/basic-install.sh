@@ -949,7 +949,7 @@ installLogrotate() {
   # the local properties of the /var/log directory
   logusergroup="$(stat -c '%U %G' /var/log)"
   if [[ ! -z $logusergroup ]]; then
-    echo "su ${logusergroup}" >> /etc/pihole/logrotate
+    sed -i "s/# su #/su ${logusergroup}/" /etc/pihole/logrotate
   fi
   echo " done!"
 }
