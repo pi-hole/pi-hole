@@ -32,6 +32,7 @@ adListDefault=/etc/pihole/adlists.default
 whitelistScript="pihole -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
+readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
 #Source the setupVars from install script for the IP
 setupVars=/etc/pihole/setupVars.conf
@@ -235,6 +236,21 @@ gravity_Blacklist() {
 
 }
 
+gravity_Wildcard() {
+	# Return number of wildcards in output - don't actually handle wildcards
+	if [[ -f "${wildcardlist}" ]]; then
+	    num=$(grep -c ^ "${wildcardlist}")
+	    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+	        let num/=2
+	    fi
+	    plural=; [[ "$num" != "1" ]] && plural=s
+	    echo "::: Wildcard blocked domain${plural}: $numBlacklisted"
+	else
+	    echo "::: No wildcards used!"
+	fi
+
+}
+
 gravity_Whitelist() {
     #${piholeDir}/${eventHorizon})
 	echo ":::"
@@ -401,6 +417,7 @@ else
 fi
 gravity_Whitelist
 gravity_Blacklist
+gravity_Wildcard
 
 gravity_hostFormat
 gravity_blackbody
