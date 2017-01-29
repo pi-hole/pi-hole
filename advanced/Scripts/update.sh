@@ -128,13 +128,13 @@ main() {
     echo ":::"
     echo "::: Pi-hole core files out of date"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
   elif ${core_update} && ${web_update} ; then
     echo ":::"
     echo "::: Updating Everything"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
   else
     echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
     exit 1
