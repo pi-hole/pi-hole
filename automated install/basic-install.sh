@@ -701,7 +701,7 @@ update_package_cache() {
 
   echo ":::"
   echo -n "::: Updating local cache of available packages..."
-  if ${UPDATE_PKG_CACHE}; then
+  if eval ${UPDATE_PKG_CACHE}; then
     echo " done!"
   fi
 }
