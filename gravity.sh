@@ -239,12 +239,12 @@ gravity_Blacklist() {
 gravity_Wildcard() {
 	# Return number of wildcards in output - don't actually handle wildcards
 	if [[ -f "${wildcardlist}" ]]; then
-	    num=$(grep -c ^ "${wildcardlist}")
+	    numWildcards=$(grep -c ^ "${wildcardlist}")
 	    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
-	        let num/=2
+	        let numWildcards/=2
 	    fi
 	    plural=; [[ "$num" != "1" ]] && plural=s
-	    echo "::: Wildcard blocked domain${plural}: $numBlacklisted"
+	    echo "::: Wildcard blocked domain${plural}: $numWildcards"
 	else
 	    echo "::: No wildcards used!"
 	fi
