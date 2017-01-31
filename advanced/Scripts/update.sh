@@ -105,21 +105,21 @@ GitCheckUpdateAvail() {
   # defaults to the current one.
   REMOTE="$(git rev-parse @{upstream})"
 
-  # Change back to original directory
-  cd "${curdir}"
-
   if [[ ${#LOCAL} == 0 ]]; then
-    echo "::: Error: Local revision could not be optained, ask Pi-hole support."
+    echo "::: Error: Local revision could not be obtained, ask Pi-hole support."
     echo "::: Additional debugging output:"
     git status
     exit
   fi
   if [[ ${#REMOTE} == 0 ]]; then
-    echo "::: Error: Remote revision could not be optained, ask Pi-hole support."
+    echo "::: Error: Remote revision could not be obtained, ask Pi-hole support."
     echo "::: Additional debugging output:"
     git status
     exit
   fi
+  
+  # Change back to original directory
+  cd "${curdir}"
 
   if [[ "${LOCAL}" != "${REMOTE}" ]]; then
     # Local branch is behind remote branch -> Update
