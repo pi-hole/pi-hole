@@ -32,6 +32,7 @@ adListDefault=/etc/pihole/adlists.default
 whitelistScript="pihole -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
+readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
 #Source the setupVars from install script for the IP
 setupVars=/etc/pihole/setupVars.conf
@@ -76,7 +77,7 @@ gravity_collapse() {
 		#custom file found, use this instead of default
 		echo -n "::: Custom adList file detected. Reading..."
 		sources=()
-		while read -r line; do
+		while IFS= read -r line || [[ -n "$line" ]]; do
 			#Do not read commented out or blank lines
 			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
 				echo "" > /dev/null
@@ -89,7 +90,7 @@ gravity_collapse() {
 		#no custom file found, use defaults!
 		echo -n "::: No custom adlist file detected, reading from default file..."
 		sources=()
-		while read -r line; do
+		while IFS= read -r line || [[ -n "$line" ]]; do
 			#Do not read commented out or blank lines
 			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
 				echo "" > /dev/null
@@ -231,6 +232,21 @@ gravity_Blacklist() {
 	    echo " done!"
 	else
 	    echo "::: Nothing to blacklist!"
+	fi
+
+}
+
+gravity_Wildcard() {
+	# Return number of wildcards in output - don't actually handle wildcards
+	if [[ -f "${wildcardlist}" ]]; then
+	    num=$(grep -c ^ "${wildcardlist}")
+	    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+	        let num/=2
+	    fi
+	    plural=; [[ "$num" != "1" ]] && plural=s
+	    echo "::: Wildcard blocked domain${plural}: $numBlacklisted"
+	else
+	    echo "::: No wildcards used!"
 	fi
 
 }
@@ -388,7 +404,7 @@ if [[ "${forceGrav}" == true ]]; then
 fi
 
 #Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-#cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
@@ -401,6 +417,7 @@ else
 fi
 gravity_Whitelist
 gravity_Blacklist
+gravity_Wildcard
 
 gravity_hostFormat
 gravity_blackbody

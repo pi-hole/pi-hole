@@ -144,24 +144,26 @@ package_test() {
   local php_ver
   local error_count
 
-  command -v lighttpd &>/dev/null \
-  || ERRORS+=(['LIGHTTPD EXECUTABLE MISSING']=major) \
-  && light_ver="$(lighttpd -v 2> /dev/null \
-                | awk -F "/" '/lighttpd/ {print $2}' \
+	command -v lighttpd &>/dev/null \
+	|| ERRORS+=(['LIGHTTPD EXECUTABLE MISSING']=major)\
+	&& light_ver="$(lighttpd -v 2> /dev/null \
+	| awk -F "/" '/lighttpd / {print $2}' \
                 | awk -F "-" '{print $1}')"
-  command -v php &>/dev/null \
+	command -v php &>/dev/null \
   || ERRORS+=(['PHP PROCESSOR MISSING']=major) \
   && php_ver="$(php -v 2> /dev/null \
                 | awk '/cli/ {print $2}')"
-
-  log_echo "\t\tLighttpd Webserver Version: ${light_ver:-"not located"}\n"
-  log_echo "\t\tPHP Processor Version: ${php_ver:-"not located"}\n"
+	 log_echo "\t\tLighttpd Webserver Version: ${light_ver:-"not located"}\n"log_echo "\t\tPHP Processor Version: ${php_ver:-" not located"}\n"
 
   error_count=${#ERRORS[@]}
   if [[ "$error_count" -eq "0" ]]; then
     log_echo "\tSUCCESS: All packages located.\n"
   fi
-  return "$error_count"
+	(local pi_hole_branch="$(cd /etc/.pihole/ && git rev-parse --abbrev-ref HEAD)" && log_echo -r "Pi-hole branch:  ${pi_hole_branch}") || log_echo "Unable to obtain Pi-hole branch"
+	(local pi_hole_rev="$(cd /etc/.pihole/ && git describe --long --dirty --tags)" && log_echo -r "Pi-hole rev:     ${pi_hole_rev}") || log_echo "Unable to obtain Pi-hole revision"
+
+	(local admin_branch="$(cd /var/www/html/admin && git rev-parse --abbrev-ref HEAD)" && log_echo -r "AdminLTE branch: ${admin_branch}") || log_echo "Unable to obtain AdminLTE branch"
+	(local admin_rev="$(cd /var/www/html/admin && git describe --long --dirty --tags)" && log_echo -r "AdminLTE rev:    ${admin_rev}") || log_echo "Unable to obtain AdminLTE revision"return "$error_count"
 }
 
 files_check() {

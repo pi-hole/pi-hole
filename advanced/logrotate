@@ -1,0 +1,10 @@
+/var/log/pihole.log {
+	# su #
+	daily
+	copytruncate
+	rotate 5
+	compress
+	delaycompress
+	notifempty
+	nomail
+}

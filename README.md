@@ -42,7 +42,7 @@ _If you wish to read over the script before running it, run `nano basic-install.
 
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
-cd Pi-hole/automated_installer/
+cd Pi-hole/automated\ install/
 bash basic-install.sh
 ```
 
@@ -55,17 +55,11 @@ bash basic-install.sh
 
 Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
 
-## Installing the Pi-hole (Click to Watch!)
+## What is Pi-hole and how do I install it?
 <p align="center">
-<a href=https://www.youtube.com/watch?v=TzFLJqUeirA><img src="https://assets.pi-hole.net/static/global.png"></a>
+<a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/global.png"></a>
 </p>
 
-## Would you like to know more?
-
-**Watch the 60-second video below to get a quick overview**
-<p align="center">
-<a href=https://youtu.be/9Eti3xibiho><img src="https://assets.pi-hole.net/static/blackhole_web.png"></a>
-</p>
 
 ## Get Help Or Connect With Us On The Web
 
@@ -101,7 +95,7 @@ The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard)
 
 ### Whitelist and blacklist
 
-Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details 
+Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
 <p align="center">
 <a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/controlpanel.png"></a>
 </p>
@@ -128,7 +122,7 @@ You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-
 ## Pi-hole Projects
 
 -   [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
--   [Get LED alerts for each blocked ad](http://www.stinebaugh.info/get-led-alerts-for-each-blocked-ad-using-pi-hole/)
+-   [Get LED alerts for each blocked ad](http://thetimmy.silvernight.org/pages/endisbutton/)
 -   [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
 -   [Docker Pi-hole container (x86 and ARM)](https://hub.docker.com/r/diginc/pi-hole/)
 -   [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
