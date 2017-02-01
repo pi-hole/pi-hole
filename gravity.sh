@@ -243,7 +243,7 @@ gravity_Wildcard() {
 	    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 	        let numWildcards/=2
 	    fi
-	    plural=; [[ "$num" != "1" ]] && plural=s
+	    plural=; [[ "$numWildcards" != "1" ]] && plural=s
 	    echo "::: Wildcard blocked domain${plural}: $numWildcards"
 	else
 	    echo "::: No wildcards used!"
