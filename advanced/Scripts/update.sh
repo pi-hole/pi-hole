@@ -19,74 +19,17 @@ readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
-is_repo() {
-  # Use git to check if directory is currently under VCS, return the value
-  local directory="${1}"
-  local curdir
-  local rc
+PH_TEST=true
+source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
 
-  curdir="${PWD}"
-  cd "${directory}" &> /dev/null || return 1
-  git status --short &> /dev/null
-  rc=$?
-  cd "${curdir}" &> /dev/null || return 1
-  return "${rc}"
-}
-
-prep_repo() {
-  # Prepare directory for local repository building
-  local directory="${1}"
-
-  rm -rf "${directory}" &> /dev/null
-  return
-}
-
-make_repo() {
-  # Remove the non-repod interface and clone the interface
-  local remoteRepo="${2}"
-  local directory="${1}"
-
-  (prep_repo "${directory}" && git clone -q --depth 1 "${remoteRepo}" "${directory}")
-     return
-}
-
-update_repo() {
-  local directory="${1}"
-  local curdir
-
-  curdir="${PWD}"
-  cd "${directory}" &> /dev/null || return 1
-  # Pull the latest commits
-  # Stash all files not tracked for later retrieval
-  git stash --all --quiet
-  # Force a clean working directory for cloning
-  git clean --force -d
-  # Fetch latest changes and apply
-  git pull --quiet
-  cd "${curdir}" &> /dev/null || return 1
-}
-
-getGitFiles() {
-  # Setup git repos for directory and repository passed
-  # as arguments 1 and 2
-  local directory="${1}"
-  local remoteRepo="${2}"
-  echo ":::"
-  echo "::: Checking for existing repository..."
-  if is_repo "${directory}"; then
-    echo -n ":::     Updating repository in ${directory}..."
-    update_repo "${directory}" || (echo "*** Error: Could not update local repository. Contact support."; exit 1)
-    echo " done!"
-  else
-    echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
-    make_repo "${directory}" "${remoteRepo}" || (echo "Unable to clone repository, please contact support"; exit 1)
-    echo " done!"
-  fi
-}
+# is_repo() sourced from basic-install.sh
+# make_repo() sourced from basic-install.sh
+# update_repo() source from basic-install.sh
+# getGitFiles() sourced from basic-install.sh
 
 GitCheckUpdateAvail() {
   local directory="${1}"
-  curdir=$PWD;
+  curdir=$PWD
   cd "${directory}"
 
   # Fetch latest changes in this repo
@@ -185,13 +128,13 @@ main() {
     echo ":::"
     echo "::: Pi-hole core files out of date"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
   elif ${core_update} && ${web_update} ; then
     echo ":::"
     echo "::: Updating Everything"
     getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
   else
     echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
     exit 1

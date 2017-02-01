@@ -149,15 +149,17 @@ make_repo() {
 
 update_repo() {
   local directory="${1}"
+  local curdir
 
+  curdir="${PWD}"
+  cd "${directory}" &> /dev/null || return 1
   # Pull the latest commits
   echo -n ":::    Updating repo in ${1}..."
-  if [[ -d "${directory}" ]]; then
-    cd "${directory}"
-    git stash -q &> /dev/null || true # Okay for stash failure
-    git pull -q &> /dev/null || return $?
-    echo " done!"
-  fi
+  git stash --all --quiet &> /dev/null || true # Okay for stash failure
+  git clean --force -d || true # Okay for already clean directory
+  git pull --quiet &> /dev/null || return $?
+  echo " done!"
+  cd "${curdir}" &> /dev/null || return 1
   return 0
 }
 
@@ -169,9 +171,13 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    update_repo "${directory}" || return 1
+    echo -n ":::     Updating repository in ${directory}..."
+    update_repo "${directory}" || { echo "*** Error: Could not update local repository. Contact support."; exit 1; }
+    echo " done!"
   else
-    make_repo "${directory}" "${remoteRepo}" || return 1
+    echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
+    make_repo "${directory}" "${remoteRepo}" || { echo "Unable to clone repository, please contact support"; exit 1; }
+    echo " done!"
   fi
   return 0
 }
