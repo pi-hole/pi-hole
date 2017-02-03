@@ -53,7 +53,7 @@ wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
 
-Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
+Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to use Pi-hole as their DNS server.
 
 ## What is Pi-hole and how do I install it?
 <p align="center">
@@ -99,6 +99,17 @@ Domains can be whitelisted and blacklisted using either the web interface or the
 <p align="center">
 <a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/controlpanel.png"></a>
 </p>
+
+### Settings
+
+The settings page lets you control and configure your Pi-hole.  You can do things like:
+ 
+- enable Pi-hole's built-in DHCP server
+- exclude domains from the graphs
+- configure upstream DNS servers
+- and more!
+
+
 
 ## API
 
