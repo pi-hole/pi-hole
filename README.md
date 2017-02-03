@@ -73,7 +73,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Technical Details
 
-The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
+The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. 
 
 ### Gravity
 
@@ -103,7 +103,7 @@ Domains can be whitelisted and blacklisted using either the web interface or the
 ### Settings
 
 The settings page lets you control and configure your Pi-hole.  You can do things like:
- 
+
 - enable Pi-hole's built-in DHCP server
 - exclude domains from the graphs
 - configure upstream DNS servers
@@ -128,7 +128,7 @@ The same output can be achieved on the CLI by running `chronometer.sh -j`
 
 ## Real-time Statistics
 
-You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj). This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh). ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
+You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-pi-holes-stats-over-ssh-or-on-an-lcd-using-chronometer/240) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj). This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh). ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
 
 ## Pi-hole Projects
 
