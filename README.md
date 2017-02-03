@@ -57,7 +57,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## What is Pi-hole and how do I install it?
 <p align="center">
-<a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/global.png"></a>
+<a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/video-explainer.png"></a>
 </p>
 
 
@@ -73,7 +73,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Technical Details
 
-The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. 
+The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
 
 ### Gravity
 
@@ -91,13 +91,13 @@ The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard)
 
 `http://192.168.1.x/admin/index.php` or `http://pi.hole/admin`
 
-![Pi-hole Advanced Stats Dashboard](https://assets.pi-hole.net/static/dashboard.png)
+![Pi-hole Advanced Stats Dashboard](https://assets.pi-hole.net/static/dashboard212.png)
 
 ### Whitelist and blacklist
 
 Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
 <p align="center">
-<a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/controlpanel.png"></a>
+<a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/whitelist212.png"></a>
 </p>
 
 ### Settings
@@ -109,7 +109,14 @@ The settings page lets you control and configure your Pi-hole.  You can do thing
 - configure upstream DNS servers
 - and more!
 
+![Settings page](https://assets.pi-hole.net/static/settings212.png)
 
+#### Built-in DHCP Server
+
+Pi-hole ships with a built-in DHCP server.  This allows you to let your network devices use Pi-hole as their DNS server if your router does not let you adjust the DHCP options.
+<p align="center">
+<a href=hhttps://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245><img src="https://assets.pi-hole.net/static/piholedhcpserver.png"></a>
+</p>
 
 ## API
 
