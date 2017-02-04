@@ -663,19 +663,23 @@ installConfigs() {
   echo ":::"
   echo "::: Installing configs..."
   version_check_dnsmasq
-  if [ ! -d "/etc/lighttpd" ]; then
-    mkdir /etc/lighttpd
-    chown "${USER}":root /etc/lighttpd
-  elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
-    mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+
+  #Only mess with lighttpd configs if user has chosen to install web interface
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if [ ! -d "/etc/lighttpd" ]; then
+      mkdir /etc/lighttpd
+      chown "${USER}":root /etc/lighttpd
+    elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
+      mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+    fi
+    cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    mkdir -p /var/run/lighttpd
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
+    mkdir -p /var/cache/lighttpd/compress
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+    mkdir -p /var/cache/lighttpd/uploads
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
   fi
-  cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
-  mkdir -p /var/run/lighttpd
-  chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
-  mkdir -p /var/cache/lighttpd/compress
-  chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
-  mkdir -p /var/cache/lighttpd/uploads
-  chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
 }
 
 stop_service() {
@@ -932,6 +936,17 @@ configureFirewall() {
 }
 
 finalExports() {
+
+  if [[ ${INSTALL_WEB} == false ]]; then
+    #No web interface installed, and therefore no block page set IPV4/6 to 0.0.0.0 and ::/0
+    if [ ${IPV4_ADDRESS} ]; then
+      IPV4_ADDRESS="0.0.0.0"
+    fi
+    if [ ${IPV6_ADDRESS} ]; then
+      IPV6_ADDRESS="::/0"
+    fi
+  fi
+
   # Update variables in setupVars.conf file
   if [ -e "${setupVars}" ]; then
     sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;' "${setupVars}"
