@@ -18,8 +18,9 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-
-source /etc/pihole/setupVars.conf
+INSTALL_WEB=""
+readonly SETUP_VARS="/etc/pihole/setupVars.conf"
+source ${SETUP_VARS}
 
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
@@ -205,7 +206,8 @@ main() {
       echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
       exit 1
     fi
-  else
+
+  else # Web Admin not installed, so only verify if core is up to date
 
     if ! ${core_update}; then
       echo ":::"
@@ -220,20 +222,18 @@ main() {
   fi
 
   if [[ "${web_update}" == true ]]; then
-      web_version_current="$(/usr/local/bin/pihole version --admin --current)"
-      echo ":::"
-      echo "::: Web Admin version is now at ${web_version_current}"
-      echo "::: If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
-    fi
+    web_version_current="$(/usr/local/bin/pihole version --admin --current)"
+    echo ":::"
+    echo "::: Web Admin version is now at ${web_version_current}"
+    echo "::: If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
+  fi
 
-    if [[ "${core_update}" == true ]]; then
-      pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
-      echo ":::"
-      echo "::: Pi-hole version is now at ${pihole_version_current}"
-      echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
-    fi
-
-
+  if [[ "${core_update}" == true ]]; then
+    pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
+    echo ":::"
+    echo "::: Pi-hole version is now at ${pihole_version_current}"
+    echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+  fi
 
   echo ""
   exit 0
