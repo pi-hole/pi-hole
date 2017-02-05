@@ -1019,7 +1019,7 @@ installPihole() {
   installLogrotate
   configureFirewall
   finalExports
-  runGravity
+  #runGravity
 }
 
 accountForRefactor() {
@@ -1049,7 +1049,7 @@ updatePihole() {
   installCron
   installLogrotate
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
-  runGravity
+  #runGravity
 }
 
 
@@ -1282,6 +1282,8 @@ main() {
     start_service lighttpd
     enable_service lighttpd
   fi
+
+  runGravity
 
   echo "::: done."
 
