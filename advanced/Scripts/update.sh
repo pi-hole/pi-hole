@@ -169,57 +169,71 @@ main() {
       web_update=false
       echo "::: Web Interface:  up to date"
     fi
-  fi
 
-  # Logic
-  # If Core up to date AND web up to date:
-  #            Do nothing
-  # If Core up to date AND web NOT up to date:
-  #            Pull web repo
-  # If Core NOT up to date AND web up to date:
-  #            pull pihole repo, run install --unattended -- reconfigure
-  # if Core NOT up to date AND web NOT up to date:
-  #            pull pihole repo run install --unattended
+    # Logic
+    # If Core up to date AND web up to date:
+    #            Do nothing
+    # If Core up to date AND web NOT up to date:
+    #            Pull web repo
+    # If Core NOT up to date AND web up to date:
+    #            pull pihole repo, run install --unattended -- reconfigure
+    # if Core NOT up to date AND web NOT up to date:
+    #            pull pihole repo run install --unattended
 
-  if ! ${core_update} && ! ${web_update} ; then
-    echo ":::"
-    echo "::: Everything is up to date!"
-    exit 0
+    if ! ${core_update} && ! ${web_update} ; then
+      echo ":::"
+      echo "::: Everything is up to date!"
+      exit 0
 
-  elif ! ${core_update} && ${web_update} ; then
-    echo ":::"
-    echo "::: Pi-hole Web Admin files out of date"
-    getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
+    elif ! ${core_update} && ${web_update} ; then
+      echo ":::"
+      echo "::: Pi-hole Web Admin files out of date"
+      getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
 
-  elif ${core_update} && ! ${web_update} ; then
-    echo ":::"
-    echo "::: Pi-hole core files out of date"
-    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    elif ${core_update} && ! ${web_update} ; then
+      echo ":::"
+      echo "::: Pi-hole core files out of date"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
-  elif ${core_update} && ${web_update} ; then
-    echo ":::"
-    echo "::: Updating Everything"
-    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    elif ${core_update} && ${web_update} ; then
+      echo ":::"
+      echo "::: Updating Everything"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    else
+      echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
+      exit 1
+    fi
   else
-    echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
-    exit 1
+
+    if ! ${core_update}; then
+      echo ":::"
+      echo "::: Everything is up to date!"
+      exit 0
+    else
+      echo ":::"
+      echo "::: Pi-hole core files out of date"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      /etc/.pihole/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    fi
   fi
 
   if [[ "${web_update}" == true ]]; then
-    web_version_current="$(/usr/local/bin/pihole version --admin --current)"
-    echo ":::"
-    echo "::: Web Admin version is now at ${web_version_current}"
-    echo "::: If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
-  fi
+      web_version_current="$(/usr/local/bin/pihole version --admin --current)"
+      echo ":::"
+      echo "::: Web Admin version is now at ${web_version_current}"
+      echo "::: If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
+    fi
 
-  if [[ "${core_update}" == true ]]; then
-    pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
-    echo ":::"
-    echo "::: Pi-hole version is now at ${pihole_version_current}"
-    echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
-  fi
+    if [[ "${core_update}" == true ]]; then
+      pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
+      echo ":::"
+      echo "::: Pi-hole version is now at ${pihole_version_current}"
+      echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+    fi
+
+
 
   echo ""
   exit 0
