@@ -53,11 +53,11 @@ wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
 
-Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to [use the Raspberry Pi as its DNS server](http://pi-hole.net/faq/how-do-i-use-the-pi-hole-as-my-dns-server/).
+Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to use Pi-hole as their DNS server.
 
 ## What is Pi-hole and how do I install it?
 <p align="center">
-<a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/global.png"></a>
+<a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/video-explainer.png"></a>
 </p>
 
 
@@ -73,7 +73,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Technical Details
 
-The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement. You can also [replace ads with any image you want](http://pi-hole.net/faq/is-it-possible-to-change-the-blank-page-that-takes-place-of-the-ads-to-something-else/) since it is just a simple Webpage taking place of the ads.
+The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
 
 ### Gravity
 
@@ -91,13 +91,31 @@ The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard)
 
 `http://192.168.1.x/admin/index.php` or `http://pi.hole/admin`
 
-![Pi-hole Advanced Stats Dashboard](https://assets.pi-hole.net/static/dashboard.png)
+![Pi-hole Advanced Stats Dashboard](https://assets.pi-hole.net/static/dashboard212.png)
 
 ### Whitelist and blacklist
 
 Domains can be whitelisted and blacklisted using either the web interface or the command line. See [the wiki page](https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting) for more details
 <p align="center">
-<a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/controlpanel.png"></a>
+<a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/whitelist212.png"></a>
+</p>
+
+### Settings
+
+The settings page lets you control and configure your Pi-hole.  You can do things like:
+
+- enable Pi-hole's built-in DHCP server
+- exclude domains from the graphs
+- configure upstream DNS servers
+- and more!
+
+![Settings page](https://assets.pi-hole.net/static/settings212.png)
+
+#### Built-in DHCP Server
+
+Pi-hole ships with a built-in DHCP server.  This allows you to let your network devices use Pi-hole as their DNS server if your router does not let you adjust the DHCP options.
+<p align="center">
+<a href=hhttps://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245><img src="https://assets.pi-hole.net/static/piholedhcpserver.png"></a>
 </p>
 
 ## API
@@ -117,7 +135,7 @@ The same output can be achieved on the CLI by running `chronometer.sh -j`
 
 ## Real-time Statistics
 
-You can view [real-time stats](http://pi-hole.net/faq/install-the-real-time-lcd-monitor-chronometer/) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj). This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh). ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
+You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-pi-holes-stats-over-ssh-or-on-an-lcd-using-chronometer/240) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj). This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh). ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
 
 ## Pi-hole Projects
 

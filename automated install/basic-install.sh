@@ -152,15 +152,17 @@ make_repo() {
 
 update_repo() {
   local directory="${1}"
+  local curdir
 
+  curdir="${PWD}"
+  cd "${directory}" &> /dev/null || return 1
   # Pull the latest commits
   echo -n ":::    Updating repo in ${1}..."
-  if [[ -d "${directory}" ]]; then
-    cd "${directory}"
-    git stash -q &> /dev/null || true # Okay for stash failure
-    git pull -q &> /dev/null || return $?
-    echo " done!"
-  fi
+  git stash --all --quiet &> /dev/null || true # Okay for stash failure
+  git clean --force -d || true # Okay for already clean directory
+  git pull --quiet &> /dev/null || return $?
+  echo " done!"
+  cd "${curdir}" &> /dev/null || return 1
   return 0
 }
 
@@ -172,9 +174,13 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    update_repo "${directory}" || return 1
+    echo -n ":::     Updating repository in ${directory}..."
+    update_repo "${directory}" || { echo "*** Error: Could not update local repository. Contact support."; exit 1; }
+    echo " done!"
   else
-    make_repo "${directory}" "${remoteRepo}" || return 1
+    echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
+    make_repo "${directory}" "${remoteRepo}" || { echo "Unable to clone repository, please contact support"; exit 1; }
+    echo " done!"
   fi
   return 0
 }
@@ -364,7 +370,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 setDHCPCD() {
   # Append these lines to dhcpcd.conf to enable a static IP
-  echo "## interface ${PIHOLE_INTERFACE}
+  echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
   static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
@@ -837,21 +843,23 @@ installPiholeWeb() {
     if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
       echo ":::     Existing blockingpage.css detected, not overwriting"
     else
-      echo -n ":::     index.css missing, replacing... "
+      echo -n ":::     blockingpage.css missing, replacing... "
       cp /etc/.pihole/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
 
   else
-    mkdir /var/www/html/pihole
+    echo ":::     Creating directory for blocking page"
+    install -d /var/www/html/pihole
+    install -D /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
       printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
     fi
-    cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
     echo " done!"
   fi
+
   # Install Sudoer file
   echo ":::"
   echo -n "::: Installing sudoer file..."
@@ -987,7 +995,7 @@ installLogrotate() {
   # the local properties of the /var/log directory
   logusergroup="$(stat -c '%U %G' /var/log)"
   if [[ ! -z $logusergroup ]]; then
-    echo "su ${logusergroup}" >> /etc/pihole/logrotate
+    sed -i "s/# su #/su ${logusergroup}/" /etc/pihole/logrotate
   fi
   echo " done!"
 }
