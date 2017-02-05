@@ -19,6 +19,8 @@ readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
+source /etc/pihole/setupVars.conf
+
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
   local directory="${1}"
@@ -137,8 +139,8 @@ main() {
   local web_version_current
 
   #This is unlikely
-  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
-    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
+  if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
+    echo "::: Critical Error: Core Pi-Hole repo is missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
   fi
@@ -153,12 +155,20 @@ main() {
     echo "::: Pi-hole Core:   up to date"
   fi
 
-  if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
-    web_update=true
-    echo "::: Web Interface:  update available"
-  else
-    web_update=false
-    echo "::: Web Interface:  up to date"
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
+      echo "::: Critical Error: Web Admin repo is missing from system!"
+      echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+      exit 1;
+    fi
+
+    if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
+      web_update=true
+      echo "::: Web Interface:  update available"
+    else
+      web_update=false
+      echo "::: Web Interface:  up to date"
+    fi
   fi
 
   # Logic
