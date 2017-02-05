@@ -18,9 +18,6 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-INSTALL_WEB=""
-readonly SETUP_VARS="/etc/pihole/setupVars.conf"
-source ${SETUP_VARS}
 
 is_repo() {
   # Use git to check if directory is currently under VCS, return the value
