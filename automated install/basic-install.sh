@@ -970,8 +970,8 @@ CompileFTL() {
 
   curdir="${PWD}"
   cd "${FTL_LOCAL_REPO}"
-  make clean
-  if make pihole-FTL &> /etc/pihole/FTL_build.log; then
+  make clean &> /etc/pihole/FTL_build.log
+  if make pihole-FTL &>> /etc/pihole/FTL_build.log; then
     echo "done"
   else
     echo "failed (please send /etc/pihole/FTL_build.log to the developers team)"
