@@ -89,7 +89,6 @@ main() {
   fi
 
   if ! is_repo "${FTL_LOCAL_REPO}"; then
-    echo "::: FTL repo not present on system"
     getGitFiles ${FTL_LOCAL_REPO} ${FTL_GIT_URL} || \
     { echo "!!! Unable to clone ${FTL_GIT_URL} into ${FTL_LOCAL_REPO}, unable to continue."; \
         exit 1; \
@@ -116,10 +115,10 @@ main() {
 
   if GitCheckUpdateAvail "${FTL_LOCAL_REPO}" ; then
     web_update=true
-    echo "::: FTL:  update available"
+    echo "::: FTL:            update available"
   else
     web_update=false
-    echo "::: FTL:  up to date"
+    echo "::: FTL:            up to date"
   fi
 
   # Logic
