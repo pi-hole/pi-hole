@@ -976,6 +976,12 @@ CompileFTL() {
   else
     echo "failed (please send /etc/pihole/FTL_build.log to the developers team)"
   fi
+  echo -n "::: Installing FTL... "
+  if make install &>> /etc/pihole/FTL_build.log; then
+    echo "done"
+  else
+    echo "failed (please send /etc/pihole/FTL_build.log to the developers team)"
+  fi
   cd "${curdir}"
 }
 
