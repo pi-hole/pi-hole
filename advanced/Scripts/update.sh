@@ -18,6 +18,8 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# FTL_GIT_URL sourced from basic-install.sh
+# FTL_LOCAL_REPO sourced from basic-install.sh
 
 PH_TEST=true
 source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
@@ -60,7 +62,7 @@ GitCheckUpdateAvail() {
     git status
     exit
   fi
-  
+
   # Change back to original directory
   cd "${curdir}"
 
@@ -86,6 +88,14 @@ main() {
     exit 1;
   fi
 
+  if ! is_repo "${FTL_LOCAL_REPO}"; then
+    echo "::: FTL repo not present on system"
+    getGitFiles ${FTL_LOCAL_REPO} ${FTL_GIT_URL} || \
+    { echo "!!! Unable to clone ${FTL_GIT_URL} into ${FTL_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+    }
+  fi
+
   echo "::: Checking for updates..."
 
   if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
@@ -102,6 +112,14 @@ main() {
   else
     web_update=false
     echo "::: Web Interface:  up to date"
+  fi
+
+  if GitCheckUpdateAvail "${FTL_LOCAL_REPO}" ; then
+    web_update=true
+    echo "::: FTL:  update available"
+  else
+    web_update=false
+    echo "::: FTL:  up to date"
   fi
 
   # Logic

@@ -1170,7 +1170,7 @@ main() {
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
-    # Get Git files for Core and Admin
+    # Get Git files for Core, Admin, and FTL
     getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
       { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
         exit 1; \
