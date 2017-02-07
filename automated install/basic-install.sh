@@ -171,11 +171,9 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    echo -n ":::     Updating repository in ${directory}..."
     update_repo "${directory}" || { echo "*** Error: Could not update local repository. Contact support."; exit 1; }
     echo " done!"
   else
-    echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
     make_repo "${directory}" "${remoteRepo}" || { echo "Unable to clone repository, please contact support"; exit 1; }
     echo " done!"
   fi
