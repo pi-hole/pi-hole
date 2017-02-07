@@ -131,24 +131,22 @@ main() {
       echo "::: Pi-hole Web Admin files out of date"
       getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
 
-  elif ${core_update} && ! ${web_update} ; then
-    echo ":::"
-    echo "::: Pi-hole core files out of date"
-    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    elif ${core_update} && ! ${web_update} ; then
+      echo ":::"
+      echo "::: Pi-hole core files out of date"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
-  elif ${core_update} && ${web_update} ; then
-    echo ":::"
-    echo "::: Updating Everything"
-    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
-  else
-    echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
-    exit 1
-  fi
-
+    elif ${core_update} && ${web_update} ; then
+      echo ":::"
+      echo "::: Updating Everything"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    else
+      echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
+      exit 1
+    fi
   else # Web Admin not installed, so only verify if core is up to date
-
     if ! ${core_update}; then
       echo ":::"
       echo "::: Everything is up to date!"
