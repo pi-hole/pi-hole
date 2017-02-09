@@ -79,8 +79,8 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git whiptail)
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${iproute_pkg} iputils-ping lsof netcat sudo unzip wget)
+  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
@@ -174,11 +174,9 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    echo -n ":::     Updating repository in ${directory}..."
     update_repo "${directory}" || { echo "*** Error: Could not update local repository. Contact support."; exit 1; }
     echo " done!"
   else
-    echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
     make_repo "${directory}" "${remoteRepo}" || { echo "Unable to clone repository, please contact support"; exit 1; }
     echo " done!"
   fi
@@ -726,7 +724,7 @@ enable_service() {
   echo " done."
 }
 
-update_pacakge_cache() {
+update_package_cache() {
   #Running apt-get update/upgrade with minimal output can cause some issues with
   #requiring user input (e.g password for phpmyadmin see #218)
 
@@ -735,8 +733,11 @@ update_pacakge_cache() {
 
   echo ":::"
   echo -n "::: Updating local cache of available packages..."
-  ${UPDATE_PKG_CACHE} &> /dev/null
-  echo " done!"
+  if eval ${UPDATE_PKG_CACHE} &> /dev/null; then
+    echo " done!"
+  else
+    echo -n "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
+  fi
 }
 
 notify_package_updates_available() {
@@ -1203,7 +1204,7 @@ main() {
   fi
 
   # Update package cache
-  update_pacakge_cache
+  update_package_cache
 
   # Notify user of package availability
   notify_package_updates_available

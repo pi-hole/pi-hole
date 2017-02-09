@@ -274,19 +274,20 @@ helpFunc() {
 :::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin)  for more information on usage
 :::
 ::: Options:
-:::  -w, whitelist            Whitelist domains
-:::  -b, blacklist            Blacklist domains
-:::  -d, debug                Start a debugging session if having trouble
-:::  -f, flush                Flush the pihole.log file
-:::  -t, tail                 Output the last lines of the pihole.log file. Lines are appended as the file grows
-:::  -up, updatePihole        Update Pi-hole
+:::  -w, whitelist            Whitelist domain(s)
+:::  -b, blacklist            Blacklist domain(s) (exact match)
+:::  -wild, wildcard          Blacklist whole domain(s) (wildcard)
+:::  -d, debug                Start a debugging session
+:::  -f, flush                Flush the 'pihole.log' file
+:::  -t, tail                 Output the last lines of the 'pihole.log' file. Lines are appended as the file grows
+:::  -up, updatePihole        Update Pi-hole components
 :::  -r, reconfigure          Reconfigure or Repair Pi-hole
 :::  -g, updateGravity        Update the list of ad-serving domains
 :::  -c, chronometer          Calculates stats and displays to an LCD
 :::  -h, help                 Show this help dialog
-:::  -v, version              Show current versions
+:::  -v, version              Show installed versions of Pi-Hole and Web-Admin
 :::  -q, query                Query the adlists for a specific domain
-:::                           Use pihole -q domain -exact if you want to see exact matches only
+:::                           Use 'pihole -q domain -exact' if you want to see exact matches only
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
 :::  -a, admin                Admin webpage options
 :::  uninstall                Uninstall Pi-Hole from your system :(!
@@ -294,7 +295,7 @@ helpFunc() {
 :::  enable                   Enable Pi-Hole DNS Blocking
 :::  disable                  Disable Pi-Hole DNS Blocking
 :::                           Blocking can also be disabled only temporarily, e.g.,
-:::                           pihole disable 5m - will disable blocking for 5 minutes
+:::                           'pihole disable 5m' - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
 EOM
   exit 0
