@@ -77,8 +77,8 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git whiptail)
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${iproute_pkg} iputils-ping lighttpd lsof netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget)
+  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lighttpd lsof netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
