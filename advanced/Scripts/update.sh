@@ -18,6 +18,8 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# FTL_GIT_URL sourced from basic-install.sh
+# FTL_LOCAL_REPO sourced from basic-install.sh
 
 PH_TEST=true
 source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
@@ -60,7 +62,7 @@ GitCheckUpdateAvail() {
     git status
     exit
   fi
-  
+
   # Change back to original directory
   cd "${curdir}"
 
@@ -86,6 +88,13 @@ main() {
     exit 1;
   fi
 
+  if ! is_repo "${FTL_LOCAL_REPO}"; then
+    getGitFiles ${FTL_LOCAL_REPO} ${FTL_GIT_URL} || \
+    { echo "!!! Unable to clone ${FTL_GIT_URL} into ${FTL_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+    }
+  fi
+
   echo "::: Checking for updates..."
 
   if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
@@ -104,6 +113,14 @@ main() {
     echo "::: Web Interface:  up to date"
   fi
 
+  if GitCheckUpdateAvail "${FTL_LOCAL_REPO}" ; then
+    FTL_update=true
+    echo "::: FTL:            update available"
+  else
+    FTL_update=false
+    echo "::: FTL:            up to date"
+  fi
+
   # Logic
   # If Core up to date AND web up to date:
   #            Do nothing
@@ -113,11 +130,19 @@ main() {
   #            pull pihole repo, run install --unattended -- reconfigure
   # if Core NOT up to date AND web NOT up to date:
   #            pull pihole repo run install --unattended
+  # if FTL is NOT up to date AND install is not used -> recompile + restart FTL
 
-  if ! ${core_update} && ! ${web_update} ; then
+  if ! ${core_update} && ! ${web_update} && ! ${FTL_update} ; then
     echo ":::"
     echo "::: Everything is up to date!"
     exit 0
+
+  elif ! ${core_update} && ${FTL_update} ; then
+    echo ":::"
+    echo "::: FTL out of date"
+    getGitFiles "${FTL_LOCAL_REPO}" "${FTL_GIT_URL}"
+    # this funtion is sourced from the installer
+    CompileFTL
 
   elif ! ${core_update} && ${web_update} ; then
     echo ":::"
@@ -152,6 +177,12 @@ main() {
     echo ":::"
     echo "::: Pi-hole version is now at ${pihole_version_current}"
     echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+  fi
+
+  if [[ "${FTL_update}" == true ]]; then
+    echo ":::"
+    echo "::: FTL has been updated"
+    echo "::: If you had made any changes in '/etc/.pihole-FTL', they have been stashed using 'git stash'"
   fi
 
   echo ""

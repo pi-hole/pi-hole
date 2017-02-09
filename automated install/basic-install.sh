@@ -27,6 +27,8 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
+FTL_GIT_URL="https://github.com/pi-hole/FTL.git"
+FTL_LOCAL_REPO="/etc/.pihole-FTL"
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
@@ -961,6 +963,28 @@ installLogrotate() {
   echo " done!"
 }
 
+CompileFTL() {
+  # Compile FTL
+  echo ":::"
+  echo -n "::: Compiling FTL... "
+
+  curdir="${PWD}"
+  cd "${FTL_LOCAL_REPO}"
+  make clean &> /etc/pihole/FTL_build.log
+  if make pihole-FTL &>> /etc/pihole/FTL_build.log; then
+    echo "done"
+  else
+    echo "failed (please send /etc/pihole/FTL_build.log to the developers team)"
+  fi
+  echo -n "::: Installing FTL... "
+  if make install &>> /etc/pihole/FTL_build.log; then
+    echo "done"
+  else
+    echo "failed (please send /etc/pihole/FTL_build.log to the developers team)"
+  fi
+  cd "${curdir}"
+}
+
 installPihole() {
   # Install base files and web interface
   create_pihole_user
@@ -978,6 +1002,7 @@ installPihole() {
   installScripts
   installConfigs
   CreateLogFile
+  CompileFTL
   installPiholeWeb
   installCron
   installLogrotate
@@ -1009,6 +1034,7 @@ updatePihole() {
   installScripts
   installConfigs
   CreateLogFile
+  CompileFTL
   installPiholeWeb
   installCron
   installLogrotate
@@ -1148,13 +1174,17 @@ main() {
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
   else
-    # Get Git files for Core and Admin
+    # Get Git files for Core, Admin, and FTL
     getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
       { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
         exit 1; \
       }
     getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
       { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
+    getGitFiles ${FTL_LOCAL_REPO} ${FTL_GIT_URL} || \
+      { echo "!!! Unable to clone ${FTL_GIT_URL} into ${FTL_LOCAL_REPO}, unable to continue."; \
         exit 1; \
       }
   fi
