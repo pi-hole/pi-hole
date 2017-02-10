@@ -60,7 +60,7 @@ GitCheckUpdateAvail() {
     git status
     exit
   fi
-  
+
   # Change back to original directory
   cd "${curdir}"
 
@@ -80,8 +80,8 @@ main() {
   local web_version_current
 
   #This is unlikely
-  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
-    echo "::: Critical Error: One or more Pi-Hole repos are missing from system!"
+  if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
+    echo "::: Critical Error: Core Pi-Hole repo is missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
   fi
@@ -96,48 +96,67 @@ main() {
     echo "::: Pi-hole Core:   up to date"
   fi
 
-  if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
-    web_update=true
-    echo "::: Web Interface:  update available"
-  else
-    web_update=false
-    echo "::: Web Interface:  up to date"
-  fi
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
+      echo "::: Critical Error: Web Admin repo is missing from system!"
+      echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+      exit 1;
+    fi
 
-  # Logic
-  # If Core up to date AND web up to date:
-  #            Do nothing
-  # If Core up to date AND web NOT up to date:
-  #            Pull web repo
-  # If Core NOT up to date AND web up to date:
-  #            pull pihole repo, run install --unattended -- reconfigure
-  # if Core NOT up to date AND web NOT up to date:
-  #            pull pihole repo run install --unattended
+    if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
+      web_update=true
+      echo "::: Web Interface:  update available"
+    else
+      web_update=false
+      echo "::: Web Interface:  up to date"
+    fi
 
-  if ! ${core_update} && ! ${web_update} ; then
-    echo ":::"
-    echo "::: Everything is up to date!"
-    exit 0
+    # Logic
+    # If Core up to date AND web up to date:
+    #            Do nothing
+    # If Core up to date AND web NOT up to date:
+    #            Pull web repo
+    # If Core NOT up to date AND web up to date:
+    #            pull pihole repo, run install --unattended -- reconfigure
+    # if Core NOT up to date AND web NOT up to date:
+    #            pull pihole repo run install --unattended
 
-  elif ! ${core_update} && ${web_update} ; then
-    echo ":::"
-    echo "::: Pi-hole Web Admin files out of date"
-    getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
+    if ! ${core_update} && ! ${web_update} ; then
+      echo ":::"
+      echo "::: Everything is up to date!"
+      exit 0
 
-  elif ${core_update} && ! ${web_update} ; then
-    echo ":::"
-    echo "::: Pi-hole core files out of date"
-    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    elif ! ${core_update} && ${web_update} ; then
+      echo ":::"
+      echo "::: Pi-hole Web Admin files out of date"
+      getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
 
-  elif ${core_update} && ${web_update} ; then
-    echo ":::"
-    echo "::: Updating Everything"
-    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
-  else
-    echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
-    exit 1
+    elif ${core_update} && ! ${web_update} ; then
+      echo ":::"
+      echo "::: Pi-hole core files out of date"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+
+    elif ${core_update} && ${web_update} ; then
+      echo ":::"
+      echo "::: Updating Everything"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    else
+      echo "*** Update script has malfunctioned, fallthrough reached. Please contact support"
+      exit 1
+    fi
+  else # Web Admin not installed, so only verify if core is up to date
+    if ! ${core_update}; then
+      echo ":::"
+      echo "::: Everything is up to date!"
+      exit 0
+    else
+      echo ":::"
+      echo "::: Pi-hole core files out of date"
+      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+    fi
   fi
 
   if [[ "${web_update}" == true ]]; then
