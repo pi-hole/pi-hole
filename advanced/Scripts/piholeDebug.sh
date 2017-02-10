@@ -35,7 +35,7 @@ cat << EOM
 ::: This process collects information from your Pi-hole, and optionally uploads
 ::: it to a unique and random directory on tricorder.pi-hole.net.
 :::
-::: NOTE: All log files auto-delete after 24 hours and ONLY the Pi-hole developers
+::: NOTE: All log files auto-delete after 48 hours and ONLY the Pi-hole developers
 ::: can access your data via the given token. We have taken these extra steps to
 ::: secure your data and will work to further reduce any personal information gathered.
 :::
