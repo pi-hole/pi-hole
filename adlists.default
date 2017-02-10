@@ -23,7 +23,7 @@ https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
 # hosts-file.net list. Updated frequently, but has been known to block legitimate sites.
 https://hosts-file.net/ad_servers.txt
 
-# Mahakala list. Has been known to block legitimage domains including the entire .com range.
+# Mahakala list. Has been known to block legitimate domains including the entire .com range.
 # Warning: Due to the sheer size of this list, the web admin console will be unresponsive.
 #http://adblock.mahakala.is/
 
@@ -49,5 +49,5 @@ https://hosts-file.net/ad_servers.txt
 # Following two lists should be used simultaneously: (readme https://github.com/notracking/hosts-blocklists/)
 #https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt
 #https://raw.github.com/notracking/hosts-blocklists/master/domains.txt
-# Combination of serveral host files on the internet (warning some facebook domains are also blocked but you can go to facebook.com). See https://github.com/mat1th/Dns-add-block for more information.
+# Combination of several host files on the internet (warning some facebook domains are also blocked but you can go to facebook.com). See https://github.com/mat1th/Dns-add-block for more information.
 #https://raw.githubusercontent.com/mat1th/Dns-add-block/master/hosts
