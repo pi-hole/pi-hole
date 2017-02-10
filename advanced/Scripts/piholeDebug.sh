@@ -16,7 +16,7 @@ set -o pipefail
 VARSFILE="/etc/pihole/setupVars.conf"
 DEBUG_LOG="/var/log/pihole_debug.log"
 DNSMASQFILE="/etc/dnsmasq.conf"
-DNSMASQCONFFILE="/etc/dnsmasq.d/01-pihole.conf"
+DNSMASQCONFDIR="/etc/dnsmasq.d/*"
 LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
 LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
 GRAVITYFILE="/etc/pihole/gravity.list"
@@ -132,15 +132,27 @@ version_check() {
 	return "${error_found}"
 }
 
+dir_check() {
+  header_write "Detecting contents of ${1}:"
+  for file in $1*; do
+    header_write "File ${file} found"
+    echo -n ":::       Parsing..."
+    file_parse "${file}"
+    echo "done"
+  done
+  echo ":::"
+}
+
 files_check() {
   #Check non-zero length existence of ${1}
   header_write "Detecting existence of ${1}:"
   local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-     echo ":::       File exists"
+     echo -n ":::       File exists, parsing..."
      file_parse "${search_file}"
+     echo "done"
      return 0
-	else
+  else
     log_echo "${1} not found!"
     return 1
   fi
@@ -353,7 +365,7 @@ testResolver
 debugLighttpd
 
 files_check "${DNSMASQFILE}"
-files_check "${DNSMASQCONFFILE}"
+dir_check "${DNSMASQCONFDIR}"
 files_check "${WHITELISTFILE}"
 files_check "${BLACKLISTFILE}"
 files_check "${ADLISTFILE}"
