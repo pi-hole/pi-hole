@@ -87,5 +87,10 @@ $HTTP["url"] =~ "^(?!/admin)/.*" {
 	setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
 }
 
+$HTTP["host"] =~ "pi.hole$" {
+    setenv.add-response-header = ( "X-Pi-hole" => "Redirecting pi.hole to /admin." )
+    url.rewrite = ( "^(.*)" => "/admin$1" )
+}
+
 # Add user chosen options held in external file
 include_shell "cat external.conf 2>/dev/null"
