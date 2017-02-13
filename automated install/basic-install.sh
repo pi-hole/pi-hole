@@ -1159,7 +1159,7 @@ if [[ "${reconfigure}" == true ]]; then
 FTLdownload() {
   # Download suitable FTL binary
   echo ":::"
-  echo "::: Downloading latest FTL binary..."
+  echo "::: Downloading latest version of FTL..."
 
   local machine=$(uname -m)
 
@@ -1168,23 +1168,24 @@ FTLdownload() {
   if [[ $machine == arm* ]]; then
     # ARM
     if [ -f "/lib/ld-linux-aarch64.so.1" ]; then
-      echo "Detected ARM-aarch64 architecture"
+      echo ":::  Detected ARM-aarch64 architecture"
       binary="pihole-FTL-aarch64-linux-gnu"
     elif [ -f "/lib/ld-linux-armhf.so.3" ]; then
-      echo "Detected ARM-hf architecture"
+      echo ":::  Detected ARM-hf architecture"
       binary="pihole-FTL-arm-linux-gnueabihf"
     else
-      echo "Detected ARM architecture"
+      echo ":::  Detected ARM architecture"
       binary="pihole-FTL-arm-linux-gnueabi"
     fi
   elif [[ $machine == x86_64 ]]; then
     # 64bit
-    echo "Detected x86_64 architecture"
+    echo ":::  Detected x86_64 architecture"
     binary="pihole-FTL-linux-x86_64"
   else
     # Something else - we try to use 32bit executable and warn the user
     if [[ ! $machine == i686 ]]; then
-      echo "Not able to detect architecture, trying 32bit executable"
+      echo ":::  Not able to detect architecture (unknown: ${machine}), trying 32bit executable"
+      echo ":::  Contact Pi-hole support if you experience problems (like FTL not running)"
     fi
     binary="pihole-FTL-linux-x86_32"
   fi
@@ -1206,7 +1207,7 @@ FTLdownload() {
 FTLinstall() {
   # Download suitable FTL binary
   echo ":::"
-  echo -n "::: Downloading latest FTL binary..."
+  echo -n "::: Installing FTL ... "
 
   install -m 0755 /opt/pihole/pihole-FTL /usr/local/bin
   touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
