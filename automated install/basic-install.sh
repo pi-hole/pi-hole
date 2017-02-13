@@ -1180,7 +1180,9 @@ FTLdownload() {
     binary="pihole-FTL-linux-x86_64"
   else
     # Something else - we try to use 32bit executable and warn the user
-    echo "Not able to detect architecture"
+    if [[ ! $machine == i686 ]]; then
+      echo "Not able to detect architecture, trying 32bit executable"
+    fi
     binary="pihole-FTL-linux-x86_32"
   fi
 
