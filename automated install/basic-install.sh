@@ -1182,7 +1182,13 @@ FTLdownload() {
     binary="pihole-FTL-linux-x86_32"
   fi
 
-  curl -sSL "https://github.com/pi-hole/FTL/releases/latest/${binary}" -o "/opt/pihole/pihole-FTL"
+  latesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | grep "tag_name" | sed "s/.*: \"//;s/\",//;")
+  if [ ! "${latesttag}" ]; then
+    echo "Error in getting latest release tag from GitHub"
+    return 0
+  fi
+  curl -sSL "https://github.com/pi-hole/FTL/releases/download/${latesttag}/${binary}" -o "/opt/pihole/pihole-FTL"
+  return 0
 }
 
 FTLinstall() {
