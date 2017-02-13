@@ -1026,8 +1026,9 @@ installPihole() {
   fi
   installCron
   installLogrotate
-  FTLdownload
-  FTLinstall
+  if FTLdownload; then
+    FTLinstall
+  fi
   configureFirewall
   finalExports
   #runGravity
@@ -1059,8 +1060,9 @@ updatePihole() {
   fi
   installCron
   installLogrotate
-  FTLdownload
-  FTLinstall
+  if FTLdownload; then
+    FTLinstall
+  fi
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   #runGravity
 }
@@ -1185,10 +1187,13 @@ FTLdownload() {
   latesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | grep "tag_name" | sed "s/.*: \"//;s/\",//;")
   if [ ! "${latesttag}" ]; then
     echo "Error in getting latest release tag from GitHub"
-    return 0
+    return 1
   fi
-  curl -sSL "https://github.com/pi-hole/FTL/releases/download/${latesttag}/${binary}" -o "/opt/pihole/pihole-FTL"
-  return 0
+  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag}/${binary}" -o "/opt/pihole/pihole-FTL"; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 FTLinstall() {
