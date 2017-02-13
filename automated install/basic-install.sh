@@ -1187,6 +1187,7 @@ FTLdownload() {
       echo ":::  Not able to detect architecture (unknown: ${machine}), trying 32bit executable"
       echo ":::  Contact Pi-hole support if you experience problems (like FTL not running)"
     fi
+    echo ":::  Detected 32bit (i686) architecture"
     binary="pihole-FTL-linux-x86_32"
   fi
 
@@ -1205,7 +1206,7 @@ FTLdownload() {
 }
 
 FTLinstall() {
-  # Download suitable FTL binary
+  # Install FTL binary
   echo ":::"
   echo -n "::: Installing FTL ... "
 
