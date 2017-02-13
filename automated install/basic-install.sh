@@ -1157,6 +1157,9 @@ if [[ "${reconfigure}" == true ]]; then
 }
 
 FTLdownload() {
+  # Download suitable FTL binary
+  echo ":::"
+  echo "::: Downloading latest FTL binary..."
 
   local machine=$(uname -m)
 
@@ -1188,20 +1191,28 @@ FTLdownload() {
 
   latesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | grep "tag_name" | sed "s/.*: \"//;s/\",//;")
   if [ ! "${latesttag}" ]; then
-    echo "Error in getting latest release tag from GitHub"
+    echo ":::   failed (error in getting latest release tag from GitHub)"
     return 1
   fi
   if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag}/${binary}" -o "/opt/pihole/pihole-FTL"; then
+    echo ":::   done"
     return 0
   else
+    echo ":::   failed (download of binary from Github failed)"
     return 1
   fi
 }
 
 FTLinstall() {
+  # Download suitable FTL binary
+  echo ":::"
+  echo -n "::: Downloading latest FTL binary..."
+
   install -m 0755 /opt/pihole/pihole-FTL /usr/local/bin
   touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
   chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+
+  echo "done"
 }
 
 main() {
