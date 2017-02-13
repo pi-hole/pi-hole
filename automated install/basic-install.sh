@@ -1150,6 +1150,38 @@ if [[ "${reconfigure}" == true ]]; then
     fi
 }
 
+FTLdownload() {
+
+  local machine=$(uname -m)
+
+  echo $machine
+
+  if [[ $machine == arm* ]]; then
+    # ARM
+    if [ -f "/lib/ld-linux-aarch64.so.1" ]; then
+      echo "Detected ARM-aarch64 architecture"
+      binary="pihole-FTL-aarch64-linux-gnu"
+    elif [ -f "/lib/ld-linux-armhf.so.3" ]; then
+      echo "Detected ARM-hf architecture"
+      binary="pihole-FTL-arm-linux-gnueabihf"
+    else
+      echo "Detected ARM architecture"
+      binary="pihole-FTL-arm-linux-gnueabi"
+    fi
+  elif [[ $machine == x86_64 ]]; then
+    # 64bit
+    echo "Detected x86_64 architecture"
+    binary="pihole-FTL-linux-x86_64"
+  else
+    # Something else - we try to use 32bit executable and warn the user
+    echo "Not able to detect architecture"
+    binary="pihole-FTL-linux-x86_32"
+  fi
+
+  curl -sSL "https://github.com/pi-hole/FTL/releases/latest/${binary}" -o "/etc/pihole/pihole-FTL"
+}
+
+
 main() {
 
   ######## FIRST CHECK ########
