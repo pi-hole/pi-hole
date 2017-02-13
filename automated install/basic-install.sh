@@ -1026,6 +1026,8 @@ installPihole() {
   fi
   installCron
   installLogrotate
+  FTLdownload
+  FTLinstall
   configureFirewall
   finalExports
   #runGravity
@@ -1057,6 +1059,8 @@ updatePihole() {
   fi
   installCron
   installLogrotate
+  FTLdownload
+  FTLinstall
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   #runGravity
 }
@@ -1178,9 +1182,14 @@ FTLdownload() {
     binary="pihole-FTL-linux-x86_32"
   fi
 
-  curl -sSL "https://github.com/pi-hole/FTL/releases/latest/${binary}" -o "/etc/pihole/pihole-FTL"
+  curl -sSL "https://github.com/pi-hole/FTL/releases/latest/${binary}" -o "/opt/pihole/pihole-FTL"
 }
 
+FTLinstall() {
+  install -m 0755 /opt/pihole-FTL /usr/local/bin
+  touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+  chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+}
 
 main() {
 
