@@ -1186,8 +1186,9 @@ FTLdownload() {
     if [[ ! $machine == i686 ]]; then
       echo ":::  Not able to detect architecture (unknown: ${machine}), trying 32bit executable"
       echo ":::  Contact Pi-hole support if you experience problems (like FTL not running)"
+    else
+      echo ":::  Detected 32bit (i686) architecture"
     fi
-    echo ":::  Detected 32bit (i686) architecture"
     binary="pihole-FTL-linux-x86_32"
   fi
 
