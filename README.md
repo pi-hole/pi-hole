@@ -139,6 +139,7 @@ You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-
 
 ## Pi-hole Projects
 
+-   [An ad blocking Magic Mirror](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
 -   [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
 -   [Get LED alerts for each blocked ad](http://thetimmy.silvernight.org/pages/endisbutton/)
 -   [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
