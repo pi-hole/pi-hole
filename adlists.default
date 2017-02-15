@@ -14,7 +14,7 @@
 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
 
 # Other lists we consider safe:
-http://mirror1.malwaredomains.com/files/justdomains
+https://mirror1.malwaredomains.com/files/justdomains
 http://sysctl.org/cameleon/hosts
 https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist
 https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
@@ -25,7 +25,7 @@ https://hosts-file.net/ad_servers.txt
 
 # Mahakala list. Has been known to block legitimage domains including the entire .com range.
 # Warning: Due to the sheer size of this list, the web admin console will be unresponsive.
-#http://adblock.mahakala.is/
+#https://adblock.mahakala.is/
 
 # ADZHOSTS list. Has been known to block legitimate domains
 #http://pilotfiber.dl.sourceforge.net/project/adzhosts/HOSTS.txt
