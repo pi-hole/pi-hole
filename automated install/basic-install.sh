@@ -307,9 +307,9 @@ use4andor6() {
       # Explain the need for a static address
     if whiptail --backtitle "Initiating network interface" --title "Static IP Needed" --yesno "\n\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
-  In the next section, you can choose to use your current network settings (DHCP) or to manually edit them.
+  In the next section, we can attempt to set the static IP for you based on your current IP address.
 
-  Would you like us to set your static IP for you?" ${r} ${c}; then
+  If you have already set a static IP, or wish to do this later, choose No" ${r} ${c}; then
       getStaticIPv4Settings
       setStaticIPv4
     else
