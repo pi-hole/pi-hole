@@ -35,6 +35,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB=true
+usedhcpcd5=false
 
 
 # Find the rows and columns will default to 80x24 is it can not be detected
@@ -79,9 +80,10 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  INSTALLER_DEPS=(apt-utils debconf git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
+  usedhcpcd5=true
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -332,6 +334,7 @@ use4andor6() {
 
 getStaticIPv4Settings() {
 
+
   local ipSettingsCorrect
   # Ask if the user wants to use DHCP settings as their static IP
   if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
@@ -387,6 +390,11 @@ setStaticIPv4() {
   local IFCFG_FILE
   local IPADDR
   local CIDR
+
+  if [[ ${usedhcpcd5} == true ]]; then
+    install_dependent_packages dhcpcd5
+  fi
+
   if [[ -f /etc/dhcpcd.conf ]]; then
     # Debian Family
     if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
