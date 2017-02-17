@@ -210,8 +210,10 @@ ip_ping_check() {
 
   if [[ ${protocol} == "6" ]]; then
     cmd="ping6"
+    g_addr="2001:4860:4860::8888"
   else
     cmd="ping"
+    g_addr="8.8.8.8"
   fi
 
   local ip_def_gateway=$(ip -${protocol} route | grep default | cut -d ' ' -f 3)
@@ -223,9 +225,17 @@ ip_ping_check() {
     else
       echo "Gateway responded."
       log_write "${ping_gateway}"
-      return 0
+    fi
+    echo -n ":::        Pinging Internet via IPv${protocol}: "
+    if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${g_addr} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+      echo "Query did not respond."
+      return 1
+    else
+      echo "Query responded."
+      log_write "${ping_inet}"
     fi
   fi
+  return 0
 }
 
 ip_check_wrapper() {
