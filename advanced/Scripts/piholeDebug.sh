@@ -189,10 +189,13 @@ ipv6_check() {
 
 ip_check() {
   local protocol=${1}
+  local gravity=${2}
 
   local ip_addr_list="$(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')"
   if [[ -n ${ip_addr_list} ]]; then
     log_write "IPv${protocol} on ${PIHOLE_INTERFACE}"
+    log_write "Gravity configured for: ${2:-NOT CONFIGURED}"
+    log_write "----"
     log_write "${ip_addr_list}"
     echo ":::       IPv${protocol} addresses located on ${PIHOLE_INTERFACE}"
     ip_ping_check ${protocol}
@@ -204,7 +207,6 @@ ip_check() {
 }
 
 ip_ping_check() {
-
   local protocol=${1}
   local cmd
 
@@ -234,17 +236,10 @@ ip_ping_check() {
       echo "Query responded."
       log_write "${ping_inet}"
     fi
+  else
+    log_echo "        No gateway detected."
   fi
   return 0
-}
-
-ip_check_wrapper() {
-	header_write "IP Address Information"
-
-	if ipv6_check; then
-	  ip_check "6"
-	fi
-  ip_check "4"
 }
 
 port_check() {
@@ -357,7 +352,8 @@ distro_check || echo "Distro Check soft fail"
 # Gather processor type
 processor_check || echo "Processor Check soft fail"
 
-ip_check_wrapper
+ip_check 6 ${IPV6_ADDRESS}
+ip_check 4 ${IPV4_ADDRESS}
 
 daemon_check lighttpd http
 daemon_check dnsmasq domain
