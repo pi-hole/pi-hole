@@ -16,7 +16,7 @@ set -o pipefail
 VARSFILE="/etc/pihole/setupVars.conf"
 DEBUG_LOG="/var/log/pihole_debug.log"
 DNSMASQFILE="/etc/dnsmasq.conf"
-DNSMASQCONFFILE="/etc/dnsmasq.d/01-pihole.conf"
+DNSMASQCONFDIR="/etc/dnsmasq.d/*"
 LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
 LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
 GRAVITYFILE="/etc/pihole/gravity.list"
@@ -26,7 +26,6 @@ ADLISTFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
-IPV6_READY=false
 TIMEOUT=60
 # Header info and introduction
 cat << EOM
@@ -35,7 +34,7 @@ cat << EOM
 ::: This process collects information from your Pi-hole, and optionally uploads
 ::: it to a unique and random directory on tricorder.pi-hole.net.
 :::
-::: NOTE: All log files auto-delete after 24 hours and ONLY the Pi-hole developers
+::: NOTE: All log files auto-delete after 48 hours and ONLY the Pi-hole developers
 ::: can access your data via the given token. We have taken these extra steps to
 ::: secure your data and will work to further reduce any personal information gathered.
 :::
@@ -132,15 +131,27 @@ version_check() {
 	return "${error_found}"
 }
 
+dir_check() {
+  header_write "Detecting contents of ${1}:"
+  for file in $1*; do
+    header_write "File ${file} found"
+    echo -n ":::       Parsing..."
+    file_parse "${file}"
+    echo "done"
+  done
+  echo ":::"
+}
+
 files_check() {
   #Check non-zero length existence of ${1}
   header_write "Detecting existence of ${1}:"
   local search_file="${1}"
   if [[ -s ${search_file} ]]; then
-     echo ":::       File exists"
+     echo -n ":::       File exists, parsing..."
      file_parse "${search_file}"
+     echo "done"
      return 0
-	else
+  else
     log_echo "${1} not found!"
     return 1
   fi
@@ -168,70 +179,67 @@ processor_check() {
 
 ipv6_check() {
   # Check if system is IPv6 enabled, for use in other functions
-  if [[ $IPv6_address ]]; then
-    ls /proc/net/if_inet6 &>/dev/null && IPV6_READY=true
+  if [[ $IPV6_ADDRESS ]]; then
+    ls /proc/net/if_inet6 &>/dev/null
     return 0
   else
     return 1
   fi
 }
 
-
 ip_check() {
-	header_write "IP Address Information"
-	# Get the current interface for Internet traffic
+  local protocol=${1}
+  local gravity=${2}
 
-	# Check if IPv6 enabled
-	local IPv6_interface
-	local IPv4_interface
-	ipv6_check &&	IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
-	# If declared in setupVars.conf use it, otherwise defer to default
-	# http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
-  IPv4_interface=${piholeInterface:-$(ip r | grep default | cut -d ' ' -f 5)}
-
-
-  if [[ IPV6_READY ]]; then
-    local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
-	  && (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") \
-	  || log_echo "No IPv6 addresses found."
-
-    local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
-    if [[ $? = 0 ]] && [[ -n ${IPv6_def_gateway} ]]; then
-      echo -n ":::        Pinging default IPv6 gateway: "
-      local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
-      && echo "Gateway Responded." \
-      || echo "Gateway did not respond."
-      block_parse "${IPv6_def_gateway_check}"
-
-      echo -n ":::        Pinging Internet via IPv6: "
-      local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
-      && echo "Query responded." \
-      || echo "Query did not respond."
-      block_parse "${IPv6_inet_check}"
-    else
-      log_echo="No IPv6 Gateway Detected"
-    fi
-
-local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
-	&& (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
-	|| log_echo "No IPv4 addresses found."
-
-	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
-	if [[ $? = 0 ]]; then
-		echo -n ":::        Pinging default IPv4 gateway: "
-		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}"  -I "${IPv4_interface}" | tail -n3)" \
-		&& echo "Gateway responded." \
-		|| echo "Gateway did not respond."
-		block_parse "${IPv4_def_gateway_check}"
-
-		echo -n ":::        Pinging Internet via IPv4: "
-		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
-		&& echo "Query responded." \
-		|| echo "Query did not respond."
-		block_parse "${IPv4_inet_check}"
-	fi
-
+  local ip_addr_list="$(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')"
+  if [[ -n ${ip_addr_list} ]]; then
+    log_write "IPv${protocol} on ${PIHOLE_INTERFACE}"
+    log_write "Gravity configured for: ${2:-NOT CONFIGURED}"
+    log_write "----"
+    log_write "${ip_addr_list}"
+    echo ":::       IPv${protocol} addresses located on ${PIHOLE_INTERFACE}"
+    ip_ping_check ${protocol}
+    return $(( 0 + $? ))
+  else
+    log_echo "No IPv${protocol} found on ${PIHOLE_INTERFACE}"
+    return 1
   fi
+}
+
+ip_ping_check() {
+  local protocol=${1}
+  local cmd
+
+  if [[ ${protocol} == "6" ]]; then
+    cmd="ping6"
+    g_addr="2001:4860:4860::8888"
+  else
+    cmd="ping"
+    g_addr="8.8.8.8"
+  fi
+
+  local ip_def_gateway=$(ip -${protocol} route | grep default | cut -d ' ' -f 3)
+  if [[ -n ${ip_def_gateway} ]]; then
+    echo -n ":::        Pinging default IPv${protocol} gateway: "
+    if ! ping_gateway="$(${cmd} -q -W 3 -c 3 -n ${ip_def_gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+     echo "Gateway did not respond."
+     return 1
+    else
+      echo "Gateway responded."
+      log_write "${ping_gateway}"
+    fi
+    echo -n ":::        Pinging Internet via IPv${protocol}: "
+    if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${g_addr} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+      echo "Query did not respond."
+      return 1
+    else
+      echo "Query responded."
+      log_write "${ping_inet}"
+    fi
+  else
+    log_echo "        No gateway detected."
+  fi
+  return 0
 }
 
 port_check() {
@@ -344,7 +352,8 @@ distro_check || echo "Distro Check soft fail"
 # Gather processor type
 processor_check || echo "Processor Check soft fail"
 
-ip_check
+ip_check 6 ${IPV6_ADDRESS}
+ip_check 4 ${IPV4_ADDRESS}
 
 daemon_check lighttpd http
 daemon_check dnsmasq domain
@@ -353,7 +362,7 @@ testResolver
 debugLighttpd
 
 files_check "${DNSMASQFILE}"
-files_check "${DNSMASQCONFFILE}"
+dir_check "${DNSMASQCONFDIR}"
 files_check "${WHITELISTFILE}"
 files_check "${BLACKLISTFILE}"
 files_check "${ADLISTFILE}"

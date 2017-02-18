@@ -34,6 +34,8 @@ useUpdateVars=false
 IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
+INSTALL_WEB=true
+
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
@@ -63,22 +65,23 @@ if command -v apt-get &> /dev/null; then
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
   # #########################################
-  # fixes for dependancy differences
+  # fixes for dependency differences
   # Debian 7 doesn't have iproute2 use iproute
   if ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1; then
     iproute_pkg="iproute2"
   else
     iproute_pkg="iproute"
   fi
-  # Prefer the php metapackage if it's there, fall back on the php5 pacakges
+  # Prefer the php metapackage if it's there, fall back on the php5 packages
   if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
     phpVer="php"
   else
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git whiptail)
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils ${iproute_pkg} iputils-ping lighttpd lsof netcat ${phpVer}-common ${phpVer}-cgi sudo unzip wget)
+  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
+  PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -108,8 +111,8 @@ elif command -v rpm &> /dev/null; then
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils lighttpd lighttpd-fastcgi nmap-ncat php php-common php-cli sudo unzip wget)
-
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget)
+  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli)
   if ! grep -q 'Fedora' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
   fi
@@ -171,15 +174,17 @@ make_repo() {
 
 update_repo() {
   local directory="${1}"
+  local curdir
 
+  curdir="${PWD}"
+  cd "${directory}" &> /dev/null || return 1
   # Pull the latest commits
   echo -n ":::    Updating repo in ${1}..."
-  if [[ -d "${directory}" ]]; then
-    cd "${directory}"
-    git stash -q &> /dev/null || true # Okay for stash failure
-    git pull -q &> /dev/null || return $?
-    echo " done!"
-  fi
+  git stash --all --quiet &> /dev/null || true # Okay for stash failure
+  git clean --force -d || true # Okay for already clean directory
+  git pull --quiet &> /dev/null || return $?
+  echo " done!"
+  cd "${curdir}" &> /dev/null || return 1
   return 0
 }
 
@@ -191,9 +196,11 @@ getGitFiles() {
   echo ":::"
   echo "::: Checking for existing repository..."
   if is_repo "${directory}"; then
-    update_repo "${directory}" || return 1
+    update_repo "${directory}" || { echo "*** Error: Could not update local repository. Contact support."; exit 1; }
+    echo " done!"
   else
-    make_repo "${directory}" "${remoteRepo}" || return 1
+    make_repo "${directory}" "${remoteRepo}" || { echo "Unable to clone repository, please contact support"; exit 1; }
+    echo " done!"
   fi
   return 0
 }
@@ -383,7 +390,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 setDHCPCD() {
   # Append these lines to dhcpcd.conf to enable a static IP
-  echo "## interface ${PIHOLE_INTERFACE}
+  echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
   static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
@@ -466,6 +473,7 @@ setDNS() {
       Level3 ""
       Norton ""
       Comodo ""
+      DNSWatch ""
       Custom "")
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
@@ -495,6 +503,11 @@ setDNS() {
       echo "::: Using Comodo Secure servers."
       PIHOLE_DNS_1="8.26.56.26"
       PIHOLE_DNS_2="8.20.247.20"
+      ;;
+    DNSWatch)
+      echo "::: Using DNS.WATCH servers."
+      PIHOLE_DNS_1="84.200.69.80"
+      PIHOLE_DNS_2="84.200.70.40"
       ;;
     Custom)
       until [[ ${DNSSettingsCorrect} = True ]]; do
@@ -560,6 +573,27 @@ setLogging() {
       Off)
         echo "::: Logging Off."
         QUERY_LOGGING=false
+        ;;
+    esac
+}
+
+setAdminFlag() {
+  local WebToggleCommand
+  local WebChooseOptions
+  local WebChoices
+
+  WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web admin interface?" ${r} ${c} 6)
+  WebChooseOptions=("On (Recommended)" "" on
+      Off "" off)
+  WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (echo "::: Cancel selected. Exiting..." && exit 1)
+    case ${WebChoices} in
+      "On (Recommended)")
+        echo "::: Web Interface On."
+        INSTALL_WEB=true
+        ;;
+      Off)
+        echo "::: Web Interface off."
+        INSTALL_WEB=false
         ;;
     esac
 }
@@ -661,19 +695,23 @@ installConfigs() {
   echo ":::"
   echo "::: Installing configs..."
   version_check_dnsmasq
-  if [ ! -d "/etc/lighttpd" ]; then
-    mkdir /etc/lighttpd
-    chown "${USER}":root /etc/lighttpd
-  elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
-    mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+
+  #Only mess with lighttpd configs if user has chosen to install web interface
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if [ ! -d "/etc/lighttpd" ]; then
+      mkdir /etc/lighttpd
+      chown "${USER}":root /etc/lighttpd
+    elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
+      mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+    fi
+    cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    mkdir -p /var/run/lighttpd
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
+    mkdir -p /var/cache/lighttpd/compress
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+    mkdir -p /var/cache/lighttpd/uploads
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
   fi
-  cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
-  mkdir -p /var/run/lighttpd
-  chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
-  mkdir -p /var/cache/lighttpd/compress
-  chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
-  mkdir -p /var/cache/lighttpd/uploads
-  chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
 }
 
 stop_service() {
@@ -723,8 +761,11 @@ update_package_cache() {
 
   echo ":::"
   echo -n "::: Updating local cache of available packages..."
-  ${UPDATE_PKG_CACHE} &> /dev/null
-  echo " done!"
+  if eval ${UPDATE_PKG_CACHE} &> /dev/null; then
+    echo " done!"
+  else
+    echo -n "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
+  fi
 }
 
 notify_package_updates_available() {
@@ -831,21 +872,23 @@ installPiholeWeb() {
     if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
       echo ":::     Existing blockingpage.css detected, not overwriting"
     else
-      echo -n ":::     index.css missing, replacing... "
+      echo -n ":::     blockingpage.css missing, replacing... "
       cp /etc/.pihole/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
 
   else
-    mkdir /var/www/html/pihole
+    echo ":::     Creating directory for blocking page"
+    install -d /var/www/html/pihole
+    install -D /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
       printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
     fi
-    cp /etc/.pihole/advanced/index.* /var/www/html/pihole/.
     echo " done!"
   fi
+
   # Install Sudoer file
   echo ":::"
   echo -n "::: Installing sudoer file..."
@@ -902,26 +945,45 @@ create_pihole_user() {
 configureFirewall() {
   # Allow HTTP and DNS traffic
   if firewall-cmd --state &> /dev/null; then
-    echo "::: Configuring FirewallD for httpd and dnsmasq.."
+    whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
+    { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
+    echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
     firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
     firewall-cmd --reload
+    return 0
   # Check for proper kernel modules to prevent failure
   elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
     # If chain Policy is not ACCEPT or last Rule is not ACCEPT
     # then check and insert our Rules above the DROP/REJECT Rule.
     if iptables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
+      whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
+      { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
+      echo -e ":::\n::: Installing new IPTables firewall rulesets."
       # Check chain first, otherwise a new rule will duplicate old ones
-      echo "::: Configuring iptables for httpd and dnsmasq.."
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+      return 0
     fi
   else
-    echo "::: No active firewall detected.. skipping firewall configuration."
+    echo -e ":::\n::: No active firewall detected.. skipping firewall configuration."
+    return 0
   fi
+  echo -e ":::\n::: Skipping firewall configuration."
 }
 
 finalExports() {
+
+  if [[ ${INSTALL_WEB} == false ]]; then
+    #No web interface installed, and therefore no block page set IPV4/6 to 0.0.0.0 and ::/0
+    if [ ${IPV4_ADDRESS} ]; then
+      IPV4_ADDRESS="0.0.0.0"
+    fi
+    if [ ${IPV6_ADDRESS} ]; then
+      IPV6_ADDRESS="::/0"
+    fi
+  fi
+
   # Update variables in setupVars.conf file
   if [ -e "${setupVars}" ]; then
     sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;' "${setupVars}"
@@ -933,6 +995,7 @@ finalExports() {
   echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
+  echo "INSTALL_WEB=${INSTALL_WEB}"
     }>> "${setupVars}"
 
   # Look for DNS server settings which would have to be reapplied
@@ -948,28 +1011,52 @@ finalExports() {
   fi
 }
 
+installLogrotate() {
+  # Install the logrotate script
+  echo ":::"
+  echo -n "::: Installing latest logrotate script..."
+  cp /etc/.pihole/advanced/logrotate /etc/pihole/logrotate
+  # Different operating systems have different user / group
+  # settings for logrotate that makes it impossible to create
+  # a static logrotate file that will work with e.g.
+  # Rasbian and Ubuntu at the same time. Hence, we have to
+  # customize the logrotate script here in order to reflect
+  # the local properties of the /var/log directory
+  logusergroup="$(stat -c '%U %G' /var/log)"
+  if [[ ! -z $logusergroup ]]; then
+    sed -i "s/# su #/su ${logusergroup}/" /etc/pihole/logrotate
+  fi
+  echo " done!"
+}
+
 installPihole() {
   # Install base files and web interface
   create_pihole_user
-  if [ ! -d "/var/www/html" ]; then
-    mkdir -p /var/www/html
-  fi
-  chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-  chmod 775 /var/www/html
-  usermod -a -G ${LIGHTTPD_GROUP} pihole
-  if [ -x "$(command -v lighty-enable-mod)" ]; then
-    lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-  else
-    printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if [ ! -d "/var/www/html" ]; then
+      mkdir -p /var/www/html
+    fi
+    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
+    chmod 775 /var/www/html
+    usermod -a -G ${LIGHTTPD_GROUP} pihole
+    if [ -x "$(command -v lighty-enable-mod)" ]; then
+      lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
+    else
+      printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+    fi
   fi
   installScripts
   installConfigs
   CreateLogFile
-  installPiholeWeb
+  if [[ ${INSTALL_WEB} == true ]]; then
+    installPiholeWeb
+  fi
   installCron
+  installLogrotate
   configureFirewall
   finalExports
-  runGravity
+  #runGravity
 }
 
 accountForRefactor() {
@@ -989,17 +1076,17 @@ accountForRefactor() {
 
 updatePihole() {
   accountForRefactor
-  # Source ${setupVars} for use in the rest of the functions.
-  source ${setupVars}
   # Install base files and web interface
   installScripts
   installConfigs
   CreateLogFile
-  installPiholeWeb
+  if [[ ${INSTALL_WEB} == true ]]; then
+    installPiholeWeb
+  fi
   installCron
-  configureFirewall
+  installLogrotate
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
-  runGravity
+  #runGravity
 }
 
 
@@ -1021,6 +1108,13 @@ checkSelinux() {
 }
 
 displayFinalMessage() {
+
+   if [[ ${INSTALL_WEB} == true ]]; then
+       additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
+
+Your Admin Webpage login password is ${1:-"NOT SET"}"
+   fi
+
   # Final completion message to user
   whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
@@ -1030,9 +1124,8 @@ IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 If you set a new IP address, you should restart the Pi.
 
 The install log is in /etc/pihole.
-View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
-Your Admin Webpage login password is ${1:-"NOT SET"}" ${r} ${c}
+${additional}" ${r} ${c}
 }
 
 update_dialogs() {
@@ -1066,6 +1159,25 @@ update_dialogs() {
     esac
 }
 
+clone_or_update_repos() {
+if [[ "${reconfigure}" == true ]]; then
+      echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
+    else
+      # Get Git files for Core and Admin
+      getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+        { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+          exit 1; \
+        }
+
+      if [[ ${INSTALL_WEB} == true ]]; then
+        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+        { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+          exit 1; \
+        }
+      fi
+    fi
+}
+
 main() {
 
   ######## FIRST CHECK ########
@@ -1082,7 +1194,7 @@ main() {
 
     if command -v sudo &> /dev/null; then
       echo "::: Utility sudo located."
-      exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
+      exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
       exit $?
     else
       echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
@@ -1149,28 +1261,17 @@ main() {
    # Check if SELinux is Enforcing
   checkSelinux
 
-  if [[ "${reconfigure}" == true ]]; then
-    echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
-  else
-    # Get Git files for Core and Admin
-    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
-        exit 1; \
-      }
-    getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
-        exit 1; \
-      }
-  fi
 
   if [[ ${useUpdateVars} == false ]]; then
     # Display welcome dialogs
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-    # Stop resolver and webserver while installing proceses
+
     stop_service dnsmasq
-    stop_service lighttpd
+    if [[ ${INSTALL_WEB} == true ]]; then
+      stop_service lighttpd
+    fi
     # Determine available interfaces
     get_available_interfaces
     # Find interfaces and let the user choose one
@@ -1179,18 +1280,38 @@ main() {
     setDNS
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
     use4andor6
+    # Let the user decide if they want the web interface to be installed automatically
+    setAdminFlag
     # Let the user decide if they want query logging enabled...
     setLogging
+    # Clone/Update the repos
+    clone_or_update_repos
 
-    # Install packages used by the Pi-hole
-    install_dependent_packages PIHOLE_DEPS[@]
+       # Install packages used by the Pi-hole
+    if [[ ${INSTALL_WEB} == true ]]; then
+      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
+    else
+      DEPS=("${PIHOLE_DEPS[@]}")
+    fi
+    install_dependent_packages DEPS[@]
+
 
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
   else
+    # Clone/Update the repos
+    clone_or_update_repos
 
-    # update packages used by the Pi-hole
-    install_dependent_packages PIHOLE_DEPS[@]
+    # Source ${setupVars} for use in the rest of the functions.
+    source ${setupVars}
+
+    # Install packages used by the Pi-hole
+    if [[ ${INSTALL_WEB} == true ]]; then
+      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
+    else
+      DEPS=("${PIHOLE_DEPS[@]}")
+    fi
+    install_dependent_packages DEPS[@]
 
     updatePihole | tee ${tmpLog}
   fi
@@ -1198,36 +1319,40 @@ main() {
   # Move the log file into /etc/pihole for storage
   mv ${tmpLog} ${instalLogLoc}
 
-  # Add password to web UI if there is none
-  pw=""
-  if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
-      pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-      /usr/local/bin/pihole -a -p "${pw}"
-  fi
-
-  if [[ "${useUpdateVars}" == false ]]; then
-      displayFinalMessage "${pw}"
+  if [[ ${INSTALL_WEB} == true ]]; then
+    # Add password to web UI if there is none
+    pw=""
+    if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
+        pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
+        /usr/local/bin/pihole -a -p "${pw}"
+    fi
   fi
 
   echo "::: Restarting services..."
   restart_service dnsmasq
   enable_service dnsmasq
 
-  if [ ! -f /etc/pihole/webupdate.running ] ; then
-    restart_service lighttpd
-    enable_service lighttpd
-    echo ""
-    echo "::: done."
-  else
-    trap "" SIGHUP SIGINT SIGTERM
-    echo "Restarting lighttpd...done."
-    if [ -x "$(command -v systemctl)" ]; then
-      setsid sh -c "nohup systemctl restart lighttpd </dev/null >/dev/null 2>&1 &"
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if [ ! -f /etc/pihole/webupdate.running ] ; then
+      restart_service lighttpd
+      enable_service lighttpd
+      echo ""
+      echo "::: done."
     else
-      setsid sh -c "nohup service lighttpd reload </dev/null >/dev/null 2>&1 &"
+      trap "" SIGHUP SIGINT SIGTERM
+      echo "Restarting lighttpd...done."
+      if [ -x "$(command -v systemctl)" ]; then
+        setsid sh -c "nohup systemctl restart lighttpd </dev/null >/dev/null 2>&1 &"
+      else
+        setsid sh -c "nohup service lighttpd reload </dev/null >/dev/null 2>&1 &"
+      fi
+      echo ""
+      echo "::: done."
     fi
-    echo ""
-    echo "::: done."
+  fi
+
+  if [[ "${useUpdateVars}" == false ]]; then
+      displayFinalMessage "${pw}"
   fi
 
   echo ":::"
@@ -1237,19 +1362,23 @@ main() {
     echo ":::     ${IPV6_ADDRESS}"
     echo ":::"
     echo "::: If you set a new IP address, you should restart the Pi."
-    echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
+    if [[ ${INSTALL_WEB} == true ]]; then
+      echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
+    fi
   else
     echo "::: Update complete!"
   fi
 
-  if (( ${#pw} > 0 )) ; then
-    echo ":::"
-    echo "::: Note: As security measure a password has been installed for your web interface"
-    echo "::: The currently set password is"
-    echo ":::                                ${pw}"
-    echo ":::"
-    echo "::: You can always change it using"
-    echo ":::                                pihole -a -p new_password"
+  if [[ ${INSTALL_WEB} == true ]]; then
+    if (( ${#pw} > 0 )) ; then
+      echo ":::"
+      echo "::: Note: As security measure a password has been installed for your web interface"
+      echo "::: The currently set password is"
+      echo ":::                                ${pw}"
+      echo ":::"
+      echo "::: You can always change it using"
+      echo ":::                                pihole -a -p new_password"
+    fi
   fi
 
   echo ":::"

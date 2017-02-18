@@ -42,14 +42,14 @@ helpFunc() {
 ::: Usage: pihole -${letter} domain1 [domain2 ...]
 :::
 ::: Options:
-:::  -d, --delmode			Remove domains from the ${word}list
-:::  -nr, --noreload		Update ${word}list without refreshing dnsmasq
-:::  -q, --quiet			output is less verbose
-:::  -h, --help				Show this help dialog
-:::  -l, --list				Display your ${word}listed domains
+:::  -d, --delmode            Remove domains from the ${word}list
+:::  -nr, --noreload          Update ${word}list without refreshing dnsmasq
+:::  -q, --quiet              Output is less verbose
+:::  -h, --help               Show this help dialog
+:::  -l, --list               Display your ${word}listed domains
 EOM
 if [[ "${letter}" == "b" ]]; then
-	echo ":::  -wild, --wildcard		Add whitecard entry (only blacklist)"
+	echo ":::  -wild, --wildcard        Add wildcard entry (only blacklist)"
 fi
 	exit 0
 }
@@ -58,7 +58,7 @@ EscapeRegexp() {
     # This way we may safely insert an arbitrary
     # string in our regular expressions
     # Also remove leading "." if present
-    echo $* | sed 's/^\.//' | sed "s/[]\\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
+    echo $* | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
 }
 
 HandleOther(){
@@ -66,7 +66,7 @@ HandleOther(){
 	domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
 
 	#check validity of domain
-	validDomain=$(perl -ne "print if /\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b/" <<< "$domain")
+	validDomain=$(echo "${domain}" | perl -lne 'print if /(?!.*[^a-z0-9-\.].*)^((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9-]+\.)*[a-z]{2,63}/')
 	if [ -z "${validDomain}" ]; then
 		echo "::: $1 is not a valid argument or domain name"
 	else
@@ -229,4 +229,3 @@ PoplistFile
 if ${reload}; then
 	Reload
 fi
-
