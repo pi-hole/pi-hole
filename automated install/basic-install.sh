@@ -1240,8 +1240,7 @@ main() {
   notify_package_updates_available
 
   if [ -f /etc/pihole/webupdate.running ] ; then
-    lighttpdupdate=$(package_check_update_available lighttpd)
-    if [[ ${lighttpdupdate} -gt 0 ]]; then
+    if ! package_check_update_available lighttpd; then
       echo "::: ------------------> WEBUPDATE FAILED <------------------"
       echo ":::"
       echo "::: An update for lighttpd is available."
