@@ -451,6 +451,7 @@ setDNS() {
       Level3 ""
       Norton ""
       Comodo ""
+      DNSWatch ""
       Custom "")
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
@@ -480,6 +481,11 @@ setDNS() {
       echo "::: Using Comodo Secure servers."
       PIHOLE_DNS_1="8.26.56.26"
       PIHOLE_DNS_2="8.20.247.20"
+      ;;
+    DNSWatch)
+      echo "::: Using DNS.WATCH servers."
+      PIHOLE_DNS_1="84.200.69.80"
+      PIHOLE_DNS_2="84.200.70.40"
       ;;
     Custom)
       until [[ ${DNSSettingsCorrect} = True ]]; do
