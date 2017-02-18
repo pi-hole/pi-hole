@@ -88,14 +88,15 @@ if command -v apt-get &> /dev/null; then
   DNSMASQ_USER="dnsmasq"
 
   package_check_update_available() {
+    local update_count
+    local retval
     # Check if package would be upgraded.
     # return values:
     #  0   if no
     #  1   if yes
-    #  >1  if more than one package containing the name
-    #      ( might still make restarting the core package necessary )
-    ${PKG_MANAGER} -u upgrade --assume-no | grep -c "$1"
-    return 0
+    update_count=$(${PKG_MANAGER} -u upgrade --assume-no | grep -c "$1" || true)
+    retval=$(( update_count > 0 ? 1 : 0 ))
+    return $retval
   }
 
 elif command -v rpm &> /dev/null; then
