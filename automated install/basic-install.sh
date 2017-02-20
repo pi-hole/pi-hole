@@ -1164,17 +1164,19 @@ FTLinstall() {
     echo ":::   failed (error in getting latest release location from GitHub)"
     return 1
   fi
-  if curl -sSL --fail "${latestURL}${binary}" -o "/tmp/pihole-FTL"; then
-    echo ":::   done"
-    install -m 0755 /tmp/pihole-FTL /usr/bin
-    touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
-    chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
-    return 0
-  else
-    echo ":::   failed (download of binary from Github failed)"
-    return 1
+  if curl -sSL --fail "${latestURL%$'\r'}/${binary}" -o "/tmp/pihole-FTL"; then
+    if [[ -f /tmp/pihole-FTL ]]; then
+      echo ":::   done"
+      install -m 0755 /tmp/pihole-FTL /usr/bin
+      touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+      chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+      return 0
+    else
+      echo ":::   failed (download of binary from Github failed)"
+      return 1
+    fi
+    echo "done"
   fi
-  echo "done"
 }
 
 FTLdetect() {

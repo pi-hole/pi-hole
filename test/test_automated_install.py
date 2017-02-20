@@ -355,6 +355,29 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     ''')
     expected_stdout = 'Not able to detect architecture (unknown: mips)'
     assert expected_stdout in detectPlatform.stdout
+
+def test_FTL_download_aarch64_no_errors(Pihole):
+    ''' confirms only aarch64 package is downloaded for FTL engine '''
+    # mock uname to return generic platform
+    download_binary = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLinstall pihole-FTL-aarch64-linux-gnu
+    ''')
+    expected_stdout = 'done'
+    assert expected_stdout in download_binary.stdout
+    assert 'failed' not in download_binary.stdout
+
+def test_FTL_download_unknown_fails_no_errors(Pihole):
+    ''' confirms unknown binary is not downloaded for FTL engine '''
+    # mock uname to return generic platform
+    download_binary = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLinstall pihole-FTL-mips
+    ''')
+    expected_stdout = 'failed'
+    assert expected_stdout in download_binary.stdout
+    assert 'done' not in download_binary.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
