@@ -297,7 +297,7 @@ def test_update_package_cache_failure_no_errors(Pihole):
     assert 'ERROR' in updateCache.stdout
     assert 'done!' not in updateCache.stdout
 
-def test_FTL_download_aarch64_no_errors(Pihole):
+def test_FTL_detect_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
     # mock uname to return aarch64 platform
     mock_command('uname', {'-m':('aarch64', '0')}, Pihole)
