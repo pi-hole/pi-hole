@@ -1153,7 +1153,7 @@ if [[ "${reconfigure}" == true ]]; then
 }
 
 FTLinstall() {
-  # Download and Install FTL binary
+  # Download and install FTL binary
   local binary="${1}"
   local latesttag
   local orig_dir
@@ -1174,25 +1174,25 @@ FTLinstall() {
     cd /tmp
     if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
-      install -m 0755 /tmp/pihole-FTL /usr/bin
+      install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
       touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
       chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
       cd "${orig_dir}"
+      echo "done."
       return 0
     else
       echo "failed (download of binary from Github failed)"
       cd "${orig_dir}"
       return 1
     fi
-    cd "${orig_dir}"
-    echo "done."
   else
+    cd "${orig_dir}"
     echo "failed (URL not found.)"
   fi
 }
 
 FTLdetect() {
-  # Download suitable FTL binary
+  # Detect suitable FTL binary platform
   echo ":::"
   echo "::: Downloading latest version of FTL..."
 
@@ -1236,7 +1236,7 @@ FTLdetect() {
     binary="pihole-FTL-linux-x86_32"
   fi
 
-  FTLinstall "${binary}" || return 1
+  FTLdownload "${binary}" || return 1
 
 }
 
