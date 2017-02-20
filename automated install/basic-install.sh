@@ -1163,16 +1163,21 @@ FTLdownload() {
 
   local machine=$(uname -m)
 
-  echo $machine
-
-  if [[ $machine == arm* ]]; then
+  if [[ $machine == arm* || $machine == *aarch* ]]; then
     # ARM
+    local rev=$(uname -m | sed "s/[^0-9]//g;")
     if [ -f "/lib/ld-linux-aarch64.so.1" ]; then
       echo ":::  Detected ARM-aarch64 architecture"
       binary="pihole-FTL-aarch64-linux-gnu"
     elif [ -f "/lib/ld-linux-armhf.so.3" ]; then
-      echo ":::  Detected ARM-hf architecture"
-      binary="pihole-FTL-arm-linux-gnueabihf"
+      if [ "$rev" -gt "6" ]; then
+        echo ":::  Detected ARM-hf architecture (armv7+)"
+        binary="pihole-FTL-arm-linux-gnueabihf"
+      else
+        echo ":::  Detected ARM-hf architecture (armv6 or lower)"
+        echo ":::  Using ARM binary"
+        binary="pihole-FTL-arm-linux-gnueabi"
+      fi
     else
       echo ":::  Detected ARM architecture"
       binary="pihole-FTL-arm-linux-gnueabi"
