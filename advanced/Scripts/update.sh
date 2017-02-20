@@ -121,10 +121,13 @@ main() {
     # if Core NOT up to date AND web NOT up to date:
     #            pull pihole repo run install --unattended
 
-    if ! ${core_update} && ! ${web_update} ; then
-      echo ":::"
-      echo "::: Everything is up to date!"
-      exit 0
+  if ! ${core_update} && ! ${web_update} ; then
+    echo ":::"
+    echo "::: Everything is up to date!"
+    if [ -f /etc/pihole/webupdate.running ] ; then
+      rm /etc/pihole/webupdate.running
+    fi
+    exit 0
 
     elif ! ${core_update} && ${web_update} ; then
       echo ":::"
@@ -174,6 +177,10 @@ main() {
   fi
 
   echo ""
+
+  if [ -f /etc/pihole/webupdate.running ] ; then
+    rm /etc/pihole/webupdate.running
+  fi
   exit 0
 
 }
