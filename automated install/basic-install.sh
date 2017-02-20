@@ -1211,7 +1211,7 @@ FTLinstall() {
   echo ":::"
   echo -n "::: Installing FTL ... "
 
-  install -m 0755 /opt/pihole/pihole-FTL /usr/local/bin
+  install -m 0755 /opt/pihole/pihole-FTL /usr/bin
   touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
   chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
 
