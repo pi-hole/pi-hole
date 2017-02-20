@@ -305,7 +305,7 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls':('/lib/ld-linux-aarch64.so.1', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdownload
+    FTLdetect
     ''')
     expected_stdout = 'Detected ARM-aarch64 architecture'
     assert expected_stdout in detectPlatform.stdout
@@ -318,7 +318,7 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdownload
+    FTLdetect
     ''')
     expected_stdout = 'Detected ARM-hf architecture (armv6 or lower)'
     assert expected_stdout in detectPlatform.stdout
@@ -331,7 +331,7 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdownload
+    FTLdetect
     ''')
     expected_stdout = 'Detected ARM-hf architecture (armv7+)'
     assert expected_stdout in detectPlatform.stdout
@@ -340,7 +340,7 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     ''' confirms only x86_64 package is downloaded for FTL engine '''
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdownload
+    FTLdetect
     ''')
     expected_stdout = 'Detected x86_64 architecture'
     assert expected_stdout in detectPlatform.stdout
@@ -351,7 +351,7 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     mock_command('arch', {'*':('mips', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdownload
+    FTLdetect
     ''')
     expected_stdout = 'Not able to detect architecture (unknown: mips)'
     assert expected_stdout in detectPlatform.stdout

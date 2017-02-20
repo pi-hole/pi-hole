@@ -1026,9 +1026,7 @@ installPihole() {
   fi
   installCron
   installLogrotate
-  if FTLdownload; then
-    FTLinstall
-  fi
+  FTLdetect || echo "::: FTL Engine not installed."
   configureFirewall
   finalExports
   #runGravity
@@ -1060,9 +1058,7 @@ updatePihole() {
   fi
   installCron
   installLogrotate
-  if FTLdownload; then
-    FTLinstall
-  fi
+  FTLdetect || echo "::: FTL Engine not installed."
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   #runGravity
 }
@@ -1156,12 +1152,40 @@ if [[ "${reconfigure}" == true ]]; then
     fi
 }
 
-FTLdownload() {
+FTLinstall() {
+  # Download and Install FTL binary
+  local binary="${1}"
+  local latesttag
+  echo ":::"
+  echo -n "::: Installing FTL ... "
+
+  latesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | grep "tag_name" | sed "s/.*: \"//;s/\",//;")
+  if [ ! "${latesttag}" ]; then
+    echo ":::   failed (error in getting latest release tag from GitHub)"
+    return 1
+  fi
+  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag}/${binary}" -o "/opt/pihole/pihole-FTL"; then
+    echo ":::   done"
+    install -m 0755 /opt/pihole/pihole-FTL /usr/bin
+    touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+    chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+    return 0
+  else
+    echo ":::   failed (download of binary from Github failed)"
+    return 1
+  fi
+  echo "done"
+}
+
+FTLdetect() {
   # Download suitable FTL binary
   echo ":::"
   echo "::: Downloading latest version of FTL..."
 
-  local machine=$(arch)
+  local machine
+  local binary
+
+  machine=$(arch)
 
   if [[ $machine == arm* || $machine == *aarch* ]]; then
     # ARM
@@ -1198,30 +1222,8 @@ FTLdownload() {
     binary="pihole-FTL-linux-x86_32"
   fi
 
-  latesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | grep "tag_name" | sed "s/.*: \"//;s/\",//;")
-  if [ ! "${latesttag}" ]; then
-    echo ":::   failed (error in getting latest release tag from GitHub)"
-    return 1
-  fi
-  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag}/${binary}" -o "/opt/pihole/pihole-FTL"; then
-    echo ":::   done"
-    return 0
-  else
-    echo ":::   failed (download of binary from Github failed)"
-    return 1
-  fi
-}
+  FTLinstall "${binary}" || return 1
 
-FTLinstall() {
-  # Install FTL binary
-  echo ":::"
-  echo -n "::: Installing FTL ... "
-
-  install -m 0755 /opt/pihole/pihole-FTL /usr/bin
-  touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
-  chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
-
-  echo "done"
 }
 
 main() {
