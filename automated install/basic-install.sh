@@ -1156,9 +1156,11 @@ FTLinstall() {
   # Download and Install FTL binary
   local binary="${1}"
   local latesttag
+  local orig_dir
   echo ":::"
   echo -n "::: Installing FTL... "
 
+  orig_dir="${PWD}"
   latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
   # Tags should always start with v, check for that.
   if [[ ! "${latesttag}" == v* ]]; then
@@ -1169,16 +1171,20 @@ FTLinstall() {
     # Get sha1 of the binary we just downloaded for verification.
     curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "/tmp/${binary}.sha1"
     # Check if we just downloaded text, or a binary file.
-    if sha1sum -c /tmp/"${binary}".sha1 /tmp/"${binary}" &> /dev/null; then
+    cd /tmp
+    if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
       install -m 0755 /tmp/pihole-FTL /usr/bin
       touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
       chmod 0666 /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
+      cd "${orig_dir}"
       return 0
     else
       echo "failed (download of binary from Github failed)"
+      cd "${orig_dir}"
       return 1
     fi
+    cd "${orig_dir}"
     echo "done."
   else
     echo "failed (URL not found.)"
