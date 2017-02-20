@@ -297,6 +297,35 @@ def test_update_package_cache_failure_no_errors(Pihole):
     assert 'ERROR' in updateCache.stdout
     assert 'done!' not in updateCache.stdout
 
+def test_FTL_download_aarch64_no_errors(Pihole):
+    ''' confirms only aarch64 package is downloaded for FTL engine '''
+    # mock uname to return aarch64 platform
+    mock_command('uname', {'-m':('aarch64', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLdownload
+    touch /lib/ld-linux-aarch64.so.1
+    ''')
+    expected_stdout = 'Detected ARM-aarch64 architecture'
+    assert expected_stdout in detectPlatform.stdout
+    FTL_binary = Pihole.run('echo ${binary}').stdout
+    assert 'pihole-FTL-aarch64-linux-gnu' in FTL_binary
+
+def test_FTL_download_armv6l_Pi_Zero_no_errors(Pihole):
+    ''' confirms only armv6l package is downloaded for FTL engine (Pi-Zero) '''
+    # mock uname to return aarch64 platform
+    mock_command('uname', {'-m':('armv6l', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLdownload
+    touch /lib/ld-linux-armhf.so.3
+    ls -lach /lib/
+    ''')
+    expected_stdout = 'Detected ARM-hf architecture'
+    assert expected_stdout in detectPlatform.stdout
+    FTL_binary = Pihole.run('echo ${binary}').stdout
+    assert 'pihole-FTL-arm-linux-gnueabihf' in FTL_binary
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
