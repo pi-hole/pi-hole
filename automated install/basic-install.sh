@@ -1169,7 +1169,7 @@ FTLinstall() {
     # Get sha1 of the binary we just downloaded for verification.
     curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "/tmp/${binary}.sha1"
     # Check if we just downloaded text, or a binary file.
-    if sha1sum -c /tmp/"${binary}".sha1 /tmp/"${binary}"; then
+    if sha1sum -c /tmp/"${binary}".sha1 /tmp/"${binary}" &> /dev/null; then
       echo -n "transferred... "
       install -m 0755 /tmp/pihole-FTL /usr/bin
       touch /var/log/pihole-FTL.log /var/run/pihole-FTL.pid /var/run/pihole-FTL.port
