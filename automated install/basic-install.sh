@@ -1160,7 +1160,8 @@ FTLinstall() {
   echo -n "::: Installing FTL ... "
 
   latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
-  if [ ! "${latesttag}" ]; then
+  # Tags should always start with v, check for that.
+  if [[ ! "${latesttag}" == v* ]]; then
     echo "failed (error in getting latest release location from GitHub)"
     return 1
   fi
