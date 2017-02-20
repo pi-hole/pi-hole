@@ -297,34 +297,64 @@ def test_update_package_cache_failure_no_errors(Pihole):
     assert 'ERROR' in updateCache.stdout
     assert 'done!' not in updateCache.stdout
 
-def test_FTL_download_aarch64_no_errors(Pihole):
+def test_FTL_detect_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
     # mock uname to return aarch64 platform
     mock_command('uname', {'-m':('aarch64', '0')}, Pihole)
+    # mock ldd to respond with aarch64 shared library
+    mock_command('ldd', {'/bin/ls':('/lib/ld-linux-aarch64.so.1', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdownload
-    touch /lib/ld-linux-aarch64.so.1
     ''')
     expected_stdout = 'Detected ARM-aarch64 architecture'
     assert expected_stdout in detectPlatform.stdout
-    FTL_binary = Pihole.run('echo ${binary}').stdout
-    assert 'pihole-FTL-aarch64-linux-gnu' in FTL_binary
 
-def test_FTL_download_armv6l_Pi_Zero_no_errors(Pihole):
-    ''' confirms only armv6l package is downloaded for FTL engine (Pi-Zero) '''
-    # mock uname to return aarch64 platform
+def test_FTL_detect_armv6l_no_errors(Pihole):
+    ''' confirms only armv6l package is downloaded for FTL engine '''
+    # mock uname to return armv6l platform
     mock_command('uname', {'-m':('armv6l', '0')}, Pihole)
+    # mock ldd to respond with aarch64 shared library
+    mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdownload
-    touch /lib/ld-linux-armhf.so.3
-    ls -lach /lib/
     ''')
-    expected_stdout = 'Detected ARM-hf architecture'
+    expected_stdout = 'Detected ARM-hf architecture (armv6 or lower)'
     assert expected_stdout in detectPlatform.stdout
-    FTL_binary = Pihole.run('echo ${binary}').stdout
-    assert 'pihole-FTL-arm-linux-gnueabihf' in FTL_binary
+
+def test_FTL_detect_armv7l_no_errors(Pihole):
+    ''' confirms only armv7l package is downloaded for FTL engine '''
+    # mock uname to return armv7l platform
+    mock_command('uname', {'-m':('armv7l', '0')}, Pihole)
+    # mock ldd to respond with aarch64 shared library
+    mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLdownload
+    ''')
+    expected_stdout = 'Detected ARM-hf architecture (armv7+)'
+    assert expected_stdout in detectPlatform.stdout
+
+def test_FTL_detect_x86_64_no_errors(Pihole):
+    ''' confirms only x86_64 package is downloaded for FTL engine '''
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLdownload
+    ''')
+    expected_stdout = 'Detected x86_64 architecture'
+    assert expected_stdout in detectPlatform.stdout
+
+def test_FTL_detect_unknown_no_errors(Pihole):
+    ''' confirms only generic package is downloaded for FTL engine '''
+    # mock uname to return generic platform
+    mock_command('uname', {'-m':('mips', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLdownload
+    ''')
+    expected_stdout = 'Not able to detect architecture (unknown: mips)'
+    assert expected_stdout in detectPlatform.stdout
 
 # Helper functions
 def mock_command(script, args, container):
