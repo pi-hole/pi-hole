@@ -1161,11 +1161,11 @@ FTLdownload() {
   echo ":::"
   echo "::: Downloading latest version of FTL..."
 
-  local machine=$(uname -m)
+  local machine=$(arch)
 
   if [[ $machine == arm* || $machine == *aarch* ]]; then
     # ARM
-    local rev=$(uname -m | sed "s/[^0-9]//g;")
+    local rev=$(arch | sed "s/[^0-9]//g;")
     local lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
     if [[ "$lib" == "/lib/ld-linux-aarch64.so.1" ]]; then
       echo ":::  Detected ARM-aarch64 architecture"
