@@ -1164,7 +1164,7 @@ FTLinstall() {
     echo ":::   failed (error in getting latest release location from GitHub)"
     return 1
   fi
-  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag}/${binary}" -o "/tmp/pihole-FTL"; then
+  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/pihole-FTL"; then
     # Check if we just downloaded text, or a binary file.
     if ! grep -qI '.' /tmp/pihole-FTL; then
       echo ":::   done"
