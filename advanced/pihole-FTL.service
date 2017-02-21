@@ -9,7 +9,7 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
-FTLUSER=pi
+FTLUSER=pihole
 PIDFILE=/var/run/pihole-FTL.pid
 
 get_pid() {
@@ -26,6 +26,7 @@ start() {
     echo "pihole-FTL is already running"
   else
     touch /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
+    chown pihole:pihole /var/log/pihole-FTL.log
     chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
     su -c "/usr/bin/pihole-FTL" "$FTLUSER"
     echo
