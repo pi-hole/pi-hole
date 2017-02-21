@@ -378,6 +378,16 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     assert expected_stdout in download_binary.stdout
     assert 'done' not in download_binary.stdout
 
+def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
+    ''' confirms FTL binary is copied and functional in installed location '''
+    installed_binary = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLdetect
+    pihole-FTL version
+    ''')
+    expected_stdout = 'v'
+    assert expected_stdout in installed_binary.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
