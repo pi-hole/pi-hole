@@ -317,8 +317,8 @@ testResolver() {
 checkProcesses() {
 	header_write "Processes Check"
 
-	echo ":::     Logging status of lighttpd and dnsmasq..."
-	PROCESSES=( lighttpd dnsmasq )
+	echo ":::     Logging status of lighttpd, dnsmasq and pihole-FTL..."
+	PROCESSES=( lighttpd dnsmasq pihole-FTL )
 	for i in "${PROCESSES[@]}"; do
 		log_write ""
 		log_write "${i}"
@@ -360,6 +360,7 @@ ip_check
 
 daemon_check lighttpd http
 daemon_check dnsmasq domain
+daemon_check pihole-FTL 4711
 checkProcesses
 testResolver
 debugLighttpd
