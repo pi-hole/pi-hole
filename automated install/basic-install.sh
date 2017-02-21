@@ -1174,10 +1174,13 @@ FTLinstall() {
     cd /tmp
     if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
+      stop_service pihole-FTL
       install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
-      touch /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
-      chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
       cd "${orig_dir}"
+      install -T -m 0755 "/etc/.pihole/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+      update-rc.d pihole-FTL defaults
+      # startup on boot
+      update-rc.d pihole-FTL enable
       echo "done."
       return 0
     else
@@ -1383,6 +1386,9 @@ main() {
   fi
 
   runGravity
+
+  start_service pihole-FTL
+  enable_service pihole-FTL
 
   echo "::: done."
 

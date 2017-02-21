@@ -1,0 +1,81 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          pihole-FTL
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: pihole-FTL daemon
+# Description:       Enable service provided by pihole-FTL daemon
+### END INIT INFO
+
+FTLUSER=pi
+PIDFILE=/var/run/pihole-FTL.pid
+
+get_pid() {
+    cat "$PIDFILE"
+}
+
+is_running() {
+    [ -f "$PIDFILE" ] && ps $(get_pid) > /dev/null 2>&1
+}
+
+# Start the service
+start() {
+  if is_running; then
+    echo "pihole-FTL is already running"
+  else
+    touch /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
+    chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
+    su -c "/usr/bin/pihole-FTL" "$FTLUSER" &> /dev/null
+    echo
+  fi
+}
+
+# Stop the service
+stop() {
+  if is_running; then
+    kill $(get_pid)
+    for i in {1..10}; do
+      if ! is_running; then
+        break
+      fi
+
+      echo -n "."
+      sleep 1
+    done
+    echo
+
+    if is_running; then
+      echo "Not stopped; may still be shutting down or shutdown may have failed"
+      exit 1
+    else
+      echo "Stopped"
+    fi
+  else
+    echo "Not running"
+  fi
+  echo
+}
+
+### main logic ###
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+        status pihole-FTL
+        ;;
+  restart|reload|condrestart)
+        stop
+        start
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|reload|status}"
+        exit 1
+esac
+
+exit 0
