@@ -398,9 +398,9 @@ def test_FTL_support_files_installed(Pihole):
     stat -c '%a %n' /run/pihole-FTL.pid
     ls -lac /run
     ''')
-    assert '644 pihole-FTL.port' in support_files.stdout
-    assert '644 pihole-FTL.pid' in support_files.stdout
-    assert '644 pihole-FTL.log' in support_files.stdout
+    assert '644 /run/pihole-FTL.port' in support_files.stdout
+    assert '644 /run/pihole-FTL.pid' in support_files.stdout
+    assert '644 /var/log/pihole-FTL.log' in support_files.stdout
 
 # Helper functions
 def mock_command(script, args, container):
