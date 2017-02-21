@@ -388,6 +388,20 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     expected_stdout = 'v'
     assert expected_stdout in installed_binary.stdout
 
+def test_FTL_support_files_installed(Pihole):
+    ''' confirms FTL support files are installed '''
+    support_files = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    FTLdetect
+    stat -c '%a %n' /var/log/pihole-FTL.log
+    stat -c '%a %n' /run/pihole-FTL.port
+    stat -c '%a %n' /run/pihole-FTL.pid
+    ls -lac /run
+    ''')
+    assert '644 pihole-FTL.port' in support_files.stdout
+    assert '644 pihole-FTL.pid' in support_files.stdout
+    assert '644 pihole-FTL.log' in support_files.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
