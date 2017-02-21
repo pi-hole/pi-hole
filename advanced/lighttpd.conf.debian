@@ -73,7 +73,6 @@ $HTTP["url"] =~ "^(?!/admin)/.*" {
 # Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
 $HTTP["host"] == "pi.hole" {
     $HTTP["url"] == "/" {
-        setenv.add-response-header = ( "X-Pi-hole" => "Redirecting pi.hole to /admin/." )
         url.redirect = ( "" => "/admin/" )
     }
 }
