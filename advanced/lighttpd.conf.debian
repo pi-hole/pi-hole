@@ -70,5 +70,12 @@ $HTTP["url"] =~ "^(?!/admin)/.*" {
     setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
 }
 
+# Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
+$HTTP["host"] == "pi.hole" {
+    $HTTP["url"] == "/" {
+        url.redirect = ( "" => "/admin/" )
+    }
+}
+
 # Add user chosen options held in external file
 include_shell "cat external.conf 2>/dev/null"
