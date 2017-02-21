@@ -1178,9 +1178,6 @@ FTLinstall() {
       install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
       cd "${orig_dir}"
       install -T -m 0755 "/etc/.pihole/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
-      update-rc.d pihole-FTL defaults
-      # startup on boot
-      update-rc.d pihole-FTL enable
       echo "done."
       return 0
     else
