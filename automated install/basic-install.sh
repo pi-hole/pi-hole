@@ -1174,7 +1174,7 @@ FTLinstall() {
     cd /tmp
     if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
-      stop_service pihole-FTL
+      stop_service pihole-FTL &> /dev/null
       install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
       cd "${orig_dir}"
       install -T -m 0755 "/etc/.pihole/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
