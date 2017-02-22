@@ -127,6 +127,12 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 " >> "${dnsmasqconfig}"
 	fi
 
+	delete_dnsmasq_setting "host-record"
+
+	if [ -n "${#HOSTRECORD}" ]; then
+		add_dnsmasq_setting "host-record" "${HOSTRECORD}"
+	fi
+
 }
 
 SetDNSServers(){
@@ -313,6 +319,7 @@ ResolutionSettings() {
 	elif [[ "${typ}" == "clients" ]]; then
 		change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
 	fi
+
 }
 
 AddDHCPStaticAddress() {
@@ -331,12 +338,30 @@ AddDHCPStaticAddress() {
 		# Full info given
 		echo "dhcp-host=${mac},${ip},${host}" >> "${dhcpstaticconfig}"
 	fi
+
 }
 
 RemoveDHCPStaticAddress() {
 
 	mac="${args[2]}"
 	sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
+
+}
+
+SetHostRecord(){
+
+	if [ -n "${args[3]}" ]; then
+		change_setting "HOSTRECORD" "${args[2]},${args[3]}"
+		echo "Setting host record for ${args[2]} -> ${args[3]}"
+	else
+		change_setting "HOSTRECORD" ""
+		echo "Removing host record"
+	fi
+
+	ProcessDNSSettings
+
+	# Restart dnsmasq to load new configuration
+	RestartDNS
 
 }
 
@@ -363,6 +388,7 @@ main() {
 		"resolve"           ) ResolutionSettings;;
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
+		"hostrecord"        ) SetHostRecord;;
 		*                   ) helpFunc;;
 	esac
 
