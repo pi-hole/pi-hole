@@ -1157,8 +1157,7 @@ FTLinstall() {
   local binary="${1}"
   local latesttag
   local orig_dir
-  echo ":::"
-  echo -n "::: Installing FTL... "
+  echo -n ":::  Installing FTL... "
 
   orig_dir="${PWD}"
   latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')

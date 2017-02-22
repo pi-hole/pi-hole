@@ -75,6 +75,18 @@ GitCheckUpdateAvail() {
   fi
 }
 
+FTLcheckUpdate() {
+
+	local FTLversion=$(/usr/bin/pihole-FTL tag)
+	local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+
+	if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
 main() {
   local pihole_version_current
   local web_version_current
@@ -94,6 +106,21 @@ main() {
   else
     core_update=false
     echo "::: Pi-hole Core:   up to date"
+  fi
+
+  if FTLcheckUpdate ; then
+    FTL_update=true
+    echo "::: FTL:            update available"
+  else
+    FTL_update=false
+    echo "::: FTL:            up to date"
+  fi
+
+  if ${FTL_update}; then
+    echo ":::"
+    echo "::: FTL out of date"
+    FTLdetect
+    echo ":::"
   fi
 
   if [[ ${INSTALL_WEB} == true ]]; then
