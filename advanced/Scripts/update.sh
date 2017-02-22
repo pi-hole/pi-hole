@@ -149,9 +149,11 @@ main() {
     #            pull pihole repo run install --unattended
 
     if ! ${core_update} && ! ${web_update} ; then
-      echo ":::"
-      echo "::: Everything is up to date!"
-      exit 0
+      if ! ${FTL_update} ; then
+        echo ":::"
+        echo "::: Everything is up to date!"
+        exit 0
+      fi
 
     elif ! ${core_update} && ${web_update} ; then
       echo ":::"
@@ -166,7 +168,7 @@ main() {
 
     elif ${core_update} && ${web_update} ; then
       echo ":::"
-      echo "::: Updating Everything"
+      echo "::: Updating Pi-hole core and web admin files"
       getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
       ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
     else
@@ -175,9 +177,11 @@ main() {
     fi
   else # Web Admin not installed, so only verify if core is up to date
     if ! ${core_update}; then
-      echo ":::"
-      echo "::: Everything is up to date!"
-      exit 0
+      if ! ${FTL_update} ; then
+        echo ":::"
+        echo "::: Everything is up to date!"
+        exit 0
+      fi
     else
       echo ":::"
       echo "::: Pi-hole core files out of date"
@@ -199,6 +203,15 @@ main() {
     echo "::: Pi-hole version is now at ${pihole_version_current}"
     echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
   fi
+
+  if [[ ${FTL_update} == true ]]; then
+    FTL_version_current="$(/usr/bin/pihole-FTL tag)"
+    echo ":::"
+    echo "::: FTL version is now at ${FTL_version_current}"
+    start_service pihole-FTL
+    enable_service pihole-FTL
+  fi
+
 
   echo ""
   exit 0
