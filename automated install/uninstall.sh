@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015, 2016 by Jacob Salmela
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Completely uninstalls Pi-hole
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+
 
 # Must be root to uninstall
 if [[ ${EUID} -eq 0 ]]; then
@@ -154,7 +154,7 @@ removeNoPurge() {
 	${SUDO} rm /usr/local/bin/pihole &> /dev/null
 	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
 	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null
-	
+
 	# If the pihole user exists, then remove
 	if id "pihole" >/dev/null 2>&1; then
         	echo "::: Removing pihole user..."
@@ -175,7 +175,7 @@ while true; do
 	read -rp "::: Do you wish to purge PiHole's dependencies from your OS? (You will be prompted for each package) [y/n]: " yn
 	case ${yn} in
 		[Yy]* ) removeAndPurge; break;;
-	
+
 		[Nn]* ) removeNoPurge; break;;
 	esac
 done
