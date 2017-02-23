@@ -45,7 +45,7 @@ wildcardFunc() {
 }
 
 debugFunc() {
-  bash -x "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh "$@"
+  "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh "$@"
   exit 0
 }
 
