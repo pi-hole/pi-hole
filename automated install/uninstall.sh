@@ -164,7 +164,7 @@ removeNoPurge() {
 	echo ":::"
 	printf "::: Finished removing PiHole from your system. Sorry to see you go!\n"
 	printf "::: Reach out to us at https://github.com/pi-hole/pi-hole/issues if you need help\n"
-	printf "::: Reinstall by simpling running\n:::\n:::\tcurl -L https://install.pi-hole.net | bash\n:::\n::: at any time!\n:::\n"
+	printf "::: Reinstall by simpling running\n:::\n:::\tcurl -sSL https://install.pi-hole.net | bash\n:::\n::: at any time!\n:::\n"
 	printf "::: PLEASE RESET YOUR DNS ON YOUR ROUTER/CLIENTS TO RESTORE INTERNET CONNECTIVITY!\n"
 }
 
