@@ -964,7 +964,7 @@ finalExports() {
 
   # Update variables in setupVars.conf file
   if [ -e "${setupVars}" ]; then
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
   fi
     {
   echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
