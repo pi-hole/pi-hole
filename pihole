@@ -45,7 +45,12 @@ wildcardFunc() {
 }
 
 debugFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
+  local automated
+  shift
+  if [[ "${1}" == "-a" ]]; then
+    automated="true"
+  fi
+  AUTOMATED=${automated:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
 }
 
@@ -310,7 +315,7 @@ case "${1}" in
   "-w" | "whitelist"            ) whitelistFunc "$@";;
   "-b" | "blacklist"            ) blacklistFunc "$@";;
   "-wild" | "wildcard"          ) wildcardFunc "$@";;
-  "-d" | "debug"                ) debugFunc;;
+  "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc;;
   "-up" | "updatePihole"        ) updatePiholeFunc;;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
