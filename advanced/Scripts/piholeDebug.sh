@@ -408,7 +408,7 @@ finalWork() {
 	echo "::: Finshed debugging!"
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	if [[ "${AUTOMATED}" ]]; then
-	  echo "Debug script running in automated mode, uploading log to tricorder..."
+	  echo "::: Debug script running in automated mode, uploading log to tricorder..."
 	  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
 	else
 	  read -r -p "::: Would you like to upload the log? [y/N] " response
@@ -423,8 +423,8 @@ finalWork() {
   fi
 	# Check if tricorder.pi-hole.net is reachable and provide token.
 	if [ -n "${tricorder}" ]; then
-		echo "::: Your debug token is : ${tricorder}"
-		echo "::: Please contact the Pi-hole team with your token for assistance."
+		echo "::: ---=== Your debug token is : ${tricorder} Please make a note of it. ===---"
+		echo "::: Contact the Pi-hole team with your token for assistance."
 		echo "::: Thank you."
 	else
 		echo "::: There was an error uploading your debug log."
