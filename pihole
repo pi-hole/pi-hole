@@ -46,11 +46,18 @@ wildcardFunc() {
 
 debugFunc() {
   local automated
+  local web
+
+  # Pull off the `debug` leaving passed call augmentation flags in $1
   shift
   if [[ "${1}" == "-a" ]]; then
     automated="true"
   fi
-  AUTOMATED=${automated:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
+  if [[ "${2}" == "-w" ]]; then
+    web="true"
+  fi
+
+  AUTOMATED=${automated:-} WEBCALL=${web:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
 }
 

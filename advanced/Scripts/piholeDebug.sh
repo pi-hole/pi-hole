@@ -332,11 +332,17 @@ debugLighttpd() {
 }
 
 countdown() {
+  local tuvix
   tuvix=${TIMEOUT}
-  printf "::: Logging will automatically teminate in ${TIMEOUT} seconds\n"
+  printf "::: Logging will automatically teminate in %s seconds\n" "${TIMEOUT}"
   while [ $tuvix -ge 1 ]
   do
-    printf ":::\t${tuvix} seconds left. \r"
+    printf ":::\t%s seconds left. " "${tuvix}"
+    if [[ -z "${WEBCALL}" ]]; then
+      printf "\r"
+    else
+      printf "\n"
+    fi
     sleep 5
     tuvix=$(( tuvix - 5 ))
   done
