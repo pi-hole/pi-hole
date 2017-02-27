@@ -408,6 +408,7 @@ finalWork() {
 	echo "::: Finshed debugging!"
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	if [[ "${AUTOMATED}" ]]; then
+	  echo "Debug script running in automated mode, uploading log to tricorder..."
 	  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
 	else
 	  read -r -p "::: Would you like to upload the log? [y/N] " response
