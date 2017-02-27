@@ -45,7 +45,7 @@ wildcardFunc() {
 }
 
 debugFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
+  "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh "$@"
   exit 0
 }
 
@@ -310,7 +310,7 @@ case "${1}" in
   "-w" | "whitelist"            ) whitelistFunc "$@";;
   "-b" | "blacklist"            ) blacklistFunc "$@";;
   "-wild" | "wildcard"          ) wildcardFunc "$@";;
-  "-d" | "debug"                ) debugFunc;;
+  "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc;;
   "-up" | "updatePihole"        ) updatePiholeFunc;;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
