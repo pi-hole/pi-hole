@@ -50,10 +50,10 @@ debugFunc() {
 
   # Pull off the `debug` leaving passed call augmentation flags in $1
   shift
-  if [[ "${1}" == "-a" ]]; then
+  if [[ "$@" == *"-a"* ]]; then
     automated="true"
   fi
-  if [[ "${2}" == "-w" ]]; then
+  if [[ "$@" == *"-w"* ]]; then
     web="true"
   fi
 
