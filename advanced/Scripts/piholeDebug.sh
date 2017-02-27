@@ -332,11 +332,17 @@ debugLighttpd() {
 }
 
 countdown() {
+  local tuvix
   tuvix=${TIMEOUT}
-  printf "::: Logging will automatically teminate in ${TIMEOUT} seconds\n"
+  printf "::: Logging will automatically teminate in %s seconds\n" "${TIMEOUT}"
   while [ $tuvix -ge 1 ]
   do
-    printf ":::\t${tuvix} seconds left. \r"
+    printf ":::\t%s seconds left. " "${tuvix}"
+    if [[ -z "${WEBCALL}" ]]; then
+      printf "\r"
+    else
+      printf "\n"
+    fi
     sleep 5
     tuvix=$(( tuvix - 5 ))
   done
@@ -407,20 +413,24 @@ finalWork() {
   local tricorder
 	echo "::: Finshed debugging!"
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-	read -r -p "::: Would you like to upload the log? [y/N] " response
-	case ${response} in
-		[yY][eE][sS]|[yY])
-			tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
-			;;
-		*)
-			echo "::: Log will NOT be uploaded to tricorder."
-			;;
-	esac
-
+	if [[ "${AUTOMATED}" ]]; then
+	  echo "::: Debug script running in automated mode, uploading log to tricorder..."
+	  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+	else
+	  read -r -p "::: Would you like to upload the log? [y/N] " response
+	  case ${response} in
+		  [yY][eE][sS]|[yY])
+			  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+			  ;;
+		  *)
+			  echo "::: Log will NOT be uploaded to tricorder."
+			  ;;
+	  esac
+  fi
 	# Check if tricorder.pi-hole.net is reachable and provide token.
 	if [ -n "${tricorder}" ]; then
-		echo "::: Your debug token is : ${tricorder}"
-		echo "::: Please contact the Pi-hole team with your token for assistance."
+		echo "::: ---=== Your debug token is : ${tricorder} Please make a note of it. ===---"
+		echo "::: Contact the Pi-hole team with your token for assistance."
 		echo "::: Thank you."
 	else
 		echo "::: There was an error uploading your debug log."
