@@ -27,6 +27,11 @@ helpFunc() {
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
 :::  -k, kelvin			Set Kelvin temperature unit
 :::  -h, --help			Show this help dialog
+:::  -i, interface		Setup interface listening behavior of dnsmasq
+:::               		pihole -a -i local  : Listen on all interfaces, but allow only queries from
+:::               		                      devices that are at most one hop away (local devices)
+:::               		pihole -a -i single : Listen only on one interface (see PIHOLE_INTERFACE)
+:::               		pihole -a -i all    : Listen on all interfaces, permit all origins
 EOM
 	exit 0
 }
@@ -129,8 +134,25 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 
 	delete_dnsmasq_setting "host-record"
 
-	if [ -n "${#HOSTRECORD}" ]; then
+	if [ ! -z "${HOSTRECORD+x}" ]; then
 		add_dnsmasq_setting "host-record" "${HOSTRECORD}"
+	fi
+
+	# Setup interface listening behavior of dnsmasq
+	delete_dnsmasq_setting "interface"
+	delete_dnsmasq_setting "local-service"
+
+	if [[ "${DNSMASQ_LISTENING}" == "all" ]]; then
+		# Listen on all interfaces, permit all origins
+		# Leave a comment in 01-pihole.conf
+		add_dnsmasq_setting "# Listening on all interfaces"
+		add_dnsmasq_setting "except-interface" "nonexisting"
+	elif [[ "${DNSMASQ_LISTENING}" == "single" ]]; then
+		# Listen only on one interface
+		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
+	else
+		# Listen only on all interfaces, but only local subnets
+		add_dnsmasq_setting "local-service"
 	fi
 
 }
@@ -365,6 +387,31 @@ SetHostRecord(){
 
 }
 
+SetListeningMode(){
+
+	source "${setupVars}"
+
+	if [[ "${args[2]}" == "all" ]] ; then
+		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+		change_setting "DNSMASQ_LISTENING" "all"
+	elif [[ "${args[2]}" == "single" ]] ; then
+		echo "Listening only on interface ${PIHOLE_INTERFACE}"
+		change_setting "DNSMASQ_LISTENING" "single"
+	else
+		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+		change_setting "DNSMASQ_LISTENING" "local"
+	fi
+
+	# Don't restart DNS server yet because other settings
+	# will be applied afterwards if "-web" is set
+	if [[ "${args[3]}" != "-web" ]]; then
+		ProcessDNSSettings
+		# Restart dnsmasq to load new configuration
+		RestartDNS
+	fi
+
+}
+
 main() {
 
 	args=("$@")
@@ -389,6 +436,7 @@ main() {
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
 		"hostrecord"        ) SetHostRecord;;
+		"-i" | "interface"  ) SetListeningMode;;
 		*                   ) helpFunc;;
 	esac
 
