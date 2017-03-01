@@ -146,6 +146,7 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 		# Listen on all interfaces, permit all origins
 		# Leave a comment in 01-pihole.conf
 		add_dnsmasq_setting "# Listening on all interfaces"
+		add_dnsmasq_setting "except-interface" "nonexisting"
 	elif [[ "${DNSMASQ_LISTENING}" == "single" ]]; then
 		# Listen only on one interface
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
