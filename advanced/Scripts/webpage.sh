@@ -392,14 +392,19 @@ SetListeningMode(){
 
 	if [[ "${args[2]}" == "all" ]] ; then
 		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
-		change_setting "DNSMASQ_LISTENING" "allinterfaces"
+		change_setting "DNSMASQ_LISTENING" "all"
 	elif [[ "${args[2]}" == "single" ]] ; then
 		echo "Listening only on interface ${PIHOLE_INTERFACE}"
-		change_setting "DNSMASQ_LISTENING" "gravityinterface"
+		change_setting "DNSMASQ_LISTENING" "single"
 	else
 		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
-		change_setting "DNSMASQ_LISTENING" "localsubnets"
+		change_setting "DNSMASQ_LISTENING" "local"
 	fi
+
+	ProcessDNSSettings
+
+	# Restart dnsmasq to load new configuration
+	RestartDNS
 
 }
 
