@@ -31,7 +31,7 @@ helpFunc() {
 :::           			pihole -a listening allinterfaces : Listen on all interfaces, permit all origins
 :::           			pihole -a listening gravityinterface : Listen only on one interface (see PIHOLE_INTERFACE)
 :::           			pihole -a listening localsubnets : Listen on all interfaces, but allow only queries from
-:::           			                                   devices that at most one hop away (local devices)
+:::           			                                   devices that are at most one hop away (local devices)
 EOM
 	exit 0
 }
@@ -397,7 +397,7 @@ SetListeningMode(){
 		echo "Listening only on interface ${PIHOLE_INTERFACE}"
 		change_setting "DNSMASQ_LISTENING" "gravityinterface"
 	else
-		echo "Listening on all interfaces, permitting only origins that at most one hop away (local devices)"
+		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
 		change_setting "DNSMASQ_LISTENING" "localsubnets"
 	fi
 
