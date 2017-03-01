@@ -27,6 +27,11 @@ helpFunc() {
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
 :::  -k, kelvin			Set Kelvin temperature unit
 :::  -h, --help			Show this help dialog
+:::  listening			Setup interface listening behavior of dnsmasq
+:::           			pihole -a listening allinterfaces : Listen on all interfaces, permit all origins
+:::           			pihole -a listening gravityinterface : Listen only on one interface (see PIHOLE_INTERFACE)
+:::           			pihole -a listening localsubnets : Listen only on all interfaces, but allow only
+:::           			                                   devices that at most one hop away (local devices)
 EOM
 	exit 0
 }
@@ -131,6 +136,22 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 
 	if [ -n "${#HOSTRECORD}" ]; then
 		add_dnsmasq_setting "host-record" "${HOSTRECORD}"
+	fi
+
+	# Setup interface listening behavior of dnsmasq
+	delete_dnsmasq_setting "interface"
+	delete_dnsmasq_setting "local-service"
+
+	if [[ "${DNSMASQ_LISTENING}" == "allinterfaces" ]]; then
+		# Listen on all interfaces, permit all origins
+		# Leave a comment in 01-pihole.conf
+		add_dnsmasq_setting "# Listening on all interfaces"
+	elif [[ "${DNSMASQ_LISTENING}" == "gravityinterface" ]]; then
+		# Listen only on one interface
+		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
+	else
+		# Listen only on all interfaces, but only local subnets
+		add_dnsmasq_setting "local-service"
 	fi
 
 }
@@ -365,6 +386,18 @@ SetHostRecord(){
 
 }
 
+SetListeningMode(){
+
+	if [[ "${args[2]}" == "allinterfaces" ]] ; then
+		change_setting "DNSMASQ_LISTENING" "allinterfaces"
+	elif [[ "${args[2]}" == "gravityinterface" ]] ; then
+		change_setting "DNSMASQ_LISTENING" "gravityinterface"
+	else
+		change_setting "DNSMASQ_LISTENING" "localsubnets"
+	fi
+
+}
+
 main() {
 
 	args=("$@")
@@ -389,6 +422,7 @@ main() {
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
 		"hostrecord"        ) SetHostRecord;;
+		"listening"         ) SetListeningMode;;
 		*                   ) helpFunc;;
 	esac
 
