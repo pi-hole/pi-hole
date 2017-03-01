@@ -28,10 +28,10 @@ helpFunc() {
 :::  -k, kelvin			Set Kelvin temperature unit
 :::  -h, --help			Show this help dialog
 :::  -i, interface		Setup interface listening behavior of dnsmasq
-:::               		pihole -a -i all    : Listen on all interfaces, permit all origins
-:::               		pihole -a -i single : Listen only on one interface (see PIHOLE_INTERFACE)
 :::               		pihole -a -i local  : Listen on all interfaces, but allow only queries from
-:::               		                                   devices that are at most one hop away (local devices)
+:::               		                      devices that are at most one hop away (local devices)
+:::               		pihole -a -i single : Listen only on one interface (see PIHOLE_INTERFACE)
+:::               		pihole -a -i all    : Listen on all interfaces, permit all origins
 EOM
 	exit 0
 }
