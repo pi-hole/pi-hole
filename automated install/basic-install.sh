@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015, 2016 by Jacob Salmela
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Installs Pi-hole
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+
 
 # pi-hole.net/donate
 #
@@ -451,6 +451,7 @@ setDNS() {
       Level3 ""
       Norton ""
       Comodo ""
+      DNSWatch ""
       Custom "")
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
@@ -480,6 +481,11 @@ setDNS() {
       echo "::: Using Comodo Secure servers."
       PIHOLE_DNS_1="8.26.56.26"
       PIHOLE_DNS_2="8.20.247.20"
+      ;;
+    DNSWatch)
+      echo "::: Using DNS.WATCH servers."
+      PIHOLE_DNS_1="84.200.69.80"
+      PIHOLE_DNS_2="84.200.70.40"
       ;;
     Custom)
       until [[ ${DNSSettingsCorrect} = True ]]; do
@@ -602,7 +608,6 @@ version_check_dnsmasq() {
   echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
   echo " done."
-  sed -i "s/@INT@/$PIHOLE_INTERFACE/" ${dnsmasq_pihole_01_location}
   if [[ "${PIHOLE_DNS_1}" != "" ]]; then
     sed -i "s/@DNS1@/$PIHOLE_DNS_1/" ${dnsmasq_pihole_01_location}
   else
@@ -958,7 +963,7 @@ finalExports() {
 
   # Update variables in setupVars.conf file
   if [ -e "${setupVars}" ]; then
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
   fi
     {
   echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"

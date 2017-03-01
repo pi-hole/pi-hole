@@ -139,6 +139,7 @@ You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-
 
 ## Pi-hole Projects
 
+-   [An ad blocking Magic Mirror](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
 -   [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
 -   [Get LED alerts for each blocked ad](http://thetimmy.silvernight.org/pages/endisbutton/)
 -   [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
@@ -154,6 +155,7 @@ You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-
 -   [Windows Tray Stat Application](https://github.com/goldbattle/copernicus)
 -   [Let your blink1 device blink when Pi-hole filters ads](https://gist.github.com/elpatron68/ec0b4c582e5abf604885ac1e068d233f)
 -   [Pi-Hole Prometheus exporter](https://github.com/nlamirault/pihole_exporter) : a [Prometheus](https://prometheus.io/) exporter for Pi-Hole
+-   [Pi-hole Droid - open source Android client](https://github.com/friimaind/pi-hole-droid)
 
 ## Coverage
 

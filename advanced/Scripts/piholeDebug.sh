@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015, 2016 by Jacob Salmela
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Generates pihole_debug.log to be used for troubleshooting.
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+
 
 set -o pipefail
 
@@ -26,7 +26,6 @@ ADLISTFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
-IPV6_READY=false
 TIMEOUT=60
 # Header info and introduction
 cat << EOM
@@ -180,70 +179,67 @@ processor_check() {
 
 ipv6_check() {
   # Check if system is IPv6 enabled, for use in other functions
-  if [[ $IPv6_address ]]; then
-    ls /proc/net/if_inet6 &>/dev/null && IPV6_READY=true
+  if [[ $IPV6_ADDRESS ]]; then
+    ls /proc/net/if_inet6 &>/dev/null
     return 0
   else
     return 1
   fi
 }
 
-
 ip_check() {
-	header_write "IP Address Information"
-	# Get the current interface for Internet traffic
+  local protocol=${1}
+  local gravity=${2}
 
-	# Check if IPv6 enabled
-	local IPv6_interface
-	local IPv4_interface
-	ipv6_check &&	IPv6_interface=${piholeInterface:-$(ip -6 r | grep default | cut -d ' ' -f 5)}
-	# If declared in setupVars.conf use it, otherwise defer to default
-	# http://stackoverflow.com/questions/2013547/assigning-default-values-to-shell-variables-with-a-single-command-in-bash
-  IPv4_interface=${piholeInterface:-$(ip r | grep default | cut -d ' ' -f 5)}
-
-
-  if [[ IPV6_READY ]]; then
-    local IPv6_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet6") print $(i+1) }')" \
-	  && (log_write "${IPv6_addr_list}" && echo ":::       IPv6 addresses located") \
-	  || log_echo "No IPv6 addresses found."
-
-    local IPv6_def_gateway=$(ip -6 r | grep default | cut -d ' ' -f 3)
-    if [[ $? = 0 ]] && [[ -n ${IPv6_def_gateway} ]]; then
-      echo -n ":::        Pinging default IPv6 gateway: "
-      local IPv6_def_gateway_check="$(ping6 -q -W 3 -c 3 -n "${IPv6_def_gateway}" -I "${IPv6_interface}"| tail -n3)" \
-      && echo "Gateway Responded." \
-      || echo "Gateway did not respond."
-      block_parse "${IPv6_def_gateway_check}"
-
-      echo -n ":::        Pinging Internet via IPv6: "
-      local IPv6_inet_check=$(ping6 -q -W 3 -c 3 -n 2001:4860:4860::8888 -I "${IPv6_interface}"| tail -n3) \
-      && echo "Query responded." \
-      || echo "Query did not respond."
-      block_parse "${IPv6_inet_check}"
-    else
-      log_echo="No IPv6 Gateway Detected"
-    fi
-
-local IPv4_addr_list="$(ip a | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "inet") print $(i+1) }')" \
-	&& (block_parse "${IPv4_addr_list}" && echo ":::       IPv4 addresses located")\
-	|| log_echo "No IPv4 addresses found."
-
-	local IPv4_def_gateway=$(ip r | grep default | cut -d ' ' -f 3)
-	if [[ $? = 0 ]]; then
-		echo -n ":::        Pinging default IPv4 gateway: "
-		local IPv4_def_gateway_check="$(ping -q -w 3 -c 3 -n "${IPv4_def_gateway}"  -I "${IPv4_interface}" | tail -n3)" \
-		&& echo "Gateway responded." \
-		|| echo "Gateway did not respond."
-		block_parse "${IPv4_def_gateway_check}"
-
-		echo -n ":::        Pinging Internet via IPv4: "
-		local IPv4_inet_check="$(ping -q -w 5 -c 3 -n 8.8.8.8 -I "${IPv4_interface}" | tail -n3)" \
-		&& echo "Query responded." \
-		|| echo "Query did not respond."
-		block_parse "${IPv4_inet_check}"
-	fi
-
+  local ip_addr_list="$(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')"
+  if [[ -n ${ip_addr_list} ]]; then
+    log_write "IPv${protocol} on ${PIHOLE_INTERFACE}"
+    log_write "Gravity configured for: ${2:-NOT CONFIGURED}"
+    log_write "----"
+    log_write "${ip_addr_list}"
+    echo ":::       IPv${protocol} addresses located on ${PIHOLE_INTERFACE}"
+    ip_ping_check ${protocol}
+    return $(( 0 + $? ))
+  else
+    log_echo "No IPv${protocol} found on ${PIHOLE_INTERFACE}"
+    return 1
   fi
+}
+
+ip_ping_check() {
+  local protocol=${1}
+  local cmd
+
+  if [[ ${protocol} == "6" ]]; then
+    cmd="ping6"
+    g_addr="2001:4860:4860::8888"
+  else
+    cmd="ping"
+    g_addr="8.8.8.8"
+  fi
+
+  local ip_def_gateway=$(ip -${protocol} route | grep default | cut -d ' ' -f 3)
+  if [[ -n ${ip_def_gateway} ]]; then
+    echo -n ":::        Pinging default IPv${protocol} gateway: "
+    if ! ping_gateway="$(${cmd} -q -W 3 -c 3 -n ${ip_def_gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+     echo "Gateway did not respond."
+     return 1
+    else
+      echo "Gateway responded."
+      log_write "${ping_gateway}"
+    fi
+    echo -n ":::        Pinging Internet via IPv${protocol}: "
+    if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${g_addr} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+      echo "Query did not respond."
+      return 1
+    else
+      echo "Query responded."
+      log_write "${ping_inet}"
+    fi
+  else
+    log_echo "        No gateway detected."
+  fi
+  return 0
 }
 
 port_check() {
@@ -336,11 +332,17 @@ debugLighttpd() {
 }
 
 countdown() {
+  local tuvix
   tuvix=${TIMEOUT}
-  printf "::: Logging will automatically teminate in ${TIMEOUT} seconds\n"
+  printf "::: Logging will automatically teminate in %s seconds\n" "${TIMEOUT}"
   while [ $tuvix -ge 1 ]
   do
-    printf ":::\t${tuvix} seconds left. \r"
+    printf ":::\t%s seconds left. " "${tuvix}"
+    if [[ -z "${WEBCALL}" ]]; then
+      printf "\r"
+    else
+      printf "\n"
+    fi
     sleep 5
     tuvix=$(( tuvix - 5 ))
   done
@@ -356,7 +358,8 @@ distro_check || echo "Distro Check soft fail"
 # Gather processor type
 processor_check || echo "Processor Check soft fail"
 
-ip_check
+ip_check 6 ${IPV6_ADDRESS}
+ip_check 4 ${IPV4_ADDRESS}
 
 daemon_check lighttpd http
 daemon_check dnsmasq domain
@@ -411,20 +414,24 @@ finalWork() {
   local tricorder
 	echo "::: Finshed debugging!"
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-	read -r -p "::: Would you like to upload the log? [y/N] " response
-	case ${response} in
-		[yY][eE][sS]|[yY])
-			tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
-			;;
-		*)
-			echo "::: Log will NOT be uploaded to tricorder."
-			;;
-	esac
-
+	if [[ "${AUTOMATED}" ]]; then
+	  echo "::: Debug script running in automated mode, uploading log to tricorder..."
+	  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+	else
+	  read -r -p "::: Would you like to upload the log? [y/N] " response
+	  case ${response} in
+		  [yY][eE][sS]|[yY])
+			  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+			  ;;
+		  *)
+			  echo "::: Log will NOT be uploaded to tricorder."
+			  ;;
+	  esac
+  fi
 	# Check if tricorder.pi-hole.net is reachable and provide token.
 	if [ -n "${tricorder}" ]; then
-		echo "::: Your debug token is : ${tricorder}"
-		echo "::: Please contact the Pi-hole team with your token for assistance."
+		echo "::: ---=== Your debug token is : ${tricorder} Please make a note of it. ===---"
+		echo "::: Contact the Pi-hole team with your token for assistance."
 		echo "::: Thank you."
 	else
 		echo "::: There was an error uploading your debug log."
