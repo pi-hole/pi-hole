@@ -401,10 +401,13 @@ SetListeningMode(){
 		change_setting "DNSMASQ_LISTENING" "local"
 	fi
 
-	ProcessDNSSettings
-
-	# Restart dnsmasq to load new configuration
-	RestartDNS
+	# Don't restart DNS server yet because other settings
+	# will be applied afterwards if "-web" is set
+	if [[ "${args[3]}" != "-web" ]]; then
+		ProcessDNSSettings
+		# Restart dnsmasq to load new configuration
+		RestartDNS
+	fi
 
 }
 
