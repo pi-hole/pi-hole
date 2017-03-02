@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015 by Jacob Salmela
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Compiles a list of ad-serving domains by downloading them from multiple sources
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+
 
 # Run this script as root or under sudo
 echo ":::"
@@ -239,12 +239,12 @@ gravity_Blacklist() {
 gravity_Wildcard() {
 	# Return number of wildcards in output - don't actually handle wildcards
 	if [[ -f "${wildcardlist}" ]]; then
-	    num=$(grep -c ^ "${wildcardlist}")
+	    numWildcards=$(grep -c ^ "${wildcardlist}")
 	    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
-	        let num/=2
+	        let numWildcards/=2
 	    fi
-	    plural=; [[ "$num" != "1" ]] && plural=s
-	    echo "::: Wildcard blocked domain${plural}: $numBlacklisted"
+	    plural=; [[ "$numWildcards" != "1" ]] && plural=s
+	    echo "::: Wildcard blocked domain${plural}: $numWildcards"
 	else
 	    echo "::: No wildcards used!"
 	fi

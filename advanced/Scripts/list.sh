@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015, 2016 by Jacob Salmela
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Whitelists and blacklists domains
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+
 
 #globals
 basename=pihole
@@ -42,14 +42,14 @@ helpFunc() {
 ::: Usage: pihole -${letter} domain1 [domain2 ...]
 :::
 ::: Options:
-:::  -d, --delmode			Remove domains from the ${word}list
-:::  -nr, --noreload		Update ${word}list without refreshing dnsmasq
-:::  -q, --quiet			output is less verbose
-:::  -h, --help				Show this help dialog
-:::  -l, --list				Display your ${word}listed domains
+:::  -d, --delmode            Remove domains from the ${word}list
+:::  -nr, --noreload          Update ${word}list without refreshing dnsmasq
+:::  -q, --quiet              Output is less verbose
+:::  -h, --help               Show this help dialog
+:::  -l, --list               Display your ${word}listed domains
 EOM
 if [[ "${letter}" == "b" ]]; then
-	echo ":::  -wild, --wildcard		Add whitecard entry (only blacklist)"
+	echo ":::  -wild, --wildcard        Add wildcard entry (only blacklist)"
 fi
 	exit 0
 }
@@ -229,4 +229,3 @@ PoplistFile
 if ${reload}; then
 	Reload
 fi
-

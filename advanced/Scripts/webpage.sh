@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Web interface settings
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
 
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
+# 03 -> wildcards
+readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
 helpFunc() {
 	cat << EOM
@@ -25,6 +27,11 @@ helpFunc() {
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
 :::  -k, kelvin			Set Kelvin temperature unit
 :::  -h, --help			Show this help dialog
+:::  -i, interface		Setup interface listening behavior of dnsmasq
+:::               		pihole -a -i local  : Listen on all interfaces, but allow only queries from
+:::               		                      devices that are at most one hop away (local devices)
+:::               		pihole -a -i single : Listen only on one interface (see PIHOLE_INTERFACE)
+:::               		pihole -a -i all    : Listen on all interfaces, permit all origins
 EOM
 	exit 0
 }
@@ -123,6 +130,29 @@ ProcessDNSSettings() {
 		echo "dnssec
 trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
 " >> "${dnsmasqconfig}"
+	fi
+
+	delete_dnsmasq_setting "host-record"
+
+	if [ ! -z "${HOSTRECORD+x}" ]; then
+		add_dnsmasq_setting "host-record" "${HOSTRECORD}"
+	fi
+
+	# Setup interface listening behavior of dnsmasq
+	delete_dnsmasq_setting "interface"
+	delete_dnsmasq_setting "local-service"
+
+	if [[ "${DNSMASQ_LISTENING}" == "all" ]]; then
+		# Listen on all interfaces, permit all origins
+		# Leave a comment in 01-pihole.conf
+		add_dnsmasq_setting "# Listening on all interfaces"
+		add_dnsmasq_setting "except-interface" "nonexisting"
+	elif [[ "${DNSMASQ_LISTENING}" == "single" ]]; then
+		# Listen only on one interface
+		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
+	else
+		# Listen only on all interfaces, but only local subnets
+		add_dnsmasq_setting "local-service"
 	fi
 
 }
@@ -311,6 +341,75 @@ ResolutionSettings() {
 	elif [[ "${typ}" == "clients" ]]; then
 		change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
 	fi
+
+}
+
+AddDHCPStaticAddress() {
+
+	mac="${args[2]}"
+	ip="${args[3]}"
+	host="${args[4]}"
+
+	if [[ "${ip}" == "noip" ]]; then
+		# Static host name
+		echo "dhcp-host=${mac},${host}" >> "${dhcpstaticconfig}"
+	elif [[ "${host}" == "nohost" ]]; then
+		# Static IP
+		echo "dhcp-host=${mac},${ip}" >> "${dhcpstaticconfig}"
+	else
+		# Full info given
+		echo "dhcp-host=${mac},${ip},${host}" >> "${dhcpstaticconfig}"
+	fi
+
+}
+
+RemoveDHCPStaticAddress() {
+
+	mac="${args[2]}"
+	sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
+
+}
+
+SetHostRecord(){
+
+	if [ -n "${args[3]}" ]; then
+		change_setting "HOSTRECORD" "${args[2]},${args[3]}"
+		echo "Setting host record for ${args[2]} -> ${args[3]}"
+	else
+		change_setting "HOSTRECORD" ""
+		echo "Removing host record"
+	fi
+
+	ProcessDNSSettings
+
+	# Restart dnsmasq to load new configuration
+	RestartDNS
+
+}
+
+SetListeningMode(){
+
+	source "${setupVars}"
+
+	if [[ "${args[2]}" == "all" ]] ; then
+		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+		change_setting "DNSMASQ_LISTENING" "all"
+	elif [[ "${args[2]}" == "single" ]] ; then
+		echo "Listening only on interface ${PIHOLE_INTERFACE}"
+		change_setting "DNSMASQ_LISTENING" "single"
+	else
+		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+		change_setting "DNSMASQ_LISTENING" "local"
+	fi
+
+	# Don't restart DNS server yet because other settings
+	# will be applied afterwards if "-web" is set
+	if [[ "${args[3]}" != "-web" ]]; then
+		ProcessDNSSettings
+		# Restart dnsmasq to load new configuration
+		RestartDNS
+	fi
+
 }
 
 main() {
@@ -334,6 +433,10 @@ main() {
 		"-h" | "--help"     ) helpFunc;;
 		"privacymode"       ) SetPrivacyMode;;
 		"resolve"           ) ResolutionSettings;;
+		"addstaticdhcp"     ) AddDHCPStaticAddress;;
+		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
+		"hostrecord"        ) SetHostRecord;;
+		"-i" | "interface"  ) SetListeningMode;;
 		*                   ) helpFunc;;
 	esac
 

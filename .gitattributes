@@ -35,4 +35,4 @@ GitHub.Tests.Integration/Resources/*  binary
 
 
 # Catch all for anything we forgot. Add rules if you get CRLF -> LF warnings.
-* text=auto
+* text eol=lf

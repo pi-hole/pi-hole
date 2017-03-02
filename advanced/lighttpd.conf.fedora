@@ -1,13 +1,21 @@
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015, 2016 by Jacob Salmela
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # lighttpd config for Pi-hole
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+
+
+###############################################################################
+#     FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE INSTALL/UPDATE PROCEDURE.     #
+# ANY CHANGES MADE TO THIS FILE AFTER INSTALL WILL BE LOST ON THE NEXT UPDATE #
+#                                                                             #
+#              CHANGES SHOULD BE MADE IN A SEPERATE CONFIG FILE:              #
+#                         /etc/lighttpd/external.conf                         #
+###############################################################################
 
 server.modules = (
 	"mod_access",
@@ -22,15 +30,15 @@ server.modules = (
 )
 
 server.document-root        = "/var/www/html"
-server.error-handler-404	= "pihole/index.php"
+server.error-handler-404    = "pihole/index.php"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error.log"
 server.pid-file             = "/var/run/lighttpd.pid"
 server.username             = "lighttpd"
 server.groupname            = "lighttpd"
 server.port                 = 80
-accesslog.filename			= "/var/log/lighttpd/access.log"
-accesslog.format			= "%{%s}t|%V|%r|%s|%b"
+accesslog.filename          = "/var/log/lighttpd/access.log"
+accesslog.format            = "%{%s}t|%V|%r|%s|%b"
 
 
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
@@ -77,6 +85,13 @@ url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
 $HTTP["url"] =~ "^(?!/admin)/.*" {
 	# Create a response header for debugging using curl -I
 	setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
+}
+
+# Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
+$HTTP["host"] == "pi.hole" {
+    $HTTP["url"] == "/" {
+        url.redirect = ( "" => "/admin/" )
+    }
 }
 
 # Add user chosen options held in external file
