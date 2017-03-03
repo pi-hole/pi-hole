@@ -90,27 +90,12 @@ if command -v apt-get &> /dev/null; then
   test_dpkg_lock() {
     i=0
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-      echo -en "\r::: Waiting for package manager to finish"
-      j=0
-      while [ $j -lt 6 ]; do
-        if [ $j -lt $i ]; then
-          echo -n "."
-        else
-          echo -n " "
-        fi
-        ((j=j+1))
-      done
       sleep 0.5
-      if [ $i -lt 6 ]; then
-        ((i=i+1))
-      else
-        i=0
-      fi
+      ((i=i+1))
     done
-    # Add final newline only if we entered the loop at least once
-    if [ $j -gt 0 ]; then
-      echo ""
-    fi
+    # Always return success, since we only return if there is no
+    # lock (anymore)
+    return 0
   }
 
 elif command -v rpm &> /dev/null; then
@@ -764,7 +749,7 @@ update_package_cache() {
 
   echo ":::"
   echo -n "::: Updating local cache of available packages..."
-  if eval ${UPDATE_PKG_CACHE} &> /dev/null; then
+  if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
     echo " done!"
   else
     echo -n "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
