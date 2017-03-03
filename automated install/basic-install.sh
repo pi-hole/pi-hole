@@ -60,7 +60,7 @@ if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -86,6 +86,17 @@ if command -v apt-get &> /dev/null; then
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
+
+  test_dpkg_lock() {
+    i=0
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+      sleep 0.5
+      ((i=i+1))
+    done
+    # Always return success, since we only return if there is no
+    # lock (anymore)
+    return 0
+  }
 
 elif command -v rpm &> /dev/null; then
   # Fedora Family
@@ -738,7 +749,7 @@ update_package_cache() {
 
   echo ":::"
   echo -n "::: Updating local cache of available packages..."
-  if eval ${UPDATE_PKG_CACHE} &> /dev/null; then
+  if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
     echo " done!"
   else
     echo -n "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
@@ -788,6 +799,7 @@ install_dependent_packages() {
       fi
     done
     if [[ ${#installArray[@]} -gt 0 ]]; then
+      test_dpkg_lock
       debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
       return
     fi
