@@ -59,7 +59,7 @@ distro_check() {
 if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
-  PKG_MANAGER="apt-get"
+  PKG_MANAGER="test_dpkg_lock; apt-get"
   UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
@@ -86,6 +86,32 @@ if command -v apt-get &> /dev/null; then
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
+
+  test_dpkg_lock() {
+    i=0
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+      echo -en "\r::: Waiting for package manager to finish"
+      j=0
+      while [ $j -lt 6 ]; do
+        if [ $j -lt $i ]; then
+          echo -n "."
+        else
+          echo -n " "
+        fi
+        ((j=j+1))
+      done
+      sleep 0.5
+      if [ $i -lt 6 ]; then
+        ((i=i+1))
+      else
+        i=0
+      fi
+    done
+    # Add final newline only if we entered the loop at least once
+    if [ $j -gt 0 ]; then
+      echo ""
+    fi
+  }
 
 elif command -v rpm &> /dev/null; then
   # Fedora Family
