@@ -619,6 +619,7 @@ version_check_dnsmasq() {
   echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
   echo " done."
+  sed -i "s/@INT@/$PIHOLE_INTERFACE/" ${dnsmasq_pihole_01_location}
   if [[ "${PIHOLE_DNS_1}" != "" ]]; then
     sed -i "s/@DNS1@/$PIHOLE_DNS_1/" ${dnsmasq_pihole_01_location}
   else
