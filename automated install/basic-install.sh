@@ -752,7 +752,8 @@ update_package_cache() {
   if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
     echo " done!"
   else
-    echo -n "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
+    echo -en "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
+    return 1
   fi
 }
 
@@ -1310,7 +1311,7 @@ main() {
   fi
 
   # Update package cache
-  update_package_cache
+  update_package_cache || exit 1
 
   # Notify user of package availability
   notify_package_updates_available
