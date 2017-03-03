@@ -59,8 +59,8 @@ distro_check() {
 if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
-  PKG_MANAGER="test_dpkg_lock; apt-get"
-  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+  PKG_MANAGER="apt-get"
+  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -799,6 +799,7 @@ install_dependent_packages() {
       fi
     done
     if [[ ${#installArray[@]} -gt 0 ]]; then
+      test_dpkg_lock
       debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
       return
     fi
