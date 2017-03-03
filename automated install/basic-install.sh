@@ -1043,6 +1043,7 @@ installPihole() {
   fi
   installCron
   installLogrotate
+  FTLdetect || echo "::: FTL Engine not installed."
   configureFirewall
   finalExports
   #runGravity
@@ -1074,6 +1075,7 @@ updatePihole() {
   fi
   installCron
   installLogrotate
+  FTLdetect || echo "::: FTL Engine not installed."
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   #runGravity
 }
@@ -1165,6 +1167,93 @@ if [[ "${reconfigure}" == true ]]; then
         }
       fi
     fi
+}
+
+FTLinstall() {
+  # Download and install FTL binary
+  local binary="${1}"
+  local latesttag
+  local orig_dir
+  echo -n ":::  Installing FTL... "
+
+  orig_dir="${PWD}"
+  latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
+  # Tags should always start with v, check for that.
+  if [[ ! "${latesttag}" == v* ]]; then
+    echo "failed (error in getting latest release location from GitHub)"
+    return 1
+  fi
+  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/${binary}"; then
+    # Get sha1 of the binary we just downloaded for verification.
+    curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "/tmp/${binary}.sha1"
+    # Check if we just downloaded text, or a binary file.
+    cd /tmp
+    if sha1sum --status --quiet -c "${binary}".sha1; then
+      echo -n "transferred... "
+      stop_service pihole-FTL &> /dev/null
+      install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
+      cd "${orig_dir}"
+      install -T -m 0755 "/etc/.pihole/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+      echo "done."
+      return 0
+    else
+      echo "failed (download of binary from Github failed)"
+      cd "${orig_dir}"
+      return 1
+    fi
+  else
+    cd "${orig_dir}"
+    echo "failed (URL not found.)"
+  fi
+}
+
+FTLdetect() {
+  # Detect suitable FTL binary platform
+  echo ":::"
+  echo "::: Downloading latest version of FTL..."
+
+  local machine
+  local binary
+
+  machine=$(uname -m)
+
+  if [[ $machine == arm* || $machine == *aarch* ]]; then
+    # ARM
+    local rev=$(uname -m | sed "s/[^0-9]//g;")
+    local lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
+    if [[ "$lib" == "/lib/ld-linux-aarch64.so.1" ]]; then
+      echo ":::  Detected ARM-aarch64 architecture"
+      binary="pihole-FTL-aarch64-linux-gnu"
+    elif [[ "$lib" == "/lib/ld-linux-armhf.so.3" ]]; then
+      if [ "$rev" -gt "6" ]; then
+        echo ":::  Detected ARM-hf architecture (armv7+)"
+        binary="pihole-FTL-arm-linux-gnueabihf"
+      else
+        echo ":::  Detected ARM-hf architecture (armv6 or lower)"
+        echo ":::  Using ARM binary"
+        binary="pihole-FTL-arm-linux-gnueabi"
+      fi
+    else
+      echo ":::  Detected ARM architecture"
+      binary="pihole-FTL-arm-linux-gnueabi"
+    fi
+  elif [[ $machine == x86_64 ]]; then
+    # 64bit
+    echo ":::  Detected x86_64 architecture"
+    binary="pihole-FTL-linux-x86_64"
+  else
+    # Something else - we try to use 32bit executable and warn the user
+    if [[ ! $machine == i686 ]]; then
+      echo ":::  Not able to detect architecture (unknown: ${machine}), trying 32bit executable"
+      echo ":::  Contact Pi-hole support if you experience problems (like FTL not running)"
+    else
+      echo ":::  Detected 32bit (i686) architecture"
+    fi
+    binary="pihole-FTL-linux-x86_32"
+  fi
+
+  FTLinstall "${binary}" || return 1
+
 }
 
 main() {
@@ -1310,6 +1399,9 @@ main() {
   fi
 
   runGravity
+
+  start_service pihole-FTL
+  enable_service pihole-FTL
 
   echo "::: done."
 
