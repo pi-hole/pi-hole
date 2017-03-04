@@ -86,18 +86,18 @@ normalOutput() {
 
 webOutput() {
   case "${1}" in
-    "-l" | "--latest"    ) echo "${WEBVERSIONLATEST}";;
-    "-c" | "--current"   ) echo "${WEBVERSION}";;
-    "-h" | "--hash"      ) echo "${WEBHASH}";;
+    "-l" | "--latest"    ) echo $(getRemoteVersion AdminLTE);;
+    "-c" | "--current"   ) echo $(getLocalVersion "${WEBGITDIR}");;
+    "-h" | "--hash"      ) echo $(getLocalHash "${WEBGITDIR}");;
     *                    ) echo "::: Invalid Option!"; exit 1;
   esac
 }
 
 coreOutput() {
   case "${1}" in
-    "-l" | "--latest"    ) echo "${PHVERSIONLATEST}";;
-    "-c" | "--current"   ) echo "${PHVERSION}";;
-    "-h" | "--hash"      ) echo "${PHHASH}";;
+    "-l" | "--latest"    ) echo $(getRemoteVersion pi-hole);;
+    "-c" | "--current"   ) echo $(getLocalVersion "${PHGITDIR}");;
+    "-h" | "--hash"      ) echo $(getLocalHash "${PHGITDIR}");;
     *                    ) echo "::: Invalid Option!"; exit 1;
   esac
 }
@@ -119,13 +119,6 @@ helpFunc() {
 EOM
 	exit 0
 }
-
-PHVERSION=$(getLocalVersion "${PHGITDIR}")
-PHHASH=$(getLocalHash "${PHGITDIR}")
-PHVERSIONLATEST=$(getRemoteVersion pi-hole)
-WEBVERSION=$(getLocalVersion "${WEBGITDIR}")
-WEBHASH=$(getLocalHash "${WEBGITDIR}")
-WEBVERSIONLATEST=$(getRemoteVersion AdminLTE)
 
 if [[ $# = 0 ]]; then
 	normalOutput
