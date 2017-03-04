@@ -14,8 +14,26 @@ current=false
 
 # Variables
 DEFAULT="-1"
-PHVERSION=$(cd /etc/.pihole/ \
-                && git describe --tags --always)
+PHGITDIR="/etc/.pihole/"
+WEBGITDIR="/var/www/html/admin/"
+
+getLocalPHVersion(){
+  # Get the tagged version of the local Pi-hole repository
+  local version
+
+  cd "${PHGITDIR}" || { PHVERSION="${DEFAULT}"; return -1; }
+  version=$(git describe --tags --always || \
+            echo "${DEFAULT}")
+  if [[ "${version}" =~ ^v ]]; then
+    PHVERSION="${version}"
+  elif [[ "${version}" == "-1" ]]; then
+    PHVERSION="ERROR"
+  else
+    PHVERSION="Untagged"
+  fi
+  return 0
+}
+
 WEBVERSION=$(cd /var/www/html/admin/ \
              && git describe --tags --always)
 
@@ -42,16 +60,18 @@ WEBHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/commits/ma
                    head -n1 | \
                    awk -F ' ' '{ print $2}' | \
                    tr -cd '[[:alnum:]]._-')
+
+
 normalOutput() {
 	echo "::: Pi-hole version is ${PHVERSION} (Latest version is ${PHVERSIONLATEST:-${DEFAULT}})"
-	echo "::: Web-Admin version is ${WEBVERSION} (Latest version is ${WEBVERSIONLATEST:-${DEFAULT}})"
+	echo "::: Web-Admin version is ${WEBVERSION:-Untagged} (Latest version is ${WEBVERSIONLATEST:-${DEFAULT}})"
 }
 
 webOutput() {
 	for var in "$@"; do
 		case "${var}" in
-			"-l" | "--latest"    ) echo "${WEBVERSIONLATEST:--1}";;
-			"-c" | "--current"   ) echo "${WEBVERSION}";;
+			"-l" | "--latest"    ) echo "${WEBVERSIONLATEST:-${DEFAULT}}";;
+			"-c" | "--current"   ) echo "${WEBVERSION:-Untagged}";;
 			"-h" | "--hash"      ) echo "${WEBHASH}";;
 			*                    ) echo "::: Invalid Option!"; exit 1;
 		esac
@@ -61,7 +81,7 @@ webOutput() {
 coreOutput() {
 	for var in "$@"; do
 		case "${var}" in
-			"-l" | "--latest"    ) echo "${PHVERSIONLATEST:--1}";;
+			"-l" | "--latest"    ) echo "${PHVERSIONLATEST:-${DEFAULT}}";;
 			"-c" | "--current"   ) echo "${PHVERSION}";;
 			"-h" | "--hash"      ) echo "${PHHASH}";;
 			*                    ) echo "::: Invalid Option!"; exit 1;
@@ -86,6 +106,8 @@ helpFunc() {
 EOM
 	exit 0
 }
+
+getLocalPHVersion
 
 if [[ $# = 0 ]]; then
 	normalOutput
