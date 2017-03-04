@@ -33,6 +33,6 @@ groups:
     conditions:
       branches:
         - master
-    required: -1
+    required: 4
     teams:
       - admin
