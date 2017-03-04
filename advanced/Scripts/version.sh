@@ -8,10 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Flags:
-latest=false
-current=false
-
 # Variables
 DEFAULT="-1"
 PHGITDIR="/etc/.pihole/"
@@ -20,27 +16,54 @@ WEBGITDIR="/var/www/html/admin/"
 getLocalPHVersion(){
   # Get the tagged version of the local Pi-hole repository
   local version
+  local hash
 
-  cd "${PHGITDIR}" || { PHVERSION="${DEFAULT}"; return -1; }
+  cd "${PHGITDIR}" || { PHVERSION="${DEFAULT}"; return 1; }
   version=$(git describe --tags --always || \
             echo "${DEFAULT}")
   if [[ "${version}" =~ ^v ]]; then
     PHVERSION="${version}"
-  elif [[ "${version}" == "-1" ]]; then
+  elif [[ "${version}" == "${DEFAULT}" ]]; then
     PHVERSION="ERROR"
   else
     PHVERSION="Untagged"
   fi
+
+  hash=$(git rev-parse --short HEAD || \
+         echo "${DEFAULT}")
+  if [[ "${hash}" == "${DEFAULT}" ]]; then
+    PHHASH="ERROR"
+  else
+    PHHASH="${hash}"
+  fi
   return 0
 }
 
-WEBVERSION=$(cd /var/www/html/admin/ \
-             && git describe --tags --always)
+getLocalWebVersion(){
+  # Get the tagged version of the local Pi-hole repository
+  local version
+  local hash
 
-PHHASH=$(cd /etc/.pihole/ \
-             && git rev-parse --short HEAD)
-WEBHASH=$(cd /var/www/html/admin/ \
-          && git rev-parse --short HEAD)
+  cd "${WEBGITDIR}" || { WEBVERSION="${DEFAULT}"; return 1; }
+  version=$(git describe --tags --always || \
+            echo "${DEFAULT}")
+  if [[ "${version}" =~ ^v ]]; then
+    WEBVERSION="${version}"
+  elif [[ "${version}" == "${DEFAULT}" ]]; then
+    WEBVERSION="ERROR"
+  else
+    WEBVERSION="Untagged"
+  fi
+
+  hash=$(git rev-parse --short HEAD || \
+         echo "${DEFAULT}")
+  if [[ "${hash}" == "${DEFAULT}" ]]; then
+    WEBHASH="ERROR"
+  else
+    WEBHASH="${hash}"
+  fi
+  return 0
+}
 
 PHVERSIONLATEST=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | \
                       grep -Po '"tag_name":.*?[^\\]",' | \
@@ -64,14 +87,14 @@ WEBHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/commits/ma
 
 normalOutput() {
 	echo "::: Pi-hole version is ${PHVERSION} (Latest version is ${PHVERSIONLATEST:-${DEFAULT}})"
-	echo "::: Web-Admin version is ${WEBVERSION:-Untagged} (Latest version is ${WEBVERSIONLATEST:-${DEFAULT}})"
+	echo "::: Web-Admin version is ${WEBVERSION} (Latest version is ${WEBVERSIONLATEST:-${DEFAULT}})"
 }
 
 webOutput() {
-	for var in "$@"; do
+	for var in "$1"; do
 		case "${var}" in
 			"-l" | "--latest"    ) echo "${WEBVERSIONLATEST:-${DEFAULT}}";;
-			"-c" | "--current"   ) echo "${WEBVERSION:-Untagged}";;
+			"-c" | "--current"   ) echo "${WEBVERSION}";;
 			"-h" | "--hash"      ) echo "${WEBHASH}";;
 			*                    ) echo "::: Invalid Option!"; exit 1;
 		esac
@@ -79,7 +102,7 @@ webOutput() {
 }
 
 coreOutput() {
-	for var in "$@"; do
+	for var in "$1"; do
 		case "${var}" in
 			"-l" | "--latest"    ) echo "${PHVERSIONLATEST:-${DEFAULT}}";;
 			"-c" | "--current"   ) echo "${PHVERSION}";;
@@ -108,12 +131,13 @@ EOM
 }
 
 getLocalPHVersion
+getLocalWebVersion
 
 if [[ $# = 0 ]]; then
 	normalOutput
 fi
 
-for var in "$@"; do
+for var in "$1"; do
 	case "${var}" in
 	"-a" | "--admin"     ) shift; webOutput "$@";;
 	"-p" | "--pihole"    ) shift; coreOutput "$@" ;;
