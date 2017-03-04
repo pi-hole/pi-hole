@@ -50,37 +50,23 @@ normalOutput() {
 webOutput() {
 	for var in "$@"; do
 		case "${var}" in
-			"-l" | "--latest"    ) latest=true;;
-			"-c" | "--current"   ) current=true;;
+			"-l" | "--latest"    ) echo "${WEBVERSIONLATEST:--1}";;
+			"-c" | "--current"   ) echo "${WEBVERSION}";;
+			"-h" | "--hash"      ) echo "${WEBHASH}";;
 			*                    ) echo "::: Invalid Option!"; exit 1;
 		esac
 	done
-
-	if [[ "${latest}" == true && "${current}" == false ]]; then
-		echo "${WEBVERSIONLATEST:--1}"
-	elif [[ "${latest}" == false && "${current}" == true ]]; then
-		echo "${WEBVERSION}"
-	else
-		echo "::: Web-Admin version is ${WEBVERSION} (Latest version is ${WEBVERSIONLATEST:-${DEFAULT}})"
-	fi
 }
 
 coreOutput() {
 	for var in "$@"; do
 		case "${var}" in
-			"-l" | "--latest"    ) latest=true;;
-			"-c" | "--current"   ) current=true;;
+			"-l" | "--latest"    ) echo "${PHVERSIONLATEST:--1}";;
+			"-c" | "--current"   ) echo "${PHVERSION}";;
+			"-h" | "--hash"      ) echo "${PHHASH}";;
 			*                    ) echo "::: Invalid Option!"; exit 1;
 		esac
 	done
-
-	if [[ "${latest}" == true && "${current}" == false ]]; then
-		echo "${PHVERSIONLATEST:--1}"
-	elif [[ "${latest}" == false && "${current}" == true ]]; then
-		echo "${PHVERSION}"
-	else
-		echo "::: Pi-hole version is ${PHVERSION} (Latest version is ${PHVERSIONLATEST:-${DEFAULT}})"
-	fi
 }
 
 helpFunc() {
