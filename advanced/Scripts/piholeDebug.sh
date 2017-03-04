@@ -278,9 +278,11 @@ testResolver() {
   if [[ ${protocol} == "6" ]]; then
     g_addr="2001:4860:4860::8888"
     l_addr="::1"
+    r_type="AAAA"
   else
     g_addr="8.8.8.8"
     l_addr="127.0.0.1"
+    r_type="A"
   fi
 
 	# Find a blocked url that has not been whitelisted.
@@ -290,7 +292,7 @@ testResolver() {
 
 
 	log_write "Resolution of ${testurl} from Pi-hole (${l_addr}):"
-	if localdig=$(dig -"${protocol}" "${testurl}" @${l_addr} +short); then
+	if localdig=$(dig -"${protocol}" "${testurl}" @${l_addr} +short "${r_type}"); then
 		log_write "${localdig}"
 	else
 		log_write "Failed to resolve ${testurl} on Pi-hole (${l_addr})"
@@ -298,7 +300,7 @@ testResolver() {
 	log_write ""
 
 	log_write "Resolution of ${testurl} from Pi-hole (${IP}):"
-	if piholedig=$(dig -"${protocol}" "${testurl}" @"${IP}" +short); then
+	if piholedig=$(dig -"${protocol}" "${testurl}" @"${IP}" +short "${r_type}"); then
 		log_write "${piholedig}"
 	else
 		log_write "Failed to resolve ${testurl} on Pi-hole (${IP})"
@@ -307,7 +309,7 @@ testResolver() {
 
 
 	log_write "Resolution of ${testurl} from ${g_addr}:"
-	if remotedig=$(dig -"${protocol}" "${testurl}" @${g_addr} +short); then
+	if remotedig=$(dig -"${protocol}" "${testurl}" @${g_addr} +short "${r_type}"); then
 		log_write "${remotedig:-NXDOMAIN}"
 	else
 		log_write "Failed to resolve ${testurl} on upstream server ${g_addr}"
