@@ -266,39 +266,42 @@ daemon_check() {
 testResolver() {
 	header_write "Resolver Functions Check"
 
-	# Find a blocked url that has not been whitelisted.
-	TESTURL="doubleclick.com"
-	if [ -s "${WHITELISTMATCHES}" ]; then
-		while read -r line; do
-			CUTURL=${line#*" "}
-			if [ "${CUTURL}" != "Pi-Hole.IsWorking.OK" ]; then
-				while read -r line2; do
-					CUTURL2=${line2#*" "}
-					if [ "${CUTURL}" != "${CUTURL2}" ]; then
-						TESTURL="${CUTURL}"
-						break 2
-					fi
-				done < "${WHITELISTMATCHES}"
-			fi
-		done < "${GRAVITYFILE}"
-	fi
+  local url
+  local testurl
+  local localdig
+  local piholedig
 
-	log_write "Resolution of ${TESTURL} from Pi-hole:"
-	LOCALDIG=$(dig "${TESTURL}" @127.0.0.1)
-	if [[ $? = 0 ]]; then
-		log_write "${LOCALDIG}"
+	# Find a blocked url that has not been whitelisted.
+	url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
+
+	testurl="${url:-doubleclick.com}"
+
+
+	log_write "Resolution of ${testurl} from Pi-hole (localhost):"
+
+	if localdig=$(dig "${testurl}" @localhost +short); then
+		log_write "${localdig}"
 	else
-		log_write "Failed to resolve ${TESTURL} on Pi-hole"
+		log_write "Failed to resolve ${testurl} on Pi-hole"
+	fi
+	log_write ""
+
+	log_write "Resolution of ${testurl} from Pi-hole (direct IP):"
+
+	if piholedig=$(dig "${testurl}" @"${IPV4_ADDRESS%/*}" +short); then
+		log_write "${piholedig}"
+	else
+		log_write "Failed to resolve ${testurl} on Pi-hole"
 	fi
 	log_write ""
 
 
-	log_write "Resolution of ${TESTURL} from 8.8.8.8:"
-	REMOTEDIG=$(dig "${TESTURL}" @8.8.8.8)
+	log_write "Resolution of ${testurl} from 8.8.8.8:"
+	remotedig=$(dig "${testurl}" @8.8.8.8 +short)
 	if [[ $? = 0 ]]; then
-		log_write "${REMOTEDIG}"
+		log_write "${remotedig:-NXDOMAIN}"
 	else
-		log_write "Failed to resolve ${TESTURL} on 8.8.8.8"
+		log_write "Failed to resolve ${testurl} on 8.8.8.8"
 	fi
 	log_write ""
 
@@ -347,50 +350,6 @@ countdown() {
     tuvix=$(( tuvix - 5 ))
   done
 }
-### END FUNCTIONS ###
-
-# Gather version of required packages / repositories
-version_check || echo "REQUIRED FILES MISSING"
-# Check for newer setupVars storage file
-source_file "/etc/pihole/setupVars.conf"
-# Gather information about the running distribution
-distro_check || echo "Distro Check soft fail"
-# Gather processor type
-processor_check || echo "Processor Check soft fail"
-
-ip_check 6 ${IPV6_ADDRESS}
-ip_check 4 ${IPV4_ADDRESS}
-
-daemon_check lighttpd http
-daemon_check dnsmasq domain
-daemon_check pihole-FTL 4711
-checkProcesses
-testResolver
-debugLighttpd
-
-files_check "${DNSMASQFILE}"
-dir_check "${DNSMASQCONFDIR}"
-files_check "${WHITELISTFILE}"
-files_check "${BLACKLISTFILE}"
-files_check "${ADLISTFILE}"
-
-
-header_write "Analyzing gravity.list"
-
-	gravity_length=$(grep -c ^ "${GRAVITYFILE}") \
-	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
-	|| log_echo "Warning: No gravity.list file found!"
-
-header_write "Analyzing pihole.log"
-
-  pihole_length=$(grep -c ^ "${PIHOLELOG}") \
-  && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
-  || log_echo "Warning: No pihole.log file found!"
-
-  pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
-  && log_write "${PIHOLELOG} is ${pihole_size}." \
-  || log_echo "Warning: No pihole.log file found!"
-
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
@@ -439,6 +398,50 @@ finalWork() {
 	fi
 		echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
 }
+
+### END FUNCTIONS ###
+
+# Gather version of required packages / repositories
+version_check || echo "REQUIRED FILES MISSING"
+# Check for newer setupVars storage file
+source_file "/etc/pihole/setupVars.conf"
+# Gather information about the running distribution
+distro_check || echo "Distro Check soft fail"
+# Gather processor type
+processor_check || echo "Processor Check soft fail"
+
+ip_check 6 ${IPV6_ADDRESS}
+ip_check 4 ${IPV4_ADDRESS}
+
+daemon_check lighttpd http
+daemon_check dnsmasq domain
+daemon_check pihole-FTL 4711
+checkProcesses
+testResolver
+debugLighttpd
+
+files_check "${DNSMASQFILE}"
+dir_check "${DNSMASQCONFDIR}"
+files_check "${WHITELISTFILE}"
+files_check "${BLACKLISTFILE}"
+files_check "${ADLISTFILE}"
+
+
+header_write "Analyzing gravity.list"
+
+	gravity_length=$(grep -c ^ "${GRAVITYFILE}") \
+	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
+	|| log_echo "Warning: No gravity.list file found!"
+
+header_write "Analyzing pihole.log"
+
+  pihole_length=$(grep -c ^ "${PIHOLELOG}") \
+  && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
+  || log_echo "Warning: No pihole.log file found!"
+
+  pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
+  && log_write "${PIHOLELOG} is ${pihole_size}." \
+  || log_echo "Warning: No pihole.log file found!"
 
 trap finalWork EXIT
 
