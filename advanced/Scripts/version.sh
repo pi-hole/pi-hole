@@ -8,8 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
 # Flags:
 latest=false
 current=false
@@ -18,9 +16,9 @@ DEFAULT="-1"
 
 normalOutput() {
 	piholeVersion=$(cd /etc/.pihole/ \
-	                && git describe --tags --abbrev=0)
+	                && git describe --tags --always)
 	webVersion=$(cd /var/www/html/admin/ \
-	             && git describe --tags --abbrev=0)
+	             && git describe --tags --always)
 
 	piholeHash=$(cd /etc/.pihole/ \
 	             && git rev-parse --short HEAD)
