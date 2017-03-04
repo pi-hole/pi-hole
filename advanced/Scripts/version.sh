@@ -17,11 +17,34 @@ current=false
 DEFAULT="-1"
 
 normalOutput() {
-	piholeVersion=$(cd /etc/.pihole/ && git describe --tags --abbrev=0)
-	webVersion=$(cd /var/www/html/admin/ && git describe --tags --abbrev=0)
+	piholeVersion=$(cd /etc/.pihole/ \
+	                && git describe --tags --abbrev=0)
+	webVersion=$(cd /var/www/html/admin/ \
+	             && git describe --tags --abbrev=0)
 
-	piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
-	webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | grep -Po '"tag_name":.*?[^\\]",' |  perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+	piholeHash=$(cd /etc/.pihole/ \
+	             && git rev-parse --short HEAD)
+	webHash=$(cd /var/www/html/admin/ \
+	          && git rev-parse --short HEAD)
+
+	piholeVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | \
+	                      grep -Po '"tag_name":.*?[^\\]",' | \
+	                      perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+	webVersionLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | \
+	                   grep -Po '"tag_name":.*?[^\\]",' | \
+	                   perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+
+  piholeHashLatest=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/commits/master | \
+                     grep sha | \
+                     head -n1 | \
+                     awk -F ' ' '{ print $2}' | \
+                     tr -cd '[[:alnum:]]._-')
+
+  piholeHashLatest=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/commits/master | \
+                     grep sha | \
+                     head -n1 | \
+                     awk -F ' ' '{ print $2}' | \
+                     tr -cd '[[:alnum:]]._-')
 
 	echo "::: Pi-hole version is ${piholeVersion} (Latest version is ${piholeVersionLatest:-${DEFAULT}})"
 	echo "::: Web-Admin version is ${webVersion} (Latest version is ${webVersionLatest:-${DEFAULT}})"
