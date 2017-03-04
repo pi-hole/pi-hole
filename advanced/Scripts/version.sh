@@ -49,12 +49,22 @@ getLocalHash() {
   return 0
 }
 
-PHVERSIONLATEST=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | \
-                      awk -F: '$1 ~/tag_name/ { print $2 }' | \
-                      tr -cd '[[:alnum:]]._-')
-WEBVERSIONLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | \
-                      awk -F: '$1 ~/tag_name/ { print $2 }' | \
-                      tr -cd '[[:alnum:]]._-')
+getRemoteVersion(){
+  # Get the version from the remote origin
+  local daemon="${1}"
+  local version
+
+  version=$(curl --silent --fail https://api.github.com/repos/pi-hole/${daemon}/releases/latest | \
+            awk -F: '$1 ~/tag_name/ { print $2 }' | \
+            tr -cd '[[:alnum:]]._-')
+  if [[ "${version}" =~ ^v ]]; then
+    echo "${version}"
+  else
+    echo "ERROR"
+    return 1
+  fi
+  return 0
+}
 
 #PHHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/commits/master | \
 #                   grep sha | \
@@ -70,13 +80,13 @@ WEBVERSIONLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/release
 
 
 normalOutput() {
-	echo "::: Pi-hole version is ${PHVERSION} (Latest version is ${PHVERSIONLATEST:-${DEFAULT}})"
-	echo "::: Web-Admin version is ${WEBVERSION} (Latest version is ${WEBVERSIONLATEST:-${DEFAULT}})"
+	echo "::: Pi-hole version is ${PHVERSION} (Latest version is ${PHVERSIONLATEST})"
+	echo "::: Web-Admin version is ${WEBVERSION} (Latest version is ${WEBVERSIONLATEST})"
 }
 
 webOutput() {
   case "${1}" in
-    "-l" | "--latest"    ) echo "${WEBVERSIONLATEST:-${DEFAULT}}";;
+    "-l" | "--latest"    ) echo "${WEBVERSIONLATEST}";;
     "-c" | "--current"   ) echo "${WEBVERSION}";;
     "-h" | "--hash"      ) echo "${WEBHASH}";;
     *                    ) echo "::: Invalid Option!"; exit 1;
@@ -85,7 +95,7 @@ webOutput() {
 
 coreOutput() {
   case "${1}" in
-    "-l" | "--latest"    ) echo "${PHVERSIONLATEST:-${DEFAULT}}";;
+    "-l" | "--latest"    ) echo "${PHVERSIONLATEST}";;
     "-c" | "--current"   ) echo "${PHVERSION}";;
     "-h" | "--hash"      ) echo "${PHHASH}";;
     *                    ) echo "::: Invalid Option!"; exit 1;
@@ -112,9 +122,10 @@ EOM
 
 PHVERSION=$(getLocalVersion "${PHGITDIR}")
 PHHASH=$(getLocalHash "${PHGITDIR}")
+PHVERSIONLATEST=$(getRemoteVersion pi-hole)
 WEBVERSION=$(getLocalVersion "${WEBGITDIR}")
 WEBHASH=$(getLocalHash "${WEBGITDIR}")
-
+WEBVERSIONLATEST=$(getRemoteVersion AdminLTE)
 
 if [[ $# = 0 ]]; then
 	normalOutput
