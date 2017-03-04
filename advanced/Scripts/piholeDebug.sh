@@ -265,11 +265,13 @@ daemon_check() {
 
 testResolver() {
 	header_write "Resolver Functions Check"
-
+  local protocol="${1}"
+  local IP="${2}"
   local url
   local testurl
   local localdig
   local piholedig
+  local remotedig
 
 	# Find a blocked url that has not been whitelisted.
 	url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
@@ -278,8 +280,7 @@ testResolver() {
 
 
 	log_write "Resolution of ${testurl} from Pi-hole (localhost):"
-
-	if localdig=$(dig "${testurl}" @localhost +short); then
+	if localdig=$(dig -"${protocol}" "${testurl}" @localhost +short); then
 		log_write "${localdig}"
 	else
 		log_write "Failed to resolve ${testurl} on Pi-hole"
@@ -287,8 +288,7 @@ testResolver() {
 	log_write ""
 
 	log_write "Resolution of ${testurl} from Pi-hole (direct IP):"
-
-	if piholedig=$(dig "${testurl}" @"${IPV4_ADDRESS%/*}" +short); then
+	if piholedig=$(dig -"${protocol}" "${testurl}" @"${IP}" +short); then
 		log_write "${piholedig}"
 	else
 		log_write "Failed to resolve ${testurl} on Pi-hole"
@@ -297,8 +297,7 @@ testResolver() {
 
 
 	log_write "Resolution of ${testurl} from 8.8.8.8:"
-	remotedig=$(dig "${testurl}" @8.8.8.8 +short)
-	if [[ $? = 0 ]]; then
+	if remotedig=$(dig -"${protocol}" "${testurl}" @8.8.8.8 +short); then
 		log_write "${remotedig:-NXDOMAIN}"
 	else
 		log_write "Failed to resolve ${testurl} on 8.8.8.8"
@@ -417,7 +416,7 @@ daemon_check lighttpd http
 daemon_check dnsmasq domain
 daemon_check pihole-FTL 4711
 checkProcesses
-testResolver
+testResolver 4 "${IPV4_ADDRESS%/*}"
 debugLighttpd
 
 files_check "${DNSMASQFILE}"
