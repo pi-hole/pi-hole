@@ -13,54 +13,38 @@ DEFAULT="-1"
 PHGITDIR="/etc/.pihole/"
 WEBGITDIR="/var/www/html/admin/"
 
-getLocalPHVersion(){
-  # Get the tagged version of the local Pi-hole repository
+getLocalVersion() {
+  # Get the tagged version of the local repository
+  local directory="${1}"
   local version
-  local hash
 
-  cd "${PHGITDIR}" || { PHVERSION="${DEFAULT}"; return 1; }
+  cd "${directory}" || { echo "${DEFAULT}"; return 1; }
   version=$(git describe --tags --always || \
             echo "${DEFAULT}")
   if [[ "${version}" =~ ^v ]]; then
-    PHVERSION="${version}"
+    echo "${version}"
   elif [[ "${version}" == "${DEFAULT}" ]]; then
-    PHVERSION="ERROR"
+    echo "ERROR"
+    return 1
   else
-    PHVERSION="Untagged"
-  fi
-
-  hash=$(git rev-parse --short HEAD || \
-         echo "${DEFAULT}")
-  if [[ "${hash}" == "${DEFAULT}" ]]; then
-    PHHASH="ERROR"
-  else
-    PHHASH="${hash}"
+    echo "Untagged"
   fi
   return 0
 }
 
-getLocalWebVersion(){
-  # Get the tagged version of the local Pi-hole repository
-  local version
+getLocalHash() {
+  # Get the short hash of the local repository
+  local directory="${1}"
   local hash
 
-  cd "${WEBGITDIR}" || { WEBVERSION="${DEFAULT}"; return 1; }
-  version=$(git describe --tags --always || \
-            echo "${DEFAULT}")
-  if [[ "${version}" =~ ^v ]]; then
-    WEBVERSION="${version}"
-  elif [[ "${version}" == "${DEFAULT}" ]]; then
-    WEBVERSION="ERROR"
-  else
-    WEBVERSION="Untagged"
-  fi
-
+  cd "${directory}" || { echo "${DEFAULT}"; return 1; }
   hash=$(git rev-parse --short HEAD || \
          echo "${DEFAULT}")
   if [[ "${hash}" == "${DEFAULT}" ]]; then
-    WEBHASH="ERROR"
+    echo "ERROR"
+    return 1
   else
-    WEBHASH="${hash}"
+    echo "${hash}"
   fi
   return 0
 }
@@ -91,25 +75,21 @@ normalOutput() {
 }
 
 webOutput() {
-	for var in "$1"; do
-		case "${var}" in
-			"-l" | "--latest"    ) echo "${WEBVERSIONLATEST:-${DEFAULT}}";;
-			"-c" | "--current"   ) echo "${WEBVERSION}";;
-			"-h" | "--hash"      ) echo "${WEBHASH}";;
-			*                    ) echo "::: Invalid Option!"; exit 1;
-		esac
-	done
+  case "${1}" in
+    "-l" | "--latest"    ) echo "${WEBVERSIONLATEST:-${DEFAULT}}";;
+    "-c" | "--current"   ) echo "${WEBVERSION}";;
+    "-h" | "--hash"      ) echo "${WEBHASH}";;
+    *                    ) echo "::: Invalid Option!"; exit 1;
+  esac
 }
 
 coreOutput() {
-	for var in "$1"; do
-		case "${var}" in
-			"-l" | "--latest"    ) echo "${PHVERSIONLATEST:-${DEFAULT}}";;
-			"-c" | "--current"   ) echo "${PHVERSION}";;
-			"-h" | "--hash"      ) echo "${PHHASH}";;
-			*                    ) echo "::: Invalid Option!"; exit 1;
-		esac
-	done
+  case "${1}" in
+    "-l" | "--latest"    ) echo "${PHVERSIONLATEST:-${DEFAULT}}";;
+    "-c" | "--current"   ) echo "${PHVERSION}";;
+    "-h" | "--hash"      ) echo "${PHHASH}";;
+    *                    ) echo "::: Invalid Option!"; exit 1;
+  esac
 }
 
 helpFunc() {
@@ -130,17 +110,18 @@ EOM
 	exit 0
 }
 
-getLocalPHVersion
-getLocalWebVersion
+PHVERSION=$(getLocalVersion "${PHGITDIR}")
+PHHASH=$(getLocalHash "${PHGITDIR}")
+WEBVERSION=$(getLocalVersion "${WEBGITDIR}")
+WEBHASH=$(getLocalHash "${WEBGITDIR}")
+
 
 if [[ $# = 0 ]]; then
 	normalOutput
 fi
 
-for var in "$1"; do
-	case "${var}" in
-	"-a" | "--admin"     ) shift; webOutput "$@";;
-	"-p" | "--pihole"    ) shift; coreOutput "$@" ;;
-	"-h" | "--help"      ) helpFunc;;
-	esac
-done
+case "${1}" in
+  "-a" | "--admin"     ) shift; webOutput "$@";;
+  "-p" | "--pihole"    ) shift; coreOutput "$@" ;;
+  "-h" | "--help"      ) helpFunc;;
+esac
