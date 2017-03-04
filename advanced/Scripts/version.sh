@@ -80,8 +80,8 @@ getRemoteVersion(){
 
 
 normalOutput() {
-	echo "::: Pi-hole version is ${PHVERSION} (Latest version is ${PHVERSIONLATEST})"
-	echo "::: Web-Admin version is ${WEBVERSION} (Latest version is ${WEBVERSIONLATEST})"
+	echo "::: Pi-hole version is $(getLocalVersion "${PHGITDIR}") (Latest version is $(getRemoteVersion pi-hole))"
+	echo "::: Web-Admin version is $(getLocalVersion "${WEBGITDIR}") (Latest version is $(getRemoteVersion AdminLTE))"
 }
 
 webOutput() {
