@@ -66,23 +66,23 @@ getLocalWebVersion(){
 }
 
 PHVERSIONLATEST=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/releases/latest | \
-                      grep -Po '"tag_name":.*?[^\\]",' | \
-                      perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+                      awk -F: '$1 ~/tag_name/ { print $2 }' | \
+                      tr -cd '[[:alnum:]]._-')
 WEBVERSIONLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/releases/latest | \
-                   grep -Po '"tag_name":.*?[^\\]",' | \
-                   perl -pe 's/"tag_name": "//; s/^"//; s/",$//')
+                      awk -F: '$1 ~/tag_name/ { print $2 }' | \
+                      tr -cd '[[:alnum:]]._-')
 
-PHHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/commits/master | \
-                   grep sha | \
-                   head -n1 | \
-                   awk -F ' ' '{ print $2}' | \
-                   tr -cd '[[:alnum:]]._-')
+#PHHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/commits/master | \
+#                   grep sha | \
+#                   head -n1 | \
+#                   awk -F ' ' '{ print $2 }' | \
+#                   tr -cd '[[:alnum:]]._-')
 
-WEBHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/commits/master | \
-                   grep sha | \
-                   head -n1 | \
-                   awk -F ' ' '{ print $2}' | \
-                   tr -cd '[[:alnum:]]._-')
+#WEBHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/commits/master | \
+#                   grep sha | \
+#                   head -n1 | \
+#                   awk -F ' ' '{ print $2 }' | \
+#                   tr -cd '[[:alnum:]]._-')
 
 
 normalOutput() {
