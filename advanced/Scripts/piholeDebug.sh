@@ -264,9 +264,11 @@ daemon_check() {
 }
 
 testResolver() {
-	header_write "Resolver Functions Check"
   local protocol="${1}"
+  header_write "Resolver Functions Check (IPv${protocol})"
   local IP="${2}"
+  local g_addr
+  local l_addr
   local url
   local testurl
   local localdig
@@ -275,8 +277,10 @@ testResolver() {
 
   if [[ ${protocol} == "6" ]]; then
     g_addr="2001:4860:4860::8888"
+    l_addr="::1"
   else
     g_addr="8.8.8.8"
+    l_addr="127.0.0.1"
   fi
 
 	# Find a blocked url that has not been whitelisted.
@@ -285,19 +289,19 @@ testResolver() {
 	testurl="${url:-doubleclick.com}"
 
 
-	log_write "Resolution of ${testurl} from Pi-hole (localhost):"
-	if localdig=$(dig -"${protocol}" "${testurl}" @localhost +short); then
+	log_write "Resolution of ${testurl} from Pi-hole (${l_addr}):"
+	if localdig=$(dig -"${protocol}" "${testurl}" @${l_addr} +short); then
 		log_write "${localdig}"
 	else
-		log_write "Failed to resolve ${testurl} on Pi-hole"
+		log_write "Failed to resolve ${testurl} on Pi-hole (${l_addr})"
 	fi
 	log_write ""
 
-	log_write "Resolution of ${testurl} from Pi-hole (direct IP):"
+	log_write "Resolution of ${testurl} from Pi-hole (${IP}):"
 	if piholedig=$(dig -"${protocol}" "${testurl}" @"${IP}" +short); then
 		log_write "${piholedig}"
 	else
-		log_write "Failed to resolve ${testurl} on Pi-hole"
+		log_write "Failed to resolve ${testurl} on Pi-hole (${IP})"
 	fi
 	log_write ""
 
@@ -306,7 +310,7 @@ testResolver() {
 	if remotedig=$(dig -"${protocol}" "${testurl}" @${g_addr} +short); then
 		log_write "${remotedig:-NXDOMAIN}"
 	else
-		log_write "Failed to resolve ${testurl} on ${g_addr}"
+		log_write "Failed to resolve ${testurl} on upstream server ${g_addr}"
 	fi
 	log_write ""
 
@@ -423,6 +427,7 @@ daemon_check dnsmasq domain
 daemon_check pihole-FTL 4711
 checkProcesses
 testResolver 4 "${IPV4_ADDRESS%/*}"
+testResolver 6 "${IPV6_ADDRESS%/*}"
 debugLighttpd
 
 files_check "${DNSMASQFILE}"
