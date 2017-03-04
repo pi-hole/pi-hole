@@ -313,6 +313,10 @@ testResolver() {
 		log_write "Failed to resolve ${testurl} on upstream server ${g_addr}"
 	fi
 	log_write ""
+}
+
+testChaos(){
+  # Check Pi-hole specific records
 
 	log_write "Pi-hole dnsmasq specific records lookups"
 	log_write "Cache Size:"
@@ -320,8 +324,8 @@ testResolver() {
 	log_write "Upstream Servers:"
 	dig +short chaos txt servers.bind >> ${DEBUG_LOG}
 	log_write ""
-}
 
+}
 checkProcesses() {
 	header_write "Processes Check"
 
@@ -426,8 +430,16 @@ daemon_check lighttpd http
 daemon_check dnsmasq domain
 daemon_check pihole-FTL 4711
 checkProcesses
+
+# Check local/IP/Google for IPv4 Resolution
 testResolver 4 "${IPV4_ADDRESS%/*}"
-testResolver 6 "${IPV6_ADDRESS%/*}"
+# If IPv6 enabled, check resolution
+if [[ "${IPV6_ADDRESS}" ]]; then
+  testResolver 6 "${IPV6_ADDRESS%/*}"
+fi
+# Poll dnsmasq Pi-hole specific queries
+testChaos
+
 debugLighttpd
 
 files_check "${DNSMASQFILE}"
