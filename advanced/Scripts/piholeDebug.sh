@@ -273,6 +273,12 @@ testResolver() {
   local piholedig
   local remotedig
 
+  if [[ ${protocol} == "6" ]]; then
+    g_addr="2001:4860:4860::8888"
+  else
+    g_addr="8.8.8.8"
+  fi
+
 	# Find a blocked url that has not been whitelisted.
 	url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
 
@@ -296,11 +302,11 @@ testResolver() {
 	log_write ""
 
 
-	log_write "Resolution of ${testurl} from 8.8.8.8:"
-	if remotedig=$(dig -"${protocol}" "${testurl}" @8.8.8.8 +short); then
+	log_write "Resolution of ${testurl} from ${g_addr}:"
+	if remotedig=$(dig -"${protocol}" "${testurl}" @${g_addr} +short); then
 		log_write "${remotedig:-NXDOMAIN}"
 	else
-		log_write "Failed to resolve ${testurl} on 8.8.8.8"
+		log_write "Failed to resolve ${testurl} on ${g_addr}"
 	fi
 	log_write ""
 
