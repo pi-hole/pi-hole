@@ -121,28 +121,41 @@ version_check() {
   local admin_commit
   local light_ver
   local php_ver
+  local status
   error_found=0
 
-	if [[ -d "${PIHOLEGITDIR}" ]]; then
-	  cd "${PIHOLEGITDIR}"
-	  pi_hole_ver=$(git describe --tags --abbrev=0)
-	  pi_hole_branch=$(git rev-parse --abbrev-ref HEAD)
-	  pi_hole_commit=$(git describe --long --dirty --tags --always)
-	  log_echo -r "Pi-hole: ${pi_hole_ver:-Untagged} (${pi_hole_branch:-Detached}:${pi_hole_commit})"
-	else
-	  log_echo "Pi-hole git repository not detected."
-	  error_found=1
-	fi
-	if [[ -d "${ADMINGITDIR}" ]]; then
-	  cd "${ADMINGITDIR}"
-	  admin_ver=$(git describe --tags --abbrev=0)
-	  admin_branch=$(git rev-parse --abbrev-ref HEAD)
-	  admin_commit=$(git describe --long --dirty --tags --always)
-	  log_echo -r "Web Dashboard: ${admin_ver:-Untagged} (${admin_branch:-Detached}:${admin_commit})"
-	else
-	  log_echo "Pi-hole Admin Pages git repository not detected."
-	  error_found=1
-	fi
+  cd "${PIHOLEGITDIR}" &> /dev/null || \
+    { status="Pi-hole git directory not found."; error_found=1; }
+  if git status &> /dev/null; then
+    pi_hole_ver=$(git describe --tags --abbrev=0)
+    pi_hole_branch=$(git rev-parse --abbrev-ref HEAD)
+    pi_hole_commit=$(git describe --long --dirty --tags --always)
+    log_echo -r "Pi-hole: ${pi_hole_ver:-Untagged} (${pi_hole_branch:-Detached}:${pi_hole_commit})"
+  else
+    status=${status:-"Pi-hole repository damaged."}
+    error_found=1
+  fi
+  if [[ "${status}" ]]; then
+    log_echo "${status}"
+    unset status
+  fi
+
+  cd "${ADMINGITDIR}" || \
+    { status="Pi-hole Dashboard git directory not found."; error_found=1; }
+  if git status &> /dev/null; then
+    admin_ver=$(git describe --tags --abbrev=0)
+    admin_branch=$(git rev-parse --abbrev-ref HEAD)
+    admin_commit=$(git describe --long --dirty --tags --always)
+    log_echo -r "Pi-hole Dashboard: ${admin_ver:-Untagged} (${admin_branch:-Detached}:${admin_commit})"
+  else
+    status=${status:-"Pi-hole Dashboard repository damaged."}
+    error_found=1
+  fi
+  if [[ "${status}" ]]; then
+    log_echo "${status}"
+    unset status
+  fi
+
 	if light_ver=$(lighttpd -v |& head -n1 | cut -d " " -f1); then
 	  log_echo -r "${light_ver}"
 	else
