@@ -4,6 +4,14 @@
 $uri = escapeshellcmd($_SERVER['REQUEST_URI']);
 $serverName = escapeshellcmd($_SERVER['SERVER_NAME']);
 
+// If the server name is 'pi.hole', it's likely a user trying to get to the admin panel.
+// Let's be nice and redirect them.
+if ($serverName === 'pi.hole')
+{
+    header('HTTP/1.1 302 Found');
+    header("Location: /admin/");
+}
+
 // Retrieve server URI extension (EG: jpg, exe, php)
 $uriExt = pathinfo($uri, PATHINFO_EXTENSION);
 
