@@ -410,6 +410,12 @@ SetListeningMode(){
 
 }
 
+Teleporter()
+{
+	local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+	php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
+}
+
 main() {
 
 	args=("$@")
@@ -435,6 +441,7 @@ main() {
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
 		"hostrecord"        ) SetHostRecord;;
 		"-i" | "interface"  ) SetListeningMode;;
+		"-t" | "teleporter" ) Teleporter;;
 		*                   ) helpFunc;;
 	esac
 
