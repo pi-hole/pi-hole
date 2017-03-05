@@ -24,6 +24,8 @@ WHITELISTFILE="/etc/pihole/whitelist.txt"
 BLACKLISTFILE="/etc/pihole/blacklist.txt"
 ADLISTFILE="/etc/pihole/adlists.list"
 PIHOLELOG="/var/log/pihole.log"
+PIHOLEGITDIR="/etc/.pihole/"
+ADMINGITDIR="/var/www/html/admin/"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 
 TIMEOUT=60
@@ -111,22 +113,48 @@ version_check() {
   header_write "Detecting Installed Package Versions:"
 
   local error_found
+  local pi_hole_ver
+  local pi_hole_branch
+  local pi_hole_commit
+  local admin_ver
+  local admin_branch
+  local admin_commit
+  local light_ver
+  local php_ver
   error_found=0
 
-	local pi_hole_ver="$(cd /etc/.pihole/ && git describe --tags --abbrev=0)" \
-	&& log_echo -r "Pi-hole: $pi_hole_ver" || (log_echo "Pi-hole git repository not detected." && error_found=1)
-	local admin_ver="$(cd /var/www/html/admin && git describe --tags --abbrev=0)" \
-	&& log_echo -r "WebUI: $admin_ver" || (log_echo "Pi-hole Admin Pages git repository not detected." && error_found=1)
-	local light_ver="$(lighttpd -v |& head -n1 | cut -d " " -f1)" \
-	&& log_echo -r "${light_ver}" || (log_echo "lighttpd not installed." && error_found=1)
-	local php_ver="$(php -v |& head -n1)" \
-	&& log_echo -r "${php_ver}" || (log_echo "PHP not installed." && error_found=1)
-
-	(local pi_hole_branch="$(cd /etc/.pihole/ && git rev-parse --abbrev-ref HEAD)" && log_echo -r "Pi-hole branch:  ${pi_hole_branch}") || log_echo "Unable to obtain Pi-hole branch"
-	(local pi_hole_rev="$(cd /etc/.pihole/ && git describe --long --dirty --tags)" && log_echo -r "Pi-hole rev:     ${pi_hole_rev}") || log_echo "Unable to obtain Pi-hole revision"
-
-	(local admin_branch="$(cd /var/www/html/admin && git rev-parse --abbrev-ref HEAD)" && log_echo -r "AdminLTE branch: ${admin_branch}") || log_echo "Unable to obtain AdminLTE branch"
-	(local admin_rev="$(cd /var/www/html/admin && git describe --long --dirty --tags)" && log_echo -r "AdminLTE rev:    ${admin_rev}") || log_echo "Unable to obtain AdminLTE revision"
+	if [[ -d "${PIHOLEGITDIR}" ]]; then
+	  cd "${PIHOLEGITDIR}"
+	  pi_hole_ver=$(git describe --tags --abbrev=0)
+	  pi_hole_branch=$(git rev-parse --abbrev-ref HEAD)
+	  pi_hole_commit=$(git describe --long --dirty --tags --always)
+	  log_echo -r "Pi-hole: ${pi_hole_ver:-Untagged} (${pi_hole_branch:-Detached}:${pi_hole_commit})"
+	else
+	  log_echo "Pi-hole git repository not detected."
+	  error_found=1
+	fi
+	if [[ -d "${ADMINGITDIR}" ]]; then
+	  cd "${ADMINGITDIR}"
+	  admin_ver=$(git describe --tags --abbrev=0)
+	  admin_branch=$(git rev-parse --abbrev-ref HEAD)
+	  admin_commit=$(git describe --long --dirty --tags --always)
+	  log_echo -r "Web Dashboard: ${admin_ver:-Untagged} (${admin_branch:-Detached}:${admin_commit})"
+	else
+	  log_echo "Pi-hole Admin Pages git repository not detected."
+	  error_found=1
+	fi
+	if light_ver=$(lighttpd -v |& head -n1 | cut -d " " -f1); then
+	  log_echo -r "${light_ver}"
+	else
+	  log_echo "lighttpd not installed."
+	  error_found=1
+	fi
+	if php_ver=$(php -v |& head -n1); then
+	  log_echo -r "${php_ver}"
+	else
+	  log_echo "PHP not installed."
+	  error_found=1
+	fi
 
 	return "${error_found}"
 }
