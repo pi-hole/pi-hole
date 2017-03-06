@@ -95,7 +95,7 @@ if command -v apt-get &> /dev/null; then
 
     for i in $(seq 1 $maxtries);
     do
-      apt-get -y update
+      "${UPDATE_PKG_CACHE}"
       retVal=$?
       # if we find lock condition
       if [[ $retVal -eq 100 ]]; then
