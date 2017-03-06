@@ -60,7 +60,7 @@ if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -88,15 +88,26 @@ if command -v apt-get &> /dev/null; then
   DNSMASQ_USER="dnsmasq"
 
   test_dpkg_lock() {
-    i=0
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-      sleep 0.5
-      ((i=i+1))
+    # Account for cloud init type installs that autorun apt on boot
+    local maxtries
+    local retVal
+    maxtries=75
+
+    for i in $(seq 1 $maxtries);
+    do
+      apt-get -y update
+      retVal=$?
+      # if we find lock condition
+      if [[ $retVal -eq 100 ]]; then
+        sleep 5
+      elif [[ $retVal -eq 0 ]]; then
+        return 0
+      fi
     done
-    # Always return success, since we only return if there is no
-    # lock (anymore)
-    return 0
+    # Counter timed out, and we didn't return already, error
+    return 1
   }
+
 
 elif command -v rpm &> /dev/null; then
   # Fedora Family
@@ -120,6 +131,11 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
+
+  test_dpkg_lock() {
+  # Dummy function
+  :
+  }
 
 else
   echo "OS distribution not supported"
@@ -1312,7 +1328,11 @@ main() {
   fi
 
   # Update package cache
-  update_package_cache || exit 1
+  if test_dpkg_lock; then
+   update_package_cache || exit 1
+  else
+    echo "Unable to update package cache, please run ${UPDATE_PKG_CACHE} and try again."
+  fi
 
   # Notify user of package availability
   notify_package_updates_available
