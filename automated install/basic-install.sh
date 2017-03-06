@@ -35,7 +35,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB=true
-
+DHCPCD="false"
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
@@ -79,7 +79,7 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  INSTALLER_DEPS=(apt-utils debconf git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
   LIGHTTPD_USER="www-data"
@@ -97,6 +97,12 @@ if command -v apt-get &> /dev/null; then
     # lock (anymore)
     return 0
   }
+
+  source /etc/os-release || true
+    if [[ ${PRETTY_NAME} == "Raspbian GNU/Linux 8 (jessie)" ]]; then
+    INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "dhcpcd5");
+    DHCPCD="true"
+  fi
 
 elif command -v rpm &> /dev/null; then
   # Fedora Family
