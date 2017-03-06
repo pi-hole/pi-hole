@@ -128,17 +128,19 @@ queryFunc() {
   done
 
   # Scan for possible wildcard matches
-  local wildcards=($(processWildcards "${domain}"))
-  for domain in ${wildcards[@]}; do
-    result=$(scanList "\/${domain}\/" ${wildcardlist})
-    # Remove empty lines before couting number of results
-    count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-    if [[ ${count} > 0 ]]; then
-      echo "::: Wildcard blocking ${domain} (${count} results)"
-      echo "${result}"
-      echo ""
-    fi
-  done
+  if [ -e "${wildcardlist}" ]; then
+    local wildcards=($(processWildcards "${domain}"))
+    for domain in ${wildcards[@]}; do
+      result=$(scanList "\/${domain}\/" ${wildcardlist})
+      # Remove empty lines before couting number of results
+      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+      if [[ ${count} > 0 ]]; then
+        echo "::: Wildcard blocking ${domain} (${count} results)"
+        echo "${result}"
+        echo ""
+      fi
+    done
+  fi
   exit 0
 }
 
