@@ -769,7 +769,6 @@ update_package_cache() {
   if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
     echo " done!"
   else
-    echo -en "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
     return 1
   fi
 }
@@ -819,7 +818,7 @@ install_dependent_packages() {
     if [[ ${#installArray[@]} -gt 0 ]]; then
       test_dpkg_lock
       debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
-      return
+      return $?
     fi
       return 0
   fi
@@ -1329,16 +1328,22 @@ main() {
 
   # Update package cache
   if test_dpkg_lock; then
-   update_package_cache || exit 1
+   update_package_cache || { echo -en "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""; exit 1; }
   else
-    echo "Unable to update package cache, please run ${UPDATE_PKG_CACHE} and try again."
+    echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+    exit 1
   fi
 
   # Notify user of package availability
   notify_package_updates_available
 
   # Install packages used by this installation script
-  install_dependent_packages INSTALLER_DEPS[@]
+  if test_dpkg_lock; then
+    install_dependent_packages INSTALLER_DEPS[@]  || { echo "Unable to install required packages, please try again."; exit 1; }
+  else
+    echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+    exit 1
+  fi
 
    # Check if SELinux is Enforcing
   checkSelinux
@@ -1375,8 +1380,13 @@ main() {
     else
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
-    install_dependent_packages DEPS[@]
 
+    if test_dpkg_lock; then
+      install_dependent_packages DEPS[@]  || { echo "Unable to install required packages, please try again."; exit 1; }
+    else
+      echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+      exit 1
+    fi
 
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
@@ -1393,7 +1403,13 @@ main() {
     else
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
-    install_dependent_packages DEPS[@]
+
+    if test_dpkg_lock; then
+      install_dependent_packages DEPS[@]  || { echo "Unable to install required packages, please try again."; exit 1; }
+    else
+      echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+      exit 1
+    fi
 
     updatePihole | tee ${tmpLog}
   fi
