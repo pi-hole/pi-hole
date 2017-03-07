@@ -282,20 +282,19 @@ def test_update_package_cache_success_no_errors(Pihole):
     update_package_cache
     ''')
     assert 'Updating local cache of available packages...' in updateCache.stdout
-    assert 'ERROR' not in updateCache.stdout
     assert 'done!' in updateCache.stdout
 
 def test_update_package_cache_failure_no_errors(Pihole):
     ''' confirms package cache was not updated'''
     mock_command('apt-get', {'update':('', '1')}, Pihole)
-    updateCache = Pihole.run('''
+    exit_status, updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
     distro_check
     update_package_cache
     ''')
     assert 'Updating local cache of available packages...' in updateCache.stdout
-    assert 'ERROR' in updateCache.stdout
     assert 'done!' not in updateCache.stdout
+    assert exit_status == 1
 
 def test_FTL_detect_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
