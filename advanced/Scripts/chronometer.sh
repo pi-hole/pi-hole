@@ -55,6 +55,8 @@ get_summary_data() {
 
 normalChrono() {
 	for (( ; ; )); do
+		get_summary_data
+		domain=$(GetFTLData recentBlocked)
 		clear
 		# Displays a colorful Pi-hole logo
 		echo " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m"
@@ -72,7 +74,6 @@ normalChrono() {
 		echo "Recently blocked:"
 		echo "  $domain"
 
-		get_summary_data
 		echo "Blocking:      ${domains_being_blocked}"
 		echo "Queries:       ${dns_queries_today}"
 		echo "Pi-holed:      ${ads_blocked_today} (${ads_percentage_today}%)"
