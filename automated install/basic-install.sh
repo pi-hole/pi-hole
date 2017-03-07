@@ -31,6 +31,9 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
+PIHOLE_INTERFACE=""
+NETWORKING=""
+NET_CONF_FILE=""
 IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
@@ -195,13 +198,30 @@ getGitFiles() {
 
 find_IPv4_information() {
   local route
-  # Find IP used to route to outside world
-  route=$(ip route get 8.8.8.8)
-  IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
-  IPv4bare=$(awk '{print $7}' <<< "${route}")
-  IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
-  IPv4gw=$(awk '{print $3}' <<< "${route}")
 
+  # DHCPCD is installed, Raspbian is the best guess
+  if [[ -f /etc/dhcpcd.conf ]]; then
+    NET_CONF_FILE="/etc/dhcpcd.conf"
+    # Check to see if the interface is already set for static in dhcpcd.conf
+    if [[ $(grep -cs "interface ${PIHOLE_INTERFACE}" /etc/dhcpcd.conf) > 0 ]]; then
+      NETWORKING="static"
+      IPV4_ADDRESS=$(grep "static ip_address" "${NET_CONF_FILE}" | \
+                     awk -F= '{ print $2 }')
+      IPV4_ROUTER=$(ip route get dev "${PIHOLE_INTERFACE}" 8.8.8.8 | \
+                    awk '{ print $3 }')
+    else
+      # dhcpcd.conf is there, but no interface information is availble. This is a DHCP supplied address.
+      NETWORKING="dynamic"
+
+    fi
+  else
+   # Find IP used to route to outside world
+    route=$(ip route get 8.8.8.8)
+    IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
+    IPv4bare=$(awk '{print $7}' <<< "${route}")
+    IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
+    IPv4gw=$(awk '{print $3}' <<< "${route}")
+  fi
 }
 
 get_available_interfaces() {
@@ -335,15 +355,28 @@ use4andor6() {
 getStaticIPv4Settings() {
   local ipSettingsCorrect
   # Ask if the user wants to use DHCP settings as their static IP
-  if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
+  if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "   We detected ${NET_CONF_FILE} as the IP configuration daemon.
+
+          Assigned by:   ${NETWORKING}
           IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" ${r} ${c}; then
-    # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
-    whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
+          Gateway:       ${IPV4_ROUTER}
+
+   Would you like to customize this configuration?" ${r} ${c}; then
+   # If assigned by static IP
+    if [[ "${NETWORKING}" == "static" ]]; then
+      if whiptail --msgbox --backtitle "IP information" --title "Static IP already assigned to this device." "This device used settings from ${NET_CONF_FILE} to configure IP addressing. Changes to this configuration may cause loss of connection to the Pi-hole, and loss of DNS resolution. Please only make changes to the addressing if you understand the consequences." ${r} ${c}; then
+        modify="true"
+      fi
+    elif [[ "${NETWORKING}" == "dynamic" ]]; then
+      # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
+      if whiptail --msgbox --backtitle "IP information" --title "FYI: Dynamic IP Conflict" "It is possible ${NET_CONF_FILE} could still try to request an IP to a device that would cause a conflict.  But in most cases the router is smart enough to not do that.
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
-It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." ${r} ${c}
-    # Nothing else to do since the variables are already set above
-  else
+It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." ${r} ${c}; then
+      modify="true"
+      fi  # Nothing else to do since the variables are already set above
+    fi
+  fi
+  if [[ "${modify}" == "true" ]]; then
     # Otherwise, we need to ask the user to input their desired settings.
     # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
     # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
@@ -356,15 +389,15 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
       echo "::: Your static IPv4 address:    ${IPV4_ADDRESS}"
 
       # Ask for the gateway
-      IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPv4gw}" 3>&1 1>&2 2>&3) || \
+      IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPV4_ROUTER}" 3>&1 1>&2 2>&3) || \
       # Cancelling gateway settings window
       { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
-      echo "::: Your static IPv4 gateway:    ${IPv4gw}"
+      echo "::: Your static IPv4 gateway:    ${IPV4_ROUTER}"
 
       # Give the user a chance to review their settings before moving on
       if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
         IP address:    ${IPV4_ADDRESS}
-        Gateway:       ${IPv4gw}" ${r} ${c}; then
+        Gateway:       ${IPV4_ROUTER}" ${r} ${c}; then
         # After that's done, the loop ends and we move on
         ipSettingsCorrect=True
         else
@@ -377,60 +410,66 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 }
 
 setDHCPCD() {
-  # Append these lines to dhcpcd.conf to enable a static IP
+  # Append these lines to dhcpcd.conf to enable a static IP for Raspbian DHCDC.conf installs
   echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
   static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
+
+  # Replace existing IP with requested IP
+  ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+  echo -e ":::\n::: Setting IP to ${IPV4_ADDRESS}.  You may need to restart after the install is complete.\n:::"
 }
 
 setStaticIPv4() {
-  local IFCFG_FILE
-  local IPADDR
-  local CIDR
+  local ifcfg_file
+  local ipaddr
+  local cidr
+
+  # If Raspbian, will be DHCPCD.conf
   if [[ -f /etc/dhcpcd.conf ]]; then
     # Debian Family
     if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
       echo "::: Static IP already configured"
     else
       setDHCPCD
-      ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-      echo ":::"
-      echo "::: Setting IP to ${IPV4_ADDRESS}.  You may need to restart after the install is complete."
-      echo ":::"
     fi
+  # Fedora/CentOS are sysconfig based
   elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE} ]];then
     # Fedora Family
-    IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
-    if grep -q "${IPV4_ADDRESS}" "${IFCFG_FILE}"; then
+    ifcfg_file=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
+    if grep -q "${IPV4_ADDRESS}" "${ifcfg_file}"; then
       echo "::: Static IP already configured"
     else
-      IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
-      CIDR=$(echo "${IPV4_ADDRESS}" | cut -f2 -d/)
+      ipaddr=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
+      cidr=$(echo "${IPV4_ADDRESS}" | cut -f2 -d/)
       # Backup existing interface configuration:
-      cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
+      cp "${ifcfg_file}" "${ifcfg_file}".pihole.orig
       # Build Interface configuration file:
       {
         echo "# Configured via Pi-Hole installer"
         echo "DEVICE=$PIHOLE_INTERFACE"
         echo "BOOTPROTO=none"
         echo "ONBOOT=yes"
-        echo "IPADDR=$IPADDR"
-        echo "PREFIX=$CIDR"
+        echo "IPADDR=$ipaddr"
+        echo "PREFIX=$cidr"
         echo "GATEWAY=$IPv4gw"
         echo "DNS1=$PIHOLE_DNS_1"
         echo "DNS2=$PIHOLE_DNS_2"
         echo "USERCTL=no"
-      }> "${IFCFG_FILE}"
+      }> "${ifcfg_file}"
       ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
       if command -v nmcli &> /dev/null;then
         # Tell NetworkManager to read our new sysconfig file
-        nmcli con load "${IFCFG_FILE}" > /dev/null
+        nmcli con load "${ifcfg_file}" > /dev/null
       fi
       echo ":::"
       echo "::: Setting IP to ${IPV4_ADDRESS}.  You may need to restart after the install is complete."
       echo ":::"
     fi
+  # If using /interfaces, and not Raspbian or RHEL-related...
+  elif [[ -f /etc/network/interfaces ]]; then
+    :
   else
     echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
     exit 1
