@@ -81,16 +81,22 @@ getRemoteVersion(){
 
 normalOutput() {
 	echo "::: Pi-hole version is $(getLocalVersion "${PHGITDIR}") (Latest version is $(getRemoteVersion pi-hole))"
-	echo "::: Web-Admin version is $(getLocalVersion "${WEBGITDIR}") (Latest version is $(getRemoteVersion AdminLTE))"
+	if [ -d "${WEBGITDIR}" ]; then
+		echo "::: Web-Admin version is $(getLocalVersion "${WEBGITDIR}") (Latest version is $(getRemoteVersion AdminLTE))"
+	fi
 }
 
 webOutput() {
-  case "${1}" in
-    "-l" | "--latest"    ) echo $(getRemoteVersion AdminLTE);;
-    "-c" | "--current"   ) echo $(getLocalVersion "${WEBGITDIR}");;
-    "-h" | "--hash"      ) echo $(getLocalHash "${WEBGITDIR}");;
-    *                    ) echo "::: Invalid Option!"; exit 1;
-  esac
+  if [ -d "${WEBGITDIR}" ]; then
+    case "${1}" in
+      "-l" | "--latest"    ) echo $(getRemoteVersion AdminLTE);;
+      "-c" | "--current"   ) echo $(getLocalVersion "${WEBGITDIR}");;
+      "-h" | "--hash"      ) echo $(getLocalHash "${WEBGITDIR}");;
+      *                    ) echo "::: Invalid Option!"; exit 1;
+    esac
+  else
+    echo "::: Web interface not installed!"; exit 1;
+  fi
 }
 
 coreOutput() {
