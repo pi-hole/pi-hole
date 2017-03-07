@@ -91,7 +91,7 @@ if command -v apt-get &> /dev/null; then
     # Account for cloud init type installs that autorun apt on boot
     local maxtries
     local retVal
-    maxtries=75
+    maxtries=420
 
     for i in $(seq 1 $maxtries);
     do
