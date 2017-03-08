@@ -22,7 +22,8 @@ fully_fetch_repo() {
 
   cd "${directory}" || return 1
   if is_repo "${directory}"; then
-    git fetch --quiet --unshallow &> /dev/null || true # Deep repo's cause errors but are valid repos.
+    git remote set-branches origin '*' || return 1
+    git fetch --quiet || return 1
   else
     return 1
   fi
