@@ -21,15 +21,10 @@ readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 fully_fetch_repo() {
   # Add upstream branches to shallow clone
   local directory="${1}"
-  local curdir
-  local rc
 
-  curdir="${PWD}"
   cd "${directory}" || return 1
-  git remote set-branches origin '*' || return 1
-  git fetch --quiet || return 1
-  cd "${curdir}" || return 1
-  return
+  git fetch --quiet --unshallow || return 1
+  return 0
 }
 
 get_available_branches(){
