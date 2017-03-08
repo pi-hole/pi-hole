@@ -11,11 +11,9 @@
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 PH_TEST=true source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
 
-readonly WEB_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
-readonly WEB_INTERFACE_DIR="/var/www/html/admin"
-readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
-
-
+# webInterfaceGitUrl set in basic-install.sh
+# webInterfaceDir set in basic-install.sh
+# piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
 
 fully_fetch_repo() {
@@ -79,7 +77,7 @@ checkout()
   set -f
 
   #This is unlikely
-  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${WEB_INTERFACE_DIR}" ; then
+  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${webInterfaceDir}" ; then
     echo "::: Critical Error: One or more Pi-Hole repos are missing from your system!"
     echo "::: Please re-run the install script from https://github.com/pi-hole/pi-hole"
     exit 1
@@ -89,7 +87,7 @@ checkout()
     exit 1
   fi
 
-  echo -n "::: Fetching remote branches for Pi-hole core from ${PI_HOLE_GIT_URL} ... "
+  echo -n "::: Fetching remote branches for Pi-hole core from ${piholeGitUrl} ... "
   if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
     echo "::: Fetching all branches for Pi-hole core repo failed!"
     exit 1
@@ -99,12 +97,12 @@ checkout()
   echo "::: ${#corebranches[@]} branches available"
   echo ":::"
 
-  echo -n "::: Fetching remote branches for the web interface from ${WEB_INTERFACE_GIT_URL} ... "
-  if ! fully_fetch_repo "${WEB_INTERFACE_DIR}" ; then
+  echo -n "::: Fetching remote branches for the web interface from ${webInterfaceGitUrl} ... "
+  if ! fully_fetch_repo "${webInterfaceDir}" ; then
     echo "::: Fetching all branches for Pi-hole web interface repo failed!"
     exit 1
   fi
-  webbranches=($(get_available_branches "${WEB_INTERFACE_DIR}"))
+  webbranches=($(get_available_branches "${webInterfaceDir}"))
   echo " done!"
   echo "::: ${#webbranches[@]} branches available"
   echo ":::"
@@ -115,7 +113,7 @@ checkout()
     echo "::: Pi-hole core"
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development"
     echo "::: Web interface"
-    checkout_pull_branch "${WEB_INTERFACE_DIR}" "devel"
+    checkout_pull_branch "${webInterfaceDir}" "devel"
     echo "::: done!"
   elif [[ "${2}" == "master" ]] ; then
     # Shortcut to check out master branches
@@ -123,7 +121,7 @@ checkout()
     echo "::: Pi-hole core"
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master"
     echo "::: Web interface"
-    checkout_pull_branch "${WEB_INTERFACE_DIR}" "master"
+    checkout_pull_branch "${webInterfaceDir}" "master"
     echo "::: done!"
   elif [[ "${2}" == "core" ]] ; then
     # Have to user chosing the branch he wants
@@ -142,7 +140,7 @@ checkout()
       for e in "${webbranches[@]}"; do echo ":::   $e"; done
       exit 1
     fi
-    checkout_pull_branch "${WEB_INTERFACE_DIR}" "${3}"
+    checkout_pull_branch "${webInterfaceDir}" "${3}"
   else
     echo "::: Requested option \"${2}\" is not available!"
     exit 1
@@ -150,7 +148,7 @@ checkout()
 
   # Force updating everything
   echo "::: Running installer to upgrade your installation"
-  /etc/.pihole/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
+  ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
 
   exit 0
 }
