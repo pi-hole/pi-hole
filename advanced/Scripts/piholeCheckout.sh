@@ -125,12 +125,20 @@ checkout()
   echo ":::"
 
   if [[ "${2}" == "dev" ]] ; then
-    # Shortcut to check out development version
+    # Shortcut to check out development branches
     echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
     echo "::: Pi-hole core"
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development"
     echo "::: Web interface"
     checkout_pull_branch "${WEB_INTERFACE_DIR}" "devel"
+    echo "::: done!"
+  elif [[ "${2}" == "master" ]] ; then
+    # Shortcut to check out master branches
+    echo "::: Shortcut \"master\" detected - checking out master branches ..."
+    echo "::: Pi-hole core"
+    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master"
+    echo "::: Web interface"
+    checkout_pull_branch "${WEB_INTERFACE_DIR}" "master"
     echo "::: done!"
   elif [[ "${2}" == "core" ]] ; then
     # Have to user chosing the branch he wants
