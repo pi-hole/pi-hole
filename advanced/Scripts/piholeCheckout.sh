@@ -8,25 +8,15 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+PH_TEST=true source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
+
 readonly WEB_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly WEB_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
-is_repo() {
-  # Use git to check if directory is currently under VCS, return the value
-  local directory="${1}"
-  local curdir
-  local rc
 
-  curdir="${PWD}"
-  cd "${directory}" || return 1
-  # Capture any possible output
-  git status --short &> /dev/null
-  rc=$?
-  cd "${curdir}" || return 1
-  return $rc
-}
+# is_repo() sourced from basic-install.sh
 
 fully_fetch_repo() {
   # Add upstream branches to shallow clone
