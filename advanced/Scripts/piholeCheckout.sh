@@ -152,8 +152,11 @@ checkout()
 
   # Force updating everything
   echo "::: Running installer to upgrade your installation"
-  ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo "Unable to complete update, contact Pi-hole" && exit 1
-
-  exit 0
+  if ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended; then
+   exit 0
+  else
+   echo "Unable to complete update, contact Pi-hole"
+   exit 1
+  fi
 }
 
