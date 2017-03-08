@@ -145,7 +145,7 @@ checkout()
       for e in "${webbranches[@]}"; do echo ":::   $e"; done
       exit 1
     fi
-    checkout_pull_branch "${webInterfaceDir}" "${3}"
+    checkout_pull_branch "${webInterfaceDir}" "${2}"
   else
     echo "::: Requested option \"${1}\" is not available!"
     exit 1
