@@ -9,7 +9,7 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-PH_TEST=true source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
+PH_TEST="true" source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
 
 # webInterfaceGitUrl set in basic-install.sh
 # webInterfaceDir set in basic-install.sh
@@ -21,7 +21,11 @@ fully_fetch_repo() {
   local directory="${1}"
 
   cd "${directory}" || return 1
-  git fetch --quiet --unshallow || return 1
+  if is_repo "${directory}"; then
+    git fetch --quiet --unshallow &> /dev/null || true # Deep repo's cause errors but are valid repos.
+  else
+    return 1
+  fi
   return 0
 }
 
@@ -107,7 +111,7 @@ checkout()
   echo "::: ${#webbranches[@]} branches available"
   echo ":::"
 
-  if [[ "${2}" == "dev" ]] ; then
+  if [[ "${1}" == "dev" ]] ; then
     # Shortcut to check out development branches
     echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
     echo "::: Pi-hole core"
@@ -115,7 +119,7 @@ checkout()
     echo "::: Web interface"
     checkout_pull_branch "${webInterfaceDir}" "devel"
     echo "::: done!"
-  elif [[ "${2}" == "master" ]] ; then
+  elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo "::: Shortcut \"master\" detected - checking out master branches ..."
     echo "::: Pi-hole core"
@@ -123,7 +127,7 @@ checkout()
     echo "::: Web interface"
     checkout_pull_branch "${webInterfaceDir}" "master"
     echo "::: done!"
-  elif [[ "${2}" == "core" ]] ; then
+  elif [[ "${1}" == "core" ]] ; then
     # Have to user chosing the branch he wants
     if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${3}" ]] && exit 0; done); then
       echo "::: Requested branch \"${3}\" is not available!"
@@ -132,7 +136,7 @@ checkout()
       exit 1
     fi
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${3}"
-  elif [[ "${2}" == "web" ]] ; then
+  elif [[ "${1}" == "web" ]] ; then
     # Have to user chosing the branch he wants
     if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${3}" ]] && exit 0; done); then
       echo "::: Requested branch \"${3}\" is not available!"
@@ -152,3 +156,4 @@ checkout()
 
   exit 0
 }
+
