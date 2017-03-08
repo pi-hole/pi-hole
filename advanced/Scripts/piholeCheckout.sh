@@ -129,24 +129,24 @@ checkout()
     echo "::: done!"
   elif [[ "${1}" == "core" ]] ; then
     # Have to user chosing the branch he wants
-    if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${3}" ]] && exit 0; done); then
-      echo "::: Requested branch \"${3}\" is not available!"
+    if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
+      echo "::: Requested branch \"${2}\" is not available!"
       echo "::: Available branches for core are:"
       for e in "${corebranches[@]}"; do echo ":::   $e"; done
       exit 1
     fi
-    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${3}"
+    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
   elif [[ "${1}" == "web" ]] ; then
     # Have to user chosing the branch he wants
-    if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${3}" ]] && exit 0; done); then
-      echo "::: Requested branch \"${3}\" is not available!"
+    if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
+      echo "::: Requested branch \"${2}\" is not available!"
       echo "::: Available branches for web are:"
       for e in "${webbranches[@]}"; do echo ":::   $e"; done
       exit 1
     fi
     checkout_pull_branch "${webInterfaceDir}" "${3}"
   else
-    echo "::: Requested option \"${2}\" is not available!"
+    echo "::: Requested option \"${1}\" is not available!"
     exit 1
   fi
 
