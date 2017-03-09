@@ -54,6 +54,32 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 
+show_ascii_berry() {
+  echo "
+        .;;,.
+        .ccccc:,.
+         :cccclll:.      ..,,
+          :ccccclll.   ;ooodc
+           'ccll:;ll .oooodc
+             .;cll.;;looo:.
+                 .. ','.
+                .',,,,,,'.
+              .',,,,,,,,,,.
+            .',,,,,,,,,,,,....
+          ....''',,,,,,,'.......
+        .........  ....  .........
+        ..........      ..........
+        ..........      ..........
+        .........  ....  .........
+          ........,,,,,,,'......
+            ....',,,,,,,,,,,,.
+               .',,,,,,,,,'.
+                .',,,,,,'.
+                  ..'''.
+"
+}
+
+
 # Compatibility
 distro_check() {
 if command -v apt-get &> /dev/null; then
@@ -1262,6 +1288,7 @@ main() {
 
   ######## FIRST CHECK ########
   # Must be root to install
+  show_ascii_berry
   echo ":::"
   if [[ ${EUID} -eq 0 ]]; then
     echo "::: You are root."
