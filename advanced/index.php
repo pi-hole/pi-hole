@@ -8,7 +8,7 @@ $serverName = escapeshellcmd($_SERVER['SERVER_NAME']);
 // Let's be nice and redirect them.
 if ($serverName === 'pi.hole')
 {
-    header('HTTP/1.1 302 Found');
+    header('HTTP/1.1 301 Moved Permanently');
     header("Location: /admin/");
 }
 
