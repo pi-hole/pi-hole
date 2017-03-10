@@ -82,6 +82,13 @@ checkout()
     exit 1
   fi
 
+  if [[ -z "${1}" ]]; then
+    echo "::: No option detected. Please use 'pihole checkout <master|development>'."
+    echo "::: Or enter the repository and branch you would like to check out:"
+    echo "::: 'pihole checkout <web|core> <branchname>'"
+    exit 1
+  fi
+
   if ! warning1 ; then
     exit 1
   fi
