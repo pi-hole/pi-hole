@@ -33,13 +33,10 @@ fully_fetch_repo() {
 get_available_branches(){
   # Return available branches
   local directory="${1}"
-  local curdir
 
-  curdir="${PWD}"
   cd "${directory}" || return 1
   # Get reachable remote branches
   git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'
-  cd "${curdir}" || return 1
   return
 }
 
@@ -47,14 +44,11 @@ checkout_pull_branch() {
   # Check out specified branch
   local directory="${1}"
   local branch="${2}"
-  local curdir
 
-  curdir="${PWD}"
   cd "${directory}" || return 1
-  git checkout "${branch}"
-  git pull
-  cd "${curdir}" || return 1
-  return
+  git checkout "${branch}" || return 1
+  git pull || return 1
+  return 0
 }
 
 warning1() {
