@@ -93,43 +93,32 @@ checkout()
     exit 1
   fi
 
-  echo -n "::: Fetching remote branches for Pi-hole core from ${piholeGitUrl} ... "
-  if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
-    echo "::: Fetching all branches for Pi-hole core repo failed!"
-    exit 1
-  fi
-  corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
-  echo " done!"
-  echo "::: ${#corebranches[@]} branches available"
-  echo ":::"
-
-  echo -n "::: Fetching remote branches for the web interface from ${webInterfaceGitUrl} ... "
-  if ! fully_fetch_repo "${webInterfaceDir}" ; then
-    echo "::: Fetching all branches for Pi-hole web interface repo failed!"
-    exit 1
-  fi
-  webbranches=($(get_available_branches "${webInterfaceDir}"))
-  echo " done!"
-  echo "::: ${#webbranches[@]} branches available"
-  echo ":::"
-
   if [[ "${1}" == "dev" ]] ; then
     # Shortcut to check out development branches
     echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
     echo "::: Pi-hole core"
-    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development"
+    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "Unable to pull Core developement branch"; exit 1; }
     echo "::: Web interface"
-    checkout_pull_branch "${webInterfaceDir}" "devel"
+    checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "Unable to pull Web development branch"; exit 1; }
     echo "::: done!"
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo "::: Shortcut \"master\" detected - checking out master branches ..."
     echo "::: Pi-hole core"
-    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master"
+    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "Unable to pull Core master branch"; exit 1; }
     echo "::: Web interface"
-    checkout_pull_branch "${webInterfaceDir}" "master"
+    checkout_pull_branch "${webInterfaceDir}" "master" || { echo "Unable to pull web master branch"; exit 1; }
     echo "::: done!"
   elif [[ "${1}" == "core" ]] ; then
+    echo -n "::: Fetching remote branches for Pi-hole core from ${piholeGitUrl} ... "
+    if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
+      echo "::: Fetching all branches for Pi-hole core repo failed!"
+      exit 1
+    fi
+    corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
+    echo " done!"
+    echo "::: ${#corebranches[@]} branches available"
+    echo ":::"
     # Have to user chosing the branch he wants
     if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
       echo "::: Requested branch \"${2}\" is not available!"
@@ -139,6 +128,15 @@ checkout()
     fi
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
   elif [[ "${1}" == "web" ]] ; then
+    echo -n "::: Fetching remote branches for the web interface from ${webInterfaceGitUrl} ... "
+    if ! fully_fetch_repo "${webInterfaceDir}" ; then
+      echo "::: Fetching all branches for Pi-hole web interface repo failed!"
+      exit 1
+    fi
+    webbranches=($(get_available_branches "${webInterfaceDir}"))
+    echo " done!"
+    echo "::: ${#webbranches[@]} branches available"
+    echo ":::"
     # Have to user chosing the branch he wants
     if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
       echo "::: Requested branch \"${2}\" is not available!"
@@ -153,12 +151,14 @@ checkout()
   fi
 
   # Force updating everything
-  echo "::: Running installer to upgrade your installation"
-  if ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended; then
-   exit 0
-  else
-   echo "Unable to complete update, contact Pi-hole"
-   exit 1
+  if [[ ! "${1}" == "web" ]]; then
+    echo "::: Running installer to upgrade your installation"
+    if ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended; then
+     exit 0
+    else
+     echo "Unable to complete update, contact Pi-hole"
+     exit 1
+    fi
   fi
 }
 
