@@ -9,12 +9,14 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-PH_TEST="true" source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
+PH_TEST="true" source "${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh"
 
 # webInterfaceGitUrl set in basic-install.sh
 # webInterfaceDir set in basic-install.sh
 # piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
+
+update=false
 
 fully_fetch_repo() {
   # Add upstream branches to shallow clone
@@ -64,6 +66,10 @@ checkout_pull_branch() {
   local branch="${2}"
 
   cd "${directory}" || return 1
+  if [ "$(git diff "${branch}" | grep -c "^")" -gt "0" ]; then
+    update=true
+  fi
+
   git checkout "${branch}" || return 1
   git pull || return 1
   return 0
@@ -169,9 +175,9 @@ checkout()
   fi
 
   # Force updating everything
-  if [[ ! "${1}" == "web" ]]; then
+  if [[ ! "${1}" == "web" && ${update} ]]; then
     echo "::: Running installer to upgrade your installation"
-    if ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended; then
+    if "${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh" --unattended; then
      exit 0
     else
      echo "Unable to complete update, contact Pi-hole"
