@@ -9,7 +9,7 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-PH_TEST="true" source "${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh"
+PH_TEST="true" source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # webInterfaceGitUrl set in basic-install.sh
 # webInterfaceDir set in basic-install.sh
@@ -188,7 +188,7 @@ checkout()
   # Force updating everything
   if [[ ! "${1}" == "web" && ${update} ]]; then
     echo "::: Running installer to upgrade your installation"
-    if "${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh" --unattended; then
+    if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
      exit 0
     else
      echo "Unable to complete update, contact Pi-hole"
