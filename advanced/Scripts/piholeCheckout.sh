@@ -189,7 +189,7 @@ checkout()
   fi
 
   # Force updating everything
-  if [[ ! "${1}" == "web" && "${update}" ]]; then
+  if [[ ! "${1}" == "web" && "${update}" == "true" ]]; then
     echo "::: Running installer to upgrade your installation"
     if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
      exit 0
