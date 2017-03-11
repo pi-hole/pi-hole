@@ -63,11 +63,15 @@ checkout_pull_branch() {
   local branch="${2}"
 
   cd "${directory}" || return 1
-  if [ "$(git diff "${branch}" | grep -c "^")" -gt "0" ]; then
+
+  local oldbranch="$(git symbolic-ref HEAD)"
+
+  git checkout "${branch}" || return 1
+
+  if [ "$(git diff "${oldbranch}" | grep -c "^")" -gt "0" ]; then
     update=true
   fi
 
-  git checkout "${branch}" || return 1
   git pull || return 1
   return 0
 }
