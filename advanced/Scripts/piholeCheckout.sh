@@ -15,6 +15,9 @@ PH_TEST="true" source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # webInterfaceDir set in basic-install.sh
 # piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
+# setupVars set in basic-install.sh
+
+source "${setupVars}"
 
 update=false
 
