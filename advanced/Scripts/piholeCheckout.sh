@@ -40,6 +40,24 @@ get_available_branches(){
   return
 }
 
+
+fetch_checkout_pull_branch() {
+  # Check out specified branch
+  local directory="${1}"
+  local branch="${2}"
+
+  # Check if branch exists locally
+  if git rev-parse --quiet --verify development &> /dev/null; then
+    # Branch exists locally, we can check it out and pull it
+    checkout_pull_branch "${directory}" "${branch}" || return 1
+  else
+    # Branch does not exist locally, we set the reference for it, fetch, check it put and pull it
+    git remote set-branches origin "${branch}" || return 1
+    git fetch --quiet || return 1
+    checkout_pull_branch "${directory}" "${branch}" || return 1
+  fi
+}
+
 checkout_pull_branch() {
   # Check out specified branch
   local directory="${1}"
@@ -97,17 +115,17 @@ checkout()
     # Shortcut to check out development branches
     echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
     echo "::: Pi-hole core"
-    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "Unable to pull Core developement branch"; exit 1; }
+    fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "Unable to pull Core developement branch"; exit 1; }
     echo "::: Web interface"
-    checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "Unable to pull Web development branch"; exit 1; }
+    fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "Unable to pull Web development branch"; exit 1; }
     echo "::: done!"
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo "::: Shortcut \"master\" detected - checking out master branches ..."
     echo "::: Pi-hole core"
-    checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "Unable to pull Core master branch"; exit 1; }
+    fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "Unable to pull Core master branch"; exit 1; }
     echo "::: Web interface"
-    checkout_pull_branch "${webInterfaceDir}" "master" || { echo "Unable to pull web master branch"; exit 1; }
+    fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "Unable to pull web master branch"; exit 1; }
     echo "::: done!"
   elif [[ "${1}" == "core" ]] ; then
     echo -n "::: Fetching remote branches for Pi-hole core from ${piholeGitUrl} ... "
