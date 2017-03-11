@@ -106,7 +106,7 @@ checkout()
     exit 1;
   fi
   if [[ ${INSTALL_WEB} ]]; then
-    if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
+    if ! is_repo "${webInterfaceDir}" ; then
       echo "::: Critical Error: Web Admin repo is missing from system!"
       echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
       exit 1;
