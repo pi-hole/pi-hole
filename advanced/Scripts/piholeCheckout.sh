@@ -49,7 +49,7 @@ fetch_checkout_pull_branch() {
   local branch="${2}"
 
   # Check if branch exists locally
-  if git rev-parse --quiet --verify development &> /dev/null; then
+  if git rev-parse --quiet --verify "${branch}" &> /dev/null; then
     # Branch exists locally, we can check it out and pull it
     checkout_pull_branch "${directory}" "${branch}" || return 1
   else
