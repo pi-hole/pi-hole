@@ -100,10 +100,17 @@ checkout()
   set -f
 
   #This is unlikely
-  if ! is_repo "${PI_HOLE_FILES_DIR}" || ! is_repo "${webInterfaceDir}" ; then
-    echo "::: Critical Error: One or more Pi-Hole repos are missing from your system!"
-    echo "::: Please re-run the install script from https://github.com/pi-hole/pi-hole"
-    exit 1
+  if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
+    echo "::: Critical Error: Core Pi-Hole repo is missing from system!"
+    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+    exit 1;
+  fi
+  if [[ ${INSTALL_WEB} ]]; then
+    if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
+      echo "::: Critical Error: Web Admin repo is missing from system!"
+      echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+      exit 1;
+    fi
   fi
 
   if [[ -z "${1}" ]]; then
@@ -122,16 +129,20 @@ checkout()
     echo "::: Shortcut \"dev\" detected - checking out development / devel branches ..."
     echo "::: Pi-hole core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "Unable to pull Core developement branch"; exit 1; }
-    echo "::: Web interface"
-    fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "Unable to pull Web development branch"; exit 1; }
+    if [[ ${INSTALL_WEB} ]]; then
+      echo "::: Web interface"
+      fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "Unable to pull Web development branch"; exit 1; }
+    fi
     echo "::: done!"
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo "::: Shortcut \"master\" detected - checking out master branches ..."
     echo "::: Pi-hole core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "Unable to pull Core master branch"; exit 1; }
-    echo "::: Web interface"
-    fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "Unable to pull web master branch"; exit 1; }
+    if [[ ${INSTALL_WEB} ]]; then
+      echo "::: Web interface"
+      fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "Unable to pull web master branch"; exit 1; }
+    fi
     echo "::: done!"
   elif [[ "${1}" == "core" ]] ; then
     echo -n "::: Fetching remote branches for Pi-hole core from ${piholeGitUrl} ... "
@@ -151,7 +162,7 @@ checkout()
       exit 1
     fi
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
-  elif [[ "${1}" == "web" ]] ; then
+  elif [[ "${1}" == "web" && ${INSTALL_WEB} ]] ; then
     echo -n "::: Fetching remote branches for the web interface from ${webInterfaceGitUrl} ... "
     if ! fully_fetch_repo "${webInterfaceDir}" ; then
       echo "::: Fetching all branches for Pi-hole web interface repo failed!"
