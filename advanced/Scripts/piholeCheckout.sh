@@ -48,16 +48,10 @@ fetch_checkout_pull_branch() {
   local directory="${1}"
   local branch="${2}"
 
-  # Check if branch exists locally
-  if git rev-parse --quiet --verify "${branch}" &> /dev/null; then
-    # Branch exists locally, we can check it out and pull it
-    checkout_pull_branch "${directory}" "${branch}" || return 1
-  else
-    # Branch does not exist locally, we set the reference for it, fetch, check it put and pull it
-    git remote set-branches origin "${branch}" || return 1
-    git fetch --quiet || return 1
-    checkout_pull_branch "${directory}" "${branch}" || return 1
-  fi
+  # Set the reference for the requested branch, fetch, check it put and pull it
+  git remote set-branches origin "${branch}" || return 1
+  git fetch --quiet || return 1
+  checkout_pull_branch "${directory}" "${branch}" || return 1
 }
 
 checkout_pull_branch() {
