@@ -29,20 +29,20 @@ listAlt=""
 helpFunc() {
 
     if [[ ${listMain} == ${whitelist} ]]; then
-        letter="w"
+        param="w"
         word="white"
     elif [[ ${listMain} == ${wildcardlist} ]]; then
-        letter="wild"
+        param="wild"
         word="wildcard"
     else
-        letter="b"
+        param="b"
         word="black"
     fi
 
 	cat << EOM
 ::: Immediately add one or more domains to the ${word}list
 :::
-::: Usage: pihole -${letter} domain1 [domain2 ...]
+::: Usage: pihole -${param} domain1 [domain2 ...]
 :::
 ::: Options:
 :::  -d, --delmode            Remove domains from the ${word}list
@@ -51,7 +51,7 @@ helpFunc() {
 :::  -h, --help               Show this help dialog
 :::  -l, --list               Display domains on the ${word}list
 EOM
-if [[ "${letter}" == "wild" ]]; then
+if [[ "${param}" == "wild" ]]; then
 	echo ":::  -wild, --wildcard        Add wildcard entry (only blacklist)"
 fi
 	exit 0
