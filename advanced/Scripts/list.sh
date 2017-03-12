@@ -49,9 +49,9 @@ helpFunc() {
 :::  -nr, --noreload          Update ${word}list without refreshing dnsmasq
 :::  -q, --quiet              Output is less verbose
 :::  -h, --help               Show this help dialog
-:::  -l, --list               Display your ${word}listed domains
+:::  -l, --list               Display domains on the ${word}list
 EOM
-if [[ "${letter}" == "-wild" ]]; then
+if [[ "${letter}" == "wild" ]]; then
 	echo ":::  -wild, --wildcard        Add wildcard entry (only blacklist)"
 fi
 	exit 0
