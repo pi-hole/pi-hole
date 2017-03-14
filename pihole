@@ -297,7 +297,7 @@ helpFunc() {
 :::  -b, blacklist            Blacklist domain(s) (exact match)
 :::  -wild, wildcard          Blacklist whole domain(s) (wildcard)
 :::  -d, debug                Start a debugging session
-:::                             Automated debugging can be enabled with `-a`.
+:::                             Automated debugging can be enabled with '-a'.
 :::                             'pihole -d -a'
 :::  -f, flush                Flush the 'pihole.log' file
 :::  -t, tail                 Output the last lines of the 'pihole.log' file. Lines are appended as the file grows
