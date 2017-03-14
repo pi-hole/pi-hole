@@ -8,9 +8,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 
-
-PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
@@ -128,17 +127,19 @@ queryFunc() {
   done
 
   # Scan for possible wildcard matches
-  local wildcards=($(processWildcards "${domain}"))
-  for domain in ${wildcards[@]}; do
-    result=$(scanList "\/${domain}\/" ${wildcardlist})
-    # Remove empty lines before couting number of results
-    count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-    if [[ ${count} > 0 ]]; then
-      echo "::: Wildcard blocking ${domain} (${count} results)"
-      echo "${result}"
-      echo ""
-    fi
-  done
+  if [ -e "${wildcardlist}" ]; then
+    local wildcards=($(processWildcards "${domain}"))
+    for domain in ${wildcards[@]}; do
+      result=$(scanList "\/${domain}\/" ${wildcardlist})
+      # Remove empty lines before couting number of results
+      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+      if [[ ${count} > 0 ]]; then
+        echo "::: Wildcard blocking ${domain} (${count} results)"
+        echo "${result}"
+        echo ""
+      fi
+    done
+  fi
   exit 0
 }
 
@@ -278,6 +279,12 @@ tailFunc() {
   exit 0
 }
 
+piholeCheckoutFunc() {
+  source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
+  shift
+  checkout "$@"
+}
+
 helpFunc() {
 	cat << EOM
 ::: Control all PiHole specific functions!
@@ -311,6 +318,7 @@ helpFunc() {
 :::                             Blocking can also be disabled only temporarily, e.g.,
 :::                             'pihole disable 5m' - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
+:::  checkout                 Check out different branches
 EOM
   exit 0
 }
@@ -341,5 +349,6 @@ case "${1}" in
   "restartdns"                  ) restartDNS;;
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
+  "checkout"                    ) piholeCheckoutFunc "$@";;
   *                             ) helpFunc;;
 esac

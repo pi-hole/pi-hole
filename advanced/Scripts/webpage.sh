@@ -134,7 +134,7 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 
 	delete_dnsmasq_setting "host-record"
 
-	if [ ! -z "${HOSTRECORD+x}" ]; then
+	if [ ! -z "${HOSTRECORD}" ]; then
 		add_dnsmasq_setting "host-record" "${HOSTRECORD}"
 	fi
 

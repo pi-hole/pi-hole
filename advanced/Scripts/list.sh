@@ -84,6 +84,9 @@ PoplistFile() {
 		if ${addmode}; then
 			AddDomain "${dom}" "${listMain}"
 			RemoveDomain "${dom}" "${listAlt}"
+			if [[ "${listMain}" == "${whitelist}" || "${listMain}" == "${blacklist}" ]]; then
+			  RemoveDomain "${dom}" "${wildcardlist}"
+			fi
 		else
 			RemoveDomain "${dom}" "${listMain}"
 		fi
