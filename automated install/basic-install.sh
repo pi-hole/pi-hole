@@ -706,9 +706,9 @@ installScripts() {
 }
 
 installConfigs() {
-  # Install the configs from ${PI_HOLE_LOCAL_REPO} to their various locations
+  # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
   echo ":::"
-  echo "::: Installing configs..."
+  echo "::: Installing configs from ${PI_HOLE_LOCAL_REPO}..."
   version_check_dnsmasq
 
   #Only mess with lighttpd configs if user has chosen to install web interface
