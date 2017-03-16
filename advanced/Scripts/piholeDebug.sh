@@ -84,7 +84,7 @@ header_write() {
 file_parse() {
     while read -r line; do
 		  if [ ! -z "${line}" ]; then
-			  [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
+			  [[ "${line}" =~ ^#.*$  || ! "${line}" || "${line}" == "WEBPASSWORD="* ]] && continue
 				log_write "${line}"
 			fi
 		done < "${1}"
