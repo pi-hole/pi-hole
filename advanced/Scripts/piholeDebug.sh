@@ -226,6 +226,7 @@ ipv6_check() {
 ip_check() {
   local protocol=${1}
   local gravity=${2}
+  header_write "Checking IPv${protocol} Stack"
 
   local ip_addr_list="$(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')"
   if [[ -n ${ip_addr_list} ]]; then
