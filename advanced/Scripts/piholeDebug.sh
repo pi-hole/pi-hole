@@ -427,7 +427,9 @@ finalWork() {
   chmod 644 ${DEBUG_LOG}
   chown "$USER":pihole ${DEBUG_LOG}
   # copy working temp file to final log location
-  cp /proc/$$/fd/3 "$DEBUG_LOG"
+  cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
+  # Straight dump of tailing the logs, can sanitize later if needed.
+  cat /proc/$$/fd/4 >> "${DEBUG_LOG}"
 
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	if [[ "${AUTOMATED}" ]]; then
