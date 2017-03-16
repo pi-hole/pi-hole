@@ -72,7 +72,7 @@ log_echo() {
 
 header_write() {
   log_echo ""
-  log_echo "${1}"
+  log_echo "---= ${1}"
   log_write ""
 }
 
@@ -370,10 +370,8 @@ checkProcesses() {
 	echo ":::     Logging status of lighttpd, dnsmasq and pihole-FTL..."
 	PROCESSES=( lighttpd dnsmasq pihole-FTL )
 	for i in "${PROCESSES[@]}"; do
-		log_write ""
-		log_write "${i}"
-		log_write " processes status:"
-		log_write $(systemctl -l status "${i}")
+		log_write "Status for ${i} daemon:"
+		log_write $(systemctl is-active "${i}")
 	done
 	log_write ""
 }
