@@ -83,7 +83,7 @@ The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does
 
 #### Other Operating Systems
 
-The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a Webserver, it should work OK. If there are other platforms you'd like supported, let us know.
+The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a web server, it should work OK. If there are other platforms you'd like supported, let us know.
 
 ### Web Interface
 
@@ -144,7 +144,7 @@ You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-
 -   [Get LED alerts for each blocked ad](http://thetimmy.silvernight.org/pages/endisbutton/)
 -   [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
 -   [Docker Pi-hole container (x86 and ARM)](https://hub.docker.com/r/diginc/pi-hole/)
--   [Splunk: Pi-hole Visualizser](https://splunkbase.splunk.com/app/3023/)
+-   [Splunk: Pi-hole Visualiser](https://splunkbase.splunk.com/app/3023/)
 -   [Pi-hole Chrome extension](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([open source](https://github.com/packtloss/pihole-extension))
 -   [Go Bananas for CHiP-hole ad blocking](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
 -   [Sky-Hole](http://dlaa.me/blog/post/skyhole)
