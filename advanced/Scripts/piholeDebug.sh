@@ -52,7 +52,7 @@ source ${VARSFILE}
 
 ### Private functions exist here ###
 log_write() {
-    echo "${1}" >> "${DEBUG_LOG}"
+    printf "%b" "${@}" >&3
 }
 
 log_echo() {
@@ -417,7 +417,7 @@ dumpPiHoleLog() {
 	if [ -e "${PIHOLELOG}" ]; then
 	# Dummy process to use for flagging down tail to terminate
 	  countdown &
-		tail -n0 -f --pid=$! "${PIHOLELOG}" >> ${DEBUG_LOG}
+		tail -n0 -f --pid=$! "${PIHOLELOG}" >&4
 	else
 		log_write "No pihole.log file found!"
 		printf ":::\tNo pihole.log file found!\n"
@@ -456,6 +456,17 @@ finalWork() {
 }
 
 ### END FUNCTIONS ###
+# Create temporary file for log
+TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+# Open handle 3 for templog
+exec 3>"$TEMPLOG"
+# Delete templog, but allow for addressing via file handle.
+rm "$TEMPLOG"
+
+# Create temporary file for logdump using file handle 4
+DUMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+exec 4>"$DUMPLOG"
+rm "$DUMPLOG"
 
 # Gather version of required packages / repositories
 version_check || echo "REQUIRED FILES MISSING"
