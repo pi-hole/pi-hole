@@ -43,16 +43,11 @@ cat << EOM
 ::: Please read and note any issues, and follow any directions advised during this process.
 EOM
 
-# Ensure the file exists, create if not, clear if exists.
-truncate --size=0 "${DEBUG_LOG}"
-chmod 644 ${DEBUG_LOG}
-chown "$USER":pihole ${DEBUG_LOG}
-
 source ${VARSFILE}
 
 ### Private functions exist here ###
 log_write() {
-    printf "%b" "${@}" >&3
+    echo "${@}" >&3
 }
 
 log_echo() {
@@ -363,9 +358,9 @@ testChaos(){
 
 	log_write "Pi-hole dnsmasq specific records lookups"
 	log_write "Cache Size:"
-	dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
+	log_write $(dig +short chaos txt cachesize.bind)
 	log_write "Upstream Servers:"
-	dig +short chaos txt servers.bind >> ${DEBUG_LOG}
+	log_write $(dig +short chaos txt servers.bind)
 	log_write ""
 
 }
@@ -378,7 +373,7 @@ checkProcesses() {
 		log_write ""
 		log_write "${i}"
 		log_write " processes status:"
-		systemctl -l status "${i}" >> "${DEBUG_LOG}"
+		log_write $(systemctl -l status "${i}")
 	done
 	log_write ""
 }
@@ -428,6 +423,14 @@ dumpPiHoleLog() {
 finalWork() {
   local tricorder
 	echo "::: Finshed debugging!"
+
+  # Ensure the file exists, create if not, clear if exists.
+  truncate --size=0 "${DEBUG_LOG}"
+  chmod 644 ${DEBUG_LOG}
+  chown "$USER":pihole ${DEBUG_LOG}
+  # copy working temp file to final log location
+  cp /proc/$$/fd/3 "$DEBUG_LOG"
+
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	if [[ "${AUTOMATED}" ]]; then
 	  echo "::: Debug script running in automated mode, uploading log to tricorder..."
