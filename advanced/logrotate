@@ -1,10 +1,40 @@
 /var/log/pihole.log {
-	# su #
-	daily
-	copytruncate
-	rotate 5
-	compress
-	delaycompress
-	notifempty
-	nomail
+    # Rotate the log files daily
+    daily
+
+    # Don't return an error if the log file is missing
+    missingok
+
+    # Do not rotate if the log file is empty
+    notifempty
+
+    # Rotate the log file twice before deleting it
+    rotate 2
+
+    # Compress the log file using gzip
+    compress
+
+    # Delays compression when some program cannot be told to immediately close it's logfile
+    delaycompress
+
+    # Include the date in the rotated log file's name
+    dateext
+
+    # The postrotate script will only be run once (after the old
+    #   logs  have  been  compressed), not once for each log which is rotated.
+    sharedscripts
+
+    # The  lines  between 'postrotate' and 'endscript' are executed after the log is rotated
+    postrotate
+        # If dnsmasq is running, kill it using the user defined signal
+        #[ ! -f /var/run/dnsmasq/dnsmasq.pid ] || kill -USR2 cat /var/run/dnsmasq/dnsmasq.pid
+    	# use pihole restart function
+	/usr/local/bin/pihole restartdns
+    endscript
+
+    # Rotate the original file and create the new file with specified permission, user, and group
+    create 0644 dnsmasq root
+    
+    #send no email
+    nomail
 }
