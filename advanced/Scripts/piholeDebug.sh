@@ -43,16 +43,11 @@ cat << EOM
 ::: Please read and note any issues, and follow any directions advised during this process.
 EOM
 
-# Ensure the file exists, create if not, clear if exists.
-truncate --size=0 "${DEBUG_LOG}"
-chmod 644 ${DEBUG_LOG}
-chown "$USER":pihole ${DEBUG_LOG}
-
 source ${VARSFILE}
 
 ### Private functions exist here ###
 log_write() {
-    echo "${1}" >> "${DEBUG_LOG}"
+    echo "${@}" >&3
 }
 
 log_echo() {
@@ -77,7 +72,7 @@ log_echo() {
 
 header_write() {
   log_echo ""
-  log_echo "${1}"
+  log_echo "---= ${1}"
   log_write ""
 }
 
@@ -231,6 +226,7 @@ ipv6_check() {
 ip_check() {
   local protocol=${1}
   local gravity=${2}
+  header_write "Checking IPv${protocol} Stack"
 
   local ip_addr_list="$(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')"
   if [[ -n ${ip_addr_list} ]]; then
@@ -363,9 +359,9 @@ testChaos(){
 
 	log_write "Pi-hole dnsmasq specific records lookups"
 	log_write "Cache Size:"
-	dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
+	log_write $(dig +short chaos txt cachesize.bind)
 	log_write "Upstream Servers:"
-	dig +short chaos txt servers.bind >> ${DEBUG_LOG}
+	log_write $(dig +short chaos txt servers.bind)
 	log_write ""
 
 }
@@ -375,10 +371,8 @@ checkProcesses() {
 	echo ":::     Logging status of lighttpd, dnsmasq and pihole-FTL..."
 	PROCESSES=( lighttpd dnsmasq pihole-FTL )
 	for i in "${PROCESSES[@]}"; do
-		log_write ""
-		log_write "${i}"
-		log_write " processes status:"
-		systemctl -l status "${i}" >> "${DEBUG_LOG}"
+		log_write "Status for ${i} daemon:"
+		log_write $(systemctl is-active "${i}")
 	done
 	log_write ""
 }
@@ -417,7 +411,7 @@ dumpPiHoleLog() {
 	if [ -e "${PIHOLELOG}" ]; then
 	# Dummy process to use for flagging down tail to terminate
 	  countdown &
-		tail -n0 -f --pid=$! "${PIHOLELOG}" >> ${DEBUG_LOG}
+		tail -n0 -f --pid=$! "${PIHOLELOG}" >&4
 	else
 		log_write "No pihole.log file found!"
 		printf ":::\tNo pihole.log file found!\n"
@@ -428,6 +422,16 @@ dumpPiHoleLog() {
 finalWork() {
   local tricorder
 	echo "::: Finshed debugging!"
+
+  # Ensure the file exists, create if not, clear if exists.
+  truncate --size=0 "${DEBUG_LOG}"
+  chmod 644 ${DEBUG_LOG}
+  chown "$USER":pihole ${DEBUG_LOG}
+  # copy working temp file to final log location
+  cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
+  # Straight dump of tailing the logs, can sanitize later if needed.
+  cat /proc/$$/fd/4 >> "${DEBUG_LOG}"
+
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	if [[ "${AUTOMATED}" ]]; then
 	  echo "::: Debug script running in automated mode, uploading log to tricorder..."
@@ -456,6 +460,17 @@ finalWork() {
 }
 
 ### END FUNCTIONS ###
+# Create temporary file for log
+TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+# Open handle 3 for templog
+exec 3>"$TEMPLOG"
+# Delete templog, but allow for addressing via file handle.
+rm "$TEMPLOG"
+
+# Create temporary file for logdump using file handle 4
+DUMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+exec 4>"$DUMPLOG"
+rm "$DUMPLOG"
 
 # Gather version of required packages / repositories
 version_check || echo "REQUIRED FILES MISSING"
