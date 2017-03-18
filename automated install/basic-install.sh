@@ -308,8 +308,6 @@ chooseInterface() {
   local chooseInterfaceCmd
   # Temporary Whiptail options storage
   local chooseInterfaceOptions
-  # Loop sentinel variable
-  local firstLoop=1
 
   # Find out how many interfaces are available to choose from
   interfaceCount=$(echo "${availableInterfaces}" | wc -l)
@@ -318,15 +316,10 @@ chooseInterface() {
       PIHOLE_INTERFACE="${availableInterfaces}"
   else
       while read -r line; do
-        mode="OFF"
-        if [[ ${firstLoop} -eq 1 ]]; then
-          firstLoop=0
-          mode="ON"
-        fi
-        interfacesArray+=("${line}" "available" "${mode}")
+        interfacesArray+=("${line}" "available")
       done <<< "${availableInterfaces}"
 
-      chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
+      chooseInterfaceCmd=(whiptail --separate-output --menu "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
       chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
       { echo "::: Cancel selected. Exiting"; exit 1; }
       for desiredInterface in ${chooseInterfaceOptions}; do
