@@ -56,6 +56,32 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 
+show_ascii_berry() {
+  echo "
+        .;;,.
+        .ccccc:,.
+         :cccclll:.      ..,,
+          :ccccclll.   ;ooodc
+           'ccll:;ll .oooodc
+             .;cll.;;looo:.
+                 .. ','.
+                .',,,,,,'.
+              .',,,,,,,,,,.
+            .',,,,,,,,,,,,....
+          ....''',,,,,,,'.......
+        .........  ....  .........
+        ..........      ..........
+        ..........      ..........
+        .........  ....  .........
+          ........,,,,,,,'......
+            ....',,,,,,,,,,,,.
+               .',,,,,,,,,'.
+                .',,,,,,'.
+                  ..'''.
+"
+}
+
+
 # Compatibility
 distro_check() {
 if command -v apt-get &> /dev/null; then
@@ -226,7 +252,7 @@ find_IPv4_information() {
 
 get_available_interfaces() {
   # Get available UP interfaces.
-  availableInterfaces=$(ip -o link | grep -v "state DOWN\|lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+  availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 welcomeDialogs() {
@@ -1300,6 +1326,7 @@ main() {
 
   ######## FIRST CHECK ########
   # Must be root to install
+  show_ascii_berry
   echo ":::"
   if [[ ${EUID} -eq 0 ]]; then
     echo "::: You are root."

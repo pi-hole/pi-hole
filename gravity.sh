@@ -26,10 +26,11 @@ EOM
 	exit 0
 }
 
+PIHOLE_COMMAND="/usr/local/bin/pihole"
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
-whitelistScript="pihole -w"
+whitelistScript="${PIHOLE_COMMAND} -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
@@ -385,7 +386,7 @@ gravity_reload() {
 	#Now replace the line in dnsmasq file
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
-	pihole restartdns
+	"${PIHOLE_COMMAND}" restartdns
 	echo " done!"
 }
 
@@ -423,4 +424,4 @@ gravity_hostFormat
 gravity_blackbody
 
 gravity_reload
-pihole status
+"${PIHOLE_COMMAND}" status
