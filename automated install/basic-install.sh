@@ -32,7 +32,7 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
 PIHOLE_INTERFACE=""
-NETWORKING=""
+NETWORKING4=""
 NET_CONF_FILE=""
 IPV4_ADDRESS=""
 IPV6_ADDRESS=""
@@ -222,39 +222,6 @@ getGitFiles() {
   return 0
 }
 
-find_IPv4_information() {
-  local route
-
-  # DHCPCD is installed, Raspbian is the best guess
-  if [[ -f /etc/dhcpcd.conf ]]; then
-    NET_CONF_FILE="/etc/dhcpcd.conf"
-    # Check to see if the interface is already set for static in dhcpcd.conf
-    if [[ $(grep -cs "interface ${PIHOLE_INTERFACE}" /etc/dhcpcd.conf) > 0 ]]; then
-      NETWORKING="static"
-      IPV4_ADDRESS=$(grep "static ip_address" "${NET_CONF_FILE}" | \
-                     awk -F= '{ print $2 }')
-      IPV4_ROUTER=$(ip route get dev "${PIHOLE_INTERFACE}" 8.8.8.8 | \
-                    awk '{ print $3 }')
-    else
-      # dhcpcd.conf is there, but no interface information is availble. This is a DHCP supplied address.
-      NETWORKING="dynamic"
-
-    fi
-  else
-   # Find IP used to route to outside world
-    route=$(ip route get 8.8.8.8)
-    IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
-    IPv4bare=$(awk '{print $7}' <<< "${route}")
-    IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
-    IPv4gw=$(awk '{print $3}' <<< "${route}")
-  fi
-}
-
-get_available_interfaces() {
-  # Get available UP interfaces.
-  availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
-}
-
 welcomeDialogs() {
   # Display the welcome dialog
   whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "\n\nThis installer will transform your device into a network-wide ad blocker!" ${r} ${c}
@@ -298,6 +265,10 @@ verifyFreeDiskSpace() {
   fi
 }
 
+get_available_interfaces() {
+  # Get available UP interfaces.
+  availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+}
 
 chooseInterface() {
   # Turn the available interfaces into an array so it can be used with a whiptail dialog
@@ -329,6 +300,53 @@ chooseInterface() {
   fi
 }
 
+find_interface_type() {
+  # interfaces configuration file does not exist, configured by user in
+  # some other way.
+  if [[ ! -f /etc/network/interfaces ]]; then
+    NET_CONF_FILE="Unknown"
+    NETWORKING4="Managed"
+  # dhcpcd.conf exists
+  elif [[ -f /etc/dhcpcd.conf ]]; then
+    NET_CONF_FILE="/etc/dhcpcd.conf"
+    NETWORKING4="dhcpcd"
+  else
+  # NETWORKING4 can be 'manual' 'static' 'dhcp'
+    NET_CONF_FILE="/etc/network/interfaces"
+    # Make sure to get the config type of the IPv4 interface
+    NETWORKING4=$(grep "iface ${PIHOLE_INTERFACE} inet " "${NET_CONF_FILE}" | awk '{print $4}')
+  fi
+}
+
+find_IPv4_information() {
+  local route
+
+  # DHCPCD is installed, Raspbian is the best guess, or previously installed Pi-hole
+  if [[ "${NETWORKING4}" == "dhcpcd" ]]; then
+  # Check to see if the interface is already set for static in dhcpcd.conf
+    IPV4_ADDRESS=$(grep "static ip_address" "${NET_CONF_FILE}" | \
+                   awk -F= '{ print $2 }')
+    IPv4_GW=$(grep "static routers" "${NET_CONF_FILE}" | \
+              awk -F= '{ print $2 }')
+  else
+  # check /etc/network/interfaces
+    IPV4_ADDRESS=$(grep '[[:space:]]address' "${NET_CONF_FILE}" | \
+                   awk '{ print $2 }' | \
+                   head -n 1)
+    IPv4_GW=$(grep '[[:space:]]gateway' "${NET_CONF_FILE}" | \
+              awk '{ print $2 }' | \
+              head -n 1)
+  fi
+   # Find IP used to route to outside world
+    route=$(ip route get 8.8.8.8)
+    IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
+    IPv4bare=$(awk '{print $7}' <<< "${route}")
+    # If no IPv4 info has been detected, set variable to routed information
+    IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
+    IPv4_GW=$(awk '{print $3}' <<< "${route}")
+
+}
+
 useIPv6dialog() {
   # Show the IPv6 address used for blocking
   IPV6_ADDRESS=$(ip -6 route get 2001:4860:4860::8888 | grep -v "unreachable" | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
@@ -338,6 +356,64 @@ useIPv6dialog() {
   fi
 }
 
+getStaticIPv4Settings() {
+  local ipSettingsCorrect
+  # Ask if the user wants to use DHCP settings as their static IP
+  if whiptail --backtitle "Calibrating network interface" --title "Static IPv4 Address" --yesno "   We detected a configuration file at ${NET_CONF_FILE}.
+
+          Assigned by      ${NETWORKING4}
+          IPv4 address     ${IPV4_ADDRESS}
+          IPv4 Gateway     ${IPv4_GW}
+
+    The above address will be used for the IPv4 address of the Pi-hole. This is the address clients will be redirected to, and where the Admin Dashboard will be located.
+
+    Would you like to customize this configuration?" ${r} ${c}; then
+    case "${NETWORKING4}" in
+      dhcpcd)
+        # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
+        if whiptail --yesno --backtitle "IPv4 Information" --title "System Changes" "Changes to the IPv4 address will be controlled by ${NETWORKING4}. This will change the system configuration.
+
+        You will need to reboot after the installation has completed.
+
+        Do you want to continue configuring IPv4 on this system?" ${r} ${c}; then
+        DHCPCD_MODIFY="true"
+        else
+          return
+        fi
+        ;;
+      *)
+        whiptail --msgbox --backtitle "IP information" --title "IP already assigned to this device." "This device used ${NETWORKING4} settings from ${NET_CONF_FILE} to configure IP addressing. Changes will only affect Pi-hole, please manually configure your system to match." ${r} ${c}
+        ;;
+    esac
+    # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
+    # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
+    until [[ ${ipSettingsCorrect} = True ]]; do
+
+      # Ask for the IPv4 address
+      IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
+      # Cancelling IPv4 settings window
+      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
+      echo "::: Your static IPv4 address:    ${IPV4_ADDRESS}"
+
+      # Ask for the gateway
+      IPv4_GW=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPv4_GW}" 3>&1 1>&2 2>&3) || \
+      # Cancelling gateway settings window
+      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
+      echo "::: Your static IPv4 gateway:    ${IPv4_GW}"
+
+      # Give the user a chance to review their settings before moving on
+      if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
+        IP address:    ${IPV4_ADDRESS}
+        Gateway:       ${IPv4_GW}" ${r} ${c}; then
+        # After that's done, the loop ends and we move on
+        ipSettingsCorrect=True
+        else
+        # If the settings are wrong, the loop continues
+        ipSettingsCorrect=False
+      fi
+      done
+  fi
+}
 
 use4andor6() {
   local useIPv4
@@ -371,127 +447,32 @@ use4andor6() {
   fi
 }
 
-getStaticIPv4Settings() {
-  local ipSettingsCorrect
-  # Ask if the user wants to use DHCP settings as their static IP
-  if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "   We detected ${NET_CONF_FILE} as the IP configuration daemon.
-
-          Assigned by:   ${NETWORKING}
-          IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPV4_ROUTER}
-
-   Would you like to customize this configuration?" ${r} ${c}; then
-   # If assigned by static IP
-    if [[ "${NETWORKING}" == "static" ]]; then
-      if whiptail --msgbox --backtitle "IP information" --title "Static IP already assigned to this device." "This device used settings from ${NET_CONF_FILE} to configure IP addressing. Changes to this configuration may cause loss of connection to the Pi-hole, and loss of DNS resolution. Please only make changes to the addressing if you understand the consequences." ${r} ${c}; then
-        modify="true"
-      fi
-    elif [[ "${NETWORKING}" == "dynamic" ]]; then
-      # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
-      if whiptail --msgbox --backtitle "IP information" --title "FYI: Dynamic IP Conflict" "It is possible ${NET_CONF_FILE} could still try to request an IP to a device that would cause a conflict.  But in most cases the router is smart enough to not do that.
-If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
-It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." ${r} ${c}; then
-      modify="true"
-      fi  # Nothing else to do since the variables are already set above
-    fi
-  fi
-  if [[ "${modify}" == "true" ]]; then
-    # Otherwise, we need to ask the user to input their desired settings.
-    # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
-    # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-    until [[ ${ipSettingsCorrect} = True ]]; do
-
-      # Ask for the IPv4 address
-      IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
-      # Cancelling IPv4 settings window
-      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
-      echo "::: Your static IPv4 address:    ${IPV4_ADDRESS}"
-
-      # Ask for the gateway
-      IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" ${r} ${c} "${IPV4_ROUTER}" 3>&1 1>&2 2>&3) || \
-      # Cancelling gateway settings window
-      { ipSettingsCorrect=False; echo "::: Cancel selected. Exiting..."; exit 1; }
-      echo "::: Your static IPv4 gateway:    ${IPV4_ROUTER}"
-
-      # Give the user a chance to review their settings before moving on
-      if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-        IP address:    ${IPV4_ADDRESS}
-        Gateway:       ${IPV4_ROUTER}" ${r} ${c}; then
-        # After that's done, the loop ends and we move on
-        ipSettingsCorrect=True
-        else
-        # If the settings are wrong, the loop continues
-        ipSettingsCorrect=False
-      fi
-    done
-    # End the if statement for DHCP vs. static
-  fi
-}
-
 setDHCPCD() {
-  # Append these lines to dhcpcd.conf to enable a static IP for Raspbian DHCDC.conf installs
-  echo "interface ${PIHOLE_INTERFACE}
-  static ip_address=${IPV4_ADDRESS}
-  static routers=${IPv4gw}
-  static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
+  # Append these lines to dhcpcd.conf to enable a static IP for Raspbian DHCPCD.conf installs
+  if grep -q "static ip_address" /etc/dhcpcd.conf; then
+  echo -e "!!!\n!!! Static IP already configured in /etc/dhcpcd.conf.\n!!! Please manually configure IPv4 addresses.\n!!!"
+  else
+    echo "# Configured via Pi-hole installer
+    interface ${PIHOLE_INTERFACE}
+    static ip_address=${IPV4_ADDRESS}
+    static routers=${IPv4_GW}
+    static domain_name_servers=${IPv4_GW}" | tee -a /etc/dhcpcd.conf >/dev/null
 
-  # Replace existing IP with requested IP
-  ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-  echo -e ":::\n::: Setting IP to ${IPV4_ADDRESS}.  You may need to restart after the install is complete.\n:::"
+    # Replace existing IP with requested IP
+    ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+    echo -e ":::\n::: Setting IP to ${IPV4_ADDRESS}.  You may need to restart after the install is complete.\n:::"
+  fi
 }
 
 setStaticIPv4() {
-  local ifcfg_file
-  local ipaddr
-  local cidr
-
   # If Raspbian, will be DHCPCD.conf
-  if [[ -f /etc/dhcpcd.conf ]]; then
+  if [[ -f /etc/dhcpcd.conf && DHCPC_MODIFY="true" ]]; then
     # Debian Family
-    if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
+    if grep -q "static ip_address=${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
       echo "::: Static IP already configured"
     else
       setDHCPCD
     fi
-  # Fedora/CentOS are sysconfig based
-  elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE} ]];then
-    # Fedora Family
-    ifcfg_file=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
-    if grep -q "${IPV4_ADDRESS}" "${ifcfg_file}"; then
-      echo "::: Static IP already configured"
-    else
-      ipaddr=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
-      cidr=$(echo "${IPV4_ADDRESS}" | cut -f2 -d/)
-      # Backup existing interface configuration:
-      cp "${ifcfg_file}" "${ifcfg_file}".pihole.orig
-      # Build Interface configuration file:
-      {
-        echo "# Configured via Pi-Hole installer"
-        echo "DEVICE=$PIHOLE_INTERFACE"
-        echo "BOOTPROTO=none"
-        echo "ONBOOT=yes"
-        echo "IPADDR=$ipaddr"
-        echo "PREFIX=$cidr"
-        echo "GATEWAY=$IPv4gw"
-        echo "DNS1=$PIHOLE_DNS_1"
-        echo "DNS2=$PIHOLE_DNS_2"
-        echo "USERCTL=no"
-      }> "${ifcfg_file}"
-      ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-      if command -v nmcli &> /dev/null;then
-        # Tell NetworkManager to read our new sysconfig file
-        nmcli con load "${ifcfg_file}" > /dev/null
-      fi
-      echo ":::"
-      echo "::: Setting IP to ${IPV4_ADDRESS}.  You may need to restart after the install is complete."
-      echo ":::"
-    fi
-  # If using /interfaces, and not Raspbian or RHEL-related...
-  elif [[ -f /etc/network/interfaces ]]; then
-    :
-  else
-    echo "::: Warning: Unable to locate configuration file to set static IPv4 address!"
-    exit 1
   fi
 }
 
@@ -1396,10 +1377,12 @@ main() {
     get_available_interfaces
     # Find interfaces and let the user choose one
     chooseInterface
-    # Decide what upstream DNS Servers to use
-    setDNS
+    # Determine type of IP configuration for interface
+    find_interface_type
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
     use4andor6
+    # Decide what upstream DNS Servers to use
+    setDNS
     # Let the user decide if they want the web interface to be installed automatically
     setAdminFlag
     # Let the user decide if they want query logging enabled...
