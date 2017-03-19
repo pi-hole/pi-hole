@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-<a href=https://discourse.pi-hole.net><img src="https://assets.pi-hole.net/static/Vortex_text.png" width=210></a>
+<a href=https://discourse.pi-hole.net><img src="https://assets.pi-hole.net/static/Vortex_with_text_and_TM.png" width=210></a>
 </p>
 
 ## The multi-platform, network-wide ad blocker
