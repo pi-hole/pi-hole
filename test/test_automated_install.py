@@ -78,7 +78,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
     assert 'firewall-cmd --state' in firewall_calls
-    assert 'firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp' in firewall_calls
+    assert 'firewall-cmd --permanent --add-service=http --add-service=dns' in firewall_calls
     assert 'firewall-cmd --reload' in firewall_calls
 
 def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
