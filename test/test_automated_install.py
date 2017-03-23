@@ -147,6 +147,7 @@ def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT' not in firewall_calls
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' not in firewall_calls
     assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' not in firewall_calls
+    assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT' not in firewall_calls
 
 def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     ''' confirms IPTables rules are applied when IPTables is running and rules do not exist '''
@@ -166,6 +167,7 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT' in firewall_calls
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' in firewall_calls
     assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' in firewall_calls
+    assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT' in firewall_calls
 
 def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     ''' confirms all web page assets from Core repo are installed on a fresh build '''
