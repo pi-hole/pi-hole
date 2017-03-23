@@ -90,6 +90,7 @@ FTLcheckUpdate() {
 main() {
   local pihole_version_current
   local web_version_current
+  source "${setupVars}"
 
   #This is unlikely
   if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
