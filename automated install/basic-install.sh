@@ -980,6 +980,8 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+      # Reject https to avoid timeout issues for blocked https adds
+      iptables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
       return 0
     fi
   else
