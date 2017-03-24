@@ -982,7 +982,6 @@ configureFirewall() {
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
       # Reject https to avoid timeout issues for blocked https adds
       iptables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
-      return 0
 
       if [[ ! -z "${IPV6_ADDRESS}" ]]; then
 	  # Configure IPv6 firewall
@@ -993,9 +992,9 @@ configureFirewall() {
 	      ip6tables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
 	      # Reject https to avoid timeout issues for blocked https adds
 	      ip6tables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
-	      return 0
 	  fi
       fi
+      return 0
     fi
   else
     echo -e ":::\n::: No active firewall detected.. skipping firewall configuration."
