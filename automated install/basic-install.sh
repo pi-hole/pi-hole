@@ -967,6 +967,8 @@ configureFirewall() {
     echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
     firewall-cmd --permanent --add-service=http --add-service=dns
     firewall-cmd --reload
+    # Install script to activate firewall at reboot
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/firewall.sh /etc/pihole/firewall.sh
     return 0
   # Check for proper kernel modules to prevent failure
   elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
@@ -994,6 +996,8 @@ configureFirewall() {
 	      ip6tables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
 	  fi
       fi
+      # Install script to activate firewall at reboot
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/firewall.sh /etc/pihole/firewall.sh
       return 0
     fi
   else
