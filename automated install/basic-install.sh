@@ -268,7 +268,7 @@ verifyFreeDiskSpace() {
   # - Insufficient free disk space
   elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
     echo "::: Insufficient Disk Space!"
-    echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+    echo "::: Your system appears to be low on disk space. Pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
     echo "::: You only have ${existing_free_kilobytes} KiloBytes free."
     echo "::: If this is a new install you may need to expand your disk."
     echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
@@ -438,7 +438,7 @@ setStaticIPv4() {
       cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
       # Build Interface configuration file:
       {
-        echo "# Configured via Pi-Hole installer"
+        echo "# Configured via Pi-hole installer"
         echo "DEVICE=$PIHOLE_INTERFACE"
         echo "BOOTPROTO=none"
         echo "ONBOOT=yes"
@@ -626,7 +626,7 @@ version_check_dnsmasq() {
   if [ -f ${dnsmasq_conf} ]; then
     echo -n ":::    Existing dnsmasq.conf found..."
     if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
-      echo " it is from a previous pi-hole install."
+      echo " it is from a previous Pi-hole install."
       echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
       mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
       echo " done."
@@ -634,7 +634,7 @@ version_check_dnsmasq() {
       cp ${dnsmasq_original_config} ${dnsmasq_conf}
       echo " done."
     else
-      echo " it is not a pi-hole file, leaving alone!"
+      echo " it is not a Pi-hole file, leaving alone!"
     fi
   else
     echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
@@ -797,7 +797,7 @@ notify_package_updates_available() {
       echo "::: Your system is up to date! Continuing with Pi-hole installation..."
     else
       echo "::: There are ${updatesToInstall} updates available for your system!"
-      echo "::: We recommend you update your OS after installing Pi-Hole! "
+      echo "::: We recommend you update your OS after installing Pi-hole! "
       echo ":::"
     fi
   else
