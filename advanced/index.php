@@ -1,5 +1,5 @@
 <?php
-/* Detailed Pi-Hole Block Page: Show "Website Blocked" if user browses to site, but not to image/file requests based on the work of WaLLy3K for DietPi & Pi-Hole */
+/* Detailed Pi-hole Block Page: Show "Website Blocked" if user browses to site, but not to image/file requests based on the work of WaLLy3K for DietPi & Pi-Hole */
 
 $uri = escapeshellcmd($_SERVER['REQUEST_URI']);
 $serverName = escapeshellcmd($_SERVER['SERVER_NAME']);
@@ -37,7 +37,7 @@ if (!$showPage)
 	die();
 }
 
-// Get Pi-Hole version
+// Get Pi-hole version
 $piHoleVersion = exec('cd /etc/.pihole/ && git describe --tags --abbrev=0');
 
 // Don't show the URI if it is the root directory
