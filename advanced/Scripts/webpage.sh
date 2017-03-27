@@ -81,8 +81,15 @@ SetWebPassword(){
 		exit 1
 	fi
 
-	read -s -p "Enter New Password: " PASSWORD
+	read -s -p "Enter New Password (Blank for no password): " PASSWORD
 	echo ""
+
+	if [ "${PASSWORD}" == "" ]; then
+		change_setting "WEBPASSWORD" ""
+		echo "Password Removed"
+		exit 0
+	fi
+
 	read -s -p "Confirm Password: " CONFIRM
 	echo ""
 	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
