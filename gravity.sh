@@ -89,7 +89,6 @@ gravity_collapse() {
 
 	echo "::: Neutrino emissions detected..."
 	echo ":::"
-  #User has disabled one or more default lists
   echo -n "::: Pulling source lists into range..."
   sources=()
   while IFS= read -r line || [[ -n "$line" ]]; do
