@@ -327,8 +327,8 @@ CustomizeAdLists() {
 		sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
 	elif [[ "${args[2]}" == "disable" ]] ; then
 		sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
-	elif [[ "${args[2]}" == "add" && "${args[3]}" == "user" ]] ; then
-		echo "${args[3]}" >> /etc/pihole/adlists.user
+	elif [[ "${args[2]}" == "add" ]] ; then
+		echo "${args[3]}" >> ${list}
 	else
 		echo "Not permitted"
 		return 1
