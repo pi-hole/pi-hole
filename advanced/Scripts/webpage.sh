@@ -458,6 +458,7 @@ main() {
 		"hostrecord"        ) SetHostRecord;;
 		"-i" | "interface"  ) SetListeningMode;;
 		"-t" | "teleporter" ) Teleporter;;
+		"adlist"            ) CustomizeAdLists;;
 		*                   ) helpFunc;;
 	esac
 
