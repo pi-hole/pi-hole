@@ -321,7 +321,7 @@ SetWebUILayout(){
 
 CustomizeAdLists() {
 
-  list = "/etc/pihole/adlists.list"
+  list="/etc/pihole/adlists.list"
 
 	if [[ "${args[2]}" == "enable" ]] ; then
 		sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
