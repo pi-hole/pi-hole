@@ -30,6 +30,7 @@ PIHOLE_COMMAND="/usr/local/bin/pihole"
 
 adListFile=/etc/pihole/adlists.list
 adListDefault=/etc/pihole/adlists.default
+adListCustom=/etc/pihole/adlists.custom
 whitelistScript="${PIHOLE_COMMAND} -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
@@ -75,8 +76,8 @@ gravity_collapse() {
 	echo ":::"
 	#Decide if we're using a custom ad block list, or defaults.
 	if [ -f ${adListFile} ]; then
-		#custom file found, use this instead of default
-		echo -n "::: Custom adList file detected. Reading..."
+		#User has disabled one or more default lists
+		echo -n "::: Changes to default list detected. Reading adlists.list..."
 		sources=()
 		while IFS= read -r line || [[ -n "$line" ]]; do
 			#Do not read commented out or blank lines
@@ -88,8 +89,8 @@ gravity_collapse() {
 		done < ${adListFile}
 		echo " done!"
 	else
-		#no custom file found, use defaults!
-		echo -n "::: No custom adlist file detected, reading from default file..."
+		#
+		echo -n "::: No changes to default list detected. Reading adlists.default..."
 		sources=()
 		while IFS= read -r line || [[ -n "$line" ]]; do
 			#Do not read commented out or blank lines
@@ -99,6 +100,19 @@ gravity_collapse() {
 				sources+=(${line})
 			fi
 		done < ${adListDefault}
+		echo " done!"
+	fi
+
+	if [ -f ${adListCustom} ]; then
+	echo -n "Custom additional lists detected. Reading adlists.custom..."
+	while IFS= read -r line || [[ -n "$line" ]]; do
+			#Do not read commented out or blank lines
+			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
+				echo "" > /dev/null
+			else
+				sources+=(${line})
+			fi
+		done < ${adListCustom}
 		echo " done!"
 	fi
 }
