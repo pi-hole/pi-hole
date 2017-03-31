@@ -29,8 +29,8 @@ EOM
 PIHOLE_COMMAND="/usr/local/bin/pihole"
 
 adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
-adListCustom=/etc/pihole/adlists.custom
+adListDefault=/etc/pihole/adlists.default #being deprecated
+adListRepoDefault=/etc/.pihole/adlists.default
 whitelistScript="${PIHOLE_COMMAND} -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
@@ -72,49 +72,35 @@ fi
 ###########################
 # collapse - begin formation of pihole
 gravity_collapse() {
+
+  #New Logic:
+  # Does /etc/pihole/adlists.list exist? If so leave it alone
+  #                                      If not, cp /etc/.pihole/adlists.default /etc/pihole/adlists.list
+  # Read from adlists.list
+
+  #The following two blocks will sort out any missing adlists in the /etc/pihole directory, and remove legacy adlists.default
+  if [ -f ${adListDefault} ] && [ -f ${adListFile} ]; then
+    rm ${adListDefault}
+  fi
+
+  if [ ! -f ${adListFile} ]; then
+    cp ${adListRepoDefault} ${adListFile}
+  fi
+
 	echo "::: Neutrino emissions detected..."
 	echo ":::"
-	#Decide if we're using a custom ad block list, or defaults.
-	if [ -f ${adListFile} ]; then
-		#User has disabled one or more default lists
-		echo -n "::: Changes to default list detected. Reading adlists.list..."
-		sources=()
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListFile}
-		echo " done!"
-	else
-		#
-		echo -n "::: No changes to default list detected. Reading adlists.default..."
-		sources=()
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListDefault}
-		echo " done!"
-	fi
-
-	if [ -f ${adListCustom} ]; then
-	echo -n "Custom additional lists detected. Reading adlists.custom..."
-	while IFS= read -r line || [[ -n "$line" ]]; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListCustom}
-		echo " done!"
-	fi
+  #User has disabled one or more default lists
+  echo -n "::: Pulling source lists into range..."
+  sources=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    #Do not read commented out or blank lines
+    if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
+      echo "" > /dev/null
+    else
+      sources+=(${line})
+    fi
+  done < ${adListFile}
+  echo " done!"
 }
 
 # patternCheck - check to see if curl downloaded any new files.
