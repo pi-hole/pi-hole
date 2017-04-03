@@ -19,8 +19,19 @@ $uriExt = pathinfo($uri, PATHINFO_EXTENSION);
 // Define which URL extensions get rendered as "Website Blocked"
 $webExt = array('asp', 'htm', 'html', 'php', 'rss', 'xml');
 
+$AUTHORIZED_HOSTNAMES = array(
+	$ipv4,
+	$ipv6,
+	str_replace(array("[","]"), array("",""), $_SERVER["SERVER_NAME"]),
+	"pi.hole",
+	"localhost");
+// Allow user set virtual hostnames
+$virtual_host = getenv('VIRTUAL_HOST');
+if (! empty($virtual_host))
+	array_push($AUTHORIZED_HOSTNAMES, $virtual_host);
+
 // Immediately quit since we didn't block this page (the IP address or pi.hole is explicitly requested)
-if(validIP($serverName) || $serverName === "pi.hole")
+if(validIP($serverName) || in_array($serverName,$AUTHORIZED_HOSTNAMES))
 {
 	http_response_code(404);
 	die();
