@@ -5,12 +5,12 @@
 </p>
 
 <p align="center">
-<a href=https://discourse.pi-hole.net><img src="https://assets.pi-hole.net/static/Vortex_text.png" width=210></a>
+<a href=https://discourse.pi-hole.net><img src="https://assets.pi-hole.net/static/Vortex_with_text_and_TM.png" width=210></a>
 </p>
 
 ## The multi-platform, network-wide ad blocker
 
-Block ads for **all** your devices _without_ the need to install client-side software.  The Pi-hole blocks ads at the DNS-level, so all your devices are protected.
+Block ads for **all** your devices _without_ the need to install client-side software.  The Pi-hole™ blocks ads at the DNS-level, so all your devices are protected.
 
 - Web Browsers
 - Cell Phones
@@ -53,9 +53,9 @@ wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
 
-Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to use Pi-hole as their DNS server.
+Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to use Pi-hole™ as their DNS server.
 
-## What is Pi-hole and how do I install it?
+## What is Pi-hole™ and how do I install it?
 <p align="center">
 <a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/video-explainer.png"></a>
 </p>
@@ -73,7 +73,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 ## Technical Details
 
-The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
+The Pi-hole™ is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
 
 ### Gravity
 
@@ -102,7 +102,7 @@ Domains can be whitelisted and blacklisted using either the web interface or the
 
 ### Settings
 
-The settings page lets you control and configure your Pi-hole.  You can do things like:
+The settings page lets you control and configure your Pi-hole™.  You can do things like:
 
 - enable Pi-hole's built-in DHCP server
 - exclude domains from the graphs
@@ -113,7 +113,7 @@ The settings page lets you control and configure your Pi-hole.  You can do thing
 
 #### Built-in DHCP Server
 
-Pi-hole ships with a built-in DHCP server.  This allows you to let your network devices use Pi-hole as their DNS server if your router does not let you adjust the DHCP options.
+Pi-hole™ ships with a built-in DHCP server.  This allows you to let your network devices use Pi-hole™ as their DNS server if your router does not let you adjust the DHCP options.
 <p align="center">
 <a href=hhttps://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245><img src="https://assets.pi-hole.net/static/piholedhcpserver.png"></a>
 </p>
@@ -137,7 +137,7 @@ The same output can be achieved on the CLI by running `chronometer.sh -j`
 
 You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-pi-holes-stats-over-ssh-or-on-an-lcd-using-chronometer/240) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj). This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh). ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
 
-## Pi-hole Projects
+## Pi-hole™ Projects
 
 -   [An ad blocking Magic Mirror](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
 -   [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
