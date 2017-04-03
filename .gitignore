@@ -4,5 +4,3 @@
 __pycache__
 .cache
 .pullapprove.yml
-Vagrantfile
-.vagrant/
