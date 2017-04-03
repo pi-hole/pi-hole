@@ -1221,7 +1221,7 @@ FTLinstall() {
       stop_service pihole-FTL &> /dev/null
       install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
       cd "${orig_dir}"
-      install -T -m 0755 "/etc/.pihole/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+      install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
       echo "done."
       return 0
     else
