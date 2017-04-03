@@ -189,17 +189,21 @@ gravity_spinup() {
 		# Use a case statement to download lists that need special cURL commands
 		# to complete properly and reset the user agent when required
 		case "${domain}" in
-			"adblock.mahakala.is")
+		    "adblock.mahakala.is")
 			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 			cmd_ext="-e http://forum.xda-developers.com/"
+		    ;;
+		    
+		    "adaway.org")
+			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 		    ;;
 
 		    "pgl.yoyo.org")
 			cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
 		    ;;
 
-            # Default is a simple request
-            *) cmd_ext=""
+		    # Default is a simple request
+		    *) cmd_ext=""
         esac
         if [[ "${skipDownload}" == false ]]; then
             echo -n "::: Getting $domain list..."
