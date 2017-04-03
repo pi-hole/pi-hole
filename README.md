@@ -154,7 +154,7 @@ You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-
 -   [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
 -   [Windows Tray Stat Application](https://github.com/goldbattle/copernicus)
 -   [Let your blink1 device blink when Pi-hole filters ads](https://gist.github.com/elpatron68/ec0b4c582e5abf604885ac1e068d233f)
--   [Pi-Hole Prometheus exporter](https://github.com/nlamirault/pihole_exporter) : a [Prometheus](https://prometheus.io/) exporter for Pi-Hole
+-   [Pi-hole Prometheus exporter](https://github.com/nlamirault/pihole_exporter): a [Prometheus](https://prometheus.io/) exporter for Pi-hole
 -   [Pi-hole Droid - open source Android client](https://github.com/friimaind/pi-hole-droid)
 
 ## Coverage
