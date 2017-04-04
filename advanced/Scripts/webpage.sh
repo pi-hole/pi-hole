@@ -81,19 +81,28 @@ SetWebPassword(){
 		exit 1
 	fi
 
-	# Set password only if there is one to be set
-	if (( ${#args[2]} > 0 )) ; then
+	read -s -p "Enter New Password (Blank for no password): " PASSWORD
+	echo ""
+
+	if [ "${PASSWORD}" == "" ]; then
+		change_setting "WEBPASSWORD" ""
+		echo "Password Removed"
+		exit 0
+	fi
+
+	read -s -p "Confirm Password: " CONFIRM
+	echo ""
+	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
 		# Compute password hash twice to avoid rainbow table vulnerability
-		hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
+		hash=$(echo -n ${PASSWORD} | sha256sum | sed 's/\s.*$//')
 		hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
 		echo "New password set"
 	else
-		change_setting "WEBPASSWORD" ""
-		echo "Password removed"
+		echo "Passwords don't match. Your password has not been changed"
+		exit 1
 	fi
-
 }
 
 ProcessDNSSettings() {

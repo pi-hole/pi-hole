@@ -1460,7 +1460,7 @@ main() {
       echo ":::                                ${pw}"
       echo ":::"
       echo "::: You can always change it using"
-      echo ":::                                pihole -a -p new_password"
+      echo ":::                                pihole -a -p"
     fi
   fi
 
