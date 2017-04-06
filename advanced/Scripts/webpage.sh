@@ -328,6 +328,25 @@ SetWebUILayout(){
 
 }
 
+CustomizeAdLists() {
+
+  list="/etc/pihole/adlists.list"
+
+	if [[ "${args[2]}" == "enable" ]] ; then
+		sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
+	elif [[ "${args[2]}" == "disable" ]] ; then
+		sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
+	elif [[ "${args[2]}" == "add" ]] ; then
+		echo "${args[3]}" >> ${list}
+	elif [[ "${args[2]}" == "del" ]] ; then
+	  var=$(echo "${args[3]}" | sed 's/\//\\\//g')
+	  sed -i "/${var}/Id" "${list}"
+	else
+		echo "Not permitted"
+		return 1
+  fi
+}
+
 SetPrivacyMode(){
 
 	if [[ "${args[2]}" == "true" ]] ; then
@@ -451,6 +470,7 @@ main() {
 		"hostrecord"        ) SetHostRecord;;
 		"-i" | "interface"  ) SetListeningMode;;
 		"-t" | "teleporter" ) Teleporter;;
+		"adlist"            ) CustomizeAdLists;;
 		*                   ) helpFunc;;
 	esac
 

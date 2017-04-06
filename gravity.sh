@@ -29,7 +29,8 @@ EOM
 PIHOLE_COMMAND="/usr/local/bin/pihole"
 
 adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
+adListDefault=/etc/pihole/adlists.default #being deprecated
+adListRepoDefault=/etc/.pihole/adlists.default
 whitelistScript="${PIHOLE_COMMAND} -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
@@ -71,36 +72,34 @@ fi
 ###########################
 # collapse - begin formation of pihole
 gravity_collapse() {
+
+  #New Logic:
+  # Does /etc/pihole/adlists.list exist? If so leave it alone
+  #                                      If not, cp /etc/.pihole/adlists.default /etc/pihole/adlists.list
+  # Read from adlists.list
+
+  #The following two blocks will sort out any missing adlists in the /etc/pihole directory, and remove legacy adlists.default
+  if [ -f ${adListDefault} ] && [ -f ${adListFile} ]; then
+    rm ${adListDefault}
+  fi
+
+  if [ ! -f ${adListFile} ]; then
+    cp ${adListRepoDefault} ${adListFile}
+  fi
+
 	echo "::: Neutrino emissions detected..."
 	echo ":::"
-	#Decide if we're using a custom ad block list, or defaults.
-	if [ -f ${adListFile} ]; then
-		#custom file found, use this instead of default
-		echo -n "::: Custom adList file detected. Reading..."
-		sources=()
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListFile}
-		echo " done!"
-	else
-		#no custom file found, use defaults!
-		echo -n "::: No custom adlist file detected, reading from default file..."
-		sources=()
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListDefault}
-		echo " done!"
-	fi
+  echo -n "::: Pulling source lists into range..."
+  sources=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    #Do not read commented out or blank lines
+    if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
+      echo "" > /dev/null
+    else
+      sources+=(${line})
+    fi
+  done < ${adListFile}
+  echo " done!"
 }
 
 # patternCheck - check to see if curl downloaded any new files.
@@ -408,8 +407,6 @@ if [[ "${forceGrav}" == true ]]; then
 	echo " done!"
 fi
 
-#Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
