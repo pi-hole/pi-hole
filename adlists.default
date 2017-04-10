@@ -43,6 +43,8 @@ https://hosts-file.net/ad_servers.txt
 #https://raw.githubusercontent.com/BreakingTheNews/BreakingTheNews.github.io/master/hosts
 
 # Untested Lists:
+#https://raw.github.com/notracking/hosts-blocklists/master/hostnames.txt
+#https://raw.github.com/notracking/hosts-blocklists/master/domains.txt
 #https://raw.githubusercontent.com/reek/anti-adblock-killer/master/anti-adblock-killer-filters.txt
 #https://raw.githubusercontent.com/Dawsey21/Lists/master/main-blacklist.txt
 #http://malwaredomains.lehigh.edu/files/domains.txt
