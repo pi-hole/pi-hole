@@ -211,6 +211,10 @@ SetExcludeClients(){
 
 }
 
+Halt(){
+        nohup bash -c "sleep 5; halt" &> /dev/null </dev/null &
+}
+
 Reboot(){
 
 	nohup bash -c "sleep 5; reboot" &> /dev/null </dev/null &
@@ -456,6 +460,7 @@ main() {
 		"setdns"            ) SetDNSServers;;
 		"setexcludedomains" ) SetExcludeDomains;;
 		"setexcludeclients" ) SetExcludeClients;;
+		"halt"              ) Halt;;
 		"reboot"            ) Reboot;;
 		"restartdns"        ) RestartDNS;;
 		"setquerylog"       ) SetQueryLogOptions;;
