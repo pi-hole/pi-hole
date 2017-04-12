@@ -13,11 +13,11 @@ FTLUSER=pihole
 PIDFILE=/var/run/pihole-FTL.pid
 
 get_pid() {
-    cat "$PIDFILE"
+    pidof "pihole-FTL"
 }
 
 is_running() {
-    [ -f "$PIDFILE" ] && ps "$(get_pid)" > /dev/null 2>&1
+    ps "$(get_pid)" > /dev/null 2>&1
 }
 
 # Start the service
