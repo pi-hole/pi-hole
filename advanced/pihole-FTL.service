@@ -13,11 +13,11 @@ FTLUSER=pihole
 PIDFILE=/var/run/pihole-FTL.pid
 
 get_pid() {
-    cat "$PIDFILE"
+    pidof "pihole-FTL"
 }
 
 is_running() {
-    [ -f "$PIDFILE" ] && ps $(get_pid) > /dev/null 2>&1
+    ps "$(get_pid)" > /dev/null 2>&1
 }
 
 # Start the service
@@ -36,8 +36,8 @@ start() {
 # Stop the service
 stop() {
   if is_running; then
-    kill $(get_pid)
-    for i in {1..10}; do
+    kill "$(get_pid)"
+    for i in {1..5}; do
       if ! is_running; then
         break
       fi
@@ -48,7 +48,8 @@ stop() {
     echo
 
     if is_running; then
-      echo "Not stopped; may still be shutting down or shutdown may have failed"
+      echo "Not stopped; may still be shutting down or shutdown may have failed, killing now"
+      kill -9 "$(get_pid)"
       exit 1
     else
       echo "Stopped"
@@ -61,16 +62,13 @@ stop() {
 
 ### main logic ###
 case "$1" in
-  start)
-        start
-        ;;
   stop)
         stop
         ;;
   status)
         status pihole-FTL
         ;;
-  restart|reload|condrestart)
+  start|restart|reload|condrestart)
         stop
         start
         ;;
