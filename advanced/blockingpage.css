@@ -57,7 +57,7 @@ header h1 {
 	width: 100%;
 	padding: 8px 0;
 	text-indent: 32px;
-	background: url("http://pi.hole/admin/img/logo.svg") left no-repeat;
+	background: url("/admin/img/logo.svg") left no-repeat;
 	background-size: 30px 22px;
 }
 
