@@ -167,7 +167,11 @@ gravity_transport() {
 
 	# Process result
 	gravity_patternCheck "${patternBuffer}" ${success} "${err}"
-
+        
+        # Delete temp file if it hasn't been moved
+        if [[ -f "${patternBuffer}" ]]; then
+                rm "${patternBuffer}"
+        fi
 }
 
 # spinup - main gravity function
