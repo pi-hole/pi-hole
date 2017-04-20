@@ -19,15 +19,20 @@ $uriExt = pathinfo($uri, PATHINFO_EXTENSION);
 // Define which URL extensions get rendered as "Website Blocked"
 $webExt = array('asp', 'htm', 'html', 'php', 'rss', 'xml');
 
+// Get IPv4 and IPv6 addresses from setupVars.conf (if available)
+$setupVars = parse_ini_file("/etc/pihole/setupVars.conf");
+$ipv4 = isset($setupVars["IPV4_ADDRESS"]) ? explode("/", $setupVars["IPV4_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
+$ipv6 = isset($setupVars["IPV6_ADDRESS"]) ? explode("/", $setupVars["IPV6_ADDRESS"])[0] : $_SERVER['SERVER_ADDR'];
+
 $AUTHORIZED_HOSTNAMES = array(
 	$ipv4,
 	$ipv6,
-	str_replace(array("[","]"), array("",""), $_SERVER["SERVER_NAME"]),
+	str_replace(array("[","]"), array("",""), $_SERVER["SERVER_ADDR"]),
 	"pi.hole",
 	"localhost");
 // Allow user set virtual hostnames
 $virtual_host = getenv('VIRTUAL_HOST');
-if (! empty($virtual_host))
+if (!empty($virtual_host))
 	array_push($AUTHORIZED_HOSTNAMES, $virtual_host);
 
 // Immediately quit since we didn't block this page (the IP address or pi.hole is explicitly requested)
