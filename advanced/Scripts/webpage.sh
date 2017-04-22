@@ -444,6 +444,11 @@ Teleporter()
 	php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
+audit()
+{
+	echo "${args[2]}" >> /etc/pihole/auditlog.list
+}
+
 main() {
 
 	args=("$@")
@@ -471,6 +476,7 @@ main() {
 		"-i" | "interface"  ) SetListeningMode;;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
+		"audit"             ) audit;;
 		*                   ) helpFunc;;
 	esac
 
