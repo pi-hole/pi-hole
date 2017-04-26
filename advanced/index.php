@@ -12,6 +12,14 @@ function validIP($address){
 $uri = escapeshellcmd($_SERVER['REQUEST_URI']);
 $serverName = escapeshellcmd($_SERVER['SERVER_NAME']);
 
+// If the server name is 'pi.hole', it's likely a user trying to get to the admin panel.
+// Let's be nice and redirect them.
+if ($serverName === 'pi.hole')
+{
+    header('HTTP/1.1 301 Moved Permanently');
+    header("Location: /admin/");
+}
+
 // Retrieve server URI extension (EG: jpg, exe, php)
 ini_set('pcre.recursion_limit',100);
 $uriExt = pathinfo($uri, PATHINFO_EXTENSION);
