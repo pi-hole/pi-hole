@@ -81,19 +81,28 @@ SetWebPassword(){
 		exit 1
 	fi
 
-	# Set password only if there is one to be set
-	if (( ${#args[2]} > 0 )) ; then
+	read -s -p "Enter New Password (Blank for no password): " PASSWORD
+	echo ""
+
+	if [ "${PASSWORD}" == "" ]; then
+		change_setting "WEBPASSWORD" ""
+		echo "Password Removed"
+		exit 0
+	fi
+
+	read -s -p "Confirm Password: " CONFIRM
+	echo ""
+	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
 		# Compute password hash twice to avoid rainbow table vulnerability
-		hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
+		hash=$(echo -n ${PASSWORD} | sha256sum | sed 's/\s.*$//')
 		hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
 		echo "New password set"
 	else
-		change_setting "WEBPASSWORD" ""
-		echo "Password removed"
+		echo "Passwords don't match. Your password has not been changed"
+		exit 1
 	fi
-
 }
 
 ProcessDNSSettings() {
@@ -319,6 +328,25 @@ SetWebUILayout(){
 
 }
 
+CustomizeAdLists() {
+
+  list="/etc/pihole/adlists.list"
+
+	if [[ "${args[2]}" == "enable" ]] ; then
+		sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
+	elif [[ "${args[2]}" == "disable" ]] ; then
+		sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
+	elif [[ "${args[2]}" == "add" ]] ; then
+		echo "${args[3]}" >> ${list}
+	elif [[ "${args[2]}" == "del" ]] ; then
+	  var=$(echo "${args[3]}" | sed 's/\//\\\//g')
+	  sed -i "/${var}/Id" "${list}"
+	else
+		echo "Not permitted"
+		return 1
+  fi
+}
+
 SetPrivacyMode(){
 
 	if [[ "${args[2]}" == "true" ]] ; then
@@ -410,6 +438,12 @@ SetListeningMode(){
 
 }
 
+Teleporter()
+{
+	local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+	php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
+}
+
 main() {
 
 	args=("$@")
@@ -435,6 +469,8 @@ main() {
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
 		"hostrecord"        ) SetHostRecord;;
 		"-i" | "interface"  ) SetListeningMode;;
+		"-t" | "teleporter" ) Teleporter;;
+		"adlist"            ) CustomizeAdLists;;
 		*                   ) helpFunc;;
 	esac
 

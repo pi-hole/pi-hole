@@ -1,7 +1,7 @@
 version: 2
 
 always_pending:
-  title_regex: '(WIP|wip)'  
+  title_regex: '(WIP|wip)'
   labels:
     - wip
   explanation: 'This PR is a work in progress...'
@@ -22,11 +22,11 @@ groups:
       enabled: true
     conditions:
       branches:
-        - development        
+        - development
     required: 2
     teams:
       - approvers
-  
+
   master:
     approve_by_comment:
       enabled: true

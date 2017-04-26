@@ -287,17 +287,17 @@ piholeCheckoutFunc() {
 
 helpFunc() {
 	cat << EOM
-::: Control all PiHole specific functions!
+::: Control all Pi-hole specific functions
 :::
 ::: Usage: pihole [options]
-:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin)  for more information on usage
+:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin) for more information on usage
 :::
 ::: Options:
 :::  -w, whitelist            Whitelist domain(s)
 :::  -b, blacklist            Blacklist domain(s) (exact match)
 :::  -wild, wildcard          Blacklist whole domain(s) (wildcard)
 :::  -d, debug                Start a debugging session
-:::                             Automated debugging can be enabled with `-a`.
+:::                             Automated debugging can be enabled with '-a'.
 :::                             'pihole -d -a'
 :::  -f, flush                Flush the 'pihole.log' file
 :::  -t, tail                 Output the last lines of the 'pihole.log' file. Lines are appended as the file grows
@@ -306,15 +306,15 @@ helpFunc() {
 :::  -g, updateGravity        Update the list of ad-serving domains
 :::  -c, chronometer          Calculates stats and displays to an LCD
 :::  -h, help                 Show this help dialog
-:::  -v, version              Show installed versions of Pi-Hole and Web-Admin
+:::  -v, version              Show installed versions of Pi-hole and Web-Admin
 :::  -q, query                Query the adlists for a specific domain
 :::                             'pihole -q domain -exact' shows exact matches only
 :::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
 :::  -a, admin                Admin webpage options
-:::  uninstall                Uninstall Pi-Hole from your system :(!
-:::  status                   Is Pi-Hole Enabled or Disabled
-:::  enable                   Enable Pi-Hole DNS Blocking
-:::  disable                  Disable Pi-Hole DNS Blocking
+:::  uninstall                Uninstall Pi-hole from your system! :(
+:::  status                   Display if Pi-hole is Enabled or Disabled
+:::  enable                   Enable Pi-hole DNS Blocking
+:::  disable                  Disable Pi-hole DNS Blocking
 :::                             Blocking can also be disabled only temporarily, e.g.,
 :::                             'pihole disable 5m' - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
