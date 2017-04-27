@@ -167,7 +167,7 @@ gravity_transport() {
 
 	# Process result
 	gravity_patternCheck "${patternBuffer}" ${success} "${err}"
-        
+
         # Delete temp file if it hasn't been moved
         if [[ -f "${patternBuffer}" ]]; then
                 rm "${patternBuffer}"
@@ -187,7 +187,7 @@ gravity_spinup() {
 		saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
 		activeDomains[$i]=${saveLocation}
 
-		agent="Mozilla/10.0"
+		agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36"
 
 		# Use a case statement to download lists that need special cURL commands
 		# to complete properly and reset the user agent when required
@@ -196,7 +196,7 @@ gravity_spinup() {
 			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 			cmd_ext="-e http://forum.xda-developers.com/"
 		    ;;
-		    
+
 		    "adaway.org")
 			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 		    ;;
