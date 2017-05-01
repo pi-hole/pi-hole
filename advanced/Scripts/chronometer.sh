@@ -8,34 +8,55 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
-
 #Functions##############################################################################################################
 piLog="/var/log/pihole.log"
 gravity="/etc/pihole/gravity.list"
 
 . /etc/pihole/setupVars.conf
 
-# Borrowed/modified from https://gist.github.com/cjus/1047794
-function GetJSONValue {
-    retVal=$(echo $1 | sed 's/\\\\\//\//g' | \
-                       sed 's/[{}]//g' | \
-                       awk -v k="text" '{n=split($0,a,","); for (i=1; i<=n; i++) print a[i]}' | \
-                       sed 's/\"\:/\|/g' | \
-                       sed 's/[\,]/ /g' | \
-                       sed 's/\"//g' | \
-                       grep -w $2)
-    echo ${retVal##*|}
+function GetFTLData {
+    # Open connection to FTL
+    exec 3<>/dev/tcp/localhost/"$(cat /var/run/pihole-FTL.port)"
+
+    # Test if connection is open
+    if { >&3; } 2> /dev/null; then
+       # Send command to FTL
+       echo -e ">$1" >&3
+
+       # Read input
+       read -r -t 1 LINE <&3
+       until [ ! $? ] || [[ "$LINE" == *"EOM"* ]]; do
+           echo "$LINE" >&1
+           read -r -t 1 LINE <&3
+       done
+
+       # Close connection
+       exec 3>&-
+       exec 3<&-
+   fi
 }
 
 outputJSON() {
-	json=$(curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw)
-	echo ${json}
+	get_summary_data
+	echo "{\"domains_being_blocked\":${domains_being_blocked_raw},\"dns_queries_today\":${dns_queries_today_raw},\"ads_blocked_today\":${ads_blocked_today_raw},\"ads_percentage_today\":${ads_percentage_today_raw}}"
+}
+
+get_summary_data() {
+	local summary=$(GetFTLData "stats")
+	domains_being_blocked_raw=$(grep "domains_being_blocked" <<< "${summary}" | grep -Eo "[0-9]+$")
+	domains_being_blocked=$(printf "%'.f" ${domains_being_blocked_raw})
+	dns_queries_today_raw=$(grep "dns_queries_today" <<< "$summary" | grep -Eo "[0-9]+$")
+	dns_queries_today=$(printf "%'.f" ${dns_queries_today_raw})
+	ads_blocked_today_raw=$(grep "ads_blocked_today" <<< "$summary" | grep -Eo "[0-9]+$")
+	ads_blocked_today=$(printf "%'.f" ${ads_blocked_today_raw})
+	ads_percentage_today_raw=$(grep "ads_percentage_today" <<< "$summary" | grep -Eo "[0-9.]+$")
+	LC_NUMERIC=C ads_percentage_today=$(printf "%'.f" ${ads_percentage_today_raw})
 }
 
 normalChrono() {
 	for (( ; ; )); do
+		get_summary_data
+		domain=$(GetFTLData recentBlocked)
 		clear
 		# Displays a colorful Pi-hole logo
 		echo " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m"
@@ -49,20 +70,12 @@ normalChrono() {
 		#uptime -p	#Doesn't work on all versions of uptime
 		uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes."}'
 		echo "-------------------------------"
-		# Uncomment to continually read the log file and display the current domain being blocked
-		#tail -f /var/log/pihole.log | awk '/\/etc\/pihole\/gravity.list/ {if ($7 != "address" && $7 != "name" && $7 != "/etc/pihole/gravity.list") print $7; else;}'
+		echo "Recently blocked:"
+		echo "  $domain"
 
-		json=$(curl -s -X GET http://127.0.0.1/admin/api.php?summaryRaw)
-
-    domains=$(printf "%'.f" $(GetJSONValue ${json} "domains_being_blocked")) #add commas in
-    queries=$(printf "%'.f" $(GetJSONValue ${json} "dns_queries_today"))
-    blocked=$(printf "%'.f" $(GetJSONValue ${json} "ads_blocked_today"))
-    LC_NUMERIC=C percentage=$(printf "%0.2f\n" $(GetJSONValue ${json} "ads_percentage_today")) #2 decimal places
-
-		echo "Blocking:      ${domains}"
-		echo "Queries:       ${queries}"
-
-		echo "Pi-holed:      ${blocked} (${percentage}%)"
+		echo "Blocking:      ${domains_being_blocked}"
+		echo "Queries:       ${dns_queries_today}"
+		echo "Pi-holed:      ${ads_blocked_today} (${ads_percentage_today}%)"
 
 		sleep 5
 	done

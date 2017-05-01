@@ -43,16 +43,11 @@ cat << EOM
 ::: Please read and note any issues, and follow any directions advised during this process.
 EOM
 
-# Ensure the file exists, create if not, clear if exists.
-truncate --size=0 "${DEBUG_LOG}"
-chmod 644 ${DEBUG_LOG}
-chown "$USER":pihole ${DEBUG_LOG}
-
 source ${VARSFILE}
 
 ### Private functions exist here ###
 log_write() {
-    echo "${1}" >> "${DEBUG_LOG}"
+    echo "${@}" >&3
 }
 
 log_echo() {
@@ -77,14 +72,14 @@ log_echo() {
 
 header_write() {
   log_echo ""
-  log_echo "${1}"
+  log_echo "---= ${1}"
   log_write ""
 }
 
 file_parse() {
     while read -r line; do
 		  if [ ! -z "${line}" ]; then
-			  [[ "${line}" =~ ^#.*$  || ! "${line}" ]] && continue
+			  [[ "${line}" =~ ^#.*$  || ! "${line}" || "${line}" == "WEBPASSWORD="* ]] && continue
 				log_write "${line}"
 			fi
 		done < "${1}"
@@ -231,6 +226,7 @@ ipv6_check() {
 ip_check() {
   local protocol=${1}
   local gravity=${2}
+  header_write "Checking IPv${protocol} Stack"
 
   local ip_addr_list="$(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')"
   if [[ -n ${ip_addr_list} ]]; then
@@ -305,62 +301,78 @@ daemon_check() {
 }
 
 testResolver() {
-	header_write "Resolver Functions Check"
+  local protocol="${1}"
+  header_write "Resolver Functions Check (IPv${protocol})"
+  local IP="${2}"
+  local g_addr
+  local l_addr
+  local url
+  local testurl
+  local localdig
+  local piholedig
+  local remotedig
+
+  if [[ ${protocol} == "6" ]]; then
+    g_addr="2001:4860:4860::8888"
+    l_addr="::1"
+    r_type="AAAA"
+  else
+    g_addr="8.8.8.8"
+    l_addr="127.0.0.1"
+    r_type="A"
+  fi
 
 	# Find a blocked url that has not been whitelisted.
-	TESTURL="doubleclick.com"
-	if [ -s "${WHITELISTMATCHES}" ]; then
-		while read -r line; do
-			CUTURL=${line#*" "}
-			if [ "${CUTURL}" != "Pi-Hole.IsWorking.OK" ]; then
-				while read -r line2; do
-					CUTURL2=${line2#*" "}
-					if [ "${CUTURL}" != "${CUTURL2}" ]; then
-						TESTURL="${CUTURL}"
-						break 2
-					fi
-				done < "${WHITELISTMATCHES}"
-			fi
-		done < "${GRAVITYFILE}"
-	fi
+	url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
 
-	log_write "Resolution of ${TESTURL} from Pi-hole:"
-	LOCALDIG=$(dig "${TESTURL}" @127.0.0.1)
-	if [[ $? = 0 ]]; then
-		log_write "${LOCALDIG}"
+	testurl="${url:-doubleclick.com}"
+
+
+	log_write "Resolution of ${testurl} from Pi-hole (${l_addr}):"
+	if localdig=$(dig -"${protocol}" "${testurl}" @${l_addr} +short "${r_type}"); then
+		log_write "${localdig}"
 	else
-		log_write "Failed to resolve ${TESTURL} on Pi-hole"
+		log_write "Failed to resolve ${testurl} on Pi-hole (${l_addr})"
+	fi
+	log_write ""
+
+	log_write "Resolution of ${testurl} from Pi-hole (${IP}):"
+	if piholedig=$(dig -"${protocol}" "${testurl}" @"${IP}" +short "${r_type}"); then
+		log_write "${piholedig}"
+	else
+		log_write "Failed to resolve ${testurl} on Pi-hole (${IP})"
 	fi
 	log_write ""
 
 
-	log_write "Resolution of ${TESTURL} from 8.8.8.8:"
-	REMOTEDIG=$(dig "${TESTURL}" @8.8.8.8)
-	if [[ $? = 0 ]]; then
-		log_write "${REMOTEDIG}"
+	log_write "Resolution of ${testurl} from ${g_addr}:"
+	if remotedig=$(dig -"${protocol}" "${testurl}" @${g_addr} +short "${r_type}"); then
+		log_write "${remotedig:-NXDOMAIN}"
 	else
-		log_write "Failed to resolve ${TESTURL} on 8.8.8.8"
+		log_write "Failed to resolve ${testurl} on upstream server ${g_addr}"
 	fi
-	log_write ""
-
-	log_write "Pi-hole dnsmasq specific records lookups"
-	log_write "Cache Size:"
-	dig +short chaos txt cachesize.bind >> ${DEBUG_LOG}
-	log_write "Upstream Servers:"
-	dig +short chaos txt servers.bind >> ${DEBUG_LOG}
 	log_write ""
 }
 
+testChaos(){
+  # Check Pi-hole specific records
+
+	log_write "Pi-hole dnsmasq specific records lookups"
+	log_write "Cache Size:"
+	log_write $(dig +short chaos txt cachesize.bind)
+	log_write "Upstream Servers:"
+	log_write $(dig +short chaos txt servers.bind)
+	log_write ""
+
+}
 checkProcesses() {
 	header_write "Processes Check"
 
-	echo ":::     Logging status of lighttpd and dnsmasq..."
-	PROCESSES=( lighttpd dnsmasq )
+	echo ":::     Logging status of lighttpd, dnsmasq and pihole-FTL..."
+	PROCESSES=( lighttpd dnsmasq pihole-FTL )
 	for i in "${PROCESSES[@]}"; do
-		log_write ""
-		log_write "${i}"
-		log_write " processes status:"
-		systemctl -l status "${i}" >> "${DEBUG_LOG}"
+		log_write "Status for ${i} daemon:"
+		log_write $(systemctl is-active "${i}")
 	done
 	log_write ""
 }
@@ -388,49 +400,6 @@ countdown() {
     tuvix=$(( tuvix - 5 ))
   done
 }
-### END FUNCTIONS ###
-
-# Gather version of required packages / repositories
-version_check || echo "REQUIRED FILES MISSING"
-# Check for newer setupVars storage file
-source_file "/etc/pihole/setupVars.conf"
-# Gather information about the running distribution
-distro_check || echo "Distro Check soft fail"
-# Gather processor type
-processor_check || echo "Processor Check soft fail"
-
-ip_check 6 ${IPV6_ADDRESS}
-ip_check 4 ${IPV4_ADDRESS}
-
-daemon_check lighttpd http
-daemon_check dnsmasq domain
-checkProcesses
-testResolver
-debugLighttpd
-
-files_check "${DNSMASQFILE}"
-dir_check "${DNSMASQCONFDIR}"
-files_check "${WHITELISTFILE}"
-files_check "${BLACKLISTFILE}"
-files_check "${ADLISTFILE}"
-
-
-header_write "Analyzing gravity.list"
-
-	gravity_length=$(grep -c ^ "${GRAVITYFILE}") \
-	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
-	|| log_echo "Warning: No gravity.list file found!"
-
-header_write "Analyzing pihole.log"
-
-  pihole_length=$(grep -c ^ "${PIHOLELOG}") \
-  && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
-  || log_echo "Warning: No pihole.log file found!"
-
-  pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
-  && log_write "${PIHOLELOG} is ${pihole_size}." \
-  || log_echo "Warning: No pihole.log file found!"
-
 
 # Continuously append the pihole.log file to the pihole_debug.log file
 dumpPiHoleLog() {
@@ -442,7 +411,7 @@ dumpPiHoleLog() {
 	if [ -e "${PIHOLELOG}" ]; then
 	# Dummy process to use for flagging down tail to terminate
 	  countdown &
-		tail -n0 -f --pid=$! "${PIHOLELOG}" >> ${DEBUG_LOG}
+		tail -n0 -f --pid=$! "${PIHOLELOG}" >&4
 	else
 		log_write "No pihole.log file found!"
 		printf ":::\tNo pihole.log file found!\n"
@@ -453,6 +422,16 @@ dumpPiHoleLog() {
 finalWork() {
   local tricorder
 	echo "::: Finshed debugging!"
+
+  # Ensure the file exists, create if not, clear if exists.
+  truncate --size=0 "${DEBUG_LOG}"
+  chmod 644 ${DEBUG_LOG}
+  chown "$USER":pihole ${DEBUG_LOG}
+  # copy working temp file to final log location
+  cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
+  # Straight dump of tailing the logs, can sanitize later if needed.
+  cat /proc/$$/fd/4 >> "${DEBUG_LOG}"
+
 	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 	if [[ "${AUTOMATED}" ]]; then
 	  echo "::: Debug script running in automated mode, uploading log to tricorder..."
@@ -479,6 +458,70 @@ finalWork() {
 	fi
 		echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
 }
+
+### END FUNCTIONS ###
+# Create temporary file for log
+TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+# Open handle 3 for templog
+exec 3>"$TEMPLOG"
+# Delete templog, but allow for addressing via file handle.
+rm "$TEMPLOG"
+
+# Create temporary file for logdump using file handle 4
+DUMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+exec 4>"$DUMPLOG"
+rm "$DUMPLOG"
+
+# Gather version of required packages / repositories
+version_check || echo "REQUIRED FILES MISSING"
+# Check for newer setupVars storage file
+source_file "/etc/pihole/setupVars.conf"
+# Gather information about the running distribution
+distro_check || echo "Distro Check soft fail"
+# Gather processor type
+processor_check || echo "Processor Check soft fail"
+
+ip_check 6 ${IPV6_ADDRESS}
+ip_check 4 ${IPV4_ADDRESS}
+
+daemon_check lighttpd http
+daemon_check dnsmasq domain
+daemon_check pihole-FTL 4711
+checkProcesses
+
+# Check local/IP/Google for IPv4 Resolution
+testResolver 4 "${IPV4_ADDRESS%/*}"
+# If IPv6 enabled, check resolution
+if [[ "${IPV6_ADDRESS}" ]]; then
+  testResolver 6 "${IPV6_ADDRESS%/*}"
+fi
+# Poll dnsmasq Pi-hole specific queries
+testChaos
+
+debugLighttpd
+
+files_check "${DNSMASQFILE}"
+dir_check "${DNSMASQCONFDIR}"
+files_check "${WHITELISTFILE}"
+files_check "${BLACKLISTFILE}"
+files_check "${ADLISTFILE}"
+
+
+header_write "Analyzing gravity.list"
+
+	gravity_length=$(grep -c ^ "${GRAVITYFILE}") \
+	&& log_write "${GRAVITYFILE} is ${gravity_length} lines long." \
+	|| log_echo "Warning: No gravity.list file found!"
+
+header_write "Analyzing pihole.log"
+
+  pihole_length=$(grep -c ^ "${PIHOLELOG}") \
+  && log_write "${PIHOLELOG} is ${pihole_length} lines long." \
+  || log_echo "Warning: No pihole.log file found!"
+
+  pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
+  && log_write "${PIHOLELOG} is ${pihole_size}." \
+  || log_echo "Warning: No pihole.log file found!"
 
 trap finalWork EXIT
 
