@@ -57,9 +57,9 @@ $currentUrlExt = pathinfo($_SERVER["REQUEST_URI"], PATHINFO_EXTENSION);
 $viewPort = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>';
 
 // Set response header
-function setHeader($t = "x") {
+function setHeader($type = "x") {
     header("X-Pi-hole: A black hole for Internet advertisements.");
-    if (isset($t) && $t === "js") header("Content-Type: application/javascript");
+    if (isset($type) && $type === "js") header("Content-Type: application/javascript");
 }
 
 // Determine block page redirect
@@ -147,10 +147,14 @@ function queryAds($serverName) {
         }
         return $queryAds;
     } catch (Exception $e) {
-        die("[ERROR]: Unable to parse results from <i>queryads.php</i>: <code>".$e->getMessage()."</code>");
+        return array("0" => "error", "1" => $e->getMessage());
     }
 }
 $queryAds = queryAds($serverName);
+
+if ($queryAds[0] === "error") {
+    die("[ERROR]: Unable to parse results from <i>queryads.php</i>: <code>".$queryAds[1]."</code>");
+}
 
 // Filter, sort, and count $queryAds array
 if ($queryAds[0] !== "none") {
@@ -211,7 +215,7 @@ if ($phBranch !== "master") {
   <meta http-equiv="x-dns-prefetch-control" content="off">
   <link rel="shortcut icon" href="http://<?=$serverAddr ?>/admin/img/favicon.png" type="image/x-icon"/>
   <link rel="stylesheet" href="http://<?=$serverAddr ?>/pihole/blockingpage.css" type="text/css"/>
-  <title>? <?=$serverName ?></title>
+  <title>● <?=$serverName ?></title>
   <script src="http://<?=$serverAddr ?>/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
