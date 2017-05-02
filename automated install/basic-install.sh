@@ -966,6 +966,7 @@ configureFirewall() {
     { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
     echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
     firewall-cmd --permanent --add-service=http --add-service=dns
+    # Rule for lo, ports 4711-4720
     firewall-cmd --reload
     return 0
   # Check for proper kernel modules to prevent failure
@@ -980,6 +981,7 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+      iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
       return 0
     fi
   else
