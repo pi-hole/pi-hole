@@ -84,62 +84,45 @@ scanList(){
   domain="${1}"
   list="${2}"
   method="${3}"
-  if [[ ${method} == "-exact" ]] ; then
-    grep -i -E "(^|\s)${domain}($|\s)" "${list}"
-  else
-    grep -i "${domain}" "${list}"
-  fi
-}
 
-processWildcards() {
-  IFS="." read -r -a array <<< "${1}"
-  for (( i=${#array[@]}-1; i>=0; i-- )); do
-    ar=""
-    for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
-      if [[ $j == $((${#array[@]}-1)) ]]; then
-        ar="${array[$j]}"
-      else
-        ar="${array[$j]}.${ar}"
-      fi
-    done
-    echo "${ar}"
-  done
+  if [[ ${method} == "-exact" ]]; then
+    grep -i -E -l "(^|\/)${domain}($|\/)" ${list}
+  else
+    grep -i "${domain}" ${list}
+  fi
 }
 
 queryFunc() {
-  domain="${2}"
   method="${3}"
-  lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
-  for list in ${lists[@]}; do
-    if [ -e "${list}" ]; then
-      result=$(scanList ${domain} ${list} ${method})
-      # Remove empty lines before couting number of results
-      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-      echo "::: ${list} (${count} results)"
-      if [[ ${count} > 0 ]]; then
-        echo "${result}"
-      fi
-      echo ""
-    else
-      echo "::: ${list} does not exist"
-      echo ""
-    fi
-  done
-
-  # Scan for possible wildcard matches
-  if [ -e "${wildcardlist}" ]; then
-    local wildcards=($(processWildcards "${domain}"))
-    for domain in ${wildcards[@]}; do
-      result=$(scanList "\/${domain}\/" ${wildcardlist})
-      # Remove empty lines before couting number of results
-      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-      if [[ ${count} > 0 ]]; then
-        echo "::: Wildcard blocking ${domain} (${count} results)"
-        echo "${result}"
-        echo ""
-      fi
-    done
+  
+  # If domain contains non ASCII characters, convert domain to punycode if python exists
+  # Cr: https://serverfault.com/a/335079
+  if [ -z "${2}" ]; then
+    echo "::: No domain specified"
+    exit 1
+  elif [[ ${2} = *[![:ascii:]]* ]]; then
+    [ `which python` ] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
+  else
+    domain="${2}"
   fi
+  
+  # Scan Blacklist and Wildcards
+  lists="/etc/pihole/blacklist.txt $wildcardlist"
+  result=$(scanList ${domain} "${lists}" ${method})
+  if [ -n "$result" ]; then
+    echo "$result"
+    exit 0
+  fi
+
+  # Scan Domains lists
+  result=$(scanList ${domain} "/etc/pihole/*.domains" ${method})
+  if [ -n "$result" ]; then
+    sort -t . -k 2 -g <<< "$result"
+  else
+    [ -n "$method" ] && exact="exact "
+    echo "::: No ${exact}results found for ${domain}"
+  fi
+  
   exit 0
 }
 
