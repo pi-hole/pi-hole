@@ -35,6 +35,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB=true
+HASH=""
 
 
 # Find the rows and columns will default to 80x24 is it can not be detected
@@ -1013,6 +1014,7 @@ finalExports() {
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
   echo "INSTALL_WEB=${INSTALL_WEB}"
+  echo "WEBPASSWORD=${HASH}"
     }>> "${setupVars}"
 
   # Look for DNS server settings which would have to be reapplied
@@ -1413,7 +1415,10 @@ main() {
     pw=""
     if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-        /usr/local/bin/pihole -a -p "${pw}"
+        # Compute password hash twice to avoid rainbow table vulnerability
+		    HASH=$(echo -n ${pw} | sha256sum | sed 's/\s.*$//')
+		    HASH=$(echo -n ${HASH} | sha256sum | sed 's/\s.*$//')
+
     fi
   fi
 
