@@ -27,6 +27,7 @@ PIHOLELOG="/var/log/pihole.log"
 PIHOLEGITDIR="/etc/.pihole/"
 ADMINGITDIR="/var/www/html/admin/"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
+readonly FTLLOG="/var/log/pihole-FTL.log"
 
 TIMEOUT=60
 # Header info and introduction
@@ -522,6 +523,18 @@ header_write "Analyzing pihole.log"
   pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
   && log_write "${PIHOLELOG} is ${pihole_size}." \
   || log_echo "Warning: No pihole.log file found!"
+
+header_write "Analyzing pihole-FTL.log"
+
+  FTL_length=$(grep -c ^ "${FTLLOG}") \
+  && log_write "${FTLLOG} is ${FTL_length} lines long." \
+  || log_echo "Warning: No pihole-FTL.log file found!"
+
+  FTL_size=$(du -h "${FTLLOG}" | awk '{ print $1 }') \
+  && log_write "${FTLLOG} is ${FTL_size}." \
+  || log_echo "Warning: No pihole-FTL.log file found!"
+
+tail -n50 "${FTLLOG}" >&3
 
 trap finalWork EXIT
 
