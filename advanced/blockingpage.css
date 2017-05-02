@@ -11,12 +11,12 @@
 .linkPH:before { content: "About Pi-hole"; }
 .linkEmail:before { content: "Contact Admin"; }
 
-.add:before { content: "Info"; }
-.add:after { content: "The domain is being whitelisted..."; }
-.error:before, .unhandled:before { content: "Error"; }
-.unhandled:after { content: "An unhandled exception occured. This may happen when your browser is unable to load jQuery, or when the webserver is denying access to the Pi-hole API."; }
-.success:before { content: "Success"; }
-.success:after { content: "Website has been whitelisted! You may need to flush your DNS cache"; }
+#bpOutput.add:before { content: "Info"; }
+#bpOutput.add:after { content: "The domain is being whitelisted..."; }
+#bpOutput.error:before, .unhandled:before { content: "Error"; }
+#bpOutput.unhandled:after { content: "An unhandled exception occured. This may happen when your browser is unable to load jQuery, or when the webserver is denying access to the Pi-hole API."; }
+#bpOutput.success:before { content: "Success"; }
+#bpOutput.success:after { content: "Website has been whitelisted! You may need to flush your DNS cache"; }
 
 .recentwl:before { content: "This site appears to have been recently whitelisted. Please flush your DNS cache and/or restart your browser."; }
 .cname:before { content: "This site is an alias for "; } /* <a href="http://cname.com">cname.com</a> */
@@ -101,12 +101,13 @@ b { color: rgb(68,68,68); }
 p { margin: 0; }
 
 label, .buttons a {
-  cursor: pointer;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
 }
+
+label, .buttons *:not([disabled]) { cursor: pointer; }
 
 /* Touch device dark tap highlight */
 header h1 a, label, .buttons * { -webkit-tap-highlight-color: transparent; } 
@@ -144,11 +145,6 @@ body {
   margin: 0 auto;
   max-width: 1250px;
   box-shadow: 0 0 8px rgba(0,0,0,0.5);
-}
-
-@media only screen and (min-width: 1251px) {
-  #bpWrapper, footer { border-radius: 0 0 5px 5px; }
-  #bpAbout { border-right-width: 1px !important; }
 }
 
 header {
@@ -316,12 +312,7 @@ main {
   width: auto;  
 }
 
-#bpButtons * { width: 50%; color: #FFF; }
-#bpBack           { background-color: #00a65a; }
-#bpInfo           { background-color: #3c8dbc;  }
-#bpWhitelist  { background-color: #dd4b39; }
-
-.buttons a { text-decoration: none; }
+.buttons a:hover { text-decoration: none; }
 
 /* Button hover dark overlay */
 .buttons *:not(input):not([disabled]):hover {
@@ -339,11 +330,16 @@ main {
   border-color: rgba(0,0,0,0.25);
 }
 
-:-ms-input-placeholder { color: rgba(51,51,51,0.8) !important; }
-input[type=password] { font-size: 1.4rem; }
+#bpButtons * { width: 50%; color: #FFF; }
+#bpBack           { background-color: #00a65a; }
+#bpInfo           { background-color: #3c8dbc;  }
+#bpWhitelist  { background-color: #dd4b39; }
 
-.buttons [type=password][disabled] { color: rgba(0,0,0,1) !important; }
-.buttons [disabled] { color: rgba(0,0,0,0.55) !important; background-color: #e3e3e3 !important; }
+#blockpage .buttons [type=password][disabled] { color: rgba(0,0,0,1); }
+#blockpage .buttons [disabled] { color: rgba(0,0,0,0.55); background-color: #e3e3e3; }
+#blockpage .buttons [type=password]:-ms-input-placeholder { color: rgba(51,51,51,0.8); }
+
+input[type=password] { font-size: 1.5rem; }
 
 @keyframes slidein { from { max-height: 0; opacity: 0; } to { max-height: 300px; opacity: 1; } }
 #bpMoreToggle:checked ~ #bpMoreInfo { display: block; margin-top: 8px; animation: slidein 0.05s linear; }
@@ -364,7 +360,7 @@ input[type=password] { font-size: 1.4rem; }
 #bpWLButtons * { display: inline-block; }
 #bpWLDomain { display: none; }
 #bpWLPassword { width: 160px; }
-#bpWhitelist { color: #fff; cursor: pointer; }
+#bpWhitelist { color: #fff; }
 
 footer {
   background: #fff;
@@ -374,9 +370,14 @@ footer {
   padding: 8px;  
 }
 
-/* Responsive small-screen content */
+/* Responsive Content */
 @media only screen and (max-width: 500px) {
   h1 a { font-size: 1.8rem; min-width: 170px; }
   footer span:before { content: "Generated "; }
   footer span { display: block; }
+}
+
+@media only screen and (min-width: 1251px) {
+  #bpWrapper, footer { border-radius: 0 0 5px 5px; }
+  #bpAbout { border-right-width: 1px; }
 }
