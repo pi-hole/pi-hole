@@ -1414,7 +1414,7 @@ main() {
     if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
         . /opt/pihole/webpage.sh
-        echo "WEBPASSWORD=$(HashPassword ${1})" >> ${setupVars}
+        echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
     fi
   fi
 
