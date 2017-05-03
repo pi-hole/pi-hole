@@ -29,8 +29,8 @@ $svPasswd = !empty($setupVars["WEBPASSWORD"]);
 $svEmail = (!empty($setupVars["ADMIN_EMAIL"]) && filter_var($setupVars["ADMIN_EMAIL"], FILTER_VALIDATE_EMAIL)) ? $setupVars["ADMIN_EMAIL"] : "";
 unset($setupVars);
 
-// Set landing page name, found within /var/www/html/
-$landPage = "landing.php";
+// Set landing page name, found within /var/www/html/pihole/
+$landPage = "../landing.php";
 
 // Set empty array for hostnames to be accepted as self address for splash page
 $authorizedHosts = [];
