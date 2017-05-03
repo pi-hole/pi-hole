@@ -70,7 +70,7 @@ if ($serverName === "pi.hole") {
     $splashPage = "
     <html><head>
         $viewPort
-        <link rel='stylesheet' href='/blockpage.css' type='text/css'/>
+        <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
     </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements</body></html>
     ";
     $pageType = is_file(getcwd()."/$landPage") ? include $landPage : "$splashPage";
