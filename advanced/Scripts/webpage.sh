@@ -67,6 +67,13 @@ SetTemperatureUnit(){
 
 }
 
+HashPassword(){
+    # Compute password hash twice to avoid rainbow table vulnerability
+    return=$(echo -n ${1} | sha256sum | sed 's/\s.*$//')
+		return=$(echo -n ${return} | sha256sum | sed 's/\s.*$//')
+		echo ${return}
+}
+
 SetWebPassword(){
 
 	if [ "${SUDO_USER}" == "www-data" ]; then
@@ -93,9 +100,7 @@ SetWebPassword(){
 	read -s -p "Confirm Password: " CONFIRM
 	echo ""
 	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
-		# Compute password hash twice to avoid rainbow table vulnerability
-		hash=$(echo -n ${PASSWORD} | sha256sum | sed 's/\s.*$//')
-		hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
+		hash=$(HashPassword ${PASSWORD})
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
 		echo "New password set"
