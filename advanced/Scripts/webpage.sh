@@ -88,17 +88,23 @@ SetWebPassword(){
 		exit 1
 	fi
 
-	read -s -p "Enter New Password (Blank for no password): " PASSWORD
-	echo ""
+  if (( ${#args[2]} > 0 )) ; then
+    readonly PASSWORD="${args[2]}"
+    readonly CONFIRM="${PASSWORD}"
+  else
+    read -s -p "Enter New Password (Blank for no password): " PASSWORD
+    echo ""
 
-	if [ "${PASSWORD}" == "" ]; then
-		change_setting "WEBPASSWORD" ""
-		echo "Password Removed"
-		exit 0
-	fi
+    if [ "${PASSWORD}" == "" ]; then
+      change_setting "WEBPASSWORD" ""
+      echo "Password Removed"
+      exit 0
+    fi
 
-	read -s -p "Confirm Password: " CONFIRM
-	echo ""
+    read -s -p "Confirm Password: " CONFIRM
+    echo ""
+  fi
+
 	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
 		hash=$(HashPassword ${PASSWORD})
 		# Save hash to file
