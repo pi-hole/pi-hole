@@ -872,15 +872,14 @@ installPiholeWeb() {
   fi
   # Install the web interface
   echo ":::"
-  echo -n "::: Installing index.php..."
   if [ -d "/var/www/html/pihole" ]; then
       if [[ ${CUSTOMBLOCKPAGE} == false ]]; then
-        cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
-        cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
-        cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
+        echo -n "::: Installing block page..."
+        install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+        echo " done!"
       fi
   else
-    echo ":::     Creating directory for blocking page"
+    echo "::: Creating directory for blocking page"
     install -d /var/www/html/pihole
     install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
