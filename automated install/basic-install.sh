@@ -880,10 +880,12 @@ installPiholeWeb() {
     echo " done!"
   fi
 
+  echo -n "::: Backing up default lighttpd index page..."
   if [ -f /var/www/html/index.lighttpd.html ]; then
     mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+    echo " done!"
   else
-    printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
+    echo " No default index.lighttpd.html file found... not backing up"
   fi
 
   # Install Sudoer file
