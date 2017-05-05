@@ -35,7 +35,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB=true
-
+CUSTOMBLOCKPAGE=false
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
@@ -866,30 +866,48 @@ CreateLogFile() {
 }
 
 installPiholeWeb() {
+
+  if [ -f ${setupVars} ]; then
+    . ${setupVars}
+  fi
   # Install the web interface
   echo ":::"
-  echo "::: Installing pihole custom index page..."
+  echo -n "::: Installing index.php..."
   if [ -d "/var/www/html/pihole" ]; then
     if [ -f "/var/www/html/pihole/index.php" ]; then
-      echo ":::     Existing index.php detected, not overwriting"
+      if [[ ${CUSTOMBLOCKPAGE} == true ]]; then
+        echo " Existing index.php detected, not overwriting"
+      else
+        cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
+        echo " done!"
+      fi
     else
-      echo -n ":::     index.php missing, replacing... "
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
       echo " done!"
     fi
 
+    echo -n "::: Installing index.js..."
     if [ -f "/var/www/html/pihole/index.js" ]; then
-      echo ":::     Existing index.js detected, not overwriting"
+      if [[ ${CUSTOMBLOCKPAGE} == true ]]; then
+        echo " Existing index.js detected, not overwriting"
+      else
+        cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
+        echo " done!"
+      fi
     else
-      echo -n ":::     index.js missing, replacing... "
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
       echo " done!"
     fi
 
+    echo -n "::: Installing blockingpage.css..."
     if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
-      echo ":::     Existing blockingpage.css detected, not overwriting"
+      if [[ ${CUSTOMBLOCKPAGE} == true ]]; then
+          echo " Existing blockingpage.css detected, not overwriting"
+      else
+        cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
+        echo " done!"
+      fi
     else
-      echo -n ":::     blockingpage.css missing, replacing... "
       cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
