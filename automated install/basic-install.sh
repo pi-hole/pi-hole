@@ -872,22 +872,18 @@ installPiholeWeb() {
   fi
   # Install the web interface
   echo ":::"
-  if [ -d "/var/www/html/pihole" ]; then
-      if [[ ${CUSTOMBLOCKPAGE} == false ]]; then
-        echo -n "::: Installing block page..."
-        install -D ${PI_HOLE_LOCAL_REPO}/advanced/index.* /advanced/blockingpage.* /var/www/html/pihole/
-        echo " done!"
-      fi
-  else
-    echo "::: Creating directory for blocking page"
+
+  if [[ ${CUSTOMBLOCKPAGE} == false ]]; then
+    echo -n "::: Installing block page..."
     install -d /var/www/html/pihole
     install -D ${PI_HOLE_LOCAL_REPO}/advanced/index.* /advanced/blockingpage.* /var/www/html/pihole/
-    if [ -f /var/www/html/index.lighttpd.html ]; then
-      mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-    else
-      printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
-    fi
     echo " done!"
+  fi
+
+  if [ -f /var/www/html/index.lighttpd.html ]; then
+    mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+  else
+    printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
   fi
 
   # Install Sudoer file
