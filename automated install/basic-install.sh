@@ -874,44 +874,11 @@ installPiholeWeb() {
   echo ":::"
   echo -n "::: Installing index.php..."
   if [ -d "/var/www/html/pihole" ]; then
-    if [ -f "/var/www/html/pihole/index.php" ]; then
-      if [[ ${CUSTOMBLOCKPAGE} == true ]]; then
-        echo " Existing index.php detected, not overwriting"
-      else
+      if [[ ${CUSTOMBLOCKPAGE} == false ]]; then
         cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
-        echo " done!"
-      fi
-    else
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
-      echo " done!"
-    fi
-
-    echo -n "::: Installing index.js..."
-    if [ -f "/var/www/html/pihole/index.js" ]; then
-      if [[ ${CUSTOMBLOCKPAGE} == true ]]; then
-        echo " Existing index.js detected, not overwriting"
-      else
         cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
-        echo " done!"
-      fi
-    else
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
-      echo " done!"
-    fi
-
-    echo -n "::: Installing blockingpage.css..."
-    if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
-      if [[ ${CUSTOMBLOCKPAGE} == true ]]; then
-          echo " Existing blockingpage.css detected, not overwriting"
-      else
         cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
-        echo " done!"
       fi
-    else
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
-      echo " done!"
-    fi
-
   else
     echo ":::     Creating directory for blocking page"
     install -d /var/www/html/pihole
