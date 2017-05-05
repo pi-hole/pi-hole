@@ -876,7 +876,7 @@ installPiholeWeb() {
   if [[ ${CUSTOMBLOCKPAGE} == false ]]; then
     echo -n "::: Installing block page..."
     install -d /var/www/html/pihole
-    install -D ${PI_HOLE_LOCAL_REPO}/advanced/index.* /advanced/blockingpage.* /var/www/html/pihole/
+    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
     echo " done!"
   fi
 
