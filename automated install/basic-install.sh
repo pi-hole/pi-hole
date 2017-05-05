@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2015, 2016 by Jacob Salmela
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Installs Pi-hole
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+
 
 # pi-hole.net/donate
 #
@@ -55,13 +55,39 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 
+show_ascii_berry() {
+  echo "
+        .;;,.
+        .ccccc:,.
+         :cccclll:.      ..,,
+          :ccccclll.   ;ooodc
+           'ccll:;ll .oooodc
+             .;cll.;;looo:.
+                 .. ','.
+                .',,,,,,'.
+              .',,,,,,,,,,.
+            .',,,,,,,,,,,,....
+          ....''',,,,,,,'.......
+        .........  ....  .........
+        ..........      ..........
+        ..........      ..........
+        .........  ....  .........
+          ........,,,,,,,'......
+            ....',,,,,,,,,,,,.
+               .',,,,,,,,,'.
+                .',,,,,,'.
+                  ..'''.
+"
+}
+
+
 # Compatibility
 distro_check() {
 if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -80,7 +106,8 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf git ${iproute_pkg} whiptail)
+
+  INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
   usedhcpcd5=true
@@ -88,6 +115,17 @@ if command -v apt-get &> /dev/null; then
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
   DNSMASQ_USER="dnsmasq"
+
+  test_dpkg_lock() {
+    i=0
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+      sleep 0.5
+      ((i=i+1))
+    done
+    # Always return success, since we only return if there is no
+    # lock (anymore)
+    return 0
+  }
 
 elif command -v rpm &> /dev/null; then
   # Fedora Family
@@ -101,7 +139,7 @@ elif command -v rpm &> /dev/null; then
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
+  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli)
   if ! grep -q 'Fedora' /etc/redhat-release; then
@@ -198,7 +236,7 @@ find_IPv4_information() {
 
 get_available_interfaces() {
   # Get available UP interfaces.
-  availableInterfaces=$(ip -o link | grep -v "state DOWN\|lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+  availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 welcomeDialogs() {
@@ -229,7 +267,7 @@ verifyFreeDiskSpace() {
   # - Insufficient free disk space
   elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
     echo "::: Insufficient Disk Space!"
-    echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+    echo "::: Your system appears to be low on disk space. Pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
     echo "::: You only have ${existing_free_kilobytes} KiloBytes free."
     echo "::: If this is a new install you may need to expand your disk."
     echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
@@ -418,7 +456,7 @@ setStaticIPv4() {
       cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
       # Build Interface configuration file:
       {
-        echo "# Configured via Pi-Hole installer"
+        echo "# Configured via Pi-hole installer"
         echo "DEVICE=$PIHOLE_INTERFACE"
         echo "BOOTPROTO=none"
         echo "ONBOOT=yes"
@@ -468,6 +506,7 @@ setDNS() {
       Level3 ""
       Norton ""
       Comodo ""
+      DNSWatch ""
       Custom "")
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
@@ -497,6 +536,11 @@ setDNS() {
       echo "::: Using Comodo Secure servers."
       PIHOLE_DNS_1="8.26.56.26"
       PIHOLE_DNS_2="8.20.247.20"
+      ;;
+    DNSWatch)
+      echo "::: Using DNS.WATCH servers."
+      PIHOLE_DNS_1="84.200.69.80"
+      PIHOLE_DNS_2="84.200.70.40"
       ;;
     Custom)
       until [[ ${DNSSettingsCorrect} = True ]]; do
@@ -593,14 +637,14 @@ version_check_dnsmasq() {
   local dnsmasq_conf="/etc/dnsmasq.conf"
   local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
   local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
-  local dnsmasq_original_config="/etc/.pihole/advanced/dnsmasq.conf.original"
-  local dnsmasq_pihole_01_snippet="/etc/.pihole/advanced/01-pihole.conf"
+  local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
+  local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
   local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
 
   if [ -f ${dnsmasq_conf} ]; then
     echo -n ":::    Existing dnsmasq.conf found..."
     if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
-      echo " it is from a previous pi-hole install."
+      echo " it is from a previous Pi-hole install."
       echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
       mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
       echo " done."
@@ -608,7 +652,7 @@ version_check_dnsmasq() {
       cp ${dnsmasq_original_config} ${dnsmasq_conf}
       echo " done."
     else
-      echo " it is not a pi-hole file, leaving alone!"
+      echo " it is not a Pi-hole file, leaving alone!"
     fi
   else
     echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
@@ -680,9 +724,9 @@ installScripts() {
 }
 
 installConfigs() {
-  # Install the configs from /etc/.pihole to their various locations
+  # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
   echo ":::"
-  echo "::: Installing configs..."
+  echo "::: Installing configs from ${PI_HOLE_LOCAL_REPO}..."
   version_check_dnsmasq
 
   #Only mess with lighttpd configs if user has chosen to install web interface
@@ -693,7 +737,7 @@ installConfigs() {
     elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
       mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
     fi
-    cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
     mkdir -p /var/run/lighttpd
     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
     mkdir -p /var/cache/lighttpd/compress
@@ -750,10 +794,11 @@ update_package_cache() {
 
   echo ":::"
   echo -n "::: Updating local cache of available packages..."
-  if eval ${UPDATE_PKG_CACHE} &> /dev/null; then
+  if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
     echo " done!"
   else
-    echo -n "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
+    echo -en "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
+    return 1
   fi
 }
 
@@ -770,7 +815,7 @@ notify_package_updates_available() {
       echo "::: Your system is up to date! Continuing with Pi-hole installation..."
     else
       echo "::: There are ${updatesToInstall} updates available for your system!"
-      echo "::: We recommend you update your OS after installing Pi-Hole! "
+      echo "::: We recommend you update your OS after installing Pi-hole! "
       echo ":::"
     fi
   else
@@ -800,6 +845,7 @@ install_dependent_packages() {
       fi
     done
     if [[ ${#installArray[@]} -gt 0 ]]; then
+      test_dpkg_lock
       debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
       return
     fi
@@ -846,7 +892,7 @@ installPiholeWeb() {
       echo ":::     Existing index.php detected, not overwriting"
     else
       echo -n ":::     index.php missing, replacing... "
-      cp /etc/.pihole/advanced/index.php /var/www/html/pihole/
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -854,7 +900,7 @@ installPiholeWeb() {
       echo ":::     Existing index.js detected, not overwriting"
     else
       echo -n ":::     index.js missing, replacing... "
-      cp /etc/.pihole/advanced/index.js /var/www/html/pihole/
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -862,14 +908,14 @@ installPiholeWeb() {
       echo ":::     Existing blockingpage.css detected, not overwriting"
     else
       echo -n ":::     blockingpage.css missing, replacing... "
-      cp /etc/.pihole/advanced/blockingpage.css /var/www/html/pihole
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
 
   else
     echo ":::     Creating directory for blocking page"
     install -d /var/www/html/pihole
-    install -D /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/
+    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
@@ -882,7 +928,7 @@ installPiholeWeb() {
   echo ":::"
   echo -n "::: Installing sudoer file..."
   mkdir -p /etc/sudoers.d/
-  cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
+  cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole
   # Add lighttpd user (OS dependent) to sudoers file
   echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -900,7 +946,7 @@ installCron() {
   # Install the cron job
   echo ":::"
   echo -n "::: Installing latest Cron script..."
-  cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
+  cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
   echo " done!"
 }
 
@@ -914,7 +960,7 @@ runGravity() {
   fi
   # Test if /etc/pihole/adlists.default exists
   if [[ ! -e /etc/pihole/adlists.default ]]; then
-    cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+    cp ${PI_HOLE_LOCAL_REPO}/adlists.default /etc/pihole/adlists.default
   fi
   echo "::: Running gravity.sh"
   { /opt/pihole/gravity.sh; }
@@ -937,7 +983,7 @@ configureFirewall() {
     whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
     { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
     echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
-    firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
+    firewall-cmd --permanent --add-service=http --add-service=dns
     firewall-cmd --reload
     return 0
   # Check for proper kernel modules to prevent failure
@@ -975,7 +1021,7 @@ finalExports() {
 
   # Update variables in setupVars.conf file
   if [ -e "${setupVars}" ]; then
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
   fi
     {
   echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
@@ -989,7 +1035,7 @@ finalExports() {
 
   # Look for DNS server settings which would have to be reapplied
   source "${setupVars}"
-  source "/etc/.pihole/advanced/Scripts/webpage.sh"
+  source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
   if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
     ProcessDNSSettings
@@ -1004,7 +1050,7 @@ installLogrotate() {
   # Install the logrotate script
   echo ":::"
   echo -n "::: Installing latest logrotate script..."
-  cp /etc/.pihole/advanced/logrotate /etc/pihole/logrotate
+  cp ${PI_HOLE_LOCAL_REPO}/advanced/logrotate /etc/pihole/logrotate
   # Different operating systems have different user / group
   # settings for logrotate that makes it impossible to create
   # a static logrotate file that will work with e.g.
@@ -1043,6 +1089,7 @@ installPihole() {
   fi
   installCron
   installLogrotate
+  FTLdetect || echo "::: FTL Engine not installed."
   configureFirewall
   finalExports
   #runGravity
@@ -1074,6 +1121,7 @@ updatePihole() {
   fi
   installCron
   installLogrotate
+  FTLdetect || echo "::: FTL Engine not installed."
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   #runGravity
 }
@@ -1167,10 +1215,98 @@ if [[ "${reconfigure}" == true ]]; then
     fi
 }
 
+FTLinstall() {
+  # Download and install FTL binary
+  local binary="${1}"
+  local latesttag
+  local orig_dir
+  echo -n ":::  Installing FTL... "
+
+  orig_dir="${PWD}"
+  latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
+  # Tags should always start with v, check for that.
+  if [[ ! "${latesttag}" == v* ]]; then
+    echo "failed (error in getting latest release location from GitHub)"
+    return 1
+  fi
+  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/${binary}"; then
+    # Get sha1 of the binary we just downloaded for verification.
+    curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "/tmp/${binary}.sha1"
+    # Check if we just downloaded text, or a binary file.
+    cd /tmp
+    if sha1sum --status --quiet -c "${binary}".sha1; then
+      echo -n "transferred... "
+      stop_service pihole-FTL &> /dev/null
+      install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
+      cd "${orig_dir}"
+      install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+      echo "done."
+      return 0
+    else
+      echo "failed (download of binary from Github failed)"
+      cd "${orig_dir}"
+      return 1
+    fi
+  else
+    cd "${orig_dir}"
+    echo "failed (URL not found.)"
+  fi
+}
+
+FTLdetect() {
+  # Detect suitable FTL binary platform
+  echo ":::"
+  echo "::: Downloading latest version of FTL..."
+
+  local machine
+  local binary
+
+  machine=$(uname -m)
+
+  if [[ $machine == arm* || $machine == *aarch* ]]; then
+    # ARM
+    local rev=$(uname -m | sed "s/[^0-9]//g;")
+    local lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
+    if [[ "$lib" == "/lib/ld-linux-aarch64.so.1" ]]; then
+      echo ":::  Detected ARM-aarch64 architecture"
+      binary="pihole-FTL-aarch64-linux-gnu"
+    elif [[ "$lib" == "/lib/ld-linux-armhf.so.3" ]]; then
+      if [ "$rev" -gt "6" ]; then
+        echo ":::  Detected ARM-hf architecture (armv7+)"
+        binary="pihole-FTL-arm-linux-gnueabihf"
+      else
+        echo ":::  Detected ARM-hf architecture (armv6 or lower)"
+        echo ":::  Using ARM binary"
+        binary="pihole-FTL-arm-linux-gnueabi"
+      fi
+    else
+      echo ":::  Detected ARM architecture"
+      binary="pihole-FTL-arm-linux-gnueabi"
+    fi
+  elif [[ $machine == x86_64 ]]; then
+    # 64bit
+    echo ":::  Detected x86_64 architecture"
+    binary="pihole-FTL-linux-x86_64"
+  else
+    # Something else - we try to use 32bit executable and warn the user
+    if [[ ! $machine == i686 ]]; then
+      echo ":::  Not able to detect architecture (unknown: ${machine}), trying 32bit executable"
+      echo ":::  Contact Pi-hole support if you experience problems (like FTL not running)"
+    else
+      echo ":::  Detected 32bit (i686) architecture"
+    fi
+    binary="pihole-FTL-linux-x86_32"
+  fi
+
+  FTLinstall "${binary}" || return 1
+
+}
+
 main() {
 
   ######## FIRST CHECK ########
   # Must be root to install
+  show_ascii_berry
   echo ":::"
   if [[ ${EUID} -eq 0 ]]; then
     echo "::: You are root."
@@ -1221,7 +1357,7 @@ main() {
   fi
 
   # Update package cache
-  update_package_cache
+  update_package_cache || exit 1
 
   # Notify user of package availability
   notify_package_updates_available
@@ -1295,7 +1431,8 @@ main() {
     pw=""
     if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-        /usr/local/bin/pihole -a -p "${pw}"
+        . /opt/pihole/webpage.sh
+        echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
     fi
   fi
 
@@ -1310,6 +1447,9 @@ main() {
   fi
 
   runGravity
+
+  start_service pihole-FTL
+  enable_service pihole-FTL
 
   echo "::: done."
 
@@ -1339,7 +1479,7 @@ main() {
       echo ":::                                ${pw}"
       echo ":::"
       echo "::: You can always change it using"
-      echo ":::                                pihole -a -p new_password"
+      echo ":::                                pihole -a -p"
     fi
   fi
 

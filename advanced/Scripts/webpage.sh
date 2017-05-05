@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
-# Network-wide ad blocking via your Raspberry Pi
-# http://pi-hole.net
+# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
 # Web interface settings
 #
-# Pi-hole is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 2 of the License, or
-# (at your option) any later version.
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
 
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
@@ -27,6 +27,11 @@ helpFunc() {
 :::  -f, fahrenheit		Set Fahrenheit temperature unit
 :::  -k, kelvin			Set Kelvin temperature unit
 :::  -h, --help			Show this help dialog
+:::  -i, interface		Setup interface listening behavior of dnsmasq
+:::               		pihole -a -i local  : Listen on all interfaces, but allow only queries from
+:::               		                      devices that are at most one hop away (local devices)
+:::               		pihole -a -i single : Listen only on one interface (see PIHOLE_INTERFACE)
+:::               		pihole -a -i all    : Listen on all interfaces, permit all origins
 EOM
 	exit 0
 }
@@ -62,6 +67,13 @@ SetTemperatureUnit(){
 
 }
 
+HashPassword(){
+    # Compute password hash twice to avoid rainbow table vulnerability
+    return=$(echo -n ${1} | sha256sum | sed 's/\s.*$//')
+		return=$(echo -n ${return} | sha256sum | sed 's/\s.*$//')
+		echo ${return}
+}
+
 SetWebPassword(){
 
 	if [ "${SUDO_USER}" == "www-data" ]; then
@@ -76,19 +88,32 @@ SetWebPassword(){
 		exit 1
 	fi
 
-	# Set password only if there is one to be set
-	if (( ${#args[2]} > 0 )) ; then
-		# Compute password hash twice to avoid rainbow table vulnerability
-		hash=$(echo -n ${args[2]} | sha256sum | sed 's/\s.*$//')
-		hash=$(echo -n ${hash} | sha256sum | sed 's/\s.*$//')
+  if (( ${#args[2]} > 0 )) ; then
+    readonly PASSWORD="${args[2]}"
+    readonly CONFIRM="${PASSWORD}"
+  else
+    read -s -p "Enter New Password (Blank for no password): " PASSWORD
+    echo ""
+
+    if [ "${PASSWORD}" == "" ]; then
+      change_setting "WEBPASSWORD" ""
+      echo "Password Removed"
+      exit 0
+    fi
+
+    read -s -p "Confirm Password: " CONFIRM
+    echo ""
+  fi
+
+	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
+		hash=$(HashPassword ${PASSWORD})
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
 		echo "New password set"
 	else
-		change_setting "WEBPASSWORD" ""
-		echo "Password removed"
+		echo "Passwords don't match. Your password has not been changed"
+		exit 1
 	fi
-
 }
 
 ProcessDNSSettings() {
@@ -125,6 +150,27 @@ ProcessDNSSettings() {
 		echo "dnssec
 trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
 " >> "${dnsmasqconfig}"
+	fi
+
+	delete_dnsmasq_setting "host-record"
+
+	if [ ! -z "${HOSTRECORD}" ]; then
+		add_dnsmasq_setting "host-record" "${HOSTRECORD}"
+	fi
+
+	# Setup interface listening behavior of dnsmasq
+	delete_dnsmasq_setting "interface"
+	delete_dnsmasq_setting "local-service"
+
+	if [[ "${DNSMASQ_LISTENING}" == "all" ]]; then
+		# Listen on all interfaces, permit all origins
+		add_dnsmasq_setting "except-interface" "nonexisting"
+	elif [[ "${DNSMASQ_LISTENING}" == "local" ]]; then
+		# Listen only on all interfaces, but only local subnets
+		add_dnsmasq_setting "local-service"
+	else
+		# Listen only on one interface
+		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
 
 }
@@ -293,6 +339,25 @@ SetWebUILayout(){
 
 }
 
+CustomizeAdLists() {
+
+  list="/etc/pihole/adlists.list"
+
+	if [[ "${args[2]}" == "enable" ]] ; then
+		sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
+	elif [[ "${args[2]}" == "disable" ]] ; then
+		sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
+	elif [[ "${args[2]}" == "add" ]] ; then
+		echo "${args[3]}" >> ${list}
+	elif [[ "${args[2]}" == "del" ]] ; then
+	  var=$(echo "${args[3]}" | sed 's/\//\\\//g')
+	  sed -i "/${var}/Id" "${list}"
+	else
+		echo "Not permitted"
+		return 1
+  fi
+}
+
 SetPrivacyMode(){
 
 	if [[ "${args[2]}" == "true" ]] ; then
@@ -313,6 +378,7 @@ ResolutionSettings() {
 	elif [[ "${typ}" == "clients" ]]; then
 		change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
 	fi
+
 }
 
 AddDHCPStaticAddress() {
@@ -331,6 +397,7 @@ AddDHCPStaticAddress() {
 		# Full info given
 		echo "dhcp-host=${mac},${ip},${host}" >> "${dhcpstaticconfig}"
 	fi
+
 }
 
 RemoveDHCPStaticAddress() {
@@ -338,6 +405,54 @@ RemoveDHCPStaticAddress() {
 	mac="${args[2]}"
 	sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
 
+}
+
+SetHostRecord(){
+
+	if [ -n "${args[3]}" ]; then
+		change_setting "HOSTRECORD" "${args[2]},${args[3]}"
+		echo "Setting host record for ${args[2]} -> ${args[3]}"
+	else
+		change_setting "HOSTRECORD" ""
+		echo "Removing host record"
+	fi
+
+	ProcessDNSSettings
+
+	# Restart dnsmasq to load new configuration
+	RestartDNS
+
+}
+
+SetListeningMode(){
+
+	source "${setupVars}"
+
+	if [[ "${args[2]}" == "all" ]] ; then
+		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+		change_setting "DNSMASQ_LISTENING" "all"
+	elif [[ "${args[2]}" == "local" ]] ; then
+		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+		change_setting "DNSMASQ_LISTENING" "local"
+	else
+		echo "Listening only on interface ${PIHOLE_INTERFACE}"
+		change_setting "DNSMASQ_LISTENING" "single"
+	fi
+
+	# Don't restart DNS server yet because other settings
+	# will be applied afterwards if "-web" is set
+	if [[ "${args[3]}" != "-web" ]]; then
+		ProcessDNSSettings
+		# Restart dnsmasq to load new configuration
+		RestartDNS
+	fi
+
+}
+
+Teleporter()
+{
+	local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+	php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
 main() {
@@ -363,6 +478,10 @@ main() {
 		"resolve"           ) ResolutionSettings;;
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
+		"hostrecord"        ) SetHostRecord;;
+		"-i" | "interface"  ) SetListeningMode;;
+		"-t" | "teleporter" ) Teleporter;;
+		"adlist"            ) CustomizeAdLists;;
 		*                   ) helpFunc;;
 	esac
 
