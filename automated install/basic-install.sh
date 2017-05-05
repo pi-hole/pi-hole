@@ -878,6 +878,8 @@ installPiholeWeb() {
     install -d /var/www/html/pihole
     install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
     echo " done!"
+  else
+    echo "::: Custom block page detected... not overwriting!"
   fi
 
   echo -n "::: Backing up default lighttpd index page..."
