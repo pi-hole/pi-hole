@@ -35,7 +35,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB=true
-
+CUSTOMBLOCKPAGE=false
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
@@ -866,44 +866,28 @@ CreateLogFile() {
 }
 
 installPiholeWeb() {
+
+  if [ -f ${setupVars} ]; then
+    . ${setupVars}
+  fi
   # Install the web interface
   echo ":::"
-  echo "::: Installing pihole custom index page..."
-  if [ -d "/var/www/html/pihole" ]; then
-    if [ -f "/var/www/html/pihole/index.php" ]; then
-      echo ":::     Existing index.php detected, not overwriting"
-    else
-      echo -n ":::     index.php missing, replacing... "
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
-      echo " done!"
-    fi
 
-    if [ -f "/var/www/html/pihole/index.js" ]; then
-      echo ":::     Existing index.js detected, not overwriting"
-    else
-      echo -n ":::     index.js missing, replacing... "
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
-      echo " done!"
-    fi
-
-    if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
-      echo ":::     Existing blockingpage.css detected, not overwriting"
-    else
-      echo -n ":::     blockingpage.css missing, replacing... "
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
-      echo " done!"
-    fi
-
-  else
-    echo ":::     Creating directory for blocking page"
+  if [[ ${CUSTOMBLOCKPAGE} == false ]]; then
+    echo -n "::: Installing block page..."
     install -d /var/www/html/pihole
     install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
-    if [ -f /var/www/html/index.lighttpd.html ]; then
-      mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-    else
-      printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
-    fi
     echo " done!"
+  else
+    echo "::: Custom block page detected... not overwriting!"
+  fi
+
+  echo -n "::: Backing up default lighttpd index page..."
+  if [ -f /var/www/html/index.lighttpd.html ]; then
+    mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+    echo " done!"
+  else
+    echo " No default index.lighttpd.html file found... not backing up"
   fi
 
   # Install Sudoer file
