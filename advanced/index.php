@@ -214,7 +214,7 @@ if ($phBranch !== "master") {
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
   <link rel="shortcut icon" href="http://<?=$serverAddr ?>/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="http://<?=$serverAddr ?>/blockpage.css" type="text/css"/>
+  <link rel="stylesheet" href="http://<?=$serverAddr ?>/pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
   <script src="http://<?=$serverAddr ?>/admin/scripts/vendor/jquery.min.js"></script>
   <script>
