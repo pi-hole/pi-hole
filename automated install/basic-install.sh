@@ -967,6 +967,7 @@ configureFirewall() {
     echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
     firewall-cmd --permanent --add-service=http --add-service=dns
     # Rule for lo, ports 4711-4720
+    firewall-cmd --permanent --add-port=4711-4720/tcp
     firewall-cmd --reload
     return 0
   # Check for proper kernel modules to prevent failure
