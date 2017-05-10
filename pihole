@@ -111,18 +111,20 @@ queryFunc() {
   method="${3}"
   lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
   for list in ${lists[@]}; do
-    if [ -e "${list}" ]; then
-      result=$(scanList ${domain} ${list} ${method})
-      # Remove empty lines before couting number of results
-      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-      echo "::: ${list} (${count} results)"
-      if [[ ${count} > 0 ]]; then
-        echo "${result}"
+    if [ "${list}" != "/etc/pihole/list.preEventHorizon" ]; then
+      if [ -e "${list}" ]; then
+        result=$(scanList ${domain} ${list} ${method})
+        # Remove empty lines before couting number of results
+        count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+        echo "::: ${list} (${count} results)"
+        if [[ ${count} > 0 ]]; then
+          echo "${result}"
+        fi
+        echo ""
+      else
+        echo "::: ${list} does not exist"
+        echo ""
       fi
-      echo ""
-    else
-      echo "::: ${list} does not exist"
-      echo ""
     fi
   done
 
