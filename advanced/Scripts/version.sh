@@ -69,8 +69,9 @@ getRemoteVersion(){
 coreOutput() {
   [ "$1" = "-c" -o "$1" = "--current" -o -z "$1" ] && current="$(getLocalVersion ${PHGITDIR})"
   [ "$1" = "-l" -o "$1" = "--latest" -o -z "$1" ] && latest="$(getRemoteVersion pi-hole)"
-  [ "$1" = "--hash" ] && hash="$(getLocalHash ${PHGITDIR})"
-  
+  [ "$1" = "-h" -o "$1" = "--hash" ] && hash="$(getLocalHash ${PHGITDIR})"
+  [ -n "$2" ] && error="true"
+
   if [ -n "$current" -a -n "$latest" ]; then
     str="Pi-hole version is $current (Latest: $latest)"
   elif [ -n "$current" -a -z "$latest" ]; then
@@ -80,17 +81,24 @@ coreOutput() {
   elif [ -n "$hash" ]; then
     str="Current Pi-hole hash is $hash"
   else
-    echo "  Invalid Option! Try 'pihole -v --help' for more information."
-    exit 1
+	error="true"
   fi
+
+  if [ "$error" = "true" ]; then
+	echo "  Invalid Option! Try 'pihole -v --help' for more information."
+	exit 1
+  fi
+
   echo "  $str"
 }
 
 webOutput() {
   [ "$1" = "-c" -o "$1" = "--current" -o -z "$1" ] && current="$(getLocalVersion ${WEBGITDIR})"
   [ "$1" = "-l" -o "$1" = "--latest" -o -z "$1" ] && latest="$(getRemoteVersion AdminLTE)"
-  [ "$1" = "--hash" ] && hash="$(getLocalHash ${WEBGITDIR})"
+  [ "$1" = "-h" -o "$1" = "--hash" ] && hash="$(getLocalHash ${WEBGITDIR})"
   [ ! -d "${WEBGITDIR}" ] && str="Web interface not installed!"
+  [ -n "$2" ] && error="true"
+
   
   if [ -n "$current" -a -n "$latest" ]; then
     str="Admin Console version is $current (Latest: $latest)"
@@ -101,9 +109,14 @@ webOutput() {
   elif [ -n "$hash" ]; then
     str="Current Admin Console hash is $hash"
   else
-    echo "  Invalid Option! Try 'pihole -v --help' for more information."
-    exit 1
+	error="true"
   fi
+
+  if [ "$error" = "true" ]; then
+	echo "  Invalid Option! Try 'pihole -v --help' for more information."
+	exit 1
+  fi
+
   echo "  $str"
 }
 
@@ -111,6 +124,7 @@ ftlOutput() {
   [ "$1" = "-c" -o "$1" = "--current" -o -z "$1" ] && current="$(pihole-FTL version)"
   [ "$1" = "-l" -o "$1" = "--latest" -o -z "$1" ] && latest="$(getRemoteVersion FTL)"
   [ ! -d "${WEBGITDIR}" ] && exit 0
+  [ -n "$2" ] && error="true"
 
   if [ -n "$current" -a -n "$latest" ]; then
     str="FTL version is $current (Latest: $latest)"
@@ -119,16 +133,21 @@ ftlOutput() {
   elif [ -z "$current" -a -n "$latest" ]; then
     str="Latest FTL version is $latest"
   else
-    echo "  Invalid Option! Try 'pihole -v --help' for more information."
-    exit 1
+	error="true"
   fi
+
+  if [ "$error" = "true" ]; then
+	echo "  Invalid Option! Try 'pihole -v --help' for more information."
+	exit 1
+  fi
+
   echo "  $str"
 }
   
 defaultOutput() {
-  coreOutput "$1"
-  webOutput "$1"
-  ftlOutput "$1"
+  coreOutput "$1" "$2"
+  webOutput "$1" "$2"
+  ftlOutput "$1" "$2"
 }
 
 helpFunc() {
