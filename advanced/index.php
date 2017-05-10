@@ -185,7 +185,7 @@ function add() {
 	}
 
 	$.ajax({
-		url: "admin/scripts/pi-hole/php/add.php",
+		url: "http://pi.hole/admin/scripts/pi-hole/php/add.php",
 		method: "post",
 		data: {"domain":domain.val(), "list":"white", "pw":pw.val()},
 		success: function(response) {
