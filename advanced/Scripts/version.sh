@@ -66,72 +66,93 @@ getRemoteVersion(){
   return 0
 }
 
-#PHHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/pi-hole/commits/master | \
-#                   grep sha | \
-#                   head -n1 | \
-#                   awk -F ' ' '{ print $2 }' | \
-#                   tr -cd '[[:alnum:]]._-')
-
-#WEBHASHLATEST=$(curl -s https://api.github.com/repos/pi-hole/AdminLTE/commits/master | \
-#                   grep sha | \
-#                   head -n1 | \
-#                   awk -F ' ' '{ print $2 }' | \
-#                   tr -cd '[[:alnum:]]._-')
-
-
-normalOutput() {
-	echo "::: Pi-hole version is $(getLocalVersion "${PHGITDIR}") (Latest version is $(getRemoteVersion pi-hole))"
-	if [ -d "${WEBGITDIR}" ]; then
-		echo "::: Web-Admin version is $(getLocalVersion "${WEBGITDIR}") (Latest version is $(getRemoteVersion AdminLTE))"
-	fi
+coreOutput() {
+  [ "$1" = "-c" -o "$1" = "--current" -o -z "$1" ] && current="$(getLocalVersion ${PHGITDIR})"
+  [ "$1" = "-l" -o "$1" = "--latest" -o -z "$1" ] && latest="$(getRemoteVersion pi-hole)"
+  [ "$1" = "--hash" ] && hash="$(getLocalHash ${PHGITDIR})"
+  
+  if [ -n "$current" -a -n "$latest" ]; then
+    str="Pi-hole version is $current (Latest: $latest)"
+  elif [ -n "$current" -a -z "$latest" ]; then
+    str="Current Pi-hole version is $current"
+  elif [ -z "$current" -a -n "$latest" ]; then
+    str="Latest Pi-hole version is $latest"
+  elif [ -n "$hash" ]; then
+    str="Current Pi-hole hash is $hash"
+  else
+    echo "  Invalid Option! Try 'pihole -v --help' for more information."
+    exit 1
+  fi
+  echo "  $str"
 }
 
 webOutput() {
-  if [ -d "${WEBGITDIR}" ]; then
-    case "${1}" in
-      "-l" | "--latest"    ) echo $(getRemoteVersion AdminLTE);;
-      "-c" | "--current"   ) echo $(getLocalVersion "${WEBGITDIR}");;
-      "-h" | "--hash"      ) echo $(getLocalHash "${WEBGITDIR}");;
-      *                    ) echo "::: Invalid Option!"; exit 1;
-    esac
+  [ "$1" = "-c" -o "$1" = "--current" -o -z "$1" ] && current="$(getLocalVersion ${WEBGITDIR})"
+  [ "$1" = "-l" -o "$1" = "--latest" -o -z "$1" ] && latest="$(getRemoteVersion AdminLTE)"
+  [ "$1" = "--hash" ] && hash="$(getLocalHash ${WEBGITDIR})"
+  [ ! -d "${WEBGITDIR}" ] && str="Web interface not installed!"
+  
+  if [ -n "$current" -a -n "$latest" ]; then
+    str="Admin Console version is $current (Latest: $latest)"
+  elif [ -n "$current" -a -z "$latest" ]; then
+    str="Current Admin Console version is $current"
+  elif [ -z "$current" -a -n "$latest" ]; then
+    str="Latest Admin Console version is $latest"
+  elif [ -n "$hash" ]; then
+    str="Current Admin Console hash is $hash"
   else
-    echo "::: Web interface not installed!"; exit 1;
+    echo "  Invalid Option! Try 'pihole -v --help' for more information."
+    exit 1
   fi
+  echo "  $str"
 }
 
-coreOutput() {
-  case "${1}" in
-    "-l" | "--latest"    ) echo $(getRemoteVersion pi-hole);;
-    "-c" | "--current"   ) echo $(getLocalVersion "${PHGITDIR}");;
-    "-h" | "--hash"      ) echo $(getLocalHash "${PHGITDIR}");;
-    *                    ) echo "::: Invalid Option!"; exit 1;
-  esac
+ftlOutput() {
+  [ "$1" = "-c" -o "$1" = "--current" -o -z "$1" ] && current="$(pihole-FTL version)"
+  [ "$1" = "-l" -o "$1" = "--latest" -o -z "$1" ] && latest="$(getRemoteVersion FTL)"
+  [ ! -d "${WEBGITDIR}" ] && exit 0
+
+  if [ -n "$current" -a -n "$latest" ]; then
+    str="FTL version is $current (Latest: $latest)"
+  elif [ -n "$current" -a -z "$latest" ]; then
+    str="Current FTL version is $current"
+  elif [ -z "$current" -a -n "$latest" ]; then
+    str="Latest FTL version is $latest"
+  else
+    echo "  Invalid Option! Try 'pihole -v --help' for more information."
+    exit 1
+  fi
+  echo "  $str"
+}
+  
+defaultOutput() {
+  coreOutput "$1"
+  webOutput "$1"
+  ftlOutput "$1"
 }
 
 helpFunc() {
-	cat << EOM
-:::
-::: Show Pi-hole/Web Admin versions
-:::
-::: Usage: pihole -v [ -a | -p ] [ -l | -c ]
-:::
-::: Options:
-:::  -a, --admin          Show both current and latest versions of web admin
-:::  -p, --pihole         Show both current and latest versions of Pi-hole core files
-:::  -l, --latest         (Only after -a | -p) Return only latest version
-:::  -c, --current        (Only after -a | -p) Return only current version
-:::  -h, --help           Show this help dialog
-:::
-EOM
+  echo "Usage: pihole -v [REPO | OPTION] [OPTION]
+Show Pi-hole, Web Admin & FTL versions
+
+Repositories:
+  -a, --admin          Show both current and latest versions of Web Admin
+  -f, --ftl            Show both current and latest versions of FTL
+  -p, --pihole         Show both current and latest versions of Pi-hole Core
+  
+Options:
+  -c, --current        (Only after -a | -p | -f) Return the current version
+  -l, --latest         (Only after -a | -p | -f) Return the latest version
+  -h, --hash           (Only after -a | -p) Return the current Github hash
+  --help               Show this help dialog
+"
 	exit 0
 }
 
-if [[ $# = 0 ]]; then
-	normalOutput
-fi
-
 case "${1}" in
   "-a" | "--admin"     ) shift; webOutput "$@";;
-  "-p" | "--pihole"    ) shift; coreOutput "$@" ;;
-  "-h" | "--help"      ) helpFunc;;
+  "-p" | "--pihole"    ) shift; coreOutput "$@";;
+  "-f" | "--ftl"       ) shift; ftlOutput "$@";;
+  "--help"             ) helpFunc;;
+  *                    ) defaultOutput "$@";;
 esac
