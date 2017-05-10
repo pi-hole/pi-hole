@@ -86,7 +86,7 @@ scanList(){
   method="${3}"
 
   if [[ ${method} == "-exact" ]]; then
-    grep -i -E -l "(^|\/)${domain}($|\/)" ${list}
+    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list}
   else
     grep -i "${domain}" ${list}
   fi
