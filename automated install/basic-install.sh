@@ -35,7 +35,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB=true
-CUSTOMBLOCKPAGE=false
+CUSTOMBLOCKPAGE=init
 
 # Find the rows and columns will default to 80x24 is it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
@@ -870,6 +870,18 @@ installPiholeWeb() {
   if [ -f ${setupVars} ]; then
     . ${setupVars}
   fi
+
+  if [[ ${CUSTOMBLOCKPAGE} == "init" ]]; then #first run with new flag
+     # Give the user a chance to review their settings before moving on
+      if whiptail --backtitle "New Setting introduced" --title "Using a custom block page?" --yesno "Would you like to use the default Pi-hole block page?
+        Yes: Pi-hole block page will be installed (Recommended)
+        No:  I am using my own custom block page and do not wish to lose it." ${r} ${c}; then
+        CUSTOMBLOCKPAGE=false
+        else
+        CUSTOMBLOCKPAGE=true
+      fi
+  fi
+
   # Install the web interface
   echo ":::"
 
@@ -987,7 +999,7 @@ finalExports() {
 
   # Update variables in setupVars.conf file
   if [ -e "${setupVars}" ]; then
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;/CUSTOMBLOCKPAGE/d;' "${setupVars}"
   fi
     {
   echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
@@ -997,6 +1009,7 @@ finalExports() {
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
   echo "INSTALL_WEB=${INSTALL_WEB}"
+  echo "CUSTOMBLOCKPAGE=${CUSTOMBLOCKPAGE}"
     }>> "${setupVars}"
 
   # Look for DNS server settings which would have to be reapplied
