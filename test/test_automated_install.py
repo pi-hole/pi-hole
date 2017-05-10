@@ -188,7 +188,7 @@ def test_installPiholeWeb_empty_directory_no_errors(Pihole):
     installPiholeWeb
     ''')
     assert 'Installing pihole custom index page...' in installWeb.stdout
-    assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
+    assert 'Installing block page... done!' or 'Custom block page detected... not overwriting!' in installWeb.stdout
     assert 'index.php missing, replacing...' in installWeb.stdout
     assert 'index.js missing, replacing...' in installWeb.stdout
     assert 'blockingpage.css missing, replacing...' in installWeb.stdout
@@ -205,7 +205,7 @@ def test_installPiholeWeb_index_php_no_errors(Pihole):
     touch /var/www/html/pihole/index.php
     installPiholeWeb
     ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
+    assert 'Installing block page... done!' or 'Custom block page detected... not overwriting!' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
     assert 'Existing index.php detected, not overwriting' in installWeb.stdout
     assert 'index.js missing, replacing...' in installWeb.stdout
@@ -223,7 +223,7 @@ def test_installPiholeWeb_index_js_no_errors(Pihole):
     touch /var/www/html/pihole/index.js
     installPiholeWeb
     ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
+    assert 'Installing block page... done!' or 'Custom block page detected... not overwriting!' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
     assert 'index.php missing, replacing...' in installWeb.stdout
     assert 'Existing index.js detected, not overwriting' in installWeb.stdout
@@ -241,7 +241,7 @@ def test_installPiholeWeb_blockingpage_css_no_errors(Pihole):
     touch /var/www/html/pihole/blockingpage.css
     installPiholeWeb
     ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
+    assert 'Installing block page... done!' or 'Custom block page detected... not overwriting!' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
     assert 'index.php missing, replacing...' in installWeb.stdout
     assert 'index.js missing, replacing...' in installWeb.stdout
@@ -261,7 +261,7 @@ def test_installPiholeWeb_already_populated_no_errors(Pihole):
     touch /var/www/html/pihole/blockingpage.css
     installPiholeWeb
     ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
+    assert 'Installing block page... done!' or 'Custom block page detected... not overwriting!' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
     assert 'Existing index.php detected, not overwriting' in installWeb.stdout
     assert 'index.php missing, replacing...' not in installWeb.stdout
