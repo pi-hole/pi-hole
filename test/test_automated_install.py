@@ -412,7 +412,7 @@ def test_version_local_no_errors(Pihole):
     assert 'Current Pi-hole version is' in version_core_local.stdout
     assert 'Current FTL version is' in version_FTL_local.stdout
 
-def dummy_test(Pihole):
+def test_dummy(Pihole):
     Pihole.run('''
     ls -lach /var/www/html
     ''')
