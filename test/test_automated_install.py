@@ -395,10 +395,9 @@ def test_version_local_no_errors(Pihole):
     # Install core package to check version
     Pihole.run('''
     source /opt/pihole/basic-install.sh
-    installPiholeWeb
     FTLdetect
-    '''
-    )
+    git clone https://github.com/pi-hole/AdminLTE /var/www/html/admin/
+    ''')
     version_admin_local = Pihole.run('''
     pihole -v -a -c''')
     version_core_local = Pihole.run('''
@@ -413,10 +412,10 @@ def test_version_local_no_errors(Pihole):
     assert 'Current Pi-hole version is' in version_core_local.stdout
     assert 'Current FTL version is' in version_FTL_local.stdout
 
-def test_dummy(Pihole):
-    ''' Just a dummy check of after tests have run to check container '''
+def dummy_test(Pihole):
     Pihole.run('''
-    ls -lach /var/www/html''')
+    ls -lach /var/www/html
+    ''')
     assert False
 
 # def test_FTL_support_files_installed(Pihole):
