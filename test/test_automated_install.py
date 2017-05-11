@@ -391,16 +391,19 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 def test_version_local_no_errors(Pihole):
     ''' confirms version behavior of local repositories '''
     # Get FTL binary for x86 container to check version
+    # Install webpage to check version
+    # Install core package to check version
     Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdetect
+    git clone https://github.com/pi-hole/AdminLTE /var/www/html/admin/
     ''')
     version_admin_local = Pihole.run('''
     pihole -v -a -c''')
     version_core_local = Pihole.run('''
     pihole -v -p -c''')
     version_FTL_local = Pihole.run('''
-    pihone -v -f -c''')
+    pihole -v -f -c''')
     failed_status = '-1'
     assert failed_status not in ( version_admin_local.stdout
         or version_core_local
@@ -408,6 +411,16 @@ def test_version_local_no_errors(Pihole):
     assert 'Current AdminLTE version is' in version_admin_local.stdout
     assert 'Current Pi-hole version is' in version_core_local.stdout
     assert 'Current FTL version is' in version_FTL_local.stdout
+    assert False
+
+def test_dummy(Pihole):
+    Pihole.run('''
+    ls -lach /var/www/html
+    ls -lach /etc/.pihole
+    ls -lach /tmp
+    ls -lach /opt/pihole
+    ''')
+    assert False
 
 # def test_FTL_support_files_installed(Pihole):
 #     ''' confirms FTL support files are installed '''

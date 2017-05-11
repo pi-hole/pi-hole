@@ -8,6 +8,11 @@ ADD . $GITDIR
 RUN cp $GITDIR/advanced/Scripts/*.sh $GITDIR/gravity.sh $GITDIR/pihole $GITDIR/automated\ install/*.sh $SCRIPTDIR/
 ENV PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$SCRIPTDIR
 
+RUN yum update -y && \
+    yum install git && \
+    yum clean all
+
+
 RUN true && \
     chmod +x $SCRIPTDIR/*
 
