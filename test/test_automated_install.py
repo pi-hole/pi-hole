@@ -413,6 +413,12 @@ def test_version_local_no_errors(Pihole):
     assert 'Current Pi-hole version is' in version_core_local.stdout
     assert 'Current FTL version is' in version_FTL_local.stdout
 
+def test_dummy(Pihole):
+    ''' Just a dummy check of after tests have run to check container '''
+    Pihole.run('''
+    ls -lach /var/www/html''')
+    assert False
+
 # def test_FTL_support_files_installed(Pihole):
 #     ''' confirms FTL support files are installed '''
 #     support_files = Pihole.run('''
