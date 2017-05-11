@@ -168,6 +168,11 @@ if ($queryAds[0] === "blacklist.txt") {
     $intBlacklist = array("&#960;" => $queryAds[0]);
     $queryAds[0] = "&#960;"; // Manually blacklisted sites do not have a number
     $notableFlagClass = "blacklist";
+} elseif ($queryAds[0] === "whitelist.txt") {
+    $intBlacklist = array("&#960;" => $queryAds[0]);
+    $queryAds[0] = "&#960;";
+    $notableFlagClass = "noblock";
+    $wlInfo = "recentwl";
 } elseif ($queryAds[0] === "03-pihole-wildcard.conf") {
     $intBlacklist = array("&#960;" => $queryAds[0]);
     $queryAds[0] = "&#960;";
@@ -181,7 +186,7 @@ if ($queryAds[0] === "blacklist.txt") {
     if (array_key_exists("target", $dnsRecord)) {
         $wlInfo = $dnsRecord['target'];
     } else {
-        $wlInfo = "recentwl";
+        $wlInfo = "unknown";
     }
 }
 
