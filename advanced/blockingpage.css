@@ -18,7 +18,8 @@
 #bpOutput.success:before { content: "Success"; }
 #bpOutput.success:after { content: "Website has been whitelisted! You may need to flush your DNS cache"; }
 
-.recentwl:before { content: "This site appears to have been recently whitelisted. Please flush your DNS cache and/or restart your browser."; }
+.recentwl:before { content: "This site has been whitelisted. Please flush your DNS cache and/or restart your browser."; }
+.unknown:before { content: "This website is not found in any of Pi-hole's blacklists. The reason you have arrived here is unknown."; }
 .cname:before { content: "This site is an alias for "; } /* <a href="http://cname.com">cname.com</a> */
 .cname:after { content: ", which may be blocked by Pi-hole."; }
 
