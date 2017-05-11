@@ -388,6 +388,19 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     expected_stdout = 'v'
     assert expected_stdout in installed_binary.stdout
 
+def test_version_local_no_erros(Pihole):
+    ''' confirms version behavior of local repositories '''
+    version_admin_local = Pihole.run('''
+    pihole -v -a -l''')
+    version_core_local = Pihole.run('''
+    pihole -v -c -l''')
+    version_FTL_local = Pihole.run('''
+    pihone -v f -l''')
+    failed_status = '-1'
+    assert failed_status not in ( version_admin_local.stdout
+        or version_core_local
+        or version_ftl_local )
+
 # def test_FTL_support_files_installed(Pihole):
 #     ''' confirms FTL support files are installed '''
 #     support_files = Pihole.run('''
