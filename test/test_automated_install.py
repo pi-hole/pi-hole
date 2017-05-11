@@ -393,15 +393,17 @@ def test_version_local_no_errors(Pihole):
     # Get FTL binary for x86 container to check version
     # Install webpage to check version
     # Install core package to check version
-    version_admin_local = Pihole.run('''
+    Pihole.run('''
     source /opt/pihole/basic-install.sh
     installPiholeWeb
+    FTLdetect
+    '''
+    )
+    version_admin_local = Pihole.run('''
     pihole -v -a -c''')
     version_core_local = Pihole.run('''
     pihole -v -p -c''')
     version_FTL_local = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    FTLdetect
     pihole -v -f -c''')
     failed_status = '-1'
     assert failed_status not in ( version_admin_local.stdout
