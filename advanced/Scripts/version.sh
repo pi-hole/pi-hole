@@ -84,6 +84,7 @@ normalOutput() {
 	if [ -d "${WEBGITDIR}" ]; then
 		echo "::: Web-Admin version is $(getLocalVersion "${WEBGITDIR}") (Latest version is $(getRemoteVersion AdminLTE))"
 	fi
+	echo "::: Pi-hole FTL version is $(pihole-FTL version) (Latest version is $(getRemoteVersion AdminLTE))"
 }
 
 webOutput() {
