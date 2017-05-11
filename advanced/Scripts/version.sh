@@ -16,7 +16,7 @@ WEBGITDIR="/var/www/html/admin/"
 getLocalVersion() {
   # FTL requires a different method
   if [ "$1" == "FTL" ]; then
-    echo $(pihole-FTL version)
+    pihole-FTL version
     return 0
   fi
 
@@ -25,8 +25,7 @@ getLocalVersion() {
   local version
 
   cd "${directory}" || { echo "${DEFAULT}"; return 1; }
-  version=$(git describe --tags --always || \
-            echo "${DEFAULT}")
+  version=$(git describe --tags --always || echo "$DEFAULT")
   if [[ "${version}" =~ ^v ]]; then
     echo "${version}"
   elif [[ "${version}" == "${DEFAULT}" ]]; then
@@ -50,8 +49,7 @@ getLocalHash() {
   local hash
 
   cd "${directory}" || { echo "${DEFAULT}"; return 1; }
-  hash=$(git rev-parse --short HEAD || \
-         echo "${DEFAULT}")
+  hash=$(git rev-parse --short HEAD || echo "$DEFAULT")
   if [[ "${hash}" == "${DEFAULT}" ]]; then
     echo "ERROR"
     return 1
@@ -66,7 +64,7 @@ getRemoteVersion(){
   local daemon="${1}"
   local version
 
-  version=$(curl --silent --fail https://api.github.com/repos/pi-hole/${daemon}/releases/latest | \
+  version=$(curl --silent --fail "https://api.github.com/repos/pi-hole/${daemon}/releases/latest" | \
             awk -F: '$1 ~/tag_name/ { print $2 }' | \
             tr -cd '[[:alnum:]]._-')
   if [[ "${version}" =~ ^v ]]; then
@@ -79,19 +77,19 @@ getRemoteVersion(){
 }
 
 versionOutput() {
-  [ "$1" == "pi-hole" ] && GITDIR=${COREGITDIR}
-  [ "$1" == "AdminLTE" ] && GITDIR=${WEBGITDIR}
+  [ "$1" == "pi-hole" ] && GITDIR=$COREGITDIR
+  [ "$1" == "AdminLTE" ] && GITDIR=$WEBGITDIR
   [ "$1" == "FTL" ] && GITDIR="FTL"
   
-  [ "$2" == "-c" -o "$2" == "--current" -o -z "$2" ] && current=$(getLocalVersion $GITDIR)
-  [ "$2" == "-l" -o "$2" == "--latest" -o -z "$2" ] && latest=$(getRemoteVersion $1)
-  [ "$2" == "-h" -o "$2" == "--hash" ] && hash=$(getLocalHash $GITDIR)
+  [ "$2" == "-c" ] || [ "$2" == "--current" ] || [ -z "$2" ] && current=$(getLocalVersion $GITDIR)
+  [ "$2" == "-l" ] || [ "$2" == "--latest" ] || [ -z "$2" ] && latest=$(getRemoteVersion "$1")
+  [ "$2" == "-h" ] || [ "$2" == "--hash" ] && hash=$(getLocalHash "$GITDIR")
 
-  if [ -n "$current" -a -n "$latest" ]; then
+  if [ -n "$current" ] && [ -n "$latest" ]; then
     output="${1^} version is $current (Latest: $latest)"
-  elif [ -n "$current" -a -z "$latest" ]; then
+  elif [ -n "$current" ] && [ -z "$latest" ]; then
     output="Current ${1^} version is $current"
-  elif [ -z "$current" -a -n "$latest" ]; then
+  elif [ -z "$current" ] && [ -n "$latest" ]; then
     output="Latest ${1^} version is $latest"
   elif [ "$hash" == "N/A" ]; then
     output=""
