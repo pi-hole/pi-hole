@@ -402,7 +402,7 @@ def test_version_local_no_errors(Pihole):
     version_core_local = Pihole.run('''
     pihole -v -p -c''')
     version_FTL_local = Pihole.run('''
-    pihone -v -f -c''')
+    pihole -v -f -c''')
     failed_status = '-1'
     assert failed_status not in ( version_admin_local.stdout
         or version_core_local
