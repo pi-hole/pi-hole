@@ -106,12 +106,12 @@ queryFunc() {
     domain="${2}"
   fi
   
-  # Scan Blacklist and Wildcards
-  lists="/etc/pihole/blacklist.txt $wildcardlist"
+  # Scan Whitelist, Blacklist and Wildcards
+  lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
   result=$(scanList ${domain} "${lists}" ${method})
   if [ -n "$result" ]; then
     echo "$result"
-    exit 0
+    [[ ! -t 1 ]] && exit 0
   fi
 
   # Scan Domains lists
