@@ -391,9 +391,11 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 def test_version_local_no_errors(Pihole):
     ''' confirms version behavior of local repositories '''
     # Get FTL binary for x86 container to check version
+    # Install webpage to check version
     Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdetect
+    installPiholeWeb
     ''')
     version_admin_local = Pihole.run('''
     pihole -v -a -c''')
