@@ -81,12 +81,12 @@ coreOutput() {
   elif [ -n "$hash" ]; then
     str="Current Pi-hole hash is $hash"
   else
-	error="true"
+    error="true"
   fi
 
   if [ "$error" = "true" ]; then
-	echo "  Invalid Option! Try 'pihole -v --help' for more information."
-	exit 1
+    echo "  Invalid Option! Try 'pihole -v --help' for more information."
+    exit 1
   fi
 
   echo "  $str"
@@ -109,12 +109,12 @@ webOutput() {
   elif [ -n "$hash" ]; then
     str="Current Admin Console hash is $hash"
   else
-	error="true"
+    error="true"
   fi
 
   if [ "$error" = "true" ]; then
-	echo "  Invalid Option! Try 'pihole -v --help' for more information."
-	exit 1
+    echo "  Invalid Option! Try 'pihole -v --help' for more information."
+    exit 1
   fi
 
   echo "  $str"
@@ -133,12 +133,12 @@ ftlOutput() {
   elif [ -z "$current" -a -n "$latest" ]; then
     str="Latest FTL version is $latest"
   else
-	error="true"
+    error="true"
   fi
 
   if [ "$error" = "true" ]; then
-	echo "  Invalid Option! Try 'pihole -v --help' for more information."
-	exit 1
+    echo "  Invalid Option! Try 'pihole -v --help' for more information."
+    exit 1
   fi
 
   echo "  $str"
