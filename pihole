@@ -111,7 +111,7 @@ queryFunc() {
   result=$(scanList ${domain} "${lists}" ${method})
   if [ -n "$result" ]; then
     echo "$result"
-    [ ! -t 1 ] && exit 0
+    [[ ! -t 1 ]] && exit 0
   fi
 
   # Scan Domains lists
