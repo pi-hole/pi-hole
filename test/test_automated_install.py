@@ -388,7 +388,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     expected_stdout = 'v'
     assert expected_stdout in installed_binary.stdout
 
-def test_version_local_no_errors(Pihole):
+def test_version_current_no_errors(Pihole):
     ''' confirms version behavior of local repositories '''
     # Get FTL binary for x86 container to check version
     # Install webpage to check version
