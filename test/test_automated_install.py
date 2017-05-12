@@ -417,6 +417,8 @@ def test_dummy(Pihole):
     Pihole.run('''
     ls -lach /var/www/html
     ls -lach /etc/.pihole
+    ls -lach /tmp
+    ls -lach /opt/pihole
     ''')
     assert False
 
