@@ -85,11 +85,13 @@ scanList(){
   list="${2}"
   method="${3}"
 
+
   # ${list} is unquoted for glob expansion
   if [[ ${method} == "-exact" ]]; then
     grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null
   else
     grep -i "${domain}" ${list} 2> /dev/null
+
   fi
 }
 
@@ -108,12 +110,14 @@ queryFunc() {
     exit 1
   elif [[ "${domain}" = *[![:ascii:]]* ]]; then
     [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${domain}")
+
   else
     domain="${2}"
   fi
   
   # Scan Whitelist, Blacklist and Wildcards
   lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
+
   result=$(scanList "${domain}" "${lists}" "${method}")
   if [[ -n "$result" ]]; then
     echo "$result"
