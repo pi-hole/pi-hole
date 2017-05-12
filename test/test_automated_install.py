@@ -415,7 +415,8 @@ def test_version_local_no_errors(Pihole):
 
 def test_dummy(Pihole):
     Pihole.run('''
-    pihole
+    ls -lach /var/www/html
+    ls -lach /etc/.pihole
     ''')
     assert False
 
