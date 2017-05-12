@@ -17,7 +17,7 @@ if [[ ! $EUID -eq 0 ]];then
     exec sudo bash "$0" "$@"
     exit $?
   else
-    echo "Sudo is needed to run pihole commands.  Please run this script as root, or install sudo."
+    echo "Sudo is needed to run pihole commands. Please run this script as root, or install sudo."
     exit 1
   fi
 fi
@@ -85,6 +85,7 @@ scanList(){
   list="${2}"
   method="${3}"
 
+  # ${list} is unquoted for glob expansion
   if [[ ${method} == "-exact" ]]; then
     grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list}
   else
@@ -95,13 +96,18 @@ scanList(){
 queryFunc() {
   method="${3}"
   
+  if [[ "${2}" == "-exact" ]]; then
+    method="${2}" 
+    domain="${3}"
+  fi
+  
   # If domain contains non ASCII characters, convert domain to punycode if python exists
   # Cr: https://serverfault.com/a/335079
-  if [[ -z "${2}" ]]; then
+  if [[ -z "${domain}" ]]; then
     echo "No domain specified"
     exit 1
-  elif [[ ${2} = *[![:ascii:]]* ]]; then
-    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
+  elif [[ "${domain}" = *[![:ascii:]]* ]]; then
+    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${domain}")
   else
     domain="${2}"
   fi
