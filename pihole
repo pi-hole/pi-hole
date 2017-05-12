@@ -260,7 +260,7 @@ Options:
 
 piholeStatus() {
   # Provide status of DNS service
-  if [[ "$(nslookup pi.hole &> /dev/null; echo $?)" == "1" ]]; then
+  if [[ "$(nslookup pi.hole &> /dev/null; echo $?)" == "0" ]]; then
     [[ "${1}" != "web" ]] && echo "DNS service is running"
   else
     if [[ "${1}" == "web" ]]; then
