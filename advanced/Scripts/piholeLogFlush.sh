@@ -10,9 +10,9 @@
 
 echo -n "::: Flushing /var/log/pihole.log ..."
 # Test if logrotate is available on this system
-if command -v /usr/sbin/logrotate &> /dev/null; then
+if command -v /usr/sbin/logrotate >/dev/null; then
   # Flush twice to move all data out of sight of FTL
-  /usr/sbin/logrotate --force /etc/pihole/logrotate
+  /usr/sbin/logrotate --force /etc/pihole/logrotate; sleep 3
   /usr/sbin/logrotate --force /etc/pihole/logrotate
 else
   # Flush both pihole.log and pihole.log.1 (if existing)
