@@ -399,15 +399,18 @@ def test_version_local_no_errors(Pihole):
     git clone https://github.com/pi-hole/AdminLTE /var/www/html/admin/
     ''')
     version_admin_local = Pihole.run('''
-    pihole -v -a -c''')
+    pihole -v -a -c
+    ''')
     version_core_local = Pihole.run('''
-    pihole -v -p -c''')
+    pihole -v -p -c
+    ''')
     version_FTL_local = Pihole.run('''
-    pihole -v -f -c''')
+    pihole -v -f -c
+    ''')
     failed_status = '-1'
     assert failed_status not in ( version_admin_local.stdout
-                                  or version_core_local
-                                  or version_FTL_local )
+                                  or version_core_local.stdout
+                                  or version_FTL_local.stdout )
     assert 'Current AdminLTE version is' in version_admin_local.stdout
     assert 'Current Pi-hole version is' in version_core_local.stdout
     assert 'Current FTL version is' in version_FTL_local.stdout
