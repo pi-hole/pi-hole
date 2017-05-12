@@ -260,18 +260,18 @@ ip_ping_check() {
   if [[ -n ${ip_def_gateway} ]]; then
     echo -n ":::        Pinging default IPv${protocol} gateway: "
     if ! ping_gateway="$(${cmd} -q -W 3 -c 3 -n ${ip_def_gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
-     echo "Gateway did not respond."
+     log_echo "Gateway did not respond."
      return 1
     else
-      echo "Gateway responded."
+      log_echo "Gateway responded."
       log_write "${ping_gateway}"
     fi
     echo -n ":::        Pinging Internet via IPv${protocol}: "
     if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${g_addr} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
-      echo "Query did not respond."
+      log_echo "Query did not respond."
       return 1
     else
-      echo "Query responded."
+      log_echo "Query responded."
       log_write "${ping_inet}"
     fi
   else
