@@ -9,15 +9,15 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
-  if [ -x "$(command -v sudo)" ];then
+  if [[ -x "$(command -v sudo)" ]];then
     exec sudo bash "$0" "$@"
     exit $?
   else
-    echo "sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+    echo "Sudo is needed to run pihole commands.  Please run this script as root, or install sudo."
     exit 1
   fi
 fi
@@ -97,11 +97,11 @@ queryFunc() {
   
   # If domain contains non ASCII characters, convert domain to punycode if python exists
   # Cr: https://serverfault.com/a/335079
-  if [ -z "${2}" ]; then
+  if [[ -z "${2}" ]]; then
     echo "No domain specified"
     exit 1
   elif [[ ${2} = *[![:ascii:]]* ]]; then
-    [ `which python` ] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
+    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
   else
     domain="${2}"
   fi
@@ -109,17 +109,17 @@ queryFunc() {
   # Scan Whitelist, Blacklist and Wildcards
   lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
   result=$(scanList ${domain} "${lists}" ${method})
-  if [ -n "$result" ]; then
+  if [[ -n "$result" ]]; then
     echo "$result"
     [[ ! -t 1 ]] && exit 0
   fi
 
   # Scan Domains lists
   result=$(scanList ${domain} "/etc/pihole/*.domains" ${method})
-  if [ -n "$result" ]; then
+  if [[ -n "$result" ]]; then
     sort -t . -k 2 -g <<< "$result"
   else
-    [ -n "$method" ] && exact="exact "
+    [[ -n "$method" ]] && exact="exact "
     echo "No ${exact}results found for ${domain}"
   fi
   
@@ -146,16 +146,16 @@ versionFunc() {
 
 restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
-  if [[ ${dnsmasqPid} ]]; then
+  if [[ -n "${dnsmasqPid}" ]]; then
     # service already running - reload config
-    if [ -x "$(command -v systemctl)" ]; then
+    if [[ -x "$(command -v systemctl)" ]]; then
       systemctl restart dnsmasq
     else
       service dnsmasq restart
     fi
   else
     # service not running, start it up
-    if [ -x "$(command -v systemctl)" ]; then
+    if [[ -x "$(command -v systemctl)" ]]; then
       systemctl start dnsmasq
     else
       service dnsmasq start
@@ -229,14 +229,14 @@ piholeStatus() {
     return
   fi
 
-  if [[ $(grep -i "^#addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf) ]] ; then
+  if [[ "$(grep -i "^#addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]] ; then
     #list is commented out
     if [[ "${1}" == "web" ]] ; then
       echo 0;
     else
       echo "Pi-hole blocking is Disabled";
     fi
-  elif [[ $(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf) ]] ; then
+  elif [[ "$(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]] ; then
     #list set
     if [[ "${1}" == "web" ]] ; then
       echo 1;
@@ -309,10 +309,6 @@ Options:
                         Add '-h' for more info on checkout usage";
   exit 0
 }
-
-if [[ $# = 0 ]]; then
-  helpFunc
-fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
