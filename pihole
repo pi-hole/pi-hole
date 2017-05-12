@@ -87,9 +87,9 @@ scanList(){
 
   # ${list} is unquoted for glob expansion
   if [[ ${method} == "-exact" ]]; then
-    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list}
+    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null
   else
-    grep -i "${domain}" ${list}
+    grep -i "${domain}" ${list} 2> /dev/null
   fi
 }
 
