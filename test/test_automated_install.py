@@ -411,14 +411,6 @@ def test_version_local_no_errors(Pihole):
     assert 'Current AdminLTE version is' in version_admin_local.stdout
     assert 'Current Pi-hole version is' in version_core_local.stdout
     assert 'Current FTL version is' in version_FTL_local.stdout
-    assert False
-
-def test_dummy(Pihole):
-    Pihole.run('''
-    ls -lach /var/www/html
-    ls -lach /tmp
-    ''')
-    assert False
 
 # def test_FTL_support_files_installed(Pihole):
 #     ''' confirms FTL support files are installed '''
