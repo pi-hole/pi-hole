@@ -114,14 +114,14 @@ queryFunc() {
   
   # Scan Whitelist, Blacklist and Wildcards
   lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
-  result=$(scanList ${domain} "${lists}" ${method})
+  result=$(scanList "${domain}" "${lists}" "${method}")
   if [[ -n "$result" ]]; then
     echo "$result"
     [[ ! -t 1 ]] && exit 0
   fi
 
   # Scan Domains lists
-  result=$(scanList ${domain} "/etc/pihole/*.domains" ${method})
+  result=$(scanList "${domain}" "/etc/pihole/*.domains" "${method}")
   if [[ -n "$result" ]]; then
     sort -t . -k 2 -g <<< "$result"
   else
@@ -260,7 +260,7 @@ Options:
 
 piholeStatus() {
   # Provide status of DNS service
-  if [[ "$(nslookup pi.hole &> /dev/null; echo $?)" == "0" ]]; then
+  if [[ "$(netstat -plnt | grep -c ':53 ')" -gt "1" ]]; then
     [[ "${1}" != "web" ]] && echo "DNS service is running"
   else
     if [[ "${1}" == "web" ]]; then
@@ -383,7 +383,7 @@ case "${1}" in
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0 $2;;
+  "disable"                     ) piholeEnable 0 "$2";;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
   "-a" | "admin"                ) webpageFunc "$@";;
