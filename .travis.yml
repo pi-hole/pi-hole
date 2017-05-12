@@ -8,3 +8,8 @@ install:
   - pip install -r requirements.txt
 
 script: py.test -vv
+
+# blocklist
+branches:
+  except:
+  - development
