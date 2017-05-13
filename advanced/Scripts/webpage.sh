@@ -16,7 +16,7 @@ readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
 helpFunc() {
   echo "Usage: pihole -a [options]
-Set admin options for the Admin Console
+Set options for the Admin Console
 
 Options:
   -f, flush           Flush the Pi-hole log
