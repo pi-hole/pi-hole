@@ -164,7 +164,16 @@ restartDNS() {
 }
 
 piholeEnable() {
-  if [[ "${1}" == "0" ]]; then
+  if [[ "${2}" == "-h" ]]; then
+    echo "Usage: pihole disable [time]
+Example: 'pihole disable', or 'pihole disable 5m'
+Disable Pi-hole subsystems
+
+Time:
+  #s                  Disable Pi-hole functionality for # second(s)
+  #m                  Disable Pi-hole functionality for # minute(s)"
+    exit 0
+  elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
     echo "::: Blocking has been disabled!"
@@ -196,8 +205,16 @@ piholeEnable() {
 
 piholeLogging() {
   shift
+  if [[ "${1}" == "-h" ]]; then
+    echo "Usage: pihole logging [options]
+Example: 'pihole logging on'
+Specify whether the Pi-hole log should be used
 
-  if [[ "${1}" == "off" ]]; then
+Options:
+  on                  Enable the Pi-hole log at /var/log/pihole.log
+  off                 Disable the Pi-hole log at /var/log/pihole.log"
+    exit 0
+  elif [[ "${1}" == "off" ]]; then
     # Disable logging
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
@@ -269,40 +286,43 @@ piholeCheckoutFunc() {
 }
 
 helpFunc() {
-  cat << EOM
-::: Control all Pi-hole specific functions
-:::
-::: Usage: pihole [options]
-:::    Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin) for more information on usage
-:::
-::: Options:
-:::  -w, whitelist            Whitelist domain(s)
-:::  -b, blacklist            Blacklist domain(s) (exact match)
-:::  -wild, wildcard          Blacklist whole domain(s) (wildcard)
-:::  -d, debug                Start a debugging session
-:::                             Automated debugging can be enabled with '-a'.
-:::                             'pihole -d -a'
-:::  -f, flush                Flush the 'pihole.log' file
-:::  -t, tail                 Output the last lines of the 'pihole.log' file. Lines are appended as the file grows
-:::  -up, updatePihole        Update Pi-hole components
-:::  -r, reconfigure          Reconfigure or Repair Pi-hole
-:::  -g, updateGravity        Update the list of ad-serving domains
-:::  -c, chronometer          Calculates stats and displays to an LCD
-:::  -h, help                 Show this help dialog
-:::  -v, version              Show installed versions of Pi-hole and Web-Admin
-:::  -q, query                Query the adlists for a specific domain
-:::                             'pihole -q domain -exact' shows exact matches only
-:::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
-:::  -a, admin                Admin webpage options
-:::  uninstall                Uninstall Pi-hole from your system! :(
-:::  status                   Display if Pi-hole is Enabled or Disabled
-:::  enable                   Enable Pi-hole DNS Blocking
-:::  disable                  Disable Pi-hole DNS Blocking
-:::                             Blocking can also be disabled only temporarily, e.g.,
-:::                             'pihole disable 5m' - will disable blocking for 5 minutes
-:::  restartdns               Restart dnsmasq
-:::  checkout                 Check out different branches
-EOM
+  echo "Usage: pihole [options]
+Example: 'pihole -w -h'
+Add '-h' after specific commands for more information on usage
+  
+Whitelist/Blacklist Options:
+  -w, whitelist       Whitelist domain(s)
+  -b, blacklist       Blacklist domain(s)
+  -wild, wildcard     Blacklist domain(s), and all its subdomains
+                        Add '-h' for more info on whitelist/blacklist usage
+Debugging Options:
+  -d, debug           Start a debugging session
+                        Add '-a' to enable automated debugging
+  -f, flush           Flush the Pi-hole log
+  -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
+  -t, tail            View the live output of the Pi-hole log
+Options:
+  -a, admin           Admin Console options
+                        Add '-h' for more info on admin console usage
+  -c, chronometer     Calculates stats and displays to an LCD
+                        Add '-h' for more info on chronometer usage
+  -g, updateGravity   Update the list of ad-serving domains
+  -h, --help, help    Show this help dialog
+  -l, logging         Specify whether the Pi-hole log should be used
+                        Add '-h' for more info on logging usage
+  -q, query           Query the adlists for a specified domain
+                        Add '-exact' AFTER a specified domain for exact match
+  -up, updatePihole   Update Pi-hole subsystems        
+  -v, version         Show installed versions of Pi-hole, Admin Console & FTL
+                        Add '-h' for more info on version usage                         
+  uninstall           Uninstall Pi-hole from your system
+  status              Display the running status of Pi-hole subsystems
+  enable              Enable Pi-hole subsystems
+  disable             Disable Pi-hole subsystems
+                        Add '-h' for more info on disable usage
+  restartdns          Restart Pi-hole subsystems
+  checkout            Switch Pi-hole subsystems to a different Github branch
+                        Add '-h' for more info on checkout usage";
   exit 0
 }
 
