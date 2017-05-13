@@ -13,7 +13,7 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
-  if [ -x "$(command -v sudo)" ];then
+  if [[ -x "$(command -v sudo)" ]]; then
     exec sudo bash "$0" "$@"
     exit $?
   else
@@ -85,7 +85,7 @@ scanList(){
   list="${2}"
   method="${3}"
 
-  if [[ ${method} == "-exact" ]]; then
+  if [[ "${method}" == "-exact" ]]; then
     grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list}
   else
     grep -i "${domain}" ${list}
@@ -97,11 +97,11 @@ queryFunc() {
   
   # If domain contains non ASCII characters, convert domain to punycode if python exists
   # Cr: https://serverfault.com/a/335079
-  if [ -z "${2}" ]; then
+  if [[ -z "${2}" ]]; then
     echo "::: No domain specified"
     exit 1
-  elif [[ ${2} = *[![:ascii:]]* ]]; then
-    [ `which python` ] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
+  elif [[ "${2}" = *[![:ascii:]]* ]]; then
+    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
   else
     domain="${2}"
   fi
@@ -109,14 +109,14 @@ queryFunc() {
   # Scan Whitelist, Blacklist and Wildcards
   lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
   result=$(scanList ${domain} "${lists}" ${method})
-  if [ -n "$result" ]; then
+  if [[ -n "$result" ]]; then
     echo "$result"
     [[ ! -t 1 ]] && exit 0
   fi
 
   # Scan Domains lists
   result=$(scanList ${domain} "/etc/pihole/*.domains" ${method})
-  if [ -n "$result" ]; then
+  if [[ -n "$result" ]]; then
     sort -t . -k 2 -g <<< "$result"
   else
     [ -n "$method" ] && exact="exact "
@@ -146,16 +146,16 @@ versionFunc() {
 
 restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
-  if [[ ${dnsmasqPid} ]]; then
-    # service already running - reload config
-    if [ -x "$(command -v systemctl)" ]; then
+  if [[ "${dnsmasqPid}" ]]; then
+    # Service already running - reload config
+    if [[ -x "$(command -v systemctl)" ]]; then
       systemctl restart dnsmasq
     else
       service dnsmasq restart
     fi
   else
-    # service not running, start it up
-    if [ -x "$(command -v systemctl)" ]; then
+    # Service not running, start it up
+    if [[ -x "$(command -v systemctl)" ]]; then
       systemctl start dnsmasq
     else
       service dnsmasq start
@@ -164,16 +164,16 @@ restartDNS() {
 }
 
 piholeEnable() {
-  if [[ "${1}" == "0" ]] ; then
-    #Disable Pihole
+  if [[ "${1}" == "0" ]]; then
+    # Disable Pi-hole
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
     echo "::: Blocking has been disabled!"
-    if [[ $# > 1 ]] ; then
-      if [[ ${2} == *"s"* ]] ; then
+    if [[ $# > 1 ]]; then
+      if [[ "${2}" == *"s"* ]]; then
         tt=${2%"s"}
         echo "::: Blocking will be re-enabled in ${tt} seconds"
         nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
-      elif [[ ${2} == *"m"* ]] ; then
+      elif [[ "${2}" == *"m"* ]]; then
         tt=${2%"m"}
         echo "::: Blocking will be re-enabled in ${tt} minutes"
         tt=$((${tt}*60))
@@ -187,7 +187,7 @@ piholeEnable() {
       fi
     fi
   else
-    #Enable pihole
+    # Enable Pi-hole
     echo "::: Blocking has been enabled!"
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
   fi
@@ -197,14 +197,14 @@ piholeEnable() {
 piholeLogging() {
   shift
 
-  if [[ "${1}" == "off" ]] ; then
-    #Disable Logging
+  if [[ "${1}" == "off" ]]; then
+    # Disable logging
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
     pihole -f
     echo "::: Logging has been disabled!"
-  elif [[ "${1}" == "on" ]] ; then
-    #Enable logging
+  elif [[ "${1}" == "on" ]]; then
+    # Enable logging
     sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
     echo "::: Logging has been enabled!"
@@ -216,12 +216,12 @@ piholeLogging() {
 }
 
 piholeStatus() {
-  if [[ $(netstat -plnt | grep -c ':53 ') > 0 ]]; then
-    if [[ "${1}" != "web" ]] ; then
+  if [[ "$(netstat -plnt | grep -c ':53 ')" -gt "0" ]]; then
+    if [[ "${1}" != "web" ]]; then
       echo "::: DNS service is running"
     fi
   else
-    if [[ "${1}" == "web" ]] ; then
+    if [[ "${1}" == "web" ]]; then
       echo "-1";
     else
       echo "::: DNS service is NOT running"
@@ -229,28 +229,28 @@ piholeStatus() {
     return
   fi
 
-  if [[ $(grep -i "^#addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf) ]] ; then
-    #list is commented out
-    if [[ "${1}" == "web" ]] ; then
+  if [[ "$(grep -i "^#addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]]; then
+    # List is commented out
+    if [[ "${1}" == "web" ]]; then
       echo 0;
     else
       echo "::: Pi-hole blocking is Disabled";
     fi
-  elif [[ $(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf) ]] ; then
-    #list set
-    if [[ "${1}" == "web" ]] ; then
+  elif [[ "$(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]]; then
+    # List set
+    if [[ "${1}" == "web" ]]; then
       echo 1;
     else
       echo "::: Pi-hole blocking is Enabled";
     fi
   else
-    #addn-host not found
-    if [[ "${1}" == "web" ]] ; then
+    # Addn-host not found
+    if [[ "${1}" == "web" ]]; then
       echo 99
     else
       echo ":::  No hosts file linked to dnsmasq, adding it in enabled state"
     fi
-    #add addn-host= to dnsmasq
+    # Add addn-host= to dnsmasq
     echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
     restartDNS
   fi
@@ -269,11 +269,11 @@ piholeCheckoutFunc() {
 }
 
 helpFunc() {
-	cat << EOM
+  cat << EOM
 ::: Control all Pi-hole specific functions
 :::
 ::: Usage: pihole [options]
-:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin) for more information on usage
+:::    Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin) for more information on usage
 :::
 ::: Options:
 :::  -w, whitelist            Whitelist domain(s)
@@ -327,7 +327,7 @@ case "${1}" in
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0 $2;;
+  "disable"                     ) piholeEnable 0 "$2";;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
   "-a" | "admin"                ) webpageFunc "$@";;
