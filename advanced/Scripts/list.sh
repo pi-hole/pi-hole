@@ -32,22 +32,22 @@ helpFunc() {
     letter="b"
     word="black"
   fi
+  
+    echo "Usage: pihole -${letter} [options] <domain> <domain2 ...>
+Example: 'pihole -${letter} site.com', or 'pihole -${letter} site1.com site2.com'
+${word^}list one or more domains
 
-  cat << EOM
-::: Immediately ${word}lists one or more domains in the hosts file
-:::
-::: Usage: pihole -${letter} domain1 [domain2 ...]
-:::
-::: Options:
-:::  -d, --delmode            Remove domains from the ${word}list
-:::  -nr, --noreload          Update ${word}list without refreshing dnsmasq
-:::  -q, --quiet              Output is less verbose
-:::  -h, --help               Show this help dialog
-:::  -l, --list               Display your ${word}listed domains
-EOM
+Options:"
+
   if [[ "${letter}" == "b" ]]; then
-    echo ":::  -wild, --wildcard        Add wildcard entry (only blacklist)"
+    echo "  -wild, --wildcard   Add wildcard entry to blacklist"
   fi
+  
+echo "  -d, --delmode       Remove domain(s) from the ${word}list
+  -nr, --noreload     Update ${word}list without refreshing dnsmasq
+  -q, --quiet         Make output less verbose
+  -h, --help          Show this help dialog
+  -l, --list          Display all your ${word}listed domains"
   
   exit 0
 }
@@ -66,7 +66,7 @@ HandleOther(){
   # Check validity of domain
   validDomain=$(echo "${domain}" | perl -lne 'print if /(?!.*[^a-z0-9-\.].*)^((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9-]+\.)*[a-z]{2,63}/')
   if [[ -z "${validDomain}" ]]; then
-    echo "::: $1 is not a valid argument or domain name"
+    echo "$1 is not a valid argument or domain name"
   else
     domList=("${domList[@]}" ${validDomain})
   fi
@@ -104,14 +104,14 @@ AddDomain() {
     if [[ "${bool}" == false ]]; then
       # Domain not found in the whitelist file, add it!
       if [[ "${verbose}" == true ]]; then
-      echo "::: Adding $1 to $list..."
+      echo "Adding $1 to $list..."
       fi
       reload=true
       # Add it to the list we want to add it to
       echo "$1" >> "${list}"
     else
       if [[ "${verbose}" == true ]]; then
-        echo "::: ${1} already exists in ${list}, no need to add!"
+        echo "${1} already exists in ${list}, no need to add!"
       fi
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
@@ -126,7 +126,7 @@ AddDomain() {
 
     if [[ "${bool}" == false ]]; then
       if [[ "${verbose}" == true ]]; then
-        echo "::: Adding $1 to wildcard blacklist..."
+        echo "Adding $1 to wildcard blacklist..."
       fi
       reload=true
       echo "address=/$1/${IPV4_ADDRESS}" >> "${wildcardlist}"
@@ -135,7 +135,7 @@ AddDomain() {
       fi
     else
       if [[ "${verbose}" == true ]]; then
-        echo "::: ${1} already exists in wildcard blacklist, no need to add!"
+        echo "${1} already exists in wildcard blacklist, no need to add!"
       fi
     fi
   fi
@@ -151,13 +151,13 @@ RemoveDomain() {
     grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
-      echo "::: Removing $1 from $list..."
+      echo "Removing $1 from $list..."
       # /I flag: search case-insensitive
       sed -i "/${domain}/Id" "${list}"
       reload=true
     else
       if [[ "${verbose}" == true ]]; then
-        echo "::: ${1} does not exist in ${list}, no need to remove!"
+        echo "${1} does not exist in ${list}, no need to remove!"
       fi
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
@@ -166,13 +166,13 @@ RemoveDomain() {
     grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
-      echo "::: Removing $1 from $list..."
+      echo "Removing $1 from $list..."
       # /I flag: search case-insensitive
       sed -i "/address=\/${domain}/Id" "${list}"
       reload=true
     else
       if [[ "${verbose}" == true ]]; then
-        echo "::: ${1} does not exist in ${list}, no need to remove!"
+        echo "${1} does not exist in ${list}, no need to remove!"
       fi
     fi
   fi
@@ -190,10 +190,10 @@ Displaylist() {
     string="domains caught in the sinkhole"
   fi
   verbose=false
-  echo -e " Displaying $string \n"
+  echo -e "Displaying $string:\n"
   count=1
   while IFS= read -r RD; do
-    echo "${count}: ${RD}"
+    echo "  ${count}: ${RD}"
     count=$((count+1))
   done < "${listMain}"
   exit 0;
