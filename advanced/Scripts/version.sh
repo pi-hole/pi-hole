@@ -3,7 +3,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# shows version numbers
+# Show version numbers
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
@@ -124,14 +124,14 @@ versionOutput() {
   elif [[ -z "$curHash" ]] && [[ -n "$latHash" ]]; then
     output="Latest ${1^} hash is $latHash"
   else
-	  errorOutput
+    errorOutput
   fi
 
-  [[ -n "$output" ]] && echo "  $output"
+  [[ -n "$output" ]] && echo "$output"
 }
 
 errorOutput() {
-  echo "  Invalid Option! Try 'pihole -v --help' for more information."
+  echo "Invalid Option! Try 'pihole -v -h' for more information."
   exit 1
 }
   
@@ -143,7 +143,8 @@ defaultOutput() {
 
 helpFunc() {
   echo "Usage: pihole -v [REPO | OPTION] [OPTION]
-Show Pi-hole, Web Admin & FTL versions
+Example: 'pihole -v -p -l'
+Show Pi-hole, Admin Console & FTL versions
 
 Repositories:
   -p, --pihole         Only retrieve info regarding Pi-hole repository
@@ -156,7 +157,7 @@ Options:
   -h, --hash           Return the Github hash from your local repositories
   --help               Show this help dialog
 "
-	exit 0
+  exit 0
 }
 
 case "${1}" in
