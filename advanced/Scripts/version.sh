@@ -131,7 +131,7 @@ versionOutput() {
 }
 
 errorOutput() {
-  echo "  Invalid Option! Try 'pihole -v --help' for more information."
+  echo "  Invalid Option! Try 'pihole -v -h' for more information."
   exit 1
 }
   
@@ -142,7 +142,7 @@ defaultOutput() {
 }
 
 helpFunc() {
-  echo "Usage: pihole -v [REPO | OPTION] [OPTION]
+  echo "Usage: pihole -v [repo | option] [option ...]
 Show Pi-hole, Admin Console & FTL versions
 
 Repositories:
