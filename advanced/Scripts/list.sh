@@ -8,9 +8,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
-#globals
+# Globals
 basename=pihole
 piholeDir=/etc/${basename}
 whitelist=${piholeDir}/whitelist.txt
@@ -27,7 +25,7 @@ listMain=""
 listAlt=""
 
 helpFunc() {
-  if [[ ${listMain} == ${whitelist} ]]; then
+  if [[ "${listMain}" == "${whitelist}" ]]; then
     letter="w"
     word="white"
   else
@@ -65,9 +63,9 @@ HandleOther(){
   # First, convert everything to lowercase
   domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
 
-  #check validity of domain
+  # Check validity of domain
   validDomain=$(echo "${domain}" | perl -lne 'print if /(?!.*[^a-z0-9-\.].*)^((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9-]+\.)*[a-z]{2,63}/')
-  if [ -z "${validDomain}" ]; then
+  if [[ -z "${validDomain}" ]]; then
     echo "::: $1 is not a valid argument or domain name"
   else
     domList=("${domList[@]}" ${validDomain})
@@ -75,8 +73,8 @@ HandleOther(){
 }
 
 PoplistFile() {
-  #check whitelist file exists, and if not, create it
-  if [[ ! -f ${whitelist} ]]; then
+  # Check whitelist file exists, and if not, create it
+  if [[ ! -f "${whitelist}" ]]; then
     touch ${whitelist}
   fi
   
@@ -100,11 +98,11 @@ AddDomain() {
 
   if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
     bool=true
-    #Is the domain in the list we want to add it to?
+    # Is the domain in the list we want to add it to?
     grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
 
     if [[ "${bool}" == false ]]; then
-      #domain not found in the whitelist file, add it!
+      # Domain not found in the whitelist file, add it!
       if [[ "${verbose}" == true ]]; then
       echo "::: Adding $1 to $list..."
       fi
@@ -118,12 +116,12 @@ AddDomain() {
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
     source "${piholeDir}/setupVars.conf"
-    #Remove the /* from the end of the IPv4addr.
+    # Remove the /* from the end of the IPv4addr.
     IPV4_ADDRESS=${IPV4_ADDRESS%/*}
     IPV6_ADDRESS=${IPV6_ADDRESS}
 
     bool=true
-    #Is the domain in the list?
+    # Is the domain in the list?
     grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
 
     if [[ "${bool}" == false ]]; then
@@ -132,7 +130,7 @@ AddDomain() {
       fi
       reload=true
       echo "address=/$1/${IPV4_ADDRESS}" >> "${wildcardlist}"
-      if [[ ${#IPV6_ADDRESS} > 0 ]] ; then
+      if [[ "${#IPV6_ADDRESS}" > 0 ]]; then
         echo "address=/$1/${IPV6_ADDRESS}" >> "${wildcardlist}"
       fi
     else
@@ -149,7 +147,7 @@ RemoveDomain() {
 
   if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
     bool=true
-    #Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
+    # Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
     grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
@@ -164,7 +162,7 @@ RemoveDomain() {
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
     bool=true
-    #Is it in the list?
+    # Is it in the list?
     grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
@@ -186,7 +184,7 @@ Reload() {
 }
 
 Displaylist() {
-  if [[ ${listMain} == ${whitelist} ]]; then
+  if [[ "${listMain}" == "${whitelist}" ]]; then
     string="gravity resistant domains"
   else
     string="domains caught in the sinkhole"
