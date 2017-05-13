@@ -8,7 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
@@ -56,41 +55,38 @@ delete_dnsmasq_setting() {
   sed -i "/${1}/d" "${dnsmasqconfig}"
 }
 
-SetTemperatureUnit(){
-
+SetTemperatureUnit() {
   change_setting "TEMPERATUREUNIT" "${unit}"
-
 }
 
-HashPassword(){
+HashPassword() {
     # Compute password hash twice to avoid rainbow table vulnerability
     return=$(echo -n ${1} | sha256sum | sed 's/\s.*$//')
     return=$(echo -n ${return} | sha256sum | sed 's/\s.*$//')
     echo ${return}
 }
 
-SetWebPassword(){
-
-  if [ "${SUDO_USER}" == "www-data" ]; then
+SetWebPassword() {
+  if [[ "${SUDO_USER}" == "www-data" ]]; then
     echo "Security measure: user www-data is not allowed to change webUI password!"
     echo "Exiting"
     exit 1
   fi
 
-  if [ "${SUDO_USER}" == "lighttpd" ]; then
+  if [[ "${SUDO_USER}" == "lighttpd" ]]; then
     echo "Security measure: user lighttpd is not allowed to change webUI password!"
     echo "Exiting"
     exit 1
   fi
 
-  if (( ${#args[2]} > 0 )) ; then
+  if (( ${#args[2]} > 0 )); then
     readonly PASSWORD="${args[2]}"
     readonly CONFIRM="${PASSWORD}"
   else
     read -s -p "Enter New Password (Blank for no password): " PASSWORD
     echo ""
 
-    if [ "${PASSWORD}" == "" ]; then
+    if [[ "${PASSWORD}" == "" ]]; then
       change_setting "WEBPASSWORD" ""
       echo "Password Removed"
       exit 0
@@ -100,7 +96,7 @@ SetWebPassword(){
     echo ""
   fi
 
-  if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
+  if [[ "${PASSWORD}" == "${CONFIRM}" ]]; then
     hash=$(HashPassword ${PASSWORD})
     # Save hash to file
     change_setting "WEBPASSWORD" "${hash}"
@@ -119,7 +115,7 @@ ProcessDNSSettings() {
   COUNTER=1
   while [[ 1 ]]; do
     var=PIHOLE_DNS_${COUNTER}
-    if [ -z "${!var}" ]; then
+    if [[ -z "${!var}" ]]; then
       break;
     fi
     add_dnsmasq_setting "server" "${!var}"
@@ -149,7 +145,7 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 
   delete_dnsmasq_setting "host-record"
 
-  if [ ! -z "${HOSTRECORD}" ]; then
+  if [[ ! -z "${HOSTRECORD}" ]]; then
     add_dnsmasq_setting "host-record" "${HOSTRECORD}"
   fi
 
@@ -170,8 +166,7 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 
 }
 
-SetDNSServers(){
-
+SetDNSServers() {
   # Save setting to file
   delete_setting "PIHOLE_DNS"
   IFS=',' read -r -a array <<< "${args[2]}"
@@ -202,41 +197,31 @@ SetDNSServers(){
 
   # Restart dnsmasq to load new configuration
   RestartDNS
-
 }
 
-SetExcludeDomains(){
-
+SetExcludeDomains() {
   change_setting "API_EXCLUDE_DOMAINS" "${args[2]}"
 
 }
 
-SetExcludeClients(){
-
+SetExcludeClients() {
   change_setting "API_EXCLUDE_CLIENTS" "${args[2]}"
-
 }
 
-Reboot(){
-
+Reboot() {
   nohup bash -c "sleep 5; reboot" &> /dev/null </dev/null &
-
 }
 
-RestartDNS(){
-
-  if [ -x "$(command -v systemctl)" ]; then
+RestartDNS() {
+  if [[ -x "$(command -v systemctl)" ]]; then
     systemctl restart dnsmasq &> /dev/null
   else
     service dnsmasq restart &> /dev/null
   fi
-
 }
 
-SetQueryLogOptions(){
-
+SetQueryLogOptions() {
   change_setting "API_QUERY_LOG_SHOW" "${args[2]}"
-
 }
 
 ProcessDHCPSettings() {
@@ -248,7 +233,7 @@ ProcessDHCPSettings() {
   interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
 
   # Use eth0 as fallback interface
-  if [ -z ${interface} ]; then
+  if [[ -z "${interface}" ]]; then
     interface="eth0"
   fi
 
@@ -296,8 +281,7 @@ ra-param=*,0,0
   fi
 }
 
-EnableDHCP(){
-
+EnableDHCP() {
   change_setting "DHCP_ACTIVE" "true"
   change_setting "DHCP_START" "${args[2]}"
   change_setting "DHCP_END" "${args[3]}"
@@ -315,8 +299,7 @@ EnableDHCP(){
   RestartDNS
 }
 
-DisableDHCP(){
-
+DisableDHCP() {
   change_setting "DHCP_ACTIVE" "false"
 
   # Remove possible old setting from file
@@ -328,23 +311,20 @@ DisableDHCP(){
   RestartDNS
 }
 
-SetWebUILayout(){
-
+SetWebUILayout() {
   change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
-
 }
 
 CustomizeAdLists() {
-
   list="/etc/pihole/adlists.list"
 
-  if [[ "${args[2]}" == "enable" ]] ; then
+  if [[ "${args[2]}" == "enable" ]]; then
     sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
-  elif [[ "${args[2]}" == "disable" ]] ; then
+  elif [[ "${args[2]}" == "disable" ]]; then
     sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
-  elif [[ "${args[2]}" == "add" ]] ; then
+  elif [[ "${args[2]}" == "add" ]]; then
     echo "${args[3]}" >> ${list}
-  elif [[ "${args[2]}" == "del" ]] ; then
+  elif [[ "${args[2]}" == "del" ]]; then
     var=$(echo "${args[3]}" | sed 's/\//\\\//g')
     sed -i "/${var}/Id" "${list}"
   else
@@ -353,9 +333,8 @@ CustomizeAdLists() {
   fi
 }
 
-SetPrivacyMode(){
-
-  if [[ "${args[2]}" == "true" ]] ; then
+SetPrivacyMode() {
+  if [[ "${args[2]}" == "true" ]]; then
     change_setting "API_PRIVACY_MODE" "true"
   else
     change_setting "API_PRIVACY_MODE" "false"
@@ -364,7 +343,6 @@ SetPrivacyMode(){
 }
 
 ResolutionSettings() {
-
   typ="${args[2]}"
   state="${args[3]}"
 
@@ -373,11 +351,9 @@ ResolutionSettings() {
   elif [[ "${typ}" == "clients" ]]; then
     change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
   fi
-
 }
 
 AddDHCPStaticAddress() {
-
   mac="${args[2]}"
   ip="${args[3]}"
   host="${args[4]}"
@@ -392,19 +368,15 @@ AddDHCPStaticAddress() {
     # Full info given
     echo "dhcp-host=${mac},${ip},${host}" >> "${dhcpstaticconfig}"
   fi
-
 }
 
 RemoveDHCPStaticAddress() {
-
   mac="${args[2]}"
   sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
-
 }
 
-SetHostRecord(){
-
-  if [ -n "${args[3]}" ]; then
+SetHostRecord() {
+  if [[ -n "${args[3]}" ]]; then
     change_setting "HOSTRECORD" "${args[2]},${args[3]}"
     echo "Setting host record for ${args[2]} -> ${args[3]}"
   else
@@ -416,17 +388,15 @@ SetHostRecord(){
 
   # Restart dnsmasq to load new configuration
   RestartDNS
-
 }
 
-SetListeningMode(){
-
+SetListeningMode() {
   source "${setupVars}"
 
-  if [[ "${args[2]}" == "all" ]] ; then
+  if [[ "${args[2]}" == "all" ]]; then
     echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
     change_setting "DNSMASQ_LISTENING" "all"
-  elif [[ "${args[2]}" == "local" ]] ; then
+  elif [[ "${args[2]}" == "local" ]]; then
     echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
     change_setting "DNSMASQ_LISTENING" "local"
   else
@@ -441,17 +411,14 @@ SetListeningMode(){
     # Restart dnsmasq to load new configuration
     RestartDNS
   fi
-
 }
 
-Teleporter()
-{
+Teleporter() {
   local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
   php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
 main() {
-
   args=("$@")
 
   case "${args[1]}" in
@@ -481,9 +448,4 @@ main() {
   esac
 
   shift
-
-  if [[ $# = 0 ]]; then
-    helpFunc
-  fi
-
 }
