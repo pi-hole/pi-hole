@@ -8,7 +8,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-#Functions##############################################################################################################
+# Functions
 piLog="/var/log/pihole.log"
 gravity="/etc/pihole/gravity.list"
 
@@ -67,7 +67,7 @@ normalChrono() {
     echo "        ${IPV4_ADDRESS}"
     echo ""
     uptime | cut -d' ' -f11-
-    #uptime -p  #Doesn't work on all versions of uptime
+    #uptime -p  # Doesn't work on all versions of uptime
     uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes."}'
     echo "-------------------------------"
     echo "Recently blocked:"
@@ -82,16 +82,13 @@ normalChrono() {
 }
 
 displayHelp() {
-  cat << EOM
-::: Displays stats about your piHole!
-:::
-::: Usage: sudo pihole -c [optional:-j]
-::: Note: If no option is passed, then stats are displayed on screen, updated every 5 seconds
-:::
-::: Options:
-:::  -j, --json    output stats as JSON formatted string
-:::  -h, --help    display this help text
-EOM
+    echo "Usage: pihole -c [options]
+Example: 'pihole -c -j'
+Calculates stats and displays to an LCD
+    
+Options:
+  -j, --json          Output stats as JSON formatted string
+  -h, --help          Display this help text"
   exit 0
 }
 
