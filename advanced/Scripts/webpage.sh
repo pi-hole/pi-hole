@@ -392,15 +392,29 @@ SetHostRecord() {
 
 SetListeningMode() {
   source "${setupVars}"
+  
+  if [[ "$3" == "-h" ]]; then
+    echo "Usage: pihole -a -i [interface]
+Example: 'pihole -a -i local'
+Specify dnsmasq's network interface listening behavior
+
+Interfaces:
+  local               Listen on all interfaces, but only allow queries from
+                      devices that are at most one hop away (local devices)
+  single              Listen only on ${PIHOLE_INTERFACE} interface
+  all                 Listen on all interfaces, permit all origins"
+    exit 0
+  fi
 
   if [[ "${args[2]}" == "all" ]]; then
-    echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+    echo "Listening on all interfaces, permiting all origins"
+    echo -e "\e[1;31mPlease ensure your Pi-hole is behind a firewall when using this option\e[0m"
     change_setting "DNSMASQ_LISTENING" "all"
   elif [[ "${args[2]}" == "local" ]]; then
-    echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+    echo "Listening on all interfaces, permitting origins that are at most one hop away"
     change_setting "DNSMASQ_LISTENING" "local"
   else
-    echo "Listening only on interface ${PIHOLE_INTERFACE}"
+    echo "Listening only on ${PIHOLE_INTERFACE} interface"
     change_setting "DNSMASQ_LISTENING" "single"
   fi
 
@@ -441,7 +455,7 @@ main() {
     "addstaticdhcp"     ) AddDHCPStaticAddress;;
     "removestaticdhcp"  ) RemoveDHCPStaticAddress;;
     "hostrecord"        ) SetHostRecord;;
-    "-i" | "interface"  ) SetListeningMode;;
+    "-i" | "interface"  ) SetListeningMode "$@";;
     "-t" | "teleporter" ) Teleporter;;
     "adlist"            ) CustomizeAdLists;;
     *                   ) helpFunc;;
