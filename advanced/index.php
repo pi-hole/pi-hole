@@ -300,7 +300,6 @@ if ($phBranch !== "master") {
     if(domain.length === 0) {
       return;
     }
-
     $.ajax({
       url: "/admin/scripts/pi-hole/php/add.php",
       method: "post",
@@ -315,7 +314,6 @@ if ($phBranch !== "master") {
           $("#bpOutput").addClass("error");
           $("#bpOutput").html(""+response+"");
         }
-
       },
       error: function(jqXHR, exception) {
         $("#bpOutput").removeClass("add");
@@ -323,18 +321,15 @@ if ($phBranch !== "master") {
       }
     });
   }
-
   <?php if ($featuredTotal > 0) { ?>
     $(document).keypress(function(e) {
         if(e.which === 13 && $("#bpWLPassword").is(":focus")) {
             add();
         }
     });
-
     $("#bpWhitelist").on("click", function() {
         add();
     });
   <?php } ?>
 </script>
-
 </body></html>

@@ -86,7 +86,7 @@ if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -408,7 +408,7 @@ setDHCPCD() {
   echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
-  static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
+  static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
@@ -1413,7 +1413,8 @@ main() {
     pw=""
     if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-        /usr/local/bin/pihole -a -p "${pw}"
+        . /opt/pihole/webpage.sh
+        echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
     fi
   fi
 
