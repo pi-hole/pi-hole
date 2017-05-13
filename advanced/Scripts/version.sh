@@ -143,7 +143,7 @@ defaultOutput() {
 
 helpFunc() {
   echo "Usage: pihole -v [REPO | OPTION] [OPTION]
-Show Pi-hole, Web Admin & FTL versions
+Show Pi-hole, Admin Console & FTL versions
 
 Repositories:
   -p, --pihole         Only retrieve info regarding Pi-hole repository
@@ -153,8 +153,8 @@ Repositories:
 Options:
   -c, --current        Return the current version
   -l, --latest         Return the latest version
-  -h, --hash           Return the Github hash from your local repositories
-  --help               Show this help dialog
+  --hash               Return the Github hash from your local repositories
+  -h, --help           Show this help dialog
 "
 	exit 0
 }
@@ -163,6 +163,6 @@ case "${1}" in
   "-p" | "--pihole"    ) shift; versionOutput "pi-hole" "$@";;
   "-a" | "--admin"     ) shift; versionOutput "AdminLTE" "$@";;
   "-f" | "--ftl"       ) shift; versionOutput "FTL" "$@";;
-  "--help"             ) helpFunc;;
+  "-h" | "--help"      ) helpFunc;;
   *                    ) defaultOutput "$@";;
 esac
