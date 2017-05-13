@@ -16,24 +16,19 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
 helpFunc() {
-	cat << EOM
-::: Set admin options for the web interface of pihole
-:::
-::: Usage: pihole -a [options]
-:::
-::: Options:
-:::  -p, password		Set web interface password, an empty input will remove any previously set password
-:::  -c, celsius		Set Celsius temperature unit
-:::  -f, fahrenheit		Set Fahrenheit temperature unit
-:::  -k, kelvin			Set Kelvin temperature unit
-:::  -h, --help			Show this help dialog
-:::  -i, interface		Setup interface listening behavior of dnsmasq
-:::               		pihole -a -i local  : Listen on all interfaces, but allow only queries from
-:::               		                      devices that are at most one hop away (local devices)
-:::               		pihole -a -i single : Listen only on one interface (see PIHOLE_INTERFACE)
-:::               		pihole -a -i all    : Listen on all interfaces, permit all origins
-EOM
-	exit 0
+  echo "Usage: pihole -a [options]
+Set admin options for the Admin Console
+
+Options:
+  -f, flush           Flush the Pi-hole log
+  -p, password        Set Admin Console password
+  -c, celsius         Set Celsius as preferred temperature unit
+  -f, fahrenheit      Set Fahrenheit as preferred temperature unit
+  -k, kelvin          Set Kelvin as preferred temperature unit
+  -h, --help          Show this help dialog
+  -i, interface       Specify dnsmasq's interface listening behavior
+                        Add '-h' for more info on interface usage"        
+  exit 0
 }
 
 add_setting() {
