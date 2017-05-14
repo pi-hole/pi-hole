@@ -57,6 +57,8 @@ fetch_checkout_pull_branch() {
   # Set the reference for the requested branch, fetch, check it put and pull it
   cd "${directory}"
   git remote set-branches origin "${branch}" || return 1
+  git stash --all --quiet &> /dev/null || true
+  git clean --force -d || true
   git fetch --quiet || return 1
   checkout_pull_branch "${directory}" "${branch}" || return 1
 }

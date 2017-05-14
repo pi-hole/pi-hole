@@ -104,7 +104,7 @@ versionOutput() {
   
   [[ "$2" == "-c" ]] || [[ "$2" == "--current" ]] || [[ -z "$2" ]] && current=$(getLocalVersion $GITDIR)
   [[ "$2" == "-l" ]] || [[ "$2" == "--latest" ]] || [[ -z "$2" ]] && latest=$(getRemoteVersion "$1")
-  if [[ "$2" == "--hash" ]]; then
+  if [[ "$2" == "-h" ]] || [[ "$2" == "--hash" ]]; then
     [[ "$3" == "-c" ]] || [[ "$3" == "--current" ]] || [[ -z "$3" ]] && curHash=$(getLocalHash "$GITDIR")
     [[ "$3" == "-l" ]] || [[ "$3" == "--latest" ]] || [[ -z "$3" ]] && latHash=$(getRemoteHash "$1" "$(cd "$GITDIR" 2> /dev/null && git rev-parse --abbrev-ref HEAD)")
   fi
@@ -131,7 +131,7 @@ versionOutput() {
 }
 
 errorOutput() {
-  echo "  Invalid Option! Try 'pihole -v -h' for more information."
+  echo "  Invalid Option! Try 'pihole -v --help' for more information."
   exit 1
 }
   
@@ -155,8 +155,7 @@ Options:
   -c, --current        Return the current version
   -l, --latest         Return the latest version
   --hash               Return the Github hash from your local repositories
-  -h, --help           Show this help dialog
-"
+  -h, --help           Show this help dialog"
   exit 0
 }
 
