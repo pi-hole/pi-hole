@@ -164,7 +164,7 @@ restartDNS() {
 }
 
 piholeEnable() {
-  if [[ "${2}" == "-h" ]]; then
+  if [[ "${2}" == "-h" ]] || [[ "${2}" == "--help" ]]; then
     echo "Usage: pihole disable [time]
 Example: 'pihole disable', or 'pihole disable 5m'
 Disable Pi-hole subsystems
@@ -205,7 +205,7 @@ Time:
 
 piholeLogging() {
   shift
-  if [[ "${1}" == "-h" ]]; then
+  if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
     echo "Usage: pihole logging [options]
 Example: 'pihole logging on'
 Specify whether the Pi-hole log should be used
