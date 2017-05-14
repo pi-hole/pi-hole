@@ -310,12 +310,14 @@ Whitelist/Blacklist Options:
   -b, blacklist       Blacklist domain(s)
   -wild, wildcard     Blacklist domain(s), and all its subdomains
                         Add '-h' for more info on whitelist/blacklist usage
+
 Debugging Options:
   -d, debug           Start a debugging session
                         Add '-a' to enable automated debugging
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
   -t, tail            View the live output of the Pi-hole log
+
 Options:
   -a, admin           Admin Console options
                         Add '-h' for more info on admin console usage
