@@ -94,7 +94,7 @@ scanList(){
 
 queryFunc() {
   method="${3}"
-  
+
   # If domain contains non ASCII characters, convert domain to punycode if python exists
   # Cr: https://serverfault.com/a/335079
   if [ -z "${2}" ]; then
@@ -105,7 +105,7 @@ queryFunc() {
   else
     domain="${2}"
   fi
-  
+
   # Scan Whitelist, Blacklist and Wildcards
   lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
   result=$(scanList ${domain} "${lists}" ${method})
@@ -122,7 +122,7 @@ queryFunc() {
     [ -n "$method" ] && exact="exact "
     echo "::: No ${exact}results found for ${domain}"
   fi
-  
+
   exit 0
 }
 
@@ -268,6 +268,14 @@ piholeCheckoutFunc() {
   checkout "$@"
 }
 
+tricorderFunc() {
+  if command -v openssl &> /dev/null; then
+    openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
+  else
+    nc tricorder.pi-hole.net 9999 < /dev/stdin
+  fi
+}
+
 helpFunc() {
 	cat << EOM
 ::: Control all Pi-hole specific functions
@@ -302,6 +310,7 @@ helpFunc() {
 :::                             'pihole disable 5m' - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
 :::  checkout                 Check out different branches
+:::  tricorder                Upload log to Pi-hole's medical tricorder (uses SSL when possible)
 EOM
   exit 0
 }
@@ -333,5 +342,6 @@ case "${1}" in
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
+  "tricorder"                   ) tricorderFunc;;
   *                             ) helpFunc;;
 esac
