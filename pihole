@@ -9,11 +9,11 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
-  if [ -x "$(command -v sudo)" ];then
+  if [[ -x "$(command -v sudo)" ]]; then
     exec sudo bash "$0" "$@"
     exit $?
   else
@@ -80,66 +80,49 @@ updateGravityFunc() {
   exit 0
 }
 
-scanList(){
+scanList() {
   domain="${1}"
   list="${2}"
   method="${3}"
-  if [[ ${method} == "-exact" ]] ; then
-    grep -i -E "(^|\s)${domain}($|\s)" "${list}"
-  else
-    grep -i "${domain}" "${list}"
-  fi
-}
 
-processWildcards() {
-  IFS="." read -r -a array <<< "${1}"
-  for (( i=${#array[@]}-1; i>=0; i-- )); do
-    ar=""
-    for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
-      if [[ $j == $((${#array[@]}-1)) ]]; then
-        ar="${array[$j]}"
-      else
-        ar="${array[$j]}.${ar}"
-      fi
-    done
-    echo "${ar}"
-  done
+  if [[ "${method}" == "-exact" ]]; then
+    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list}
+  else
+    grep -i "${domain}" ${list}
+  fi
 }
 
 queryFunc() {
-  domain="${2}"
   method="${3}"
-  lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
-  for list in ${lists[@]}; do
-    if [ -e "${list}" ]; then
-      result=$(scanList ${domain} ${list} ${method})
-      # Remove empty lines before couting number of results
-      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-      echo "::: ${list} (${count} results)"
-      if [[ ${count} > 0 ]]; then
-        echo "${result}"
-      fi
-      echo ""
-    else
-      echo "::: ${list} does not exist"
-      echo ""
-    fi
-  done
-
-  # Scan for possible wildcard matches
-  if [ -e "${wildcardlist}" ]; then
-    local wildcards=($(processWildcards "${domain}"))
-    for domain in ${wildcards[@]}; do
-      result=$(scanList "\/${domain}\/" ${wildcardlist})
-      # Remove empty lines before couting number of results
-      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-      if [[ ${count} > 0 ]]; then
-        echo "::: Wildcard blocking ${domain} (${count} results)"
-        echo "${result}"
-        echo ""
-      fi
-    done
+  
+  # If domain contains non ASCII characters, convert domain to punycode if python exists
+  # Cr: https://serverfault.com/a/335079
+  if [[ -z "${2}" ]]; then
+    echo "::: No domain specified"
+    exit 1
+  elif [[ "${2}" = *[![:ascii:]]* ]]; then
+    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
+  else
+    domain="${2}"
   fi
+  
+  # Scan Whitelist, Blacklist and Wildcards
+  lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
+  result=$(scanList ${domain} "${lists}" ${method})
+  if [[ -n "$result" ]]; then
+    echo "$result"
+    [[ ! -t 1 ]] && exit 0
+  fi
+
+  # Scan Domains lists
+  result=$(scanList ${domain} "/etc/pihole/*.domains" ${method})
+  if [[ -n "$result" ]]; then
+    sort -t . -k 2 -g <<< "$result"
+  else
+    [ -n "$method" ] && exact="exact "
+    echo "::: No ${exact}results found for ${domain}"
+  fi
+  
   exit 0
 }
 
@@ -163,16 +146,16 @@ versionFunc() {
 
 restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
-  if [[ ${dnsmasqPid} ]]; then
-    # service already running - reload config
-    if [ -x "$(command -v systemctl)" ]; then
+  if [[ "${dnsmasqPid}" ]]; then
+    # Service already running - reload config
+    if [[ -x "$(command -v systemctl)" ]]; then
       systemctl restart dnsmasq
     else
       service dnsmasq restart
     fi
   else
-    # service not running, start it up
-    if [ -x "$(command -v systemctl)" ]; then
+    # Service not running, start it up
+    if [[ -x "$(command -v systemctl)" ]]; then
       systemctl start dnsmasq
     else
       service dnsmasq start
@@ -181,16 +164,25 @@ restartDNS() {
 }
 
 piholeEnable() {
-  if [[ "${1}" == "0" ]] ; then
-    #Disable Pihole
+  if [[ "${2}" == "-h" ]]; then
+    echo "Usage: pihole disable [time]
+Example: 'pihole disable', or 'pihole disable 5m'
+Disable Pi-hole subsystems
+
+Time:
+  #s                  Disable Pi-hole functionality for # second(s)
+  #m                  Disable Pi-hole functionality for # minute(s)"
+    exit 0
+  elif [[ "${1}" == "0" ]]; then
+    # Disable Pi-hole
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
     echo "::: Blocking has been disabled!"
-    if [[ $# > 1 ]] ; then
-      if [[ ${2} == *"s"* ]] ; then
+    if [[ $# > 1 ]]; then
+      if [[ "${2}" == *"s"* ]]; then
         tt=${2%"s"}
         echo "::: Blocking will be re-enabled in ${tt} seconds"
         nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
-      elif [[ ${2} == *"m"* ]] ; then
+      elif [[ "${2}" == *"m"* ]]; then
         tt=${2%"m"}
         echo "::: Blocking will be re-enabled in ${tt} minutes"
         tt=$((${tt}*60))
@@ -204,7 +196,7 @@ piholeEnable() {
       fi
     fi
   else
-    #Enable pihole
+    # Enable Pi-hole
     echo "::: Blocking has been enabled!"
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
   fi
@@ -213,15 +205,23 @@ piholeEnable() {
 
 piholeLogging() {
   shift
+  if [[ "${1}" == "-h" ]]; then
+    echo "Usage: pihole logging [options]
+Example: 'pihole logging on'
+Specify whether the Pi-hole log should be used
 
-  if [[ "${1}" == "off" ]] ; then
-    #Disable Logging
+Options:
+  on                  Enable the Pi-hole log at /var/log/pihole.log
+  off                 Disable the Pi-hole log at /var/log/pihole.log"
+    exit 0
+  elif [[ "${1}" == "off" ]]; then
+    # Disable logging
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
     pihole -f
     echo "::: Logging has been disabled!"
-  elif [[ "${1}" == "on" ]] ; then
-    #Enable logging
+  elif [[ "${1}" == "on" ]]; then
+    # Enable logging
     sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
     echo "::: Logging has been enabled!"
@@ -233,12 +233,12 @@ piholeLogging() {
 }
 
 piholeStatus() {
-  if [[ $(netstat -plnt | grep -c ':53 ') > 0 ]]; then
-    if [[ "${1}" != "web" ]] ; then
+  if [[ "$(netstat -plnt | grep -c ':53 ')" -gt "0" ]]; then
+    if [[ "${1}" != "web" ]]; then
       echo "::: DNS service is running"
     fi
   else
-    if [[ "${1}" == "web" ]] ; then
+    if [[ "${1}" == "web" ]]; then
       echo "-1";
     else
       echo "::: DNS service is NOT running"
@@ -246,28 +246,28 @@ piholeStatus() {
     return
   fi
 
-  if [[ $(grep -i "^#addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf) ]] ; then
-    #list is commented out
-    if [[ "${1}" == "web" ]] ; then
+  if [[ "$(grep -i "^#addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]]; then
+    # List is commented out
+    if [[ "${1}" == "web" ]]; then
       echo 0;
     else
       echo "::: Pi-hole blocking is Disabled";
     fi
-  elif [[ $(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf) ]] ; then
-    #list set
-    if [[ "${1}" == "web" ]] ; then
+  elif [[ "$(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]]; then
+    # List set
+    if [[ "${1}" == "web" ]]; then
       echo 1;
     else
       echo "::: Pi-hole blocking is Enabled";
     fi
   else
-    #addn-host not found
-    if [[ "${1}" == "web" ]] ; then
+    # Addn-host not found
+    if [[ "${1}" == "web" ]]; then
       echo 99
     else
       echo ":::  No hosts file linked to dnsmasq, adding it in enabled state"
     fi
-    #add addn-host= to dnsmasq
+    # Add addn-host= to dnsmasq
     echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
     restartDNS
   fi
@@ -280,46 +280,66 @@ tailFunc() {
 }
 
 piholeCheckoutFunc() {
+  if [[ "$2" == "-h" ]]; then
+    echo "Usage: pihole checkout [repo] [branch]
+Example: 'pihole checkout master' or 'pihole checkout core dev'
+Switch Pi-hole subsystems to a different Github branch
+
+Repositories:
+  core [branch]       Change the branch of Pi-hole's core subsystem
+  web [branch]        Change the branch of Admin Console subsystem
+  
+Branches:
+  master              Update subsystems to the latest stable release
+  dev                 Update subsystems to the latest development release"
+    exit 0
+  fi
+
   source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
   shift
   checkout "$@"
 }
 
 helpFunc() {
-	cat << EOM
-::: Control all Pi-hole specific functions
-:::
-::: Usage: pihole [options]
-:::		Add -h after -w (whitelist), -b (blacklist), -c (chronometer), or -a (admin) for more information on usage
-:::
-::: Options:
-:::  -w, whitelist            Whitelist domain(s)
-:::  -b, blacklist            Blacklist domain(s) (exact match)
-:::  -wild, wildcard          Blacklist whole domain(s) (wildcard)
-:::  -d, debug                Start a debugging session
-:::                             Automated debugging can be enabled with '-a'.
-:::                             'pihole -d -a'
-:::  -f, flush                Flush the 'pihole.log' file
-:::  -t, tail                 Output the last lines of the 'pihole.log' file. Lines are appended as the file grows
-:::  -up, updatePihole        Update Pi-hole components
-:::  -r, reconfigure          Reconfigure or Repair Pi-hole
-:::  -g, updateGravity        Update the list of ad-serving domains
-:::  -c, chronometer          Calculates stats and displays to an LCD
-:::  -h, help                 Show this help dialog
-:::  -v, version              Show installed versions of Pi-hole and Web-Admin
-:::  -q, query                Query the adlists for a specific domain
-:::                             'pihole -q domain -exact' shows exact matches only
-:::  -l, logging              Enable or Disable logging (pass 'on' or 'off')
-:::  -a, admin                Admin webpage options
-:::  uninstall                Uninstall Pi-hole from your system! :(
-:::  status                   Display if Pi-hole is Enabled or Disabled
-:::  enable                   Enable Pi-hole DNS Blocking
-:::  disable                  Disable Pi-hole DNS Blocking
-:::                             Blocking can also be disabled only temporarily, e.g.,
-:::                             'pihole disable 5m' - will disable blocking for 5 minutes
-:::  restartdns               Restart dnsmasq
-:::  checkout                 Check out different branches
-EOM
+  echo "Usage: pihole [options]
+Example: 'pihole -w -h'
+Add '-h' after specific commands for more information on usage
+  
+Whitelist/Blacklist Options:
+  -w, whitelist       Whitelist domain(s)
+  -b, blacklist       Blacklist domain(s)
+  -wild, wildcard     Blacklist domain(s), and all its subdomains
+                        Add '-h' for more info on whitelist/blacklist usage
+
+Debugging Options:
+  -d, debug           Start a debugging session
+                        Add '-a' to enable automated debugging
+  -f, flush           Flush the Pi-hole log
+  -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
+  -t, tail            View the live output of the Pi-hole log
+
+Options:
+  -a, admin           Admin Console options
+                        Add '-h' for more info on admin console usage
+  -c, chronometer     Calculates stats and displays to an LCD
+                        Add '-h' for more info on chronometer usage
+  -g, updateGravity   Update the list of ad-serving domains
+  -h, --help, help    Show this help dialog
+  -l, logging         Specify whether the Pi-hole log should be used
+                        Add '-h' for more info on logging usage
+  -q, query           Query the adlists for a specified domain
+                        Add '-exact' AFTER a specified domain for exact match
+  -up, updatePihole   Update Pi-hole subsystems        
+  -v, version         Show installed versions of Pi-hole, Admin Console & FTL
+                        Add '-h' for more info on version usage                         
+  uninstall           Uninstall Pi-hole from your system
+  status              Display the running status of Pi-hole subsystems
+  enable              Enable Pi-hole subsystems
+  disable             Disable Pi-hole subsystems
+                        Add '-h' for more info on disable usage
+  restartdns          Restart Pi-hole subsystems
+  checkout            Switch Pi-hole subsystems to a different Github branch
+                        Add '-h' for more info on checkout usage";
   exit 0
 }
 
@@ -344,7 +364,7 @@ case "${1}" in
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0 $2;;
+  "disable"                     ) piholeEnable 0 "$2";;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
   "-a" | "admin"                ) webpageFunc "$@";;
