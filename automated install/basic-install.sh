@@ -22,6 +22,7 @@ tmpLog=/tmp/pihole-install.log
 instalLogLoc=/etc/pihole/install.log
 setupVars=/etc/pihole/setupVars.conf
 lighttpdConfig=/etc/lighttpd/lighttpd.conf
+coltable=/opt/pihole/COL_TABLE
 
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
@@ -54,15 +55,43 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 
+if [[ -f ${coltable} ]]; then
+  source ${coltable}
+else
+  COL_NC='\e[0m' # No Color
+  COL_WHITE='\e[1;37m'
+  COL_BLACK='\e[0;30m'
+  COL_BLUE='\e[0;34m'
+  COL_LIGHT_BLUE='\e[1;34m'
+  COL_GREEN='\e[0;32m'
+  COL_LIGHT_GREEN='\e[1;32m'
+  COL_CYAN='\e[0;36m'
+  COL_LIGHT_CYAN='\e[1;36m'
+  COL_RED='\e[0;31m'
+  COL_LIGHT_RED='\e[1;31m'
+  COL_PURPLE='\e[0;35m'
+  COL_LIGHT_PURPLE='\e[1;35m'
+  COL_BROWN='\e[0;33m'
+  COL_YELLOW='\e[1;33m'
+  COL_GRAY='\e[0;30m'
+  COL_LIGHT_GRAY='\e[0;37m'
+fi
+
+TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
+CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+INFO="[i]"
+DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
+OVER="\r\033[K"
+
 show_ascii_berry() {
-  echo "
-        .;;,.
+  echo -e "
+        ${COL_LIGHT_GREEN}.;;,.
         .ccccc:,.
          :cccclll:.      ..,,
           :ccccclll.   ;ooodc
            'ccll:;ll .oooodc
              .;cll.;;looo:.
-                 .. ','.
+                 ${COL_RED}.. ','.
                 .',,,,,,'.
               .',,,,,,,,,,.
             .',,,,,,,,,,,,....
@@ -75,7 +104,7 @@ show_ascii_berry() {
             ....',,,,,,,,,,,,.
                .',,,,,,,,,'.
                 .',,,,,,'.
-                  ..'''.
+                  ..'''.${COL_NC}
 "
 }
 
@@ -176,14 +205,14 @@ is_repo() {
 make_repo() {
   local directory="${1}"
   local remoteRepo="${2}"
-
-  echo -n ":::    Cloning ${remoteRepo} into ${directory}..."
+  str="Clone ${remoteRepo} into ${directory}"
+  echo -ne "  ${INFO} ${str}..."
   # Clean out the directory if it exists for git to clone into
   if [[ -d "${directory}" ]]; then
     rm -rf "${directory}"
   fi
   git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
-  echo " done!"
+  echo -e "${OVER}  ${TICK} ${str}"
   return 0
 }
 
@@ -191,14 +220,15 @@ update_repo() {
   local directory="${1}"
   local curdir
 
+  local str="Update repo in ${1}"
   curdir="${PWD}"
   cd "${directory}" &> /dev/null || return 1
   # Pull the latest commits
-  echo -n ":::    Updating repo in ${1}..."
+  echo -ne "  ${INFO} ${str}..."
   git stash --all --quiet &> /dev/null || true # Okay for stash failure
   git clean --force -d || true # Okay for already clean directory
   git pull --quiet &> /dev/null || return $?
-  echo " done!"
+  echo -e "${OVER}  ${TICK} ${str}"
   cd "${curdir}" &> /dev/null || return 1
   return 0
 }
@@ -208,15 +238,16 @@ getGitFiles() {
   # as arguments 1 and 2
   local directory="${1}"
   local remoteRepo="${2}"
-  echo ":::"
-  echo "::: Checking for existing repository..."
+  local str="Check for existing repository in ${1}"
+  echo -ne "  ${INFO} ${str}..."
   if is_repo "${directory}"; then
-    update_repo "${directory}" || { echo "*** Error: Could not update local repository. Contact support."; exit 1; }
-    echo " done!"
+    echo -e "${OVER}  ${TICK} ${str}"
+    update_repo "${directory}" || { echo -e "        ${COL_LIGHT_RED}Error: Could not update local repository. Contact support.${COL_NC}"; exit 1; }
   else
-    make_repo "${directory}" "${remoteRepo}" || { echo "Unable to clone repository, please contact support"; exit 1; }
-    echo " done!"
+    echo -e "${OVER}  ${CROSS} ${str}"
+    make_repo "${directory}" "${remoteRepo}" || { echo -e "        ${COL_LIGHT_RED}Error: Could not update local repository. Contact support.${COL_NC}"; exit 1; }
   fi
+  echo ""
   return 0
 }
 
@@ -253,29 +284,34 @@ verifyFreeDiskSpace() {
 
   # 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
   # - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
-  echo "::: Verifying free disk space..."
+  local str="Disk space check."
   local required_free_kilobytes=51200
   local existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
 
   # - Unknown free disk space , not a integer
   if ! [[ "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
-    echo "::: Unknown free disk space!"
-    echo "::: We were unable to determine available free disk space on this system."
-    echo "::: You may override this check and force the installation, however, it is not recommended"
-    echo "::: To do so, pass the argument '--i_do_not_follow_recommendations' to the install script"
-    echo "::: eg. curl -L https://install.pi-hole.net | bash /dev/stdin --i_do_not_follow_recommendations"
+    echo -e "  ${CROSS} ${str}"
+    echo ""
+    echo "        Unknown free disk space!"
+    echo "        We were unable to determine available free disk space on this system."
+    echo "        You may override this check and force the installation, however, it is not recommended"
+    echo "        To do so, pass the argument '--i_do_not_follow_recommendations' to the install script"
+    echo "        eg. curl -L https://install.pi-hole.net | bash /dev/stdin --i_do_not_follow_recommendations"
     exit 1
   # - Insufficient free disk space
   elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
-    echo "::: Insufficient Disk Space!"
-    echo "::: Your system appears to be low on disk space. Pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
-    echo "::: You only have ${existing_free_kilobytes} KiloBytes free."
-    echo "::: If this is a new install you may need to expand your disk."
-    echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
-    echo "::: After rebooting, run this installation again. (curl -L https://install.pi-hole.net | bash)"
+    echo -e "  ${CROSS} ${str}"
+    echo "        Insufficient Disk Space!"
+    echo "        Your system appears to be low on disk space. Pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+    echo "        You only have ${existing_free_kilobytes} KiloBytes free."
+    echo "        If this is a new install you may need to expand your disk."
+    echo "        Try running 'sudo raspi-config', and choose the 'expand file system option'"
+    echo "        After rebooting, run this installation again. (curl -L https://install.pi-hole.net | bash)"
 
-    echo "Insufficient free space, exiting..."
+    echo "        ${COL_LIGHT_RED}Insufficient free space, exiting...${COL_NC}"
     exit 1
+  else
+    echo -e "  ${TICK} ${str}"
   fi
 }
 
@@ -624,27 +660,27 @@ version_check_dnsmasq() {
   local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
 
   if [ -f ${dnsmasq_conf} ]; then
-    echo -n ":::    Existing dnsmasq.conf found..."
+    echo -ne "  ${INFO} Existing dnsmasq.conf found..."
     if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
       echo " it is from a previous Pi-hole install."
-      echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
+      echo -ne "  ${INFO} Backing up dnsmasq.conf to dnsmasq.conf.orig..."
       mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
-      echo " done."
-      echo -n ":::    Restoring default dnsmasq.conf..."
+      echo -e "${OVER}  ${TICK} Backing up dnsmasq.conf to dnsmasq.conf.orig..."
+      echo -ne "  ${INFO} Restoring default dnsmasq.conf..."
       cp ${dnsmasq_original_config} ${dnsmasq_conf}
-      echo " done."
+      echo -e "${OVER}  ${TICK} Restoring default dnsmasq.conf..."
     else
       echo " it is not a Pi-hole file, leaving alone!"
     fi
   else
-    echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
+    echo -ne "  ${INFO} No dnsmasq.conf found.. restoring default dnsmasq.conf..."
     cp ${dnsmasq_original_config} ${dnsmasq_conf}
-    echo " done."
+    echo -e "${OVER}  ${TICK} No dnsmasq.conf found.. restoring default dnsmasq.conf..."
   fi
 
-  echo -n ":::    Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
+  echo -en "  ${INFO} Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
-  echo " done."
+  echo -e "${OVER}  ${TICK} Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf"
   sed -i "s/@INT@/$PIHOLE_INTERFACE/" ${dnsmasq_pihole_01_location}
   if [[ "${PIHOLE_DNS_1}" != "" ]]; then
     sed -i "s/@DNS1@/$PIHOLE_DNS_1/" ${dnsmasq_pihole_01_location}
@@ -682,9 +718,8 @@ clean_existing() {
 
 installScripts() {
   # Install the scripts from repository to their various locations
-
-  echo ":::"
-  echo -n "::: Installing scripts from ${PI_HOLE_LOCAL_REPO}..."
+  local str="Installing scripts from ${PI_HOLE_LOCAL_REPO}"
+  echo -ne "  ${INFO} ${str}..."
 
   # Clear out script files from Pi-hole scripts directory.
   clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES[@]}"
@@ -698,17 +733,18 @@ installScripts() {
     install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
-    echo " done."
+    echo -e "${OVER}  ${TICK} ${str}"
   else
-    echo " *** ERROR: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting."
+    echo -e "${OVER}  ${CROSS} ${str}"
+    echo -e "        ${COL_LIGHT_RED}ERROR: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting.${COL_NC}"
     exit 1
   fi
 }
 
 installConfigs() {
   # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
-  echo ":::"
-  echo "::: Installing configs from ${PI_HOLE_LOCAL_REPO}..."
+  echo ""
+  echo -e "  ${INFO} Installing configs from ${PI_HOLE_LOCAL_REPO}..."
   version_check_dnsmasq
 
   #Only mess with lighttpd configs if user has chosen to install web interface
@@ -774,12 +810,14 @@ update_package_cache() {
   #Update package cache on apt based OSes. Do this every time since
   #it's quick and packages can be updated at any time.
 
-  echo ":::"
-  echo -n "::: Updating local cache of available packages..."
+  local str="Update local cache of available packages"
+  echo ""
+  echo -ne "  ${INFO} ${str}..."
   if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
-    echo " done!"
+    echo -e "${OVER}  ${TICK} ${str}"
   else
-    echo -en "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
+    echo -e "${OVER}  ${CROSS} ${str}"
+    echo -ne "        ${COL_LIGHT_RED}ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\"${COL_NC}"
     return 1
   fi
 }
@@ -787,25 +825,37 @@ update_package_cache() {
 notify_package_updates_available() {
   # Let user know if they have outdated packages on their system and
   # advise them to run a package update at soonest possible.
-  echo ":::"
-  echo -n "::: Checking ${PKG_MANAGER} for upgraded packages...."
+  local str="Checking ${PKG_MANAGER} for upgraded packages"
+  echo ""
+  echo -ne "  ${INFO} ${str}..."
   updatesToInstall=$(eval "${PKG_COUNT}")
-  echo " done!"
-  echo ":::"
+  #echo -e "\r\033[K  ${TICK} ${str}"
+  #echo ""
   if [[ -d "/lib/modules/$(uname -r)" ]]; then
     if [[ ${updatesToInstall} -eq "0" ]]; then
-      echo "::: Your system is up to date! Continuing with Pi-hole installation..."
+      echo -e "${OVER}  ${TICK} ${str}"
+      echo "        Your system is up to date! Continuing with Pi-hole installation..."
     else
-      echo "::: There are ${updatesToInstall} updates available for your system!"
-      echo "::: We recommend you update your OS after installing Pi-hole! "
-      echo ":::"
+      echo -e "${OVER}  ${TICK} ${str}"
+      echo -e "        ${COL_LIGHT_GREEN}There are ${updatesToInstall} updates available for your system!"
+      echo -e "        We recommend you update your OS after installing Pi-hole!${COL_NC}"
+      echo ""
     fi
   else
-    echo "::: Kernel update detected, please reboot your system and try again if your installation fails."
+    echo -e "${OVER}  ${CROSS} ${str}"
+    echo -e "    ${COL_LIGHT_RED}Kernel update detected, please reboot your system and try again if your installation fails.${COL_NC}"
   fi
 }
 
+counter=0
 install_dependent_packages() {
+  counter=$((counter+1))
+  if [ ${counter} == 1 ]; then
+    echo -e "  ${INFO} Installer Dependency checks..."
+  else
+    echo -e "  ${INFO} Main Dependency checks..."
+  fi
+
   # Install packages passed in via argument array
   # No spinner - conflicts with set -e
   declare -a argArray1=("${!1}")
@@ -818,11 +868,11 @@ install_dependent_packages() {
   # installed by us, and remove only the installed packages, and not the entire list.
   if command -v debconf-apt-progress &> /dev/null; then
     for i in "${argArray1[@]}"; do
-      echo -n ":::    Checking for $i..."
+      echo -ne "  ${INFO}  Checking for $i..."
       if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
-        echo " installed!"
+        echo -e "${OVER}  ${TICK} Checking for $i"
       else
-        echo " added to install list!"
+        echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
         installArray+=("${i}")
       fi
     done
@@ -831,16 +881,17 @@ install_dependent_packages() {
       debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
       return
     fi
+      echo ""
       return 0
   fi
 
   #Fedora/CentOS
   for i in "${argArray1[@]}"; do
-    echo -n ":::    Checking for $i..."
+    echo -ne "  ${INFO}  Checking for $i..."
     if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
-      echo " installed!"
+      echo -e "${OVER}  ${TICK} Checking for $i"
     else
-      echo " added to install list!"
+      echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
       installArray+=("${i}")
     fi
   done
@@ -848,67 +899,86 @@ install_dependent_packages() {
       "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
       return
     fi
+    echo ""
     return 0
 }
 
 CreateLogFile() {
   # Create logfiles if necessary
-  echo ":::"
-  echo -n "::: Creating log file and changing owner to dnsmasq..."
+  local str="Creating log file and changing owner to dnsmasq"
+  echo ""
+  echo -ne "  ${INFO} ${str}..."
   if [ ! -f /var/log/pihole.log ]; then
     touch /var/log/pihole.log
     chmod 644 /var/log/pihole.log
     chown "${DNSMASQ_USER}":root /var/log/pihole.log
-    echo " done!"
+    echo -e "${OVER}  ${TICK} ${str}"
   else
-    echo " already exists!"
+    echo -e "${OVER}  ${CROSS} ${str}"
+    echo "        ${COL_LIGHT_GREEN}Log file already exists!${COL_NC}"
   fi
 }
 
 installPiholeWeb() {
   # Install the web interface
-  echo ":::"
-  echo "::: Installing pihole custom index page..."
+
+  echo ""
+  echo "  ${INFO} Installing pihole custom index page..."
   if [ -d "/var/www/html/pihole" ]; then
+
+    local str="Installing index.php"
+    echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/index.php" ]; then
-      echo ":::     Existing index.php detected, not overwriting"
+      echo -e "${OVER}  ${CROSS} ${str}"
+      echo -e "        ${COL_LIGHT_GREEN}Existing index.php detected, not overwriting${COL_NC}"
     else
-      echo -n ":::     index.php missing, replacing... "
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
-      echo " done!"
+      echo -e "${OVER}  ${TICK} ${str}"
     fi
 
+    local str="Installing index.js"
+    echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/index.js" ]; then
-      echo ":::     Existing index.js detected, not overwriting"
+      echo -e "${OVER}  ${CROSS} ${str}"
+      echo -e "        ${COL_LIGHT_GREEN}Existing index.js detected, not overwriting${COL_NC}"
     else
-      echo -n ":::     index.js missing, replacing... "
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
-      echo " done!"
+      echo -e "${OVER}  ${TICK} ${str}"
     fi
 
+    local str="Installing blockingpage.css"
+    echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
-      echo ":::     Existing blockingpage.css detected, not overwriting"
+      echo -e "${OVER}  ${CROSS} ${str}"
+      echo -e "        ${COL_LIGHT_GREEN}Existing blockingpage.css detected, not overwriting${COL_NC}"
     else
-      echo -n ":::     blockingpage.css missing, replacing... "
       cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
-      echo " done!"
+      echo -e "${OVER}  ${TICK} ${str}"
     fi
 
   else
-    echo ":::     Creating directory for blocking page"
+    local str="Creating directory for blocking page and copying files"
+    echo -ne "  ${INFO} ${str}..."
     install -d /var/www/html/pihole
     install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+    echo -e "${OVER}  ${TICK} ${str}"
+
+    local str="Backing up index.lighttpd.html"
+    echo -ne "  ${INFO} ${str}..."
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+      echo -e "${OVER}  ${TICK} ${str}"
     else
-      printf "\n:::\tNo default index.lighttpd.html file found... not backing up"
+      echo -e "${OVER}  ${CROSS} ${str}"
+      echo -e "        No default index.lighttpd.html file found... not backing up"
     fi
-    echo " done!"
+
   fi
 
   # Install Sudoer file
-  echo ":::"
-  echo -n "::: Installing sudoer file..."
+  echo ""
+  local str="Installing sudoer file"
+  echo -ne "  ${INFO} ${str}..."
   mkdir -p /etc/sudoers.d/
   cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole
   # Add lighttpd user (OS dependent) to sudoers file
@@ -921,7 +991,7 @@ installPiholeWeb() {
   fi
 
   chmod 0440 /etc/sudoers.d/pihole
-  echo " done!"
+  echo -e "${OVER}  ${TICK} ${str}"
 }
 
 installCron() {
@@ -1168,11 +1238,11 @@ update_dialogs() {
 
   case ${UpdateCmd} in
     ${opt1a})
-      echo "::: ${opt1a} option selected."
+      echo -e "  ${INFO} ${opt1a} option selected."
       useUpdateVars=true
       ;;
     ${opt2a})
-      echo "::: ${opt2a} option selected"
+      echo -e "  ${INFO} ${opt2a} option selected"
       useUpdateVars=false
       ;;
     esac
@@ -1180,17 +1250,17 @@ update_dialogs() {
 
 clone_or_update_repos() {
 if [[ "${reconfigure}" == true ]]; then
-      echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
+      echo "  ${info} --reconfigure passed to install script. Not downloading/updating local repos"
     else
       # Get Git files for Core and Admin
       getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        { echo "        ${COL_LIGHT_RED}Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue.${COL_NC}"; \
           exit 1; \
         }
 
       if [[ ${INSTALL_WEB} == true ]]; then
         getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-        { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        { echo "        ${COL_LIGHT_RED}Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue.${COL_NC}"; \
           exit 1; \
         }
       fi
@@ -1289,22 +1359,28 @@ main() {
   ######## FIRST CHECK ########
   # Must be root to install
   show_ascii_berry
-  echo ":::"
+  local str="Root user check."
+  echo ""
+
   if [[ ${EUID} -eq 0 ]]; then
-    echo "::: You are root."
+    echo -e "  ${TICK} ${str}"
   else
-    echo "::: Script called with non-root privileges. The Pi-hole installs server packages and configures"
-    echo "::: system networking, it requires elevated rights. Please check the contents of the script for"
-    echo "::: any concerns with this requirement. Please be sure to download this script from a trusted source."
-    echo ":::"
-    echo "::: Detecting the presence of the sudo utility for continuation of this install..."
+    echo -e "  ${CROSS} ${str}"
+    echo -e "${COL_LIGHT_RED}"
+    echo "        Script called with non-root privileges. The Pi-hole installs server packages and configures"
+    echo "        system networking, it requires elevated rights. Please check the contents of the script for"
+    echo "        any concerns with this requirement. Please be sure to download this script from a trusted source."
+    echo ""
+    echo "        We will now attempt to detectthe presence of the sudo utility for continuation of this install."
+    echo -e "${COL_NC}"
 
     if command -v sudo &> /dev/null; then
-      echo "::: Utility sudo located."
+      echo -e "  ${TICK} Check for sudo utility."
       exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
       exit $?
     else
-      echo "::: sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed."
+      echo -e "  ${CROSS} Check for sudo utility."
+      echo "        ${COL_LIGHT_RED}sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed.${COL_NC}"
       exit 1
     fi
   fi
