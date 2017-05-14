@@ -42,13 +42,13 @@ Options:"
   if [[ "${letter}" == "b" ]]; then
     echo "  -wild, --wildcard   Add wildcard entry to blacklist"
   fi
-  
+
 echo "  -d, --delmode       Remove domain(s) from the ${word}list
   -nr, --noreload     Update ${word}list without refreshing dnsmasq
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
   -l, --list          Display all your ${word}listed domains"
-  
+
 exit 0
 }
 
@@ -77,7 +77,7 @@ PoplistFile() {
   if [[ ! -f ${whitelist} ]]; then
     touch ${whitelist}
   fi
-  
+
   for dom in "${domList[@]}"; do
       # Logic: If addmode then add to desired list and remove from the other; if delmode then remove from desired list but do not add to the other
     if ${addmode}; then
