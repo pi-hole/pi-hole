@@ -280,7 +280,7 @@ tailFunc() {
 }
 
 piholeCheckoutFunc() {
-  if [[ "$2" == "-h" ]]; then
+  if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
     echo "Usage: pihole checkout [repo] [branch]
 Example: 'pihole checkout master' or 'pihole checkout core dev'
 Switch Pi-hole subsystems to a different Github branch
