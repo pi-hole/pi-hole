@@ -390,7 +390,7 @@ SetHostRecord() {
 SetListeningMode() {
 	source "${setupVars}"
   
-  if [[ "$3" == "-h" ]]; then
+  if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
     echo "Usage: pihole -a -i [interface]
 Example: 'pihole -a -i local'
 Specify dnsmasq's network interface listening behavior
