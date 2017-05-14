@@ -78,7 +78,7 @@ show_ascii_berry() {
           :ccccclll.   ;ooodc
            'ccll:;ll .oooodc
              .;cll.;;looo:.
-                 ${COL_RED}.. ','.
+                 ${COL_LIGHT_RED}.. ','.
                 .',,,,,,'.
               .',,,,,,,,,,.
             .',,,,,,,,,,,,....
