@@ -59,29 +59,16 @@ if [[ -f ${coltable} ]]; then
   source ${coltable}
 else
   COL_NC='\e[0m' # No Color
-  COL_WHITE='\e[1;37m'
-  COL_BLACK='\e[0;30m'
-  COL_BLUE='\e[0;34m'
-  COL_LIGHT_BLUE='\e[1;34m'
-  COL_GREEN='\e[0;32m'
   COL_LIGHT_GREEN='\e[1;32m'
-  COL_CYAN='\e[0;36m'
-  COL_LIGHT_CYAN='\e[1;36m'
-  COL_RED='\e[0;31m'
   COL_LIGHT_RED='\e[1;31m'
-  COL_PURPLE='\e[0;35m'
-  COL_LIGHT_PURPLE='\e[1;35m'
-  COL_BROWN='\e[0;33m'
-  COL_YELLOW='\e[1;33m'
-  COL_GRAY='\e[0;30m'
-  COL_LIGHT_GRAY='\e[0;37m'
+  TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
+  CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+  INFO="[i]"
+  DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
+  OVER="\r\033[K"
 fi
 
-TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
-CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
-INFO="[i]"
-DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
-OVER="\r\033[K"
+
 
 show_ascii_berry() {
   echo -e "
@@ -1003,7 +990,7 @@ installCron() {
 runGravity() {
   # Run gravity.sh to build blacklists
   echo ""
-  echo -r "  ${INFO} Preparing to run gravity.sh to refresh hosts..."
+  echo -e "  ${INFO} Preparing to run gravity.sh to refresh hosts..."
   if ls /etc/pihole/list* 1> /dev/null 2>&1; then
     echo -e "  ${INFO} Cleaning up previous install (preserving whitelist/blacklist)"
     rm /etc/pihole/list.*
@@ -1134,7 +1121,7 @@ installPihole() {
     if [ -x "$(command -v lighty-enable-mod)" ]; then
       lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
     else
-      printf "\n:::\tWarning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues.\n"
+      echo -e  "  ${INFO} Warning: 'lighty-enable-mod' utility not found. Please ensure fastcgi is enabled if you experience issues"
     fi
   fi
   installScripts
@@ -1145,7 +1132,7 @@ installPihole() {
   fi
   installCron
   installLogrotate
-  FTLdetect || echo "::: FTL Engine not installed."
+  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
   configureFirewall
   finalExports
   #runGravity
@@ -1186,16 +1173,16 @@ updatePihole() {
 
 checkSelinux() {
   if command -v getenforce &> /dev/null; then
-    echo ":::"
-    echo -n "::: SELinux Support Detected... Mode: "
+    echo ""
+    echo -ne "  ${INFO} SELinux Support Detected... Mode: "
     enforceMode=$(getenforce)
     echo "${enforceMode}"
     if [[ "${enforceMode}" == "Enforcing" ]]; then
       whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\n\nPi-hole currently does not support SELinux, but you may still continue with the installation.\n\nNote: Admin UI Will not function fully without setting your policies correctly\n\nContinue installing Pi-hole?" ${r} ${c} || \
-      { echo ":::"; echo "::: Not continuing install after SELinux Enforcing detected."; exit 1; }
-      echo ":::"
-      echo "::: Continuing installation with SELinux Enforcing."
-      echo "::: Please refer to official SELinux documentation to create a custom policy."
+      { echo ""; echo -e "${COL_LIGHT_RED}Not continuing install after SELinux Enforcing detected.${COL_NC}"; exit 1; }
+      echo ""
+      echo -e " ${INFO} Continuing installation with SELinux Enforcing."
+      echo -e " ${INFO} Please refer to official SELinux documentation to create a custom policy."
     fi
   fi
 }
@@ -1426,13 +1413,13 @@ main() {
   fi
 
   # Update package cache
-  #qxqxupdate_package_cache || exit 1
+  update_package_cache || exit 1
 
   # Notify user of package availability
-  #qxqxnotify_package_updates_available
+  notify_package_updates_available
 
   # Install packages used by this installation script
-  #qxqxinstall_dependent_packages INSTALLER_DEPS[@]
+  install_dependent_packages INSTALLER_DEPS[@]
 
    # Check if SELinux is Enforcing
   checkSelinux
@@ -1505,7 +1492,7 @@ main() {
     fi
   fi
 
-  echo "::: Restarting services..."
+  echo -e "  ${INFO} Restarting services..."
   # Start services
   start_service dnsmasq
   enable_service dnsmasq
@@ -1520,40 +1507,38 @@ main() {
   start_service pihole-FTL
   enable_service pihole-FTL
 
-  echo "::: done."
-
   if [[ "${useUpdateVars}" == false ]]; then
       displayFinalMessage "${pw}"
   fi
 
-  echo ":::"
+  echo -e "${COL_LIGHT_GREEN}"
   if [[ "${useUpdateVars}" == false ]]; then
-    echo "::: Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
-    echo ":::     ${IPV4_ADDRESS%/*}"
-    echo ":::     ${IPV6_ADDRESS}"
-    echo ":::"
-    echo "::: If you set a new IP address, you should restart the Pi."
+    echo -e "  Installation Complete! Configure your devices to use the Pi-hole as their DNS server using:"
+    echo -e "      ${IPV4_ADDRESS%/*}"
+    echo -e "      ${IPV6_ADDRESS}"
+    echo -e ""
+    echo -e "  If you set a new IP address, you should restart the Pi."
     if [[ ${INSTALL_WEB} == true ]]; then
-      echo "::: View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
+      echo -e "  View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
     fi
   else
-    echo "::: Update complete!"
+    echo -e "  Update complete!"
   fi
 
   if [[ ${INSTALL_WEB} == true ]]; then
     if (( ${#pw} > 0 )) ; then
-      echo ":::"
-      echo "::: Note: As security measure a password has been installed for your web interface"
-      echo "::: The currently set password is"
-      echo ":::                                ${pw}"
-      echo ":::"
-      echo "::: You can always change it using"
-      echo ":::                                pihole -a -p"
+      echo -e ""
+      echo -e "  Note: As security measure a password has been installed for your web interface"
+      echo -e "  The currently set password is"
+      echo -e "                                 ${pw}"
+      echo -e ""
+      echo -e "  You can always change it using"
+      echo -e "                                 pihole -a -p"
     fi
   fi
 
-  echo ":::"
-  echo "::: The install log is located at: /etc/pihole/install.log"
+  echo -e ""
+  echo -e "  The install log is located at: /etc/pihole/install.log${COL_NC}"
 }
 
 if [[ "${PH_TEST}" != true ]] ; then
