@@ -716,6 +716,7 @@ installScripts() {
     install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
     install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
     install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
+    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
     echo -e "${OVER}  ${TICK} ${str}"
