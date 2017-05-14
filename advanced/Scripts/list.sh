@@ -158,6 +158,10 @@ RemoveDomain() {
             # Remove it from the other one
             echo "::: Removing $1 from $list..."
             # Busybox sed compatible case-insensitive domain removal
+              # grep case insensitive domain from list, print line numbers
+              # split on ':' with awk and print the line number
+              # For conditions with more than one match, substitute newline with ','
+              # sed substitute final trailing ',' with newline
             sed -i "$(grep -in "^${domain}$" ${list} | awk -F':' '{print $1}' | tr '\n' ',' | sed 's/,$/\n/')d" ${list}
             reload=true
         else
