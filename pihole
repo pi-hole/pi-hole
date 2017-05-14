@@ -280,6 +280,21 @@ tailFunc() {
 }
 
 piholeCheckoutFunc() {
+  if [[ "$2" == "-h" ]]; then
+    echo "Usage: pihole checkout [repo] [branch]
+Example: 'pihole checkout master' or 'pihole checkout core dev'
+Switch Pi-hole subsystems to a different Github branch
+
+Repositories:
+  core [branch]       Change the branch of Pi-hole's core subsystem
+  web [branch]        Change the branch of Admin Console subsystem
+  
+Branches:
+  master              Update subsystems to the latest stable release
+  dev                 Update subsystems to the latest development release"
+    exit 0
+  fi
+
   source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
   shift
   checkout "$@"
