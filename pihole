@@ -94,7 +94,7 @@ scanList() {
 
 queryFunc() {
   method="${3}"
-  
+
   # If domain contains non ASCII characters, convert domain to punycode if python exists
   # Cr: https://serverfault.com/a/335079
   if [[ -z "${2}" ]]; then
@@ -105,7 +105,7 @@ queryFunc() {
   else
     domain="${2}"
   fi
-  
+
   # Scan Whitelist, Blacklist and Wildcards
   lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
   result=$(scanList ${domain} "${lists}" ${method})
@@ -122,7 +122,7 @@ queryFunc() {
     [ -n "$method" ] && exact="exact "
     echo "::: No ${exact}results found for ${domain}"
   fi
-  
+
   exit 0
 }
 
@@ -288,7 +288,7 @@ Switch Pi-hole subsystems to a different Github branch
 Repositories:
   core [branch]       Change the branch of Pi-hole's core subsystem
   web [branch]        Change the branch of Admin Console subsystem
-  
+
 Branches:
   master              Update subsystems to the latest stable release
   dev                 Update subsystems to the latest development release"
@@ -304,7 +304,7 @@ helpFunc() {
   echo "Usage: pihole [options]
 Example: 'pihole -w -h'
 Add '-h' after specific commands for more information on usage
-  
+
 Whitelist/Blacklist Options:
   -w, whitelist       Whitelist domain(s)
   -b, blacklist       Blacklist domain(s)
@@ -329,9 +329,9 @@ Options:
                         Add '-h' for more info on logging usage
   -q, query           Query the adlists for a specified domain
                         Add '-exact' AFTER a specified domain for exact match
-  -up, updatePihole   Update Pi-hole subsystems        
+  -up, updatePihole   Update Pi-hole subsystems
   -v, version         Show installed versions of Pi-hole, Admin Console & FTL
-                        Add '-h' for more info on version usage                         
+                        Add '-h' for more info on version usage
   uninstall           Uninstall Pi-hole from your system
   status              Display the running status of Pi-hole subsystems
   enable              Enable Pi-hole subsystems
