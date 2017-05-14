@@ -269,10 +269,24 @@ piholeCheckoutFunc() {
 }
 
 tricorderFunc() {
+  if [ ! -p "/dev/stdin" ]; then
+    echo "Please do not call Tricorder directly."
+    exit 1
+  fi
+
   if command -v openssl &> /dev/null; then
     openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
   else
-    nc tricorder.pi-hole.net 9999 < /dev/stdin
+    echo "The debug log will be transmitted insecurely via plain-text"
+    echo "If you wish to cancel, press Ctrl-C to exit within 10 seconds"
+    secs="10"
+    while [ "$secs" -gt 0 ]; do
+       echo -ne "."
+       sleep 1
+       : $((secs--))
+    done
+    echo " "
+    nc tricorder.pi-hole.net 9999 < /dev/stdin < /dev/stdin
   fi
 }
 
@@ -310,7 +324,6 @@ helpFunc() {
 :::                             'pihole disable 5m' - will disable blocking for 5 minutes
 :::  restartdns               Restart dnsmasq
 :::  checkout                 Check out different branches
-:::  tricorder                Upload log to Pi-hole's medical tricorder (uses SSL when possible)
 EOM
   exit 0
 }
