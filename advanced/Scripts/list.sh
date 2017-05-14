@@ -157,8 +157,8 @@ RemoveDomain() {
         if [[ "${bool}" == true ]]; then
             # Remove it from the other one
             echo "::: Removing $1 from $list..."
-            # /I flag: search case-insensitive
-            sed -i "/${domain}/Id" "${list}"
+            # Busybox sed compatible case-insensitive domain removal
+            sed -i "$(grep -in "^${domain}$" ${list} | awk -F':' '{print $1}' | tr '\n' ',' | sed 's/,$/\n/')d" ${list}
             reload=true
         else
             if [[ "${verbose}" == true ]]; then
@@ -174,8 +174,8 @@ RemoveDomain() {
         if [[ "${bool}" == true ]]; then
             # Remove it from the other one
             echo "::: Removing $1 from $list..."
-            # /I flag: search case-insensitive
-            sed -i "/address=\/${domain}/Id" "${list}"
+            # Busybox sed compatible case-insensitive domain removal
+            sed -i "$(grep -in "/${domain}/" ${list} | awk -F':' '{print $1}' | tr '\n' ',' | sed 's/,$/\n/')d" ${list}
             reload=true
         else
             if [[ "${verbose}" == true ]]; then
