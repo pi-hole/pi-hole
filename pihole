@@ -8,6 +8,9 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+colfile="/opt/pihole/COL_TABLE"
+source ${colfile}
+
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
@@ -17,7 +20,7 @@ if [[ ! $EUID -eq 0 ]];then
     exec sudo bash "$0" "$@"
     exit $?
   else
-    echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+    echo -e "  ${CROSS}  sudo is needed to run pihole commands.  Please run this script as root or install sudo."
     exit 1
   fi
 fi
@@ -98,7 +101,7 @@ queryFunc() {
   # If domain contains non ASCII characters, convert domain to punycode if python exists
   # Cr: https://serverfault.com/a/335079
   if [[ -z "${2}" ]]; then
-    echo "::: No domain specified"
+    echo -e "  ${CROSS}  No domain specified"
     exit 1
   elif [[ "${2}" = *[![:ascii:]]* ]]; then
     [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
@@ -120,7 +123,7 @@ queryFunc() {
     sort -t . -k 2 -g <<< "$result"
   else
     [ -n "$method" ] && exact="exact "
-    echo "::: No ${exact}results found for ${domain}"
+    echo -e "  ${CROSS}  No ${exact}results found for ${domain}"
   fi
 
   exit 0
@@ -173,34 +176,49 @@ Time:
   #s                  Disable Pi-hole functionality for # second(s)
   #m                  Disable Pi-hole functionality for # minute(s)"
     exit 0
+
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
+
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
-    echo "::: Blocking has been disabled!"
+
     if [[ $# > 1 ]]; then
       if [[ "${2}" == *"s"* ]]; then
         tt=${2%"s"}
-        echo "::: Blocking will be re-enabled in ${tt} seconds"
+        local str="Disabling blocking for ${tt} seconds"
+        echo -ne "  ${INFO} ${str}..."
+        local str="Blocking will be re-enabled in ${tt} seconds"
         nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
       elif [[ "${2}" == *"m"* ]]; then
         tt=${2%"m"}
-        echo "::: Blocking will be re-enabled in ${tt} minutes"
+        local str="Disabling blocking for ${tt} minutes"
+        echo -ne "  ${INFO} ${str}..."
+        local str="Blocking will be re-enabled in ${tt} minutes"
         tt=$((${tt}*60))
         nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
       else
-        echo "::: Unknown format for delayed reactivation of the blocking!"
-        echo "::: Example:"
-        echo ":::    pihole disable 5s    -    will disable blocking for 5 seconds"
-        echo ":::    pihole disable 7m    -    will disable blocking for 7 minutes"
-        echo "::: Blocking will not automatically be re-enabled!"
+        echo -e "${OVER}  ${CROSS} Blocking Not disabled!${COL_NC}"
+        echo -e "  ${COL_LIGHT_RED}Unknown format for delayed reactivation of the blocking!"
+        echo -e "  Example:"
+        echo -e "           pihole disable 5s    -    will disable blocking for 5 seconds"
+        echo -e "           pihole disable 7m    -    will disable blocking for 7 minutes${COL_NC}"
+        exit 1
       fi
+    else
+      local str="Disabling blocking"
+      echo -ne "  ${INFO} ${str}..."
+      str="Blocking Disabled"
     fi
   else
     # Enable Pi-hole
-    echo "::: Blocking has been enabled!"
+    local str="Enabling blocking"
+    echo -ne "  ${INFO} ${str}..."
+    local str="Blocking Enabled"
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+
   fi
   restartDNS
+  echo -e "${OVER}  ${TICK} ${str}"
 }
 
 piholeLogging() {
@@ -219,29 +237,32 @@ Options:
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
     pihole -f
-    echo "::: Logging has been disabled!"
+    echo -ne "  ${INFO} Disabling logging..."
+    local str="Logging has been disabled!"
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
     sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
-    echo "::: Logging has been enabled!"
+    echo -ne "  ${INFO} Enabling logging..."
+    local str="Logging has been enabled!"
   else
-    echo "::: Invalid option passed, please pass 'on' or 'off'"
+    echo -e "${COL_LIGHT_RED}  Invalid option passed, please pass 'on' or 'off'${COL_NC}"
     exit 1
   fi
   restartDNS
+  echo -e "${OVER}  ${TICK} ${str}"
 }
 
 piholeStatus() {
   if [[ "$(netstat -plnt | grep -c ':53 ')" -gt "0" ]]; then
     if [[ "${1}" != "web" ]]; then
-      echo "::: DNS service is running"
+      echo -e "  ${TICK} DNS service is running"
     fi
   else
     if [[ "${1}" == "web" ]]; then
       echo "-1";
     else
-      echo "::: DNS service is NOT running"
+      echo -e "  ${CROSS} DNS service is NOT running"
     fi
     return
   fi
@@ -251,21 +272,21 @@ piholeStatus() {
     if [[ "${1}" == "web" ]]; then
       echo 0;
     else
-      echo "::: Pi-hole blocking is Disabled";
+      echo -e "  ${CROSS} Pi-hole blocking is Disabled";
     fi
   elif [[ "$(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]]; then
     # List set
     if [[ "${1}" == "web" ]]; then
       echo 1;
     else
-      echo "::: Pi-hole blocking is Enabled";
+      echo -e "  ${TICK} Pi-hole blocking is Enabled";
     fi
   else
     # Addn-host not found
     if [[ "${1}" == "web" ]]; then
       echo 99
     else
-      echo ":::  No hosts file linked to dnsmasq, adding it in enabled state"
+      echo -e "  ${INFO} No hosts file linked to dnsmasq, adding it in enabled state"
     fi
     # Add addn-host= to dnsmasq
     echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
@@ -364,7 +385,7 @@ case "${1}" in
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0 "$2";;
+  "disable"                     ) piholeEnable 0 $2;;
   "status"                      ) piholeStatus "$2";;
   "restartdns"                  ) restartDNS;;
   "-a" | "admin"                ) webpageFunc "$@";;
