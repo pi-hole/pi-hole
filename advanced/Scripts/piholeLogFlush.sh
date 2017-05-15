@@ -8,7 +8,10 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-echo -n "::: Flushing /var/log/pihole.log ..."
+colfile="/opt/pihole/COL_TABLE"
+source ${colfile}
+
+echo -ne "  ${INFO} Flushing /var/log/pihole.log ..."
 # Test if logrotate is available on this system
 if command -v /usr/sbin/logrotate >/dev/null; then
   # Flush twice to move all data out of sight of FTL
@@ -21,4 +24,4 @@ else
     echo " " > /var/log/pihole.log.1
   fi
 fi
-echo "... done!"
+echo -e "${OVER}  ${TICK} Flushed /var/log/pihole.log"
