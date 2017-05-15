@@ -770,7 +770,7 @@ start_service() {
   # This should not fail, it's an error if it does
   local str="Starting ${1} service"
   echo ""
-  echo -ne "    ${INFO} ${str}..."
+  echo -ne "  ${INFO} ${str}..."
   if command -v systemctl &> /dev/null; then
     systemctl restart "${1}" &> /dev/null
   else
