@@ -40,13 +40,8 @@ helpFunc() {
 Example: 'pihole -${param} site.com', or 'pihole -${param} site1.com site2.com'
 ${type^}list one or more domains
 
-Options:"
-
-  if [[ "${listMain}" == "${wildcardlist}" ]]; then
-    echo "  -wild, --wildcard   Block all subdomains of specified domain"
-  fi
-
-echo "  -d, --delmode       Remove domain(s) from the ${type}list
+Options:
+  -d, --delmode       Remove domain(s) from the ${type}list
   -nr, --noreload     Update ${type}list without refreshing dnsmasq
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
