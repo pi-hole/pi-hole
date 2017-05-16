@@ -26,10 +26,12 @@ EOM
 	exit 0
 }
 
+PIHOLE_COMMAND="/usr/local/bin/pihole"
 
 adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default
-whitelistScript="pihole -w"
+adListDefault=/etc/pihole/adlists.default #being deprecated
+adListRepoDefault=/etc/.pihole/adlists.default
+whitelistScript="${PIHOLE_COMMAND} -w"
 whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
@@ -70,36 +72,34 @@ fi
 ###########################
 # collapse - begin formation of pihole
 gravity_collapse() {
+
+  #New Logic:
+  # Does /etc/pihole/adlists.list exist? If so leave it alone
+  #                                      If not, cp /etc/.pihole/adlists.default /etc/pihole/adlists.list
+  # Read from adlists.list
+
+  #The following two blocks will sort out any missing adlists in the /etc/pihole directory, and remove legacy adlists.default
+  if [ -f ${adListDefault} ] && [ -f ${adListFile} ]; then
+    rm ${adListDefault}
+  fi
+
+  if [ ! -f ${adListFile} ]; then
+    cp ${adListRepoDefault} ${adListFile}
+  fi
+
 	echo "::: Neutrino emissions detected..."
 	echo ":::"
-	#Decide if we're using a custom ad block list, or defaults.
-	if [ -f ${adListFile} ]; then
-		#custom file found, use this instead of default
-		echo -n "::: Custom adList file detected. Reading..."
-		sources=()
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListFile}
-		echo " done!"
-	else
-		#no custom file found, use defaults!
-		echo -n "::: No custom adlist file detected, reading from default file..."
-		sources=()
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			#Do not read commented out or blank lines
-			if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
-				echo "" > /dev/null
-			else
-				sources+=(${line})
-			fi
-		done < ${adListDefault}
-		echo " done!"
-	fi
+  echo -n "::: Pulling source lists into range..."
+  sources=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    #Do not read commented out or blank lines
+    if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
+      echo "" > /dev/null
+    else
+      sources+=(${line})
+    fi
+  done < ${adListFile}
+  echo " done!"
 }
 
 # patternCheck - check to see if curl downloaded any new files.
@@ -168,6 +168,10 @@ gravity_transport() {
 	# Process result
 	gravity_patternCheck "${patternBuffer}" ${success} "${err}"
 
+        # Delete temp file if it hasn't been moved
+        if [[ -f "${patternBuffer}" ]]; then
+                rm "${patternBuffer}"
+        fi
 }
 
 # spinup - main gravity function
@@ -183,22 +187,26 @@ gravity_spinup() {
 		saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
 		activeDomains[$i]=${saveLocation}
 
-		agent="Mozilla/10.0"
+		agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36"
 
 		# Use a case statement to download lists that need special cURL commands
 		# to complete properly and reset the user agent when required
 		case "${domain}" in
-			"adblock.mahakala.is")
+		    "adblock.mahakala.is")
 			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 			cmd_ext="-e http://forum.xda-developers.com/"
+		    ;;
+
+		    "adaway.org")
+			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 		    ;;
 
 		    "pgl.yoyo.org")
 			cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
 		    ;;
 
-            # Default is a simple request
-            *) cmd_ext=""
+		    # Default is a simple request
+		    *) cmd_ext=""
         esac
         if [[ "${skipDownload}" == false ]]; then
             echo -n "::: Getting $domain list..."
@@ -385,7 +393,7 @@ gravity_reload() {
 	#Now replace the line in dnsmasq file
 #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
-	pihole restartdns
+	"${PIHOLE_COMMAND}" restartdns
 	echo " done!"
 }
 
@@ -403,8 +411,6 @@ if [[ "${forceGrav}" == true ]]; then
 	echo " done!"
 fi
 
-#Overwrite adlists.default from /etc/.pihole in case any changes have been made. Changes should be saved in /etc/adlists.list
-cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
@@ -423,4 +429,4 @@ gravity_hostFormat
 gravity_blackbody
 
 gravity_reload
-pihole status
+"${PIHOLE_COMMAND}" status

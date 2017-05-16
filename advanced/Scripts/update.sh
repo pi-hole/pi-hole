@@ -90,10 +90,11 @@ FTLcheckUpdate() {
 main() {
   local pihole_version_current
   local web_version_current
+  source "${setupVars}"
 
   #This is unlikely
   if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
-    echo "::: Critical Error: Core Pi-Hole repo is missing from system!"
+    echo "::: Critical Error: Core Pi-hole repo is missing from system!"
     echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
     exit 1;
   fi

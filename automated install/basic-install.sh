@@ -86,7 +86,7 @@ if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -105,7 +105,7 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
   LIGHTTPD_USER="www-data"
@@ -136,7 +136,7 @@ elif command -v rpm &> /dev/null; then
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
+  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli)
   if ! grep -q 'Fedora' /etc/redhat-release; then
@@ -233,7 +233,7 @@ find_IPv4_information() {
 
 get_available_interfaces() {
   # Get available UP interfaces.
-  availableInterfaces=$(ip -o link | grep -v "state DOWN\|lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+  availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 welcomeDialogs() {
@@ -268,7 +268,7 @@ verifyFreeDiskSpace() {
   # - Insufficient free disk space
   elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
     echo "::: Insufficient Disk Space!"
-    echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+    echo "::: Your system appears to be low on disk space. Pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
     echo "::: You only have ${existing_free_kilobytes} KiloBytes free."
     echo "::: If this is a new install you may need to expand your disk."
     echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
@@ -408,7 +408,7 @@ setDHCPCD() {
   echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
-  static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
+  static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
@@ -438,7 +438,7 @@ setStaticIPv4() {
       cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
       # Build Interface configuration file:
       {
-        echo "# Configured via Pi-Hole installer"
+        echo "# Configured via Pi-hole installer"
         echo "DEVICE=$PIHOLE_INTERFACE"
         echo "BOOTPROTO=none"
         echo "ONBOOT=yes"
@@ -619,14 +619,14 @@ version_check_dnsmasq() {
   local dnsmasq_conf="/etc/dnsmasq.conf"
   local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
   local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
-  local dnsmasq_original_config="/etc/.pihole/advanced/dnsmasq.conf.original"
-  local dnsmasq_pihole_01_snippet="/etc/.pihole/advanced/01-pihole.conf"
+  local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
+  local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
   local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
 
   if [ -f ${dnsmasq_conf} ]; then
     echo -n ":::    Existing dnsmasq.conf found..."
     if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
-      echo " it is from a previous pi-hole install."
+      echo " it is from a previous Pi-hole install."
       echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
       mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
       echo " done."
@@ -634,7 +634,7 @@ version_check_dnsmasq() {
       cp ${dnsmasq_original_config} ${dnsmasq_conf}
       echo " done."
     else
-      echo " it is not a pi-hole file, leaving alone!"
+      echo " it is not a Pi-hole file, leaving alone!"
     fi
   else
     echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
@@ -706,9 +706,9 @@ installScripts() {
 }
 
 installConfigs() {
-  # Install the configs from /etc/.pihole to their various locations
+  # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
   echo ":::"
-  echo "::: Installing configs..."
+  echo "::: Installing configs from ${PI_HOLE_LOCAL_REPO}..."
   version_check_dnsmasq
 
   #Only mess with lighttpd configs if user has chosen to install web interface
@@ -719,7 +719,7 @@ installConfigs() {
     elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
       mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
     fi
-    cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
     mkdir -p /var/run/lighttpd
     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
     mkdir -p /var/cache/lighttpd/compress
@@ -797,7 +797,7 @@ notify_package_updates_available() {
       echo "::: Your system is up to date! Continuing with Pi-hole installation..."
     else
       echo "::: There are ${updatesToInstall} updates available for your system!"
-      echo "::: We recommend you update your OS after installing Pi-Hole! "
+      echo "::: We recommend you update your OS after installing Pi-hole! "
       echo ":::"
     fi
   else
@@ -874,7 +874,7 @@ installPiholeWeb() {
       echo ":::     Existing index.php detected, not overwriting"
     else
       echo -n ":::     index.php missing, replacing... "
-      cp /etc/.pihole/advanced/index.php /var/www/html/pihole/
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -882,7 +882,7 @@ installPiholeWeb() {
       echo ":::     Existing index.js detected, not overwriting"
     else
       echo -n ":::     index.js missing, replacing... "
-      cp /etc/.pihole/advanced/index.js /var/www/html/pihole/
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -890,14 +890,14 @@ installPiholeWeb() {
       echo ":::     Existing blockingpage.css detected, not overwriting"
     else
       echo -n ":::     blockingpage.css missing, replacing... "
-      cp /etc/.pihole/advanced/blockingpage.css /var/www/html/pihole
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
 
   else
     echo ":::     Creating directory for blocking page"
     install -d /var/www/html/pihole
-    install -D /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/
+    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
@@ -910,7 +910,7 @@ installPiholeWeb() {
   echo ":::"
   echo -n "::: Installing sudoer file..."
   mkdir -p /etc/sudoers.d/
-  cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
+  cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole
   # Add lighttpd user (OS dependent) to sudoers file
   echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -928,7 +928,7 @@ installCron() {
   # Install the cron job
   echo ":::"
   echo -n "::: Installing latest Cron script..."
-  cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
+  cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
   echo " done!"
 }
 
@@ -942,7 +942,7 @@ runGravity() {
   fi
   # Test if /etc/pihole/adlists.default exists
   if [[ ! -e /etc/pihole/adlists.default ]]; then
-    cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
+    cp ${PI_HOLE_LOCAL_REPO}/adlists.default /etc/pihole/adlists.default
   fi
   echo "::: Running gravity.sh"
   { /opt/pihole/gravity.sh; }
@@ -965,7 +965,7 @@ configureFirewall() {
     whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
     { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
     echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
-    firewall-cmd --permanent --add-port=80/tcp --add-port=53/tcp --add-port=53/udp
+    firewall-cmd --permanent --add-service=http --add-service=dns
     firewall-cmd --reload
     return 0
   # Check for proper kernel modules to prevent failure
@@ -1017,7 +1017,7 @@ finalExports() {
 
   # Look for DNS server settings which would have to be reapplied
   source "${setupVars}"
-  source "/etc/.pihole/advanced/Scripts/webpage.sh"
+  source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
   if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
     ProcessDNSSettings
@@ -1032,7 +1032,7 @@ installLogrotate() {
   # Install the logrotate script
   echo ":::"
   echo -n "::: Installing latest logrotate script..."
-  cp /etc/.pihole/advanced/logrotate /etc/pihole/logrotate
+  cp ${PI_HOLE_LOCAL_REPO}/advanced/logrotate /etc/pihole/logrotate
   # Different operating systems have different user / group
   # settings for logrotate that makes it impossible to create
   # a static logrotate file that will work with e.g.
@@ -1221,7 +1221,7 @@ FTLinstall() {
       stop_service pihole-FTL &> /dev/null
       install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
       cd "${orig_dir}"
-      install -T -m 0755 "/etc/.pihole/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+      install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
       echo "done."
       return 0
     else
@@ -1413,7 +1413,8 @@ main() {
     pw=""
     if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-        /usr/local/bin/pihole -a -p "${pw}"
+        . /opt/pihole/webpage.sh
+        echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
     fi
   fi
 
@@ -1460,7 +1461,7 @@ main() {
       echo ":::                                ${pw}"
       echo ":::"
       echo "::: You can always change it using"
-      echo ":::                                pihole -a -p new_password"
+      echo ":::                                pihole -a -p"
     fi
   fi
 

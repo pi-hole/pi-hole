@@ -10,7 +10,7 @@ group_defaults:
   reset_on_push:
     enabled: true
   reject_value: -2
-  approve_regex: '^(Approved|:shipit:|:\+1:|Engage)'
+  approve_regex: '^(Approved|:shipit:|:\+1:|Engage|:taco:)'
   reject_regex: '^(Rejected|:-1:|Borg)'
   author_approval:
     auto: true
