@@ -68,7 +68,7 @@ skipDownload=false
 
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
 if [[ -r ${piholeDir}/pihole.conf ]]; then
-	echo "::: pihole.conf file no longer supported. Over-rides in this file are ignored."
+	echo "  ${COL_LIGHT_RED}pihole.conf file no longer supported. Over-rides in this file are ignored.${COL_NC}"
 fi
 
 ###########################
@@ -426,9 +426,10 @@ for var in "$@"; do
 done
 
 if [[ "${forceGrav}" == true ]]; then
-	echo -n "::: Deleting exising list cache..."
+  str="Deleting exising list cache"
+	echo -ne "${INFO} ${str}..."
 	rm /etc/pihole/list.*
-	echo " done!"
+	echo -e "${OVER}  ${TICK} ${str}"
 fi
 
 gravity_collapse
@@ -437,9 +438,9 @@ if [[ "${skipDownload}" == false ]]; then
     gravity_Schwarzchild
     gravity_advanced
 else
-    echo "::: Using cached Event Horizon list..."
+    echo -e "  ${INFO} Using cached Event Horizon list..."
     numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
-	echo "::: $numberOf unique domains trapped in the event horizon."
+	echo -e "  ${INFO} ${COL_LIGHT_BLUE}$numberOf${COL_NC} unique domains trapped in the event horizon."
 fi
 gravity_Whitelist
 gravity_Blacklist
