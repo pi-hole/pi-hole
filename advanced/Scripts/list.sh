@@ -24,6 +24,10 @@ domToRemoveList=()
 listMain=""
 listAlt=""
 
+colfile="/opt/pihole/COL_TABLE"
+source ${colfile}
+
+
 helpFunc() {
   if [[ "${listMain}" == "${whitelist}" ]]; then
     letter="w"
@@ -66,8 +70,9 @@ HandleOther() {
   # Check validity of domain
   validDomain=$(echo "${domain}" | perl -lne 'print if /(?!.*[^a-z0-9-\.].*)^((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9-]+\.)*[a-z]{2,63}/')
   if [[ -z "${validDomain}" ]]; then
-    echo "::: $1 is not a valid argument or domain name"
+    echo -e "  ${CROSS} $1 is not a valid argument or domain name!"
   else
+    echo -e "  ${TICK} $1 is a valid domain name!"
     domList=("${domList[@]}" ${validDomain})
   fi
 }
@@ -93,6 +98,7 @@ PoplistFile() {
 }
 
 AddDomain() {
+
   list="$2"
   domain=$(EscapeRegexp "$1")
 
@@ -104,14 +110,14 @@ AddDomain() {
     if [[ "${bool}" == false ]]; then
       # Domain not found in the whitelist file, add it!
       if [[ "${verbose}" == true ]]; then
-      echo "::: Adding $1 to $list..."
+      echo -e "  ${INFO} Adding $1 to $list..."
       fi
       reload=true
       # Add it to the list we want to add it to
       echo "$1" >> "${list}"
     else
       if [[ "${verbose}" == true ]]; then
-        echo "::: ${1} already exists in ${list}, no need to add!"
+        echo -e "  ${INFO} ${1} already exists in ${list}, no need to add!"
       fi
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
@@ -126,7 +132,7 @@ AddDomain() {
 
     if [[ "${bool}" == false ]]; then
       if [[ "${verbose}" == true ]]; then
-      echo "::: Adding $1 to wildcard blacklist..."
+      echo -e "  ${INFO} Adding $1 to wildcard blacklist..."
       fi
       reload=true
       echo "address=/$1/${IPV4_ADDRESS}" >> "${wildcardlist}"
@@ -135,7 +141,7 @@ AddDomain() {
       fi
     else
       if [[ "${verbose}" == true ]]; then
-        echo "::: ${1} already exists in wildcard blacklist, no need to add!"
+        echo -e "  ${INFO} ${1} already exists in wildcard blacklist, no need to add!"
       fi
     fi
   fi
@@ -151,13 +157,13 @@ RemoveDomain() {
       grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
       if [[ "${bool}" == true ]]; then
         # Remove it from the other one
-        echo "::: Removing $1 from $list..."
+        echo -e "  ${INFO} Removing $1 from $list..."
         # /I flag: search case-insensitive
         sed -i "/${domain}/Id" "${list}"
         reload=true
       else
         if [[ "${verbose}" == true ]]; then
-          echo "::: ${1} does not exist in ${list}, no need to remove!"
+          echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
         fi
       fi
     elif [[ "${list}" == "${wildcardlist}" ]]; then
@@ -166,13 +172,13 @@ RemoveDomain() {
       grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
       if [[ "${bool}" == true ]]; then
         # Remove it from the other one
-        echo "::: Removing $1 from $list..."
+        echo -e "  ${INFO} Removing $1 from $list..."
         # /I flag: search case-insensitive
         sed -i "/address=\/${domain}/Id" "${list}"
         reload=true
       else
         if [[ "${verbose}" == true ]]; then
-          echo "::: ${1} does not exist in ${list}, no need to remove!"
+          echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
         fi
       fi
     fi
@@ -180,22 +186,30 @@ RemoveDomain() {
 
 Reload() {
   # Reload hosts file
+  echo ""
+  echo -e "  ${INFO} Updating gravity..."
+  echo ""
   pihole -g -sd
 }
 
 Displaylist() {
-  if [[ "${listMain}" == "${whitelist}" ]]; then
-    string="gravity resistant domains"
+
+  if [[ -f ${listMain} ]]; then
+    if [[ "${listMain}" == "${whitelist}" ]]; then
+      string="gravity resistant domains"
+    else
+      string="domains caught in the sinkhole"
+    fi
+    verbose=false
+    echo -e "Displaying $string:\n"
+    count=1
+    while IFS= read -r RD; do
+      echo "  ${count}: ${RD}"
+      count=$((count+1))
+    done < "${listMain}"
   else
-    string="domains caught in the sinkhole"
+    echo -e "  ${COL_LIGHT_RED}${listMain} does not exist!${COL_NC}"
   fi
-  verbose=false
-  echo -e "Displaying $string:\n"
-  count=1
-  while IFS= read -r RD; do
-    echo "${count}: ${RD}"
-    count=$((count+1))
-  done < "${listMain}"
   exit 0;
 }
 
