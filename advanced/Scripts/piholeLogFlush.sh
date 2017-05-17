@@ -8,7 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-echo -n "::: Flushing /var/log/pihole.log ..."
 if [[ "$@" == *"once"* ]]; then
   # Nightly logrotation
   if command -v /usr/sbin/logrotate >/dev/null; then
@@ -25,6 +24,7 @@ if [[ "$@" == *"once"* ]]; then
   fi
 else
   # Manual flushing
+  echo -n "::: Flushing /var/log/pihole.log ..."
   if command -v /usr/sbin/logrotate >/dev/null; then
     # Logrotate twice to move all data out of sight of FTL
     /usr/sbin/logrotate --force /etc/pihole/logrotate; sleep 3
@@ -36,5 +36,5 @@ else
       echo " " > /var/log/pihole.log.1
     fi
   fi
+  echo "... done!"
 fi
-echo "... done!"
