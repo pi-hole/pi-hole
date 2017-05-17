@@ -183,20 +183,31 @@ Time:
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
 
     if [[ $# > 1 ]]; then
-      if [[ "${2}" == *"s"* ]]; then
+      local error=false
+      if [[ "${2}" == *"s" ]]; then
         tt=${2%"s"}
-        local str="Disabling blocking for ${tt} seconds"
-        echo -ne "  ${INFO} ${str}..."
-        local str="Blocking will be re-enabled in ${tt} seconds"
-        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
-      elif [[ "${2}" == *"m"* ]]; then
+        if [[ $tt =~ ^-?[0-9]+$ ]];then
+          local str="Disabling blocking for ${tt} seconds"
+          echo -ne "  ${INFO} ${str}..."
+          local str="Blocking will be re-enabled in ${tt} seconds"
+          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+        else
+          local error=true
+        fi
+      elif [[ "${2}" == *"m" ]]; then
         tt=${2%"m"}
-        local str="Disabling blocking for ${tt} minutes"
-        echo -ne "  ${INFO} ${str}..."
-        local str="Blocking will be re-enabled in ${tt} minutes"
-        tt=$((${tt}*60))
-        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
-      else
+          if [[ $tt =~ ^-?[0-9]+$ ]];then
+          local str="Disabling blocking for ${tt} minutes"
+          echo -ne "  ${INFO} ${str}..."
+          local str="Blocking will be re-enabled in ${tt} minutes"
+          tt=$((${tt}*60))
+          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+        else
+          local error=true
+        fi
+      fi
+
+      if [[ ${error} == true ]];then
         echo -e "${OVER}  ${CROSS} Blocking Not disabled!${COL_NC}"
         echo -e "  ${COL_LIGHT_RED}Unknown format for delayed reactivation of the blocking!"
         echo -e "  Example:"
