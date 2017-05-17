@@ -53,14 +53,14 @@ GitCheckUpdateAvail() {
   REMOTE="$(git rev-parse @{upstream})"
 
   if [[ ${#LOCAL} == 0 ]]; then
-    echo "::: Error: Local revision could not be obtained, ask Pi-hole support."
-    echo "::: Additional debugging output:"
+    echo -e "        ${COL_LIGHT_RED}Error: Local revision could not be obtained, ask Pi-hole support."
+    echo -e "        Additional debugging output:${COL_NC}"
     git status
     exit
   fi
   if [[ ${#REMOTE} == 0 ]]; then
-    echo "::: Error: Remote revision could not be obtained, ask Pi-hole support."
-    echo "::: Additional debugging output:"
+    echo -e "        ${COL_LIGHT_RED}Error: Remote revision could not be obtained, ask Pi-hole support."
+    echo -e "        Additional debugging output:${COL_NC}"
     git status
     exit
   fi
@@ -98,8 +98,8 @@ main() {
 
   #This is unlikely
   if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
-    echo "::: Critical Error: Core Pi-hole repo is missing from system!"
-    echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+    echo -e "        ${COL_LIGHT_RED}Critical Error: Core Pi-hole repo is missing from system!"
+    echo -e "        Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
     exit 1;
   fi
 
@@ -130,8 +130,8 @@ main() {
 
   if [[ ${INSTALL_WEB} == true ]]; then
     if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
-      echo "::: Critical Error: Web Admin repo is missing from system!"
-      echo "::: Please re-run install script from https://github.com/pi-hole/pi-hole"
+      echo -e "        ${COL_LIGHT_RED}Critical Error: Web Admin repo is missing from system!"
+      echo -e "        Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
       exit 1;
     fi
 

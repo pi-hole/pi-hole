@@ -17,13 +17,13 @@ source ${coltable}
 
 helpFunc() {
 	cat << EOM
-::: Pull in domains from adlists
-:::
-::: Usage: pihole -g
-:::
-::: Options:
-:::  -f, --force			Force lists to be downloaded, even if they don't need updating.
-:::  -h, --help				Show this help dialog
+Pull in domains from adlists
+
+ Usage: pihole -g
+
+ Options:
+  -f, --force			Force lists to be downloaded, even if they don't need updating.
+  -h, --help				Show this help dialog
 EOM
 	exit 0
 }
