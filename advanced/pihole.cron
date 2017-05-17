@@ -24,6 +24,6 @@
 # Pi-hole: Flush the log daily at 00:00 so it doesn't get out of control
 #          Stats will be viewable in the Web interface thanks to the cron job above
 #          The flush script will use logrotate if available
-00 00   * * *   root    PATH="$PATH:/usr/local/bin/" pihole flush
+00 00   * * *   root    PATH="$PATH:/usr/local/bin/" pihole flush once
 
 @reboot root /usr/sbin/logrotate /etc/pihole/logrotate

@@ -61,7 +61,7 @@ debugFunc() {
 }
 
 flushFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/piholeLogFlush.sh
+  "${PI_HOLE_SCRIPT_DIR}"/piholeLogFlush.sh "$@"
   exit 0
 }
 
@@ -353,7 +353,7 @@ case "${1}" in
   "-b" | "blacklist"            ) blacklistFunc "$@";;
   "-wild" | "wildcard"          ) wildcardFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
-  "-f" | "flush"                ) flushFunc;;
+  "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc;;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
