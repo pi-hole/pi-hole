@@ -229,10 +229,10 @@ getGitFiles() {
   echo -ne "  ${INFO} ${str}..."
   if is_repo "${directory}"; then
     echo -e "${OVER}  ${TICK} ${str}"
-    update_repo "${directory}" || { echo -e "        ${COL_LIGHT_RED}Error: Could not update local repository. Contact support.${COL_NC}"; exit 1; }
+    update_repo "${directory}" || { echo -e "\n        ${COL_LIGHT_RED}Error: Could not update local repository. Contact support.${COL_NC}"; exit 1; }
   else
     echo -e "${OVER}  ${CROSS} ${str}"
-    make_repo "${directory}" "${remoteRepo}" || { echo -e "        ${COL_LIGHT_RED}Error: Could not update local repository. Contact support.${COL_NC}"; exit 1; }
+    make_repo "${directory}" "${remoteRepo}" || { echo -e "\n        ${COL_LIGHT_RED}Error: Could not update local repository. Contact support.${COL_NC}"; exit 1; }
   fi
   echo ""
   return 0
