@@ -965,8 +965,6 @@ configureFirewall() {
     whiptail --title "Firewall in use" --yesno "We have detected a running firewall\n\nPi-hole currently requires HTTP and DNS port access.\n\n\n\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
     { echo -e ":::\n::: Not installing firewall rulesets."; return 0; }
     echo -e ":::\n:::\n Configuring FirewallD for httpd and dnsmasq."
-    firewall-cmd --permanent --add-service=http --add-service=dns
-    # Rule for lo, ports 4711-4720
     firewall-cmd --permanent --add-port=4711-4720/tcp
     firewall-cmd --reload
     return 0
