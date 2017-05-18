@@ -1179,22 +1179,22 @@ update_dialogs() {
 }
 
 clone_or_update_repos() {
-if [[ "${reconfigure}" == true ]]; then
-      echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
-    else
-      # Get Git files for Core and Admin
-      getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
-          exit 1; \
-        }
+  if [[ "${UpdateCmd}" != "Repair" ]]; then
+    echo "::: Skipping update of local repositories"
+  else
+    # Get Git files for Core and Admin
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
 
-      if [[ ${INSTALL_WEB} == true ]]; then
-        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-        { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
-          exit 1; \
-        }
-      fi
+    if [[ ${INSTALL_WEB} == true ]]; then
+      getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
     fi
+  fi
 }
 
 FTLinstall() {
