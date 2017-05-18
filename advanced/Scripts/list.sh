@@ -26,30 +26,28 @@ listAlt=""
 
 helpFunc() {
   if [[ "${listMain}" == "${whitelist}" ]]; then
-    letter="w"
-    word="white"
+    param="w"
+    type="white"
+  elif [[ "${listMain}" == "${wildcardlist}" ]]; then
+    param="wild"
+    type="wildcard black"
   else
-    letter="b"
-    word="black"
+    param="b"
+    type="black"
   fi
 
-    echo "Usage: pihole -${letter} [options] <domain> <domain2 ...>
-Example: 'pihole -${letter} site.com', or 'pihole -${letter} site1.com site2.com'
-${word^}list one or more domains
+    echo "Usage: pihole -${param} [options] <domain> <domain2 ...>
+Example: 'pihole -${param} site.com', or 'pihole -${param} site1.com site2.com'
+${type^}list one or more domains
 
-Options:"
-
-  if [[ "${letter}" == "b" ]]; then
-    echo "  -wild, --wildcard   Add wildcard entry to blacklist"
-  fi
-
-echo "  -d, --delmode       Remove domain(s) from the ${word}list
-  -nr, --noreload     Update ${word}list without refreshing dnsmasq
+Options:
+  -d, --delmode       Remove domain(s) from the ${type}list
+  -nr, --noreload     Update ${type}list without refreshing dnsmasq
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
-  -l, --list          Display all your ${word}listed domains"
+  -l, --list          Display all your ${type}listed domains"
 
-exit 0
+  exit 0
 }
 
 EscapeRegexp() {
