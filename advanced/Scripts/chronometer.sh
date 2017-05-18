@@ -59,17 +59,17 @@ fi
 if [[ -n "$(which vcgencmd)" ]]; then
   sys_rev=$(awk '/Revision/ {print $3}' < /proc/cpuinfo)
   case "$sys_rev" in
-    0002|0003|0004|0005|0006) sys_model=" 1, Model B";; # 256MB
-    0007|0008|0009) sys_model=" 1, Model A" ;; # 256MB
+    000[2-6]) sys_model=" 1, Model B";; # 256MB
+    000[7-9]) sys_model=" 1, Model A" ;; # 256MB
     000d|000e|000f) sys_model=" 1, Model B";; # 512MB
     0010|0013) sys_model=" 1, Model B+";; # 512MB
     0012|0015) sys_model=" 1, Model A+";; # 256MB
-    a01040|a01041|a21041|a22042) sys_model=" 2, Model B";; # 1GB
+    a0104[0-1]|a21041|a22042) sys_model=" 2, Model B";; # 1GB
     900021) sys_model=" 1, Model A+";; # 512MB
     900032) sys_model=" 1, Model B+";; # 512MB
-    900092|900093|920093) sys_model=" Zero";; # 512MB
+    90009[2-3]|920093) sys_model=" Zero";; # 512MB
     9000c1) sys_model=" Zero W";; # 512MB
-    a02082|a22082|a32082) sys_model=" 3, Model B";; # 1GB
+    a02082|a[2-3]2082) sys_model=" 3, Model B";; # 1GB
     *) sys_model="" ;;
   esac
   sys_sbc="Raspberry Pi$sys_model"
@@ -86,6 +86,10 @@ fi
 sys_cores=$(grep -c "^processor" /proc/cpuinfo)
 
 get_sys_stats() {
+  local ph_version
+  local cpu_raw
+  local ram_raw
+
   count=$((count+1))
   
   # Update every 12 refreshes (Def: every 60s)
@@ -228,6 +232,8 @@ function GetFTLData {
 }
 
 get_ftl_stats() {
+  local stats_raw
+  
   stats_raw=$(GetFTLData "stats")
   domains_being_blocked_raw=$(awk '/domains_being_blocked/ {print $2}' <<< "${stats_raw}")
   dns_queries_today_raw=$(awk '/dns_queries_today/ {print $2}' <<< "${stats_raw}")
