@@ -15,11 +15,11 @@ function validate_server_name($domain) { // Cr: http://stackoverflow.com/a/46948
         && preg_match("/^[^\.]{1,63}(\.[^\.]{1,63})*$/", $domain)); // Length of each label
 }
 
-// Validate SERVER_NAME output
-if (validate_server_name($_SERVER["SERVER_NAME"]) === TRUE) {
-    $serverName = $_SERVER["SERVER_NAME"];
+// Validate HTTP_HOST output
+if (validate_server_name($_SERVER["HTTP_HOST"]) === TRUE) {
+    $serverName = $_SERVER["HTTP_HOST"];
 } else {
-    die("[ERROR]: <code>SERVER_NAME</code> header output does not appear to be valid: <code>".$_SERVER["SERVER_NAME"]."</code>");
+    die("[ERROR]: <code>HTTP_HOST</code> header output does not appear to be valid: <code>".$_SERVER["HTTP_HOST"]."</code>");
 }
 
 // Get values from setupVars.conf
