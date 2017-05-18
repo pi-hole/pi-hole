@@ -301,7 +301,7 @@ Branches:
 }
 
 tricorderFunc() {
-  if [ ! -p "/dev/stdin" ]; then
+  if [[ ! -p "/dev/stdin" ]]; then
     echo "Please do not call Tricorder directly."
     exit 1
   fi
@@ -319,7 +319,7 @@ tricorderFunc() {
     echo "There is a possibility that this could be intercepted by a third party"
     echo "If you wish to cancel, press Ctrl-C to exit within 10 seconds"
     secs="10"
-    while [ "$secs" -gt 0 ]; do
+    while [[ "$secs" -gt "0" ]]; do
        echo -ne "."
        sleep 1
        : $((secs--))
