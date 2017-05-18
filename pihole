@@ -305,9 +305,15 @@ tricorderFunc() {
     echo "Please do not call Tricorder directly."
     exit 1
   fi
+  
+  if ! timeout 2 nc -z tricorder.pi-hole.net 9998 &> /dev/null; then
+    echo "Unable to connect to Pi-hole's Tricorder server."
+    exit 1
+  fi
 
   if command -v openssl &> /dev/null; then
     openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
+    exit "$?"
   else
     echo "Your debug log will be transmitted unencrypted via plain-text"
     echo "There is a possibility that this could be intercepted by a third party"
@@ -320,6 +326,7 @@ tricorderFunc() {
     done
     echo " "
     nc tricorder.pi-hole.net 9999 < /dev/stdin
+    exit "$?"
   fi
 }
 
