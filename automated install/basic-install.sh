@@ -1179,8 +1179,9 @@ update_dialogs() {
 }
 
 clone_or_update_repos() {
-  if [[ "${UpdateCmd}" != "Repair" ]]; then
-    echo "::: Skipping update of local repositories"
+  if [[ "${reconfigure}" == true ]]; then
+    echo "::: --reconfigure passed to install script. Resetting changes to local repos"
+    git reset --hard
   else
     # Get Git files for Core and Admin
     getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
