@@ -894,7 +894,7 @@ install_dependent_packages() {
 
 CreateLogFile() {
   # Create logfiles if necessary
-  local str="Creating log file and changing owner to dnsmasq"
+  local str="Creating log and changing owner to dnsmasq"
   echo ""
   echo -ne "  ${INFO} ${str}..."
   if [ ! -f /var/log/pihole.log ]; then
@@ -903,7 +903,7 @@ CreateLogFile() {
     chown "${DNSMASQ_USER}":root /var/log/pihole.log
     echo -e "${OVER}  ${TICK} ${str}"
   else
-    echo -e " ${COL_LIGHT_GREEN}Log file already exists!${COL_NC}"
+    echo -e " ${COL_LIGHT_GREEN}Log already exists!${COL_NC}"
   fi
 }
 
@@ -917,7 +917,7 @@ installPiholeWeb() {
     local str="Installing index.php"
     echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/index.php" ]; then
-      echo -e " ${COL_LIGHT_GREEN}Existing index.php detected, not overwriting${COL_NC}"
+      echo -e " ${COL_LIGHT_GREEN}Detected index.php, not overwriting${COL_NC}"
     else
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
       echo -e "${OVER}  ${TICK} ${str}"
@@ -926,7 +926,7 @@ installPiholeWeb() {
     local str="Installing index.js"
     echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/index.js" ]; then
-      echo -e " ${COL_LIGHT_GREEN}Existing index.js detected, not overwriting${COL_NC}"
+      echo -e " ${COL_LIGHT_GREEN}Detected index.js, not overwriting${COL_NC}"
     else
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
       echo -e "${OVER}  ${TICK} ${str}"
@@ -935,7 +935,7 @@ installPiholeWeb() {
     local str="Installing blockingpage.css"
     echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
-      echo -e " ${COL_LIGHT_GREEN}Existing blockingpage.css detected, not overwriting${COL_NC}"
+      echo -e " ${COL_LIGHT_GREEN}Detected blockingpage.css, not overwriting${COL_NC}"
     else
       cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
       echo -e "${OVER}  ${TICK} ${str}"
@@ -1242,7 +1242,7 @@ update_dialogs() {
 
 clone_or_update_repos() {
 if [[ "${reconfigure}" == true ]]; then
-      echo "  ${INFO} --reconfigure passed to install script. Not downloading/updating local repos"
+      echo "  ${INFO} Performing reconfiguration, skipping download of local repos"
       echo ""
     else
       # Get Git files for Core and Admin
@@ -1398,7 +1398,7 @@ main() {
 
   if [[ -f ${setupVars} ]]; then
     if [[ "${runUnattended}" == true ]]; then
-      echo -e "  ${INFO} --unattended passed to install script, no whiptail dialogs will be displayed"
+      echo -e "  ${INFO} Performing unattended setup, no whiptail dialogs will be displayed"
       useUpdateVars=true
     else
       update_dialogs
