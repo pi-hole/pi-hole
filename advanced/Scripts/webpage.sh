@@ -89,7 +89,7 @@ SetWebPassword() {
 
     if [ "${PASSWORD}" == "" ]; then
       change_setting "WEBPASSWORD" ""
-      echo "Password Removed"
+      echo "  ${TICK} Password Removed"
       exit 0
     fi
 
@@ -101,9 +101,9 @@ SetWebPassword() {
 		hash=$(HashPassword ${PASSWORD})
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
-		echo "New password set"
+		echo -e "  ${TICK} New password set"
 	else
-		echo "Passwords don't match. Your password has not been changed"
+		echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
 		exit 1
 	fi
 }
