@@ -98,9 +98,12 @@ PoplistFile() {
 }
 
 AddDomain() {
-
   list="$2"
   domain=$(EscapeRegexp "$1")
+  
+  [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
+  [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
+  [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
 
   if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
     bool=true
@@ -110,14 +113,14 @@ AddDomain() {
     if [[ "${bool}" == false ]]; then
       # Domain not found in the whitelist file, add it!
       if [[ "${verbose}" == true ]]; then
-      echo -e "  ${INFO} Adding $1 to $list..."
+      echo -e "  ${INFO} Adding $1 to $listname..."
       fi
       reload=true
       # Add it to the list we want to add it to
       echo "$1" >> "${list}"
     else
       if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} ${1} already exists in ${list}, no need to add!"
+        echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
       fi
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
@@ -150,6 +153,10 @@ AddDomain() {
 RemoveDomain() {
     list="$2"
     domain=$(EscapeRegexp "$1")
+    
+    [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
+    [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
+    [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
 
     if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
       bool=true
@@ -157,13 +164,13 @@ RemoveDomain() {
       grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
       if [[ "${bool}" == true ]]; then
         # Remove it from the other one
-        echo -e "  ${INFO} Removing $1 from $list..."
+        echo -e "  ${INFO} Removing $1 from $listname..."
         # /I flag: search case-insensitive
         sed -i "/${domain}/Id" "${list}"
         reload=true
       else
         if [[ "${verbose}" == true ]]; then
-          echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
+          echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
         fi
       fi
     elif [[ "${list}" == "${wildcardlist}" ]]; then
@@ -172,13 +179,13 @@ RemoveDomain() {
       grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
       if [[ "${bool}" == true ]]; then
         # Remove it from the other one
-        echo -e "  ${INFO} Removing $1 from $list..."
+        echo -e "  ${INFO} Removing $1 from $listname..."
         # /I flag: search case-insensitive
         sed -i "/address=\/${domain}/Id" "${list}"
         reload=true
       else
         if [[ "${verbose}" == true ]]; then
-          echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
+          echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
         fi
       fi
     fi
