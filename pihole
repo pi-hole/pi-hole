@@ -151,18 +151,22 @@ restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
   if [[ "${dnsmasqPid}" ]]; then
     # Service already running - reload config
+    echo -ne "  ${INFO} Restarting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
       systemctl restart dnsmasq
     else
       service dnsmasq restart
     fi
+    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
   else
     # Service not running, start it up
+    echo -ne "  ${INFO} Starting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
       systemctl start dnsmasq
     else
       service dnsmasq start
     fi
+    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
   fi
 }
 
