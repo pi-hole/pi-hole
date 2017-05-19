@@ -151,44 +151,44 @@ AddDomain() {
 }
 
 RemoveDomain() {
-    list="$2"
-    domain=$(EscapeRegexp "$1")
-    
-    [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
-    [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
-    [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
+  list="$2"
+  domain=$(EscapeRegexp "$1")
+  
+  [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
+  [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
+  [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
 
-    if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
-      bool=true
-      # Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
-      grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
-      if [[ "${bool}" == true ]]; then
-        # Remove it from the other one
-        echo -e "  ${INFO} Removing $1 from $listname..."
-        # /I flag: search case-insensitive
-        sed -i "/${domain}/Id" "${list}"
-        reload=true
-      else
-        if [[ "${verbose}" == true ]]; then
-          echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
-        fi
-      fi
-    elif [[ "${list}" == "${wildcardlist}" ]]; then
-      bool=true
-      # Is it in the list?
-      grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
-      if [[ "${bool}" == true ]]; then
-        # Remove it from the other one
-        echo -e "  ${INFO} Removing $1 from $listname..."
-        # /I flag: search case-insensitive
-        sed -i "/address=\/${domain}/Id" "${list}"
-        reload=true
-      else
-        if [[ "${verbose}" == true ]]; then
-          echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
-        fi
+  if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
+    bool=true
+    # Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
+    grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
+    if [[ "${bool}" == true ]]; then
+      # Remove it from the other one
+      echo -e "  ${INFO} Removing $1 from $listname..."
+      # /I flag: search case-insensitive
+      sed -i "/${domain}/Id" "${list}"
+      reload=true
+    else
+      if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
       fi
     fi
+  elif [[ "${list}" == "${wildcardlist}" ]]; then
+    bool=true
+    # Is it in the list?
+    grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
+    if [[ "${bool}" == true ]]; then
+      # Remove it from the other one
+      echo -e "  ${INFO} Removing $1 from $listname..."
+      # /I flag: search case-insensitive
+      sed -i "/address=\/${domain}/Id" "${list}"
+      reload=true
+    else
+      if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
+      fi
+    fi
+  fi
 }
 
 Reload() {
@@ -200,7 +200,6 @@ Reload() {
 }
 
 Displaylist() {
-
   if [[ -f ${listMain} ]]; then
     if [[ "${listMain}" == "${whitelist}" ]]; then
       string="gravity resistant domains"
