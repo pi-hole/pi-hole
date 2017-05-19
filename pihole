@@ -306,7 +306,7 @@ piholeStatus() {
 }
 
 tailFunc() {
-  echo "Press Ctrl-C to exit"
+  echo -e "  ${INFO} Press Ctrl-C to exit"
   tail -F /var/log/pihole.log
   exit 0
 }
