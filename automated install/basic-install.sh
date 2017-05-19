@@ -1424,8 +1424,17 @@ main() {
   enable_service dnsmasq
 
   if [[ ${INSTALL_WEB} == true ]]; then
-    start_service lighttpd
-    enable_service lighttpd
+    # Check to see if lighttpd was already running upon update
+    if [[ ${useUpdateVars} == true ]]; then
+      LIGHTTPD_ENABLED=$(service lighttpd status &> /dev/null; echo $?)
+    fi
+    
+    if [[ -z "${LIGHTTPD_ENABLED}" ]] || [[ "${LIGHTTPD_ENABLED}" == "0" ]]; then
+      start_service lighttpd
+      enable_service lighttpd
+    else
+      echo "::: Lighttpd service was disabled prior to update; not re-enabling service"
+    fi
   fi
 
   runGravity
