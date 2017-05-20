@@ -334,12 +334,12 @@ Branches:
 
 tricorderFunc() {
   if [[ ! -p "/dev/stdin" ]]; then
-    echo "Please do not call Tricorder directly."
+    echo -e "  ${INFO} Please do not call Tricorder directly"
     exit 1
   fi
   
   if ! timeout 2 nc -z tricorder.pi-hole.net 9998 &> /dev/null; then
-    echo "Unable to connect to Pi-hole's Tricorder server."
+    echo -e "  ${CROSS} Unable to connect to Pi-hole's Tricorder server"
     exit 1
   fi
 
@@ -347,9 +347,10 @@ tricorderFunc() {
     openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
     exit "$?"
   else
-    echo "Your debug log will be transmitted unencrypted via plain-text"
-    echo "There is a possibility that this could be intercepted by a third party"
-    echo "If you wish to cancel, press Ctrl-C to exit within 10 seconds"
+    echo -e "  ${INFO} ${COL_YELLOW}Security Notice${COL_NC}: ${COL_WHITE}openssl${COL_NC} is not installed
+       Your debug log will be transmitted unencrypted via plain-text
+       There is a possibility that this could be intercepted by a third party
+       If you wish to cancel, press Ctrl-C to exit within 10 seconds"
     secs="10"
     while [[ "$secs" -gt "0" ]]; do
        echo -ne "."
