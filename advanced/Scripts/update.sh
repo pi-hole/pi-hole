@@ -107,18 +107,18 @@ main() {
 
   if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
     core_update=true
-    echo -e "  ${INFO} Pi-hole Core:   ${COL_YELLOW}update available${COL_NC}"
+    echo -e "  ${INFO} Pi-hole Core:\t${COL_YELLOW}update available${COL_NC}"
   else
     core_update=false
-    echo -e "  ${INFO} Pi-hole Core:   ${COL_LIGHT_GREEN}up to date(${COL_NC}"
+    echo -e "  ${INFO} Pi-hole Core:\t${COL_LIGHT_GREEN}up to date(${COL_NC}"
   fi
 
   if FTLcheckUpdate ; then
     FTL_update=true
-    echo -e "  ${INFO} FTL:            ${COL_YELLOW}update available${COL_NC}"
+    echo -e "  ${INFO} FTL:\t${COL_YELLOW}update available${COL_NC}"
   else
     FTL_update=false
-    echo -e "  ${INFO} FTL:            ${COL_LIGHT_GREEN}up to date${COL_NC}"
+    echo -e "  ${INFO} FTL:\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
   if ${FTL_update}; then
@@ -137,10 +137,10 @@ main() {
 
     if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
       web_update=true
-      echo -e "  ${INFO} Web Interface:  ${COL_YELLOW}update available${COL_NC}"
+      echo -e "  ${INFO} Web Interface:\t${COL_YELLOW}update available${COL_NC}"
     else
       web_update=false
-      echo -e "  ${INFO} Web Interface: ${COL_LIGHT_GREEN}up to date${COL_NC}"
+      echo -e "  ${INFO} Web Interface:\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
 
     # Logic
