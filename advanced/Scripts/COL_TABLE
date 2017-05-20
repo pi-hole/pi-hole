@@ -21,5 +21,6 @@ fi
 TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
 CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
 INFO="[i]"
+QST="[?]"
 DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
 OVER="\r\033[K"
