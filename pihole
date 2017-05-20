@@ -89,9 +89,9 @@ scanList() {
   cd "/etc/pihole"
   
   if [[ -n "${method}" ]]; then
-    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null
+    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} /dev/null 2> /dev/null
   else
-    grep -i "${domain}" ${list} 2> /dev/null
+    grep -i "${domain}" ${list} /dev/null 2> /dev/null
   fi
 }
 
@@ -229,8 +229,12 @@ Options:
     exit 0
   fi
   
-  # Remove IP address/space/tab from HOSTS format list on general queries
-  [[ -z "$method" ]] && results=$(sed "s/:.*[ \t]/:/g" <<< "$results")
+  # Remove unwanted content from results
+  if [[ -z "$method" ]]; then
+    results=$(sed "/:#/d" <<< "$results") # Delete comments
+    results=$(sed "s/:.*[ \t]/:/g" <<< "$results") # Remove IP address/space/tab
+    results=$(sed "s/[ \t]#.*//g" <<< "$results") # Remove comments after match
+  fi
   
   # Get adlist content as array
   if [[ -n "$adlist" ]] || [[ -n "$bp" ]]; then
