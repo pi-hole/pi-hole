@@ -198,6 +198,8 @@ Options:
         if [[ "${count}" > 0 ]]; then
           if [[ -n "$bp" ]]; then
            printf "  [i] %s\n" "$match"
+          elif [[ -n "$exact" ]]; then
+            printf "Wildcard result in ${wildcardlist/\/etc\/dnsmasq.d\//} *.%s\n" "$match"
           else
             printf "Result from ${wildcardlist/\/etc\/dnsmasq.d\//}\n  *.%s\n" "$match"
           fi
