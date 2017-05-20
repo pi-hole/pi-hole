@@ -89,9 +89,9 @@ scanList() {
   cd "/etc/pihole"
   
   if [[ -n "${method}" ]]; then
-    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null
+    grep -i -E -l -o "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null
   else
-    grep -i "${domain}" ${list} 2> /dev/null
+    grep -i -o "${domain}" ${list} 2> /dev/null
   fi
 }
 
@@ -214,12 +214,12 @@ Options:
   lists_raw=(/etc/pihole/*.domains)
   IFS_OLD=$IFS
   IFS=$'\n'
-  lists=$(sort -t . -k 2 -g <<< "${lists_raw[*]}")
+  lists=$(sort -t . -k 2 -g <<< "${lists_raw[*]//\/etc\/pihole\//}")
   IFS=$IFS_OLD
   
   # Scan Domains files
   results=("$(scanList "${domain}" "${lists}" "${method}")")
-  
+
   if [[ -z "$results" ]]; then
     echo "::: No ${method/t/t }results found for ${domain} found within block lists"
     exit 0
@@ -228,7 +228,7 @@ Options:
     echo "::: Over 1000 ${method/t/t }results found for ${domain} found within block lists"
     exit 0
   fi
-
+  
   # Get adlist content as array
   if [[ -n "$adlist" ]] || [[ -n "$bp" ]]; then
     for url in $(< /etc/pihole/adlists.list); do
