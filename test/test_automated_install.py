@@ -173,7 +173,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     installPiholeWeb
     ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
+    assert 'Installing blocking page...' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' in installWeb.stdout
     web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
     assert 'index.php' in web_directory
