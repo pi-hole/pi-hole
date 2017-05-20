@@ -404,17 +404,14 @@ gravity_reload() {
 
 	# Reload hosts file
 	echo ""
-	local str="Refresh lists in dnsmasq"
-	echo -ne "  ${INFO} ${str}..."
-
+  
 	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
 	#First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
 	#Now replace the line in dnsmasq file
-#	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
+  #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
 	"${PIHOLE_COMMAND}" restartdns
-	echo -e "${OVER}  ${TICK} ${str}"
 }
 
 for var in "$@"; do
