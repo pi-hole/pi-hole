@@ -214,7 +214,7 @@ Options:
   lists_raw=(/etc/pihole/*.domains)
   IFS_OLD=$IFS
   IFS=$'\n'
-  lists=$(sort -t . -k 2 -g <<< "${lists_raw[*]//\/etc\/pihole\//}")
+  lists=$(sort -t . -k 2 -g <<< "${lists_raw[*]}")
   IFS=$IFS_OLD
   
   # Scan Domains files
@@ -244,7 +244,7 @@ Options:
     
     # Convert file name to URL name for -adlist or -bp options
     if [[ -n "$adlist" ]] || [[ -n "$bp" ]]; then
-      file_num=("${file/*list./}")
+      file_num=("${file/list./}")
       file_num=("${file_num/.*/}")
       file="${adlists[$file_num]}"
     fi
