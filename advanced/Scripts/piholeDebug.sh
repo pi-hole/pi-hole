@@ -90,9 +90,14 @@ get_distro_attributes() {
 
   local distro_attribute
   for distro_attribute in "${distro_info[@]}"; do
-    # Display the information with the ${INFO} icon
-    # No need to show the support URLs so they are grepped out
-    echo "   ${INFO} ${distro_attribute}" | grep -v "_URL" | tr -d '"'
+    # Display the information with the ${INFO} icon (we need just the OS PRETTY_NAME)
+    pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
+    if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
+      PRETTY_NAME=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
+      echo "   ${INFO} ${PRETTY_NAME}"
+    else
+      :
+    fi
   done
   # Set the IFS back to what it was
   IFS="$OLD_IFS"
