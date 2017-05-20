@@ -83,16 +83,31 @@ updateGravityFunc() {
 scanList() {
   domain="${1}"
   list="${2}"
-  [[ "$@" == *"-exact"* ]] && exact=true
+  method="${3}"
   
-  if [[ "$exact" == true ]]; then
-    grep="$(grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null)"
-    sort -t . -k 2 -g <<< "$grep"
+  # Switch folder, preventing grep from printing file path
+  cd "/etc/pihole"
+  
+  if [[ -n "${method}" ]]; then
+    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null
   else
-    grep="$(grep -i "${domain}" ${list} 2> /dev/null)"
-    # Do not perform list number sort on gigantic matches
-    [[ "$(wc -l <<< "$grep")" -le "100" ]] && sort -t . -k 2 -g <<< "$grep" || echo "$grep"
+    grep -i "${domain}" ${list} 2> /dev/null
   fi
+}
+
+processWildcards() {
+  IFS="." read -r -a array <<< "${1}"
+  for (( i=${#array[@]}-1; i>=0; i-- )); do
+    ar=""
+    for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
+      if [[ $j == $((${#array[@]}-1)) ]]; then
+        ar="${array[$j]}"
+      else
+        ar="${array[$j]}.${ar}"
+      fi
+    done
+    echo "${ar}"
+  done
 }
 
 queryFunc() {
@@ -112,6 +127,7 @@ Options:
   fi
   
   if [[ "$options" == *"-exact"* ]]; then
+    method="exact"
     exact=true
     options="${options/-exact/}"
   fi
@@ -121,13 +137,19 @@ Options:
     options="${options/-adlist/}"
   fi
   
+  if [[ "$options" == *"-bp"* ]]; then
+    method="exact"
+    bp=true
+    options="${options/-bp/}"
+  fi
+  
   if [[ "$options" == *"-all"* ]]; then
-    count_all=true
+    all=true
     options="${options/-all/}"
   fi
   options="$(tr -d "[:space:]" <<< "${options/-q/}")"
   
-  # If domain contains non ASCII characters, convert domain to punycode if python exists
+  # If domain contains non ASCII characters, convert domain to punycode if python is available
   # Cr: https://serverfault.com/a/335079
   if [[ -z "$options" ]]; then
     echo "::: No domain specified"
@@ -138,34 +160,75 @@ Options:
     domain="$options"
   fi
   
-  # Scan Whitelist, Blacklist and Wildcards
-  lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
-  results=($(scanList ${domain} "${lists}" ${method}))
+  # Scan Whitelist and Blacklist
+  lists="whitelist.txt blacklist.txt"
+  results=$(scanList "${domain}" "${lists}" "${method}")
+  results="${results//\/etc\/dnsmasq.d\//}" # Remove file path
   
   if [[ -n "$results" ]]; then
-    for result in "${results[@]}"; do
-      if [[ "$exact" == true ]]; then
-        printf "Exact result found in %s\n" "${result/*\//}"
+    # Loop through each scanList line to print appropriate title
+    for result in ${results[@]}; do
+      file="${result/:*/}"
+      if [[ -n "$exact" ]] || [[ -n "$bp" ]]; then
+        if [[ -n "$bp" ]]; then
+          printf "  [i] %s\n" "$file"
+        else
+          printf "Exact result in %s\n" "$file"
+        fi
       else
-        file="${result/:*/}"
         match="${result/*:/}"
-        printf "%s:\n  %s\n" "$file" "$match"
+        printf "Result from %s\n  %s\n" "$file" "$match"
       fi
     done
-    [[ ! -t 1 ]] && exit 0
+    
+    # If command is called from Block Page, exit upon matching result
+    [[ -n "$bp" ]] && exit 0
   fi
+  
+  # Scan Wildcards
+  if [[ -e "$wildcardlist" ]]; then
+    wildcards=($(processWildcards "${domain}"))
+    
+    for match in ${wildcards[@]}; do
+      result=$(scanList "\/${match}\/" ${wildcardlist})
+      
+      if [[ -n "$result" ]]; then
+        # Remove empty lines before couting number of results
+        count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+        if [[ "${count}" > 0 ]]; then
+          if [[ -n "$bp" ]]; then
+           printf "  [i] %s\n" "$match"
+          else
+            printf "Result from ${wildcardlist/\/etc\/dnsmasq.d\//}\n  *.%s\n" "$match"
+          fi
+        fi
+        
+        [[ -n "$bp" ]] && exit 0
+      fi
+    done
+  fi
+  
+  # Glob *.domains file names, remove file paths and sort by list number
+  lists_raw=(/etc/pihole/*.domains)
+  IFS_OLD=$IFS
+  IFS=$'\n'
+  lists=$(sort -t . -k 2 -g <<< "${lists_raw[*]//\/etc\/pihole\//}")
+  IFS=$IFS_OLD
   
   # Scan Domains files
-  results=("$(scanList ${domain} "/etc/pihole/*.domains" ${method})")
+  results=("$(scanList "${domain}" "${lists}" "${method}")")
   
   if [[ -z "$results" ]]; then
-    [[ -n "$exact" ]] && exact="exact "
-    echo "::: No ${exact}results found for ${domain} found within block lists"
+    echo "::: No ${method/t/t }results found for ${domain} found within block lists"
+    exit 0
+  elif [[ -z "$all" ]] && [[ "${#results}" -ge 16000 ]]; then
+    # 16000 chars is 15 chars X 1000 lines worth of results, overridden with -all option
+    echo "::: Over 1000 ${method/t/t }results found for ${domain} found within block lists"
     exit 0
   fi
-  
+
   # Get adlist content as array
-  if [[ "$adlist" == true ]]; then
+  if [[ -n "$adlist" ]] || [[ -n "$bp" ]]; then
     for url in $(< /etc/pihole/adlists.list); do
       if [[ "${url:0:4}" == "http" ]] || [[ "${url:0:3}" == "www" ]]; then
         adlists+=("$url")
@@ -173,41 +236,48 @@ Options:
     done
   fi
   
+  # Loop through each scanList line to print title when necessary
   for result in ${results[@]}; do
-    res_file="${result/:*/}"
-    if [[ "$adlist" == true ]]; then
-      num=("${res_file/*list./}")
-      num=("${num/.*/}")
-      res_file="${adlists[$num]}"
+    file="${result/:*/}"
+    
+    # Convert file name to URL name for -adlist or -bp options
+    if [[ -n "$adlist" ]] || [[ -n "$bp" ]]; then
+      file_num=("${file/*list./}")
+      file_num=("${file_num/.*/}")
+      file="${adlists[$file_num]}"
     fi
     
-    if [[ "$exact" == true ]]; then
-      printf "Exact result found in %s\n" "$res_file"
+    if [[ -n "$exact" ]] || [[ -n "$bp" ]]; then
+      if [[ -n "$bp" ]]; then
+        printf "  [%s] %s\n" "$file_num" "$file"
+      else
+        printf "Exact result in %s\n" "$file"
+      fi
     else
       # Standard search output
-      if [[ -z "$res_file_prev" ]] || [[ "$res_file" != "$res_file_prev" ]]; then
+      if [[ -z "$res_file_prev" ]] || [[ "$file" != "$res_file_prev" ]]; then
         unset res_count skip_res
-        printf "%s:\n" "$res_file"
+        printf "Result from %s\n" "$file"
       elif [[ "$skip_res" == "true" ]]; then
         continue
       else
         let res_count++
       fi
       
-      [[ -n "$count_all" ]] && max_count="9999" || max_count="10"
-      if [[ "$res_count" -ge "$max_count" ]]; then
+      [[ -n "$all" ]] && max_count="10"
+      if [[ -n "$all" ]] && [[ "$res_count" -ge "$max_count" ]]; then
         echo "  Over $res_count results found, skipping rest of file"
-        res_file_prev="$res_file"
+        res_file_prev="$file"
         skip_res="true"
         unset res_count
       else
         res_domain="${result/*:/}"
         printf "  %s\n" "$res_domain"
-        res_file_prev="$res_file"
+        res_file_prev="$file"
       fi
     fi
   done
-
+  
   exit 0
 }
 
