@@ -16,24 +16,6 @@ if [[ -t 1 ]] && [[ $(tput colors) -ge 8 ]]; then
   COL_YELLOW='\e[1;33m'
   COL_GRAY='\e[0;30m'
   COL_LIGHT_GRAY='\e[0;37m'
-else
-  COL_NC=''
-  COL_WHITE=''
-  COL_BLACK=''
-  COL_BLUE=''
-  COL_LIGHT_BLUE=''
-  COL_GREEN=''
-  COL_LIGHT_GREEN=''
-  COL_CYAN=''
-  COL_LIGHT_CYAN=''
-  COL_RED=''
-  COL_LIGHT_RED=''
-  COL_PURPLE=''
-  COL_LIGHT_PURPLE=''
-  COL_BROWN=''
-  COL_YELLOW=''
-  COL_GRAY=''
-  COL_LIGHT_GRAY=''
 fi
 
 TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
