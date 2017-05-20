@@ -1513,30 +1513,31 @@ main() {
   if [[ "${useUpdateVars}" == false ]]; then
       displayFinalMessage "${pw}"
   fi
-
-  if [[ "${useUpdateVars}" == false ]]; then
-    echo -e "  ${COL_LIGHT_GREEN}Installation Complete! ${COL_NC}"
-    echo ""
-    echo "  You may now configure your devices to use the Pi-hole as their DNS server"
-    [[ -n "${IPV4_ADDRESS%/*}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv4): ${IPV4_ADDRESS%/*}"
-    [[ -n "${IPV6_ADDRESS}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv6): ${IPV6_ADDRESS}"
-    echo -e "  If you set a new IP address, please restart the server running the Pi-hole"
-    if [[ ${INSTALL_WEB} == true ]]; then
-      echo -e "  View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
-    fi
-  else
-    echo -e "  ${COL_LIGHT_GREEN}Update complete!${COL_NC}"
-  fi
-
+  
   if [[ ${INSTALL_WEB} == true ]]; then
     if (( ${#pw} > 0 )) ; then
       echo -e "  ${INFO} Web Interface password: ${COL_LIGHT_GREEN}${pw}${COL_NC}
        This can be changed using 'pihole -a -p'"
+      echo ""
     fi
   fi
 
-  echo -e ""
-  echo -e "  ${INFO} The install log is located at: /etc/pihole/install.log"
+  if [[ "${useUpdateVars}" == false ]]; then
+    if [[ ${INSTALL_WEB} == true ]]; then
+      echo -e "  View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
+      echo ""
+    fi
+    echo "  You may now configure your devices to use the Pi-hole as their DNS server"
+    [[ -n "${IPV4_ADDRESS%/*}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv4): ${IPV4_ADDRESS%/*}"
+    [[ -n "${IPV6_ADDRESS}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv6): ${IPV6_ADDRESS}"
+    echo -e "  If you set a new IP address, please restart the server running the Pi-hole"
+    INSTALL_TYPE="Installation"
+  else
+    INSTALL_TYPE="Update"
+  fi
+  
+  echo -e "\n  ${INFO} The install log is located at: /etc/pihole/install.log
+  ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 }
 
 if [[ "${PH_TEST}" != true ]] ; then
