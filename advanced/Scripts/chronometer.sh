@@ -84,6 +84,7 @@ else
 fi
 
 sys_cores=$(grep -c "^processor" /proc/cpuinfo)
+[[ "$sys_cores" -ne 1 ]] && sys_cores_plu="cores" || sys_cores_plu="core"
 
 get_sys_stats() {
   local ph_version
@@ -105,10 +106,13 @@ get_sys_stats() {
     
     if [[ -f "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq" ]]; then
       cpu_mhz=$(< /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq)
-      [[ "$cpu_mhz" -le "999999" ]] && cpu_freq="$((cpu_mhz/1000)) MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000000) Ghz"
-      [[ -n "$cpu_freq" ]] && cpu_freq_txt="$cpu_freq" || cpu_freq_txt=""
     else
-      cpu_freq_txt=""
+      cpu_mhz=$(lscpu | awk -F "[ .]+" '/MHz/ {print $4*1000;exit}')
+    fi
+    
+    if [[ -n "$cpu_mhz" ]]; then
+      [[ "$cpu_mhz" -le "999999" ]] && cpu_freq="$((cpu_mhz/1000)) MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000000) Ghz"
+      [[ -n "$cpu_freq" ]] && cpu_freq_txt=" @ $cpu_freq" || cpu_freq_txt=""
     fi
     
     [[ -n "$TEMPERATUREUNIT" ]] && temp_unit="$TEMPERATUREUNIT" || temp_unit="c"
@@ -154,7 +158,7 @@ get_sys_stats() {
         6[0-9]) cpu_tcol="$red";;
         *) cpu_tcol="$red_urg";;
       esac
-      cpu_temp="$cpu_tcol$cpu_temp$def$gry" # $def$gry is needed for $red_urg
+      cpu_temp=", $cpu_tcol$cpu_temp$def$gry" # $def$gry is needed for $red_urg
     elif [[ "$temp_unit" == "F" ]]; then
       cpu_temp=$(printf "%'.0ff\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
       case "${cpu_temp::-1}" in
@@ -164,9 +168,9 @@ get_sys_stats() {
         1[4-5][0-9]) cpu_tcol="$red";;
         *) cpu_tcol="$red_urg";;
       esac
-      cpu_temp="$cpu_tcol$cpu_temp$def$gry"
+      cpu_temp=", $cpu_tcol$cpu_temp$def$gry"
     else
-      cpu_temp=$(printf "%'.0fk\n" "$(calcFunc "($(< $temp_file) / 1000) + 273.15")")
+      cpu_temp=$(printf ", %'.0fk\n" "$(calcFunc "($(< $temp_file) / 1000) + 273.15")")
     fi
   else
     cpu_temp=""
@@ -286,7 +290,7 @@ chronoFunc() {
     printFunc " Task Load: " "$sys_loadavg"
     printf "%s(%s)%s\n" "$gry" "Active: $cpu_taskact of $cpu_tasks tasks" "$def"
     printFunc " CPU usage: " "$cpu_perc%"
-    printf "%s(%s)%s\n" "$gry" "$sys_cores cores @ $cpu_freq_txt, $cpu_temp" "$def"
+    printf "%s(%s)%s\n" "$gry" "$sys_cores $sys_cores_plu$cpu_freq_txt$cpu_temp" "$def"
     printFunc " RAM usage: " "$ram_perc%"
     printf "%s(%s)%s\n" "$gry" "Used $(hrBytes "$ram_used") of $(hrBytes "$ram_total")" "$def"
     printFunc "  LAN addr: " "${IPV4_ADDRESS:0:-3}"
