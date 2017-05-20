@@ -188,9 +188,9 @@ def test_installPiholeWeb_empty_directory_no_errors(Pihole):
     installPiholeWeb
     ''')
     assert 'Installing blocking page...' in installWeb.stdout
-    assert 'index.php missing, replacing...' in installWeb.stdout
-    assert 'index.js missing, replacing...' in installWeb.stdout
-    assert 'blockingpage.css missing, replacing...' in installWeb.stdout
+    assert 'Installing index.php' in installWeb.stdout
+    assert 'Installing index.js' in installWeb.stdout
+    assert 'Installing blockingpage.css' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
     web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
     assert 'index.php' in web_directory
@@ -206,7 +206,6 @@ def test_installPiholeWeb_index_php_no_errors(Pihole):
     installPiholeWeb
     ''')
     assert 'Installing blocking page...' in installWeb.stdout
-    assert 'Installing index.php' not in installWeb.stdout
     assert 'detected index.php, not overwriting' in installWeb.stdout
     assert 'Installing index.js' in installWeb.stdout
     assert 'Installing blockingpage.css' in installWeb.stdout
@@ -226,7 +225,6 @@ def test_installPiholeWeb_index_js_no_errors(Pihole):
     ''')
     assert 'Installing blocking page...' in installWeb.stdout
     assert 'Installing index.php' in installWeb.stdout
-    assert 'Installing index.js' not in installWeb.stdout
     assert 'detected index.js, not overwriting' in installWeb.stdout
     assert 'Installing blockingpage.css' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
@@ -246,7 +244,6 @@ def test_installPiholeWeb_blockingpage_css_no_errors(Pihole):
     assert 'Installing blocking page...' in installWeb.stdout
     assert 'Installing index.php' in installWeb.stdout
     assert 'Installing index.js' in installWeb.stdout
-    assert 'Installing blockingpage.css' not in installWeb.stdout
     assert 'detected blockingpage.css, not overwriting' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
     web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
@@ -265,9 +262,6 @@ def test_installPiholeWeb_already_populated_no_errors(Pihole):
     installPiholeWeb
     ''')
     assert 'Installing blocking page...' in installWeb.stdout
-    assert 'Installing index.php' not in installWeb.stdout
-    assert 'Installing index.js' not in installWeb.stdout
-    assert 'Installing blockingpage.css' not in installWeb.stdout
     assert 'detected index.php, not overwriting' in installWeb.stdout
     assert 'detected index.js, not overwriting' in installWeb.stdout
     assert 'detected blockingpage.css, not overwriting' in installWeb.stdout
@@ -367,6 +361,8 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     assert expected_stdout in download_binary.stdout
     error = 'Error: Download of binary from Github failed'
     assert error not in download_binary.stdout
+    error = 'Error: URL not found'
+    assert error not in download_binary.stdout
 
 def test_FTL_download_unknown_fails_no_errors(Pihole):
     ''' confirms unknown binary is not downloaded for FTL engine '''
@@ -377,7 +373,7 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     ''')
     expected_stdout = 'Installing FTL'
     assert expected_stdout in download_binary.stdout
-    error = 'Error: Download of binary from Github failed'
+    error = 'Error: URL not found'
     assert error in download_binary.stdout
 
 def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
