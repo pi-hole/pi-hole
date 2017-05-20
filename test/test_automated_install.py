@@ -283,9 +283,8 @@ def test_update_package_cache_success_no_errors(Pihole):
     distro_check
     update_package_cache
     ''')
-    assert 'Updating local cache of available packages...' in updateCache.stdout
-    assert 'ERROR' not in updateCache.stdout
-    assert 'done!' in updateCache.stdout
+    assert 'Update local cache of available packages' in updateCache.stdout
+    assert 'Error: Unable to update package cache.' not in updateCache.stdout
 
 def test_update_package_cache_failure_no_errors(Pihole):
     ''' confirms package cache was not updated'''
@@ -295,9 +294,8 @@ def test_update_package_cache_failure_no_errors(Pihole):
     distro_check
     update_package_cache
     ''')
-    assert 'Updating local cache of available packages...' in updateCache.stdout
-    assert 'ERROR' in updateCache.stdout
-    assert 'done!' not in updateCache.stdout
+    assert 'Update local cache of available packages' in updateCache.stdout
+    assert 'Error: Unable to update package cache.' in updateCache.stdout
 
 def test_FTL_detect_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
@@ -365,9 +363,10 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-aarch64-linux-gnu
     ''')
-    expected_stdout = 'done'
+    expected_stdout = 'Installing FTL'
     assert expected_stdout in download_binary.stdout
-    assert 'failed' not in download_binary.stdout
+    error = 'Error: Download of binary from Github failed'
+    assert error not in download_binary.stdout
 
 def test_FTL_download_unknown_fails_no_errors(Pihole):
     ''' confirms unknown binary is not downloaded for FTL engine '''
@@ -376,9 +375,10 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-mips
     ''')
-    expected_stdout = 'failed'
+    expected_stdout = 'Installing FTL'
     assert expected_stdout in download_binary.stdout
-    assert 'done' not in download_binary.stdout
+    error = 'Error: Download of binary from Github failed'
+    assert error in download_binary.stdout
 
 def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     ''' confirms FTL binary is copied and functional in installed location '''
