@@ -823,17 +823,17 @@ notify_package_updates_available() {
   #echo ""
   if [[ -d "/lib/modules/$(uname -r)" ]]; then
     if [[ ${updatesToInstall} -eq "0" ]]; then
-      echo -e "${OVER}  ${TICK} ${str}"
-      echo "        Your system is up to date! Continuing with Pi-hole installation..."
+      echo -e "${OVER}  ${TICK} ${str}... up to date!"
+      echo ""
     else
-      echo -e "${OVER}  ${TICK} ${str}"
-      echo -e "        ${COL_LIGHT_GREEN}There are ${updatesToInstall} updates available for your system
-        It is recommended to update your OS after installing the Pi-hole! ${COL_NC}"
+      echo -e "${OVER}  ${TICK} ${str}... ${updatesToInstall} updates available"
+      echo -e "  ${INFO} ${COL_LIGHT_GREEN}It is recommended to update your OS after installing the Pi-hole! ${COL_NC}"
       echo ""
     fi
   else
-    echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "    ${COL_LIGHT_RED}Kernel update detected. If the install fails, please reboot and try again${COL_NC}"
+    echo -e "${OVER}  ${CROSS} ${str}
+       Kernel update detected. If the install fails, please reboot and try again"
+    echo ""
   fi
 }
 
