@@ -264,8 +264,8 @@ Options:
         let res_count++
       fi
       
-      [[ -n "$all" ]] && max_count="10"
-      if [[ -n "$all" ]] && [[ "$res_count" -ge "$max_count" ]]; then
+      [[ -z "$all" ]] && max_count="10"
+      if [[ -z "$all" ]] && [[ "$res_count" -ge "$max_count" ]]; then
         echo "  Over $res_count results found, skipping rest of file"
         res_file_prev="$file"
         skip_res="true"
