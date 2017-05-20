@@ -220,15 +220,11 @@ Time:
         exit 1
       fi
     else
-      local str="Disabling blocking"
-      echo -ne "  ${INFO} ${str}..."
-      str="Blocking Disabled"
+      local str="Pi-hole Disabled"
     fi
   else
     # Enable Pi-hole
-    local str="Enabling blocking"
-    echo -ne "  ${INFO} ${str}..."
-    local str="Blocking Enabled"
+    local str="Pi-hole Enabled"
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
 
   fi
