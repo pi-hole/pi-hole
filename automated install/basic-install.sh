@@ -911,13 +911,13 @@ installPiholeWeb() {
   # Install the web interface
 
   echo ""
-  echo "  ${INFO} Installing pihole custom index page..."
+  echo "  ${INFO} Installing blocking page..."
   if [ -d "/var/www/html/pihole" ]; then
 
     local str="Installing index.php"
     echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/index.php" ]; then
-      echo -e " ${COL_LIGHT_GREEN}Detected index.php, not overwriting${COL_NC}"
+      echo -e " ${COL_LIGHT_GREEN}detected index.php, not overwriting${COL_NC}"
     else
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
       echo -e "${OVER}  ${TICK} ${str}"
@@ -926,7 +926,7 @@ installPiholeWeb() {
     local str="Installing index.js"
     echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/index.js" ]; then
-      echo -e " ${COL_LIGHT_GREEN}Detected index.js, not overwriting${COL_NC}"
+      echo -e " ${COL_LIGHT_GREEN}detected index.js, not overwriting${COL_NC}"
     else
       cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
       echo -e "${OVER}  ${TICK} ${str}"
@@ -935,7 +935,7 @@ installPiholeWeb() {
     local str="Installing blockingpage.css"
     echo -ne "  ${INFO} ${str}..."
     if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
-      echo -e " ${COL_LIGHT_GREEN}Detected blockingpage.css, not overwriting${COL_NC}"
+      echo -e " ${COL_LIGHT_GREEN}detected blockingpage.css, not overwriting${COL_NC}"
     else
       cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
       echo -e "${OVER}  ${TICK} ${str}"
@@ -1378,8 +1378,9 @@ main() {
       exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
       exit $?
     else
-      echo -e "  ${CROSS} Check for sudo utility."
-      echo "        ${COL_LIGHT_RED}sudo is needed for the Web interface to run pihole commands.  Please run this script as root and it will be automatically installed.${COL_NC}"
+      echo -e "  ${CROSS} Check for sudo utility.
+      ${COL_LIGHT_RED}Sudo is needed for the Web interface to run pihole commands.
+      Please run this script as root and it will be automatically installed.${COL_NC}"
       exit 1
     fi
   fi
