@@ -9,6 +9,13 @@ SETUPVARS = {
     'PIHOLE_DNS_2' : '4.2.2.2'
 }
 
+COL_NC='\e[0m'
+COL_LIGHT_GREEN='\e[1;32m'
+COL_LIGHT_RED='\e[1;31m'
+TICK="[" + COL_LIGHT_GREEN + "✓" + COL_NC + "]"
+CROSS="[" + COL_LIGHT_RED + "✗" + COL_NC + "]"
+INFO="[i]"
+
 def test_setupVars_are_sourced_to_global_scope(Pihole):
     ''' currently update_dialogs sources setupVars with a dot,
     then various other functions use the variables.
@@ -357,7 +364,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-aarch64-linux-gnu
     ''')
-    expected_stdout = 'Installing FTL'
+    expected_stdout = TICK + ' Installing FTL'
     assert expected_stdout in download_binary.stdout
     error = 'Error: Download of binary from Github failed'
     assert error not in download_binary.stdout
