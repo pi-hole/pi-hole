@@ -1337,7 +1337,7 @@ FTLdetect() {
     fi
   elif [[ ${machine} == x86_64 ]]; then
     # 64bit
-    echo -e "${OVER}  ${TICK}  Detected x86_64 architecture"
+    echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
     binary="pihole-FTL-linux-x86_64"
   else
     # Something else - we try to use 32bit executable and warn the user
