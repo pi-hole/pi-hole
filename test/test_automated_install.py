@@ -179,7 +179,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     ''')
     assert info_box + ' Installing blocking page...' in installWeb.stdout
     assert tick_box + ' Creating directory for blocking page, and copying files' in installWeb.stdout
-    assert cross_box + 'Backing up index.lighttpd.html' in installWeb.stdout
+    assert cross_box + ' Backing up index.lighttpd.html' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' in installWeb.stdout
     assert tick_box + ' Installing sudoer file' in installWeb.stdout
     web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
