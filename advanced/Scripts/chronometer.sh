@@ -8,114 +8,139 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Functions
-LC_NUMERIC=C
-calcFunc(){ awk "BEGIN {print $*}"; }
+get_init_stats() {
+  # Functions
+  LC_NUMERIC=C
+  calcFunc(){ awk "BEGIN {print $*}"; }
 
-hrBytes() {
-  awk '{
-    num=$1;
-    if(num==0) {
-      print "0 B"
-    } else {
-      xxx=(num<0?-num:num)
-      sss=(num<0?-1:1)
-      split("B KB MB GB TB PB",type)
-      for(i=5;yyy < 1;i--) {
-        yyy=xxx / (2^(10*i))
+  hrBytes() {
+    awk '{
+      num=$1;
+      if(num==0) {
+        print "0 B"
+      } else {
+        xxx=(num<0?-num:num)
+        sss=(num<0?-1:1)
+        split("B KB MB GB TB PB",type)
+        for(i=5;yyy < 1;i--) {
+          yyy=xxx / (2^(10*i))
+        }
+        printf "%.0f " type[i+2], yyy*sss
       }
-      printf "%.0f " type[i+2], yyy*sss
-    }
-  }' <<< "$1";
+    }' <<< "$1";
+  }
+
+  hrSecs() { 
+    day=$(( $1/60/60/24 )); hrs=$(( $1/3600%24 )); mins=$(( ($1%3600)/60 )); secs=$(( $1%60 ))
+    [[ "$day" -ge "2" ]] && plu="s"
+    [[ "$day" -ge "1" ]] && days="$day day${plu}, " || days=""
+    printf "%s%02d:%02d:%02d\n" "$days" "$hrs" "$mins" "$secs"
+  }
+
+  # Colour Codes
+  coltable="/opt/pihole/COL_TABLE"
+  if [[ -f "${coltable}" ]]; then
+    source ${coltable}
+  else
+    COL_NC='[0m'
+    COL_DARK_GRAY='[1;30m'
+    COL_LIGHT_GREEN='[1;32m'
+    COL_LIGHT_BLUE='[1;34m'
+    COL_LIGHT_RED='[1;31m'
+    COL_YELLOW='[1;33m'
+    COL_LIGHT_RED='[1;31m'
+    COL_URG_RED='[39;41m'
+  fi
+
+  # Variables to retrieve once-only
+  if command -v vcgencmd &> /dev/null; then
+    sys_rev=$(awk '/Revision/ {print $3}' < /proc/cpuinfo)
+    case "$sys_rev" in
+      000[2-6]) sys_model=" 1, Model B";; # 256MB
+      000[7-9]) sys_model=" 1, Model A" ;; # 256MB
+      000d|000e|000f) sys_model=" 1, Model B";; # 512MB
+      0010|0013) sys_model=" 1, Model B+";; # 512MB
+      0012|0015) sys_model=" 1, Model A+";; # 256MB
+      a0104[0-1]|a21041|a22042) sys_model=" 2, Model B";; # 1GB
+      900021) sys_model=" 1, Model A+";; # 512MB
+      900032) sys_model=" 1, Model B+";; # 512MB
+      90009[2-3]|920093) sys_model=" Zero";; # 512MB
+      9000c1) sys_model=" Zero W";; # 512MB
+      a02082|a[2-3]2082) sys_model=" 3, Model B";; # 1GB
+      *) sys_model="" ;;
+    esac
+    sys_type="Raspberry Pi$sys_model"
+  else
+    source "/etc/os-release"
+    CODENAME=$(sed 's/[()]//g' <<< "${VERSION/* /}")
+    sys_type="${NAME/ */} ${CODENAME^} $VERSION_ID"
+  fi
+
+  sys_cores=$(grep -c "^processor" /proc/cpuinfo)
+  [[ "$sys_cores" -ne 1 ]] && sys_cores_plu="cores" || sys_cores_plu="core"
+
+  if [[ -f "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq" ]]; then
+    scaling_freq_file="/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq"
+  fi
+
+  if [[ -f "/sys/class/thermal/thermal_zone0/temp" ]]; then
+    temp_file="/sys/class/thermal/thermal_zone0/temp"
+  elif [[ -f "/sys/class/hwmon/hwmon0/temp1_input" ]]; then 
+    temp_file="/sys/class/hwmon/hwmon0/temp1_input"
+  else
+    temp_file=""
+  fi
+
+  if [[ -f "/etc/pihole/setupVars.conf" ]]; then
+    setupVars="/etc/pihole/setupVars.conf"
+  fi
 }
 
-hrSecs() { 
-  day=$(( $1/60/60/24 )); hrs=$(( $1/3600%24 )); mins=$(( ($1%3600)/60 )); secs=$(( $1%60 ))
-  [[ "$day" -ge "2" ]] && plu="s"
-  [[ "$day" -ge "1" ]] && days="$day day${plu}, " || days=""
-  printf "%s%02d:%02d:%02d\n" "$days" "$hrs" "$mins" "$secs"
+# Print spaces to align right-side content
+printFunc() {
+  txt_len="${#2}"
+  
+  # Do not count length of colour code
+  [ "${2:0:1}" == "" ] && txt_len=$((txt_len-7))
+  
+  # Determine number of spaces for padding
+  spc_num=$(( 20 - txt_len ))
+  [[ "$spc_num" -lt 0 ]] && spc_num="0"
+  spc=$(printf "%${spc_num}s")
+
+  # Limit string to first 20 chars to prevent overflow
+  printf "%s%s$spc" "$1" "${2:0:20}"
 }
-
-# Colour Codes
-if [[ -t 1 ]] && [[ "$(tput colors)" -ge "8" ]]; then
-  def="[0m"
-  gry="[1;30m"
-  grn="[1;32m"
-  blu="[94m"
-  ylw="[93m"
-  red="[1;31m"
-  red_urg="[39;41m"
-else
-  gry=""
-  def=""
-  grn=""
-  blu=""
-  ylw=""
-  red=""
-  red_urg=""
-fi
-
-# Variables to retrieve once-only
-if [[ -n "$(which vcgencmd)" ]]; then
-  sys_rev=$(awk '/Revision/ {print $3}' < /proc/cpuinfo)
-  case "$sys_rev" in
-    000[2-6]) sys_model=" 1, Model B";; # 256MB
-    000[7-9]) sys_model=" 1, Model A" ;; # 256MB
-    000d|000e|000f) sys_model=" 1, Model B";; # 512MB
-    0010|0013) sys_model=" 1, Model B+";; # 512MB
-    0012|0015) sys_model=" 1, Model A+";; # 256MB
-    a0104[0-1]|a21041|a22042) sys_model=" 2, Model B";; # 1GB
-    900021) sys_model=" 1, Model A+";; # 512MB
-    900032) sys_model=" 1, Model B+";; # 512MB
-    90009[2-3]|920093) sys_model=" Zero";; # 512MB
-    9000c1) sys_model=" Zero W";; # 512MB
-    a02082|a[2-3]2082) sys_model=" 3, Model B";; # 1GB
-    *) sys_model="" ;;
-  esac
-  sys_sbc="Raspberry Pi$sys_model"
-fi
-
-if [[ -f "/sys/class/thermal/thermal_zone0/temp" ]]; then
-  temp_file="/sys/class/thermal/thermal_zone0/temp"
-elif [[ -f "/sys/class/hwmon/hwmon0/temp1_input" ]]; then 
-  temp_file="/sys/class/hwmon/hwmon0/temp1_input"
-else
-  temp_file=""
-fi
-
-sys_cores=$(grep -c "^processor" /proc/cpuinfo)
-[[ "$sys_cores" -ne 1 ]] && sys_cores_plu="cores" || sys_cores_plu="core"
 
 get_sys_stats() {
   local ph_version
   local cpu_raw
   local ram_raw
+  local disk_raw
 
   count=$((count+1))
   
   # Update every 12 refreshes (Def: every 60s)
   if [[ "$count" == "1" ]] || (( "$count" % 12 == 0 )); then
-    source /etc/pihole/setupVars.conf
-
-    ph_version=$(pihole -v -c | sed -n 's/^.* v/v/p')
-    ph_core_ver=$(sed "1q;d" <<< "$ph_version")
-    ph_lte_ver=$(sed "2q;d" <<< "$ph_version")
-    ph_ftl_ver=$(sed "3q;d" <<< "$ph_version")
+    [[ -n "$setupVars" ]] && source "$setupVars"
+    
+    ph_version=($(pihole -v -c 2> /dev/null | sed -n 's/^.* v/v/p'))
+    if [[ -n "${ph_version[0]}" ]]; then
+      ph_core_ver="${ph_version[0]}"
+      ph_lte_ver="${ph_version[1]}"
+      ph_ftl_ver="${ph_version[2]}"
+    else
+      ph_core_ver="${COL_LIGHT_RED}API unavailable${COL_NC}"
+    fi
     
     sys_name=$(hostname)
     
-    if [[ -f "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq" ]]; then
-      cpu_mhz=$(< /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq)
-    else
-      cpu_mhz=$(lscpu | awk -F "[ .]+" '/MHz/ {print $4*1000;exit}')
-    fi
-    
-    if [[ -n "$cpu_mhz" ]]; then
-      [[ "$cpu_mhz" -le "999999" ]] && cpu_freq="$((cpu_mhz/1000)) MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000000) Ghz"
-      [[ -n "$cpu_freq" ]] && cpu_freq_txt=" @ $cpu_freq" || cpu_freq_txt=""
-    fi
-    
     [[ -n "$TEMPERATUREUNIT" ]] && temp_unit="$TEMPERATUREUNIT" || temp_unit="c"
+    
+    disk_raw=($(df -B1 / 2> /dev/null | awk 'END{ print $3,$2,$5 }'))
+    disk_used="${disk_raw[0]}"
+    disk_total="${disk_raw[1]}"
+    disk_perc="${disk_raw[2]}"
     
     net_gateway=$(route -n | awk '$4 == "UG" {print $2;exit}')
     
@@ -143,32 +168,49 @@ get_sys_stats() {
   sys_uptime=$(hrSecs "$(cut -d. -f1 /proc/uptime)")
   sys_loadavg=$(cut -d " " -f1,2,3 /proc/loadavg)
   
-  cpu_raw=$(ps -eo pcpu,rss --no-headers | /bin/grep -E -v "    0")
+  cpu_raw=$(ps -eo pcpu,rss --no-headers | grep -E -v "    0")
   cpu_tasks=$(wc -l <<< "$cpu_raw")
-  cpu_taskact=$(sed -r '/(^ 0.)/d' <<< "$cpu_raw" | wc -l) # Remove processes using <1% CPU
+  cpu_taskact=$(sed -r "/(^ 0.)/d" <<< "$cpu_raw" | wc -l) # Remove processes using <1% CPU
   cpu_perc=$(awk '{sum+=$1} END {printf "%.0f\n", sum/'"$sys_cores"'}' <<< "$cpu_raw")
+  
+  if [[ -n "$scaling_freq_file" ]]; then
+    cpu_mhz=$(( $(< /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000 ))
+  else
+    cpu_mhz=$(lscpu | awk -F "[ .]+" '/MHz/ {print $4;exit}')
+  fi
+  
+  if [[ -n "$cpu_mhz" ]]; then
+    [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000) Ghz"
+    [[ -n "$cpu_freq" ]] && cpu_freq_txt=" @ $cpu_freq" || cpu_freq_txt=""
+  fi
   
   if [[ -n "$temp_file" ]]; then
     if [[ "$temp_unit" == "C" ]]; then
       cpu_temp=$(printf "%'.0fc\n" "$(calcFunc "$(< $temp_file) / 1000")")
+      
       case "${cpu_temp::-1}" in
-        -*|[0-9]|[1-3][0-9]) cpu_tcol="$blu";;
+        -*|[0-9]|[1-3][0-9]) cpu_tcol="$COL_LIGHT_BLUE";;
         4[0-9]) cpu_tcol="";;
-        5[0-9]) cpu_tcol="$ylw";;
-        6[0-9]) cpu_tcol="$red";;
-        *) cpu_tcol="$red_urg";;
+        5[0-9]) cpu_tcol="$COL_YELLOW";;
+        6[0-9]) cpu_tcol="$COL_LIGHT_RED";;
+        *) cpu_tcol="$COL_URG_RED";;
       esac
-      cpu_temp=", $cpu_tcol$cpu_temp$def$gry" # $def$gry is needed for $red_urg
+      
+      cpu_temp=", $cpu_tcol$cpu_temp$COL_NC$COL_DARK_GRAY" # $COL_NC$COL_DARK_GRAY is needed for $COL_URG_RED
+      
     elif [[ "$temp_unit" == "F" ]]; then
       cpu_temp=$(printf "%'.0ff\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
+      
       case "${cpu_temp::-1}" in
-        -*|[0-9]|[0-9][0-9]) cpu_tcol="$blu";;
+        -*|[0-9]|[0-9][0-9]) cpu_tcol="$COL_LIGHT_BLUE";;
         1[0-1][0-9]) cpu_tcol="";;
-        1[2-3][0-9]) cpu_tcol="$ylw";;
-        1[4-5][0-9]) cpu_tcol="$red";;
-        *) cpu_tcol="$red_urg";;
+        1[2-3][0-9]) cpu_tcol="$COL_YELLOW";;
+        1[4-5][0-9]) cpu_tcol="$COL_LIGHT_RED";;
+        *) cpu_tcol="$COL_URG_RED";;
       esac
-      cpu_temp=", $cpu_tcol$cpu_temp$def$gry"
+      
+      cpu_temp=", $cpu_tcol$cpu_temp$COL_NC$COL_DARK_GRAY"
+      
     else
       cpu_temp=$(printf ", %'.0fk\n" "$(calcFunc "($(< $temp_file) / 1000) + 273.15")")
     fi
@@ -176,15 +218,15 @@ get_sys_stats() {
     cpu_temp=""
   fi
   
-  ram_raw=$(awk '/MemTotal:/{total=$2} /MemFree:/{free=$2} /Buffers:/{buffers=$2} /^Cached:/{cached=$2} END { printf "%.0f %.0f %.0f", (total-free-buffers-cached)*100/total, (total-free-buffers-cached)*1024, total*1024}' /proc/meminfo)
-  ram_perc=$(cut -d " " -f1 <<< "$ram_raw")
-  ram_used=$(cut -d " " -f2 <<< "$ram_raw")
-  ram_total=$(cut -d " " -f3 <<< "$ram_raw")
+  ram_raw=($(awk '/MemTotal:/{total=$2} /MemFree:/{free=$2} /Buffers:/{buffers=$2} /^Cached:/{cached=$2} END { printf "%.0f %.0f %.0f", (total-free-buffers-cached)*100/total, (total-free-buffers-cached)*1024, total*1024}' /proc/meminfo))
+  ram_perc="${ram_raw[0]}"
+  ram_used="${ram_raw[1]}"
+  ram_total="${ram_raw[2]}"
   
-  if [[ "$(pihole status web)" == "1" ]]; then
-    ph_status="${grn}Active"
+  if [[ "$(pihole status web 2> /dev/null)" == "1" ]]; then
+    ph_status="${COL_LIGHT_GREEN}Active"
   else
-    ph_status="${red}Inactive"
+    ph_status="${COL_LIGHT_RED}Inactive"
   fi
   
   if [[ "$DHCP_ACTIVE" == "true" ]]; then
@@ -192,53 +234,41 @@ get_sys_stats() {
   fi
 }
 
-# Based on the length of $2, determine number of tabs placed after text
-printFunc() {
-  num="${#2}"
-  
-  # Do not count length of colour code
-  [ "${2:0:1}" == "" ] && num=$((num-7))
-  
-  if [ "$num" -le "3" ]; then
-    tab="\t\t\t"
-  elif [ "$num" -le "11" ]; then
-    tab="\t\t"
-  elif [ "$num" -le "19" ]; then
-    tab="\t"
+ftlData() {
+  ftl_port=$(cat /var/run/pihole-FTL.port 2> /dev/null)
+  if [[ -n "$ftl_port" ]]; then
+    # Open connection to FTL
+    exec 3<>"/dev/tcp/localhost/$ftl_port"
+
+    # Test if connection is open
+    if { "true" >&3; } 2> /dev/null; then
+      # Send command to FTL
+      echo -e ">$1" >&3
+
+      # Read input
+      read -r -t 1 LINE <&3
+      until [[ ! $? ]] || [[ "$LINE" == *"EOM"* ]]; do
+         echo "$LINE" >&1
+         read -r -t 1 LINE <&3
+      done
+
+      # Close connection
+      exec 3>&-
+      exec 3<&-
+   fi
   else
-    tab=""
+    echo -e "${COL_LIGHT_RED}FTL offline${COL_NC}"
   fi
-
-  # Limit string to first 20 chars to prevent overflow
-  printf "%s%s$tab" "$1" "${2:0:20}"
-}
-
-function GetFTLData {
-  # Open connection to FTL
-  exec 3<>/dev/tcp/localhost/"$(cat /var/run/pihole-FTL.port)"
-
-  # Test if connection is open
-  if { "true" >&3; } 2> /dev/null; then
-    # Send command to FTL
-    echo -e ">$1" >&3
-
-    # Read input
-    read -r -t 1 LINE <&3
-    until [[ ! $? ]] || [[ "$LINE" == *"EOM"* ]]; do
-       echo "$LINE" >&1
-       read -r -t 1 LINE <&3
-    done
-
-    # Close connection
-    exec 3>&-
-    exec 3<&-
- fi
 }
 
 get_ftl_stats() {
   local stats_raw
+  local recent_blocked_raw
+  local top_ad_raw
+  local top_domain_raw
+  local top_client_raw
   
-  stats_raw=$(GetFTLData "stats")
+  stats_raw=$(ftlData "stats")
   domains_being_blocked_raw=$(awk '/domains_being_blocked/ {print $2}' <<< "${stats_raw}")
   dns_queries_today_raw=$(awk '/dns_queries_today/ {print $2}' <<< "${stats_raw}")
   ads_blocked_today_raw=$(awk '/ads_blocked_today/ {print $2}' <<< "${stats_raw}")
@@ -250,63 +280,74 @@ get_ftl_stats() {
     ads_blocked_today=$(printf "%'.0f\n" "${ads_blocked_today_raw}")
     ads_percentage_today=$(printf "%'.0f\n" "${ads_percentage_today_raw}")
     
-    recent_blocked=$(GetFTLData recentBlocked)
-    [[ "${#recent_blocked}" -gt "41" ]] && recent_blocked="${recent_blocked:0:41}"
-    top_domain=$(GetFTLData "top-domains (1)" | cut -d " " -f3)
-    [[ "${#top_domain}" -gt "41" ]] && top_domain="${top_domain:0:41}"
-    top_ad=$(GetFTLData "top-ads (1)" | cut -d " " -f3)
-    [[ "${#top_ad}" -gt "41" ]] && top_ad="${top_ad:0:41}"
-    top_client_raw=$(GetFTLData "top-clients (1)")
-    top_client=$(awk '{print $4}' <<< "$top_client_raw")
-    [[ -z "$top_client" ]] && top_client=$(cut -d " " -f3 <<< "$top_client_raw")
-    [[ "${#top_client}" -gt "41" ]] && top_client="${top_client:0:40}" # Allows TC hostname of at least 23 chars
+    recent_blocked_raw=$(ftlData recentBlocked)
+    top_ad_raw=($(ftlData "top-ads (1)"))
+    top_domain_raw=($(ftlData "top-domains (1)"))
+    top_client_raw=($(ftlData "top-clients (1)"))
+    
+    recent_blocked="${recent_blocked_raw:0:40}"
+    top_ad="${top_ad_raw[2]:0:40}"
+    top_domain="${top_domain_raw[2]:0:40}"
+    [[ "${top_client_raw[3]}" ]] && top_client="${top_client_raw[3]:0:40}" || top_client="${top_client_raw[2]:0:40}"
   fi
 }
 
-
 jsonFunc() {
-  get_ftl_stats "1"
+  get_ftl_stats "json"
   echo "{\"domains_being_blocked\":${domains_being_blocked_raw},\"dns_queries_today\":${dns_queries_today_raw},\"ads_blocked_today\":${ads_blocked_today_raw},\"ads_percentage_today\":${ads_percentage_today_raw}}"
 }
 
 chronoFunc() {
-  tabs -8
+  get_init_stats
   for (( ; ; )); do
     get_sys_stats
     get_ftl_stats
-    phc="   ${gry}Pi-hole Core: $ph_core_ver${def}"
-    lte="      ${gry}AdminLTE: $ph_lte_ver${def}"
-    ftl="           ${gry}FTL: $ph_ftl_ver${def}"
+    phc_version="        ${COL_DARK_GRAY}Pi-hole: $ph_core_ver${COL_NC}"
+    if [[ -n "$ph_lte_ver" ]]; then
+      lte_version="      ${COL_DARK_GRAY}AdminLTE: $ph_lte_ver${COL_NC}"
+      ftl_version="           ${COL_DARK_GRAY}FTL: $ph_ftl_ver${COL_NC}"
+    fi
     clear
-		echo -e " [0;1;35;95m_[0;1;31;91m__[0m [0;1;33;93m_[0m     [0;1;34;94m_[0m        [0;1;36;96m_[0m
-[0;1;31;91m|[0m [0;1;33;93m_[0m [0;1;32;92m(_[0;1;36;96m)_[0;1;34;94m__[0;1;35;95m|[0m [0;1;31;91m|_[0m  [0;1;32;92m__[0;1;36;96m_|[0m [0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc
-[0;1;33;93m|[0m  [0;1;32;92m_[0;1;36;96m/[0m [0;1;34;94m|_[0;1;35;95m__[0;1;31;91m|[0m [0;1;33;93m'[0m [0;1;32;92m\/[0m [0;1;36;96m_[0m [0;1;34;94m\[0m [0;1;35;95m/[0m [0;1;31;91m-[0;1;33;93m_)[0m$lte
-[0;1;32;92m|_[0;1;36;96m|[0m [0;1;34;94m|_[0;1;35;95m|[0m   [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m$ftl
- ${gry}——————————————————————————————————————————————————————————${def}"
-    
+  	echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)_[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc_version
+[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|_[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\/ [0;1;36;96m_ [0;1;34;94m\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_version
+[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m|  [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_version
+ ${COL_DARK_GRAY}——————————————————————————————————————————————————————————${COL_NC}"
+
     printFunc "  Hostname: " "$sys_name"
-    [ -n "$sys_sbc" ] && printf "%s(%s)%s\n"  "$gry" "$sys_sbc" "$def" || printf "\n"
+    [ -n "$sys_type" ] && printf "%s(%s)%s\n"  "$COL_DARK_GRAY" "$sys_type" "$COL_NC" || printf "\n"
+    
     printf "%s\n" "    Uptime: $sys_uptime"
+    
     printFunc " Task Load: " "$sys_loadavg"
-    printf "%s(%s)%s\n" "$gry" "Active: $cpu_taskact of $cpu_tasks tasks" "$def"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Active: $cpu_taskact of $cpu_tasks tasks" "$COL_NC"
+    
     printFunc " CPU usage: " "$cpu_perc%"
-    printf "%s(%s)%s\n" "$gry" "$sys_cores $sys_cores_plu$cpu_freq_txt$cpu_temp" "$def"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "$sys_cores $sys_cores_plu$cpu_freq_txt$cpu_temp" "$COL_NC"
+    
     printFunc " RAM usage: " "$ram_perc%"
-    printf "%s(%s)%s\n" "$gry" "Used $(hrBytes "$ram_used") of $(hrBytes "$ram_total")" "$def"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Used: $(hrBytes "$ram_used") of $(hrBytes "$ram_total")" "$COL_NC"
+    
+    printFunc " HDD usage: " "$disk_perc"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Used: $(hrBytes "$disk_used") of $(hrBytes "$disk_total")" "$COL_NC"
+    
     printFunc "  LAN addr: " "${IPV4_ADDRESS:0:-3}"
-    printf "%s(%s)%s\n" "$gry" "Gateway: $net_gateway" "$def"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Gateway: $net_gateway" "$COL_NC"
+    
     if [[ "$DHCP_ACTIVE" == "true" ]]; then
       printFunc "      DHCP: " "$DHCP_START to $ph_dhcp_eip"
-      printf "%s(%s)%s\n" "$gry" "Leased: $ph_dhcp_num of $ph_dhcp_max" "$def"
+      printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Leased: $ph_dhcp_num of $ph_dhcp_max" "$COL_NC"
     fi
-    printFunc "   Pi-hole: " "$ph_status"
-    printf "%s(%s)%s\n" "$gry" "Blocking: $domains_being_blocked sites" "$def"
-    printFunc " Ads Today: " "$ads_percentage_today%"
-    printf "%s(%s)%s\n" "$gry" "$ads_blocked_today of $dns_queries_today queries" "$def"
-    printFunc "   Fwd DNS: " "$PIHOLE_DNS_1"
-    printf "%s(%s)%s\n" "$gry" "Alt DNS: $ph_alts" "$def"
     
-    echo -e " ${gry}——————————————————————————————————————————————————————————${def}"
+    printFunc "   Pi-hole: " "$ph_status"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Blocking: $domains_being_blocked sites" "$COL_NC"
+    
+    printFunc " Ads Today: " "$ads_percentage_today%"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "$ads_blocked_today of $dns_queries_today queries" "$COL_NC"
+    
+    printFunc "   Fwd DNS: " "$PIHOLE_DNS_1"
+    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Alt DNS: $ph_alts" "$COL_NC"
+    
+    echo -e " ${COL_DARK_GRAY}——————————————————————————————————————————————————————————${COL_NC}"
     echo " Recently blocked: $recent_blocked"
     echo "   Top Advertiser: $top_ad"
     echo "       Top Domain: $top_domain"
