@@ -9,9 +9,9 @@ SETUPVARS = {
     'PIHOLE_DNS_2' : '4.2.2.2'
 }
 
-tick_box="[\x1b[1;32m\xe2\x9c\x93\x1b[0m]"
-cross_box="[\x1b[1;31m\xe2\x9c\x97\x1b[0m]"
-info_box="[i]"
+tick_box="[\x1b[1;32m\xe2\x9c\x93\x1b[0m]".decode("utf-8")
+cross_box="[\x1b[1;31m\xe2\x9c\x97\x1b[0m]".decode("utf-8")
+info_box="[i]".decode("utf-8")
 
 def test_setupVars_are_sourced_to_global_scope(Pihole):
     ''' currently update_dialogs sources setupVars with a dot,
@@ -375,7 +375,7 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-mips
     ''')
-    expected_stdout = 'Installing FTL'
+    expected_stdout = cross_box + ' Installing FTL'
     assert expected_stdout in download_binary.stdout
     error = 'Error: URL not found'
     assert error in download_binary.stdout
