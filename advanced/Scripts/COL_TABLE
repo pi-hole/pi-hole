@@ -10,6 +10,7 @@ if [[ -t 1 ]] && [[ $(tput colors) -ge 8 ]]; then
   COL_LIGHT_CYAN='[1;36m'
   COL_RED='[0;31m'
   COL_LIGHT_RED='[1;31m'
+  COL_URG_RED='[39;41m'
   COL_PURPLE='[0;35m'
   COL_LIGHT_PURPLE='[1;35m'
   COL_BROWN='[0;33m'
