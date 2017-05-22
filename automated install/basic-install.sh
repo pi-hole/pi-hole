@@ -220,6 +220,19 @@ getGitFiles() {
   return 0
 }
 
+resetRepo() {
+  local directory="${1}"
+  local curdir
+
+  curdir="${PWD}"
+  cd "${directory}" &> /dev/null || return 1
+  echo -n ":::    Resetting repo in ${1}..."
+  git reset --hard &> /dev/null || return $?
+  echo " done!"
+  cd "${curdir}" &> /dev/null || return 1
+  return 0
+}
+
 find_IPv4_information() {
   local route
   # Find IP used to route to outside world
@@ -1182,7 +1195,16 @@ update_dialogs() {
 clone_or_update_repos() {
   if [[ "${reconfigure}" == true ]]; then
     echo "::: --reconfigure passed to install script. Resetting changes to local repos"
-    git reset --hard
+    resetRepo ${PI_HOLE_LOCAL_REPO} || \
+      { echo "!!! Unable to reset ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
+    if [[ ${INSTALL_WEB} == true ]]; then
+      resetRepo ${webInterfaceDir} || \
+        { echo "!!! Unable to reset ${webInterfaceDir}, unable to continue."; \
+          exit 1; \
+        }
+    fi
   else
     # Get Git files for Core and Admin
     getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
