@@ -165,10 +165,22 @@ check_resolver_version() {
   fi
 }
 
+check_php_version() {
+  PHP_VERSION=$(php -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)
+  echo -e "    ${INFO} PHP"
+  if [[ -z "${PHP_VERSION}" ]]; then
+    echo -e "        ${CROSS} PHP version could not be detected."
+  else
+    echo -e "        ${TICK} ${PHP_VERSION}"
+  fi
+
+}
+
 check_critical_dependencies() {
   echo_current_diagnostic "Versions of critical dependencies"
   check_web_server_version
   check_web_server_version
+  check_php_version
 }
 
 get_distro_attributes() {
@@ -210,6 +222,16 @@ diagnose_operating_system() {
     # If it doesn't exist, it's not a system we currently support and link to FAQ
     echo -e "    ${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC}
          ${INFO} ${COL_LIGHT_RED}Please see${COL_NC}: ${COL_CYAN}${faq_url}${COL_NC}"
+}
+
+processor_check() {
+  echo_current_diagnostic "Processor"
+  PROCESSOR=$(uname -m)
+  if [[ -z "${PROCESSOR}" ]]; then
+    echo -e "     ${CROSS} Processor could not be identified."
+  else
+    echo -e "     ${INFO} ${PROCESSOR}"
+  fi
 }
 
 parse_file() {
@@ -295,6 +317,7 @@ check_core_version
 check_web_version
 check_ftl_version
 diagnose_operating_system
+processor_check
 check_critical_dependencies
 diagnose_setup_variables
 check_dnsmasq_d
