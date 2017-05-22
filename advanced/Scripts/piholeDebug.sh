@@ -143,6 +143,34 @@ check_ftl_version() {
   echo -e "    ${INFO} FTL: ${FTL_VERSION}"
 }
 
+check_web_server_version() {
+  WEB_SERVER="lighttpd"
+  WEB_SERVER_VERSON="$(lighttpd -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
+  echo -e "    ${INFO} ${WEB_SERVER}"
+  if [[ -z "${WEB_SERVER_VERSON}" ]]; then
+    echo -e "        ${CROSS} ${WEB_SERVER} version could not be detected."
+  else
+    echo -e "        ${TICK} ${WEB_SERVER_VERSON}"
+  fi
+}
+
+check_resolver_version() {
+  RESOLVER="dnsmasq"
+  RESOVLER_VERSON="$(dnsmasq -v |& head -n1 | awk '{print $3}')"
+  echo -e "    ${INFO} ${RESOLVER}"
+  if [[ -z "${RESOVLER_VERSON}" ]]; then
+    echo -e "        ${CROSS} ${RESOLVER} version could not be detected."
+  else
+    echo -e "        ${TICK} ${RESOVLER_VERSON}"
+  fi
+}
+
+check_critical_dependencies() {
+  echo_current_diagnostic "Versions of critical dependencies"
+  check_web_server_version
+  check_web_server_version
+}
+
 get_distro_attributes() {
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
@@ -267,5 +295,6 @@ check_core_version
 check_web_version
 check_ftl_version
 diagnose_operating_system
+check_critical_dependencies
 diagnose_setup_variables
 check_dnsmasq_d
