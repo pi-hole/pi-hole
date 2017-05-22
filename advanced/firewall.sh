@@ -27,6 +27,7 @@ elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
 	iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
 	iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
 	iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+	iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
 	# Reject https to avoid timeout issues for blocked https adds
 	iptables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
     fi
@@ -38,6 +39,7 @@ elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
 	    ip6tables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
 	    ip6tables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
 	    ip6tables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+	    ip6tables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
 	    # Reject https to avoid timeout issues for blocked https adds
 	    ip6tables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
 	fi

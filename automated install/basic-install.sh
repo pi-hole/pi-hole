@@ -86,7 +86,7 @@ if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -105,7 +105,7 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
-  INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
   LIGHTTPD_USER="www-data"
@@ -136,7 +136,7 @@ elif command -v rpm &> /dev/null; then
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=(git iproute net-tools newt procps-ng)
+  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli)
   if ! grep -q 'Fedora' /etc/redhat-release; then
@@ -268,7 +268,7 @@ verifyFreeDiskSpace() {
   # - Insufficient free disk space
   elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
     echo "::: Insufficient Disk Space!"
-    echo "::: Your system appears to be low on disk space. pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
+    echo "::: Your system appears to be low on disk space. Pi-hole recommends a minimum of $required_free_kilobytes KiloBytes."
     echo "::: You only have ${existing_free_kilobytes} KiloBytes free."
     echo "::: If this is a new install you may need to expand your disk."
     echo "::: Try running 'sudo raspi-config', and choose the 'expand file system option'"
@@ -408,7 +408,7 @@ setDHCPCD() {
   echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
-  static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
+  static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
@@ -438,7 +438,7 @@ setStaticIPv4() {
       cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
       # Build Interface configuration file:
       {
-        echo "# Configured via Pi-Hole installer"
+        echo "# Configured via Pi-hole installer"
         echo "DEVICE=$PIHOLE_INTERFACE"
         echo "BOOTPROTO=none"
         echo "ONBOOT=yes"
@@ -626,7 +626,7 @@ version_check_dnsmasq() {
   if [ -f ${dnsmasq_conf} ]; then
     echo -n ":::    Existing dnsmasq.conf found..."
     if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
-      echo " it is from a previous pi-hole install."
+      echo " it is from a previous Pi-hole install."
       echo -n ":::    Backing up dnsmasq.conf to dnsmasq.conf.orig..."
       mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
       echo " done."
@@ -634,7 +634,7 @@ version_check_dnsmasq() {
       cp ${dnsmasq_original_config} ${dnsmasq_conf}
       echo " done."
     else
-      echo " it is not a pi-hole file, leaving alone!"
+      echo " it is not a Pi-hole file, leaving alone!"
     fi
   else
     echo -n ":::    No dnsmasq.conf found.. restoring default dnsmasq.conf..."
@@ -797,7 +797,7 @@ notify_package_updates_available() {
       echo "::: Your system is up to date! Continuing with Pi-hole installation..."
     else
       echo "::: There are ${updatesToInstall} updates available for your system!"
-      echo "::: We recommend you update your OS after installing Pi-Hole! "
+      echo "::: We recommend you update your OS after installing Pi-hole! "
       echo ":::"
     fi
   else
@@ -982,6 +982,7 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+      iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
       # Reject https to avoid timeout issues for blocked https adds
       iptables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
 
@@ -992,6 +993,7 @@ configureFirewall() {
 	      ip6tables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
 	      ip6tables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
 	      ip6tables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+	      ip6tables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
 	      # Reject https to avoid timeout issues for blocked https adds
 	      ip6tables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
 	  fi
@@ -1197,22 +1199,23 @@ update_dialogs() {
 }
 
 clone_or_update_repos() {
-if [[ "${reconfigure}" == true ]]; then
-      echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
-    else
-      # Get Git files for Core and Admin
-      getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
-          exit 1; \
-        }
+  if [[ "${reconfigure}" == true ]]; then
+    echo "::: --reconfigure passed to install script. Resetting changes to local repos"
+    git reset --hard
+  else
+    # Get Git files for Core and Admin
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
 
-      if [[ ${INSTALL_WEB} == true ]]; then
-        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-        { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
-          exit 1; \
-        }
-      fi
+    if [[ ${INSTALL_WEB} == true ]]; then
+      getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
     fi
+  fi
 }
 
 FTLinstall() {
@@ -1239,7 +1242,7 @@ FTLinstall() {
       stop_service pihole-FTL &> /dev/null
       install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
       cd "${orig_dir}"
-      install -T -m 0755 "/etc/.pihole/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+      install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
       echo "done."
       return 0
     else
@@ -1431,7 +1434,8 @@ main() {
     pw=""
     if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-        /usr/local/bin/pihole -a -p "${pw}"
+        . /opt/pihole/webpage.sh
+        echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
     fi
   fi
 
@@ -1478,7 +1482,7 @@ main() {
       echo ":::                                ${pw}"
       echo ":::"
       echo "::: You can always change it using"
-      echo ":::                                pihole -a -p new_password"
+      echo ":::                                pihole -a -p"
     fi
   fi
 

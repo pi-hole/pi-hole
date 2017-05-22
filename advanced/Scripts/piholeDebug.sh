@@ -27,6 +27,7 @@ PIHOLELOG="/var/log/pihole.log"
 PIHOLEGITDIR="/etc/.pihole/"
 ADMINGITDIR="/var/www/html/admin/"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
+readonly FTLLOG="/var/log/pihole-FTL.log"
 
 TIMEOUT=60
 # Header info and introduction
@@ -259,18 +260,18 @@ ip_ping_check() {
   if [[ -n ${ip_def_gateway} ]]; then
     echo -n ":::        Pinging default IPv${protocol} gateway: "
     if ! ping_gateway="$(${cmd} -q -W 3 -c 3 -n ${ip_def_gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
-     echo "Gateway did not respond."
+     log_echo "Gateway did not respond."
      return 1
     else
-      echo "Gateway responded."
+      log_echo "Gateway responded."
       log_write "${ping_gateway}"
     fi
     echo -n ":::        Pinging Internet via IPv${protocol}: "
     if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${g_addr} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
-      echo "Query did not respond."
+      log_echo "Query did not respond."
       return 1
     else
-      echo "Query responded."
+      log_echo "Query responded."
       log_write "${ping_inet}"
     fi
   else
@@ -522,6 +523,18 @@ header_write "Analyzing pihole.log"
   pihole_size=$(du -h "${PIHOLELOG}" | awk '{ print $1 }') \
   && log_write "${PIHOLELOG} is ${pihole_size}." \
   || log_echo "Warning: No pihole.log file found!"
+
+header_write "Analyzing pihole-FTL.log"
+
+  FTL_length=$(grep -c ^ "${FTLLOG}") \
+  && log_write "${FTLLOG} is ${FTL_length} lines long." \
+  || log_echo "Warning: No pihole-FTL.log file found!"
+
+  FTL_size=$(du -h "${FTLLOG}" | awk '{ print $1 }') \
+  && log_write "${FTLLOG} is ${FTL_size}." \
+  || log_echo "Warning: No pihole-FTL.log file found!"
+
+tail -n50 "${FTLLOG}" >&3
 
 trap finalWork EXIT
 
