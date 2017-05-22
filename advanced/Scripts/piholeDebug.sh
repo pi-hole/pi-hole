@@ -75,7 +75,7 @@ echo_current_diagnostic() {
   echo -e "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
 }
 
-if_file_exists() {
+file_exists() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local file_to_test="${1}"
   # If the file is readable
@@ -99,6 +99,48 @@ if_directory_exists() {
     # Otherwise, return a failure
     return 1
   fi
+}
+
+check_core_version() {
+  echo_current_diagnostic "Pi-hole Versions"
+  local error_msg="git status failed"
+  if_directory_exists "${PIHOLEGITDIR}" && \
+    cd "${PIHOLEGITDIR}" || \
+    echo "pihole repo does not exist"
+    if git status &> /dev/null; then
+      PI_HOLE_VERSION=$(git describe --tags --abbrev=0);
+      PI_HOLE_BRANCH=$(git rev-parse --abbrev-ref HEAD);
+      PI_HOLE_COMMIT=$(git describe --long --dirty --tags --always)
+      echo -e "    ${INFO} Core: ${PI_HOLE_VERSION}
+        ${INFO} Branch: ${PI_HOLE_BRANCH}
+        ${INFO} Commit: ${PI_HOLE_COMMIT}"
+    else
+      echo "${error_msg}"
+      return 1
+    fi
+}
+
+check_web_version() {
+  local error_msg="git status failed"
+  if_directory_exists "${ADMINGITDIR}" && \
+    cd "${ADMINGITDIR}" || \
+    echo "repo does not exist"
+    if git status &> /dev/null; then
+      WEB_VERSION=$(git describe --tags --abbrev=0);
+      WEB_BRANCH=$(git rev-parse --abbrev-ref HEAD);
+      WEB_COMMIT=$(git describe --long --dirty --tags --always)
+      echo -e "    ${INFO} Web: ${WEB_VERSION}
+        ${INFO} Branch: ${WEB_BRANCH}
+        ${INFO} Commit: ${WEB_COMMIT}"
+    else
+      echo "${error_msg}"
+      return 1
+    fi
+}
+
+check_ftl_version() {
+  FTL_VERSION=$(pihole-FTL version)
+  echo -e "    ${INFO} FTL: ${FTL_VERSION}"
 }
 
 get_distro_attributes() {
@@ -134,7 +176,7 @@ diagnose_operating_system() {
   echo_current_diagnostic "Operating system"
 
   # If there is a /etc/*release file, it's probably a supported operating system, so we can
-  if_file_exists /etc/*release && \
+  file_exists /etc/*release && \
     # display the attributes to the user
     get_distro_attributes || \
     # If it doesn't exist, it's not a system we currently support and link to FAQ
@@ -166,7 +208,7 @@ diagnose_setup_variables() {
   echo_current_diagnostic "Setup variables"
 
   # If the variable file exists,
-  if_file_exists "${VARSFILE}" && \
+  file_exists "${VARSFILE}" && \
     # source it
     echo -e "    ${INFO} Sourcing ${VARSFILE}...";
     source ${VARSFILE};
@@ -188,7 +230,7 @@ dir_check() {
   # For each file in the directory,
   for filename in "${directory}"*; do
     # check if exists first; if it does,
-    if_file_exists "${filename}" && \
+    file_exists "${filename}" && \
     # show a success message
     echo_succes_or_fail "Files detected" || \
     # Otherwise, show an error
@@ -221,6 +263,9 @@ check_dnsmasq_d() {
 }
 
 initiate_debug
+check_core_version
+check_web_version
+check_ftl_version
 diagnose_operating_system
 diagnose_setup_variables
 check_dnsmasq_d
