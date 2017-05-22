@@ -228,9 +228,34 @@ processor_check() {
   echo_current_diagnostic "Processor"
   PROCESSOR=$(uname -m)
   if [[ -z "${PROCESSOR}" ]]; then
-    echo -e "     ${CROSS} Processor could not be identified."
+    echo -e "    ${CROSS} Processor could not be identified."
   else
-    echo -e "     ${INFO} ${PROCESSOR}"
+    echo -e "    ${INFO} ${PROCESSOR}"
+  fi
+}
+
+detect_ip_addresses() {
+  # First argument should be a 4 or a 6
+  local protocol=${1}
+  # Use ip to show the addresses for the chosen protocol
+  # Store the values in an arry so they can be looped through
+  # Get the lines that are in the file(s) and store them in an array for parsing later
+  declare -a ip_addr_list=( $(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }') )
+
+  # If there is something in the IP address list,
+  if [[ -n ${ip_addr_list} ]]; then
+    # Local iterator
+    local i
+    echo -e "    ${INFO} IPv${protocol}"
+    # display the contents to the user
+    echo -e "       ${INFO} Interface: ${PIHOLE_INTERFACE}"
+    for i in "${ip_addr_list[@]}"; do
+      echo -e "           ${INFO} $i"
+    done
+  # Othwerwise explain that the protocol is not configured
+  else
+    echo -e "     ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}"
+    return 1
   fi
 }
 
@@ -260,8 +285,8 @@ diagnose_setup_variables() {
   # If the variable file exists,
   file_exists "${VARSFILE}" && \
     # source it
-    echo -e "    ${INFO} Sourcing ${VARSFILE}...";
     source ${VARSFILE};
+    echo -e "    ${INFO} Sourcing ${VARSFILE}...";
     # and display a green check mark with ${DONE}
     echo_succes_or_fail "${VARSFILE} is readable and has been sourced." || \
     # Othwerwise, error out
@@ -316,8 +341,8 @@ initiate_debug
 check_core_version
 check_web_version
 check_ftl_version
+diagnose_setup_variables
 diagnose_operating_system
 processor_check
 check_critical_dependencies
-diagnose_setup_variables
 check_dnsmasq_d
