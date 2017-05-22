@@ -148,9 +148,9 @@ check_web_server_version() {
   WEB_SERVER_VERSON="$(lighttpd -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
   echo -e "    ${INFO} ${WEB_SERVER}"
   if [[ -z "${WEB_SERVER_VERSON}" ]]; then
-    echo -e "        ${CROSS} ${WEB_SERVER} version could not be detected."
+    echo -e "       ${CROSS} ${WEB_SERVER} version could not be detected."
   else
-    echo -e "        ${TICK} ${WEB_SERVER_VERSON}"
+    echo -e "       ${TICK} ${WEB_SERVER_VERSON}"
   fi
 }
 
@@ -159,9 +159,9 @@ check_resolver_version() {
   RESOVLER_VERSON="$(dnsmasq -v |& head -n1 | awk '{print $3}')"
   echo -e "    ${INFO} ${RESOLVER}"
   if [[ -z "${RESOVLER_VERSON}" ]]; then
-    echo -e "        ${CROSS} ${RESOLVER} version could not be detected."
+    echo -e "       ${CROSS} ${RESOLVER} version could not be detected."
   else
-    echo -e "        ${TICK} ${RESOVLER_VERSON}"
+    echo -e "       ${TICK} ${RESOVLER_VERSON}"
   fi
 }
 
@@ -169,9 +169,9 @@ check_php_version() {
   PHP_VERSION=$(php -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)
   echo -e "    ${INFO} PHP"
   if [[ -z "${PHP_VERSION}" ]]; then
-    echo -e "        ${CROSS} PHP version could not be detected."
+    echo -e "       ${CROSS} PHP version could not be detected."
   else
-    echo -e "        ${TICK} ${PHP_VERSION}"
+    echo -e "       ${TICK} ${PHP_VERSION}"
   fi
 
 }
@@ -298,6 +298,31 @@ ping_gateway() {
       # and return a success code
       return 0
     fi
+  fi
+}
+
+ping_internet() {
+  local protocol="${1}"
+  # If the protocol is 6,
+  if [[ ${protocol} == "6" ]]; then
+    # use ping6
+    local cmd="ping6"
+    # and Google's public IPv6 address
+    local public_address="2001:4860:4860::8888"
+  # Otherwise,
+  else
+    # use ping
+    local cmd="ping"
+    # and Google's public IPv4 address
+    local public_address="8.8.8.8"
+  fi
+  echo -n "     ${INFO} Trying three pings on IPv${protocol} to reach the Internet..."
+  if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+    echo -e "          ${CROSS} Cannot reach the Internet"
+    return 1
+  else
+    echo -e "          ${TICK} Query responded."
+    return 0
   fi
 }
 
