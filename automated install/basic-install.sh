@@ -1129,10 +1129,18 @@ checkSelinux() {
 
 displayFinalMessage() {
 
+  if [[ ${#1} -gt 0 ]] ; then
+    pwstring="$1"
+  elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
+    pwstring="unchanged"
+  else
+    pwstring="NOT SET"
+  fi
+
    if [[ ${INSTALL_WEB} == true ]]; then
        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
-Your Admin Webpage login password is ${1:-"NOT SET"}"
+Your Admin Webpage login password is ${pwstring}"
    fi
 
   # Final completion message to user
