@@ -222,14 +222,11 @@ getGitFiles() {
 
 resetRepo() {
   local directory="${1}"
-  local curdir
 
-  curdir="${PWD}"
   cd "${directory}" &> /dev/null || return 1
   echo -n ":::    Resetting repo in ${1}..."
   git reset --hard &> /dev/null || return $?
   echo " done!"
-  cd "${curdir}" &> /dev/null || return 1
   return 0
 }
 
