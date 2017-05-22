@@ -88,6 +88,19 @@ if_file_exists() {
   fi
 }
 
+if_directory_exists() {
+  # Set the first argument passed to tihs function as a named variable for better readability
+  local directory_to_test="${1}"
+  # If the file is readable
+  if [[ -d "${directory_to_test}" ]]; then
+    # Return success
+    return 0
+  else
+    # Otherwise, return a failure
+    return 1
+  fi
+}
+
 get_distro_attributes() {
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
