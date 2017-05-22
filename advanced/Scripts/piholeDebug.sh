@@ -246,17 +246,67 @@ detect_ip_addresses() {
   if [[ -n ${ip_addr_list} ]]; then
     # Local iterator
     local i
-    echo -e "    ${INFO} IPv${protocol}"
-    # display the contents to the user
-    echo -e "       ${INFO} Interface: ${PIHOLE_INTERFACE}"
-    for i in "${ip_addr_list[@]}"; do
-      echo -e "           ${INFO} $i"
+    echo -e "    ${TICK} IPv${protocol} on ${PIHOLE_INTERFACE}"
+    for i in "${!ip_addr_list[@]}"; do
+      echo -e "       [$i] ${ip_addr_list[$i]}"
     done
   # Othwerwise explain that the protocol is not configured
   else
-    echo -e "     ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}"
+    echo -e "    ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}"
     return 1
   fi
+}
+
+
+ping_gateway() {
+  # First argument should be a 4 or a 6
+  local protocol="${1}"
+  # If the protocol is 6,
+  if [[ ${protocol} == "6" ]]; then
+    # use ping6
+    local cmd="ping6"
+    # and Google's public IPv6 address
+    local public_address="2001:4860:4860::8888"
+  # Otherwise,
+  else
+    # use ping
+    local cmd="ping"
+    # and Google's public IPv4 address
+    local public_address="8.8.8.8"
+  fi
+
+  # Find the default gateway using IPv4 or IPv6
+  local gateway
+  gateway="$(ip -${protocol} route | grep default | cut -d ' ' -f 3)"
+
+  # If the gateway variable has a value (meaning a gateway was found),
+  if [[ -n "${gateway}" ]]; then
+    # Let the user know we will ping the gateway for a response
+    echo -e "          ${INFO} Trying three pings on IPv${protocol} gateway at ${gateway}..."
+    # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
+    # on the pihole interface, and tail the last three lines of the output
+    # If pinging the gateway is not successful,
+    if ! ping_cmd="$(${cmd} -q -c 3 -W 3 -n ${gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+      # let the user know
+      echo -e "          ${CROSS} Gateway did not respond."
+      # and return an error code
+      return 1
+    # Otherwise,
+    else
+      # show a success
+      echo -e "          ${TICK} Gateway responded."
+      # and return a success code
+      return 0
+    fi
+  fi
+}
+
+check_networking() {
+  echo_current_diagnostic "Networking"
+  detect_ip_addresses "4"
+  ping_gateway "4"
+  detect_ip_addresses "6"
+  ping_gateway "6"
 }
 
 parse_file() {
@@ -344,5 +394,6 @@ check_ftl_version
 diagnose_setup_variables
 diagnose_operating_system
 processor_check
+check_networking
 check_critical_dependencies
 check_dnsmasq_d
