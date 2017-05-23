@@ -1287,7 +1287,6 @@ clone_or_update_repos() {
           exit 1; \
         }
       fi
-    fi
   fi
 }
 
