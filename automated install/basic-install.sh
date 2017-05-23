@@ -241,9 +241,10 @@ resetRepo() {
   local directory="${1}"
 
   cd "${directory}" &> /dev/null || return 1
-  echo -n ":::    Resetting repo in ${1}..."
+  str="Resetting repository within ${1}..."
+  echo -ne "  ${INFO} ${str}"
   git reset --hard &> /dev/null || return $?
-  echo " done!"
+  echo -n "${OVER}  ${TICK} ${str}"
   return 0
 }
 
