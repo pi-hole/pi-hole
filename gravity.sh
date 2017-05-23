@@ -8,11 +8,9 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
 # Run this script as root or under sudo
 
-coltable='/opt/pihole/COL_TABLE'
+coltable="/opt/pihole/COL_TABLE"
 source ${coltable}
 
 helpFunc() {
@@ -38,17 +36,17 @@ whitelistFile=/etc/pihole/whitelist.txt
 blacklistFile=/etc/pihole/blacklist.txt
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
-#Source the setupVars from install script for the IP
+# Source the setupVars from install script for the IP
 setupVars=/etc/pihole/setupVars.conf
-if [[ -f ${setupVars} ]];then
-	. /etc/pihole/setupVars.conf
+if [[ -f "${setupVars}" ]]; then
+  . /etc/pihole/setupVars.conf
 else
-	echo "::: WARNING: /etc/pihole/setupVars.conf missing. Possible installation failure."
-	echo ":::          Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
+	echo -e "  ${COL_LIGHT_RED}Error: /etc/pihole/setupVars.conf missing. Possible installation failure.${COL_NC}
+  Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
 	exit 1
 fi
 
-#Remove the /* from the end of the IPv4addr.
+# Remove the /* from the end of the IPv4addr.
 IPV4_ADDRESS=${IPV4_ADDRESS%/*}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 
@@ -67,12 +65,12 @@ accretionDisc=${basename}.3.accretionDisc.txt
 skipDownload=false
 
 # Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
-if [[ -r ${piholeDir}/pihole.conf ]]; then
-	echo "  ${COL_LIGHT_RED}pihole.conf file no longer supported. Over-rides in this file are ignored.${COL_NC}"
+if [[ -r "${piholeDir}/pihole.conf" ]]; then
+	echo -e "  ${COL_LIGHT_RED}pihole.conf file no longer supported. Over-rides in this file are ignored.${COL_NC}"
 fi
 
 ###########################
-# collapse - begin formation of pihole
+# Collapse - begin formation of pihole
 gravity_collapse() {
 
   #New Logic:
@@ -81,11 +79,11 @@ gravity_collapse() {
   # Read from adlists.list
 
   #The following two blocks will sort out any missing adlists in the /etc/pihole directory, and remove legacy adlists.default
-  if [ -f ${adListDefault} ] && [ -f ${adListFile} ]; then
+  if [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
     rm ${adListDefault}
   fi
 
-  if [ ! -f ${adListFile} ]; then
+  if [[ ! -f "${adListFile}" ]]; then
     cp ${adListRepoDefault} ${adListFile}
   fi
 
@@ -95,7 +93,7 @@ gravity_collapse() {
   echo -ne "  ${INFO} ${str}..."
   sources=()
   while IFS= read -r line || [[ -n "$line" ]]; do
-    #Do not read commented out or blank lines
+    # Do not read commented out or blank lines
     if [[ ${line} = \#* ]] || [[ ! ${line} ]]; then
       echo "" > /dev/null
     else
@@ -111,10 +109,10 @@ gravity_patternCheck() {
 	success=$2
 	error=$3
 	if [ $success = true ]; then
-		# check if download was successful but list has not been modified
+		# Check if download was successful but list has not been modified
 		if [ "${error}" == "304" ]; then
 			echo -e "  ${TICK} No changes detected, transport skipped!"
-		# check if the patternbuffer is a non-zero length file
+		# Check if the patternbuffer is a non-zero length file
 		elif [[ -s "${patternBuffer}" ]]; then
 			# Some of the blocklists are copyright, they need to be downloaded
 			# and stored as is. They can be processed for content after they
@@ -126,7 +124,7 @@ gravity_patternCheck() {
 			echo -e "  ${INFO} Received empty file, ${COL_LIGHT_GREEN}using cached one${COL_NC} (list not updated!)"
 		fi
 	else
-		# check if cached list exists
+		# Check if cached list exists
 		if [[ -r "${saveLocation}" ]]; then
 			echo -e "  ${CROSS} List download failed, using cached list (list not updated!)"
 		else
@@ -175,10 +173,10 @@ gravity_transport() {
 	# Process result
 	gravity_patternCheck "${patternBuffer}" ${success} "${err}"
 
-        # Delete temp file if it hasn't been moved
-        if [[ -f "${patternBuffer}" ]]; then
-                rm "${patternBuffer}"
-        fi
+  # Delete temp file if it hasn't been moved
+  if [[ -f "${patternBuffer}" ]]; then
+    rm "${patternBuffer}"
+  fi
 }
 
 # spinup - main gravity function
@@ -199,28 +197,29 @@ gravity_spinup() {
 		# Use a case statement to download lists that need special cURL commands
 		# to complete properly and reset the user agent when required
 		case "${domain}" in
-		    "adblock.mahakala.is")
-			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-			cmd_ext="-e http://forum.xda-developers.com/"
-		    ;;
+      "adblock.mahakala.is")
+        agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+        cmd_ext="-e http://forum.xda-developers.com/"
+      ;;
 
-		    "adaway.org")
-			agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-		    ;;
+      "adaway.org")
+        agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+      ;;
 
-		    "pgl.yoyo.org")
-			cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
-		    ;;
+      "pgl.yoyo.org")
+        cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
+      ;;
 
-		    # Default is a simple request
-		    *) cmd_ext=""
-        esac
-        if [[ "${skipDownload}" == false ]]; then
-            local str="Aiming tractor beam at $domain"
-            echo -ne "  ${INFO} ${str}..."
-            gravity_transport "$url" "$cmd_ext" "$agent" "$str"
-            echo ""
-        fi
+      # Default is a simple request
+      *) cmd_ext=""
+    esac
+    
+    if [[ "${skipDownload}" == false ]]; then
+      local str="Aiming tractor beam at $domain"
+      echo -ne "  ${INFO} ${str}..."
+      gravity_transport "$url" "$cmd_ext" "$agent" "$str"
+      echo ""
+    fi
 	done
 }
 
@@ -259,7 +258,7 @@ gravity_Wildcard() {
 	# Return number of wildcards in output - don't actually handle wildcards
 	if [[ -f "${wildcardlist}" ]]; then
 	    numWildcards=$(grep -c ^ "${wildcardlist}")
-	    if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+	    if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]]; then
 	        let numWildcards/=2
 	    fi
 	    plural=; [[ "$numWildcards" != "1" ]] && plural=s
@@ -318,37 +317,37 @@ gravity_hostFormat() {
 	local str="Formatting domains into a HOSTS file"
 	echo -ne "  ${INFO} ${str}..."
 
-	if [[ -f /etc/hostname ]]; then
+	if [[ -f "/etc/hostname" ]]; then
 		hostname=$(</etc/hostname)
-	elif [ -x "$(command -v hostname)" ]; then
+	elif [[ -x "$(command -v hostname)" ]; then
 		hostname=$(hostname -f)
 	else
 	  echo -e "${OVER}  ${CROSS} ${str}"
 		echo -e "        ${COL_LIGHT_RED}Error: Unable to determine fully qualified domain name of host${COL_NC}"
 	fi
   # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
-  if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+  if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]]; then
 
-      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV6_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole\n${IPV6_ADDRESS} pi.hole" > ${localList}
-      # Both IPv4 and IPv6
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+    echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV6_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole\n${IPV6_ADDRESS} pi.hole" > ${localList}
+    # Both IPv4 and IPv6
+    cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-  elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
+  elif [[ -n "${IPV4_ADDRESS}" ]] && [[ -z "${IPV6_ADDRESS}" ]]; then
 
-      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole" > ${localList}
-      # Only IPv4
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
+    echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole" > ${localList}
+    # Only IPv4
+    cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-  elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+  elif [[ -z "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]]; then
 
-      echo -e "${IPV6_ADDRESS} ${hostname}\n${IPV6_ADDRESS} pi.hole" > ${localList}
-      # Only IPv6
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+    echo -e "${IPV6_ADDRESS} ${hostname}\n${IPV6_ADDRESS} pi.hole" > ${localList}
+    # Only IPv6
+    cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
 
-  elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
-      echo -e "${OVER}  ${CROSS} ${str}"
-      echo -e "        ${COL_LIGHT_RED}No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values${COL_NC}"
-      exit 1
+  elif [[ -z "${IPV4_ADDRESS}" ]] && [[ -z "${IPV6_ADDRESS}" ]]; then
+    echo -e "${OVER}  ${CROSS} ${str}"
+    echo -e "        ${COL_LIGHT_RED}No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values${COL_NC}"
+    exit 1
   fi
 
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
@@ -382,10 +381,10 @@ gravity_advanced() {
 	#Last awk command takes non-commented lines and if they have 2 fields, take the left field (the domain) and leave
 	#+ the right (IP address), otherwise grab the single field.
 	cat ${piholeDir}/${matterAndLight} | \
-	    awk -F '#' '{print $1}' | \
-	    awk -F '/' '{print $1}' | \
-	    awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
-	    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+    awk -F '#' '{print $1}' | \
+    awk -F '/' '{print $1}' | \
+    awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
+    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
 	echo -e "${OVER}  ${TICK} ${str}"
 
 	numberOf=$(wc -l < ${piholeDir}/${supernova})
@@ -432,12 +431,12 @@ fi
 gravity_collapse
 gravity_spinup
 if [[ "${skipDownload}" == false ]]; then
-    gravity_Schwarzchild
-    gravity_advanced
+  gravity_Schwarzchild
+  gravity_advanced
 else
-    echo -e "  ${INFO} Using cached Event Horizon list..."
-    numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
-	echo -e "  ${INFO} ${COL_LIGHT_BLUE}$numberOf${COL_NC} unique domains trapped in the event horizon."
+  echo -e "  ${INFO} Using cached Event Horizon list..."
+  numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
+  echo -e "  ${INFO} ${COL_LIGHT_BLUE}$numberOf${COL_NC} unique domains trapped in the event horizon."
 fi
 gravity_Whitelist
 gravity_Blacklist
