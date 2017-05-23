@@ -1426,7 +1426,11 @@ main() {
   if [[ ${INSTALL_WEB} == true ]]; then
     # Check to see if lighttpd was already running upon update
     if [[ ${useUpdateVars} == true ]]; then
-      LIGHTTPD_ENABLED=$(service lighttpd status &> /dev/null; echo $?)
+      if [[ -x "$(command -v systemctl)" ]]; then
+        [[ "$(systemctl is-enabled lighttpd)" == "enabled" ]] && LIGHTTPD_ENABLED="0"
+      else
+        LIGHTTPD_ENABLED=$(service lighttpd status &> /dev/null; echo $?)
+      fi
     fi
     
     if [[ -z "${LIGHTTPD_ENABLED}" ]] || [[ "${LIGHTTPD_ENABLED}" == "0" ]]; then
