@@ -108,9 +108,9 @@ gravity_patternCheck() {
 	patternBuffer=$1
 	success=$2
 	error=$3
-	if [ $success = true ]; then
+	if [[ "$success" == true ]]; then
 		# Check if download was successful but list has not been modified
-		if [ "${error}" == "304" ]; then
+		if [[ "${error}" == "304" ]]; then
 			echo -e "  ${TICK} No changes detected, transport skipped!"
 		# Check if the patternbuffer is a non-zero length file
 		elif [[ -s "${patternBuffer}" ]]; then
@@ -319,11 +319,11 @@ gravity_hostFormat() {
 
 	if [[ -f "/etc/hostname" ]]; then
 		hostname=$(</etc/hostname)
-	elif [[ -x "$(command -v hostname)" ]; then
+	elif [[ -x "$(command -v hostname)" ]]; then
 		hostname=$(hostname -f)
 	else
 	  echo -e "${OVER}  ${CROSS} ${str}"
-		echo -e "        ${COL_LIGHT_RED}Error: Unable to determine fully qualified domain name of host${COL_NC}"
+	  echo -e "        ${COL_LIGHT_RED}Error: Unable to determine fully qualified domain name of host${COL_NC}"
 	fi
   # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
   if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]]; then
