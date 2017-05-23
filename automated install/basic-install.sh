@@ -237,6 +237,16 @@ getGitFiles() {
   return 0
 }
 
+resetRepo() {
+  local directory="${1}"
+
+  cd "${directory}" &> /dev/null || return 1
+  echo -n ":::    Resetting repo in ${1}..."
+  git reset --hard &> /dev/null || return $?
+  echo " done!"
+  return 0
+}
+
 find_IPv4_information() {
   local route
   # Find IP used to route to outside world
@@ -1042,6 +1052,7 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+      iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
       return 0
     fi
   else
@@ -1192,10 +1203,18 @@ checkSelinux() {
 
 displayFinalMessage() {
 
+  if [[ ${#1} -gt 0 ]] ; then
+    pwstring="$1"
+  elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
+    pwstring="unchanged"
+  else
+    pwstring="NOT SET"
+  fi
+
    if [[ ${INSTALL_WEB} == true ]]; then
        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
-Your Web Interface password is ${1:-"NOT SET"}"
+Your Admin Webpage login password is ${pwstring}"
    fi
 
   # Final completion message to user
@@ -1243,15 +1262,24 @@ update_dialogs() {
 }
 
 clone_or_update_repos() {
-if [[ "${reconfigure}" == true ]]; then
-      echo "  ${INFO} Performing reconfiguration, skipping download of local repos"
-      echo ""
-    else
-      # Get Git files for Core and Admin
-      getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { echo -e "  ${COL_LIGHT_RED}Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, exiting installer${COL_NC}"; \
+  if [[ "${reconfigure}" == true ]]; then
+    echo "  ${INFO} Performing reconfiguration, skipping download of local repos"
+    resetRepo ${PI_HOLE_LOCAL_REPO} || \
+      { echo -e "  ${COL_LIGHT_RED}Unable to reset ${PI_HOLE_LOCAL_REPO}, exiting installer${COL_NC}"; \
+        exit 1; \
+      }
+    if [[ ${INSTALL_WEB} == true ]]; then
+      resetRepo ${webInterfaceDir} || \
+        { echo -e "  ${COL_LIGHT_RED}Unable to reset ${webInterfaceDir}, exiting installer${COL_NC}"; \
           exit 1; \
         }
+    fi
+  else
+    # Get Git files for Core and Admin
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
 
       if [[ ${INSTALL_WEB} == true ]]; then
         getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
@@ -1260,6 +1288,7 @@ if [[ "${reconfigure}" == true ]]; then
         }
       fi
     fi
+  fi
 }
 
 FTLinstall() {
