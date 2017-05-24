@@ -340,15 +340,61 @@ check_required_ports() {
   done
 }
 
-
 check_networking() {
   echo_current_diagnostic "Networking"
   detect_ip_addresses "4"
   ping_gateway "4"
   detect_ip_addresses "6"
   ping_gateway "6"
-  port_check 4 http
   check_required_ports
+}
+
+check_x_headers() {
+  curl -Is localhost | awk '/X-Pi-hole/'
+  curl -Is localhost/admin/ | awk '/X-Pi-hole/'
+}
+
+dig_at() {
+  local protocol="${1}"
+  local IP="${2}"
+  echo_current_diagnostic "Domain name resolution (IPv${protocol}) using a random blocked domain"
+  local url
+  local local_dig
+  local pihole_dig
+  local remote_dig
+
+  if [[ ${protocol} == "6" ]]; then
+    local local_address="::1"
+    local pihole_address="${IPV6_ADDRESS%/*}"
+    local remote_address="2001:4860:4860::8888"
+    local record_type="AAAA"
+  else
+    local local_address="127.0.0.1"
+    local pihole_address="${IPV4_ADDRESS%/*}"
+    local remote_address="8.8.8.8"
+    local record_type="A"
+  fi
+
+  # Find a random blocked url that has not been whitelisted.
+  local random_url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
+
+  if local_dig=$(dig -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
+    echo -e "       ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})"
+  else
+    echo -e "       ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})"
+  fi
+
+  if pihole_dig=$(dig -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
+    echo -e "       ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})"
+  else
+    echo -e "       ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})"
+  fi
+
+  if remote_dig=$(dig -"${protocol}" "${random_url}" @${remote_address} +short "${record_type}"); then
+    echo -e "       ${TICK} ${random_url} is ${remote_dig}  via a remote, public DNS server (${remote_address})"
+  else
+    echo -e "       ${CROSS} Failed to resolve ${random_url} via a remote, public DNS server (${remote_address})"
+  fi
 }
 
 process_status(){
@@ -397,6 +443,15 @@ diagnose_setup_variables() {
     parse_file "${VARSFILE}"
 }
 
+check_name_resolution() {
+  # Check name resoltion from localhost, Pi-hole's IP, and Google's name severs
+  dig_at 4 "${IPV4_ADDRESS%/*}"
+  # If IPv6 enabled, check resolution
+  if [[ "${IPV6_ADDRESS}" ]]; then
+    dig_at 6 "${IPV6_ADDRESS%/*}"
+  fi
+}
+
 # This function can check a directory exists
 # Pi-hole has files in several places, so we will reuse this function
 dir_check() {
@@ -405,7 +460,7 @@ dir_check() {
   # Display the current test that is running
   echo_current_diagnostic "contents of ${directory}"
   # For each file in the directory,
-  for filename in "${directory}"*; do
+  for filename in "${directory}"; do
     # check if exists first; if it does,
     file_exists "${filename}" && \
     # show a success message
@@ -418,14 +473,13 @@ dir_check() {
 list_files_in_dir() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local dir_to_parse="${1}"
-  # Set another local variable for better readability
-  local filename
   # Store the files found in an array
   files_found=( $(ls "${dir_to_parse}") )
   # For each file in the arry,
   for each_file in "${files_found[@]}"; do
     # display the information with the ${INFO} icon
-    echo "       ${INFO} ${each_file}"
+    # Also print the permissions and the user/group
+    echo -e "       ${INFO} ${each_file} ( $(ls -ld ${dir_to_parse}/${each_file} | awk '{print $1, $3, $4}') )"
   done
 
 }
@@ -439,6 +493,30 @@ check_dnsmasq_d() {
   list_files_in_dir "${directory}"
 }
 
+check_cron_d() {
+  # Set a local variable for better readability
+  local directory=/etc/cron.d
+  # Check if the directory exists
+  dir_check "${directory}"
+  # if it does, list the files in it
+  list_files_in_dir "${directory}"
+}
+
+check_http_directory() {
+  # Set a local variable for better readability
+  local directory=/var/www/html
+  # Check if the directory exists
+  dir_check "${directory}"
+  # if it does, list the files in it
+  list_files_in_dir "${directory}"
+}
+
+upload_to_tricorder() {
+echo tricorder
+}
+
+upload_to_tricorder
+
 initiate_debug
 check_core_version
 check_web_version
@@ -447,6 +525,9 @@ diagnose_setup_variables
 diagnose_operating_system
 processor_check
 check_networking
+check_name_resolution
 process_status
 check_critical_dependencies
 check_dnsmasq_d
+check_http_directory
+check_cron_d
