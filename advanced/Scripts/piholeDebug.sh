@@ -350,8 +350,22 @@ check_networking() {
 }
 
 check_x_headers() {
-  curl -Is localhost | awk '/X-Pi-hole/'
-  curl -Is localhost/admin/ | awk '/X-Pi-hole/'
+  echo_current_diagnostic "Dashboard and block page"
+  local block_page=$(curl -Is localhost | awk '/X-Pi-hole/' | tr -d '\r')
+  local dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
+  local block_page_working="X-Pi-hole: A black hole for Internet advertisements.."
+  local dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!!"
+  if [[ $block_page == $block_page_working ]]; then
+    echo -e "     $TICK ${block_page}"
+  else
+    echo -e "     $CROSS X-Header does not match or could not be retrieved"
+  fi
+
+  if [[ $dashboard == $dashboard_working ]]; then
+    echo -e "     $TICK ${dashboard}"
+  else
+    echo -e "     $CROSS X-Header does not match or could not be retrieved"
+  fi
 }
 
 dig_at() {
@@ -378,22 +392,24 @@ dig_at() {
   # Find a random blocked url that has not been whitelisted.
   local random_url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
 
+  local remote_url="doubleclick.com"
+
   if local_dig=$(dig -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
-    echo -e "       ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})"
+    echo -e "     ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})"
   else
-    echo -e "       ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})"
+    echo -e "     ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})"
   fi
 
   if pihole_dig=$(dig -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
-    echo -e "       ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})"
+    echo -e "     ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})"
   else
-    echo -e "       ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})"
+    echo -e "     ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})"
   fi
 
-  if remote_dig=$(dig -"${protocol}" "${random_url}" @${remote_address} +short "${record_type}"); then
-    echo -e "       ${TICK} ${random_url} is ${remote_dig}  via a remote, public DNS server (${remote_address})"
+  if remote_dig=$(dig -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
+    echo -e "     ${TICK} ${random_url} is ${remote_dig} via a remote, public DNS server (${remote_address})"
   else
-    echo -e "       ${CROSS} Failed to resolve ${random_url} via a remote, public DNS server (${remote_address})"
+    echo -e "     ${CROSS} Failed to resolve ${remote_url} via a remote, public DNS server (${remote_address})"
   fi
 }
 
@@ -527,6 +543,7 @@ processor_check
 check_networking
 check_name_resolution
 process_status
+check_x_headers
 check_critical_dependencies
 check_dnsmasq_d
 check_http_directory
