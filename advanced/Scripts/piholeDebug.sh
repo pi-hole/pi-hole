@@ -326,12 +326,29 @@ ping_internet() {
   fi
 }
 
+check_required_ports() {
+  echo -e "    ${INFO} Ports in use:"
+  ports_in_use=()
+  while IFS= read -r line; do
+      ports_in_use+=( "$line" )
+  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $9, $1}' | sort | uniq | cut -d':' -f2 )
+
+  for i in ${!ports_in_use[@]}; do
+    local port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
+    local service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
+    echo -e "       [${port_number}] is in use by ${service_name}"
+  done
+}
+
+
 check_networking() {
   echo_current_diagnostic "Networking"
   detect_ip_addresses "4"
   ping_gateway "4"
   detect_ip_addresses "6"
   ping_gateway "6"
+  port_check 4 http
+  check_required_ports
 }
 
 parse_file() {
