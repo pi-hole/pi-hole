@@ -353,8 +353,8 @@ check_x_headers() {
   echo_current_diagnostic "Dashboard and block page"
   local block_page=$(curl -Is localhost | awk '/X-Pi-hole/' | tr -d '\r')
   local dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
-  local block_page_working="X-Pi-hole: A black hole for Internet advertisements.."
-  local dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!!"
+  local block_page_working="X-Pi-hole: A black hole for Internet advertisements."
+  local dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
   if [[ $block_page == $block_page_working ]]; then
     echo -e "     $TICK ${block_page}"
   else
@@ -509,6 +509,15 @@ check_dnsmasq_d() {
   list_files_in_dir "${directory}"
 }
 
+check_lighttpd_d() {
+  # Set a local variable for better readability
+  local directory=/etc/lighttpd
+  # Check if the directory exists
+  dir_check "${directory}"
+  # if it does, list the files in it
+  list_files_in_dir "${directory}"
+}
+
 check_cron_d() {
   # Set a local variable for better readability
   local directory=/etc/cron.d
@@ -527,11 +536,51 @@ check_http_directory() {
   list_files_in_dir "${directory}"
 }
 
-upload_to_tricorder() {
-echo tricorder
+analyze_gravity_list() {
+  gravity_length=$(grep -c ^ "${GRAVITYFILE}") && \
+    echo -e "   ${INFO} ${GRAVITYFILE} is ${gravity_length} lines long." || \
+    echo -e "   ${CROSS} ${GRAVITYFILE} not found!"
 }
 
-upload_to_tricorder
+upload_to_tricorder() {
+  local tricorder
+	echo "${TICK} Finshed debugging!"
+
+  # Ensure the file exists, create if not, clear if exists.
+  truncate --size=0 "${DEBUG_LOG}"
+  # Set the permissions and owner
+  chmod 644 ${DEBUG_LOG}
+  chown "$USER":pihole ${DEBUG_LOG}
+  # Copy working temp file to final log location
+  cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
+  # Straight dump of tailing the logs, can sanitize later if needed.
+  cat /proc/$$/fd/4 >> "${DEBUG_LOG}"
+
+	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+	if [[ "${AUTOMATED}" ]]; then
+	  echo "${INFO} Debug script running in automated mode; uploading log to tricorder..."
+	  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+	else
+	  read -r -p "\n\n[?] Would you like to upload the log? [y/N] " response
+	  case ${response} in
+		  [yY][eE][sS]|[yY]) tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999);;
+		  *) echo "${INFO} Log will NOT be uploaded to tricorder.";;
+	  esac
+  fi
+	# Check if tricorder.pi-hole.net is reachable and provide token.
+	if [[ -n "${tricorder}" ]]; then
+		echo "::: ---=== Your debug token is : ${tricorder} Please make a note of it. ===---"
+		echo "::: Contact the Pi-hole team with your token for assistance."
+		echo "::: Thank you."
+	else
+		echo "::: There was an error uploading your debug log."
+		echo "::: Please try again or contact the Pi-hole team for assistance."
+	fi
+		echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
+
+}
+
+
 
 initiate_debug
 check_core_version
@@ -546,5 +595,7 @@ process_status
 check_x_headers
 check_critical_dependencies
 check_dnsmasq_d
+check_lighttpd_d
 check_http_directory
 check_cron_d
+upload_to_tricorder
