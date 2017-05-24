@@ -351,6 +351,16 @@ check_networking() {
   check_required_ports
 }
 
+process_status(){
+  echo_current_diagnostic "Pi-hole processes"
+  PROCESSES=( dnsmasq lighttpd pihole-FTL )
+  local i
+  for i in "${PROCESSES[@]}"; do
+    local status_of_process=$(systemctl is-active "${i}")
+    echo -e "    [i] ${i} daemon is ${status_of_process}"
+  done
+}
+
 parse_file() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local filename="${1}"
@@ -437,5 +447,6 @@ diagnose_setup_variables
 diagnose_operating_system
 processor_check
 check_networking
+process_status
 check_critical_dependencies
 check_dnsmasq_d
