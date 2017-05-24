@@ -89,7 +89,7 @@ SetWebPassword() {
 
     if [ "${PASSWORD}" == "" ]; then
       change_setting "WEBPASSWORD" ""
-      echo "  ${TICK} Password Removed"
+      echo -e "  ${TICK} Password Removed"
       exit 0
     fi
 
