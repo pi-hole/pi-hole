@@ -542,45 +542,62 @@ analyze_gravity_list() {
     echo -e "   ${CROSS} ${GRAVITYFILE} not found!" 2>&1 | tee -a "${DEBUG_LOG}"
 }
 
-upload_to_tricorder() {
-  local tricorder
-	echo -e "${TICK} Finshed debugging!" 2>&1 | tee -a "${DEBUG_LOG}"
+tricorder_nc_or_ssl() {
+  if command -v openssl &> /dev/null; then
+    echo -e "   ${INFO} Using openssl for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+    tricorder=$(cat /var/log/pihole_debug.log | openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null)
+  else
+    echo -e "   ${INFO} Using netcat for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+    tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+  fi
+}
 
-  # Ensure the file exists, create if not, clear if exists.
-  truncate --size=0 "${DEBUG_LOG}"
+
+upload_to_tricorder() {
   # Set the permissions and owner
   chmod 644 ${DEBUG_LOG}
   chown "$USER":pihole ${DEBUG_LOG}
-  # Copy working temp file to final log location
-  cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
-  # Straight dump of tailing the logs, can sanitize later if needed.
-  cat /proc/$$/fd/4 >> "${DEBUG_LOG}"
 
-	echo "::: The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+  echo ""
+	echo -e "${TICK} Finshed debugging!" 2>&1 | tee -a "${DEBUG_LOG}"
+
+	echo -e "   ${INFO} The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+  echo -e "       For more information, see: https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/"
 	if [[ "${AUTOMATED}" ]]; then
-	  echo "${INFO} Debug script running in automated mode; uploading log to tricorder..."
-	  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+    echo -e "   ${INFO} Debug script running in automated mode" 2>&1 | tee -a "${DEBUG_LOG}"
+    if command -v openssl &> /dev/null; then
+      echo -e "   ${INFO} Using openssl for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+      openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
+    else
+      echo -e "   ${INFO} Using netcat for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+      nc tricorder.pi-hole.net 9999 < /dev/stdin
+    fi
 	else
-	  read -r -p "\n\n[?] Would you like to upload the log? [y/N] " response
+    echo ""
+	  read -r -p "[?] Would you like to upload the log? [y/N] " response
 	  case ${response} in
-		  [yY][eE][sS]|[yY]) tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999);;
-		  *) echo "${INFO} Log will NOT be uploaded to tricorder.";;
+		  [yY][eE][sS]|[yY]) tricorder_nc_or_ssl;;
+		  *) echo -e "   ${INFO} Log will NOT be uploaded to tricorder.";exit;
 	  esac
   fi
 	# Check if tricorder.pi-hole.net is reachable and provide token.
 	if [[ -n "${tricorder}" ]]; then
-		echo "::: ---=== Your debug token is : ${tricorder} Please make a note of it. ===---"
-		echo "::: Contact the Pi-hole team with your token for assistance."
-		echo "::: Thank you."
+    echo ""
+    echo -e "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
+		echo -e "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder}${COL_NC}"
+    echo -e "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
+    echo -e ""
+		echo -e "       Provide this token to the Pi-hole team for assistance:"
+    echo ""
+		echo -e "       https://discourse.pi-hole.net"
 	else
-		echo "::: There was an error uploading your debug log."
-		echo "::: Please try again or contact the Pi-hole team for assistance."
+		echo -e "   ${CROSS}  There was an error uploading your debug log."
+		echo -e "        Please try again or contact the Pi-hole team for assistance."
 	fi
-		echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
-
+    echo ""
+		echo -e "        A local copy of the debug log can be found at : /var/log/pihole_debug.log"
+    echo ""
 }
-
-
 
 initiate_debug
 check_core_version
@@ -598,4 +615,4 @@ check_dnsmasq_d
 check_lighttpd_d
 check_http_directory
 check_cron_d
-#upload_to_tricorder
+upload_to_tricorder
