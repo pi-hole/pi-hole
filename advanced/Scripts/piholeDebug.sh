@@ -50,21 +50,21 @@ echo_succes_or_fail() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local message="${1}"
   # If the command was successful (a zero),
-  if [ $? -eq 0 ]; then
+  if [[ $? -eq 0 ]]; then
     # show success
-    echo -e "    ${TICK} ${message}"
+    echo -e "    ${TICK} ${message}" 2>&1 | tee -a "${DEBUG_LOG}"
   else
     # Otherwise, show a error
-    echo -e "    ${CROSS} ${message}"
+    echo -e "    ${CROSS} ${message}" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 }
 
 initiate_debug() {
   # Clear the screen so the debug log is readable
   clear
-  echo -e "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}"
+  echo -e "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}" 2>&1 | tee "${DEBUG_LOG}"
   # Timestamp the start of the log
-  echo -e "    ${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initiated."
+  echo -e "    ${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initiated." 2>&1 | tee -a "${DEBUG_LOG}"
 }
 
 # This is a function for visually displaying the curent test that is being run.
@@ -72,7 +72,7 @@ initiate_debug() {
 # Colors do not show in the dasboard, but the icons do: [i], [✓], and [✗]
 echo_current_diagnostic() {
   # Colors are used for visually distinguishing each test in the output
-  echo -e "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
+  echo -e "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}" 2>&1 | tee -a "${DEBUG_LOG}"
 }
 
 file_exists() {
@@ -106,16 +106,16 @@ check_core_version() {
   local error_msg="git status failed"
   if_directory_exists "${PIHOLEGITDIR}" && \
     cd "${PIHOLEGITDIR}" || \
-    echo "pihole repo does not exist"
+    echo -e "pihole repo does not exist" 2>&1 | tee -a "${DEBUG_LOG}"
     if git status &> /dev/null; then
       PI_HOLE_VERSION=$(git describe --tags --abbrev=0);
       PI_HOLE_BRANCH=$(git rev-parse --abbrev-ref HEAD);
       PI_HOLE_COMMIT=$(git describe --long --dirty --tags --always)
       echo -e "    ${INFO} Core: ${PI_HOLE_VERSION}
         ${INFO} Branch: ${PI_HOLE_BRANCH}
-        ${INFO} Commit: ${PI_HOLE_COMMIT}"
+        ${INFO} Commit: ${PI_HOLE_COMMIT}" 2>&1 | tee -a "${DEBUG_LOG}"
     else
-      echo "${error_msg}"
+      echo -e "${error_msg}" 2>&1 | tee -a "${DEBUG_LOG}"
       return 1
     fi
 }
@@ -124,54 +124,54 @@ check_web_version() {
   local error_msg="git status failed"
   if_directory_exists "${ADMINGITDIR}" && \
     cd "${ADMINGITDIR}" || \
-    echo "repo does not exist"
+    echo -e "repo does not exist" 2>&1 | tee -a "${DEBUG_LOG}"
     if git status &> /dev/null; then
       WEB_VERSION=$(git describe --tags --abbrev=0);
       WEB_BRANCH=$(git rev-parse --abbrev-ref HEAD);
       WEB_COMMIT=$(git describe --long --dirty --tags --always)
       echo -e "    ${INFO} Web: ${WEB_VERSION}
         ${INFO} Branch: ${WEB_BRANCH}
-        ${INFO} Commit: ${WEB_COMMIT}"
+        ${INFO} Commit: ${WEB_COMMIT}" 2>&1 | tee -a "${DEBUG_LOG}"
     else
-      echo "${error_msg}"
+      echo -e "${error_msg}" 2>&1 | tee -a "${DEBUG_LOG}"
       return 1
     fi
 }
 
 check_ftl_version() {
   FTL_VERSION=$(pihole-FTL version)
-  echo -e "    ${INFO} FTL: ${FTL_VERSION}"
+  echo -e "    ${INFO} FTL: ${FTL_VERSION}" 2>&1 | tee -a "${DEBUG_LOG}"
 }
 
 check_web_server_version() {
   WEB_SERVER="lighttpd"
   WEB_SERVER_VERSON="$(lighttpd -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
-  echo -e "    ${INFO} ${WEB_SERVER}"
+  echo -e "    ${INFO} ${WEB_SERVER}" 2>&1 | tee -a "${DEBUG_LOG}"
   if [[ -z "${WEB_SERVER_VERSON}" ]]; then
-    echo -e "       ${CROSS} ${WEB_SERVER} version could not be detected."
+    echo -e "       ${CROSS} ${WEB_SERVER} version could not be detected." 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "       ${TICK} ${WEB_SERVER_VERSON}"
+    echo -e "       ${TICK} ${WEB_SERVER_VERSON}" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 }
 
 check_resolver_version() {
   RESOLVER="dnsmasq"
   RESOVLER_VERSON="$(dnsmasq -v |& head -n1 | awk '{print $3}')"
-  echo -e "    ${INFO} ${RESOLVER}"
+  echo -e "    ${INFO} ${RESOLVER}" 2>&1 | tee -a "${DEBUG_LOG}"
   if [[ -z "${RESOVLER_VERSON}" ]]; then
-    echo -e "       ${CROSS} ${RESOLVER} version could not be detected."
+    echo -e "       ${CROSS} ${RESOLVER} version could not be detected." 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "       ${TICK} ${RESOVLER_VERSON}"
+    echo -e "       ${TICK} ${RESOVLER_VERSON}" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 }
 
 check_php_version() {
   PHP_VERSION=$(php -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)
-  echo -e "    ${INFO} PHP"
+  echo -e "    ${INFO} PHP" 2>&1 | tee -a "${DEBUG_LOG}"
   if [[ -z "${PHP_VERSION}" ]]; then
-    echo -e "       ${CROSS} PHP version could not be detected."
+    echo -e "       ${CROSS} PHP version could not be detected." 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "       ${TICK} ${PHP_VERSION}"
+    echo -e "       ${TICK} ${PHP_VERSION}" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 
 }
@@ -199,7 +199,7 @@ get_distro_attributes() {
     # we need just the OS PRETTY_NAME, so print it when we find it
     if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
       PRETTY_NAME=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
-      echo "    ${INFO} ${PRETTY_NAME}"
+      echo -e "    ${INFO} ${PRETTY_NAME}" 2>&1 | tee -a "${DEBUG_LOG}"
       # Otherwise, do nothing
     else
       :
@@ -221,16 +221,16 @@ diagnose_operating_system() {
     get_distro_attributes || \
     # If it doesn't exist, it's not a system we currently support and link to FAQ
     echo -e "    ${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC}
-         ${INFO} ${COL_LIGHT_RED}Please see${COL_NC}: ${COL_CYAN}${faq_url}${COL_NC}"
+         ${INFO} ${COL_LIGHT_RED}Please see${COL_NC}: ${COL_CYAN}${faq_url}${COL_NC}" 2>&1 | tee -a "${DEBUG_LOG}"
 }
 
 processor_check() {
   echo_current_diagnostic "Processor"
   PROCESSOR=$(uname -m)
   if [[ -z "${PROCESSOR}" ]]; then
-    echo -e "    ${CROSS} Processor could not be identified."
+    echo -e "    ${CROSS} Processor could not be identified." 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "    ${INFO} ${PROCESSOR}"
+    echo -e "    ${INFO} ${PROCESSOR}" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 }
 
@@ -246,13 +246,13 @@ detect_ip_addresses() {
   if [[ -n ${ip_addr_list} ]]; then
     # Local iterator
     local i
-    echo -e "    ${TICK} IPv${protocol} on ${PIHOLE_INTERFACE}"
+    echo -e "    ${TICK} IPv${protocol} on ${PIHOLE_INTERFACE}" 2>&1 | tee -a "${DEBUG_LOG}"
     for i in "${!ip_addr_list[@]}"; do
-      echo -e "       [$i] ${ip_addr_list[$i]}"
+      echo -e "       [$i] ${ip_addr_list[$i]}" 2>&1 | tee -a "${DEBUG_LOG}"
     done
   # Othwerwise explain that the protocol is not configured
   else
-    echo -e "    ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}"
+    echo -e "    ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}" 2>&1 | tee -a "${DEBUG_LOG}"
     return 1
   fi
 }
@@ -282,19 +282,19 @@ ping_gateway() {
   # If the gateway variable has a value (meaning a gateway was found),
   if [[ -n "${gateway}" ]]; then
     # Let the user know we will ping the gateway for a response
-    echo -e "          ${INFO} Trying three pings on IPv${protocol} gateway at ${gateway}..."
+    echo -e "          ${INFO} Trying three pings on IPv${protocol} gateway at ${gateway}..." 2>&1 | tee -a "${DEBUG_LOG}"
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
     if ! ping_cmd="$(${cmd} -q -c 3 -W 3 -n ${gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
       # let the user know
-      echo -e "          ${CROSS} Gateway did not respond."
+      echo -e "          ${CROSS} Gateway did not respond." 2>&1 | tee -a "${DEBUG_LOG}"
       # and return an error code
       return 1
     # Otherwise,
     else
       # show a success
-      echo -e "          ${TICK} Gateway responded."
+      echo -e "          ${TICK} Gateway responded." 2>&1 | tee -a "${DEBUG_LOG}"
       # and return a success code
       return 0
     fi
@@ -316,18 +316,18 @@ ping_internet() {
     # and Google's public IPv4 address
     local public_address="8.8.8.8"
   fi
-  echo -n "     ${INFO} Trying three pings on IPv${protocol} to reach the Internet..."
+  echo -n "     ${INFO} Trying three pings on IPv${protocol} to reach the Internet..." 2>&1 | tee -a "${DEBUG_LOG}"
   if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
-    echo -e "          ${CROSS} Cannot reach the Internet"
+    echo -e "          ${CROSS} Cannot reach the Internet" 2>&1 | tee -a "${DEBUG_LOG}"
     return 1
   else
-    echo -e "          ${TICK} Query responded."
+    echo -e "          ${TICK} Query responded." 2>&1 | tee -a "${DEBUG_LOG}"
     return 0
   fi
 }
 
 check_required_ports() {
-  echo -e "    ${INFO} Ports in use:"
+  echo -e "    ${INFO} Ports in use:" 2>&1 | tee -a "${DEBUG_LOG}"
   ports_in_use=()
   while IFS= read -r line; do
       ports_in_use+=( "$line" )
@@ -336,7 +336,7 @@ check_required_ports() {
   for i in ${!ports_in_use[@]}; do
     local port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
     local service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
-    echo -e "       [${port_number}] is in use by ${service_name}"
+    echo -e "       [${port_number}] is in use by ${service_name}" 2>&1 | tee -a "${DEBUG_LOG}"
   done
 }
 
@@ -356,15 +356,15 @@ check_x_headers() {
   local block_page_working="X-Pi-hole: A black hole for Internet advertisements."
   local dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
   if [[ $block_page == $block_page_working ]]; then
-    echo -e "    $TICK ${block_page}"
+    echo -e "    $TICK ${block_page}" 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "    $CROSS X-Header does not match or could not be retrieved"
+    echo -e "    $CROSS X-Header does not match or could not be retrieved" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 
   if [[ $dashboard == $dashboard_working ]]; then
-    echo -e "    $TICK ${dashboard}"
+    echo -e "    $TICK ${dashboard}" 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "    $CROSS X-Header does not match or could not be retrieved"
+    echo -e "    $CROSS X-Header does not match or could not be retrieved" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 }
 
@@ -395,21 +395,21 @@ dig_at() {
   local remote_url="doubleclick.com"
 
   if local_dig=$(dig -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
-    echo -e "    ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})"
+    echo -e "    ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})" 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "    ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})"
+    echo -e "    ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 
   if pihole_dig=$(dig -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
-    echo -e "    ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})"
+    echo -e "    ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})" 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "    ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})"
+    echo -e "    ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 
   if remote_dig=$(dig -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
-    echo -e "    ${TICK} ${random_url} is ${remote_dig} via a remote, public DNS server (${remote_address})"
+    echo -e "    ${TICK} ${random_url} is ${remote_dig} via a remote, public DNS server (${remote_address})" 2>&1 | tee -a "${DEBUG_LOG}"
   else
-    echo -e "    ${CROSS} Failed to resolve ${remote_url} via a remote, public DNS server (${remote_address})"
+    echo -e "    ${CROSS} Failed to resolve ${remote_url} via a remote, public DNS server (${remote_address})" 2>&1 | tee -a "${DEBUG_LOG}"
   fi
 }
 
@@ -419,7 +419,7 @@ process_status(){
   local i
   for i in "${PROCESSES[@]}"; do
     local status_of_process=$(systemctl is-active "${i}")
-    echo -e "    [i] ${i} daemon is ${status_of_process}"
+    echo -e "    [i] ${i} daemon is ${status_of_process}" 2>&1 | tee -a "${DEBUG_LOG}"
   done
 }
 
@@ -436,7 +436,7 @@ parse_file() {
   # For each lin in the file,
   for file_lines in "${file_info[@]}"; do
     # display the information with the ${INFO} icon
-    echo "       ${INFO} ${file_lines}"
+    echo -e "       ${INFO} ${file_lines}" 2>&1 | tee -a "${DEBUG_LOG}"
   done
   # Set the IFS back to what it was
   IFS="$OLD_IFS"
@@ -450,7 +450,7 @@ diagnose_setup_variables() {
   file_exists "${VARSFILE}" && \
     # source it
     source ${VARSFILE};
-    echo -e "    ${INFO} Sourcing ${VARSFILE}...";
+    echo -e "    ${INFO} Sourcing ${VARSFILE}..." 2>&1 | tee -a "${DEBUG_LOG}";
     # and display a green check mark with ${DONE}
     echo_succes_or_fail "${VARSFILE} is readable and has been sourced." || \
     # Othwerwise, error out
@@ -495,7 +495,7 @@ list_files_in_dir() {
   for each_file in "${files_found[@]}"; do
     # display the information with the ${INFO} icon
     # Also print the permissions and the user/group
-    echo -e "       ${INFO} ${each_file} ( $(ls -ld ${dir_to_parse}/${each_file} | awk '{print $1, $3, $4}') )"
+    echo -e "       ${INFO} ${each_file} ( $(ls -ld ${dir_to_parse}/${each_file} | awk '{print $1, $3, $4}') )" 2>&1 | tee -a "${DEBUG_LOG}"
   done
 
 }
@@ -538,13 +538,13 @@ check_http_directory() {
 
 analyze_gravity_list() {
   gravity_length=$(grep -c ^ "${GRAVITYFILE}") && \
-    echo -e "   ${INFO} ${GRAVITYFILE} is ${gravity_length} lines long." || \
-    echo -e "   ${CROSS} ${GRAVITYFILE} not found!"
+    echo -e "   ${INFO} ${GRAVITYFILE} is ${gravity_length} lines long." 2>&1 | tee -a "${DEBUG_LOG}" || \
+    echo -e "   ${CROSS} ${GRAVITYFILE} not found!" 2>&1 | tee -a "${DEBUG_LOG}"
 }
 
 upload_to_tricorder() {
   local tricorder
-	echo "${TICK} Finshed debugging!"
+	echo -e "${TICK} Finshed debugging!" 2>&1 | tee -a "${DEBUG_LOG}"
 
   # Ensure the file exists, create if not, clear if exists.
   truncate --size=0 "${DEBUG_LOG}"
@@ -598,4 +598,4 @@ check_dnsmasq_d
 check_lighttpd_d
 check_http_directory
 check_cron_d
-upload_to_tricorder
+#upload_to_tricorder
