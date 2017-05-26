@@ -361,7 +361,7 @@ chronoFunc() {
     printFunc " HDD usage: " "$disk_perc"
     printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Used: $(hrBytes "$disk_used") of $(hrBytes "$disk_total")" "$COL_NC"
     
-    printFunc "  LAN addr: " "${IPV4_ADDRESS:0:-3}"
+    printFunc "  LAN addr: " "${IPV4_ADDRESS/\/*/}"
     printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Gateway: $net_gateway" "$COL_NC"
     
     if [[ "$DHCP_ACTIVE" == "true" ]]; then
