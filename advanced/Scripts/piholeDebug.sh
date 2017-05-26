@@ -9,10 +9,14 @@
 # Please see LICENSE file for your rights under this license.
 
 
-# causes a pipeline to produce a failure return code if any command errors.
-# Normally, pipelines only return a failure if the last command errors.
-# In combination with set -e, this will make your script exit if any command in a pipeline errors.
+# -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
+# -u a reference to any variable you haven't previously defined
+# with the exceptions of $* and $@ - is an error, and causes the program to immediately exit
+# -o pipefail prevents errors in a pipeline from being masked. If any command in a pipeline fails,
+# that return code will be used as the return code of the whole pipeline. By default, the
+# pipeline's return code is that of the last command - even if it succeeds
 set -o pipefail
+IFS=$'\n\t'
 
 ######## GLOBAL VARS ########
 VARSFILE="/etc/pihole/setupVars.conf"
@@ -47,25 +51,44 @@ else
   OVER="\r\033[K"
 fi
 
+make_temporary_log() {
+  # Create temporary file for log
+  TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+  # Open handle 3 for templog
+  # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
+  exec 3>"$TEMPLOG"
+  # Delete templog, but allow for addressing via file handle.
+  rm "$TEMPLOG"
+}
+
+log_write() {
+  # echo arguments to both the log and the console"
+  echo -e "${@}" | tee -a /proc/$$/fd/3
+}
+
+copy_to_debug_log() {
+  cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
+}
+
 echo_succes_or_fail() {
   # Set the first argument passed to this function as a named variable for better readability
   local message="${1}"
   # If the command was successful (a zero),
   if [[ $? -eq 0 ]]; then
     # show success
-    echo -e "    ${TICK} ${message}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${TICK} ${message}"
   else
     # Otherwise, show a error
-    echo -e "    ${CROSS} ${message}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${CROSS} ${message}"
   fi
 }
 
 initiate_debug() {
   # Clear the screen so the debug log is readable
   clear
-  echo -e "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}" 2>&1 | tee "${DEBUG_LOG}"
+  log_write "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}" 2>&1 | tee "${DEBUG_LOG}"
   # Timestamp the start of the log
-  echo -e "    ${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initiated." 2>&1 | tee -a "${DEBUG_LOG}"
+  log_write "    ${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initiated."
 }
 
 # This is a function for visually displaying the curent test that is being run.
@@ -73,7 +96,7 @@ initiate_debug() {
 # Colors do not show in the dasboard, but the icons do: [i], [✓], and [✗]
 echo_current_diagnostic() {
   # Colors are used for visually distinguishing each test in the output
-  echo -e "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}" 2>&1 | tee -a "${DEBUG_LOG}"
+  log_write "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
 }
 
 file_exists() {
@@ -112,7 +135,7 @@ check_core_version() {
     # move into it
     cd "${PIHOLEGITDIR}" || \
     # if not, report an error
-    echo -e "pihole repo does not exist" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "pihole repo does not exist"
     # If the git status command completes successfully,
     # we can assume we can get the information we want
     if git status &> /dev/null; then
@@ -123,13 +146,13 @@ check_core_version() {
       # The commit they are on
       PI_HOLE_COMMIT=$(git describe --long --dirty --tags --always)
       # echo this information out to the user in a nice format
-      echo -e "    ${INFO} Core: ${PI_HOLE_VERSION}
+      log_write "    ${INFO} Core: ${PI_HOLE_VERSION}
         ${INFO} Branch: ${PI_HOLE_BRANCH}
-        ${INFO} Commit: ${PI_HOLE_COMMIT}" 2>&1 | tee -a "${DEBUG_LOG}"
+        ${INFO} Commit: ${PI_HOLE_COMMIT}"
     # If git status failed,
     else
       # Return an error message
-      echo -e "${error_msg}" 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "${error_msg}"
       # and exit with a non zero code
       return 1
     fi
@@ -143,7 +166,7 @@ check_web_version() {
     # move into it
     cd "${ADMINGITDIR}" || \
     # if not, give an error message
-    echo -e "repo does not exist" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "repo does not exist"
     # If the git status command completes successfully,
     # we can assume we can get the information we want
     if git status &> /dev/null; then
@@ -154,13 +177,13 @@ check_web_version() {
       # The commit they are on
       WEB_COMMIT=$(git describe --long --dirty --tags --always)
       # echo this information out to the user in a nice format
-      echo -e "    ${INFO} Web: ${WEB_VERSION}
+      log_write "    ${INFO} Web: ${WEB_VERSION}
         ${INFO} Branch: ${WEB_BRANCH}
-        ${INFO} Commit: ${WEB_COMMIT}" 2>&1 | tee -a "${DEBUG_LOG}"
+        ${INFO} Commit: ${WEB_COMMIT}"
     # If git status failed,
     else
       # Return an error message
-      echo -e "${error_msg}" 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "${error_msg}"
       # and exit with a non zero code
       return 1
     fi
@@ -170,7 +193,7 @@ check_ftl_version() {
   # Use the built in command to check FTL's version
   FTL_VERSION=$(pihole-FTL version)
   # and display it to the user
-  echo -e "    ${INFO} FTL: ${FTL_VERSION}" 2>&1 | tee -a "${DEBUG_LOG}"
+  log_write "    ${INFO} FTL: ${FTL_VERSION}"
 }
 
 # Check the current version of the Web server
@@ -180,15 +203,15 @@ check_web_server_version() {
   # Parse out just the version number
   WEB_SERVER_VERSON="$(lighttpd -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
   # Display the information to the user
-  echo -e "    ${INFO} ${WEB_SERVER}" 2>&1 | tee -a "${DEBUG_LOG}"
+  log_write "    ${INFO} ${WEB_SERVER}"
   # If the Web server does not have a version (the variable is empty)
   if [[ -z "${WEB_SERVER_VERSON}" ]]; then
     # Display and error
-    echo -e "       ${CROSS} ${WEB_SERVER} version could not be detected." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${CROSS} ${WEB_SERVER} version could not be detected."
   # Otherwise,
   else
     # display the version
-    echo -e "       ${TICK} ${WEB_SERVER_VERSON}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${TICK} ${WEB_SERVER_VERSON}"
   fi
 }
 
@@ -199,15 +222,15 @@ check_resolver_version() {
   # Parse out just the version number
   RESOVLER_VERSON="$(dnsmasq -v |& head -n1 | awk '{print $3}')"
   # Display the information to the user
-  echo -e "    ${INFO} ${RESOLVER}" 2>&1 | tee -a "${DEBUG_LOG}"
+  log_write "    ${INFO} ${RESOLVER}"
   # If the DNS server does not have a version (the variable is empty)
   if [[ -z "${RESOVLER_VERSON}" ]]; then
     # Display and error
-    echo -e "       ${CROSS} ${RESOLVER} version could not be detected." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${CROSS} ${RESOLVER} version could not be detected."
   # Otherwise,
   else
     # display the version
-    echo -e "       ${TICK} ${RESOVLER_VERSON}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${TICK} ${RESOVLER_VERSON}"
   fi
 }
 
@@ -215,15 +238,15 @@ check_php_version() {
   # Parse out just the version number
   PHP_VERSION=$(php -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)
   # Display the info to the user
-  echo -e "    ${INFO} PHP" 2>&1 | tee -a "${DEBUG_LOG}"
+  log_write "    ${INFO} PHP"
   # If no version is detected,
   if [[ -z "${PHP_VERSION}" ]]; then
     # show an error
-    echo -e "       ${CROSS} PHP version could not be detected." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${CROSS} PHP version could not be detected."
   # otherwise,
   else
     # Show the version
-    echo -e "       ${TICK} ${PHP_VERSION}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${TICK} ${PHP_VERSION}"
   fi
 
 }
@@ -253,7 +276,7 @@ get_distro_attributes() {
     # we need just the OS PRETTY_NAME, so print it when we find it
     if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
       PRETTY_NAME=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
-      echo -e "    ${INFO} ${PRETTY_NAME}" 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "    ${INFO} ${PRETTY_NAME}"
       # Otherwise, do nothing
     else
       :
@@ -276,8 +299,8 @@ diagnose_operating_system() {
     # display the attributes to the user from the function made earlier
     get_distro_attributes || \
     # If it doesn't exist, it's not a system we currently support and link to FAQ
-    echo -e "    ${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC}
-         ${INFO} ${COL_LIGHT_RED}Please see${COL_NC}: ${COL_CYAN}${faq_url}${COL_NC}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC}
+         ${INFO} ${COL_LIGHT_RED}Please see${COL_NC}: ${COL_CYAN}${faq_url}${COL_NC}"
 }
 
 processor_check() {
@@ -287,11 +310,11 @@ processor_check() {
   # If it does not contain a value,
   if [[ -z "${PROCESSOR}" ]]; then
     # we couldn't detect it, so show an error
-    echo -e "    ${CROSS} Processor could not be identified." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${CROSS} Processor could not be identified."
   # Otherwise,
   else
     # Show the processor type
-    echo -e "    ${INFO} ${PROCESSOR}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${INFO} ${PROCESSOR}"
   fi
 }
 
@@ -308,16 +331,16 @@ detect_ip_addresses() {
     # Local iterator
     local i
     # Display the protocol and interface
-    echo -e "    ${TICK} IPv${protocol} on ${PIHOLE_INTERFACE}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${TICK} IPv${protocol} on ${PIHOLE_INTERFACE}"
     # Since there may be more than one IP address, store them in an array
     for i in "${!ip_addr_list[@]}"; do
       # For each one in the list, print it out using the iterator as a numbered list
-      echo -e "       [$i] ${ip_addr_list[$i]}" 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "       [$i] ${ip_addr_list[$i]}"
     done
   # Othwerwise,
   else
     # explain that the protocol is not configured
-    echo -e "    ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}"
     return 1
   fi
 }
@@ -347,19 +370,19 @@ ping_gateway() {
   # If the gateway variable has a value (meaning a gateway was found),
   if [[ -n "${gateway}" ]]; then
     # Let the user know we will ping the gateway for a response
-    echo -e "          ${INFO} Trying three pings on IPv${protocol} gateway at ${gateway}..." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "          ${INFO} Trying three pings on IPv${protocol} gateway at ${gateway}..."
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
     if ! ping_cmd="$(${cmd} -q -c 3 -W 3 -n ${gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
       # let the user know
-      echo -e "          ${CROSS} Gateway did not respond." 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "          ${CROSS} Gateway did not respond."
       # and return an error code
       return 1
     # Otherwise,
     else
       # show a success
-      echo -e "          ${TICK} Gateway responded." 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "          ${TICK} Gateway responded."
       # and return a success code
       return 0
     fi
@@ -382,16 +405,16 @@ ping_internet() {
     # and Google's public IPv4 address
     local public_address="8.8.8.8"
   fi
-  echo -n "     ${INFO} Trying three pings on IPv${protocol} to reach the Internet..." 2>&1 | tee -a "${DEBUG_LOG}"
+  echo -n "     ${INFO} Trying three pings on IPv${protocol} to reach the Internet..."
   # Try to ping the address 3 times
   if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
     # if it's unsuccessful, show an error
-    echo -e "          ${CROSS} Cannot reach the Internet" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "          ${CROSS} Cannot reach the Internet"
     return 1
   # Otherwise,
   else
     # show success
-    echo -e "          ${TICK} Query responded." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "          ${TICK} Query responded."
     return 0
   fi
 }
@@ -399,7 +422,7 @@ ping_internet() {
 check_required_ports() {
   # Since Pi-hole needs 53, 80, and 4711, check what they are being used by
   # so we can detect any issues
-  echo -e "    ${INFO} Ports in use:" 2>&1 | tee -a "${DEBUG_LOG}"
+  log_write "    ${INFO} Ports in use:"
   # Create an array for these ports in use
   ports_in_use=()
   # Sort the addresses and remove duplicates
@@ -412,7 +435,7 @@ check_required_ports() {
     local port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
     local service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
     # display the information nicely to the user
-    echo -e "       [${port_number}] is in use by ${service_name}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       [${port_number}] is in use by ${service_name}"
   done
 }
 
@@ -441,18 +464,18 @@ check_x_headers() {
   # If the X-header found by curl matches what is should be,
   if [[ $block_page == $block_page_working ]]; then
     # display a success message
-    echo -e "    $TICK ${block_page}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    $TICK ${block_page}"
   # Otherwise,
   else
     # show an error
-    echo -e "    $CROSS X-Header does not match or could not be retrieved" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    $CROSS X-Header does not match or could not be retrieved"
   fi
 
   # Same logic applies to the dashbord as above
   if [[ $dashboard == $dashboard_working ]]; then
-    echo -e "    $TICK ${dashboard}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    $TICK ${dashboard}"
   else
-    echo -e "    $CROSS X-Header does not match or could not be retrieved" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    $CROSS X-Header does not match or could not be retrieved"
   fi
 }
 
@@ -492,28 +515,28 @@ dig_at() {
   # First do a dig on localhost, to see if Pi-hole can use itself to block a domain
   if local_dig=$(dig -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
     # If it can, show sucess
-    echo -e "    ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})"
   # Otherwise,
   else
     # show a failure
-    echo -e "    ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})"
   fi
 
   # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
   # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
   # just asing itself locally
   if pihole_dig=$(dig -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
-    echo -e "    ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})"
   else
-    echo -e "    ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})"
   fi
 
   # Finally, we need to make sure legitimate sites can out if using an external, public DNS server
   if remote_dig=$(dig -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
     # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
-    echo -e "    ${TICK} ${random_url} is ${remote_dig} via a remote, public DNS server (${remote_address})" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${TICK} ${random_url} is ${remote_dig} via a remote, public DNS server (${remote_address})"
   else
-    echo -e "    ${CROSS} Failed to resolve ${random_url} via a remote, public DNS server (${remote_address})" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    ${CROSS} Failed to resolve ${random_url} via a remote, public DNS server (${remote_address})"
   fi
 }
 
@@ -528,7 +551,7 @@ process_status(){
     # get it's status
     local status_of_process=$(systemctl is-active "${i}")
     # and print it out to the user
-    echo -e "    [i] ${i} daemon is ${status_of_process}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "    [i] ${i} daemon is ${status_of_process}"
   done
 }
 
@@ -545,7 +568,7 @@ parse_file() {
   # For each lin in the file,
   for file_lines in "${file_info[@]}"; do
     # display the information with the ${INFO} icon
-    echo -e "       ${INFO} ${file_lines}" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${INFO} ${file_lines}"
   done
   # Set the IFS back to what it was
   IFS="$OLD_IFS"
@@ -559,7 +582,7 @@ diagnose_setup_variables() {
   file_exists "${VARSFILE}" && \
     # source it
     source ${VARSFILE};
-    echo -e "    ${INFO} Sourcing ${VARSFILE}..." 2>&1 | tee -a "${DEBUG_LOG}";
+    log_write "    ${INFO} Sourcing ${VARSFILE}...";
     # and display a green check mark with ${DONE}
     echo_succes_or_fail "${VARSFILE} is readable and has been sourced." || \
     # Othwerwise, error out
@@ -605,7 +628,7 @@ list_files_in_dir() {
   for each_file in "${files_found[@]}"; do
     # display the information with the ${INFO} icon
     # Also print the permissions and the user/group
-    echo -e "       ${INFO} ${each_file} ( $(ls -ld ${dir_to_parse}/${each_file} | awk '{print $1, $3, $4}') )" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "       ${INFO} ${each_file} ( $(ls -ld ${dir_to_parse}/${each_file} | awk '{print $1, $3, $4}') )"
   done
 
 }
@@ -649,9 +672,9 @@ check_http_directory() {
 analyze_gravity_list() {
   # It's helpful to know how big a user's gravity file is
   gravity_length=$(grep -c ^ "${GRAVITYFILE}") && \
-    echo -e "   ${INFO} ${GRAVITYFILE} is ${gravity_length} lines long." 2>&1 | tee -a "${DEBUG_LOG}" || \
+    log_write "   ${INFO} ${GRAVITYFILE} is ${gravity_length} lines long." || \
     # If the previous command failed, something is wrong with the file
-    echo -e "   ${CROSS} ${GRAVITYFILE} not found!" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "   ${CROSS} ${GRAVITYFILE} not found!"
 }
 
 tricorder_nc_or_ssl() {
@@ -659,13 +682,13 @@ tricorder_nc_or_ssl() {
   # Check fist for openssl since encryption is a good thing
   if command -v openssl &> /dev/null; then
     # If successful
-    echo -e "   ${INFO} Using openssl for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "   ${INFO} Using openssl for transmission."
     # transmit the log and store the token returned in the tricorder variable
     tricorder=$(cat /var/log/pihole_debug.log | openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null)
   # Otherwise,
   else
     # use net cat
-    echo -e "   ${INFO} Using netcat for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "   ${INFO} Using netcat for transmission."
     tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
   fi
 }
@@ -678,21 +701,21 @@ upload_to_tricorder() {
 
   # Let the user know debugging is complete
   echo ""
-	echo -e "${TICK} Finshed debugging!" 2>&1 | tee -a "${DEBUG_LOG}"
+	log_write "${TICK} Finshed debugging!"
 
   # Provide information on what they should do with their token
-	echo -e "   ${INFO} The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-  echo -e "       For more information, see: https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/"
+	log_write "   ${INFO} The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+  log_write "       For more information, see: https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/"
   # If pihole -d is running automatically (usually throught the dashboard)
 	if [[ "${AUTOMATED}" ]]; then
     # let the user know
-    echo -e "   ${INFO} Debug script running in automated mode" 2>&1 | tee -a "${DEBUG_LOG}"
+    log_write "   ${INFO} Debug script running in automated mode"
     # and then decide again which tool to use to submit it
     if command -v openssl &> /dev/null; then
-      echo -e "   ${INFO} Using openssl for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "   ${INFO} Using openssl for transmission."
       openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
     else
-      echo -e "   ${INFO} Using netcat for transmission." 2>&1 | tee -a "${DEBUG_LOG}"
+      log_write "   ${INFO} Using netcat for transmission."
       nc tricorder.pi-hole.net 9999 < /dev/stdin
     fi
 	else
@@ -704,30 +727,31 @@ upload_to_tricorder() {
       # If they say yes, run our function for uploading the log
 		  [yY][eE][sS]|[yY]) tricorder_nc_or_ssl;;
       # If they choose no, just exit out of the script
-		  *) echo -e "   ${INFO} Log will NOT be uploaded to tricorder.";exit;
+		  *) log_write "   ${INFO} Log will NOT be uploaded to tricorder.";exit;
 	  esac
   fi
 	# Check if tricorder.pi-hole.net is reachable and provide token
   # along with some additional useful information
 	if [[ -n "${tricorder}" ]]; then
     echo ""
-    echo -e "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
-		echo -e "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder}${COL_NC}"
-    echo -e "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
-    echo -e ""
-		echo -e "       Provide this token to the Pi-hole team for assistance:"
+    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
+		log_write "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder}${COL_NC}"
+    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
+    log_write ""
+		log_write "       Provide this token to the Pi-hole team for assistance:"
     echo ""
-		echo -e "       https://discourse.pi-hole.net"
+		log_write "       https://discourse.pi-hole.net"
 	else
-		echo -e "   ${CROSS}  There was an error uploading your debug log."
-		echo -e "        Please try again or contact the Pi-hole team for assistance."
+		log_write "   ${CROSS}  There was an error uploading your debug log."
+		log_write "        Please try again or contact the Pi-hole team for assistance."
 	fi
     echo ""
-		echo -e "        A local copy of the debug log can be found at : /var/log/pihole_debug.log"
+		log_write "        A local copy of the debug log can be found at : /var/log/pihole_debug.log"
     echo ""
 }
 
 # Run through all the functions we made
+make_temporary_log
 initiate_debug
 check_core_version
 check_web_version
@@ -746,4 +770,5 @@ check_dnsmasq_d
 check_lighttpd_d
 check_http_directory
 check_cron_d
+copy_to_debug_log
 upload_to_tricorder
