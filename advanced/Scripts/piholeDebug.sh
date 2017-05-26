@@ -153,13 +153,13 @@ check_core_version() {
       # If not,
       else
         # pring the current version in yellow
-        log_write "    ${INFO} Core: ${COL_YELLOW}${PI_HOLE_VERSION:-Untagged}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC} on how to update Pi-hole)"
+        log_write "    ${INFO} Core: ${COL_YELLOW}${PI_HOLE_VERSION:-Untagged}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC})"
       fi
 
       if [[ "${PI_HOLE_BRANCH}" == "master" ]]; then
         log_write "       ${INFO} Branch: ${COL_LIGHT_GREEN}${PI_HOLE_BRANCH}${COL_NC}"
       else
-        log_write "       ${INFO} Branch: ${COL_YELLOW}${PI_HOLE_BRANCH:-Detached}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC} for more information)"
+        log_write "       ${INFO} Branch: ${COL_YELLOW}${PI_HOLE_BRANCH:-Detached}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC})"
       fi
         log_write "       ${INFO} Commit: ${PI_HOLE_COMMIT}"
     # If git status failed,
@@ -193,13 +193,13 @@ check_web_version() {
       if [[ "${WEB_VERSION}" == "$(pihole -v | awk '/AdminLTE/ {print $6}' | cut -d ')' -f1)" ]]; then
         log_write "    ${TICK} Web: ${COL_LIGHT_GREEN}${WEB_VERSION}${COL_NC}"
       else
-        log_write "    ${INFO} Web: ${COL_YELLOW}${WEB_VERSION:-Untagged}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC} on how to update Pi-hole)"
+        log_write "    ${INFO} Web: ${COL_YELLOW}${WEB_VERSION:-Untagged}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC})"
       fi
 
       if [[ "${WEB_BRANCH}" == "master" ]]; then
         log_write "       ${TICK} Branch: ${COL_LIGHT_GREEN}${WEB_BRANCH}${COL_NC}"
       else
-        log_write "       ${INFO} Branch: ${COL_YELLOW}${WEB_BRANCH:-Detached}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC} for more information)"
+        log_write "       ${INFO} Branch: ${COL_YELLOW}${WEB_BRANCH:-Detached}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC})"
       fi
         log_write "       ${INFO} Commit: ${WEB_COMMIT}"
     # If git status failed,
@@ -224,16 +224,14 @@ check_web_server_version() {
   WEB_SERVER="lighttpd"
   # Parse out just the version number
   WEB_SERVER_VERSON="$(lighttpd -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
-  # Display the information to the user
-  log_write "    ${INFO} ${WEB_SERVER}"
   # If the Web server does not have a version (the variable is empty)
   if [[ -z "${WEB_SERVER_VERSON}" ]]; then
     # Display and error
-    log_write "       ${CROSS} ${WEB_SERVER} version could not be detected."
+    log_write "    ${CROSS} ${WEB_SERVER} version could not be detected."
   # Otherwise,
   else
     # display the version
-    log_write "       ${TICK} ${WEB_SERVER_VERSON}"
+    log_write "    ${TICK} ${WEB_SERVER}: ${WEB_SERVER_VERSON}"
   fi
 }
 
@@ -243,32 +241,28 @@ check_resolver_server_version() {
   RESOLVER="dnsmasq"
   # Parse out just the version number
   RESOVLER_VERSON="$(dnsmasq -v |& head -n1 | awk '{print $3}')"
-  # Display the information to the user
-  log_write "    ${INFO} ${RESOLVER}"
   # If the DNS server does not have a version (the variable is empty)
   if [[ -z "${RESOVLER_VERSON}" ]]; then
     # Display and error
-    log_write "       ${CROSS} ${RESOLVER} version could not be detected."
+    log_write "    ${CROSS} ${RESOLVER} version could not be detected."
   # Otherwise,
   else
     # display the version
-    log_write "       ${TICK} ${RESOVLER_VERSON}"
+    log_write "    ${TICK} ${RESOLVER}: ${RESOVLER_VERSON}"
   fi
 }
 
 check_php_version() {
   # Parse out just the version number
   PHP_VERSION=$(php -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)
-  # Display the info to the user
-  log_write "    ${INFO} PHP"
   # If no version is detected,
   if [[ -z "${PHP_VERSION}" ]]; then
     # show an error
-    log_write "       ${CROSS} PHP version could not be detected."
+    log_write "    ${CROSS} PHP version could not be detected."
   # otherwise,
   else
     # Show the version
-    log_write "       ${TICK} ${PHP_VERSION}"
+    log_write "    ${TICK} PHP: ${PHP_VERSION}"
   fi
 
 }
@@ -392,19 +386,19 @@ ping_gateway() {
   # If the gateway variable has a value (meaning a gateway was found),
   if [[ -n "${gateway}" ]]; then
     # Let the user know we will ping the gateway for a response
-    log_write "          ${INFO} Trying three pings on IPv${protocol} gateway at ${gateway}..."
+    log_write "          * Trying three pings on IPv${protocol} gateway at ${gateway}..."
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
     if ! ping_cmd="$(${cmd} -q -c 3 -W 3 -n ${gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
       # let the user know
-      log_write "          ${CROSS} Gateway did not respond."
+      log_write "          ${CROSS} ${COL_LIGHT_RED}Gateway did not respond.${COL_NC}"
       # and return an error code
       return 1
     # Otherwise,
     else
       # show a success
-      log_write "          ${TICK} Gateway responded."
+      log_write "          ${TICK} ${COL_LIGHT_GREEN}Gateway responded.${COL_NC}"
       # and return a success code
       return 0
     fi
@@ -517,18 +511,18 @@ check_x_headers() {
   # If the X-header found by curl matches what is should be,
   if [[ $block_page == $block_page_working ]]; then
     # display a success message
-    log_write "    $TICK ${block_page}"
+    log_write "    $TICK ${COL_LIGHT_GREEN}${block_page}${COL_NC}"
   # Otherwise,
   else
     # show an error
-    log_write "    $CROSS X-Header does not match or could not be retrieved"
+    log_write "    $CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
   fi
 
   # Same logic applies to the dashbord as above
   if [[ $dashboard == $dashboard_working ]]; then
-    log_write "    $TICK ${dashboard}"
+    log_write "    $TICK ${COL_LIGHT_GREEN}${dashboard}${COL_NC}"
   else
-    log_write "    $CROSS X-Header does not match or could not be retrieved"
+    log_write "    $CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
   fi
 }
 
@@ -568,30 +562,30 @@ dig_at() {
   local random_url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
 
   # First do a dig on localhost, to see if Pi-hole can use itself to block a domain
-  if local_dig=$(dig -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
+  if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
     # If it can, show sucess
-    log_write "    ${TICK} ${random_url} is ${local_dig} via localhost (${local_address})"
+    log_write "    ${TICK} ${COL_LIGHT_GREEN}${random_url} is ${local_dig}${COL_NC} via localhost (${local_address})"
   # Otherwise,
   else
     # show a failure
-    log_write "    ${CROSS} Failed to resolve ${random_url} via localhost (${local_address})"
+    log_write "    ${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} ${COL_LIGHT_RED}via localhost${COL_NC} (${local_address})"
   fi
 
   # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
   # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
   # just asing itself locally
-  if pihole_dig=$(dig -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
-    log_write "    ${TICK} ${random_url} is ${pihole_dig} via Pi-hole (${pihole_address})"
+  if pihole_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
+    log_write "    ${TICK} ${COL_LIGHT_GREEN}${random_url} is ${pihole_dig}${COL_NC} via Pi-hole (${pihole_address})"
   else
-    log_write "    ${CROSS} Failed to resolve ${random_url} via Pi-hole (${pihole_address})"
+    log_write "    ${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} ${COL_LIGHT_RED}via Pi-hole${COL_NC} (${pihole_address})"
   fi
 
   # Finally, we need to make sure legitimate sites can out if using an external, public DNS server
-  if remote_dig=$(dig -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
+  if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
     # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
-    log_write "    ${TICK} ${remote_url} is ${remote_dig} via a remote, public DNS server (${remote_address})"
+    log_write "    ${TICK} ${COL_LIGHT_GREEN}${remote_url} is ${remote_dig}${COL_NC} via a remote, public DNS server (${remote_address})"
   else
-    log_write "    ${CROSS} Failed to resolve ${remote_url} via a remote, public DNS server (${remote_address})"
+    log_write "    ${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${remote_url} ${COL_LIGHT_RED}via a remote, public DNS server${COL_NC} (${remote_address})"
   fi
 }
 
@@ -609,7 +603,7 @@ process_status(){
     if [[ "${status_of_process}" == "active" ]]; then
       log_write "    ${TICK} ${COL_LIGHT_GREEN}${i}${COL_NC} daemon is ${COL_LIGHT_GREEN}${status_of_process}${COL_NC}"
     else
-      log_write "    ${TICK} ${COL_LIGHT_RED}${i}${COL_NC} daemon is ${COL_LIGHT_RED}${status_of_process}${COL_NC}"
+      log_write "    ${CROSS} ${COL_LIGHT_RED}${i}${COL_NC} daemon is ${COL_LIGHT_RED}${status_of_process}${COL_NC}"
     fi
   done
 }
@@ -741,13 +735,13 @@ tricorder_nc_or_ssl() {
   # Check fist for openssl since encryption is a good thing
   if command -v openssl &> /dev/null; then
     # If successful
-    log_write "   * Using openssl for transmission."
+    log_write "   * Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
     # transmit the log and store the token returned in the tricorder variable
     tricorder=$(cat /var/log/pihole_debug.log | openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null)
   # Otherwise,
   else
     # use net cat
-    log_write "   ${INFO} Using netcat for transmission."
+    log_write "   ${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
     tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
   fi
 }
@@ -764,17 +758,19 @@ upload_to_tricorder() {
 
   # Provide information on what they should do with their token
 	log_write "   * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-  log_write "   * For more information, see: https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/"
+  log_write "   * For more information, see: ${COL_CYAN}https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/${COL_NC}"
+  log_write ""
+  log_write "   * If available, we'll use openssl to upload the log, otherwise it will fall back to netcat."
   # If pihole -d is running automatically (usually throught the dashboard)
 	if [[ "${AUTOMATED}" ]]; then
     # let the user know
     log_write "   ${INFO} Debug script running in automated mode"
     # and then decide again which tool to use to submit it
     if command -v openssl &> /dev/null; then
-      log_write "   ${INFO} Using openssl for transmission."
+      log_write "   ${INFO} Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
       openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
     else
-      log_write "   ${INFO} Using netcat for transmission."
+      log_write "   ${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
       nc tricorder.pi-hole.net 9999 < /dev/stdin
     fi
 	else
@@ -786,7 +782,7 @@ upload_to_tricorder() {
       # If they say yes, run our function for uploading the log
 		  [yY][eE][sS]|[yY]) tricorder_nc_or_ssl;;
       # If they choose no, just exit out of the script
-		  *) log_write "   ${INFO} Log will NOT be uploaded to tricorder.";exit;
+		  *) log_write "   * Log will NOT be uploaded to tricorder.";exit;
 	  esac
   fi
 	# Check if tricorder.pi-hole.net is reachable and provide token
