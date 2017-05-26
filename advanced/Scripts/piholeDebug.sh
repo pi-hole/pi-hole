@@ -16,7 +16,7 @@
 # that return code will be used as the return code of the whole pipeline. By default, the
 # pipeline's return code is that of the last command - even if it succeeds
 set -o pipefail
-IFS=$'\n\t'
+#IFS=$'\n\t'
 
 ######## GLOBAL VARS ########
 VARSFILE="/etc/pihole/setupVars.conf"
@@ -67,6 +67,7 @@ log_write() {
 }
 
 copy_to_debug_log() {
+  # Copy the contents of file descriptor 3 into the debug log so it can be uploaded to tricorder
   cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
 }
 
@@ -146,9 +147,21 @@ check_core_version() {
       # The commit they are on
       PI_HOLE_COMMIT=$(git describe --long --dirty --tags --always)
       # echo this information out to the user in a nice format
-      log_write "    ${INFO} Core: ${PI_HOLE_VERSION}
-        ${INFO} Branch: ${PI_HOLE_BRANCH}
-        ${INFO} Commit: ${PI_HOLE_COMMIT}"
+      # If the current version matches what pihole -v produces, the user is up-to-date
+      if [[ "${PI_HOLE_VERSION}" == "$(pihole -v | awk '/Pi-hole/ {print $6}' | cut -d ')' -f1)" ]]; then
+        log_write "    ${TICK} Core: ${COL_LIGHT_GREEN}${PI_HOLE_VERSION}${COL_NC}"
+      # If not,
+      else
+        # pring the current version in yellow
+        log_write "    ${INFO} Core: ${COL_YELLOW}${PI_HOLE_VERSION:-Untagged}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC} on how to update Pi-hole)"
+      fi
+
+      if [[ "${PI_HOLE_BRANCH}" == "master" ]]; then
+        log_write "       ${INFO} Branch: ${COL_LIGHT_GREEN}${PI_HOLE_BRANCH}${COL_NC}"
+      else
+        log_write "       ${INFO} Branch: ${COL_YELLOW}${PI_HOLE_BRANCH:-Detached}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC} for more information)"
+      fi
+        log_write "       ${INFO} Commit: ${PI_HOLE_COMMIT}"
     # If git status failed,
     else
       # Return an error message
@@ -177,9 +190,18 @@ check_web_version() {
       # The commit they are on
       WEB_COMMIT=$(git describe --long --dirty --tags --always)
       # echo this information out to the user in a nice format
-      log_write "    ${INFO} Web: ${WEB_VERSION}
-        ${INFO} Branch: ${WEB_BRANCH}
-        ${INFO} Commit: ${WEB_COMMIT}"
+      if [[ "${WEB_VERSION}" == "$(pihole -v | awk '/AdminLTE/ {print $6}' | cut -d ')' -f1)" ]]; then
+        log_write "    ${TICK} Web: ${COL_LIGHT_GREEN}${WEB_VERSION}${COL_NC}"
+      else
+        log_write "    ${INFO} Web: ${COL_YELLOW}${WEB_VERSION:-Untagged}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC} on how to update Pi-hole)"
+      fi
+
+      if [[ "${WEB_BRANCH}" == "master" ]]; then
+        log_write "       ${TICK} Branch: ${COL_LIGHT_GREEN}${WEB_BRANCH}${COL_NC}"
+      else
+        log_write "       ${INFO} Branch: ${COL_YELLOW}${WEB_BRANCH:-Detached}${COL_NC} (See ${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC} for more information)"
+      fi
+        log_write "       ${INFO} Commit: ${WEB_COMMIT}"
     # If git status failed,
     else
       # Return an error message
@@ -216,7 +238,7 @@ check_web_server_version() {
 }
 
 # Check the current version of the DNS server
-check_resolver_version() {
+check_resolver_server_version() {
   # Store the name in a variable in case we ever want to change it
   RESOLVER="dnsmasq"
   # Parse out just the version number
@@ -256,7 +278,7 @@ check_php_version() {
 check_critical_dependencies() {
   echo_current_diagnostic "Versions of critical dependencies"
   check_web_server_version
-  check_web_server_version
+  check_resolver_server_version
   check_php_version
 }
 
@@ -428,14 +450,45 @@ check_required_ports() {
   # Sort the addresses and remove duplicates
   while IFS= read -r line; do
       ports_in_use+=( "$line" )
-  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $9, $1}' | sort | uniq | cut -d':' -f2 )
+  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $9, $1}' | sort -n | uniq | cut -d':' -f2 )
 
   # Now that we have the values stored,
   for i in ${!ports_in_use[@]}; do
     local port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
     local service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
-    # display the information nicely to the user
-    log_write "       [${port_number}] is in use by ${service_name}"
+    case "${port_number}" in
+      53) if [[ "${service_name}" == "dnsmasq" ]]; then
+            # if port 53 is dnsmasq, show it in green as it's standard
+            log_write "       [${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
+          # Otherwise,
+          else
+            # Show the service name in red since it's non-standard
+            log_write "       [${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC}
+                Please see: ${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC}"
+          fi
+          ;;
+      80) if [[ "${service_name}" == "lighttpd" ]]; then
+            # if port 53 is dnsmasq, show it in green as it's standard
+            log_write "       [${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
+          # Otherwise,
+          else
+            # Show the service name in red since it's non-standard
+            log_write "       [${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC}
+                Please see: ${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC}"
+          fi
+          ;;
+      4711) if [[ "${service_name}" == "pihole-FT" ]]; then
+            # if port 4711 is pihole-FTL, show it in green as it's standard
+            log_write "       [${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
+          # Otherwise,
+          else
+            # Show the service name in yellow since it's non-standard, but should still work
+            log_write "       [${COL_YELLOW}${port_number}${COL_NC}] is in use by ${COL_YELLOW}${service_name}${COL_NC}
+                Please see: ${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC}"
+          fi
+          ;;
+      *) log_write "       [${port_number}] is in use by ${service_name}";
+    esac
   done
 }
 
@@ -492,6 +545,8 @@ dig_at() {
   local local_dig
   local pihole_dig
   local remote_dig
+  # Use a static domain that we know has IPv4 and IPv6 to avoid false positives
+  local remote_url="doubleclick.com"
 
   # If the protocol (4 or 6) is 6,
   if [[ ${protocol} == "6" ]]; then
@@ -519,7 +574,7 @@ dig_at() {
   # Otherwise,
   else
     # show a failure
-    log_write "    ${CROSS} Failed to resolve ${random_url} via localhot (${local_address})"
+    log_write "    ${CROSS} Failed to resolve ${random_url} via localhost (${local_address})"
   fi
 
   # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
@@ -534,9 +589,9 @@ dig_at() {
   # Finally, we need to make sure legitimate sites can out if using an external, public DNS server
   if remote_dig=$(dig -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
     # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
-    log_write "    ${TICK} ${random_url} is ${remote_dig} via a remote, public DNS server (${remote_address})"
+    log_write "    ${TICK} ${remote_url} is ${remote_dig} via a remote, public DNS server (${remote_address})"
   else
-    log_write "    ${CROSS} Failed to resolve ${random_url} via a remote, public DNS server (${remote_address})"
+    log_write "    ${CROSS} Failed to resolve ${remote_url} via a remote, public DNS server (${remote_address})"
   fi
 }
 
@@ -551,7 +606,11 @@ process_status(){
     # get it's status
     local status_of_process=$(systemctl is-active "${i}")
     # and print it out to the user
-    log_write "    [i] ${i} daemon is ${status_of_process}"
+    if [[ "${status_of_process}" == "active" ]]; then
+      log_write "    ${TICK} ${COL_LIGHT_GREEN}${i}${COL_NC} daemon is ${COL_LIGHT_GREEN}${status_of_process}${COL_NC}"
+    else
+      log_write "    ${TICK} ${COL_LIGHT_RED}${i}${COL_NC} daemon is ${COL_LIGHT_RED}${status_of_process}${COL_NC}"
+    fi
   done
 }
 
@@ -628,7 +687,7 @@ list_files_in_dir() {
   for each_file in "${files_found[@]}"; do
     # display the information with the ${INFO} icon
     # Also print the permissions and the user/group
-    log_write "       ${INFO} ${each_file} ( $(ls -ld ${dir_to_parse}/${each_file} | awk '{print $1, $3, $4}') )"
+    log_write "       ${INFO} $(ls -ld ${dir_to_parse}/${each_file})"
   done
 
 }
@@ -682,7 +741,7 @@ tricorder_nc_or_ssl() {
   # Check fist for openssl since encryption is a good thing
   if command -v openssl &> /dev/null; then
     # If successful
-    log_write "   ${INFO} Using openssl for transmission."
+    log_write "   * Using openssl for transmission."
     # transmit the log and store the token returned in the tricorder variable
     tricorder=$(cat /var/log/pihole_debug.log | openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null)
   # Otherwise,
@@ -701,11 +760,11 @@ upload_to_tricorder() {
 
   # Let the user know debugging is complete
   echo ""
-	log_write "${TICK} Finshed debugging!"
+	log_write "${TICK} Finished debugging!"
 
   # Provide information on what they should do with their token
-	log_write "   ${INFO} The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-  log_write "       For more information, see: https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/"
+	log_write "   * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+  log_write "   * For more information, see: https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/"
   # If pihole -d is running automatically (usually throught the dashboard)
 	if [[ "${AUTOMATED}" ]]; then
     # let the user know
@@ -746,7 +805,7 @@ upload_to_tricorder() {
 		log_write "        Please try again or contact the Pi-hole team for assistance."
 	fi
     echo ""
-		log_write "        A local copy of the debug log can be found at : /var/log/pihole_debug.log"
+		log_write "       A local copy of the debug log can be found at : /var/log/pihole_debug.log"
     echo ""
 }
 
