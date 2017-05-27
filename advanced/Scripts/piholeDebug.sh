@@ -36,6 +36,10 @@ WHITELISTMATCHES="/tmp/whitelistmatches.list"
 readonly FTLLOG="/var/log/pihole-FTL.log"
 coltable=/opt/pihole/COL_TABLE
 
+# FAQ URLs
+FAQ_UPDATE_PI_HOLE="https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249"
+FAQ_CHECKOUT_COMMAND="https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout"
+
 # These provide the colors we need for making the log more readable
 if [[ -f ${coltable} ]]; then
   source ${coltable}
@@ -87,7 +91,8 @@ echo_succes_or_fail() {
 initiate_debug() {
   # Clear the screen so the debug log is readable
   clear
-  log_write "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}" 2>&1 | tee "${DEBUG_LOG}"
+  # Display that the debug process is beginning
+  log_write "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}"
   # Timestamp the start of the log
   log_write "    ${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initiated."
 }
@@ -97,6 +102,7 @@ initiate_debug() {
 # Colors do not show in the dasboard, but the icons do: [i], [✓], and [✗]
 echo_current_diagnostic() {
   # Colors are used for visually distinguishing each test in the output
+  # These colors do not show in the GUI, but the formatting will
   log_write "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
 }
 
@@ -126,9 +132,9 @@ if_directory_exists() {
   fi
 }
 
+# Checks the core version of the Pi-hole codebase
 check_core_version() {
-  # Checks the core version of the Pi-hole codebase
-  echo_current_diagnostic "Pi-hole Versions"
+  echo_current_diagnostic "Pi-hole versions"
   # Store the error message in a variable in case we want to change and/or reuse it
   local error_msg="git status failed"
   # If the pihole git directory exists,
@@ -152,15 +158,21 @@ check_core_version() {
         log_write "    ${TICK} Core: ${COL_LIGHT_GREEN}${PI_HOLE_VERSION}${COL_NC}"
       # If not,
       else
-        # pring the current version in yellow
-        log_write "    ${INFO} Core: ${COL_YELLOW}${PI_HOLE_VERSION:-Untagged}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC})"
+        # echo the current version in yellow, signifying it's something to take a look at, but not a critical error
+        # Also add a URL to an FAQ
+        log_write "    ${INFO} Core: ${COL_YELLOW}${PI_HOLE_VERSION:-Untagged}${COL_NC} (${COL_CYAN}${FAQ_UPDATE_PI_HOLE}${COL_NC})"
       fi
 
+      # If the repo is on the master branch, they are on the stable codebase
       if [[ "${PI_HOLE_BRANCH}" == "master" ]]; then
+        # so the color of the text is green
         log_write "       ${INFO} Branch: ${COL_LIGHT_GREEN}${PI_HOLE_BRANCH}${COL_NC}"
+      # If it is any other branch, they are in a developement branch
       else
-        log_write "       ${INFO} Branch: ${COL_YELLOW}${PI_HOLE_BRANCH:-Detached}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC})"
+        # So show that in yellow, signifying it's something to take a look at, but not a critical error
+        log_write "       ${INFO} Branch: ${COL_YELLOW}${PI_HOLE_BRANCH:-Detached}${COL_NC} (${COL_CYAN}${FAQ_CHECKOUT_COMMAND}${COL_NC})"
       fi
+        # echo the current commit
         log_write "       ${INFO} Commit: ${PI_HOLE_COMMIT}"
     # If git status failed,
     else
@@ -189,18 +201,27 @@ check_web_version() {
       WEB_BRANCH=$(git rev-parse --abbrev-ref HEAD);
       # The commit they are on
       WEB_COMMIT=$(git describe --long --dirty --tags --always)
-      # echo this information out to the user in a nice format
+      # If the Web version reported by pihole -v matches the current version
       if [[ "${WEB_VERSION}" == "$(pihole -v | awk '/AdminLTE/ {print $6}' | cut -d ')' -f1)" ]]; then
+        # echo it in green
         log_write "    ${TICK} Web: ${COL_LIGHT_GREEN}${WEB_VERSION}${COL_NC}"
+      # Otherwise,
       else
-        log_write "    ${INFO} Web: ${COL_YELLOW}${WEB_VERSION:-Untagged}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC})"
+        # Show it in yellow with a link to update Pi-hole
+        log_write "    ${INFO} Web: ${COL_YELLOW}${WEB_VERSION:-Untagged}${COL_NC} (${COL_CYAN}${FAQ_UPDATE_PI_HOLE}${COL_NC})"
       fi
 
+
+      # If the repo is on the master branch, they are on the stable codebase
       if [[ "${WEB_BRANCH}" == "master" ]]; then
+        # so the color of the text is green
         log_write "       ${TICK} Branch: ${COL_LIGHT_GREEN}${WEB_BRANCH}${COL_NC}"
       else
-        log_write "       ${INFO} Branch: ${COL_YELLOW}${WEB_BRANCH:-Detached}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC})"
+        # If it is any other branch, they are in a developement branch
+        # So show that in yellow, signifying it's something to take a look at, but not a critical error
+        log_write "       ${INFO} Branch: ${COL_YELLOW}${WEB_BRANCH:-Detached}${COL_NC} (${COL_CYAN}${FAQ_CHECKOUT_COMMAND}${COL_NC})"
       fi
+        # echo the current commit
         log_write "       ${INFO} Commit: ${WEB_COMMIT}"
     # If git status failed,
     else
@@ -214,8 +235,14 @@ check_web_version() {
 check_ftl_version() {
   # Use the built in command to check FTL's version
   FTL_VERSION=$(pihole-FTL version)
-  # and display it to the user
-  log_write "    ${INFO} FTL: ${FTL_VERSION}"
+  # Compare the current FTL version to the remote version
+  if [[ "${FTL_VERSION}" == "$(pihole -v | awk '/FTL/ {print $6}' | cut -d ')' -f1)" ]]; then
+    # If they are the same, FTL is up-to-date
+    log_write "    ${TICK} FTL: ${COL_LIGHT_GREEN}${FTL_VERSION}${COL_NC}"
+  else
+    # If not, show it in yellow, signifying there is an update
+    log_write "    ${TICK} FTL: ${COL_YELLOW}${FTL_VERSION}${COL_NC}"
+  fi
 }
 
 # Check the current version of the Web server
@@ -227,10 +254,9 @@ check_web_server_version() {
   # If the Web server does not have a version (the variable is empty)
   if [[ -z "${WEB_SERVER_VERSON}" ]]; then
     # Display and error
-    log_write "    ${CROSS} ${WEB_SERVER} version could not be detected."
-  # Otherwise,
+    log_write "    ${CROSS} ${COL_LIGHT_RED}${WEB_SERVER} version could not be detected.${COL_NC}"
   else
-    # display the version
+    # Otherwise, display the version
     log_write "    ${TICK} ${WEB_SERVER}: ${WEB_SERVER_VERSON}"
   fi
 }
@@ -244,10 +270,9 @@ check_resolver_server_version() {
   # If the DNS server does not have a version (the variable is empty)
   if [[ -z "${RESOVLER_VERSON}" ]]; then
     # Display and error
-    log_write "    ${CROSS} ${RESOLVER} version could not be detected."
-  # Otherwise,
+    log_write "    ${CROSS} ${COL_LIGHT_RED}${RESOLVER} version could not be detected.${COL_NC}"
   else
-    # display the version
+    # Otherwise, display the version
     log_write "    ${TICK} ${RESOLVER}: ${RESOVLER_VERSON}"
   fi
 }
@@ -258,19 +283,18 @@ check_php_version() {
   # If no version is detected,
   if [[ -z "${PHP_VERSION}" ]]; then
     # show an error
-    log_write "    ${CROSS} PHP version could not be detected."
-  # otherwise,
+    log_write "    ${CROSS} ${COL_LIGHT_RED}PHP version could not be detected.${COL_NC}"
   else
-    # Show the version
+    # Otherwise, show the version
     log_write "    ${TICK} PHP: ${PHP_VERSION}"
   fi
-
 }
 
 # These are the most critical dependencies of Pi-hole, so we check for them
 # and their versions, using the functions above.
 check_critical_dependencies() {
   echo_current_diagnostic "Versions of critical dependencies"
+  # Use the function created earlier and bundle them into one function that checks all the version numbers
   check_web_server_version
   check_resolver_server_version
   check_php_version
@@ -287,14 +311,16 @@ get_distro_attributes() {
   local distro_attribute
   # For each line found in an /etc/*release file,
   for distro_attribute in "${distro_info[@]}"; do
-    # display the information with the ${INFO} icon
-    pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
-    # we need just the OS PRETTY_NAME, so print it when we find it
+    # store the key in a variable
+    local pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
+    # we need just the OS PRETTY_NAME,
     if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
-      PRETTY_NAME=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
-      log_write "    ${INFO} ${PRETTY_NAME}"
-      # Otherwise, do nothing
+      # so print it when we find it
+      PRETTY_NAME_VALUE=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
+      # and then echoed out to the screen
+      log_write "    ${INFO} ${PRETTY_NAME_VALUE}"
     else
+      # Since we only need the pretty name, we can just skip over anything that is not a match
       :
     fi
   done
@@ -304,7 +330,7 @@ get_distro_attributes() {
 
 diagnose_operating_system() {
   # local variable for system requirements
-  local faq_url="https://discourse.pi-hole.net/t/hardware-software-requirements/273"
+  FAQ_HARDWARE_REQUIREMENTS="https://discourse.pi-hole.net/t/hardware-software-requirements/273"
   # error message in a variable so we can easily modify it later (or re-use it)
   local error_msg="Distribution unknown -- most likely you are on an unsupported platform and may run into issues."
   # Display the current test that is running
@@ -315,8 +341,7 @@ diagnose_operating_system() {
     # display the attributes to the user from the function made earlier
     get_distro_attributes || \
     # If it doesn't exist, it's not a system we currently support and link to FAQ
-    log_write "    ${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC}
-         ${INFO} ${COL_LIGHT_RED}Please see${COL_NC}: ${COL_CYAN}${faq_url}${COL_NC}"
+    log_write "    ${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC} (${COL_CYAN}${FAQ_HARDWARE_REQUIREMENTS}${COL_NC})"
 }
 
 processor_check() {
@@ -326,10 +351,9 @@ processor_check() {
   # If it does not contain a value,
   if [[ -z "${PROCESSOR}" ]]; then
     # we couldn't detect it, so show an error
-    log_write "    ${CROSS} Processor could not be identified."
-  # Otherwise,
+    log_write "    ${CROSS} ${COL_LIGHT_RED}Processor could not be identified.${COL_NC}"
   else
-    # Show the processor type
+    # Otherwise, show the processor type
     log_write "    ${INFO} ${PROCESSOR}"
   fi
 }
@@ -353,10 +377,9 @@ detect_ip_addresses() {
       # For each one in the list, print it out using the iterator as a numbered list
       log_write "       [$i] ${ip_addr_list[$i]}"
     done
-  # Othwerwise,
   else
-    # explain that the protocol is not configured
-    log_write "    ${CROSS} No IPv${protocol} found on ${PIHOLE_INTERFACE}"
+    # If there are no IPs detected, explain that the protocol is not configured
+    log_write "    ${CROSS} ${COL_LIGHT_RED}No IPv${protocol} found on ${PIHOLE_INTERFACE}${COL_NC}"
     return 1
   fi
 }
@@ -371,9 +394,8 @@ ping_gateway() {
     local cmd="ping6"
     # and Google's public IPv6 address
     local public_address="2001:4860:4860::8888"
-  # Otherwise,
   else
-    # use ping
+    # Otherwise, just use ping
     local cmd="ping"
     # and Google's public IPv4 address
     local public_address="8.8.8.8"
@@ -406,7 +428,7 @@ ping_gateway() {
 }
 
 ping_internet() {
-  # Give the first argument a readable name
+  # Give the first argument a readable name (a 4 or a six should be the argument)
   local protocol="${1}"
   # If the protocol is 6,
   if [[ ${protocol} == "6" ]]; then
@@ -414,9 +436,8 @@ ping_internet() {
     local cmd="ping6"
     # and Google's public IPv6 address
     local public_address="2001:4860:4860::8888"
-  # Otherwise,
   else
-    # use ping
+    # Otherwise, just use ping
     local cmd="ping"
     # and Google's public IPv4 address
     local public_address="8.8.8.8"
@@ -425,12 +446,11 @@ ping_internet() {
   # Try to ping the address 3 times
   if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
     # if it's unsuccessful, show an error
-    log_write "          ${CROSS} Cannot reach the Internet"
+    log_write "          ${CROSS} ${COL_LIGHT_RED}Cannot reach the Internet.${COL_NC}"
     return 1
-  # Otherwise,
   else
-    # show success
-    log_write "          ${TICK} Query responded."
+    # Otherwise, show success
+    log_write "          ${TICK} ${COL_LIGHT_GREEN}Query responded.${COL_NC}"
     return 0
   fi
 }
@@ -448,8 +468,10 @@ check_required_ports() {
 
   # Now that we have the values stored,
   for i in ${!ports_in_use[@]}; do
+    # loop through them and assign some local variables
     local port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
     local service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
+    # Use a case statement to determine if the right services are using the right ports
     case "${port_number}" in
       53) if [[ "${service_name}" == "dnsmasq" ]]; then
             # if port 53 is dnsmasq, show it in green as it's standard
@@ -512,23 +534,24 @@ check_x_headers() {
   if [[ $block_page == $block_page_working ]]; then
     # display a success message
     log_write "    $TICK ${COL_LIGHT_GREEN}${block_page}${COL_NC}"
-  # Otherwise,
   else
-    # show an error
+    # Otherwise, show an error
     log_write "    $CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
   fi
 
-  # Same logic applies to the dashbord as above
+  # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
   if [[ $dashboard == $dashboard_working ]]; then
+    # then we can show a success
     log_write "    $TICK ${COL_LIGHT_GREEN}${dashboard}${COL_NC}"
   else
+    # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
     log_write "    $CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
   fi
 }
 
 dig_at() {
-  # We need to test if Pi-hole can properly resolve domain names as it is an
-  # essential piece of the software that needs to work
+  # We need to test if Pi-hole can properly resolve domain names
+  # as it is an essential piece of the software
 
   # Store the arguments as variables with names
   local protocol="${1}"
@@ -540,6 +563,7 @@ dig_at() {
   local pihole_dig
   local remote_dig
   # Use a static domain that we know has IPv4 and IPv6 to avoid false positives
+  # Sometimes the randomly chosen domains don't use IPv6, or something else is wrong with them
   local remote_url="doubleclick.com"
 
   # If the protocol (4 or 6) is 6,
@@ -559,32 +583,40 @@ dig_at() {
   fi
 
   # Find a random blocked url that has not been whitelisted.
+  # This helps emulate queries to different domains that a user might query
+  # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
   local random_url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
 
-  # First do a dig on localhost, to see if Pi-hole can use itself to block a domain
+  # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
   if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
     # If it can, show sucess
     log_write "    ${TICK} ${COL_LIGHT_GREEN}${random_url} is ${local_dig}${COL_NC} via localhost (${local_address})"
-  # Otherwise,
   else
-    # show a failure
+    # Otherwise, show a failure
     log_write "    ${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} ${COL_LIGHT_RED}via localhost${COL_NC} (${local_address})"
   fi
 
   # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
   # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
   # just asing itself locally
+  # The default timeouts and tries are reduced in case the DNS server isn't working, so the user isn't waiting for too long
+
+  # If Pi-hole can dig itself from it's IP (not the loopback address)
   if pihole_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
+    # show a success
     log_write "    ${TICK} ${COL_LIGHT_GREEN}${random_url} is ${pihole_dig}${COL_NC} via Pi-hole (${pihole_address})"
   else
+    # Othewise, show a failure
     log_write "    ${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} ${COL_LIGHT_RED}via Pi-hole${COL_NC} (${pihole_address})"
   fi
 
-  # Finally, we need to make sure legitimate sites can out if using an external, public DNS server
+  # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
+  # We are using the static remote_url here instead of a random one because we know it works with IPv4 and IPv6
   if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
     # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
     log_write "    ${TICK} ${COL_LIGHT_GREEN}${remote_url} is ${remote_dig}${COL_NC} via a remote, public DNS server (${remote_address})"
   else
+    # Otherwise, show an error
     log_write "    ${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${remote_url} ${COL_LIGHT_RED}via a remote, public DNS server${COL_NC} (${remote_address})"
   fi
 }
@@ -594,22 +626,25 @@ process_status(){
   echo_current_diagnostic "Pi-hole processes"
   # Store them in an array for easy use
   PROCESSES=( dnsmasq lighttpd pihole-FTL )
+  # Local iterator
   local i
   # For each process,
   for i in "${PROCESSES[@]}"; do
-    # get it's status
+    # get its status
     local status_of_process=$(systemctl is-active "${i}")
     # and print it out to the user
     if [[ "${status_of_process}" == "active" ]]; then
+      # If it's active, show it in green
       log_write "    ${TICK} ${COL_LIGHT_GREEN}${i}${COL_NC} daemon is ${COL_LIGHT_GREEN}${status_of_process}${COL_NC}"
     else
+      # If it's not, show it in red
       log_write "    ${CROSS} ${COL_LIGHT_RED}${i}${COL_NC} daemon is ${COL_LIGHT_RED}${status_of_process}${COL_NC}"
     fi
   done
 }
 
 parse_file() {
-  # Set the first argument passed to tihs function as a named variable for better readability
+  # Set the first argument passed to this function as a named variable for better readability
   local filename="${1}"
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
@@ -618,7 +653,7 @@ parse_file() {
 
   # Set a named variable for better readability
   local file_lines
-  # For each lin in the file,
+  # For each line in the file,
   for file_lines in "${file_info[@]}"; do
     # display the information with the ${INFO} icon
     log_write "       ${INFO} ${file_lines}"
@@ -633,13 +668,13 @@ diagnose_setup_variables() {
 
   # If the variable file exists,
   file_exists "${VARSFILE}" && \
+    log_write "    * Sourcing ${VARSFILE}...";
     # source it
     source ${VARSFILE};
-    log_write "    ${INFO} Sourcing ${VARSFILE}...";
     # and display a green check mark with ${DONE}
-    echo_succes_or_fail "${VARSFILE} is readable and has been sourced." || \
+    echo_succes_or_fail "${COL_LIGHT_GREEN}${VARSFILE}${COL_NC} is readable and ${COL_LIGHT_GREEN}has been sourced.${COL_NC}" || \
     # Othwerwise, error out
-    echo_succes_or_fail "${VARSFILE} is not readable.
+    echo_succes_or_fail "${VARSFILE} ${COL_LIGHT_RED}is not readable.${COL_NC}
          ${INFO} $(ls -l ${VARSFILE} 2>/dev/null)";
     parse_file "${VARSFILE}"
 }
@@ -648,8 +683,9 @@ check_name_resolution() {
   # Check name resoltion from localhost, Pi-hole's IP, and Google's name severs
   # using the function we created earlier
   dig_at 4 "${IPV4_ADDRESS%/*}"
-  # If IPv6 enabled, check resolution
+  # If IPv6 enabled,
   if [[ "${IPV6_ADDRESS}" ]]; then
+    # check resolution
     dig_at 6 "${IPV6_ADDRESS%/*}"
   fi
 }
@@ -668,7 +704,7 @@ dir_check() {
     # show a success message
     echo_succes_or_fail "Files detected" || \
     # Otherwise, show an error
-    echo_succes_or_fail "directory does not exist"
+    echo_succes_or_fail "${COL_LIGHT_RED}irectory does not exist.${COL_NC}"
   done
 }
 
@@ -683,7 +719,6 @@ list_files_in_dir() {
     # Also print the permissions and the user/group
     log_write "       ${INFO} $(ls -ld ${dir_to_parse}/${each_file})"
   done
-
 }
 
 check_dnsmasq_d() {
@@ -723,26 +758,28 @@ check_http_directory() {
 }
 
 analyze_gravity_list() {
+  echo_current_diagnostic "Gravity list"
   # It's helpful to know how big a user's gravity file is
   gravity_length=$(grep -c ^ "${GRAVITYFILE}") && \
-    log_write "   ${INFO} ${GRAVITYFILE} is ${gravity_length} lines long." || \
+    log_write "    ${INFO} ${GRAVITYFILE} is ${gravity_length} lines long.";
+    parse_file ${GRAVITYFILE} || \
     # If the previous command failed, something is wrong with the file
-    log_write "   ${CROSS} ${GRAVITYFILE} not found!"
+    log_write "    ${CROSS} ${COL_LIGHT_RED}${GRAVITYFILE} not found!${COL_NC}"
 }
 
-tricorder_nc_or_ssl() {
-  # Users can submit their debug logs using nc (unencrypted) or opensll (enrypted) if available
-  # Check fist for openssl since encryption is a good thing
+tricorder_use_nc_or_ssl() {
+  # Users can submit their debug logs using nc (unencrypted) or openssl (enrypted) if available
+  # Check for openssl first since encryption is a good thing
   if command -v openssl &> /dev/null; then
-    # If successful
+    # If the command exists,
     log_write "   * Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
-    # transmit the log and store the token returned in the tricorder variable
-    tricorder=$(cat /var/log/pihole_debug.log | openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null)
+    # encrypt and transmit the log and store the token returned in a variable
+    tricorder_token=$(cat ${DEBUG_LOG} | openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null)
   # Otherwise,
   else
     # use net cat
     log_write "   ${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-    tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+    tricorder_token=$(cat ${DEBUG_LOG} | nc tricorder.pi-hole.net 9999)
   fi
 }
 
@@ -768,10 +805,10 @@ upload_to_tricorder() {
     # and then decide again which tool to use to submit it
     if command -v openssl &> /dev/null; then
       log_write "   ${INFO} Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
-      openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
+      tricorder_token=$(openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin)
     else
       log_write "   ${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-      nc tricorder.pi-hole.net 9999 < /dev/stdin
+      tricorder_token=$(nc tricorder.pi-hole.net 9999 < /dev/stdin)
     fi
 	else
     echo ""
@@ -780,22 +817,24 @@ upload_to_tricorder() {
 	  read -r -p "[?] Would you like to upload the log? [y/N] " response
 	  case ${response} in
       # If they say yes, run our function for uploading the log
-		  [yY][eE][sS]|[yY]) tricorder_nc_or_ssl;;
+		  [yY][eE][sS]|[yY]) tricorder_use_nc_or_ssl;;
       # If they choose no, just exit out of the script
-		  *) log_write "   * Log will NOT be uploaded to tricorder.";exit;
+		  *) log_write "   * Log will ${COL_LIGHT_GREE}NOT${COL_NC} be uploaded to tricorder.";exit;
 	  esac
   fi
 	# Check if tricorder.pi-hole.net is reachable and provide token
   # along with some additional useful information
-	if [[ -n "${tricorder}" ]]; then
+	if [[ -n "${tricorder_token}" ]]; then
     echo ""
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
-		log_write "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder}${COL_NC}"
+		log_write "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder_token}${COL_NC}"
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
     log_write ""
 		log_write "       Provide this token to the Pi-hole team for assistance:"
     echo ""
 		log_write "       https://discourse.pi-hole.net"
+    echo ""
+    log_write "       Your log will self-destruct after 48 hours."
 	else
 		log_write "   ${CROSS}  There was an error uploading your debug log."
 		log_write "        Please try again or contact the Pi-hole team for assistance."
@@ -821,6 +860,7 @@ check_name_resolution
 process_status
 check_x_headers
 check_critical_dependencies
+analyze_gravity_list
 check_dnsmasq_d
 check_lighttpd_d
 check_http_directory
