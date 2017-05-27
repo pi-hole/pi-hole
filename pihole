@@ -86,24 +86,28 @@ scanList() {
   method="${3}"
 
   if [[ "${method}" == "-exact" ]]; then
-    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list}
+    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} 2> /dev/null
   else
-    grep -i "${domain}" ${list}
+    grep -i "${domain}" ${list} 2> /dev/null
   fi
 }
 
 queryFunc() {
+  domain="${2}"
   method="${3}"
+  
+  if [[ "${2}" == "-exact" ]]; then
+    method="${2}" 
+    domain="${3}"
+  fi
 
   # If domain contains non ASCII characters, convert domain to punycode if python exists
   # Cr: https://serverfault.com/a/335079
-  if [[ -z "${2}" ]]; then
+  if [[ -z "${domain}" ]]; then
     echo "::: No domain specified"
     exit 1
-  elif [[ "${2}" = *[![:ascii:]]* ]]; then
-    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
-  else
-    domain="${2}"
+  elif [[ "${domain}" = *[![:ascii:]]* ]]; then
+    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${domain}")
   fi
 
   # Scan Whitelist, Blacklist and Wildcards
@@ -120,7 +124,7 @@ queryFunc() {
     sort -t . -k 2 -g <<< "$result"
   else
     [ -n "$method" ] && exact="exact "
-    echo "::: No ${exact}results found for ${domain}"
+    echo "::: No ${exact}results found for ${domain} within block lists"
   fi
 
   exit 0
@@ -364,7 +368,7 @@ Options:
   -l, logging         Specify whether the Pi-hole log should be used
                         Add '-h' for more info on logging usage
   -q, query           Query the adlists for a specified domain
-                        Add '-exact' AFTER a specified domain for exact match
+                        Add '-exact' to the specified domain for exact match
   -up, updatePihole   Update Pi-hole subsystems
   -v, version         Show installed versions of Pi-hole, Admin Console & FTL
                         Add '-h' for more info on version usage
