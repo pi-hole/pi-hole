@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+check_critical_program_versions#!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -133,48 +133,57 @@ if_directory_exists() {
   fi
 }
 
-# Checks the core version of the Pi-hole codebase
-check_core_version() {
-  echo_current_diagnostic "Pi-hole versions"
+compare_local_version_to_git_version() {
+  # The git directory to check
+  local git_dir="${1}"
+  # The named component of the project (Core or Web)
+  local pihole_component="${2}"
+  # If we are checking the Core versions,
+  if [[ "${pihole_component}" == "Core" ]]; then
+    # We need to search for "Pi-hole" when using pihole -v
+    local search_term="Pi-hole"
+  elif [[ "${pihole_component}" == "Web" ]]; then
+    local search_term="AdminLTE"
+  fi
+  # Display what we are checking
+  echo_current_diagnostic "${pihole_component} version"
   # Store the error message in a variable in case we want to change and/or reuse it
   local error_msg="git status failed"
   # If the pihole git directory exists,
-  if_directory_exists "${PIHOLEGITDIR}" && \
+  if_directory_exists "${git_dir}" && \
     # move into it
-    cd "${PIHOLEGITDIR}" || \
-    # if not, report an error
-    log_write "pihole repo does not exist"
-    # If the git status command completes successfully,
-    # we can assume we can get the information we want
+    cd "${git_dir}" || \
+    # If not, show an error
+    log_write "${COL_LIGHT_RED}Could not cd into ${git_dir}$COL_NC"
     if git status &> /dev/null; then
       # The current version the user is on
-      PI_HOLE_VERSION=$(git describe --tags --abbrev=0);
+      local remote_version=$(git describe --tags --abbrev=0);
       # What branch they are on
-      PI_HOLE_BRANCH=$(git rev-parse --abbrev-ref HEAD);
+      local remote_branch=$(git rev-parse --abbrev-ref HEAD);
       # The commit they are on
-      PI_HOLE_COMMIT=$(git describe --long --dirty --tags --always)
+      local remote_commit=$(git describe --long --dirty --tags --always)
       # echo this information out to the user in a nice format
       # If the current version matches what pihole -v produces, the user is up-to-date
-      if [[ "${PI_HOLE_VERSION}" == "$(pihole -v | awk '/Pi-hole/ {print $6}' | cut -d ')' -f1)" ]]; then
-        log_write "${TICK} Core: ${COL_LIGHT_GREEN}${PI_HOLE_VERSION}${COL_NC}"
+      if [[ "${remote_version}" == "$(pihole -v | awk '/${search_term}/ {print $6}' | cut -d ')' -f1)" ]]; then
+        log_write "${TICK} ${pihole_component}: ${COL_LIGHT_GREEN}${remote_version}${COL_NC}"
       # If not,
       else
         # echo the current version in yellow, signifying it's something to take a look at, but not a critical error
         # Also add a URL to an FAQ
-        log_write "${INFO} Core: ${COL_YELLOW}${PI_HOLE_VERSION:-Untagged}${COL_NC} (${COL_CYAN}${FAQ_UPDATE_PI_HOLE}${COL_NC})"
+        log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${COL_CYAN}${FAQ_UPDATE_PI_HOLE}${COL_NC})"
       fi
 
       # If the repo is on the master branch, they are on the stable codebase
-      if [[ "${PI_HOLE_BRANCH}" == "master" ]]; then
+      if [[ "${remote_branch}" == "master" ]]; then
         # so the color of the text is green
-        log_write "${INFO} Branch: ${COL_LIGHT_GREEN}${PI_HOLE_BRANCH}${COL_NC}"
+        log_write "${INFO} Branch: ${COL_LIGHT_GREEN}${remote_branch}${COL_NC}"
       # If it is any other branch, they are in a developement branch
       else
         # So show that in yellow, signifying it's something to take a look at, but not a critical error
-        log_write "${INFO} Branch: ${COL_YELLOW}${PI_HOLE_BRANCH:-Detached}${COL_NC} (${COL_CYAN}${FAQ_CHECKOUT_COMMAND}${COL_NC})"
+        log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${COL_CYAN}${FAQ_CHECKOUT_COMMAND}${COL_NC})"
       fi
         # echo the current commit
-        log_write "${INFO} Commit: ${PI_HOLE_COMMIT}\n"
+        log_write "${INFO} Commit: ${remote_commit}"
     # If git status failed,
     else
       # Return an error message
@@ -182,123 +191,65 @@ check_core_version() {
       # and exit with a non zero code
       return 1
     fi
-}
 
-check_web_version() {
-  # Local variable for the error message
-  local error_msg="git status failed"
-  # If the directory exists,
-  if_directory_exists "${ADMINGITDIR}" && \
-    # move into it
-    cd "${ADMINGITDIR}" || \
-    # if not, give an error message
-    log_write "repo does not exist"
-    # If the git status command completes successfully,
-    # we can assume we can get the information we want
-    if git status &> /dev/null; then
-      # The current version the user is on
-      WEB_VERSION=$(git describe --tags --abbrev=0);
-      # What branch they are on
-      WEB_BRANCH=$(git rev-parse --abbrev-ref HEAD);
-      # The commit they are on
-      WEB_COMMIT=$(git describe --long --dirty --tags --always)
-      # If the Web version reported by pihole -v matches the current version
-      if [[ "${WEB_VERSION}" == "$(pihole -v | awk '/AdminLTE/ {print $6}' | cut -d ')' -f1)" ]]; then
-        # echo it in green
-        log_write "${TICK} Web: ${COL_LIGHT_GREEN}${WEB_VERSION}${COL_NC}"
-      # Otherwise,
-      else
-        # Show it in yellow with a link to update Pi-hole
-        log_write "${INFO} Web: ${COL_YELLOW}${WEB_VERSION:-Untagged}${COL_NC} (${COL_CYAN}${FAQ_UPDATE_PI_HOLE}${COL_NC})"
-      fi
-
-
-      # If the repo is on the master branch, they are on the stable codebase
-      if [[ "${WEB_BRANCH}" == "master" ]]; then
-        # so the color of the text is green
-        log_write "${TICK} Branch: ${COL_LIGHT_GREEN}${WEB_BRANCH}${COL_NC}"
-      else
-        # If it is any other branch, they are in a developement branch
-        # So show that in yellow, signifying it's something to take a look at, but not a critical error
-        log_write "${INFO} Branch: ${COL_YELLOW}${WEB_BRANCH:-Detached}${COL_NC} (${COL_CYAN}${FAQ_CHECKOUT_COMMAND}${COL_NC})"
-      fi
-        # echo the current commit
-        log_write "${INFO} Commit: ${WEB_COMMIT}\n"
-    # If git status failed,
-    else
-      # Return an error message
-      log_write "${error_msg}"
-      # and exit with a non zero code
-      return 1
-    fi
 }
 
 check_ftl_version() {
+  local ftl_name="FTL"
+  echo_current_diagnostic "${ftl_name} version"
   # Use the built in command to check FTL's version
   FTL_VERSION=$(pihole-FTL version)
   # Compare the current FTL version to the remote version
   if [[ "${FTL_VERSION}" == "$(pihole -v | awk '/FTL/ {print $6}' | cut -d ')' -f1)" ]]; then
     # If they are the same, FTL is up-to-date
-    log_write "${TICK} FTL: ${COL_LIGHT_GREEN}${FTL_VERSION}${COL_NC}"
+    log_write "${TICK} ${ftl_name}: ${COL_LIGHT_GREEN}${FTL_VERSION}${COL_NC}"
   else
     # If not, show it in yellow, signifying there is an update
-    log_write "${TICK} FTL: ${COL_YELLOW}${FTL_VERSION}${COL_NC}"
+    log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC}"
   fi
 }
 
-# Check the current version of the Web server
-check_web_server_version() {
-  # Store the name in a variable in case we ever want to change it
-  WEB_SERVER="lighttpd"
-  # Parse out just the version number
-  WEB_SERVER_VERSON="$(lighttpd -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
+# Checks the core version of the Pi-hole codebase
+check_component_versions() {
+  # Check the Web version, branch, and commit
+  compare_local_version_to_git_version "${PIHOLEGITDIR}" "Core"
+  # Check the Web version, branch, and commit
+  compare_local_version_to_git_version "${ADMINGITDIR}" "Web"
+  # Check the FTL version
+  check_ftl_version
+}
+
+
+get_program_version() {
+  local program_name="${1}"
+  local program_version
+  echo_current_diagnostic "${program_name} version"
+  case "${program_name}" in
+    "lighttpd") program_version="$(${program_name} -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
+    ;;
+    "dnsmasq") program_version="$(${program_name} -v |& head -n1 | awk '{print $3}')"
+    ;;
+    "php") program_version="$(${program_name} -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
+    ;;
+    *) echo "Unrecognized program";
+  esac
   # If the Web server does not have a version (the variable is empty)
-  if [[ -z "${WEB_SERVER_VERSON}" ]]; then
+  if [[ -z "${program_version}" ]]; then
     # Display and error
-    log_write "${CROSS} ${COL_LIGHT_RED}${WEB_SERVER} version could not be detected.${COL_NC}"
+    log_write "${CROSS} ${COL_LIGHT_RED}${program_name} version could not be detected.${COL_NC}"
   else
     # Otherwise, display the version
-    log_write "${TICK} ${WEB_SERVER}: ${WEB_SERVER_VERSON}"
-  fi
-}
-
-# Check the current version of the DNS server
-check_resolver_server_version() {
-  # Store the name in a variable in case we ever want to change it
-  RESOLVER="dnsmasq"
-  # Parse out just the version number
-  RESOVLER_VERSON="$(dnsmasq -v |& head -n1 | awk '{print $3}')"
-  # If the DNS server does not have a version (the variable is empty)
-  if [[ -z "${RESOVLER_VERSON}" ]]; then
-    # Display and error
-    log_write "${CROSS} ${COL_LIGHT_RED}${RESOLVER} version could not be detected.${COL_NC}"
-  else
-    # Otherwise, display the version
-    log_write "${TICK} ${RESOLVER}: ${RESOVLER_VERSON}"
-  fi
-}
-
-check_php_version() {
-  # Parse out just the version number
-  PHP_VERSION=$(php -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)
-  # If no version is detected,
-  if [[ -z "${PHP_VERSION}" ]]; then
-    # show an error
-    log_write "${CROSS} ${COL_LIGHT_RED}PHP version could not be detected.${COL_NC}"
-  else
-    # Otherwise, show the version
-    log_write "${TICK} PHP: ${PHP_VERSION}"
+    log_write "${TICK} ${program_name}: ${program_version}"
   fi
 }
 
 # These are the most critical dependencies of Pi-hole, so we check for them
 # and their versions, using the functions above.
-check_critical_dependencies() {
-  echo_current_diagnostic "Versions of critical dependencies"
+check_critical_program_versions() {
   # Use the function created earlier and bundle them into one function that checks all the version numbers
-  check_web_server_version
-  check_resolver_server_version
-  check_php_version
+  get_program_version "dnsmasq"
+  get_program_version "lighttpd"
+  get_program_version "php"
 }
 
 get_distro_attributes() {
@@ -877,9 +828,8 @@ upload_to_tricorder() {
 # Run through all the functions we made
 make_temporary_log
 initiate_debug
-check_core_version
-check_web_version
-check_ftl_version
+check_component_versions
+check_critical_program_versions
 # setupVars.conf needs to be sourced before the networking so the values are
 # available to the check_networking function
 diagnose_setup_variables
@@ -889,7 +839,6 @@ check_networking
 check_name_resolution
 process_status
 check_x_headers
-check_critical_dependencies
 analyze_gravity_list
 check_dnsmasq_d
 check_lighttpd_d
