@@ -107,7 +107,7 @@ echo_current_diagnostic() {
   log_write "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
 }
 
-file_exists() {
+if_file_exists() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local file_to_test="${1}"
   # If the file is readable
@@ -338,7 +338,7 @@ diagnose_operating_system() {
   echo_current_diagnostic "Operating system"
 
   # If there is a /etc/*release file, it's probably a supported operating system, so we can
-  file_exists /etc/*release && \
+  if_file_exists /etc/*release && \
     # display the attributes to the user from the function made earlier
     get_distro_attributes || \
     # If it doesn't exist, it's not a system we currently support and link to FAQ
@@ -409,6 +409,7 @@ ping_gateway() {
 
   # If the gateway variable has a value (meaning a gateway was found),
   if [[ -n "${gateway}" ]]; then
+    log_write "${INFO} Default gateway: ${gateway}"
     # Let the user know we will ping the gateway for a response
     log_write "* Trying three pings on IPv${protocol} gateway at ${gateway}..."
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
@@ -647,11 +648,23 @@ process_status(){
 
 make_array_from_file() {
   local filename="${1}"
+  # If the file is a directory
   if [[ -d "${filename}" ]]; then
+    # do nothing since it cannot be parsed
     :
   else
+    # Otherwise, read the file line by line
     while IFS= read -r line;do
-      file_content+=("${line}")
+      # Strip out comments and blank lines
+      new_line=$(echo "${line}" | sed -e 's/#.*$//' -e '/^$/d')
+      # If the line still has content
+      if [[ -n "${new_line}" ]]; then
+        # Put it into the array
+        file_content+=("${new_line}")
+      else
+        # Otherwise, it's a blank line or comment, so do nothing
+        :
+      fi
     done < "${filename}"
   fi
 }
@@ -669,7 +682,7 @@ parse_file() {
   # For each line in the file,
   for file_lines in "${file_info[@]}"; do
       # Display the file's content
-      log_write "    ${file_lines}" | grep -v "#" | sed '/^$/d'
+      log_write "    ${file_lines}"
   done
   # Set the IFS back to what it was
   IFS="$OLD_IFS"
@@ -680,7 +693,7 @@ diagnose_setup_variables() {
   echo_current_diagnostic "Setup variables"
 
   # If the variable file exists,
-  file_exists "${VARSFILE}" && \
+  if_file_exists "${VARSFILE}" && \
     log_write "* Sourcing ${VARSFILE}...";
     # source it
     source ${VARSFILE};
@@ -713,7 +726,7 @@ dir_check() {
   # For each file in the directory,
   for filename in "${directory}"; do
     # check if exists first; if it does,
-    file_exists "${filename}" && \
+    if_file_exists "${filename}" && \
     # do nothing
     : || \
     # Otherwise, show an error
@@ -851,14 +864,14 @@ upload_to_tricorder() {
 		log_write "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder_token}${COL_NC}"
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
 
-		log_write "    * Provide this token to the Pi-hole team for assistance:"
-		log_write "    * ${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
-    log_write "    * Your log will self-destruct after ${COL_LIGHT_RED}48 hours${COL_NC}."
+		log_write "   * Provide this token to the Pi-hole team for assistance:"
+		log_write "   * ${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
+    log_write "   * Your log will self-destruct after ${COL_LIGHT_RED}48 hours${COL_NC}."
 	else
 		log_write "${CROSS}  ${COL_LIGHT_RED}There was an error uploading your debug log.${COL_NC}"
-		log_write "    * Please try again or contact the Pi-hole team for assistance."
+		log_write "   * Please try again or contact the Pi-hole team for assistance."
 	fi
-		log_write "    * A local copy of the debug log can be found at : ${COL_CYAN}${DEBUG_LOG}${COL_NC}\n"
+		log_write "   * A local copy of the debug log can be found at : ${COL_CYAN}${DEBUG_LOG}${COL_NC}\n"
 }
 
 # Run through all the functions we made
