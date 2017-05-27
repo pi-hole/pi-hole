@@ -176,6 +176,9 @@ Time:
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
+    if [[ -e "$wildcardlist" ]]; then
+      mv "$wildcardlist" "/etc/pihole/wildcard.list"
+    fi
     echo "::: Blocking has been disabled!"
     if [[ $# > 1 ]]; then
       if [[ "${2}" == *"s"* ]]; then
@@ -199,6 +202,9 @@ Time:
     # Enable Pi-hole
     echo "::: Blocking has been enabled!"
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+    if [[ -e "/etc/pihole/wildcard.list" ]]; then
+      mv "/etc/pihole/wildcard.list" "$wildcardlist"
+    fi
   fi
   restartDNS
 }
@@ -305,7 +311,7 @@ tricorderFunc() {
     echo "Please do not call Tricorder directly."
     exit 1
   fi
-  
+
   if ! timeout 2 nc -z tricorder.pi-hole.net 9998 &> /dev/null; then
     echo "Unable to connect to Pi-hole's Tricorder server."
     exit 1
