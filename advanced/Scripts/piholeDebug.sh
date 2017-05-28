@@ -55,6 +55,18 @@ else
   OVER="\r\033[K"
 fi
 
+source_setup_variables() {
+  # Display the current test that is running
+  log_write "\n${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup varibles"
+  # If the variable file exists,
+  if_file_exists "${VARSFILE}" && \
+    log_write "${INFO} Sourcing ${VARSFILE}...";
+    # source it
+    source ${VARSFILE} || \
+    # If it can't, show an error
+    log_write "${VARSFILE} ${COL_LIGHT_RED}does not exist or cannot be read.${COL_NC}"
+}
+
 make_temporary_log() {
   # Create temporary file for log
   TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
@@ -205,7 +217,7 @@ check_ftl_version() {
     log_write "${TICK} ${ftl_name}: ${COL_LIGHT_GREEN}${FTL_VERSION}${COL_NC}"
   else
     # If not, show it in yellow, signifying there is an update
-    log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC}"
+    log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} ${FAQ_UPDATE_PI_HOLE}"
   fi
 }
 
@@ -310,6 +322,13 @@ processor_check() {
   fi
 }
 
+parse_setup_vars() {
+  echo_current_diagnostic "Setup variables"
+  if_file_exists "${VARSFILE}" && \
+    parse_file "${VARSFILE}" || \
+    log_write "${CROSS} ${COL_LIGHT_RED}Could not read ${VARSFILE}.${COL_NC}"
+}
+
 detect_ip_addresses() {
   # First argument should be a 4 or a 6
   local protocol=${1}
@@ -323,16 +342,16 @@ detect_ip_addresses() {
     # Local iterator
     local i
     # Display the protocol and interface
-    log_write "${TICK} IPv${protocol} on ${PIHOLE_INTERFACE}"
+    log_write "${TICK} IPv${protocol} address(es) bound to the ${PIHOLE_INTERFACE} interface:"
     # Since there may be more than one IP address, store them in an array
     for i in "${!ip_addr_list[@]}"; do
       # For each one in the list, print it out
-      log_write "${ip_addr_list[$i]}"
+      log_write "   ${ip_addr_list[$i]}"
     done
     log_write ""
   else
     # If there are no IPs detected, explain that the protocol is not configured
-    log_write "${CROSS} ${COL_LIGHT_RED}No IPv${protocol} found on ${PIHOLE_INTERFACE}${COL_NC}\n"
+    log_write "${CROSS} ${COL_LIGHT_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interace.\n"
     return 1
   fi
 }
@@ -360,21 +379,21 @@ ping_gateway() {
 
   # If the gateway variable has a value (meaning a gateway was found),
   if [[ -n "${gateway}" ]]; then
-    log_write "${INFO} Default gateway: ${gateway}"
+    log_write "${INFO} Default IPv${protocol} gateway: ${gateway}"
     # Let the user know we will ping the gateway for a response
-    log_write "* Trying three pings on IPv${protocol} gateway at ${gateway}..."
+    log_write "* Pinging IPv${protocol} gateway..."
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
-    if ! ping_cmd="$(${cmd} -q -c 3 -W 3 -n ${gateway} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+    if ! ${cmd} -c 3 -W 3 -n ${gateway} -I ${PIHOLE_INTERFACE} | tail -n 3; then
       # let the user know
-      log_write "${CROSS} ${COL_LIGHT_RED}Gateway did not respond.${COL_NC}\n"
+      log_write "${CROSS} ${COL_LIGHT_RED}Gateway did not respond.${COL_NC}"
       # and return an error code
       return 1
     # Otherwise,
     else
       # show a success
-      log_write "${TICK} ${COL_LIGHT_GREEN}Gateway responded.${COL_NC}\n"
+      log_write "${TICK} ${COL_LIGHT_GREEN}Gateway responded.${COL_NC}"
       # and return a success code
       return 0
     fi
@@ -396,9 +415,9 @@ ping_internet() {
     # and Google's public IPv4 address
     local public_address="8.8.8.8"
   fi
-  echo -n "${INFO} Trying three pings on IPv${protocol} to reach the Internet..."
+  log_write "* Checking Internet connectivity via IPv${protocol}..."
   # Try to ping the address 3 times
-  if ! ping_inet="$(${cmd} -q -W 3 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+  if ! ping_inet="$(${cmd} -W 3 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
     # if it's unsuccessful, show an error
     log_write "${CROSS} ${COL_LIGHT_RED}Cannot reach the Internet.${COL_NC}\n"
     return 1
@@ -409,10 +428,28 @@ ping_internet() {
   fi
 }
 
+compare_port_to_service_assigned() {
+  local service_name="${1}"
+  local resolver="dnsmasq"
+  local web_server="lighttpd"
+  local ftl="pihole-FT"
+  if [[ "${service_name}" == "${resolver}" ]] || [[ "${service_name}" == "${web_server}" ]] || [[ "${service_name}" == "${ftl}" ]]; then
+        # if port 53 is dnsmasq, show it in green as it's standard
+        log_write "[${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
+      # Otherwise,
+      else
+        # Show the service name in red since it's non-standard
+        log_write "[${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC})"
+      fi
+}
+
 check_required_ports() {
+  echo_current_diagnostic "Ports in use"
   # Since Pi-hole needs 53, 80, and 4711, check what they are being used by
   # so we can detect any issues
-  log_write "${INFO} Ports in use:"
+  local resolver="dnsmasq"
+  local web_server="lighttpd"
+  local ftl="pihole-FT"
   # Create an array for these ports in use
   ports_in_use=()
   # Sort the addresses and remove duplicates
@@ -427,35 +464,11 @@ check_required_ports() {
     local service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
     # Use a case statement to determine if the right services are using the right ports
     case "${port_number}" in
-      53) if [[ "${service_name}" == "dnsmasq" ]]; then
-            # if port 53 is dnsmasq, show it in green as it's standard
-            log_write "[${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
-          # Otherwise,
-          else
-            # Show the service name in red since it's non-standard
-            log_write "[${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC}
-                Please see: ${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC}"
-          fi
+      53) compare_port_to_service_assigned  "${resolver}"
           ;;
-      80) if [[ "${service_name}" == "lighttpd" ]]; then
-            # if port 53 is dnsmasq, show it in green as it's standard
-            log_write "[${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
-          # Otherwise,
-          else
-            # Show the service name in red since it's non-standard
-            log_write "[${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC}
-                Please see: ${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC}"
-          fi
+      80) compare_port_to_service_assigned  "${web_server}"
           ;;
-      4711) if [[ "${service_name}" == "pihole-FT" ]]; then
-            # if port 4711 is pihole-FTL, show it in green as it's standard
-            log_write "[${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
-          # Otherwise,
-          else
-            # Show the service name in yellow since it's non-standard, but should still work
-            log_write "[${COL_YELLOW}${port_number}${COL_NC}] is in use by ${COL_YELLOW}${service_name}${COL_NC}
-                Please see: ${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC}"
-          fi
+      4711) compare_port_to_service_assigned  "${ftl}"
           ;;
       *) log_write "[${port_number}] is in use by ${service_name}";
     esac
@@ -467,8 +480,8 @@ check_networking() {
   # together since they are all related to the networking aspect of things
   echo_current_diagnostic "Networking"
   detect_ip_addresses "4"
-  ping_gateway "4"
   detect_ip_addresses "6"
+  ping_gateway "4"
   ping_gateway "6"
   check_required_ports
 }
@@ -637,23 +650,6 @@ parse_file() {
   done
   # Set the IFS back to what it was
   IFS="$OLD_IFS"
-}
-
-diagnose_setup_variables() {
-  # Display the current test that is running
-  echo_current_diagnostic "Setup variables"
-
-  # If the variable file exists,
-  if_file_exists "${VARSFILE}" && \
-    log_write "* Sourcing ${VARSFILE}...";
-    # source it
-    source ${VARSFILE};
-    # and display a green check mark with ${DONE}
-    echo_succes_or_fail "${COL_LIGHT_GREEN}${VARSFILE}${COL_NC} is readable and ${COL_LIGHT_GREEN}has been sourced.${COL_NC}" || \
-    # Othwerwise, error out
-    echo_succes_or_fail "${VARSFILE} ${COL_LIGHT_RED}is not readable.${COL_NC}
-         ${INFO} $(ls -l ${VARSFILE} 2>/dev/null)";
-    parse_file "${VARSFILE}"
 }
 
 check_name_resolution() {
@@ -827,17 +823,18 @@ upload_to_tricorder() {
 
 # Run through all the functions we made
 make_temporary_log
+# setupVars.conf needs to be sourced before the networking so the values are
+# available to the other functions
 initiate_debug
+source_setup_variables
 check_component_versions
 check_critical_program_versions
-# setupVars.conf needs to be sourced before the networking so the values are
-# available to the check_networking function
-diagnose_setup_variables
 diagnose_operating_system
 processor_check
 check_networking
 check_name_resolution
 process_status
+parse_setup_vars
 check_x_headers
 analyze_gravity_list
 check_dnsmasq_d
