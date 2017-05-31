@@ -9,7 +9,7 @@
 _{replace this text with a number from 1 to 10, with 1 being not familiar, and 10 being very familiar}_
 
 ---
-**[FEATURE REQUEST | QUESTION | OTHER]:**
+**[BUG REPORT | QUESTION | OTHER]:**
 
 Please [submit your feature request here](https://discourse.pi-hole.net/c/feature-requests), so it is votable by the community.  It's also easier for us to track.
 
