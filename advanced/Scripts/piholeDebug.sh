@@ -851,8 +851,8 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 check_dnsmasq_d
-check_lighttpd_d
-check_http_directory
-check_cron_d
+# check_lighttpd_d
+# check_http_directory
+# check_cron_d
 copy_to_debug_log
 upload_to_tricorder
