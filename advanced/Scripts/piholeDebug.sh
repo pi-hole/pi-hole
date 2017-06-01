@@ -19,6 +19,8 @@ set -o pipefail
 #IFS=$'\n\t'
 
 ######## GLOBAL VARS ########
+SUPPORTED_OS=("Raspbian" "Ubduntu" "Fedora" "Debian" "CentOS")
+
 VARSFILE="/etc/pihole/setupVars.conf"
 DEBUG_LOG="/var/log/pihole_debug.log"
 DNSMASQFILE="/etc/dnsmasq.conf"
@@ -37,8 +39,9 @@ readonly FTLLOG="/var/log/pihole-FTL.log"
 coltable=/opt/pihole/COL_TABLE
 
 # FAQ URLs
-FAQ_UPDATE_PI_HOLE="https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249"
-FAQ_CHECKOUT_COMMAND="https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout"
+FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
+FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
+FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273${COL_NC}"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${coltable} ]]; then
@@ -182,7 +185,7 @@ compare_local_version_to_git_version() {
       else
         # echo the current version in yellow, signifying it's something to take a look at, but not a critical error
         # Also add a URL to an FAQ
-        log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${COL_CYAN}${FAQ_UPDATE_PI_HOLE}${COL_NC})"
+        log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
       fi
 
       # If the repo is on the master branch, they are on the stable codebase
@@ -192,7 +195,7 @@ compare_local_version_to_git_version() {
       # If it is any other branch, they are in a developement branch
       else
         # So show that in yellow, signifying it's something to take a look at, but not a critical error
-        log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${COL_CYAN}${FAQ_CHECKOUT_COMMAND}${COL_NC})"
+        log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
       fi
         # echo the current commit
         log_write "${INFO} Commit: ${remote_commit}"
@@ -203,7 +206,6 @@ compare_local_version_to_git_version() {
       # and exit with a non zero code
       return 1
     fi
-
 }
 
 check_ftl_version() {
@@ -217,7 +219,7 @@ check_ftl_version() {
     log_write "${TICK} ${ftl_name}: ${COL_LIGHT_GREEN}${FTL_VERSION}${COL_NC}"
   else
     # If not, show it in yellow, signifying there is an update
-    log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} ${FAQ_UPDATE_PI_HOLE}"
+    log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
   fi
 }
 
@@ -264,6 +266,19 @@ check_critical_program_versions() {
   get_program_version "php"
 }
 
+is_os_supported() {
+  local os_to_check="${1}"
+  the_os=$(echo ${os_to_check} | sed 's/ .*//')
+  case "${the_os}" in
+    "Raspbian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+    "Ubsuntu") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+    "Fedora") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+    "Debian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+    "CentOS") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+      *) log_write "${CROSS} ${COL_LIGHT_RED}${os_to_check}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})";
+  esac
+}
+
 get_distro_attributes() {
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
@@ -279,10 +294,10 @@ get_distro_attributes() {
     local pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
     # we need just the OS PRETTY_NAME,
     if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
-      # so print it when we find it
+      # so save in in a variable when we find it
       PRETTY_NAME_VALUE=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
-      # and then echoed out to the screen
-      log_write "${INFO} ${PRETTY_NAME_VALUE}"
+      # then pass it as an argument that checks if the OS is supported
+      is_os_supported "${PRETTY_NAME_VALUE}"
     else
       # Since we only need the pretty name, we can just skip over anything that is not a match
       :
@@ -293,8 +308,6 @@ get_distro_attributes() {
 }
 
 diagnose_operating_system() {
-  # local variable for system requirements
-  FAQ_HARDWARE_REQUIREMENTS="https://discourse.pi-hole.net/t/hardware-software-requirements/273"
   # error message in a variable so we can easily modify it later (or re-use it)
   local error_msg="Distribution unknown -- most likely you are on an unsupported platform and may run into issues."
   # Display the current test that is running
@@ -305,7 +318,7 @@ diagnose_operating_system() {
     # display the attributes to the user from the function made earlier
     get_distro_attributes || \
     # If it doesn't exist, it's not a system we currently support and link to FAQ
-    log_write "${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC} (${COL_CYAN}${FAQ_HARDWARE_REQUIREMENTS}${COL_NC})"
+    log_write "${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})"
 }
 
 processor_check() {
