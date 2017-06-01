@@ -19,7 +19,7 @@ set -o pipefail
 #IFS=$'\n\t'
 
 ######## GLOBAL VARS ########
-SUPPORTED_OS=("Raspbian" "Ubduntu" "Fedora" "Debian" "CentOS")
+SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
 VARSFILE="/etc/pihole/setupVars.conf"
 DEBUG_LOG="/var/log/pihole_debug.log"
@@ -38,11 +38,6 @@ WHITELISTMATCHES="/tmp/whitelistmatches.list"
 readonly FTLLOG="/var/log/pihole-FTL.log"
 coltable=/opt/pihole/COL_TABLE
 
-# FAQ URLs
-FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
-FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
-FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273${COL_NC}"
-
 # These provide the colors we need for making the log more readable
 if [[ -f ${coltable} ]]; then
   source ${coltable}
@@ -57,6 +52,13 @@ else
   DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
   OVER="\r\033[K"
 fi
+
+# FAQ URLs
+FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
+FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
+FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273${COL_NC}"
+FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/{PLACEHOLDER}${COL_NC}"
+FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 
 source_setup_variables() {
   # Display the current test that is running
@@ -271,7 +273,7 @@ is_os_supported() {
   the_os=$(echo ${os_to_check} | sed 's/ .*//')
   case "${the_os}" in
     "Raspbian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
-    "Ubsuntu") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+    "Ubuntu") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
     "Fedora") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
     "Debian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
     "CentOS") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
@@ -342,6 +344,37 @@ parse_setup_vars() {
     log_write "${CROSS} ${COL_LIGHT_RED}Could not read ${VARSFILE}.${COL_NC}"
 }
 
+does_ip_match_setup_vars() {
+  # Check for IPv4 or 6
+  local protocol="${1}"
+  # IP address to check for
+  local ip_address="${2}"
+  # See what IP is in the setupVars.conf file
+  local setup_vars_ip=$(cat ${VARSFILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
+  # If it's an IPv6 address
+  if [[ "${protocol}" == "6" ]]; then
+    # Strip off the /
+    if [[ "${ip_address%/*}" == "${setup_vars_ip}" ]]; then
+      # if it matches, show it in green
+      log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC}"
+    else
+      # otherwise show it in red with an FAQ URL
+      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} (${FAQ_ULA})"
+    fi
+
+  else
+    # if the protocol isn't 6, it's 4 so no need to strip the CIDR notation
+    # since it exists in the setupVars.conf that way
+    if [[ "${ip_address}" == "${setup_vars_ip}" ]]; then
+      # show in green if it matches
+      log_write "   ${COL_LIGHT_GREEN}${ip_address}${COL_NC}"
+    else
+      # otherwise show it in red
+      log_write "   ${COL_LIGHT_RED}${ip_address}${COL_NC} (${FAQ_ULA})"
+    fi
+  fi
+}
+
 detect_ip_addresses() {
   # First argument should be a 4 or a 6
   local protocol=${1}
@@ -359,7 +392,8 @@ detect_ip_addresses() {
     # Since there may be more than one IP address, store them in an array
     for i in "${!ip_addr_list[@]}"; do
       # For each one in the list, print it out
-      log_write "   ${ip_addr_list[$i]}"
+      does_ip_match_setup_vars "${protocol}" "${ip_addr_list[$i]}"
+      # log_write "   ${ip_addr_list[$i]}"
     done
     log_write ""
   else
@@ -367,25 +401,36 @@ detect_ip_addresses() {
     log_write "${CROSS} ${COL_LIGHT_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interace.\n"
     return 1
   fi
+  # If the protocol is v6
+  if [[ "${protocol}" == "6" ]]; then
+    # let the user know that as long as there is one green address, things should be ok
+    log_write "   ^ Please note that you may have more than one IPv${protocol} address listed."
+    log_write "   As long as one of them is green, it matches what is in ${VARSFILE} so there is no need for concern.\n"
+    log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it."
+  fi
 }
 
-
-ping_gateway() {
-  # First argument should be a 4 or a 6
+ping_ipv4_or_ipv6() {
+  # Give the first argument a readable name (a 4 or a six should be the argument)
   local protocol="${1}"
   # If the protocol is 6,
   if [[ ${protocol} == "6" ]]; then
     # use ping6
-    local cmd="ping6"
+    cmd="ping6"
     # and Google's public IPv6 address
-    local public_address="2001:4860:4860::8888"
+    public_address="2001:4860:4860::8888"
   else
     # Otherwise, just use ping
-    local cmd="ping"
+    cmd="ping"
     # and Google's public IPv4 address
-    local public_address="8.8.8.8"
+    public_address="8.8.8.8"
   fi
+}
 
+ping_gateway() {
+  local protocol="${1}"
+  ping_ipv4_or_ipv6 "${protocol}"
+  # Check if we are using IPv4 or IPv6
   # Find the default gateway using IPv4 or IPv6
   local gateway
   gateway="$(ip -${protocol} route | grep default | cut -d ' ' -f 3)"
@@ -394,13 +439,13 @@ ping_gateway() {
   if [[ -n "${gateway}" ]]; then
     log_write "${INFO} Default IPv${protocol} gateway: ${gateway}"
     # Let the user know we will ping the gateway for a response
-    log_write "* Pinging IPv${protocol} gateway..."
+    log_write "* Pinging ${gateway}..."
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
-    if ! ${cmd} -c 3 -W 3 -n ${gateway} -I ${PIHOLE_INTERFACE} | tail -n 3; then
+    if ! ${cmd} -c 3 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
       # let the user know
-      log_write "${CROSS} ${COL_LIGHT_RED}Gateway did not respond.${COL_NC}"
+      log_write "${CROSS} ${COL_LIGHT_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\n"
       # and return an error code
       return 1
     # Otherwise,
@@ -414,23 +459,11 @@ ping_gateway() {
 }
 
 ping_internet() {
-  # Give the first argument a readable name (a 4 or a six should be the argument)
   local protocol="${1}"
-  # If the protocol is 6,
-  if [[ ${protocol} == "6" ]]; then
-    # use ping6
-    local cmd="ping6"
-    # and Google's public IPv6 address
-    local public_address="2001:4860:4860::8888"
-  else
-    # Otherwise, just use ping
-    local cmd="ping"
-    # and Google's public IPv4 address
-    local public_address="8.8.8.8"
-  fi
+  ping_ipv4_or_ipv6 "${protocol}"
   log_write "* Checking Internet connectivity via IPv${protocol}..."
   # Try to ping the address 3 times
-  if ! ping_inet="$(${cmd} -W 3 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} | tail -n 3)"; then
+  if ! ${cmd} -W 2 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
     # if it's unsuccessful, show an error
     log_write "${CROSS} ${COL_LIGHT_RED}Cannot reach the Internet.${COL_NC}\n"
     return 1
@@ -658,8 +691,12 @@ parse_file() {
   local file_lines
   # For each line in the file,
   for file_lines in "${file_info[@]}"; do
-      # Display the file's content
+    if [[ ! -z "${file_lines}" ]]; then
+      # don't include the Web password hash
+      [[ "${file_linesline}" =~ ^\#.*$  || ! "${file_lines}" || "${file_lines}" == "WEBPASSWORD="* ]] && continue
+      # otherwise, display the lines of the file
       log_write "    ${file_lines}"
+    fi
   done
   # Set the IFS back to what it was
   IFS="$OLD_IFS"
@@ -823,15 +860,15 @@ upload_to_tricorder() {
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
 		log_write "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder_token}${COL_NC}"
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
-
-		log_write "   * Provide this token to the Pi-hole team for assistance:"
+    log_write ""
+		log_write "   * Provide this token to the Pi-hole team for assistance at"
 		log_write "   * ${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
-    log_write "   * Your log will self-destruct after ${COL_LIGHT_RED}48 hours${COL_NC}."
+    log_write "   * Your log will self-destruct on our server after ${COL_LIGHT_RED}48 hours${COL_NC}."
 	else
 		log_write "${CROSS}  ${COL_LIGHT_RED}There was an error uploading your debug log.${COL_NC}"
 		log_write "   * Please try again or contact the Pi-hole team for assistance."
 	fi
-		log_write "   * A local copy of the debug log can be found at : ${COL_CYAN}${DEBUG_LOG}${COL_NC}\n"
+		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${DEBUG_LOG}${COL_NC}\n"
 }
 
 # Run through all the functions we made
