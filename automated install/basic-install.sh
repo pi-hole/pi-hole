@@ -327,15 +327,43 @@ chooseInterface() {
   fi
 }
 
+# See https://github.com/pi-hole/pi-hole/issues/1473#issuecomment-301745953
+testIPv6() {
+  first="$(cut -f1 -d":" <<< "$1")"
+  value1=$(((0x$first)/256))
+  value2=$(((0x$first)%256))
+  ((($value1&254)==252)) && echo "ULA" || true
+  ((($value1&112)==32)) && echo "GUA" || true
+  ((($value1==254) && (($value2&192)==128))) && echo "Link-local" || true
+}
+
 useIPv6dialog() {
-  # Show the IPv6 address used for blocking
-  IPV6_ADDRESS=$(ip -6 route get 2001:4860:4860::8888 | grep -v "unreachable" | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+  # Determine the IPv6 address used for blocking
+  IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
+
+  # Determine type of found IPv6 addresses
+  for i in "${IPV6_ADDRESSES[@]}"; do
+    result=$(testIPv6 "$i")
+    [[ "${result}" == "ULA" ]] && ULA_ADDRESS="$i"
+    [[ "${result}" == "GUA" ]] && GUA_ADDRESS="$i"
+  done
+
+  # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
+  if [[ ! -z "${ULA_ADDRESS}" ]]; then
+    IPV6_ADDRESS="${ULA_ADDRESS}"
+    echo "::: Found IPv6 ULA address, using it for blocking IPv6 ads"
+  elif [[ ! -z "${GUA_ADDRESS}" ]]; then
+    echo "::: Found IPv6 GUA address, using it for blocking IPv6 ads"
+    IPV6_ADDRESS="${GUA_ADDRESS}"
+  else
+    echo "::: Found neither IPv6 ULA nor GUA address, blocking IPv6 ads will not be enabled"
+    IPV6_ADDRESS=""
+  fi
 
   if [[ ! -z "${IPV6_ADDRESS}" ]]; then
     whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." ${r} ${c}
   fi
 }
-
 
 use4andor6() {
   local useIPv4
