@@ -435,6 +435,21 @@ def test_FTL_telnet_statistics(Pihole):
     assert 'queries_forwarded 3' in FTLtest.stdout
     assert 'queries_cached 2' in FTLtest.stdout
 
+def test_FTL_telnet_top_clients(Pihole):
+    ''' confirms FTL binary is copied and functional in installed location and through telnet '''
+    FTLtest = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    source /etc/.pihole/test/FTL-test.sh
+    FTL_prepare_files
+    FTLdetect
+    pihole-FTL
+    sleep 1
+    FTL_get_stats
+    ''')
+    assert '0 2 192.168.2.208' in FTLtest.stdout
+    assert '1 2 127.0.0.1' in FTLtest.stdout
+    assert '2 1 10.8.0.2' in FTLtest.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
