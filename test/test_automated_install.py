@@ -444,11 +444,27 @@ def test_FTL_telnet_top_clients(Pihole):
     FTLdetect
     pihole-FTL
     sleep 1
-    FTL_get_stats
+    FTL_get_top_clients
     ''')
     assert '0 2 192.168.2.208' in FTLtest.stdout
     assert '1 2 127.0.0.1' in FTLtest.stdout
     assert '2 1 10.8.0.2' in FTLtest.stdout
+
+def test_FTL_telnet_top_domains(Pihole):
+    ''' confirms FTL binary is copied and functional in installed location and through telnet '''
+    FTLtest = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    source /etc/.pihole/test/FTL-test.sh
+    FTL_prepare_files
+    FTLdetect
+    pihole-FTL
+    sleep 1
+    FTL_get_top_domains
+    ''')
+    assert '0 2 play.google.com' in FTLtest.stdout
+    assert '1 1 pi.hole' in FTLtest.stdout
+    assert '2 1 checkip.dyndns.org' in FTLtest.stdout
+    assert '3 1 raspberrypi' in FTLtest.stdout
 
 # Helper functions
 def mock_command(script, args, container):
