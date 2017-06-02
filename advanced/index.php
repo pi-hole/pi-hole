@@ -92,8 +92,8 @@ if($uri == "/")
 <head>
 	<meta charset='UTF-8'/>
 	<title>Website Blocked</title>
-	<link rel='stylesheet' href='http://pi.hole/pihole/blockingpage.css'/>
-	<link rel='shortcut icon' href='http://pi.hole/admin/img/favicon.png' type='image/png'/>
+	<link rel='stylesheet' href='/pihole/blockingpage.css'/>
+	<link rel='shortcut icon' href='/admin/img/favicon.png' type='image/png'/>
 	<meta name='viewport' content='width=device-width,initial-scale=1.0,maximum-scale=1.0, user-scalable=no'/>
 	<meta name='robots' content='noindex,nofollow'/>
 </head>
@@ -130,7 +130,7 @@ if($uri == "/")
 		</div>
 </main>
 <footer>Generated <?php echo date('D g:i A, M d'); ?> by Pi-hole <?php echo $piHoleVersion; ?></footer>
-<script src="http://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+<script src="/admin/scripts/vendor/jquery.min.js"></script>
 <script>
 // Create event for when the output is appended to
 (function($) {
@@ -141,7 +141,7 @@ if($uri == "/")
     };
 })(jQuery);
 </script>
-<script src="http://pi.hole/admin/scripts/pi-hole/js/queryads.js"></script>
+<script src="/admin/scripts/pi-hole/js/queryads.js"></script>
 <script>
 function inIframe () {
     try {
