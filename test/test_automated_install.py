@@ -402,7 +402,6 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 #     assert '644 /run/pihole-FTL.pid' in support_files.stdout
 #     assert '644 /var/log/pihole-FTL.log' in support_files.stdout
 
-
 def test_FTL_binary_installed_and_listening_on_telnet(Pihole):
     ''' confirms FTL binary is copied and functional in installed location and through telnet '''
     FTLtest = Pihole.run('''
@@ -411,6 +410,7 @@ def test_FTL_binary_installed_and_listening_on_telnet(Pihole):
     FTL_prepare_files
     FTLdetect
     pihole-FTL
+    sleep 1
     FTL_get_version
     ''')
     assert 'version' in FTLtest.stdout
