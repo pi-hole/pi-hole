@@ -425,7 +425,7 @@ def test_IPv6_only_ULA(Pihole):
     assert expected_stdout in detectPlatform.stdout
 
 def test_IPv6_only_GUA(Pihole):
-    ''' confirms IPv6 blocking is disabled enabled for GUA addresses '''
+    ''' confirms IPv6 blocking is enabled enabled for GUA addresses '''
     # mock ip -6 address to return GUA address
     mock_command_2('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
