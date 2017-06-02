@@ -402,6 +402,22 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 #     assert '644 /run/pihole-FTL.pid' in support_files.stdout
 #     assert '644 /var/log/pihole-FTL.log' in support_files.stdout
 
+
+def test_FTL_binary_installed_and_listening_on_telnet(Pihole):
+    ''' confirms FTL binary is copied and functional in installed location and through telnet '''
+    FTLtest = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    source /etc/.pihole/test/FTL-test.sh
+    FTL_prepare_files
+    FTLdetect
+    pihole-FTL
+    FTL_get_version
+    ''')
+    assert 'version' in FTLtest.stdout
+    assert 'tag' in FTLtest.stdout
+    assert 'branch' in FTLtest.stdout
+    assert 'date' in FTLtest.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
