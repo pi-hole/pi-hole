@@ -114,15 +114,26 @@ if command -v apt-get &> /dev/null; then
   DNSMASQ_USER="dnsmasq"
 
   test_dpkg_lock() {
-    i=0
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-      sleep 0.5
-      ((i=i+1))
+    # Account for cloud init type installs that autorun apt on boot
+    local maxtries
+    local retVal
+    maxtries=420
+
+    for i in $(seq 1 $maxtries);
+    do
+      "${UPDATE_PKG_CACHE}"
+      retVal=$?
+      # if we find lock condition
+      if [[ $retVal -eq 100 ]]; then
+        sleep 5
+      elif [[ $retVal -eq 0 ]]; then
+        return 0
+      fi
     done
-    # Always return success, since we only return if there is no
-    # lock (anymore)
-    return 0
+    # Counter timed out, and we didn't return already, error
+    return 1
   }
+
 
 elif command -v rpm &> /dev/null; then
   # Fedora Family
@@ -146,6 +157,11 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
+
+  test_dpkg_lock() {
+  # Dummy function
+  :
+  }
 
 else
   echo "OS distribution not supported"
@@ -789,7 +805,6 @@ update_package_cache() {
   if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
     echo " done!"
   else
-    echo -en "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""
     return 1
   fi
 }
@@ -839,7 +854,7 @@ install_dependent_packages() {
     if [[ ${#installArray[@]} -gt 0 ]]; then
       test_dpkg_lock
       debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
-      return
+      return $?
     fi
       return 0
   fi
@@ -1368,13 +1383,23 @@ main() {
   fi
 
   # Update package cache
-  update_package_cache || exit 1
+  if test_dpkg_lock; then
+   update_package_cache || { echo -en "\n!!! ERROR - Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\""; exit 1; }
+  else
+    echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+    exit 1
+  fi
 
   # Notify user of package availability
   notify_package_updates_available
 
   # Install packages used by this installation script
-  install_dependent_packages INSTALLER_DEPS[@]
+  if test_dpkg_lock; then
+    install_dependent_packages INSTALLER_DEPS[@]  || { echo "Unable to install required packages, please try again."; exit 1; }
+  else
+    echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+    exit 1
+  fi
 
    # Check if SELinux is Enforcing
   checkSelinux
@@ -1411,8 +1436,13 @@ main() {
     else
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
-    install_dependent_packages DEPS[@]
 
+    if test_dpkg_lock; then
+      install_dependent_packages DEPS[@]  || { echo "Unable to install required packages, please try again."; exit 1; }
+    else
+      echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+      exit 1
+    fi
 
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
@@ -1429,7 +1459,13 @@ main() {
     else
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
-    install_dependent_packages DEPS[@]
+
+    if test_dpkg_lock; then
+      install_dependent_packages DEPS[@]  || { echo "Unable to install required packages, please try again."; exit 1; }
+    else
+      echo "Unable to lock package cache, please run ${UPDATE_PKG_CACHE} and try again."
+      exit 1
+    fi
 
     updatePihole | tee ${tmpLog}
   fi
