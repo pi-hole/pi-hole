@@ -435,6 +435,28 @@ def test_IPv6_only_GUA(Pihole):
     expected_stdout = 'Found IPv6 GUA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
 
+def test_IPv6_GUA_ULA_test(Pihole):
+    ''' confirms IPv6 blocking is disabled for  '''
+    # mock ip -6 address to return Link-local address
+    mock_command('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global\ninet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    useIPv6dialog
+    ''')
+    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    assert expected_stdout in detectPlatform.stdout
+
+def test_IPv6_ULA_GUA_test(Pihole):
+    ''' confirms IPv6 blocking is disabled for  '''
+    # mock ip -6 address to return Link-local address
+    mock_command('ip', {'-6 address':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global\ninet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    useIPv6dialog
+    ''')
+    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    assert expected_stdout in detectPlatform.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
