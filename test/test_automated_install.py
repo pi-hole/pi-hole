@@ -402,7 +402,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 #     assert '644 /run/pihole-FTL.pid' in support_files.stdout
 #     assert '644 /var/log/pihole-FTL.log' in support_files.stdout
 
-def test_FTL_binary_installed_and_listening_on_telnet(Pihole):
+def test_FTL_telnet_version(Pihole):
     ''' confirms FTL binary is copied and functional in installed location and through telnet '''
     FTLtest = Pihole.run('''
     source /opt/pihole/basic-install.sh
@@ -417,6 +417,23 @@ def test_FTL_binary_installed_and_listening_on_telnet(Pihole):
     assert 'tag' in FTLtest.stdout
     assert 'branch' in FTLtest.stdout
     assert 'date' in FTLtest.stdout
+
+def test_FTL_telnet_statistics(Pihole):
+    ''' confirms FTL binary is copied and functional in installed location and through telnet '''
+    FTLtest = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    source /etc/.pihole/test/FTL-test.sh
+    FTL_prepare_files
+    FTLdetect
+    pihole-FTL
+    sleep 1
+    FTL_get_stats
+    ''')
+    assert 'domains_being_blocked' in FTLtest.stdout
+    assert 'dns_queries_today 5' in FTLtest.stdout
+    assert 'unique_domains 4' in FTLtest.stdout
+    assert 'queries_forwarded 3' in FTLtest.stdout
+    assert 'queries_cached 2' in FTLtest.stdout
 
 # Helper functions
 def mock_command(script, args, container):

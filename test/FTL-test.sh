@@ -25,6 +25,18 @@ FTL_get_version() {
   FTL_communicate "version"
 }
 
+FTL_get_stats() {
+  FTL_communicate "stats"
+}
+
+FTL_get_top_clients() {
+  FTL_communicate "top-clients"
+}
+
+FTL_get_top_domains() {
+  FTL_communicate "top-domains"
+}
+
 FTL_prepare_files() {
   ts=$(dnsmasq_pre)
 cat <<EOT >> /var/log/pihole.log
