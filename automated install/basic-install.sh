@@ -702,11 +702,11 @@ installScripts() {
   # Install files from local core repository
   if is_repo "${PI_HOLE_LOCAL_REPO}"; then
     cd "${PI_HOLE_LOCAL_REPO}"
-    install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-    install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
+    install -o "${USER:-root}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+    install -o "${USER:-root}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
+    install -o "${USER:-root}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
+    install -o "${USER:-root}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
+    install -o "${USER:-root}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
     echo " done."
   else
