@@ -629,8 +629,8 @@ version_check_dnsmasq() {
   local dnsmasq_conf="/etc/dnsmasq.conf"
   local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
   local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
-  local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
-  local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
+  local dnsmasq_original_config="/etc/.pihole/advanced/dnsmasq.conf.original"
+  local dnsmasq_pihole_01_snippet="/etc/.pihole/advanced/01-pihole.conf"
   local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
 
   if [ -f ${dnsmasq_conf} ]; then
@@ -716,9 +716,9 @@ installScripts() {
 }
 
 installConfigs() {
-  # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
+  # Install the configs from /etc/.pihole to their various locations
   echo ":::"
-  echo "::: Installing configs from ${PI_HOLE_LOCAL_REPO}..."
+  echo "::: Installing configs..."
   version_check_dnsmasq
 
   #Only mess with lighttpd configs if user has chosen to install web interface
@@ -729,7 +729,7 @@ installConfigs() {
     elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
       mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
     fi
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    cp /etc/.pihole/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
     mkdir -p /var/run/lighttpd
     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
     mkdir -p /var/cache/lighttpd/compress
@@ -884,7 +884,7 @@ installPiholeWeb() {
       echo ":::     Existing index.php detected, not overwriting"
     else
       echo -n ":::     index.php missing, replacing... "
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
+      cp /etc/.pihole/advanced/index.php /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -892,7 +892,7 @@ installPiholeWeb() {
       echo ":::     Existing index.js detected, not overwriting"
     else
       echo -n ":::     index.js missing, replacing... "
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
+      cp /etc/.pihole/advanced/index.js /var/www/html/pihole/
       echo " done!"
     fi
 
@@ -900,14 +900,14 @@ installPiholeWeb() {
       echo ":::     Existing blockingpage.css detected, not overwriting"
     else
       echo -n ":::     blockingpage.css missing, replacing... "
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
+      cp /etc/.pihole/advanced/blockingpage.css /var/www/html/pihole
       echo " done!"
     fi
 
   else
     echo ":::     Creating directory for blocking page"
     install -d /var/www/html/pihole
-    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+    install -D /etc/.pihole/advanced/{index,blockingpage}.* /var/www/html/pihole/
     if [ -f /var/www/html/index.lighttpd.html ]; then
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     else
@@ -920,7 +920,7 @@ installPiholeWeb() {
   echo ":::"
   echo -n "::: Installing sudoer file..."
   mkdir -p /etc/sudoers.d/
-  cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole
+  cp /etc/.pihole/advanced/pihole.sudo /etc/sudoers.d/pihole
   # Add lighttpd user (OS dependent) to sudoers file
   echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -938,7 +938,7 @@ installCron() {
   # Install the cron job
   echo ":::"
   echo -n "::: Installing latest Cron script..."
-  cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
+  cp /etc/.pihole/advanced/pihole.cron /etc/cron.d/pihole
   echo " done!"
 }
 
@@ -952,7 +952,7 @@ runGravity() {
   fi
   # Test if /etc/pihole/adlists.default exists
   if [[ ! -e /etc/pihole/adlists.default ]]; then
-    cp ${PI_HOLE_LOCAL_REPO}/adlists.default /etc/pihole/adlists.default
+    cp /etc/.pihole/adlists.default /etc/pihole/adlists.default
   fi
   echo "::: Running gravity.sh"
   { /opt/pihole/gravity.sh; }
@@ -1028,7 +1028,7 @@ finalExports() {
 
   # Look for DNS server settings which would have to be reapplied
   source "${setupVars}"
-  source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
+  source "/etc/.pihole/advanced/Scripts/webpage.sh"
 
   if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
     ProcessDNSSettings
@@ -1043,7 +1043,7 @@ installLogrotate() {
   # Install the logrotate script
   echo ":::"
   echo -n "::: Installing latest logrotate script..."
-  cp ${PI_HOLE_LOCAL_REPO}/advanced/logrotate /etc/pihole/logrotate
+  cp /etc/.pihole/advanced/logrotate /etc/pihole/logrotate
   # Different operating systems have different user / group
   # settings for logrotate that makes it impossible to create
   # a static logrotate file that will work with e.g.
