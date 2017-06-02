@@ -405,7 +405,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 def test_IPv6_only_link_local(Pihole):
     ''' confirms IPv6 blocking is disabled for  '''
     # mock ip -6 address to return Link-local address
-    mock_command('ip', {'-6 address':('inet6 fe80::d210:52fa:fe00:7ad7/64 scope link', '0')}, Pihole)
+    mock_command('ip', {'"-6 address"':('inet6 fe80::d210:52fa:fe00:7ad7/64 scope link', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -416,7 +416,7 @@ def test_IPv6_only_link_local(Pihole):
 def test_IPv6_only_ULA(Pihole):
     ''' confirms IPv6 blocking is disabled for  '''
     # mock ip -6 address to return Link-local address
-    mock_command('ip', {'-6 address':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command('ip', {'"-6 address"':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -427,7 +427,7 @@ def test_IPv6_only_ULA(Pihole):
 def test_IPv6_only_GUA(Pihole):
     ''' confirms IPv6 blocking is disabled for  '''
     # mock ip -6 address to return Link-local address
-    mock_command('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command('ip', {'"-6 address"':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -438,7 +438,7 @@ def test_IPv6_only_GUA(Pihole):
 def test_IPv6_GUA_ULA_test(Pihole):
     ''' confirms IPv6 blocking is disabled for  '''
     # mock ip -6 address to return Link-local address
-    mock_command('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global\ninet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command('ip', {'"-6 address"':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global\ninet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -449,7 +449,7 @@ def test_IPv6_GUA_ULA_test(Pihole):
 def test_IPv6_ULA_GUA_test(Pihole):
     ''' confirms IPv6 blocking is disabled for  '''
     # mock ip -6 address to return Link-local address
-    mock_command('ip', {'-6 address':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global\ninet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command('ip', {'"-6 address"':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global\ninet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
