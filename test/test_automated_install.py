@@ -402,6 +402,17 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 #     assert '644 /run/pihole-FTL.pid' in support_files.stdout
 #     assert '644 /var/log/pihole-FTL.log' in support_files.stdout
 
+def test_IPv6_only_link_local(Pihole):
+    ''' confirms IPv6 blocking is disabled for  '''
+    # mock ip -6 address to return Link-local address
+    mock_command('ip', {'-6 address':('inet6 fe80::d210:52fa:fe00:7ad7/64 scope link', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    useIPv6dialog
+    ''')
+    expected_stdout = 'Found neither IPv6 ULA nor GUA address, blocking IPv6 ads will not be enabled'
+    assert expected_stdout in detectPlatform.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''

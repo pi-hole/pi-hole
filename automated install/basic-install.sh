@@ -351,9 +351,12 @@ useIPv6dialog() {
   # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
   if [[ ! -z "${ULA_ADDRESS}" ]]; then
     IPV6_ADDRESS="${ULA_ADDRESS}"
+    echo "::: Found IPv6 ULA address, using it for blocking IPv6 ads"
   elif [[ ! -z "${GUA_ADDRESS}" ]]; then
+    echo "::: Found IPv6 GUA address, using it for blocking IPv6 ads"
     IPV6_ADDRESS="${GUA_ADDRESS}"
   else
+    echo "::: Found neither IPv6 ULA nor GUA address, blocking IPv6 ads will not be enabled"
     IPV6_ADDRESS=""
   fi
 
