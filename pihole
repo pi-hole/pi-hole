@@ -423,5 +423,6 @@ case "${1}" in
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
+  "tricorder"                   ) tricorderFunc;;
   *                             ) helpFunc;;
 esac
