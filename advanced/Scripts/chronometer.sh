@@ -32,43 +32,74 @@ pihole-FTL() {
       exec 3<&-
    fi
   else
-    echo -e "${COL_LIGHT_RED}FTL offline${COL_NC}"
+    echo "0"
   fi
 }
 
-# Print spaces to align right-side content
+# Print spaces to align right-side additional text
 printFunc() {
-  txt_len="${#2}"
+  local text_last
   
-  # Reduce string length when using colour code
-  [ "${2:0:1}" == "" ] && txt_len=$((txt_len-7))
+  title="$1"
+  title_len="${#title}"
   
-  if [[ "$3" == "last" ]]; then
-    # Prevent final line from printing trailing newline
-    scr_size=( $(stty size 2>/dev/null || echo 24 80) )
-    scr_width="${scr_size[1]}"
-    
-    title_len="${#1}"
-    spc_num=$(( (scr_width - title_len) - txt_len ))
-    [[ "$spc_num" -lt 0 ]] && spc_num="0"
-    spc=$(printf "%${spc_num}s")
-    
-    printf "%s%s$spc" "$1" "$2"
+  text_main="$2"
+  text_main_nocol="$text_main"
+  if [[ "${text_main:0:1}" == "" ]]; then
+    text_main_nocol=$(sed 's/\[[0-9;]\{1,5\}m//g' <<< "$text_main")
+  fi
+  text_main_len="${#text_main_nocol}"
+  
+  text_addn="$3"
+  if [[ "$text_addn" == "last" ]]; then
+    text_addn=""
+    text_last="true"
+  fi
+  
+  # If there is additional text, define max length of text_main
+  if [[ -n "$text_addn" ]]; then
+    case "$scr_cols" in
+      [0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-4]) text_main_max_len="9" ;;
+      4[5-9]) text_main_max_len="14" ;;
+      *) text_main_max_len="19" ;;
+    esac
+ fi
+ 
+ [[ -z "$text_addn" ]] && text_main_max_len="$(( scr_cols - title_len ))"
+ 
+  # Remove excess characters from main text
+  if [[ "$text_main_len" -gt "$text_main_max_len" ]]; then
+    # Trim text without colours
+    text_main_trim="${text_main_nocol:0:$text_main_max_len}"
+    # Replace with trimmed text
+    text_main="${text_main/$text_main_nocol/$text_main_trim}"
+  fi
+  
+  # Determine amount of spaces for each line
+  if [[ -n "$text_last" ]]; then
+    # Move cursor to end of screen
+    spc_num=$(( scr_cols - ( title_len + text_main_len ) ))
   else
-    # Determine number of spaces for padding
-    spc_num=$(( 20 - txt_len ))
-    [[ "$spc_num" -lt 0 ]] && spc_num="0"
-    spc=$(printf "%${spc_num}s")
+    spc_num=$(( text_main_max_len - text_main_len ))
+  fi
+  
+  [[ "$spc_num" -le 0 ]] && spc_num="0"
+  spc=$(printf "%${spc_num}s")
+  #spc="${spc// /.}" # Debug: Visualise spaces
 
-    # Print string (Max 20 characters, prevents overflow)
-    printf "%s%s$spc" "$1" "${2:0:20}"
+  printf "%s%s$spc" "$title" "$text_main"
+  
+  if [[ -n "$text_addn" ]]; then
+    printf "%s(%s)%s\n" "$COL_NC$COL_DARK_GRAY" "$text_addn" "$COL_NC"
+  else
+    # Do not print trailing newline on final line
+    [[ -z "$text_last" ]] && printf "%s\n" "$COL_NC"
   fi
 }
 
 # Perform on first Chrono run (not for JSON formatted string)
 get_init_stats() {
-  LC_NUMERIC=C
-  calcFunc(){ awk "BEGIN {print $*}"; }
+  calcFunc(){ awk "BEGIN {print $*}" 2> /dev/null; }
 
   # Convert bytes to human-readable format
   hrBytes() {
@@ -90,11 +121,12 @@ get_init_stats() {
 
   # Convert seconds to human-readable format
   hrSecs() { 
-    day=$(( $1/60/60/24 )); hrs=$(( $1/3600%24 )); mins=$(( ($1%3600)/60 )); secs=$(( $1%60 ))
+    day=$(( $1/60/60/24 )); hrs=$(( $1/3600%24 ))
+    mins=$(( ($1%3600)/60 )); secs=$(( $1%60 ))
     [[ "$day" -ge "2" ]] && plu="s"
     [[ "$day" -ge "1" ]] && days="$day day${plu}, " || days=""
     printf "%s%02d:%02d:%02d\n" "$days" "$hrs" "$mins" "$secs"
-  }
+  } 
 
   # Set Colour Codes
   coltable="/opt/pihole/COL_TABLE"
@@ -111,8 +143,24 @@ get_init_stats() {
     COL_URG_RED='[39;41m'
   fi
 
-  # Get RPi model number, or OS distro info
+  # Get RPi throttle state (RPi 3B only) & model number, or OS distro info
   if command -v vcgencmd &> /dev/null; then
+    sys_throttle_raw=$(vgt=$(sudo vcgencmd get_throttled); echo "${vgt##*x}")
+    
+    # Active Throttle Notice: http://bit.ly/2gnunOo
+    if [[ "$sys_throttle_raw" != "0" ]]; then
+      case "$sys_throttle_raw" in
+        *0001) thr_type="${COL_YELLOW}Under Voltage" ;;
+        *0002) thr_type="${COL_LIGHT_BLUE}Arm Freq Cap" ;;
+        *0003) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_BLUE}AFC" ;;
+        *0004) thr_type="${COL_LIGHT_RED}Throttled" ;;
+        *0005) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT" ;;
+        *0006) thr_type="${COL_LIGHT_BLUE}AFC${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT" ;;
+        *0007) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_BLUE}AFC${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT" ;;
+      esac
+      [[ -n "$thr_type" ]] && sys_throttle="$thr_type${COL_DARK_GRAY}"
+    fi
+    
     sys_rev=$(awk '/Revision/ {print $3}' < /proc/cpuinfo)
     case "$sys_rev" in
       000[2-6]) sys_model=" 1, Model B";; # 256MB
@@ -137,7 +185,6 @@ get_init_stats() {
 
   # Get core count
   sys_cores=$(grep -c "^processor" /proc/cpuinfo)
-  [[ "$sys_cores" -ne 1 ]] && sys_cores_plu="cores" || sys_cores_plu="core"
 
   # Test existence of clock speed file for ARM CPU
   if [[ -f "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq" ]]; then
@@ -177,7 +224,7 @@ get_sys_stats() {
       ph_lte_ver="${ph_ver_raw[1]}"
       ph_ftl_ver="${ph_ver_raw[2]}"
     else
-      ph_core_ver="${COL_LIGHT_RED}API unavailable${COL_NC}"
+      ph_core_ver="${COL_LIGHT_RED}Offline${COL_NC}"
     fi
     
     sys_name=$(hostname)
@@ -194,26 +241,39 @@ get_sys_stats() {
     
     # Get DHCP stats, if feature is enabled
     if [[ "$DHCP_ACTIVE" == "true" ]]; then
-      ph_dhcp_eip="${DHCP_END##*.}"
       ph_dhcp_max=$(( ${DHCP_END##*.} - ${DHCP_START##*.} + 1 ))
     fi
     
-    # Get alt DNS server, or print total count of alt DNS servers
-    if [[ -z "${PIHOLE_DNS_3}" ]]; then
-      ph_alts="${PIHOLE_DNS_2}"
-    else
-      dns_count="0"
-      [[ -n "${PIHOLE_DNS_2}" ]] && dns_count=$((dns_count+1))
-      [[ -n "${PIHOLE_DNS_3}" ]] && dns_count=$((dns_count+1))
-      [[ -n "${PIHOLE_DNS_4}" ]] && dns_count=$((dns_count+1))
-      [[ -n "${PIHOLE_DNS_5}" ]] && dns_count=$((dns_count+1))
-      [[ -n "${PIHOLE_DNS_6}" ]] && dns_count=$((dns_count+1))
-      [[ -n "${PIHOLE_DNS_7}" ]] && dns_count=$((dns_count+1))
-      [[ -n "${PIHOLE_DNS_8}" ]] && dns_count=$((dns_count+1))
-      [[ -n "${PIHOLE_DNS_9}" ]] && dns_count="$dns_count+"
-      ph_alts="${dns_count} others"
-    fi
+    # Get DNS server count
+    dns_count="0"
+    [[ -n "${PIHOLE_DNS_1}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_2}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_3}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_4}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_5}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_6}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_7}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_8}" ]] && dns_count=$((dns_count+1))
+    [[ -n "${PIHOLE_DNS_9}" ]] && dns_count="$dns_count+"
   fi
+  
+  scr_size=( $(stty size 2>/dev/null || echo 24 80) )
+  scr_lines="${scr_size[0]}"
+  scr_cols="${scr_size[1]}"
+  
+  if [[ "$scr_cols" -ge 58 ]]; then
+    chrono_type="large"
+  elif [[ "$scr_cols" -gt 40 ]]; then
+    chrono_type="medium"
+  else
+    chrono_type="small"
+  fi
+  
+  # Determine max length of divider
+  scr_line_len=$(( ${scr_size[1]} - 2 ))
+  [[ "$scr_line_len" -ge 58 ]] && scr_line_len="58"
+  scr_line_str=$(printf "%${scr_line_len}s")
+  scr_line_str="${scr_line_str// /—}"
   
   sys_uptime=$(hrSecs "$(cut -d. -f1 /proc/uptime)")
   sys_loadavg=$(cut -d " " -f1,2,3 /proc/loadavg)
@@ -228,13 +288,14 @@ get_sys_stats() {
   if [[ -n "$scaling_freq_file" ]]; then
     cpu_mhz=$(( $(< /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq) / 1000 ))
   else
-    cpu_mhz=$(lscpu | awk -F "[ .]+" '/MHz/ {print $4;exit}')
+    cpu_mhz=$(lscpu | awk -F ":" '/MHz/ {print $2;exit}')
+    cpu_mhz=$(printf "%.0f" "${cpu_mhz//[[:space:]]/}")
   fi
   
   # Determine correct string format for CPU clock speed
   if [[ -n "$cpu_mhz" ]]; then
     [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000) Ghz"
-    [[ -n "$cpu_freq" ]] && cpu_freq_str=" @ $cpu_freq" || cpu_freq_str=""
+    [[ -n "$cpu_freq" ]] && cpu_freq_str="$cpu_freq" || cpu_freq_str=""
   fi
   
   # Determine colour for temperature
@@ -251,7 +312,7 @@ get_sys_stats() {
       esac
       
       # $COL_NC$COL_DARK_GRAY is needed for $COL_URG_RED
-      cpu_temp_str=", $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
+      cpu_temp_str=" @ $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
       
     elif [[ "$temp_unit" == "F" ]]; then
       cpu_temp=$(printf "%'.0ff\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
@@ -286,6 +347,7 @@ get_sys_stats() {
   
   if [[ "$DHCP_ACTIVE" == "true" ]]; then
     ph_dhcp_num=$(wc -l 2> /dev/null < "/etc/pihole/dhcp.leases")
+    ph_dhcp_percent=$(( ph_dhcp_num * 100 / ph_dhcp_max ))
   fi
 }
 
@@ -297,30 +359,69 @@ get_ftl_stats() {
   dns_queries_today_raw="${stats_raw[3]}"
   ads_blocked_today_raw="${stats_raw[5]}"
   ads_percentage_today_raw="${stats_raw[7]}"
-
+  queries_forwarded_raw="${stats_raw[11]}"
+  queries_cached_raw="${stats_raw[13]}"
+  
   # Only retrieve these stats when not called from jsonFunc
   if [[ -z "$1" ]]; then
-    local recent_blocked_raw
     local top_ad_raw
     local top_domain_raw
     local top_client_raw
-  
-    domains_being_blocked=$(printf "%'.0f\n" "${domains_being_blocked_raw}")
-    dns_queries_today=$(printf "%'.0f\n" "${dns_queries_today_raw}")
-    ads_blocked_today=$(printf "%'.0f\n" "${ads_blocked_today_raw}")
-    ads_percentage_today=$(printf "%'.0f\n" "${ads_percentage_today_raw}")
     
-    recent_blocked_raw=$(pihole-FTL recentBlocked)
+    domains_being_blocked=$(printf "%.0f\n" "${domains_being_blocked_raw}")
+    dns_queries_today=$(printf "%.0f\n" "${dns_queries_today_raw}")
+    ads_blocked_today=$(printf "%.0f\n" "${ads_blocked_today_raw}")
+    ads_percentage_today=$(printf "%'.0f\n" "${ads_percentage_today_raw}")
+    queries_cached_percentage=$(printf "%.0f\n" "$(calcFunc "$queries_cached_raw * 100 / ( $queries_forwarded_raw + $queries_cached_raw )")")
+    recent_blocked=$(pihole-FTL recentBlocked)
     top_ad_raw=($(pihole-FTL "top-ads (1)"))
     top_domain_raw=($(pihole-FTL "top-domains (1)"))
     top_client_raw=($(pihole-FTL "top-clients (1)"))
     
-    # Limit strings to 40 characters to prevent overflow
-    recent_blocked="${recent_blocked_raw:0:40}"
-    top_ad="${top_ad_raw[2]:0:40}"
-    top_domain="${top_domain_raw[2]:0:40}"
-    [[ "${top_client_raw[3]}" ]] && top_client="${top_client_raw[3]:0:40}" || top_client="${top_client_raw[2]:0:40}"
+    top_ad="${top_ad_raw[2]}"
+    top_domain="${top_domain_raw[2]}"
+    if [[ "${top_client_raw[3]}" ]]; then
+      top_client="${top_client_raw[3]}"
+    else
+      top_client="${top_client_raw[2]}"
+    fi
   fi
+}
+
+get_strings() {
+  # Expand or contract strings depending on screen size
+  if [[ "$chrono_type" == "large" ]]; then
+    phc_str="         ${COL_DARK_GRAY}Pi-hole"
+    lte_str="       ${COL_DARK_GRAY}AdminLTE"
+    ftl_str="            ${COL_DARK_GRAY}FTL"
+    
+    host_info="$sys_type"
+    sys_info="$sys_throttle"
+    sys_info2="Active: $cpu_taskact of $cpu_tasks tasks"
+    used_str="Used: "
+    leased_str="Leased: "
+    domains_being_blocked=$(sed ':a;s/\B[0-9]\{3\}\>/,&/;ta' <<< "$domains_being_blocked")
+    ph_info="Blocking: $domains_being_blocked sites"
+    total_str="Total: "
+  else
+    phc_str="    ${COL_DARK_GRAY}PH"
+    lte_str="  ${COL_DARK_GRAY}LTE"
+    ftl_str="  ${COL_DARK_GRAY}FTL"
+    ph_info="$domains_being_blocked blocked"
+  fi
+  
+  [[ "$sys_cores" -ne 1 ]] && sys_cores_txt="${sys_cores}x "
+  cpu_info="$sys_cores_txt$cpu_freq_str$cpu_temp_str"
+  ram_info="$used_str$(hrBytes "$ram_used") of $(hrBytes "$ram_total")"
+  disk_info="$used_str$(hrBytes "$disk_used") of $(hrBytes "$disk_total")"
+  
+  lan_info="Gateway: $net_gateway"
+  dhcp_info="$leased_str$ph_dhcp_num of $ph_dhcp_max"
+  
+  ads_info="$total_str$ads_blocked_today of $dns_queries_today"
+  dns_info="$dns_count DNS servers"
+  
+  [[ "$recent_blocked" == "0" ]] && recent_blocked="${COL_LIGHT_RED}FTL offline${COL_NC}"
 }
 
 chronoFunc() {
@@ -329,66 +430,84 @@ chronoFunc() {
   for (( ; ; )); do
     get_sys_stats
     get_ftl_stats
+    get_strings
     
-    # Do not print LTE/FTL strings if API is unavailable
-    ph_core_str="        ${COL_DARK_GRAY}Pi-hole: $ph_core_ver${COL_NC}"
+    # Strip excess development version numbers
+    phc_ver_str="$phc_str: ${ph_core_ver%-*}${COL_NC}"
     if [[ -n "$ph_lte_ver" ]]; then
-      ph_lte_str="      ${COL_DARK_GRAY}AdminLTE: $ph_lte_ver${COL_NC}"
-      ph_ftl_str="           ${COL_DARK_GRAY}FTL: $ph_ftl_ver${COL_NC}"
+      lte_ver_str="$lte_str: ${ph_lte_ver%-*}${COL_NC}"
+      ftl_ver_str="$ftl_str: ${ph_ftl_ver%-*}${COL_NC}"
+    fi
+    
+    # Get refresh number
+    if [[ "$*" == *"-r"* ]]; then
+      num="$*"
+      num="${num/*-r /}"
+      num="${num/ */}"
+      num_str="Refresh set for every $num seconds"
+    else
+      num_str=""
     fi
     
     clear
     
-  	echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)_[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$ph_core_str
-[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|_[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\/ [0;1;36;96m_ [0;1;34;94m\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$ph_lte_str
-[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m|  [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m$ph_ftl_str
- ${COL_DARK_GRAY}——————————————————————————————————————————————————————————${COL_NC}"
-
-    printFunc "  Hostname: " "$sys_name"
-    [ -n "$sys_type" ] && printf "%s(%s)%s\n"  "$COL_DARK_GRAY" "$sys_type" "$COL_NC" || printf "\n"
+    # Remove exit message heading on third refresh
+    if [[ "$count" -le 2 ]] && [[ "$*" != *"-e"* ]]; then
+      echo -e " ${COL_LIGHT_GREEN}Pi-hole Chronometer${COL_NC}
+ $num_str
+ ${COL_LIGHT_RED}Press Ctrl-C to exit${COL_NC}
+ ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
+    else
+      echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc_ver_str
+[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\/ [0;1;36;96m_ [0;1;34;94m\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_ver_str
+[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m| [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_ver_str
+ ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
+    fi
+ 
+    printFunc "  Hostname: " "$sys_name" "$host_info"
+    printFunc "    Uptime: " "$sys_uptime" "$sys_info"
+    printFunc " Task Load: " "$sys_loadavg" "$sys_info2"
+    printFunc " CPU usage: " "$cpu_perc%" "$cpu_info"
+    printFunc " RAM usage: " "$ram_perc%" "$ram_info"
+    printFunc " HDD usage: " "$disk_perc" "$disk_info"
     
-    printf "%s\n" "    Uptime: $sys_uptime"
-    
-    printFunc " Task Load: " "$sys_loadavg"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Active: $cpu_taskact of $cpu_tasks tasks" "$COL_NC"
-    
-    printFunc " CPU usage: " "$cpu_perc%"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "$sys_cores $sys_cores_plu$cpu_freq_str$cpu_temp_str" "$COL_NC"
-    
-    printFunc " RAM usage: " "$ram_perc%"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Used: $(hrBytes "$ram_used") of $(hrBytes "$ram_total")" "$COL_NC"
-    
-    printFunc " HDD usage: " "$disk_perc"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Used: $(hrBytes "$disk_used") of $(hrBytes "$disk_total")" "$COL_NC"
-    
-    printFunc "  LAN addr: " "${IPV4_ADDRESS/\/*/}"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Gateway: $net_gateway" "$COL_NC"
-    
-    if [[ "$DHCP_ACTIVE" == "true" ]]; then
-      printFunc "      DHCP: " "$DHCP_START to $ph_dhcp_eip"
-      printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Leased: $ph_dhcp_num of $ph_dhcp_max" "$COL_NC"
+    if [[ "$scr_lines" -gt 17 ]] && [[ "$chrono_type" != "small" ]]; then
+      printFunc "  LAN addr: " "${IPV4_ADDRESS/\/*/}" "$lan_info"
     fi
     
-    printFunc "   Pi-hole: " "$ph_status"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Blocking: $domains_being_blocked sites" "$COL_NC"
+    if [[ "$DHCP_ACTIVE" == "true" ]]; then
+      printFunc "DHCP usage: " "$ph_dhcp_percent%" "$dhcp_info"
+    fi
     
-    printFunc " Ads Today: " "$ads_percentage_today%"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "$ads_blocked_today of $dns_queries_today queries" "$COL_NC"
+    printFunc "   Pi-hole: " "$ph_status" "$ph_info"
+    printFunc " Ads Today: " "$ads_percentage_today%" "$ads_info"
+    printFunc "Local Qrys: " "$queries_cached_percentage%" "$dns_info"
     
-    printFunc "   Fwd DNS: " "$PIHOLE_DNS_1"
-    printf "%s(%s)%s\n" "$COL_DARK_GRAY" "Alt DNS: $ph_alts" "$COL_NC"
+    printFunc "   Blocked: " "$recent_blocked"
+    printFunc "Top Advert: " "$top_ad"
     
-    echo -e " ${COL_DARK_GRAY}——————————————————————————————————————————————————————————${COL_NC}"
-    echo " Recently blocked: $recent_blocked"
-    echo "   Top Advertiser: $top_ad"
-    echo "       Top Domain: $top_domain"
-    printFunc "       Top Client: " "$top_client" "last"
+    # Provide more stats on screens with more lines
+    if [[ "$scr_lines" -eq 17 ]]; then
+      if [[ "$DHCP_ACTIVE" == "true" ]]; then
+        printFunc "Top Domain: " "$top_domain" "last"
+      else
+        print_client="true"
+      fi
+    else
+      print_client="true"
+    fi
     
-    if [[ "$1" == "exit" ]]; then
+    if [[ -n "$print_client" ]]; then
+      printFunc "Top Domain: " "$top_domain"
+      printFunc "Top Client: " "$top_client" "last"
+    fi
+    
+    # Handle exit/refresh options
+    if [[ "$*" == *"-e"* ]]; then
       exit 0
     else
-      if [[ -n "$1" ]]; then
-        sleep "${1}"
+      if [[ "$*" == *"-r"* ]]; then
+        sleep "$num"
       else
         sleep 5
       fi
@@ -428,8 +547,8 @@ for var in "$@"; do
   case "$var" in
     "-j" | "--json"    ) jsonFunc;;
     "-h" | "--help"    ) helpFunc;;
-    "-r" | "--refresh" ) chronoFunc "$2";;
-    "-e" | "--exit"    ) chronoFunc "exit";;
+    "-r" | "--refresh" ) chronoFunc "$@";;
+    "-e" | "--exit"    ) chronoFunc "$@";;
     *                  ) helpFunc "?";;
   esac
 done
