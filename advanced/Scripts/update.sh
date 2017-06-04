@@ -117,7 +117,10 @@ main() {
     echo "::: FTL:            up to date"
   fi
 
-  if ${FTL_update}; then
+  # Logic: Don't update FTL when there is a core update available
+  # since the core update will run the installer which will itself
+  # re-install (i.e. update) FTL
+  if ${FTL_update} && ! ${core_update}; then
     echo ":::"
     echo "::: FTL out of date"
     FTLdetect
