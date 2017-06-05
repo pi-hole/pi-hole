@@ -285,7 +285,15 @@ get_sys_stats() {
   fi
   
   if [[ "$DHCP_ACTIVE" == "true" ]]; then
-    ph_dhcp_num=$(wc -l 2> /dev/null < "/etc/pihole/dhcp.leases")
+    local ph_dhcp_range
+    ph_dhcp_num="0"
+    
+    for num in $(seq "${DHCP_START##*.}" "${DHCP_END##*.}"); do
+      ph_dhcp_range="$ph_dhcp_range|${DHCP_START%.*}.$num"
+    done
+
+    # Count dynamic leases from available range, and not static leases
+    ph_dhcp_num=$(grep -cE "${ph_dhcp_range:1}" "/etc/pihole/dhcp.leases")
   fi
 }
 
