@@ -1,4 +1,4 @@
-check_critical_program_versions#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -57,8 +57,9 @@ fi
 FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273${COL_NC}"
-FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/{PLACEHOLDER}${COL_NC}"
+FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
 FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
+FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
 
 source_setup_variables() {
   # Display the current test that is running
@@ -330,10 +331,24 @@ processor_check() {
   # If it does not contain a value,
   if [[ -z "${PROCESSOR}" ]]; then
     # we couldn't detect it, so show an error
-    log_write "${CROSS} ${COL_LIGHT_RED}Processor could not be identified.${COL_NC}"
+    PROCESSOR=$(lscpu | awk '/Architecture/ {print $2}')
+    log_write "${CROSS} ${COL_LIGHT_RED}${PROCESSOR}${COL_NC} has not been tested with FTL, but may still work: (${FAQ_FTL_COMPATIBILITY})"
   else
+    # Check if the architecture is currently supported for FTL
+    case "${PROCESSOR}" in
+      "amd64") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      ;;
+      "armv6l") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      ;;
+      "armv6") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      ;;
+      "armv7l") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      ;;
+      "aarch64") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      ;;
     # Otherwise, show the processor type
-    log_write "${INFO} ${PROCESSOR}"
+    *) log_write "${INFO} ${PROCESSOR}";
+    esac
   fi
 }
 
@@ -356,10 +371,10 @@ does_ip_match_setup_vars() {
     # Strip off the /
     if [[ "${ip_address%/*}" == "${setup_vars_ip}" ]]; then
       # if it matches, show it in green
-      log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC}"
+      log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${VARSFILE}"
     else
       # otherwise show it in red with an FAQ URL
-      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} (${FAQ_ULA})"
+      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${VARSFILE}(${FAQ_ULA})"
     fi
 
   else
@@ -367,10 +382,10 @@ does_ip_match_setup_vars() {
     # since it exists in the setupVars.conf that way
     if [[ "${ip_address}" == "${setup_vars_ip}" ]]; then
       # show in green if it matches
-      log_write "   ${COL_LIGHT_GREEN}${ip_address}${COL_NC}"
+      log_write "   ${COL_LIGHT_GREEN}${ip_address}${COL_NC} matches the IP found in ${VARSFILE}"
     else
       # otherwise show it in red
-      log_write "   ${COL_LIGHT_RED}${ip_address}${COL_NC} (${FAQ_ULA})"
+      log_write "   ${COL_LIGHT_RED}${ip_address}${COL_NC} does not match the IP found in ${VARSFILE} (${FAQ_ULA})"
     fi
   fi
 }
@@ -404,9 +419,9 @@ detect_ip_addresses() {
   # If the protocol is v6
   if [[ "${protocol}" == "6" ]]; then
     # let the user know that as long as there is one green address, things should be ok
-    log_write "   ^ Please note that you may have more than one IPv${protocol} address listed."
-    log_write "   As long as one of them is green, it matches what is in ${VARSFILE} so there is no need for concern.\n"
-    log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it."
+    log_write "   ^ Please note that you may have more than one IP address listed."
+    log_write "   As long as one of them is green, and it matches what is in ${VARSFILE}, there is no need for concern.\n"
+    log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it.\n"
   fi
 }
 
@@ -569,7 +584,7 @@ dig_at() {
   # Store the arguments as variables with names
   local protocol="${1}"
   local IP="${2}"
-  echo_current_diagnostic "Domain name resolution (IPv${protocol}) using a random blocked domain"
+  echo_current_diagnostic "Name resolution (IPv${protocol}) using a random blocked domain and a known ad-serving domain"
   # Set more local variables
   local url
   local local_dig
