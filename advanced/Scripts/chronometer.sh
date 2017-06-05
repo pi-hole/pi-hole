@@ -59,9 +59,9 @@ printFunc() {
   # If there is additional text, define max length of text_main
   if [[ -n "$text_addn" ]]; then
     case "$scr_cols" in
-      [0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-4]) text_main_max_len="9" ;;
-      4[5-9]) text_main_max_len="14" ;;
-      *) text_main_max_len="19" ;;
+      [0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-4]) text_main_max_len="9";;
+      4[5-9]) text_main_max_len="14";;
+      *) text_main_max_len="19";;
     esac
  fi
  
@@ -133,38 +133,41 @@ get_init_stats() {
   if [[ -f "${coltable}" ]]; then
     source ${coltable}
   else
-    COL_NC='[0m'
-    COL_DARK_GRAY='[1;30m'
-    COL_LIGHT_GREEN='[1;32m'
-    COL_LIGHT_BLUE='[1;34m'
-    COL_LIGHT_RED='[1;31m'
-    COL_YELLOW='[1;33m'
-    COL_LIGHT_RED='[1;31m'
-    COL_URG_RED='[39;41m'
+    COL_NC="[0m"
+    COL_DARK_GRAY="[1;30m"
+    COL_LIGHT_GREEN="[1;32m"
+    COL_LIGHT_BLUE="[1;34m"
+    COL_LIGHT_RED="[1;31m"
+    COL_YELLOW="[1;33m"
+    COL_LIGHT_RED="[1;31m"
+    COL_URG_RED="[39;41m"
   fi
 
   # Get RPi throttle state (RPi 3B only) & model number, or OS distro info
   if command -v vcgencmd &> /dev/null; then
+    local sys_throttle_raw
+    local sys_rev_raw
+  
     sys_throttle_raw=$(vgt=$(sudo vcgencmd get_throttled); echo "${vgt##*x}")
     
     # Active Throttle Notice: http://bit.ly/2gnunOo
     if [[ "$sys_throttle_raw" != "0" ]]; then
       case "$sys_throttle_raw" in
-        *0001) thr_type="${COL_YELLOW}Under Voltage" ;;
-        *0002) thr_type="${COL_LIGHT_BLUE}Arm Freq Cap" ;;
-        *0003) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_BLUE}AFC" ;;
-        *0004) thr_type="${COL_LIGHT_RED}Throttled" ;;
-        *0005) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT" ;;
-        *0006) thr_type="${COL_LIGHT_BLUE}AFC${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT" ;;
-        *0007) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_BLUE}AFC${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT" ;;
+        *0001) thr_type="${COL_YELLOW}Under Voltage";;
+        *0002) thr_type="${COL_LIGHT_BLUE}Arm Freq Cap";;
+        *0003) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_BLUE}AFC";;
+        *0004) thr_type="${COL_LIGHT_RED}Throttled";;
+        *0005) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT";;
+        *0006) thr_type="${COL_LIGHT_BLUE}AFC${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT";;
+        *0007) thr_type="${COL_YELLOW}UV${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_BLUE}AFC${COL_DARK_GRAY},${COL_NC} ${COL_LIGHT_RED}TT";;
       esac
       [[ -n "$thr_type" ]] && sys_throttle="$thr_type${COL_DARK_GRAY}"
     fi
     
-    sys_rev=$(awk '/Revision/ {print $3}' < /proc/cpuinfo)
-    case "$sys_rev" in
+    sys_rev_raw=$(awk '/Revision/ {print $3}' < /proc/cpuinfo)
+    case "$sys_rev_raw" in
       000[2-6]) sys_model=" 1, Model B";; # 256MB
-      000[7-9]) sys_model=" 1, Model A" ;; # 256MB
+      000[7-9]) sys_model=" 1, Model A";; # 256MB
       000d|000e|000f) sys_model=" 1, Model B";; # 512MB
       0010|0013) sys_model=" 1, Model B+";; # 512MB
       0012|0015) sys_model=" 1, Model A+";; # 256MB
@@ -174,7 +177,7 @@ get_init_stats() {
       90009[2-3]|920093) sys_model=" Zero";; # 512MB
       9000c1) sys_model=" Zero W";; # 512MB
       a02082|a[2-3]2082) sys_model=" 3, Model B";; # 1GB
-      *) sys_model="" ;;
+      *) sys_model="";;
     esac
     sys_type="Raspberry Pi$sys_model"
   else
@@ -215,8 +218,8 @@ get_sys_stats() {
   # Update every 12 refreshes (Def: every 60s)
   count=$((count+1))
   if [[ "$count" == "1" ]] || (( "$count" % 12 == 0 )); then
+    # Do not source setupVars if file does not exist
     [[ -n "$setupVars" ]] && source "$setupVars"
-    
     
     ph_ver_raw=($(pihole -v -c 2> /dev/null | sed -n 's/^.* v/v/p'))
     if [[ -n "${ph_ver_raw[0]}" ]]; then
@@ -224,7 +227,7 @@ get_sys_stats() {
       ph_lte_ver="${ph_ver_raw[1]}"
       ph_ftl_ver="${ph_ver_raw[2]}"
     else
-      ph_core_ver="${COL_LIGHT_RED}Offline${COL_NC}"
+      ph_core_ver="-1"
     fi
     
     sys_name=$(hostname)
@@ -257,20 +260,22 @@ get_sys_stats() {
     [[ -n "${PIHOLE_DNS_9}" ]] && dns_count="$dns_count+"
   fi
   
+  # Get screen size
   scr_size=( $(stty size 2>/dev/null || echo 24 80) )
   scr_lines="${scr_size[0]}"
   scr_cols="${scr_size[1]}"
   
+  # Determine Chronometer size behaviour
   if [[ "$scr_cols" -ge 58 ]]; then
-    chrono_type="large"
+    chrono_width="large"
   elif [[ "$scr_cols" -gt 40 ]]; then
-    chrono_type="medium"
+    chrono_width="medium"
   else
-    chrono_type="small"
+    chrono_width="small"
   fi
   
-  # Determine max length of divider
-  scr_line_len=$(( ${scr_size[1]} - 2 ))
+  # Determine max length of divider string
+  scr_line_len=$(( scr_cols - 2 ))
   [[ "$scr_line_len" -ge 58 ]] && scr_line_len="58"
   scr_line_str=$(printf "%${scr_line_len}s")
   scr_line_str="${scr_line_str// /—}"
@@ -278,7 +283,7 @@ get_sys_stats() {
   sys_uptime=$(hrSecs "$(cut -d. -f1 /proc/uptime)")
   sys_loadavg=$(cut -d " " -f1,2,3 /proc/loadavg)
   
-  # Get CPU usage, only counting processes over 1% CPU as active
+  # Get CPU usage, only counting processes over 1% as active
   cpu_raw=$(ps -eo pcpu,rss --no-headers | grep -E -v "    0")
   cpu_tasks=$(wc -l <<< "$cpu_raw")
   cpu_taskact=$(sed -r "/(^ 0.)/d" <<< "$cpu_raw" | wc -l)
@@ -292,16 +297,15 @@ get_sys_stats() {
     cpu_mhz=$(printf "%.0f" "${cpu_mhz//[[:space:]]/}")
   fi
   
-  # Determine correct string format for CPU clock speed
+  # Determine whether to display CPU clock speed as MHz or GHz
   if [[ -n "$cpu_mhz" ]]; then
-    [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000) Ghz"
-    [[ -n "$cpu_freq" ]] && cpu_freq_str="$cpu_freq" || cpu_freq_str=""
+    [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000) GHz"
   fi
   
   # Determine colour for temperature
   if [[ -n "$temp_file" ]]; then
     if [[ "$temp_unit" == "C" ]]; then
-      cpu_temp=$(printf "%'.0fc\n" "$(calcFunc "$(< $temp_file) / 1000")")
+      cpu_temp=$(printf "%.0fc\n" "$(calcFunc "$(< $temp_file) / 1000")")
       
       case "${cpu_temp::-1}" in
         -*|[0-9]|[1-3][0-9]) cpu_col="$COL_LIGHT_BLUE";;
@@ -315,7 +319,7 @@ get_sys_stats() {
       cpu_temp_str=" @ $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
       
     elif [[ "$temp_unit" == "F" ]]; then
-      cpu_temp=$(printf "%'.0ff\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
+      cpu_temp=$(printf "%.0ff\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
       
       case "${cpu_temp::-1}" in
         -*|[0-9]|[0-9][0-9]) cpu_col="$COL_LIGHT_BLUE";;
@@ -325,10 +329,10 @@ get_sys_stats() {
         *) cpu_col="$COL_URG_RED";;
       esac
       
-      cpu_temp_str=", $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
+      cpu_temp_str=" @ $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
       
     else
-      cpu_temp_str=$(printf ", %'.0fk\n" "$(calcFunc "($(< $temp_file) / 1000) + 273.15")")
+      cpu_temp_str=$(printf " @ %.0fk\n" "$(calcFunc "($(< $temp_file) / 1000) + 273.15")")
     fi
   else
     cpu_temp_str=""
@@ -342,11 +346,16 @@ get_sys_stats() {
   if [[ "$(pihole status web 2> /dev/null)" == "1" ]]; then
     ph_status="${COL_LIGHT_GREEN}Active"
   else
-    ph_status="${COL_LIGHT_RED}Inactive"
+    ph_status="${COL_LIGHT_RED}Offline"
   fi
   
   if [[ "$DHCP_ACTIVE" == "true" ]]; then
-    ph_dhcp_num=$(wc -l 2> /dev/null < "/etc/pihole/dhcp.leases")
+    local ph_dhcp_range
+    
+    ph_dhcp_range=$(seq -s "|" -f "${DHCP_START%.*}.%g" "${DHCP_START##*.}" "${DHCP_END##*.}")
+    
+    # Count dynamic leases from available range, and not static leases
+    ph_dhcp_num=$(grep -cE "$ph_dhcp_range" "/etc/pihole/dhcp.leases")
     ph_dhcp_percent=$(( ph_dhcp_num * 100 / ph_dhcp_max ))
   fi
 }
@@ -390,28 +399,30 @@ get_ftl_stats() {
 
 get_strings() {
   # Expand or contract strings depending on screen size
-  if [[ "$chrono_type" == "large" ]]; then
-    phc_str="         ${COL_DARK_GRAY}Pi-hole"
-    lte_str="       ${COL_DARK_GRAY}AdminLTE"
-    ftl_str="            ${COL_DARK_GRAY}FTL"
+  if [[ "$chrono_width" == "large" ]]; then
+    phc_str="        ${COL_DARK_GRAY}Pi-hole"
+    lte_str="         ${COL_DARK_GRAY}Admin"
+    ftl_str="           ${COL_DARK_GRAY}FTL"
+    api_str="${COL_LIGHT_RED}API Offline"
     
     host_info="$sys_type"
     sys_info="$sys_throttle"
     sys_info2="Active: $cpu_taskact of $cpu_tasks tasks"
     used_str="Used: "
     leased_str="Leased: "
-    domains_being_blocked=$(sed ':a;s/\B[0-9]\{3\}\>/,&/;ta' <<< "$domains_being_blocked")
+    domains_being_blocked=$(printf "%'.0f" "$domains_being_blocked")
     ph_info="Blocking: $domains_being_blocked sites"
     total_str="Total: "
   else
     phc_str="    ${COL_DARK_GRAY}PH"
-    lte_str="  ${COL_DARK_GRAY}LTE"
+    lte_str="  ${COL_DARK_GRAY}Web"
     ftl_str="  ${COL_DARK_GRAY}FTL"
+    api_str="${COL_LIGHT_RED}API Down"
     ph_info="$domains_being_blocked blocked"
   fi
   
   [[ "$sys_cores" -ne 1 ]] && sys_cores_txt="${sys_cores}x "
-  cpu_info="$sys_cores_txt$cpu_freq_str$cpu_temp_str"
+  cpu_info="$sys_cores_txt$cpu_freq$cpu_temp_str"
   ram_info="$used_str$(hrBytes "$ram_used") of $(hrBytes "$ram_total")"
   disk_info="$used_str$(hrBytes "$disk_used") of $(hrBytes "$disk_total")"
   
@@ -433,10 +444,12 @@ chronoFunc() {
     get_strings
     
     # Strip excess development version numbers
-    phc_ver_str="$phc_str: ${ph_core_ver%-*}${COL_NC}"
-    if [[ -n "$ph_lte_ver" ]]; then
+    if [[ "$ph_core_ver" != "-1" ]]; then
+      phc_ver_str="$phc_str: ${ph_core_ver%-*}${COL_NC}"
       lte_ver_str="$lte_str: ${ph_lte_ver%-*}${COL_NC}"
       ftl_ver_str="$ftl_str: ${ph_ftl_ver%-*}${COL_NC}"
+    else
+      phc_ver_str="$phc_str: $api_str${COL_NC}"
     fi
     
     # Get refresh number
@@ -471,7 +484,7 @@ chronoFunc() {
     printFunc " RAM usage: " "$ram_perc%" "$ram_info"
     printFunc " HDD usage: " "$disk_perc" "$disk_info"
     
-    if [[ "$scr_lines" -gt 17 ]] && [[ "$chrono_type" != "small" ]]; then
+    if [[ "$scr_lines" -gt 17 ]] && [[ "$chrono_width" != "small" ]]; then
       printFunc "  LAN addr: " "${IPV4_ADDRESS/\/*/}" "$lan_info"
     fi
     
