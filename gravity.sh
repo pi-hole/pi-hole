@@ -273,9 +273,6 @@ gravity_Whitelist() {
 	done
 	echo " done!"
 
-	# Ensure adlist domains are in whitelist.txt
-	${whitelistScript} -nr -q "${urls[@]}" > /dev/null
-
     # Check whitelist.txt exists.
 	if [[ -f "${whitelistFile}" ]]; then
         # Remove anything in whitelist.txt from the Event Horizon
