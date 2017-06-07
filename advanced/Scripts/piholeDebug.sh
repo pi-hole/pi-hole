@@ -24,7 +24,7 @@ SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 VARSFILE="/etc/pihole/setupVars.conf"
 DEBUG_LOG="/var/log/pihole_debug.log"
 DNSMASQFILE="/etc/dnsmasq.conf"
-DNSMASQCONFDIR="/etc/dnsmasq.d/*"
+DNSMASQCONFDIR="/etc/dnsmasq.d"
 LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
 LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
 GRAVITYFILE="/etc/pihole/gravity.list"
@@ -37,6 +37,9 @@ ADMINGITDIR="/var/www/html/admin/"
 WHITELISTMATCHES="/tmp/whitelistmatches.list"
 readonly FTLLOG="/var/log/pihole-FTL.log"
 coltable=/opt/pihole/COL_TABLE
+FTL_LOG="/var/log/pihole-FTL.log"
+FTL_PID="/run/pihole-FTL.pid"
+FTL_PORT="/run/pihole-FTL.port"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${coltable} ]]; then
@@ -673,6 +676,7 @@ process_status(){
 
 make_array_from_file() {
   local filename="${1}"
+  local file_content=()
   # If the file is a directory
   if [[ -d "${filename}" ]]; then
     # do nothing since it cannot be parsed
@@ -682,7 +686,7 @@ make_array_from_file() {
     while IFS= read -r line;do
       # Strip out comments and blank lines
       new_line=$(echo "${line}" | sed -e 's/#.*$//' -e '/^$/d')
-      # If the line still has content
+      # If the line still has content (a non-zero value)
       if [[ -n "${new_line}" ]]; then
         # Put it into the array
         file_content+=("${new_line}")
@@ -750,59 +754,42 @@ list_files_in_dir() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local dir_to_parse="${1}"
   # Store the files found in an array
-  files_found=( $(ls "${dir_to_parse}") )
-  # For each file in the arry,
+  local files_found=( $(ls "${dir_to_parse}") )
+  # For each file in the array,
   for each_file in "${files_found[@]}"; do
     if [[ -d "${each_file}" ]]; then
+      # If it's a directoy, do nothing
       :
     else
-      # display the information with the ${INFO} icon
-      # Also print the permissions and the user/group
+      # Othwerise, display the filename
       log_write "\n${COL_LIGHT_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
-      # Otherwise, parse the file's content
+      # Then, parse the file's content into an array so each line can be analyzed if need be
       make_array_from_file "${dir_to_parse}/${each_file}"
       for each_line in "${file_content[@]}"; do
         log_write "   ${each_line}"
       done
     fi
-  file_content=()
   done
 }
 
-check_dnsmasq_d() {
+show_content_of_files_in_dir() {
   # Set a local variable for better readability
-  local directory=/etc/dnsmasq.d
+  local directory="${1}"
   # Check if the directory exists
   dir_check "${directory}"
   # if it does, list the files in it
   list_files_in_dir "${directory}"
 }
 
-check_lighttpd_d() {
-  # Set a local variable for better readability
-  local directory=/etc/lighttpd
-  # Check if the directory exists
-  dir_check "${directory}"
-  # if it does, list the files in it
-  list_files_in_dir "${directory}"
-}
-
-check_cron_d() {
-  # Set a local variable for better readability
-  local directory=/etc/cron.d
-  # Check if the directory exists
-  dir_check "${directory}"
-  # if it does, list the files in it
-  list_files_in_dir "${directory}"
-}
-
-check_http_directory() {
-  # Set a local variable for better readability
-  local directory=/var/www/html
-  # Check if the directory exists
-  dir_check "${directory}"
-  # if it does, list the files in it
-  list_files_in_dir "${directory}"
+show_content_of_pihole_files() {
+  # Show the content of the files in /etc/dnsmasq.d
+  show_content_of_files_in_dir "${DNSMASQCONFDIR}"
+  # Show the content of the files in /etc/lighttpd
+  show_content_of_files_in_dir "/etc/lighttpd"
+  # Show the content of the files in /etc/lighttpd
+  show_content_of_files_in_dir "/etc/cron.d"
+  # Show the content of the files in /var/www/html
+  # show_content_of_files_in_dir "${ADMINGITDIR}"
 }
 
 analyze_gravity_list() {
@@ -902,9 +889,6 @@ process_status
 parse_setup_vars
 check_x_headers
 analyze_gravity_list
-check_dnsmasq_d
-# check_lighttpd_d
-# check_http_directory
-# check_cron_d
+show_content_of_pihole_files
 copy_to_debug_log
 upload_to_tricorder
