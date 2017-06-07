@@ -695,6 +695,9 @@ make_array_from_file() {
         :
       fi
     done < "${filename}"
+    for each_line in "${file_content[@]}"; do
+      log_write "   ${each_line}"
+    done
   fi
 }
 
@@ -765,9 +768,6 @@ list_files_in_dir() {
       log_write "\n${COL_LIGHT_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
       # Then, parse the file's content into an array so each line can be analyzed if need be
       make_array_from_file "${dir_to_parse}/${each_file}"
-      for each_line in "${file_content[@]}"; do
-        log_write "   ${each_line}"
-      done
     fi
   done
 }
