@@ -259,7 +259,7 @@ get_program_version() {
     log_write "${CROSS} ${COL_LIGHT_RED}${program_name} version could not be detected.${COL_NC}"
   else
     # Otherwise, display the version
-    log_write "${TICK} ${program_name}: ${program_version}"
+    log_write "${INFO} ${program_version}"
   fi
 }
 
@@ -377,7 +377,7 @@ does_ip_match_setup_vars() {
       log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${VARSFILE}"
     else
       # otherwise show it in red with an FAQ URL
-      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${VARSFILE}(${FAQ_ULA})"
+      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${VARSFILE} (${FAQ_ULA})"
     fi
 
   else
@@ -457,7 +457,7 @@ ping_gateway() {
   if [[ -n "${gateway}" ]]; then
     log_write "${INFO} Default IPv${protocol} gateway: ${gateway}"
     # Let the user know we will ping the gateway for a response
-    log_write "* Pinging ${gateway}..."
+    log_write "   * Pinging ${gateway}..."
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
@@ -621,10 +621,10 @@ dig_at() {
   # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
   if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
     # If it can, show sucess
-    log_write "${TICK} ${random_url} ${COL_LIGHT_GREEN}is ${local_dig}${COL_NC} via localhost (${local_address})"
+    log_write "${TICK} ${random_url} ${COL_LIGHT_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC (${local_address})"
   else
     # Otherwise, show a failure
-    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} ${COL_LIGHT_RED}via localhost${COL_NC} (${local_address})"
+    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_LIGHT_RED}localhost${COL_NC} (${local_address})"
   fi
 
   # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
@@ -635,20 +635,20 @@ dig_at() {
   # If Pi-hole can dig itself from it's IP (not the loopback address)
   if pihole_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
     # show a success
-    log_write "${TICK} ${random_url} ${COL_LIGHT_GREEN}is ${pihole_dig}${COL_NC} via Pi-hole (${pihole_address})"
+    log_write "${TICK} ${random_url} ${COL_LIGHT_GREEN}is ${pihole_dig}${COL_NC} via ${COL_CYAN}Pi-hole${COL_NC} (${pihole_address})"
   else
     # Othewise, show a failure
-    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} ${COL_LIGHT_RED}via Pi-hole${COL_NC} (${pihole_address})"
+    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_LIGHT_RED}Pi-hole${COL_NC} (${pihole_address})"
   fi
 
   # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
   # We are using the static remote_url here instead of a random one because we know it works with IPv4 and IPv6
   if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
     # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
-    log_write "${TICK} ${remote_url} ${COL_LIGHT_GREEN}is ${remote_dig}${COL_NC} via a remote, public DNS server (${remote_address})"
+    log_write "${TICK} ${remote_url} ${COL_LIGHT_GREEN}is ${remote_dig}${COL_NC} via ${COL_CYAN}a remote, public DNS server${COL_NC} (${remote_address})"
   else
     # Otherwise, show an error
-    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${remote_url} ${COL_LIGHT_RED}via a remote, public DNS server${COL_NC} (${remote_address})"
+    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${remote_url} via ${COL_LIGHT_RED}a remote, public DNS server${COL_NC} (${remote_address})"
   fi
 }
 
@@ -741,7 +741,7 @@ dir_check() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local directory="${1}"
   # Display the current test that is running
-  echo_current_diagnostic "contents of ${directory}"
+  echo_current_diagnostic "contents of ${COL_CYAN}${directory}${COL_NC}"
   # For each file in the directory,
   for filename in "${directory}"; do
     # check if exists first; if it does,
@@ -749,7 +749,7 @@ dir_check() {
     # do nothing
     : || \
     # Otherwise, show an error
-    echo_succes_or_fail "${COL_LIGHT_RED}directory does not exist.${COL_NC}"
+    echo_succes_or_fail "${COL_LIGHT_RED}${directory} does not exist.${COL_NC}"
   done
 }
 
