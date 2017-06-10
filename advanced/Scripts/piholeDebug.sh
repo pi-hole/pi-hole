@@ -110,8 +110,10 @@ PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 # We can loop through the array at any time to see if it matches a value
 SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
-# In a similar fashion, these are the folders Pi-hole needs
-# https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
+# Store Pi-hole's processes in an array for easy use and parsing
+PIHOLE_PROCESSES=( dnsmasq lighttpd pihole-FTL )
+
+# Store the required directories in an array so it can be parsed through
 REQUIRED_DIRECTORIES=(${CORE_GIT_DIRECTORY}
 ${CRON_D_DIRECTORY}
 ${DNSMASQ_D_DIRECTORY}
@@ -126,8 +128,7 @@ ${HTML_DIRECTORY}
 ${WEB_GIT_DIRECTORY}
 ${BLOCK_PAGE_DIRECTORY})
 
-# These are the files Pi-hole needs--also stored in array for parsing through
-# https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
+# Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=(${PIHOLE_CRON_FILE}
 ${PIHOLE_DNS_CONFIG_FILE}
 ${PIHOLE_DHCP_CONFIG_FILE}
@@ -167,12 +168,13 @@ source_setup_variables() {
 }
 
 make_temporary_log() {
-  # Create temporary file for log
+  # Create a random temporary file for the log
   TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
   # Open handle 3 for templog
   # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
   exec 3>"$TEMPLOG"
-  # Delete templog, but allow for addressing via file handle.
+  # Delete templog, but allow for addressing via file handle
+  # This lets us write to the log without having a temporary file on the drive
   rm "$TEMPLOG"
 }
 
@@ -254,6 +256,7 @@ compare_local_version_to_git_version() {
     # We need to search for "Pi-hole" when using pihole -v
     local search_term="Pi-hole"
   elif [[ "${pihole_component}" == "Web" ]]; then
+    # We need to search for "AdminLTE" so store it in a variable as well
     local search_term="AdminLTE"
   fi
   # Display what we are checking
@@ -332,8 +335,10 @@ check_component_versions() {
 
 get_program_version() {
   local program_name="${1}"
+  # Create a loval variable so this function can be safely reused
   local program_version
   echo_current_diagnostic "${program_name} version"
+  # Evalutate the program we are checking, if it is any of the ones below, show the version
   case "${program_name}" in
     "lighttpd") program_version="$(${program_name} -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
     ;;
@@ -341,9 +346,10 @@ get_program_version() {
     ;;
     "php") program_version="$(${program_name} -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
     ;;
+    # If a match is not found, show an error
     *) echo "Unrecognized program";
   esac
-  # If the Web server does not have a version (the variable is empty)
+  # If the program does not have a version (the variable is empty)
   if [[ -z "${program_version}" ]]; then
     # Display and error
     log_write "${CROSS} ${COL_LIGHT_RED}${program_name} version could not be detected.${COL_NC}"
@@ -364,13 +370,17 @@ check_critical_program_versions() {
 
 is_os_supported() {
   local os_to_check="${1}"
+  # Strip just the base name of the system using sed
   the_os=$(echo ${os_to_check} | sed 's/ .*//')
+  # If the variable is one of our supported OSes,
   case "${the_os}" in
+    # Print it in green
     "Raspbian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
     "Ubuntu") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
     "Fedora") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
     "Debian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
     "CentOS") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+      # If not, show it in red and link to our software requirements page
       *) log_write "${CROSS} ${COL_LIGHT_RED}${os_to_check}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})";
   esac
 }
@@ -447,8 +457,11 @@ processor_check() {
 
 parse_setup_vars() {
   echo_current_diagnostic "Setup variables"
+  # If the file exists,
   if_file_exists "${PIHOLE_SETUP_VARS_FILE}" && \
+    # parse it
     parse_file "${PIHOLE_SETUP_VARS_FILE}" || \
+    # If not, show an error
     log_write "${CROSS} ${COL_LIGHT_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
 }
 
@@ -461,7 +474,7 @@ does_ip_match_setup_vars() {
   local setup_vars_ip=$(cat ${PIHOLE_SETUP_VARS_FILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
-    # Strip off the /
+    # Strip off the / (CIDR notation)
     if [[ "${ip_address%/*}" == "${setup_vars_ip}" ]]; then
       # if it matches, show it in green
       log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
@@ -501,8 +514,8 @@ detect_ip_addresses() {
     for i in "${!ip_addr_list[@]}"; do
       # For each one in the list, print it out
       does_ip_match_setup_vars "${protocol}" "${ip_addr_list[$i]}"
-      # log_write "   ${ip_addr_list[$i]}"
     done
+    # Print a blank line just for formatting
     log_write ""
   else
     # If there are no IPs detected, explain that the protocol is not configured
@@ -568,6 +581,7 @@ ping_gateway() {
 
 ping_internet() {
   local protocol="${1}"
+  # Ping a public address using the protocol passed as an argument
   ping_ipv4_or_ipv6 "${protocol}"
   log_write "* Checking Internet connectivity via IPv${protocol}..."
   # Try to ping the address 3 times
@@ -584,6 +598,7 @@ ping_internet() {
 
 compare_port_to_service_assigned() {
   local service_name="${1}"
+  # The programs we use may change at some point, so they are in a varible here
   local resolver="dnsmasq"
   local web_server="lighttpd"
   local ftl="pihole-FT"
@@ -624,6 +639,7 @@ check_required_ports() {
           ;;
       4711) compare_port_to_service_assigned  "${ftl}"
           ;;
+      # If it's not a default port that Pi-hole needs, just print it out for the user to see
       *) log_write "[${port_number}] is in use by ${service_name}";
     esac
   done
@@ -679,6 +695,7 @@ dig_at() {
   local IP="${2}"
   echo_current_diagnostic "Name resolution (IPv${protocol}) using a random blocked domain and a known ad-serving domain"
   # Set more local variables
+  # We need to test name resolution locally, via Pi-hole, and via a public resolver
   local url
   local local_dig
   local pihole_dig
@@ -745,13 +762,11 @@ dig_at() {
 process_status(){
   # Check to make sure Pi-hole's services are running and active
   echo_current_diagnostic "Pi-hole processes"
-  # Store them in an array for easy use
-  PROCESSES=( dnsmasq lighttpd pihole-FTL )
   # Local iterator
   local i
   # For each process,
-  for i in "${PROCESSES[@]}"; do
-    # get its status
+  for i in "${PIHOLE_PROCESSES=[@]}"; do
+    # get its status via systemctl
     local status_of_process=$(systemctl is-active "${i}")
     # and print it out to the user
     if [[ "${status_of_process}" == "active" ]]; then
@@ -766,6 +781,7 @@ process_status(){
 
 make_array_from_file() {
   local filename="${1}"
+  # Set the array to be empty so we can start fresh when the function is used
   local file_content=()
   # If the file is a directory
   if [[ -d "${filename}" ]]; then
@@ -785,7 +801,10 @@ make_array_from_file() {
         :
       fi
     done < "${filename}"
+    # Now the we have made an array of the file's content
     for each_line in "${file_content[@]}"; do
+      # Print each line
+      # At some point, we may want to check the file line-by-line, so that's the reason for an array
       log_write "   ${each_line}"
     done
   fi
@@ -862,6 +881,7 @@ list_files_in_dir() {
           # and parse the file into an array in case we ever need to analyze it line-by-line
           make_array_from_file "${dir_to_parse}/${each_file}"
         else
+          # Otherwise, do nothing since it's not a file needed for Pi-hole so we don't care about it
           :
         fi
       done
@@ -879,14 +899,10 @@ show_content_of_files_in_dir() {
 }
 
 show_content_of_pihole_files() {
-  # Show the content of the files in /etc/dnsmasq.d
+  # Show the content of the files in each of Pi-hole's folders
   show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
-  # Show the content of the files in /etc/lighttpd
-  show_content_of_files_in_dir "/etc/lighttpd"
-  # Show the content of the files in /etc/lighttpd
-  show_content_of_files_in_dir "/etc/cron.d"
-  # Show the content of the files in /var/www/html
-  # show_content_of_files_in_dir "${WEB_GIT_DIRECTORY}"
+  show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
+  show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
 }
 
 analyze_gravity_list() {
@@ -910,17 +926,19 @@ tricorder_use_nc_or_ssl() {
   else
     # use net cat
     log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
+    # Save the token returned by our server in a variable
     tricorder_token=$(cat ${PIHOLE_DEBUG_LOG} | nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
   fi
 }
 
 
 upload_to_tricorder() {
+  local username="pihole"
   # Set the permissions and owner
   chmod 644 ${PIHOLE_DEBUG_LOG}
-  chown "$USER":pihole ${PIHOLE_DEBUG_LOG}
+  chown "$USER":"${username}" ${PIHOLE_DEBUG_LOG}
 
-  # Let the user know debugging is complete
+  # Let the user know debugging is complete with something strikingly visual
   log_write ""
   log_write "${COL_LIGHT_PURPLE}********************************************${COL_NC}"
   log_write "${COL_LIGHT_PURPLE}********************************************${COL_NC}"
@@ -936,16 +954,21 @@ upload_to_tricorder() {
     log_write "${INFO} Debug script running in automated mode"
     # and then decide again which tool to use to submit it
     if command -v openssl &> /dev/null; then
+      # If openssl is available, use it
       log_write "${INFO} Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
+      # Save the token returned by our server in a variable
       tricorder_token=$(openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null < /dev/stdin)
     else
+      # Otherwise, fallback to netcat
       log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
+      # Save the token returned by our server in a variable
       tricorder_token=$(nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER} < /dev/stdin)
     fi
+  # If we're not running in automated mode,
 	else
     echo ""
-    # Give the user a choice of uploading it or not
-    # Users can review the log file locally and try to self-diagnose their problem
+    # give the user a choice of uploading it or not
+    # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
 	  read -r -p "[?] Would you like to upload the log? [y/N] " response
 	  case ${response} in
       # If they say yes, run our function for uploading the log
@@ -957,6 +980,8 @@ upload_to_tricorder() {
 	# Check if tricorder.pi-hole.net is reachable and provide token
   # along with some additional useful information
 	if [[ -n "${tricorder_token}" ]]; then
+    # Again, try to make this visually striking so the user realizes they need to do something with this information
+    # Namely, provide the Pi-hole devs with the token
     log_write ""
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
@@ -967,10 +992,13 @@ upload_to_tricorder() {
 		log_write "   * Provide the token above to the Pi-hole team for assistance at"
 		log_write "   * ${FORUMS_URL}"
     log_write "   * Your log will self-destruct on our server after ${COL_LIGHT_RED}48 hours${COL_NC}."
-	else
+  # If no token was generated
+  else
+    # Show an error and some help instructions
 		log_write "${CROSS}  ${COL_LIGHT_RED}There was an error uploading your debug log.${COL_NC}"
 		log_write "   * Please try again or contact the Pi-hole team for assistance."
 	fi
+    # Finally, show where the log file is no matter the outcome of the function so users can look at it
 		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\n"
 }
 
