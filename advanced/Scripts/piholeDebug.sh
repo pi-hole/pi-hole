@@ -19,31 +19,14 @@ set -o pipefail
 #IFS=$'\n\t'
 
 ######## GLOBAL VARS ########
-SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
-
-VARSFILE="/etc/pihole/setupVars.conf"
-DEBUG_LOG="/var/log/pihole_debug.log"
-DNSMASQFILE="/etc/dnsmasq.conf"
-DNSMASQCONFDIR="/etc/dnsmasq.d"
-LIGHTTPDFILE="/etc/lighttpd/lighttpd.conf"
-LIGHTTPDERRFILE="/var/log/lighttpd/error.log"
-GRAVITYFILE="/etc/pihole/gravity.list"
-WHITELISTFILE="/etc/pihole/whitelist.txt"
-BLACKLISTFILE="/etc/pihole/blacklist.txt"
-ADLISTFILE="/etc/pihole/adlists.list"
-PIHOLELOG="/var/log/pihole.log"
-PIHOLEGITDIR="/etc/.pihole/"
-ADMINGITDIR="/var/www/html/admin/"
-WHITELISTMATCHES="/tmp/whitelistmatches.list"
-readonly FTLLOG="/var/log/pihole-FTL.log"
-coltable=/opt/pihole/COL_TABLE
-FTL_LOG="/var/log/pihole-FTL.log"
-FTL_PID="/run/pihole-FTL.pid"
-FTL_PORT="/run/pihole-FTL.port"
+# These variables would normally be next to the other files
+# but we need them to be first in order to get the colors needed for the script output
+PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
+PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
-if [[ -f ${coltable} ]]; then
-  source ${coltable}
+if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
+  source ${PIHOLE_COLTABLE_FILE}
 else
   COL_NC='\e[0m' # No Color
   COL_YELLOW='\e[1;33m'
@@ -56,7 +39,7 @@ else
   OVER="\r\033[K"
 fi
 
-# FAQ URLs
+# FAQ URLs for use in showing the debug log
 FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273${COL_NC}"
@@ -64,16 +47,123 @@ FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway
 FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
 
+# Other URLs we may use
+FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
+TRICORDER_CONTEST="${COL_CYAN}https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/${COL_NC}"
+
+# Port numbers used for uploading the debug log
+TRICORDER_NC_PORT_NUMBER=9999
+TRICORDER_SSL_PORT_NUMBER=9998
+
+# Directories required by Pi-hole
+# https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
+CORE_GIT_DIRECTORY="/etc/.pihole"
+CRON_D_DIRECTORY="/etc/cron.d"
+DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
+PIHOLE_DIRECTORY="/etc/pihole"
+PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
+BIN_DIRECTORY="/usr/local/bin"
+RUN_DIRECTORY="/run"
+LOG_DIRECTORY="/var/log"
+WEB_SERVER_LOG_DIRECTORY="${LOG_DIRECTORY}/lighttpd"
+WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
+HTML_DIRECTORY="/var/www/html"
+WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
+BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
+
+# Files required by Pi-hole
+# https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
+PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
+
+PIHOLE_DNS_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/01-pihole.conf"
+PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
+PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
+
+WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
+
+PIHOLE_DEFAULT_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.default"
+PIHOLE_USER_DEFINED_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.list"
+PIHOLE_BLACKLIST_FILE="${PIHOLE_DIRECTORY}/blacklist.txt"
+PIHOLE_BLOCKLIST_FILE="${PIHOLE_DIRECTORY}/gravity.list"
+PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
+PIHOLE_RAW_BLOCKLIST_FILES=${PIHOLE_DIRECTORY}/list.*
+PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
+PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
+PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
+PIHOLE_WHITELIST_FILE="${PIHOLE_DIRECTORY}/whitelist.txt"
+
+PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
+PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
+
+FTL_PID="${RUN_DIRECTORY}/pihole-FTL.pid"
+FTL_PORT="${RUN_DIRECTORY}/pihole-FTL.port"
+
+PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
+PIHOLE_LOG_GZIPS=${LOG_DIRECTORY}/pihole.log.[0-9].*
+PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
+PIHOLE_FTL_LOG="${LOG_DIRECTORY}/pihole-FTL.log"
+
+PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
+PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
+
+# An array of operating system "pretty names" that we officialy support
+# We can loop through the array at any time to see if it matches a value
+SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
+
+# In a similar fashion, these are the folders Pi-hole needs
+# https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
+REQUIRED_DIRECTORIES=(${CORE_GIT_DIRECTORY}
+${CRON_D_DIRECTORY}
+${DNSMASQ_D_DIRECTORY}
+${PIHOLE_DIRECTORY}
+${PIHOLE_SCRIPTS_DIRECTORY}
+${BIN_DIRECTORY}
+${RUN_DIRECTORY}
+${LOG_DIRECTORY}
+${WEB_SERVER_LOG_DIRECTORY}
+${WEB_SERVER_CONFIG_DIRECTORY}
+${HTML_DIRECTORY}
+${WEB_GIT_DIRECTORY}
+${BLOCK_PAGE_DIRECTORY})
+
+# These are the files Pi-hole needs--also stored in array for parsing through
+# https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
+REQUIRED_FILES=(${PIHOLE_CRON_FILE}
+${PIHOLE_DNS_CONFIG_FILE}
+${PIHOLE_DHCP_CONFIG_FILE}
+${PIHOLE_WILDCARD_CONFIG_FILE}
+${WEB_SERVER_CONFIG_FILE}
+${PIHOLE_DEFAULT_AD_LISTS}
+${PIHOLE_USER_DEFINED_AD_LISTS}
+${PIHOLE_BLACKLIST_FILE}
+${PIHOLE_BLOCKLIST_FILE}
+${PIHOLE_INSTALL_LOG_FILE}
+${PIHOLE_RAW_BLOCKLIST_FILES}
+${PIHOLE_LOCAL_HOSTS_FILE}
+${PIHOLE_LOGROTATE_FILE}
+${PIHOLE_SETUP_VARS_FILE}
+${PIHOLE_WHITELIST_FILE}
+${PIHOLE_COMMAND}
+${PIHOLE_COLTABLE_FILE}
+${FTL_PID}
+${FTL_PORT}
+${PIHOLE_LOG}
+${PIHOLE_LOG_GZIPS}
+${PIHOLE_DEBUG_LOG}
+${PIHOLE_FTL_LOG}
+${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}
+${PIHOLE_WEB_SERVER_ERROR_LOG_FILE})
+
 source_setup_variables() {
   # Display the current test that is running
-  log_write "\n${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup varibles"
+  log_write "\n${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
   # If the variable file exists,
-  if_file_exists "${VARSFILE}" && \
-    log_write "${INFO} Sourcing ${VARSFILE}...";
+  if_file_exists "${PIHOLE_SETUP_VARS_FILE}" && \
+    log_write "${INFO} Sourcing ${PIHOLE_SETUP_VARS_FILE}...";
     # source it
-    source ${VARSFILE} || \
+    source ${PIHOLE_SETUP_VARS_FILE} || \
     # If it can't, show an error
-    log_write "${VARSFILE} ${COL_LIGHT_RED}does not exist or cannot be read.${COL_NC}"
+    log_write "${PIHOLE_SETUP_VARS_FILE} ${COL_LIGHT_RED}does not exist or cannot be read.${COL_NC}"
 }
 
 make_temporary_log() {
@@ -93,7 +183,7 @@ log_write() {
 
 copy_to_debug_log() {
   # Copy the contents of file descriptor 3 into the debug log so it can be uploaded to tricorder
-  cat /proc/$$/fd/3 >> "${DEBUG_LOG}"
+  cat /proc/$$/fd/3 >> "${PIHOLE_DEBUG_LOG}"
 }
 
 echo_succes_or_fail() {
@@ -232,9 +322,9 @@ check_ftl_version() {
 # Checks the core version of the Pi-hole codebase
 check_component_versions() {
   # Check the Web version, branch, and commit
-  compare_local_version_to_git_version "${PIHOLEGITDIR}" "Core"
+  compare_local_version_to_git_version "${CORE_GIT_DIRECTORY}" "Core"
   # Check the Web version, branch, and commit
-  compare_local_version_to_git_version "${ADMINGITDIR}" "Web"
+  compare_local_version_to_git_version "${WEB_GIT_DIRECTORY}" "Web"
   # Check the FTL version
   check_ftl_version
 }
@@ -357,9 +447,9 @@ processor_check() {
 
 parse_setup_vars() {
   echo_current_diagnostic "Setup variables"
-  if_file_exists "${VARSFILE}" && \
-    parse_file "${VARSFILE}" || \
-    log_write "${CROSS} ${COL_LIGHT_RED}Could not read ${VARSFILE}.${COL_NC}"
+  if_file_exists "${PIHOLE_SETUP_VARS_FILE}" && \
+    parse_file "${PIHOLE_SETUP_VARS_FILE}" || \
+    log_write "${CROSS} ${COL_LIGHT_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
 }
 
 does_ip_match_setup_vars() {
@@ -368,16 +458,16 @@ does_ip_match_setup_vars() {
   # IP address to check for
   local ip_address="${2}"
   # See what IP is in the setupVars.conf file
-  local setup_vars_ip=$(cat ${VARSFILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
+  local setup_vars_ip=$(cat ${PIHOLE_SETUP_VARS_FILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
     # Strip off the /
     if [[ "${ip_address%/*}" == "${setup_vars_ip}" ]]; then
       # if it matches, show it in green
-      log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${VARSFILE}"
+      log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
     else
       # otherwise show it in red with an FAQ URL
-      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${VARSFILE} (${FAQ_ULA})"
+      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
     fi
 
   else
@@ -385,10 +475,10 @@ does_ip_match_setup_vars() {
     # since it exists in the setupVars.conf that way
     if [[ "${ip_address}" == "${setup_vars_ip}" ]]; then
       # show in green if it matches
-      log_write "   ${COL_LIGHT_GREEN}${ip_address}${COL_NC} matches the IP found in ${VARSFILE}"
+      log_write "   ${COL_LIGHT_GREEN}${ip_address}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
     else
       # otherwise show it in red
-      log_write "   ${COL_LIGHT_RED}${ip_address}${COL_NC} does not match the IP found in ${VARSFILE} (${FAQ_ULA})"
+      log_write "   ${COL_LIGHT_RED}${ip_address}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
     fi
   fi
 }
@@ -423,7 +513,7 @@ detect_ip_addresses() {
   if [[ "${protocol}" == "6" ]]; then
     # let the user know that as long as there is one green address, things should be ok
     log_write "   ^ Please note that you may have more than one IP address listed."
-    log_write "   As long as one of them is green, and it matches what is in ${VARSFILE}, there is no need for concern.\n"
+    log_write "   As long as one of them is green, and it matches what is in ${PIHOLE_SETUP_VARS_FILE}, there is no need for concern.\n"
     log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it.\n"
   fi
 }
@@ -616,7 +706,7 @@ dig_at() {
   # Find a random blocked url that has not been whitelisted.
   # This helps emulate queries to different domains that a user might query
   # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
-  local random_url=$(shuf -n 1 "${GRAVITYFILE}" | awk -F ' ' '{ print $2 }')
+  local random_url=$(shuf -n 1 "${PIHOLE_BLOCKLIST_FILE}" | awk -F ' ' '{ print $2 }')
 
   # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
   if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
@@ -783,22 +873,22 @@ show_content_of_files_in_dir() {
 
 show_content_of_pihole_files() {
   # Show the content of the files in /etc/dnsmasq.d
-  show_content_of_files_in_dir "${DNSMASQCONFDIR}"
+  show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
   # Show the content of the files in /etc/lighttpd
   show_content_of_files_in_dir "/etc/lighttpd"
   # Show the content of the files in /etc/lighttpd
   show_content_of_files_in_dir "/etc/cron.d"
   # Show the content of the files in /var/www/html
-  # show_content_of_files_in_dir "${ADMINGITDIR}"
+  # show_content_of_files_in_dir "${WEB_GIT_DIRECTORY}"
 }
 
 analyze_gravity_list() {
   echo_current_diagnostic "Gravity list"
   # It's helpful to know how big a user's gravity file is
-  gravity_length=$(grep -c ^ "${GRAVITYFILE}") && \
-    log_write "${INFO} ${GRAVITYFILE} is ${gravity_length} lines long." || \
+  gravity_length=$(grep -c ^ "${PIHOLE_BLOCKLIST_FILE}") && \
+    log_write "${INFO} ${PIHOLE_BLOCKLIST_FILE} is ${gravity_length} lines long." || \
     # If the previous command failed, something is wrong with the file
-    log_write "${CROSS} ${COL_LIGHT_RED}${GRAVITYFILE} not found!${COL_NC}"
+    log_write "${CROSS} ${COL_LIGHT_RED}${PIHOLE_BLOCKLIST_FILE} not found!${COL_NC}"
 }
 
 tricorder_use_nc_or_ssl() {
@@ -808,20 +898,20 @@ tricorder_use_nc_or_ssl() {
     # If the command exists,
     log_write "    * Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
     # encrypt and transmit the log and store the token returned in a variable
-    tricorder_token=$(cat ${DEBUG_LOG} | openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null)
+    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG} | openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null)
   # Otherwise,
   else
     # use net cat
     log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-    tricorder_token=$(cat ${DEBUG_LOG} | nc tricorder.pi-hole.net 9999)
+    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG} | nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
   fi
 }
 
 
 upload_to_tricorder() {
   # Set the permissions and owner
-  chmod 644 ${DEBUG_LOG}
-  chown "$USER":pihole ${DEBUG_LOG}
+  chmod 644 ${PIHOLE_DEBUG_LOG}
+  chown "$USER":pihole ${PIHOLE_DEBUG_LOG}
 
   # Let the user know debugging is complete
   echo ""
@@ -829,7 +919,7 @@ upload_to_tricorder() {
 
   # Provide information on what they should do with their token
 	log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-  log_write "    * For more information, see: ${COL_CYAN}https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/${COL_NC}"
+  log_write "    * For more information, see: ${TRICORDER_CONTEST}"
   log_write "    * If available, we'll use openssl to upload the log, otherwise it will fall back to netcat."
   # If pihole -d is running automatically (usually throught the dashboard)
 	if [[ "${AUTOMATED}" ]]; then
@@ -838,10 +928,10 @@ upload_to_tricorder() {
     # and then decide again which tool to use to submit it
     if command -v openssl &> /dev/null; then
       log_write "${INFO} Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
-      tricorder_token=$(openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin)
+      tricorder_token=$(openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null < /dev/stdin)
     else
       log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-      tricorder_token=$(nc tricorder.pi-hole.net 9999 < /dev/stdin)
+      tricorder_token=$(nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER} < /dev/stdin)
     fi
 	else
     echo ""
@@ -864,13 +954,13 @@ upload_to_tricorder() {
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
     log_write ""
 		log_write "   * Provide this token to the Pi-hole team for assistance at"
-		log_write "   * ${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
+		log_write "   * ${FORUMS_URL}"
     log_write "   * Your log will self-destruct on our server after ${COL_LIGHT_RED}48 hours${COL_NC}."
 	else
 		log_write "${CROSS}  ${COL_LIGHT_RED}There was an error uploading your debug log.${COL_NC}"
 		log_write "   * Please try again or contact the Pi-hole team for assistance."
 	fi
-		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${DEBUG_LOG}${COL_NC}\n"
+		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\n"
 }
 
 # Run through all the functions we made
