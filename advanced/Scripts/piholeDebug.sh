@@ -80,6 +80,7 @@ PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
 PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
+WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
 PIHOLE_DEFAULT_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.default"
 PIHOLE_USER_DEFINED_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.list"
@@ -111,7 +112,7 @@ PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
 # Store Pi-hole's processes in an array for easy use and parsing
-PIHOLE_PROCESSES=( dnsmasq lighttpd pihole-FTL )
+PIHOLE_PROCESSES=( "dnsmasq" "lighttpd" "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_DIRECTORIES=(${CORE_GIT_DIRECTORY}
@@ -765,7 +766,7 @@ process_status(){
   # Local iterator
   local i
   # For each process,
-  for i in "${PIHOLE_PROCESSES=[@]}"; do
+  for i in "${PIHOLE_PROCESSES[@]}"; do
     # get its status via systemctl
     local status_of_process=$(systemctl is-active "${i}")
     # and print it out to the user
@@ -872,6 +873,16 @@ list_files_in_dir() {
     if [[ -d "${each_file}" ]]; then
       # If it's a directoy, do nothing
       :
+    elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_BLOCKLIST_FILE}" ]] || \
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_FTL_LOG}" ]] || \
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
+         [[ ${dir_to_parse}/${each_file} == ${PIHOLE_RAW_BLOCKLIST_FILES} ]] || \
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_SETUP_VARS_FILE}" ]] || \
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
+         [[ ${dir_to_parse}/${each_file} == ${PIHOLE_LOG_GZIPS} ]]; then
+           :
     else
       # Then, parse the file's content into an array so each line can be analyzed if need be
       for i in "${!REQUIRED_FILES[@]}"; do
@@ -900,9 +911,11 @@ show_content_of_files_in_dir() {
 
 show_content_of_pihole_files() {
   # Show the content of the files in each of Pi-hole's folders
+  show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
   show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
   show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
   show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
+  show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
 }
 
 analyze_gravity_list() {
