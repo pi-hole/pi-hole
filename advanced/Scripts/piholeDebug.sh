@@ -921,8 +921,10 @@ upload_to_tricorder() {
   chown "$USER":pihole ${PIHOLE_DEBUG_LOG}
 
   # Let the user know debugging is complete
-  echo ""
-	log_write "${TICK} ${COL_LIGHT_GREEN}** Finished debugging! **${COL_NC}\n"
+  log_write ""
+  log_write "${COL_LIGHT_PURPLE}********************************************${COL_NC}"
+  log_write "${COL_LIGHT_PURPLE}********************************************${COL_NC}"
+	log_write "${TICK} ${COL_LIGHT_GREEN}** FINISHED DEBUGGING! **${COL_NC}\n"
 
   # Provide information on what they should do with their token
 	log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
@@ -955,12 +957,14 @@ upload_to_tricorder() {
 	# Check if tricorder.pi-hole.net is reachable and provide token
   # along with some additional useful information
 	if [[ -n "${tricorder_token}" ]]; then
-    echo ""
+    log_write ""
+    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
 		log_write "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder_token}${COL_NC}"
     log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
+    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
     log_write ""
-		log_write "   * Provide this token to the Pi-hole team for assistance at"
+		log_write "   * Provide the token above to the Pi-hole team for assistance at"
 		log_write "   * ${FORUMS_URL}"
     log_write "   * Your log will self-destruct on our server after ${COL_LIGHT_RED}48 hours${COL_NC}."
 	else
