@@ -854,10 +854,17 @@ list_files_in_dir() {
       # If it's a directoy, do nothing
       :
     else
-      # Othwerise, display the filename
-      log_write "\n${COL_LIGHT_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
       # Then, parse the file's content into an array so each line can be analyzed if need be
-      make_array_from_file "${dir_to_parse}/${each_file}"
+      for i in "${!REQUIRED_FILES[@]}"; do
+        if [[ "${dir_to_parse}/${each_file}" == ${REQUIRED_FILES[$i]} ]]; then
+          # display the filename
+          log_write "\n${COL_LIGHT_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
+          # and parse the file into an array in case we ever need to analyze it line-by-line
+          make_array_from_file "${dir_to_parse}/${each_file}"
+        else
+          :
+        fi
+      done
     fi
   done
 }
