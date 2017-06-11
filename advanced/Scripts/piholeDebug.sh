@@ -944,11 +944,49 @@ show_content_of_pihole_files() {
 
 analyze_gravity_list() {
   echo_current_diagnostic "Gravity list"
-  # It's helpful to know how big a user's gravity file is
-  gravity_length=$(grep -c ^ "${PIHOLE_BLOCKLIST_FILE}") && \
-    log_write "${INFO} ${PIHOLE_BLOCKLIST_FILE} is ${gravity_length} lines long." || \
-    # If the previous command failed, something is wrong with the file
-    log_write "${CROSS} ${COL_LIGHT_RED}${PIHOLE_BLOCKLIST_FILE} not found!${COL_NC}"
+  local head_line
+  local tail_line
+  # Put the current Internal Field Separator into another variable so it can be restored later
+  OLD_IFS="$IFS"
+  # Get the lines that are in the file(s) and store them in an array for parsing later
+  IFS=$'\r\n'
+  local gravity_permissions=$(ls -ld "${PIHOLE_BLOCKLIST_FILE}")
+  log_write "${COL_LIGHT_GREEN}${gravity_permissions}${COL_NC}"
+  local gravity_head=()
+  gravity_head=( $(head -n 4 ${PIHOLE_BLOCKLIST_FILE}) )
+  log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_BLOCKLIST_FILE})------${COL_NC}"
+  for head_line in "${gravity_head[@]}"; do
+    log_write "   ${head_line}"
+  done
+  log_write ""
+  local gravity_tail=()
+  gravity_tail=( $(tail -n 4 ${PIHOLE_BLOCKLIST_FILE}) )
+  log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_BLOCKLIST_FILE})------${COL_NC}"
+  for tail_line in "${gravity_tail[@]}"; do
+    log_write "   ${tail_line}"
+  done
+  # Set the IFS back to what it was
+  IFS="$OLD_IFS"
+}
+
+analyze_pihole_log() {
+  echo_current_diagnostic "Pi-hole log"
+  local head_line
+  # Put the current Internal Field Separator into another variable so it can be restored later
+  OLD_IFS="$IFS"
+  # Get the lines that are in the file(s) and store them in an array for parsing later
+  IFS=$'\r\n'
+  local pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
+  log_write "${COL_LIGHT_GREEN}${pihole_log_permissions}${COL_NC}"
+  local pihole_log_head=()
+  pihole_log_head=( $(head -n 20 ${PIHOLE_LOG}) )
+  log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
+  for head_line in "${pihole_log_head[@]}"; do
+    log_write "   ${head_line}"
+  done
+  log_write ""
+  # Set the IFS back to what it was
+  IFS="$OLD_IFS"
 }
 
 tricorder_use_nc_or_ssl() {
@@ -1056,5 +1094,6 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_content_of_pihole_files
+analyze_pihole_log
 copy_to_debug_log
 upload_to_tricorder
