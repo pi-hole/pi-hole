@@ -43,6 +43,7 @@ fi
 FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273${COL_NC}"
+FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC}"
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
 FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
@@ -609,7 +610,7 @@ compare_port_to_service_assigned() {
       # Otherwise,
       else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC} (${COL_CYAN}https://discourse.pi-hole.net/t/hardware-software-requirements/273#ports${COL_NC})"
+        log_write "[${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
       fi
 }
 
@@ -888,7 +889,6 @@ list_files_in_dir() {
       # If it's a directoy, do nothing
       :
     elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_BLOCKLIST_FILE}" ]] || \
-         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_FTL_LOG}" ]] || \
          [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
          [[ ${dir_to_parse}/${each_file} == ${PIHOLE_RAW_BLOCKLIST_FILES} ]] || \
          [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
@@ -939,6 +939,7 @@ show_content_of_pihole_files() {
   show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
   show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
   show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
+  show_content_of_files_in_dir "${LOG_DIRECTORY}"
 }
 
 analyze_gravity_list() {
