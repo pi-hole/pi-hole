@@ -782,6 +782,11 @@ process_status(){
 
 make_array_from_file() {
   local filename="${1}"
+  # The second argument can put a limit on how many line should be read from the file
+  # Since some of the files are so large, this is helpful to limit the output
+  local limit=${2}
+  # A local iterator for testing if we are at the limit above
+  local i=0
   # Set the array to be empty so we can start fresh when the function is used
   local file_content=()
   # If the file is a directory
@@ -791,7 +796,7 @@ make_array_from_file() {
   else
     # Otherwise, read the file line by line
     while IFS= read -r line;do
-      # Strip out comments and blank lines
+      # Othwerise, strip out comments and blank lines
       new_line=$(echo "${line}" | sed -e 's/#.*$//' -e '/^$/d')
       # If the line still has content (a non-zero value)
       if [[ -n "${new_line}" ]]; then
@@ -801,14 +806,23 @@ make_array_from_file() {
         # Otherwise, it's a blank line or comment, so do nothing
         :
       fi
+      # Increment the iterator +1
+      i=$((i+1))
+      # but if the limit of lines we want to see is exceeded
+      if [[ -z ${limit} ]]; then
+        # do nothing
+        :
+      elif [[ $i -eq ${limit} ]]; then
+        break
+      fi
     done < "${filename}"
-    # Now the we have made an array of the file's content
-    for each_line in "${file_content[@]}"; do
-      # Print each line
-      # At some point, we may want to check the file line-by-line, so that's the reason for an array
-      log_write "   ${each_line}"
-    done
-  fi
+      # Now the we have made an array of the file's content
+      for each_line in "${file_content[@]}"; do
+        # Print each line
+        # At some point, we may want to check the file line-by-line, so that's the reason for an array
+        log_write "   ${each_line}"
+      done
+   fi
 }
 
 parse_file() {
@@ -870,7 +884,7 @@ list_files_in_dir() {
   local files_found=( $(ls "${dir_to_parse}") )
   # For each file in the array,
   for each_file in "${files_found[@]}"; do
-    if [[ -d "${each_file}" ]]; then
+    if [[ -d "${dir_to_parse}/${each_file}" ]]; then
       # If it's a directoy, do nothing
       :
     elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_BLOCKLIST_FILE}" ]] || \
@@ -889,8 +903,17 @@ list_files_in_dir() {
         if [[ "${dir_to_parse}/${each_file}" == ${REQUIRED_FILES[$i]} ]]; then
           # display the filename
           log_write "\n${COL_LIGHT_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
-          # and parse the file into an array in case we ever need to analyze it line-by-line
-          make_array_from_file "${dir_to_parse}/${each_file}"
+          # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
+          case "${dir_to_parse}/${each_file}" in
+            # If it's Web server error log, just give the first 25 lines
+            "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") make_array_from_file "${dir_to_parse}/${each_file}" 25
+            ;;
+            # Same for the FTL log
+            "${PIHOLE_FTL_LOG}") make_array_from_file "${dir_to_parse}/${each_file}" 25
+            ;;
+            # parse the file into an array in case we ever need to analyze it line-by-line
+            *) make_array_from_file "${dir_to_parse}/${each_file}";
+          esac
         else
           # Otherwise, do nothing since it's not a file needed for Pi-hole so we don't care about it
           :
