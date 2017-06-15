@@ -197,21 +197,21 @@ main() {
   if [[ "${web_update}" == true ]]; then
     web_version_current="$(/usr/local/bin/pihole version --admin --current)"
     echo ":::"
-    echo "::: Web Admin version is now at ${web_version_current}"
+    echo "::: Web Admin version is now at ${web_version_current/* v/v}}"
     echo "::: If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
   fi
 
   if [[ "${core_update}" == true ]]; then
     pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
     echo ":::"
-    echo "::: Pi-hole version is now at ${pihole_version_current}"
+    echo "::: Pi-hole version is now at ${pihole_version_current/* v/v}}"
     echo "::: If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
   fi
 
   if [[ ${FTL_update} == true ]]; then
-    FTL_version_current="$(/usr/bin/pihole-FTL tag)"
+    FTL_version_current="$(/usr/local/bin/pihole version --ftl --current)"
     echo ":::"
-    echo "::: FTL version is now at ${FTL_version_current}"
+    echo "::: FTL version is now at ${FTL_version_current/* v/v}}"
     start_service pihole-FTL
     enable_service pihole-FTL
   fi
