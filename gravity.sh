@@ -304,13 +304,13 @@ gravity_doHostFormat() {
   # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
   if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
       # Both IPv4 and IPv6
-      cat "${1}" | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> "${2}"
+      awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> "${2}" < "${1}"
   elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
       # Only IPv4
-      cat "${1}" | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> "${2}"
+      awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> "${2}" < "${1}"
   elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
       # Only IPv6
-      cat "${1}" | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> "${2}"
+      awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> "${2}" < "${1}"
   elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
       echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
       exit 1
@@ -330,6 +330,7 @@ gravity_hostFormatLocal() {
 
 	echo -e "${hostname}\npi.hole" > "${localList}.tmp"
 	# Copy the file over as /etc/pihole/local.list so dnsmasq can use it
+	rm "${localList}"
 	gravity_doHostFormat "${localList}.tmp" "${localList}"
 	rm "${localList}.tmp"
 }
