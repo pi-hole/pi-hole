@@ -317,9 +317,8 @@ gravity_doHostFormat() {
   fi
 }
 
-gravity_hostFormat() {
+gravity_hostFormatLocal() {
 	# Format domain list as "192.168.x.x domain.com"
-	echo -n "::: Formatting domains into a HOSTS file..."
 
 	if [[ -f /etc/hostname ]]; then
 		hostname=$(</etc/hostname)
@@ -333,19 +332,24 @@ gravity_hostFormat() {
 	# Copy the file over as /etc/pihole/local.list so dnsmasq can use it
 	gravity_doHostFormat "${localList}.tmp" "${localList}"
 	rm "${localList}.tmp"
+}
 
+gravity_hostFormatGravity() {
+	# Format domain list as "192.168.x.x domain.com"
 	echo "" > "${piholeDir}/${accretionDisc}"
 	gravity_doHostFormat "${piholeDir}/${eventHorizon}" "${piholeDir}/${accretionDisc}"
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	cp "${piholeDir}/${accretionDisc}" "${adList}"
 	rm "${piholeDir}/${accretionDisc}"
+}
 
+gravity_hostFormatBlack() {
+	# Format domain list as "192.168.x.x domain.com"
 	echo -e "" > "${blackList}.tmp"
 	gravity_doHostFormat "${blackList}.tmp" "${blackList}"
 	# Copy the file over as /etc/pihole/black.list so dnsmasq can use it
 	cp "${blackList}.tmp" "${blackList}"
 	rm "${blackList}.tmp"
-	echo " done!"
 }
 
 # blackbody - remove any remnant files from script processes
@@ -386,11 +390,6 @@ gravity_advanced() {
 }
 
 gravity_reload() {
-	#Clear no longer needed files...
-	echo ":::"
-	echo -n "::: Cleaning up un-needed files..."
-	rm ${piholeDir}/pihole.*.txt
-	echo " done!"
 
 	# Reload hosts file
 	echo ":::"
@@ -411,6 +410,7 @@ for var in "$@"; do
 		"-f" | "--force"     ) forceGrav=true;;
 		"-h" | "--help"      ) helpFunc;;
 		"-sd" | "--skip-download"    ) skipDownload=true;;
+		"-b" | "--blacklist-only"    ) blackListOnly=true;;
 	esac
 done
 
@@ -420,22 +420,39 @@ if [[ "${forceGrav}" == true ]]; then
 	echo " done!"
 fi
 
-gravity_collapse
-gravity_spinup
-if [[ "${skipDownload}" == false ]]; then
+if [[ ! "${blackListOnly}" == true ]]; then
+  gravity_collapse
+  gravity_spinup
+  if [[ "${skipDownload}" == false ]]; then
     gravity_Schwarzchild
     gravity_advanced
-else
+  else
     echo "::: Using cached Event Horizon list..."
     numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
-	echo "::: $numberOf unique domains trapped in the event horizon."
+    echo "::: $numberOf unique domains trapped in the event horizon."
+  fi
+  gravity_Whitelist
 fi
-gravity_Whitelist
 gravity_Blacklist
 gravity_Wildcard
 
-gravity_hostFormat
+echo -n "::: Formatting domains into a HOSTS file..."
+if [[ ! "${blackListOnly}" == true ]]; then
+  gravity_hostFormatLocal
+  gravity_hostFormatGravity
+fi
+gravity_hostFormatBlack
+echo " done!"
+
 gravity_blackbody
+
+if [[ ! "${blackListOnly}" == true ]]; then
+  #Clear no longer needed files...
+  echo ":::"
+  echo -n "::: Cleaning up un-needed files..."
+  rm ${piholeDir}/pihole.*.txt
+  echo " done!"
+fi
 
 gravity_reload
 "${PIHOLE_COMMAND}" status
