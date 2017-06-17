@@ -236,9 +236,7 @@ gravity_Blacklist() {
 	if [[ -f "${blacklistFile}" ]]; then
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	    echo -n "::: Blacklisting $numBlacklisted domain${plural}..."
-	    cat "${blacklistFile}" > "${blackList}.tmp"
-	    echo " done!"
+	    echo "::: Exact blocked domain${plural}: $numBlacklisted"
 	else
 	    echo "::: Nothing to blacklist!"
 	fi
@@ -345,12 +343,16 @@ gravity_hostFormatGravity() {
 }
 
 gravity_hostFormatBlack() {
-	# Format domain list as "192.168.x.x domain.com"
-	echo -e "" > "${blackList}.tmp"
-	gravity_doHostFormat "${blackList}.tmp" "${blackList}"
-	# Copy the file over as /etc/pihole/black.list so dnsmasq can use it
-	cp "${blackList}.tmp" "${blackList}"
-	rm "${blackList}.tmp"
+  if [[ -f "${blacklistFile}" ]]; then
+    numBlacklisted=$(wc -l < "${blacklistFile}")
+    # Format domain list as "192.168.x.x domain.com"
+    gravity_doHostFormat "${blacklistFile}" "${blackList}.tmp"
+    # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
+    cp "${blackList}.tmp" "${blackList}"
+    rm "${blackList}.tmp"
+  else
+    echo "::: Nothing to blacklist!"
+  fi
 }
 
 # blackbody - remove any remnant files from script processes
