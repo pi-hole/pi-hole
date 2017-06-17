@@ -35,4 +35,4 @@ groups:
         - master
     required: 4
     teams:
-      - admin
+      - approvers
