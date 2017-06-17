@@ -193,6 +193,7 @@ Time:
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
+    sed -i 's/^addn-hosts=\/etc\/pihole\/black.list/#addn-hosts=\/etc\/pihole\/black.list/' /etc/dnsmasq.d/01-pihole.conf
     if [[ -e "$wildcardlist" ]]; then
       mv "$wildcardlist" "/etc/pihole/wildcard.list"
     fi
