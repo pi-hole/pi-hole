@@ -54,6 +54,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 basename=pihole
 piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
+blackList=${piholeDir}/black.list
 localList=${piholeDir}/local.list
 justDomainsExtension=domains
 matterAndLight=${basename}.0.matterandlight.txt
@@ -236,7 +237,7 @@ gravity_Blacklist() {
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
 	    echo -n "::: Blacklisting $numBlacklisted domain${plural}..."
-	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
+	    cat "${blacklistFile}" > "${blackList}.tmp"
 	    echo " done!"
 	else
 	    echo "::: Nothing to blacklist!"
@@ -299,6 +300,23 @@ gravity_unique() {
 	echo "::: $numberOf unique domains trapped in the event horizon."
 }
 
+gravity_doHostFormat() {
+  # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
+  if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+      # Both IPv4 and IPv6
+      cat "${1}" | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> "${2}"
+  elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
+      # Only IPv4
+      cat "${1}" | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> "${2}"
+  elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+      # Only IPv6
+      cat "${1}" | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> "${2}"
+  elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
+      echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
+      exit 1
+  fi
+}
+
 gravity_hostFormat() {
 	# Format domain list as "192.168.x.x domain.com"
 	echo -n "::: Formatting domains into a HOSTS file..."
@@ -310,32 +328,23 @@ gravity_hostFormat() {
 	else
 		echo "::: Error: Unable to determine fully qualified domain name of host"
 	fi
-  # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
-  if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
-      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV6_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole\n${IPV6_ADDRESS} pi.hole" > ${localList}
-      # Both IPv4 and IPv6
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+	echo -e "${hostname}\npi.hole" > "${localList}.tmp"
+	# Copy the file over as /etc/pihole/local.list so dnsmasq can use it
+	gravity_doHostFormat "${localList}.tmp" "${localList}"
+	rm "${localList}.tmp"
 
-  elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
-
-      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole" > ${localList}
-      # Only IPv4
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
-
-  elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
-
-      echo -e "${IPV6_ADDRESS} ${hostname}\n${IPV6_ADDRESS} pi.hole" > ${localList}
-      # Only IPv6
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
-
-  elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
-      echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
-      exit 1
-  fi
-
+	echo "" > "${piholeDir}/${accretionDisc}"
+	gravity_doHostFormat "${piholeDir}/${eventHorizon}" "${piholeDir}/${accretionDisc}"
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-	cp ${piholeDir}/${accretionDisc} ${adList}
+	cp "${piholeDir}/${accretionDisc}" "${adList}"
+	rm "${piholeDir}/${accretionDisc}"
+
+	echo -e "" > "${blackList}.tmp"
+	gravity_doHostFormat "${blackList}.tmp" "${blackList}"
+	# Copy the file over as /etc/pihole/black.list so dnsmasq can use it
+	cp "${blackList}.tmp" "${blackList}"
+	rm "${blackList}.tmp"
 	echo " done!"
 }
 
