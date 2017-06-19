@@ -876,17 +876,13 @@ install_dependent_packages() {
   for i in "${argArray1[@]}"; do
     echo -n ":::    Checking for $i..."
     if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
-      echo " installed!"
+      echo " already installed!"
     else
-      echo " added to install list!"
-      installArray+=("${i}")
+      echo " installing!"
+      "${PKG_INSTALL[@]}" "${i}"
     fi
   done
-    if [[ ${#installArray[@]} -gt 0 ]]; then
-      "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
-      return
-    fi
-    return 0
+  return 0
 }
 
 CreateLogFile() {
