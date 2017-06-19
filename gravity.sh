@@ -338,8 +338,7 @@ gravity_hostFormatGravity() {
 	echo "" > "${piholeDir}/${accretionDisc}"
 	gravity_doHostFormat "${piholeDir}/${eventHorizon}" "${piholeDir}/${accretionDisc}"
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-	cp "${piholeDir}/${accretionDisc}" "${adList}"
-	rm "${piholeDir}/${accretionDisc}"
+	mv "${piholeDir}/${accretionDisc}" "${adList}"
 }
 
 gravity_hostFormatBlack() {
@@ -348,8 +347,7 @@ gravity_hostFormatBlack() {
     # Format domain list as "192.168.x.x domain.com"
     gravity_doHostFormat "${blacklistFile}" "${blackList}.tmp"
     # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
-    cp "${blackList}.tmp" "${blackList}"
-    rm "${blackList}.tmp"
+    mv "${blackList}.tmp" "${blackList}"
   else
     echo "::: Nothing to blacklist!"
   fi
