@@ -1265,6 +1265,10 @@ FTLdetect() {
       echo ":::  Detected ARM architecture"
       binary="pihole-FTL-arm-linux-gnueabi"
     fi
+  elif [[ $machine == ppc ]]; then
+    # PowerPC
+    echo ":::  Detected PowerPC architecture"
+    binary="pihole-FTL-powerpc-linux-gnu"
   elif [[ $machine == x86_64 ]]; then
     # 64bit
     echo ":::  Detected x86_64 architecture"
