@@ -15,7 +15,7 @@ pihole-FTL() {
     # Get data from FTL
     C=0
     readarray -t LINE <<< "$(echo ">$1" | nc 127.0.0.1 "${ftl_port}")"
-    until [[ "${LINE[$C]}" == *"EOM"* ]]; do
+    until [[ "${LINE[$C]}" == *"EOM"* || "${LINE[$C]}" == "" ]]; do
       echo "${LINE[$C]}"
       let C+=1
     done
