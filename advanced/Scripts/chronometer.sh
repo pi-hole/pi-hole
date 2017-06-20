@@ -20,7 +20,7 @@ pihole-FTL() {
       let C+=1
     done
   else
-    echo "0"
+    echo -e "${COL_LIGHT_RED}FTL offline${COL_NC}"
   fi
 }
 
