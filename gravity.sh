@@ -54,6 +54,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 basename=pihole
 piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
+blackList=${piholeDir}/black.list
 localList=${piholeDir}/local.list
 justDomainsExtension=domains
 matterAndLight=${basename}.0.matterandlight.txt
@@ -235,9 +236,7 @@ gravity_Blacklist() {
 	if [[ -f "${blacklistFile}" ]]; then
 	    numBlacklisted=$(wc -l < "${blacklistFile}")
 	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	    echo -n "::: Blacklisting $numBlacklisted domain${plural}..."
-	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
-	    echo " done!"
+	    echo "::: Exact blocked domain${plural}: $numBlacklisted"
 	else
 	    echo "::: Nothing to blacklist!"
 	fi
@@ -299,9 +298,25 @@ gravity_unique() {
 	echo "::: $numberOf unique domains trapped in the event horizon."
 }
 
-gravity_hostFormat() {
+gravity_doHostFormat() {
+  # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
+  if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+      # Both IPv4 and IPv6
+      awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> "${2}" < "${1}"
+  elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
+      # Only IPv4
+      awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> "${2}" < "${1}"
+  elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
+      # Only IPv6
+      awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> "${2}" < "${1}"
+  elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
+      echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
+      exit 1
+  fi
+}
+
+gravity_hostFormatLocal() {
 	# Format domain list as "192.168.x.x domain.com"
-	echo -n "::: Formatting domains into a HOSTS file..."
 
 	if [[ -f /etc/hostname ]]; then
 		hostname=$(</etc/hostname)
@@ -310,33 +325,32 @@ gravity_hostFormat() {
 	else
 		echo "::: Error: Unable to determine fully qualified domain name of host"
 	fi
-  # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
-  if [[ -n "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
 
-      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV6_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole\n${IPV6_ADDRESS} pi.hole" > ${localList}
-      # Both IPv4 and IPv6
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
+	echo -e "${hostname}\npi.hole" > "${localList}.tmp"
+	# Copy the file over as /etc/pihole/local.list so dnsmasq can use it
+	rm "${localList}"
+	gravity_doHostFormat "${localList}.tmp" "${localList}"
+	rm "${localList}.tmp"
+}
 
-  elif [[ -n "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
-
-      echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole" > ${localList}
-      # Only IPv4
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
-
-  elif [[ -z "${IPV4_ADDRESS}" && -n "${IPV6_ADDRESS}" ]];then
-
-      echo -e "${IPV6_ADDRESS} ${hostname}\n${IPV6_ADDRESS} pi.hole" > ${localList}
-      # Only IPv6
-      cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
-
-  elif [[ -z "${IPV4_ADDRESS}" && -z "${IPV6_ADDRESS}" ]];then
-      echo "::: No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values"
-      exit 1
-  fi
-
+gravity_hostFormatGravity() {
+	# Format domain list as "192.168.x.x domain.com"
+	echo "" > "${piholeDir}/${accretionDisc}"
+	gravity_doHostFormat "${piholeDir}/${eventHorizon}" "${piholeDir}/${accretionDisc}"
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-	cp ${piholeDir}/${accretionDisc} ${adList}
-	echo " done!"
+	mv "${piholeDir}/${accretionDisc}" "${adList}"
+}
+
+gravity_hostFormatBlack() {
+  if [[ -f "${blacklistFile}" ]]; then
+    numBlacklisted=$(wc -l < "${blacklistFile}")
+    # Format domain list as "192.168.x.x domain.com"
+    gravity_doHostFormat "${blacklistFile}" "${blackList}.tmp"
+    # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
+    mv "${blackList}.tmp" "${blackList}"
+  else
+    echo "::: Nothing to blacklist!"
+  fi
 }
 
 # blackbody - remove any remnant files from script processes
@@ -377,11 +391,6 @@ gravity_advanced() {
 }
 
 gravity_reload() {
-	#Clear no longer needed files...
-	echo ":::"
-	echo -n "::: Cleaning up un-needed files..."
-	rm ${piholeDir}/pihole.*.txt
-	echo " done!"
 
 	# Reload hosts file
 	echo ":::"
@@ -402,6 +411,7 @@ for var in "$@"; do
 		"-f" | "--force"     ) forceGrav=true;;
 		"-h" | "--help"      ) helpFunc;;
 		"-sd" | "--skip-download"    ) skipDownload=true;;
+		"-b" | "--blacklist-only"    ) blackListOnly=true;;
 	esac
 done
 
@@ -411,22 +421,39 @@ if [[ "${forceGrav}" == true ]]; then
 	echo " done!"
 fi
 
-gravity_collapse
-gravity_spinup
-if [[ "${skipDownload}" == false ]]; then
+if [[ ! "${blackListOnly}" == true ]]; then
+  gravity_collapse
+  gravity_spinup
+  if [[ "${skipDownload}" == false ]]; then
     gravity_Schwarzchild
     gravity_advanced
-else
+  else
     echo "::: Using cached Event Horizon list..."
     numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
-	echo "::: $numberOf unique domains trapped in the event horizon."
+    echo "::: $numberOf unique domains trapped in the event horizon."
+  fi
+  gravity_Whitelist
 fi
-gravity_Whitelist
 gravity_Blacklist
 gravity_Wildcard
 
-gravity_hostFormat
+echo -n "::: Formatting domains into a HOSTS file..."
+if [[ ! "${blackListOnly}" == true ]]; then
+  gravity_hostFormatLocal
+  gravity_hostFormatGravity
+fi
+gravity_hostFormatBlack
+echo " done!"
+
 gravity_blackbody
+
+if [[ ! "${blackListOnly}" == true ]]; then
+  #Clear no longer needed files...
+  echo ":::"
+  echo -n "::: Cleaning up un-needed files..."
+  rm ${piholeDir}/pihole.*.txt
+  echo " done!"
+fi
 
 gravity_reload
 "${PIHOLE_COMMAND}" status

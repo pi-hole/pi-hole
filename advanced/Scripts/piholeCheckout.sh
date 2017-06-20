@@ -3,7 +3,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# Checkout other branches than master
+# Switch Pi-hole subsystems to a different Github branch
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
@@ -18,8 +18,11 @@ PH_TEST="true" source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # setupVars set in basic-install.sh
 
 source "${setupVars}"
-
 update="false"
+
+# Colour codes
+red="\e[1;31m"
+def="\e[0m"
 
 fully_fetch_repo() {
   # Add upstream branches to shallow clone
@@ -35,7 +38,7 @@ fully_fetch_repo() {
   return 0
 }
 
-get_available_branches(){
+get_available_branches() {
   # Return available branches
   local directory="${1}"
 
@@ -54,6 +57,8 @@ fetch_checkout_pull_branch() {
   # Set the reference for the requested branch, fetch, check it put and pull it
   cd "${directory}"
   git remote set-branches origin "${branch}" || return 1
+  git stash --all --quiet &> /dev/null || true
+  git clean --force -d || true
   git fetch --quiet || return 1
   checkout_pull_branch "${directory}" "${branch}" || return 1
 }
@@ -79,23 +84,23 @@ checkout_pull_branch() {
 }
 
 warning1() {
-  echo "::: Note that changing the branch is a severe change of your Pi-hole system."
-  echo "::: This is not supported unless one of the developers explicitly asks you to do this!"
-  read -r -p "::: Have you read and understood this? [y/N] " response
+  echo "  Please note that changing branches severely alters your Pi-hole subsystems"
+  echo "  Features that work on the master branch, may not on a development branch"
+  echo -e "  ${red}This feature is NOT supported unless a Pi-hole developer explicitly asks!${def}"
+  read -r -p "  Have you read and understood this? [y/N] " response
   case ${response} in
   [yY][eE][sS]|[yY])
-    echo "::: Continuing."
+    echo "::: Continuing with branch change."
     return 0
     ;;
   *)
-    echo "::: Aborting."
+    echo "::: Branch change has been cancelled."
     return 1
     ;;
   esac
 }
 
-checkout()
-{
+checkout() {
   local corebranches
   local webbranches
 
@@ -192,11 +197,10 @@ checkout()
   if [[ ! "${1}" == "web" && "${update}" == "true" ]]; then
     echo "::: Running installer to upgrade your installation"
     if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
-     exit 0
+      exit 0
     else
-     echo "Unable to complete update, contact Pi-hole"
-     exit 1
+      echo "Unable to complete update, contact Pi-hole"
+      exit 1
     fi
   fi
 }
-

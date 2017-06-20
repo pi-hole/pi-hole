@@ -86,7 +86,7 @@ if command -v apt-get &> /dev/null; then
   #Debian Family
   #############################################
   PKG_MANAGER="apt-get"
-  UPDATE_PKG_CACHE="test_dpkg_lock; ${PKG_MANAGER} update"
+  UPDATE_PKG_CACHE="${PKG_MANAGER} update"
   PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
   # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
   PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
@@ -220,6 +220,16 @@ getGitFiles() {
   return 0
 }
 
+resetRepo() {
+  local directory="${1}"
+
+  cd "${directory}" &> /dev/null || return 1
+  echo -n ":::    Resetting repo in ${1}..."
+  git reset --hard &> /dev/null || return $?
+  echo " done!"
+  return 0
+}
+
 find_IPv4_information() {
   local route
   # Find IP used to route to outside world
@@ -317,15 +327,43 @@ chooseInterface() {
   fi
 }
 
+# See https://github.com/pi-hole/pi-hole/issues/1473#issuecomment-301745953
+testIPv6() {
+  first="$(cut -f1 -d":" <<< "$1")"
+  value1=$(((0x$first)/256))
+  value2=$(((0x$first)%256))
+  ((($value1&254)==252)) && echo "ULA" || true
+  ((($value1&112)==32)) && echo "GUA" || true
+  ((($value1==254) && (($value2&192)==128))) && echo "Link-local" || true
+}
+
 useIPv6dialog() {
-  # Show the IPv6 address used for blocking
-  IPV6_ADDRESS=$(ip -6 route get 2001:4860:4860::8888 | grep -v "unreachable" | awk -F " " '{ for(i=1;i<=NF;i++) if ($i == "src") print $(i+1) }')
+  # Determine the IPv6 address used for blocking
+  IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
+
+  # Determine type of found IPv6 addresses
+  for i in "${IPV6_ADDRESSES[@]}"; do
+    result=$(testIPv6 "$i")
+    [[ "${result}" == "ULA" ]] && ULA_ADDRESS="$i"
+    [[ "${result}" == "GUA" ]] && GUA_ADDRESS="$i"
+  done
+
+  # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
+  if [[ ! -z "${ULA_ADDRESS}" ]]; then
+    IPV6_ADDRESS="${ULA_ADDRESS}"
+    echo "::: Found IPv6 ULA address, using it for blocking IPv6 ads"
+  elif [[ ! -z "${GUA_ADDRESS}" ]]; then
+    echo "::: Found IPv6 GUA address, using it for blocking IPv6 ads"
+    IPV6_ADDRESS="${GUA_ADDRESS}"
+  else
+    echo "::: Found neither IPv6 ULA nor GUA address, blocking IPv6 ads will not be enabled"
+    IPV6_ADDRESS=""
+  fi
 
   if [[ ! -z "${IPV6_ADDRESS}" ]]; then
     whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." ${r} ${c}
   fi
 }
-
 
 use4andor6() {
   local useIPv4
@@ -408,7 +446,7 @@ setDHCPCD() {
   echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
-  static domain_name_servers=${IPv4gw}" | tee -a /etc/dhcpcd.conf >/dev/null
+  static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
 }
 
 setStaticIPv4() {
@@ -980,6 +1018,7 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+      iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
       return 0
     fi
   else
@@ -1041,7 +1080,7 @@ installLogrotate() {
   # the local properties of the /var/log directory
   logusergroup="$(stat -c '%U %G' /var/log)"
   if [[ ! -z $logusergroup ]]; then
-    sed -i "s/# su #/su ${logusergroup}/" /etc/pihole/logrotate
+    sed -i "s/# su #/su ${logusergroup}/g;" /etc/pihole/logrotate
   fi
   echo " done!"
 }
@@ -1128,10 +1167,18 @@ checkSelinux() {
 
 displayFinalMessage() {
 
+  if [[ ${#1} -gt 0 ]] ; then
+    pwstring="$1"
+  elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
+    pwstring="unchanged"
+  else
+    pwstring="NOT SET"
+  fi
+
    if [[ ${INSTALL_WEB} == true ]]; then
        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
-Your Admin Webpage login password is ${1:-"NOT SET"}"
+Your Admin Webpage login password is ${pwstring}"
    fi
 
   # Final completion message to user
@@ -1179,22 +1226,32 @@ update_dialogs() {
 }
 
 clone_or_update_repos() {
-if [[ "${reconfigure}" == true ]]; then
-      echo "::: --reconfigure passed to install script. Not downloading/updating local repos"
-    else
-      # Get Git files for Core and Admin
-      getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+  if [[ "${reconfigure}" == true ]]; then
+    echo "::: --reconfigure passed to install script. Resetting changes to local repos"
+    resetRepo ${PI_HOLE_LOCAL_REPO} || \
+      { echo "!!! Unable to reset ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
+    if [[ ${INSTALL_WEB} == true ]]; then
+      resetRepo ${webInterfaceDir} || \
+        { echo "!!! Unable to reset ${webInterfaceDir}, unable to continue."; \
           exit 1; \
         }
-
-      if [[ ${INSTALL_WEB} == true ]]; then
-        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-        { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
-          exit 1; \
-        }
-      fi
     fi
+  else
+    # Get Git files for Core and Admin
+    getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
+      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+        exit 1; \
+      }
+
+    if [[ ${INSTALL_WEB} == true ]]; then
+      getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+      { echo "!!! Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, unable to continue."; \
+        exit 1; \
+      }
+    fi
+  fi
 }
 
 FTLinstall() {
@@ -1220,6 +1277,7 @@ FTLinstall() {
       echo -n "transferred... "
       stop_service pihole-FTL &> /dev/null
       install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
+      rm /tmp/${binary} /tmp/${binary}.sha1
       cd "${orig_dir}"
       install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
       echo "done."

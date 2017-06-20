@@ -156,6 +156,7 @@ You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-
 -   [Let your blink1 device blink when Pi-hole filters ads](https://gist.github.com/elpatron68/ec0b4c582e5abf604885ac1e068d233f)
 -   [Pi-hole Prometheus exporter](https://github.com/nlamirault/pihole_exporter): a [Prometheus](https://prometheus.io/) exporter for Pi-hole
 -   [Pi-hole Droid - open source Android client](https://github.com/friimaind/pi-hole-droid)
+-   [Windows DNS Swapper](https://github.com/roots84/DNS-Swapper), see [#1400](https://github.com/pi-hole/pi-hole/issues/1400)
 
 ## Coverage
 
