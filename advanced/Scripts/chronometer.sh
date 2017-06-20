@@ -15,10 +15,14 @@ pihole-FTL() {
     # Get data from FTL
     C=0
     readarray -t LINE <<< "$(echo ">$1" | nc -w 1 127.0.0.1 "${ftl_port}")"
-    until [[ "${LINE[$C]}" == *"EOM"* || "${LINE[$C]}" == "" ]]; do
-      echo "${LINE[$C]}"
-      let C+=1
-    done
+    if [[ "${#LINE[@]}" -ge "1" && ! "${LINE[0]}" == "" ]]; then
+      until [[ "${LINE[$C]}" == *"EOM"* || "${LINE[$C]}" == "" ]]; do
+        echo "${LINE[$C]}"
+        let C+=1
+      done
+    else
+      echo -e "${COL_LIGHT_RED}FTL offline${COL_NC}"
+    fi
   else
     echo -e "${COL_LIGHT_RED}FTL offline${COL_NC}"
   fi
