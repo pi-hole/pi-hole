@@ -23,7 +23,6 @@ Example: pihole -a -p password
 Set options for the Admin Console
 
 Options:
-  -f, flush           Flush the Pi-hole log
   -p, password        Set Admin Console password
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
