@@ -11,10 +11,11 @@
 source "/opt/pihole/COL_TABLE"
 
 while true; do
-	read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [Y/N] " yn
+	read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " yn
 	case ${yn} in
 		[Yy]* ) break;;
 		[Nn]* ) echo -e "\n  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
+    * ) echo -e "\n  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
 	esac
 done
 
@@ -73,7 +74,7 @@ removeAndPurge() {
   echo ""
 	for i in "${PIHOLE_DEPS[@]}"; do
 		package_check ${i} > /dev/null
-		if [ $? -eq 0 ]; then
+		if [[ "$?" -eq 0 ]]; then
 			while true; do
 				read -rp "  ${QST} Do you wish to remove ${COL_WHITE}${i}${COL_NC} from your system? [Y/N] " yn
 				case ${yn} in
@@ -82,10 +83,7 @@ removeAndPurge() {
             ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null;
             echo -e "${OVER}  ${INFO} Removed ${i}";
             break;;
-					[Nn]* )
-            echo -e "  ${INFO} Skipped ${i}";
-            break;;
-					* ) printf "  ${INFO} Please answer yes or no\n";;
+					[Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
 				esac
 			done
 		else
@@ -176,9 +174,9 @@ removeNoPurge() {
   fi
   
 	# If the pihole user exists, then remove
-	if id "pihole" >/dev/null 2>&1; then
-		${SUDO} userdel -r pihole 2> dev/null
-    if [[ $? -eq 0 ]]; then
+	if id "pihole" &> /dev/null; then
+		${SUDO} userdel -r pihole 2> /dev/null
+    if [[ "$?" -eq 0 ]]; then
       echo -e "  ${TICK} Removed 'pihole' user"
     else
       echo -e "  ${CROSS} Unable to remove 'pihole' user"
@@ -200,9 +198,10 @@ else
   echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
 fi
 while true; do
-	read -rp "  ${QST} Do you wish to go through each dependency for removal? [Y/N] " yn
+	read -rp "  ${QST} Do you wish to go through each dependency for removal? [Y/n] " yn
 	case ${yn} in
 		[Yy]* ) removeAndPurge; break;;
 		[Nn]* ) removeNoPurge; break;;
+    * ) removeAndPurge; break;;
 	esac
 done
