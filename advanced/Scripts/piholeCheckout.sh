@@ -9,7 +9,8 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-PH_TEST="true" source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+PH_TEST="true"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # webInterfaceGitUrl set in basic-install.sh
 # webInterfaceDir set in basic-install.sh
@@ -40,10 +41,12 @@ fully_fetch_repo() {
 get_available_branches() {
   # Return available branches
   local directory="${1}"
+  local output
 
   cd "${directory}" || return 1
-  # Get reachable remote branches
-  git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'
+  # Get reachable remote branches, but store STDERR as STDOUT variable
+  output=$( { git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'; } 2>&1 )
+  echo "$output"
   return
 }
 
@@ -113,7 +116,7 @@ checkout() {
   # Avoid globbing
   set -f
 
-  #This is unlikely
+  # This is unlikely
   if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
     echo -e "  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!
   Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
@@ -128,7 +131,8 @@ checkout() {
   fi
 
   if [[ -z "${1}" ]]; then
-    echo "Invalid option, try 'pihole checkout --help' for more information"
+    echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}
+  Try 'pihole checkout --help' for more information."
     exit 1
   fi
 
@@ -140,22 +144,22 @@ checkout() {
     # Shortcut to check out development branches
     echo -e "  ${INFO} Shortcut \"dev\" detected - checking out development / devel branches..."
     echo -e "  ${INFO} Pi-hole core"
-    fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "Unable to pull Core developement branch"; exit 1; }
+    fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
     if [[ ${INSTALL_WEB} == "true" ]]; then
       echo -e "  ${INFO} Web interface"
-      fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "Unable to pull Web development branch"; exit 1; }
+      fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
     fi
-    echo "done!"
+    echo -e "  ${TICK} Pi-hole core"
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
     echo -e "  ${INFO} Pi-hole core"
-    fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "Unable to pull Core master branch"; exit 1; }
+    fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
     if [[ ${INSTALL_WEB} == "true" ]]; then
       echo -e "  ${INFO} Web interface"
-      fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "Unable to pull AdminLTE master branch"; exit 1; }
+      fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
     fi
-    echo "done!"
+    echo -e "  ${TICK} Web interface"
      
   elif [[ "${1}" == "core" ]] ; then
     str="Fetching branches from ${piholeGitUrl}"
@@ -165,8 +169,16 @@ checkout() {
       exit 1
     fi
     corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
-    echo -e "${OVER}  ${TICK} $str"
-    echo -e "  ${INFO} ${#corebranches[@]} branches available for Pi-hole Core"
+
+    if [[ "${corebranches[@]}" == *"master"* ]]; then
+      echo -e "${OVER}  ${TICK} $str
+  ${INFO} ${#corebranches[@]} branches available for Pi-hole Core"
+    else
+      # Print STDERR output from get_available_branches
+      echo -e "${OVER}  ${CROSS} $str\n\n${corebranches[*]}"
+      exit 1
+    fi
+
     echo ""
     # Have the user choose the branch they want
     if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
@@ -184,13 +196,21 @@ checkout() {
       exit 1
     fi
     webbranches=($(get_available_branches "${webInterfaceDir}"))
-    echo -e "${OVER}  ${TICK} $str"
-    echo -e "  ${INFO} ${#webbranches[@]} branches available for AdminLTE"
+    
+    if [[ "${corebranches[@]}" == *"master"* ]]; then
+      echo -e "${OVER}  ${TICK} $str
+  ${INFO} ${#webbranches[@]} branches available for Web Admin"
+    else
+      # Print STDERR output from get_available_branches
+      echo -e "${OVER}  ${CROSS} $str\n\n${corebranches[*]}"
+      exit 1
+    fi
+
     echo ""
     # Have the user choose the branch they want
     if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
       echo -e "  ${INFO} Requested branch \"${2}\" is not available"
-      echo -e "  ${INFO} Available branches for AdminLTE are:"
+      echo -e "  ${INFO} Available branches for Web Admin are:"
       for e in "${webbranches[@]}"; do echo "      - $e"; done
       exit 1
     fi
