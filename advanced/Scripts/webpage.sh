@@ -216,11 +216,19 @@ Reboot() {
 }
 
 RestartDNS() {
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl restart dnsmasq &> /dev/null
-	else
-		service dnsmasq restart &> /dev/null
-	fi
+  local str="Restarting dnsmasq"
+  echo -ne "  ${INFO} ${str}..."
+  if [[ -x "$(command -v systemctl)" ]]; then
+    systemctl restart dnsmasq
+  else
+    service dnsmasq restart
+  fi
+  
+  if [[ "$?" == 0 ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  else
+    echo -e "${OVER}  ${CROSS} ${str}"
+  fi
 }
 
 SetQueryLogOptions() {
