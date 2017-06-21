@@ -14,6 +14,9 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
+coltable="/opt/pihole/COL_TABLE"
+source ${coltable}
+
 helpFunc() {
   echo "Usage: pihole -a [options]
 Example: pihole -a -p password
@@ -58,6 +61,7 @@ delete_dnsmasq_setting() {
 
 SetTemperatureUnit() {
 	change_setting "TEMPERATUREUNIT" "${unit}"
+  echo -e "  ${TICK} Set temperature unit to ${unit}"
 }
 
 HashPassword() {
@@ -404,13 +408,13 @@ Interfaces:
   fi
   
 	if [[ "${args[2]}" == "all" ]]; then
-		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+    echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
 		change_setting "DNSMASQ_LISTENING" "all"
 	elif [[ "${args[2]}" == "local" ]]; then
-		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+    echo -e "  ${INFO} Listening on all interfaces, permiting origins from one hop away (LAN)"
 		change_setting "DNSMASQ_LISTENING" "local"
 	else
-		echo "Listening only on interface ${PIHOLE_INTERFACE}"
+		echo -e "  ${INFO} Listening only on interface ${PIHOLE_INTERFACE}"
 		change_setting "DNSMASQ_LISTENING" "single"
 	fi
 
