@@ -244,7 +244,7 @@ resetRepo() {
   str="Resetting repository within ${1}..."
   echo -ne "  ${INFO} ${str}"
   git reset --hard &> /dev/null || return $?
-  echo -n "${OVER}  ${TICK} ${str}"
+  echo -e "${OVER}  ${TICK} ${str}"
   return 0
 }
 
