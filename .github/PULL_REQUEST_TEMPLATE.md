@@ -7,7 +7,8 @@
 - [] I have squashed any insignificant commits
 - [] This change has comments for package types, values, functions, and non-obvious lines of code
 - [] I am willing to help maintain this change if there are issues with it later
-- [] I give this submission freely, and claim no ownership to its content. And I have Signed Off all commits.
+- [] I give this submission freely, and claim no ownership to its content
+- [] I have Signed Off all commits.
 
 ***Please explain what you have done and wish to accomplish with this Pull Request***
 
