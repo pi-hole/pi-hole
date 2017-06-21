@@ -235,8 +235,10 @@ Time:
         else
           local error=true
         fi
-      else
+      elif [[ -n "${2}" ]]; then
         local error=true
+      else
+        echo -e "  ${INFO} Disabling blocking"
       fi
 
       if [[ ${error} == true ]];then
@@ -244,19 +246,22 @@ Time:
         echo -e "  Try 'pihole disable --help' for more information."
         exit 1
       fi
-    else
-      echo -e "  ${INFO} Disabling blocking"
+
       local str="Pi-hole Disabled"
     fi
   else
     # Enable Pi-hole
+    echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
+    
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
     if [[ -e "/etc/pihole/wildcard.list" ]]; then
       mv "/etc/pihole/wildcard.list" "$wildcardlist"
     fi
   fi
+  
   restartDNS
+  
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
