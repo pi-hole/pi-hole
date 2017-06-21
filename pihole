@@ -111,6 +111,13 @@ processWildcards() {
 
 queryFunc() {
   domain="${2}"
+  
+  if [[ -z "${domain}" ]]; then
+    echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}
+  Try 'pihole query --help' for more information."
+    exit 1
+  fi
+  
   method="${3}"
   lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
   for list in ${lists[@]}; do
