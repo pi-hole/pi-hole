@@ -14,22 +14,19 @@ coltable="/opt/pihole/COL_TABLE"
 source ${coltable}
 
 helpFunc() {
-	cat << EOM
-Pull in domains from adlists
+  echo "Usage: pihole -g
+Update domains from blocklists specified in adlists.list
 
- Usage: pihole -g
-
- Options:
-  -f, --force			Force lists to be downloaded, even if they don't need updating.
-  -h, --help				Show this help dialog
-EOM
-	exit 0
+Options:
+  -f, --force          Force the download of all specified blocklists
+  -h, --help           Show this help dialog"
+  exit 0
 }
 
 PIHOLE_COMMAND="/usr/local/bin/pihole"
 
 adListFile=/etc/pihole/adlists.list
-adListDefault=/etc/pihole/adlists.default #being deprecated
+adListDefault=/etc/pihole/adlists.default # Deprecated
 adListRepoDefault=/etc/.pihole/adlists.default
 whitelistScript="${PIHOLE_COMMAND} -w"
 whitelistFile=/etc/pihole/whitelist.txt
@@ -38,8 +35,8 @@ readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
 # Source the setupVars from install script for the IP
 setupVars=/etc/pihole/setupVars.conf
-if [[ -f "${setupVars}" ]]; then
-  . /etc/pihole/setupVars.conf
+if [[ -f "${setupVars}" ]];then
+	. /etc/pihole/setupVars.conf
 else
 	echo -e "  ${COL_LIGHT_RED}Error: /etc/pihole/setupVars.conf missing. Possible installation failure.${COL_NC}
   Please run 'pihole -r', and choose the 'reconfigure' option to reconfigure."
@@ -65,9 +62,9 @@ accretionDisc=${basename}.3.accretionDisc.txt
 
 skipDownload=false
 
-# Warn users still using pihole.conf that it no longer has any effect (I imagine about 2 people use it)
-if [[ -r "${piholeDir}/pihole.conf" ]]; then
-	echo -e "  ${COL_LIGHT_RED}pihole.conf file no longer supported. Over-rides in this file are ignored.${COL_NC}"
+# Warn users still using pihole.conf that it no longer has any effect
+if [[ -r ${piholeDir}/pihole.conf ]]; then
+echo -e "  ${COL_LIGHT_RED}pihole.conf file no longer supported. Overrides in this file are ignored.${COL_NC}"
 fi
 
 ###########################
@@ -79,19 +76,20 @@ gravity_collapse() {
   #                                      If not, cp /etc/.pihole/adlists.default /etc/pihole/adlists.list
   # Read from adlists.list
 
-  #The following two blocks will sort out any missing adlists in the /etc/pihole directory, and remove legacy adlists.default
+  # The following two blocks will sort out any missing adlists in the /etc/pihole directory, and remove legacy adlists.default
   if [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
-    rm ${adListDefault}
+    rm "${adListDefault}"
   fi
 
-  if [[ ! -f "${adListFile}" ]]; then
-    cp ${adListRepoDefault} ${adListFile}
+  if [ ! -f "${adListFile}" ]; then
+    cp "${adListRepoDefault}" "${adListFile}"
   fi
 
 	echo -e "  ${INFO} Neutrino emissions detected..."
 	echo ""
 	local str="Pulling source lists into range"
   echo -ne "  ${INFO} ${str}..."
+
   sources=()
   while IFS= read -r line || [[ -n "$line" ]]; do
     # Do not read commented out or blank lines
@@ -101,6 +99,7 @@ gravity_collapse() {
       sources+=(${line})
     fi
   done < ${adListFile}
+
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -109,15 +108,14 @@ gravity_patternCheck() {
 	patternBuffer=$1
 	success=$2
 	error=$3
-	if [[ "$success" == true ]]; then
+	if [[ "${success}" = true ]]; then
 		# Check if download was successful but list has not been modified
 		if [[ "${error}" == "304" ]]; then
 			echo -e "  ${TICK} No changes detected, transport skipped!"
 		# Check if the patternbuffer is a non-zero length file
 		elif [[ -s "${patternBuffer}" ]]; then
-			# Some of the blocklists are copyright, they need to be downloaded
-			# and stored as is. They can be processed for content after they
-			# have been saved.
+			# Some blocklists are copyright, they need to be downloaded and stored
+      # as is. They can be processed for content after they have been saved.
 			mv "${patternBuffer}" "${saveLocation}"
 			echo -e "  ${TICK} List updated, transport successful!"
 		else
@@ -136,16 +134,15 @@ gravity_patternCheck() {
 
 # transport - curl the specified url with any needed command extentions
 gravity_transport() {
-	local url=$1
-	local cmd_ext=$2
-	local agent=$3
-	local str=$4
+	url=$1
+	cmd_ext=$2
+	agent=$3
 
 	# tmp file, so we don't have to store the (long!) lists in RAM
 	patternBuffer=$(mktemp)
 	heisenbergCompensator=""
 	if [[ -r ${saveLocation} ]]; then
-		# if domain has been saved, add file for date check to only download newer
+		# If domain has been saved, add file for date check to only download newer
 		heisenbergCompensator="-z ${saveLocation}"
 	fi
 
@@ -155,9 +152,7 @@ gravity_transport() {
   echo -ne "  ${INFO} ${str} Pending"
 	err=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w %{http_code} -A "${agent}" ${url} -o ${patternBuffer})
 
-
 	# Analyze http response
-	#echo -n ":::   Status: "
 	case "$err" in
 		"200"  ) echo -e "${OVER}  ${TICK} ${str} Success (OK)"; success=true;;
 		"304"  ) echo -e "${OVER}  ${TICK} ${str} Not modified"; success=true;;
@@ -172,7 +167,7 @@ gravity_transport() {
 	esac
 
 	# Process result
-	gravity_patternCheck "${patternBuffer}" ${success} "${err}"
+	gravity_patternCheck "${patternBuffer}" "${success}" "${err}"
 
   # Delete temp file if it hasn't been moved
   if [[ -f "${patternBuffer}" ]]; then
@@ -183,11 +178,11 @@ gravity_transport() {
 # spinup - main gravity function
 gravity_spinup() {
 	echo ""
-	# Loop through domain list.  Download each one and remove commented lines (lines beginning with '# 'or '/') and	 		# blank lines
+	# Loop through domain list. Download each one and remove commented lines (lines beginning with '# 'or '/') and # blank lines
 	for ((i = 0; i < "${#sources[@]}"; i++)); do
 		url=${sources[$i]}
 		# Get just the domain from the URL
-		domain=$(echo "${url}" | cut -d'/' -f3)
+		domain=$(cut -d'/' -f3 <<< "${url}")
 
 		# Save the file as list.#.domain
 		saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
@@ -198,15 +193,6 @@ gravity_spinup() {
 		# Use a case statement to download lists that need special cURL commands
 		# to complete properly and reset the user agent when required
 		case "${domain}" in
-      "adblock.mahakala.is")
-        agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-        cmd_ext="-e http://forum.xda-developers.com/"
-      ;;
-
-      "adaway.org")
-        agent='Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
-      ;;
-
       "pgl.yoyo.org")
         cmd_ext="-d mimetype=plaintext -d hostformat=hosts"
       ;;
@@ -214,10 +200,11 @@ gravity_spinup() {
       # Default is a simple request
       *) cmd_ext=""
     esac
-    
+
     if [[ "${skipDownload}" == false ]]; then
       local str="Aiming tractor beam at $domain"
       echo -ne "  ${INFO} ${str}..."
+
       gravity_transport "$url" "$cmd_ext" "$agent" "$str"
       echo ""
     fi
@@ -230,76 +217,77 @@ gravity_Schwarzchild() {
 	# Find all active domains and compile them into one file and remove CRs
 	local str="Aggregating list of domains"
 	echo -ne "  ${INFO} ${str}..."
+  
 	truncate -s 0 ${piholeDir}/${matterAndLight}
 	for i in "${activeDomains[@]}"; do
-		# Only assimilate list if it is available (download might have faild permanently)
+		# Only assimilate list if it is available (download might have failed permanently)
 		if [[ -r "${i}" ]]; then
 			cat "${i}" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
 		fi
 	done
+
 	echo -e "${OVER}  ${TICK} ${str}"
 }
 
 gravity_Blacklist() {
 	# Append blacklist entries to eventHorizon if they exist
 	if [[ -f "${blacklistFile}" ]]; then
-	    numBlacklisted=$(wc -l < "${blacklistFile}")
-	    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
-	    local str="Blacklisting ${numBlacklisted} domain${plural}"
-	    echo -ne "  ${INFO} ${str}..."
-	    cat ${blacklistFile} >> ${piholeDir}/${eventHorizon}
-	    echo -e "${OVER}  ${TICK} ${str}"
+    numBlacklisted=$(wc -l < "${blacklistFile}")
+    plural=; [[ "$numBlacklisted" != "1" ]] && plural=s
+    local str="Exact blocked domain${plural}: $numBlacklisted"
+    echo -e "  ${INFO} ${str}"
 	else
-	    echo -e "  ${INFO} Nothing to blacklist!"
+    echo -e "  ${INFO} Nothing to blacklist!"
 	fi
-
 }
 
 gravity_Wildcard() {
 	# Return number of wildcards in output - don't actually handle wildcards
 	if [[ -f "${wildcardlist}" ]]; then
-	    numWildcards=$(grep -c ^ "${wildcardlist}")
-	    if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]]; then
-	        let numWildcards/=2
-	    fi
-	    plural=; [[ "$numWildcards" != "1" ]] && plural=s
-	    echo -e "  ${TICK} Wildcard blocked domain${plural}: $numWildcards"
+    numWildcards=$(grep -c ^ "${wildcardlist}")
+    if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
+      let numWildcards/=2
+    fi
+    plural=; [[ "$numWildcards" != "1" ]] && plural=s
+    echo -e "  ${INFO} Wildcard blocked domain${plural}: $numWildcards"
 	else
-	    echo -e "  ${INFO} No wildcards used!"
+    echo -e "  ${INFO} No wildcards used"
 	fi
 
 }
 
 gravity_Whitelist() {
-    #${piholeDir}/${eventHorizon})
 	echo ""
 	# Prevent our sources from being pulled into the hole
 	plural=; [[ "${sources[@]}" != "1" ]] && plural=s
-	local str="Adding adlist source${plural} to the whitelist"
-	echo -ne "  ${INFO} ${str}..."
+  local str="Adding adlist source${plural} to the whitelist"
+  echo -ne "  ${INFO} ${str}..."
 
 	urls=()
 	for url in "${sources[@]}"; do
-		tmp=$(echo "${url}" | awk -F '/' '{print $3}')
+		tmp=$(awk -F '/' '{print $3}' <<< "${url}")
 		urls=("${urls[@]}" ${tmp})
 	done
+
 	echo -e "${OVER}  ${TICK} ${str}"
 
 	# Ensure adlist domains are in whitelist.txt
 	${whitelistScript} -nr -q "${urls[@]}" > /dev/null
 
-    # Check whitelist.txt exists.
+  # Check whitelist.txt exists.
 	if [[ -f "${whitelistFile}" ]]; then
-        # Remove anything in whitelist.txt from the Event Horizon
-        numWhitelisted=$(wc -l < "${whitelistFile}")
-        plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
-        local str="Whitelisting $numWhitelisted domain${plural}"
-        echo -ne "  ${INFO} ${str}..."
-        #print everything from preEventHorizon into eventHorizon EXCEPT domains in whitelist.txt
-        grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
-        echo -e "${OVER}  ${TICK} ${str}"
+    # Remove anything in whitelist.txt from the Event Horizon
+    numWhitelisted=$(wc -l < "${whitelistFile}")
+    plural=; [[ "$numWhitelisted" != "1" ]] && plural=s
+    local str="Whitelisting $numWhitelisted domain${plural}"
+    echo -ne "  ${INFO} ${str}..."
+
+    # Print everything from preEventHorizon into eventHorizon EXCEPT domains in whitelist.txt
+    grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
+
+    echo -e "${OVER}  ${TICK} ${str}"
 	else
-	    echo -e "  ${INFO} Nothing to whitelist!"
+    echo -e "  ${INFO} Nothing to whitelist!"
 	fi
 }
 
@@ -307,41 +295,28 @@ gravity_unique() {
 	# Sort and remove duplicates
 	local str="Removing duplicate domains"
 	echo -ne "  ${INFO} ${str}..."
+
 	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
+
 	echo -e "${OVER}  ${TICK} ${str}"
 	numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
 	echo -e "  ${INFO} ${COL_LIGHT_BLUE}${numberOf}${COL_NC} unique domains trapped in the event horizon."
 }
 
-gravity_hostFormat() {
-	# Format domain list as "192.168.x.x domain.com"
-	local str="Formatting domains into a HOSTS file"
-	echo -ne "  ${INFO} ${str}..."
-
-	if [[ -f "/etc/hostname" ]]; then
-		hostname=$(</etc/hostname)
-	elif [[ -x "$(command -v hostname)" ]]; then
-		hostname=$(hostname -f)
-	else
-	  echo -e "${OVER}  ${CROSS} ${str}"
-	  echo -e "        ${COL_LIGHT_RED}Error: Unable to determine fully qualified domain name of host${COL_NC}"
-	fi
+gravity_doHostFormat() {
   # Check vars from setupVars.conf to see if we're using IPv4, IPv6, Or both.
-  if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]]; then
-    echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV6_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole\n${IPV6_ADDRESS} pi.hole" > ${localList}
+  if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
     # Both IPv4 and IPv6
-    cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
-  elif [[ -n "${IPV4_ADDRESS}" ]] && [[ -z "${IPV6_ADDRESS}" ]]; then
-    echo -e "${IPV4_ADDRESS} ${hostname}\n${IPV4_ADDRESS} pi.hole" > ${localList}
+    awk -v ipv4addr="$IPV4_ADDRESS" -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0"\n"ipv6addr" "$0}' >> "${2}" < "${1}"
+  elif [[ -n "${IPV4_ADDRESS}" ]] && [[ -z "${IPV6_ADDRESS}" ]];then
     # Only IPv4
-    cat ${piholeDir}/${eventHorizon} | awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> ${piholeDir}/${accretionDisc}
-  elif [[ -z "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]]; then
-    echo -e "${IPV6_ADDRESS} ${hostname}\n${IPV6_ADDRESS} pi.hole" > ${localList}
+    awk -v ipv4addr="$IPV4_ADDRESS" '{sub(/\r$/,""); print ipv4addr" "$0}' >> "${2}" < "${1}"
+  elif [[ -z "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
     # Only IPv6
-    cat ${piholeDir}/${eventHorizon} | awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> ${piholeDir}/${accretionDisc}
-  elif [[ -z "${IPV4_ADDRESS}" ]] && [[ -z "${IPV6_ADDRESS}" ]]; then
+    awk -v ipv6addr="$IPV6_ADDRESS" '{sub(/\r$/,""); print ipv6addr" "$0}' >> "${2}" < "${1}"
+  elif [[ -z "${IPV4_ADDRESS}" ]] &&[[  -z "${IPV6_ADDRESS}" ]];then
     echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "        ${COL_LIGHT_RED}No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values${COL_NC}"
+    echo -e "      ${COL_LIGHT_RED}No IP Values found! Please run 'pihole -r' and choose reconfigure to restore values${COL_NC}"
     exit 1
   fi
 }
@@ -349,12 +324,12 @@ gravity_hostFormat() {
 gravity_hostFormatLocal() {
 	# Format domain list as "192.168.x.x domain.com"
 
-	if [[ -f /etc/hostname ]]; then
-		hostname=$(</etc/hostname)
+	if [[ -f "/etc/hostname" ]]; then
+		hostname=$(< /etc/hostname)
 	elif [ -x "$(command -v hostname)" ]; then
 		hostname=$(hostname -f)
 	else
-		echo "::: Error: Unable to determine fully qualified domain name of host"
+    echo -e "  ${CROSS} Unable to determine fully qualified domain name of host"
 	fi
 
 	echo -e "${hostname}\npi.hole" > "${localList}.tmp"
@@ -370,7 +345,7 @@ gravity_hostFormatGravity() {
 	gravity_doHostFormat "${piholeDir}/${eventHorizon}" "${piholeDir}/${accretionDisc}"
 	# Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
 	mv "${piholeDir}/${accretionDisc}" "${adList}"
-	echo -e "${OVER}  ${TICK} ${str}"
+
 }
 
 gravity_hostFormatBlack() {
@@ -381,7 +356,7 @@ gravity_hostFormatBlack() {
     # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
     mv "${blackList}.tmp" "${blackList}"
   else
-    echo -ne "  ${INFO} Nothing to blacklist!"
+    echo -e "  ${INFO} Nothing to blacklist!"
   fi
 }
 
@@ -405,16 +380,18 @@ gravity_advanced() {
 	# It also helps with debugging so each stage of the script can be researched more in depth
 	local str="Formatting list of domains to remove comments"
 	echo -ne "  ${INFO} ${str}..."
+
 	#awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' ${piholeDir}/${matterAndLight} | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
 	#Above line does not correctly grab domains where comment is on the same line (e.g 'addomain.com #comment')
 	#Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
 	#Last awk command takes non-commented lines and if they have 2 fields, take the left field (the domain) and leave
 	#+ the right (IP address), otherwise grab the single field.
 	cat ${piholeDir}/${matterAndLight} | \
-    awk -F '#' '{print $1}' | \
-    awk -F '/' '{print $1}' | \
-    awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
-    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+	    awk -F '#' '{print $1}' | \
+	    awk -F '/' '{print $1}' | \
+	    awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
+	    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+
 	echo -e "${OVER}  ${TICK} ${str}"
 
 	numberOf=$(wc -l < ${piholeDir}/${supernova})
@@ -424,20 +401,15 @@ gravity_advanced() {
 }
 
 gravity_reload() {
-	# Clear no longer needed files...
-	echo ""
-	local str="Cleaning up un-needed files"
-	echo -ne "  ${INFO} ${str}..."
-	rm ${piholeDir}/pihole.*.txt
-	echo -e "${OVER}  ${TICK} ${str}"
-
 	# Reload hosts file
 	echo ""
-  
-	#ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
-	#First escape forward slashes in the path:
+	local str="Refreshing lists in dnsmasq"
+	echo -e "  ${INFO} ${str}..."
+
+	# Ensure /etc/dnsmasq.d/01-pihole.conf is pointing at the correct list!
+	# First escape forward slashes in the path:
 	adList=${adList//\//\\\/}
-	#Now replace the line in dnsmasq file
+	# Now replace the line in dnsmasq file
   #	sed -i "s/^addn-hosts.*/addn-hosts=$adList/" /etc/dnsmasq.d/01-pihole.conf
 
 	"${PIHOLE_COMMAND}" restartdns
@@ -455,8 +427,12 @@ done
 if [[ "${forceGrav}" == true ]]; then
   str="Deleting exising list cache"
 	echo -ne "${INFO} ${str}..."
-	rm /etc/pihole/list.*
-	echo -e "${OVER}  ${TICK} ${str}"
+
+  if rm /etc/pihole/list.* 2> /dev/null; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  else
+    echo -e "${OVER}  ${CROSS} ${str}"
+  fi
 fi
 
 if [[ ! "${blackListOnly}" == true ]]; then
@@ -475,22 +451,25 @@ fi
 gravity_Blacklist
 gravity_Wildcard
 
-echo -n "::: Formatting domains into a HOSTS file..."
+str="Formatting domains into a HOSTS file"
+echo -ne "  ${INFO} ${str}..."
 if [[ ! "${blackListOnly}" == true ]]; then
   gravity_hostFormatLocal
   gravity_hostFormatGravity
 fi
 gravity_hostFormatBlack
-echo " done!"
+echo -e "${OVER}  ${TICK} ${str}"
 
 gravity_blackbody
 
 if [[ ! "${blackListOnly}" == true ]]; then
-  #Clear no longer needed files...
-  echo ":::"
-  echo -n "::: Cleaning up un-needed files..."
-  rm ${piholeDir}/pihole.*.txt
-  echo " done!"
+  # Clear no longer needed files...
+  str="Cleaning up un-needed files"
+  echo -ne "  ${INFO} ${str}..."
+
+  rm ${piholeDir}/pihole.*.txt 2> /dev/null
+  
+  echo -e "${OVER}  ${TICK} ${str}"
 fi
 
 gravity_reload
