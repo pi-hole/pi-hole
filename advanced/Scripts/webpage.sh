@@ -15,7 +15,9 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
 coltable="/opt/pihole/COL_TABLE"
-source ${coltable}
+if [[ -f ${coltable} ]]; then
+  source ${coltable}
+fi
 
 helpFunc() {
   echo "Usage: pihole -a [options]
