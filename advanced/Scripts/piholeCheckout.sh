@@ -87,7 +87,7 @@ warning1() {
   echo "  Please note that changing branches severely alters your Pi-hole subsystems"
   echo "  Features that work on the master branch, may not on a development branch"
   echo -e "  ${red}This feature is NOT supported unless a Pi-hole developer explicitly asks!${def}"
-  read -r -p "  Have you read and understood this? [Y/N] " response
+  read -r -p "  Have you read and understood this? [y/N] " response
   case ${response} in
   [yY][eE][sS]|[yY])
     echo "::: Continuing with branch change."
