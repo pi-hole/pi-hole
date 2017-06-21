@@ -3,17 +3,16 @@
 ***Please submit all pull requests against the `development` branch. Failure to do so will delay or deny your request***
 
 - [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
-- [] I have checked that [another pull request](https://github.com/pi-hole/pi-hole/pulls) for this purpose does not exist.
-- [] I have considered, and confirmed that this submission will be valuable to others.
-- [] I accept that this submission may not be used, and the pull request closed at the will of the maintainer.
-- [] I give this submission freely, and claim no ownership to its content.
+- [] I have written tests and verified that they fail without my change
+- [] I have squashed any insignificant commits
+- [] This change has comments for package types, values, functions, and non-obvious lines of code
+- [] I am willing to help maintain this change if there are issues with it later
+- [] I give this submission freely, and claim no ownership to its content. And I have Signed Off all commits.
 
-**How familiar are you with the codebase?:**
+***Please explain what you have done and wish to accomplish with this Pull Request***
 
-_{replace this text with a number from 1 to 10, with 1 being not familiar, and 10 being very familiar}_
+1. What does this change do, exactly?
 
----
-_{replace this line with your pull request content}_
+2. Please link to the relevant issues.
 
-
-_This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._
+3. Which documentation changes (if any) need to be made because of this PR?
