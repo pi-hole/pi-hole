@@ -212,7 +212,7 @@ update_repo() {
   # Pull the latest commits
   echo -ne "  ${INFO} ${str}..."
   git stash --all --quiet &> /dev/null || true # Okay for stash failure
-  git clean --force -d || true # Okay for already clean directory
+  git clean --quiet --force -d || true # Okay for already clean directory
   git pull --quiet &> /dev/null || return $?
   echo -e "${OVER}  ${TICK} ${str}"
   cd "${curdir}" &> /dev/null || return 1
@@ -1491,7 +1491,7 @@ main() {
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-    
+
     stop_service dnsmasq
     if [[ ${INSTALL_WEB} == true ]]; then
       stop_service lighttpd
@@ -1571,7 +1571,7 @@ main() {
   if [[ "${useUpdateVars}" == false ]]; then
       displayFinalMessage "${pw}"
   fi
-  
+
   if [[ ${INSTALL_WEB} == true ]]; then
     if (( ${#pw} > 0 )) ; then
       echo -e "  ${INFO} Web Interface password: ${COL_LIGHT_GREEN}${pw}${COL_NC}
@@ -1593,7 +1593,7 @@ main() {
   else
     INSTALL_TYPE="Update"
   fi
-  
+
   echo -e "\n  ${INFO} The install log is located at: /etc/pihole/install.log
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 }
