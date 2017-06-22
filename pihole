@@ -344,8 +344,8 @@ tailFunc() {
   echo -e "  ${INFO} Press Ctrl-C to exit"
   tail -f /var/log/pihole.log | sed \
     -e "s,\(${date}\| dnsmasq\[.*[0-9]]\),,g" \
-    -e "s,.*gravity.*,${COL_LIGHT_RED}&${COL_NC}," \
-    -e "s,.*\(query\[A\|local\).*,${COL_NC}&${COL_NC}," \
+    -e "s,\(.*\(gravity\|black\|config\).* is \(${IPV4_ADDRESS%/*}\|${IPV6_ADDRESS:-NULL}\).*\),${COL_LIGHT_RED}&${COL_NC}," \
+    -e "s,.*\(query\[A\|DHCP\).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_DARK_GRAY}&${COL_NC},"
   exit 0
 }
