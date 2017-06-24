@@ -14,13 +14,17 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
+coltable="/opt/pihole/COL_TABLE"
+if [[ -f ${coltable} ]]; then
+  source ${coltable}
+fi
+
 helpFunc() {
   echo "Usage: pihole -a [options]
 Example: pihole -a -p password
 Set options for the Admin Console
 
 Options:
-  -f, flush           Flush the Pi-hole log
   -p, password        Set Admin Console password
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
@@ -58,6 +62,7 @@ delete_dnsmasq_setting() {
 
 SetTemperatureUnit() {
 	change_setting "TEMPERATUREUNIT" "${unit}"
+  echo -e "  ${TICK} Set temperature unit to ${unit}"
 }
 
 HashPassword() {
@@ -89,7 +94,7 @@ SetWebPassword() {
 
     if [ "${PASSWORD}" == "" ]; then
       change_setting "WEBPASSWORD" ""
-      echo "Password Removed"
+      echo -e "  ${TICK} Password Removed"
       exit 0
     fi
 
@@ -101,9 +106,9 @@ SetWebPassword() {
 		hash=$(HashPassword ${PASSWORD})
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
-		echo "New password set"
+		echo -e "  ${TICK} New password set"
 	else
-		echo "Passwords don't match. Your password has not been changed"
+		echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
 		exit 1
 	fi
 }
@@ -213,11 +218,19 @@ Reboot() {
 }
 
 RestartDNS() {
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl restart dnsmasq &> /dev/null
-	else
-		service dnsmasq restart &> /dev/null
-	fi
+  local str="Restarting dnsmasq"
+  echo -ne "  ${INFO} ${str}..."
+  if [[ -x "$(command -v systemctl)" ]]; then
+    systemctl restart dnsmasq
+  else
+    service dnsmasq restart
+  fi
+  
+  if [[ "$?" == 0 ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  else
+    echo -e "${OVER}  ${CROSS} ${str}"
+  fi
 }
 
 SetQueryLogOptions() {
@@ -404,13 +417,13 @@ Interfaces:
   fi
   
 	if [[ "${args[2]}" == "all" ]]; then
-		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+    echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
 		change_setting "DNSMASQ_LISTENING" "all"
 	elif [[ "${args[2]}" == "local" ]]; then
-		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+    echo -e "  ${INFO} Listening on all interfaces, permiting origins from one hop away (LAN)"
 		change_setting "DNSMASQ_LISTENING" "local"
 	else
-		echo "Listening only on interface ${PIHOLE_INTERFACE}"
+		echo -e "  ${INFO} Listening only on interface ${PIHOLE_INTERFACE}"
 		change_setting "DNSMASQ_LISTENING" "single"
 	fi
 
