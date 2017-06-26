@@ -123,9 +123,9 @@ AddDomain() {
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
     source "${piholeDir}/setupVars.conf"
-    # Remove the /* from the end of the IPv4addr.
+    # Remove the /* from the end of the IP addresses
     IPV4_ADDRESS=${IPV4_ADDRESS%/*}
-    IPV6_ADDRESS=${IPV6_ADDRESS}
+    IPV6_ADDRESS=${IPV6_ADDRESS%/*}
 
     bool=true
     # Is the domain in the list?
