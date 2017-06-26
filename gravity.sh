@@ -43,9 +43,9 @@ else
   exit 1
 fi
 
-# Remove the /* from the end of the IPv4addr.
+# Remove the /* from the end of the IP addresses
 IPV4_ADDRESS=${IPV4_ADDRESS%/*}
-IPV6_ADDRESS=${IPV6_ADDRESS}
+IPV6_ADDRESS=${IPV6_ADDRESS%/*}
 
 # Variables for various stages of downloading and formatting the list
 basename=pihole
