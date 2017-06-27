@@ -24,6 +24,93 @@ update="false"
 coltable="/opt/pihole/COL_TABLE"
 source ${coltable}
 
+check_download_exists() {
+  status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
+  if echo "$status" | grep -q "404"; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+FTLinstall() {
+  # Download and install FTL binary
+  local binary="${1}"
+  local path="${2}"
+  local str="Installing FTL"
+  echo -ne "  ${INFO} ${str}..."
+
+  if curl -sSL --fail "https://ftl.pi-hole.net/${path}" -o "/tmp/${binary}"; then
+    # Get sha1 of the binary we just downloaded for verification.
+    curl -sSL --fail "https://ftl.pi-hole.net/${path}.sha1" -o "/tmp/${binary}.sha1"
+    # Check if we just downloaded text, or a binary file.
+    cd /tmp
+    if sha1sum --status --quiet -c "${binary}".sha1; then
+      echo -n "transferred... "
+      stop_service pihole-FTL &> /dev/null
+      install -T -m 0755 "/tmp/${binary}" "/usr/bin/pihole-FTL"
+      rm "/tmp/${binary}" "/tmp/${binary}.sha1"
+      start_service pihole-FTL &> /dev/null
+      echo -e "${OVER}  ${TICK} ${str}"
+      return 0
+    else
+      echo -e "${OVER}  ${CROSS} ${str}"
+      echo -e "  ${COL_LIGHT_RED}Error: Download of binary from ftl.pi-hole.net failed${COL_NC}"
+      return 1
+    fi
+  else
+    echo -e "${OVER}  ${CROSS} ${str}"
+    echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
+  fi
+}
+
+get_binary_name() {
+  local machine
+
+  machine=$(uname -m)
+
+  local str="Detecting architecture"
+  echo -ne "  ${INFO} ${str}..."
+  if [[ ${machine} == arm* || ${machine} == *aarch* ]]; then
+    # ARM
+    local rev=$(uname -m | sed "s/[^0-9]//g;")
+    local lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
+    if [[ "$lib" == "/lib/ld-linux-aarch64.so.1" ]]; then
+      echo -e "${OVER}  ${TICK} Detected ARM-aarch64 architecture"
+      binary="pihole-FTL-aarch64-linux-gnu"
+    elif [[ "$lib" == "/lib/ld-linux-armhf.so.3" ]]; then
+      if [ "$rev" -gt "6" ]; then
+        echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv7+)"
+        binary="pihole-FTL-arm-linux-gnueabihf"
+      else
+        echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv6 or lower) Using ARM binary"
+        binary="pihole-FTL-arm-linux-gnueabi"
+      fi
+    else
+      echo -e "${OVER}  ${TICK} Detected ARM architecture"
+      binary="pihole-FTL-arm-linux-gnueabi"
+    fi
+  elif [[ $machine == ppc ]]; then
+    # PowerPC
+    echo ":::  Detected PowerPC architecture"
+    binary="pihole-FTL-powerpc-linux-gnu"
+  elif [[ ${machine} == x86_64 ]]; then
+    # 64bit
+    echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
+    binary="pihole-FTL-linux-x86_64"
+  else
+    # Something else - we try to use 32bit executable and warn the user
+    if [[ ! ${machine} == i686 ]]; then
+      echo -e "${OVER}  ${CROSS} ${str}...
+      ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable
+      Contact support if you experience issues (e.g: FTL not running)${COL_NC}"
+    else
+      echo -e "${OVER}  ${TICK} Detected 32bit (i686) architecture"
+    fi
+    binary="pihole-FTL-linux-x86_32"
+  fi
+}
+
 fully_fetch_repo() {
   # Add upstream branches to shallow clone
   local directory="${1}"
@@ -50,7 +137,6 @@ get_available_branches() {
   return
 }
 
-
 fetch_checkout_pull_branch() {
   # Check out specified branch
   local directory="${1}"
@@ -74,7 +160,7 @@ checkout_pull_branch() {
   cd "${directory}" || return 1
 
   oldbranch="$(git symbolic-ref HEAD)"
-  
+
   git checkout "${branch}" || return 1
 
   if [[ "$(git diff "${oldbranch}" | grep -c "^")" -gt "0" ]]; then
@@ -82,13 +168,13 @@ checkout_pull_branch() {
   fi
 
   git_pull=$(git pull || return 1)
-  
+
   if [[ "$git_pull" == *"up-to-date"* ]]; then
     echo -e "\n  ${INFO} $(git pull)"
   else
     echo -e "$git_pull\n"
   fi
-  
+
   return 0
 }
 
@@ -150,6 +236,12 @@ checkout() {
       fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
     fi
     echo -e "  ${TICK} Pi-hole core"
+
+    get_binary_name
+    local path
+    path="development/${binary}"
+    FTLinstall "${binary}" "${path}"
+
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
@@ -160,7 +252,12 @@ checkout() {
       fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
     fi
     echo -e "  ${TICK} Web interface"
-     
+
+    get_binary_name
+    local path
+    path="master/${binary}"
+    FTLinstall "${binary}" "${path}"
+
   elif [[ "${1}" == "core" ]] ; then
     str="Fetching branches from ${piholeGitUrl}"
     echo -ne "  ${INFO} $str"
@@ -196,7 +293,7 @@ checkout() {
       exit 1
     fi
     webbranches=($(get_available_branches "${webInterfaceDir}"))
-    
+
     if [[ "${corebranches[@]}" == *"master"* ]]; then
       echo -e "${OVER}  ${TICK} $str
   ${INFO} ${#webbranches[@]} branches available for Web Admin"
@@ -215,13 +312,27 @@ checkout() {
       exit 1
     fi
     checkout_pull_branch "${webInterfaceDir}" "${2}"
+  elif [[ "${1}" == "ftl" ]] ; then
+
+    get_binary_name
+    local path
+    path="${2}/${binary}"
+
+    if check_download_exists "$path"; then
+        echo "  ${TICK} Branch ${2} exists"
+    else
+        echo "  ${CROSS} Branch ${2} doesn't exist"
+    fi
+
+    FTLinstall "${binary}" "${path}"
+
   else
     echo -e "  ${INFO} Requested option \"${1}\" is not available"
     exit 1
   fi
 
   # Force updating everything
-  if [[ ! "${1}" == "web" && "${update}" == "true" ]]; then
+  if [[ ( ! "${1}" == "web" && ! "${1}" == "ftl" ) && "${update}" == "true" ]]; then
     echo -e "  ${INFO} Running installer to upgrade your installation"
     if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
       exit 0
