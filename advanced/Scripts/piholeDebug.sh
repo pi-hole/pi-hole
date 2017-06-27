@@ -372,7 +372,7 @@ get_distro_attributes() {
   OLD_IFS="$IFS"
   # Store the distro info in an array and make it global since the OS won't change,
   # but we'll keep it within the function for better unit testing
-  IFS=$'\r\n' command eval 'distro_info=( $(cat /etc/*release) )'
+  IFS=$'\r\n' command eval "distro_info=( $(cat /etc/*release) )"
 
   # Set a named variable for better readability
   local distro_attribute
@@ -402,11 +402,13 @@ diagnose_operating_system() {
   echo_current_diagnostic "Operating system"
 
   # If there is a /etc/*release file, it's probably a supported operating system, so we can
-  if_file_exists /etc/*release && \
+  if [[ -r /etc/*release ]]; then
     # display the attributes to the user from the function made earlier
-    get_distro_attributes || \
+    get_distro_attributes
+  else
     # If it doesn't exist, it's not a system we currently support and link to FAQ
     log_write "${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})"
+  fi
 }
 
 processor_check() {
@@ -440,11 +442,13 @@ processor_check() {
 parse_setup_vars() {
   echo_current_diagnostic "Setup variables"
   # If the file exists,
-  if_file_exists "${PIHOLE_SETUP_VARS_FILE}" && \
+  if [[ -r "${PIHOLE_SETUP_VARS_FILE}" ]]; then
     # parse it
-    parse_file "${PIHOLE_SETUP_VARS_FILE}" || \
+    parse_file "${PIHOLE_SETUP_VARS_FILE}"
+  else
     # If not, show an error
     log_write "${CROSS} ${COL_LIGHT_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
+  fi
 }
 
 does_ip_match_setup_vars() {
@@ -453,7 +457,7 @@ does_ip_match_setup_vars() {
   # IP address to check for
   local ip_address="${2}"
   # See what IP is in the setupVars.conf file
-  local setup_vars_ip=$(cat ${PIHOLE_SETUP_VARS_FILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
+  local setup_vars_ip=$(< ${PIHOLE_SETUP_VARS_FILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
     # Strip off the / (CIDR notation)
