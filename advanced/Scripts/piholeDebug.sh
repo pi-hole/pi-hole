@@ -162,12 +162,14 @@ source_setup_variables() {
   # Display the current test that is running
   log_write "\n${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
   # If the variable file exists,
-  if_file_exists "${PIHOLE_SETUP_VARS_FILE}" && \
+  if ls "${PIHOLE_SETUP_VARS_FILE}" 1> /dev/null 2>&1; then
     log_write "${INFO} Sourcing ${PIHOLE_SETUP_VARS_FILE}...";
     # source it
-    source ${PIHOLE_SETUP_VARS_FILE} || \
+    source ${PIHOLE_SETUP_VARS_FILE}
+  else
     # If it can't, show an error
     log_write "${PIHOLE_SETUP_VARS_FILE} ${COL_LIGHT_RED}does not exist or cannot be read.${COL_NC}"
+  fi
 }
 
 make_temporary_log() {
@@ -207,19 +209,6 @@ echo_current_diagnostic() {
   # Colors are used for visually distinguishing each test in the output
   # These colors do not show in the GUI, but the formatting will
   log_write "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
-}
-
-if_file_exists() {
-  # Set the first argument passed to tihs function as a named variable for better readability
-  local file_to_test="${1}"
-  # If the file is readable
-  if [[ -r "${file_to_test}" ]]; then
-    # Return success
-    return 0
-  else
-    # Otherwise, return a failure
-    return 1
-  fi
 }
 
 compare_local_version_to_git_version() {
@@ -372,7 +361,7 @@ get_distro_attributes() {
   OLD_IFS="$IFS"
   # Store the distro info in an array and make it global since the OS won't change,
   # but we'll keep it within the function for better unit testing
-  IFS=$'\r\n' command eval "distro_info=( $(cat /etc/*release) )"
+  IFS=$'\r\n' command eval 'distro_info=( $(cat /etc/*release) )'
 
   # Set a named variable for better readability
   local distro_attribute
@@ -402,7 +391,7 @@ diagnose_operating_system() {
   echo_current_diagnostic "Operating system"
 
   # If there is a /etc/*release file, it's probably a supported operating system, so we can
-  if [[ -r /etc/*release ]]; then
+  if ls /etc/*release 1> /dev/null 2>&1; then
     # display the attributes to the user from the function made earlier
     get_distro_attributes
   else
@@ -457,7 +446,7 @@ does_ip_match_setup_vars() {
   # IP address to check for
   local ip_address="${2}"
   # See what IP is in the setupVars.conf file
-  local setup_vars_ip=$(< ${PIHOLE_SETUP_VARS_FILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
+  local setup_vars_ip=$(cat ${PIHOLE_SETUP_VARS_FILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
     # Strip off the / (CIDR notation)
@@ -613,10 +602,12 @@ check_required_ports() {
   done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $9, $1}' | sort -n | uniq | cut -d':' -f2 )
 
   # Now that we have the values stored,
-  for i in ${!ports_in_use[@]}; do
+  for i in "${!ports_in_use[@]}"; do
     # loop through them and assign some local variables
-    local port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
-    local service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
+    local port_number
+    port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
+    local service_name
+    service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
     # Use a case statement to determine if the right services are using the right ports
     case "${port_number}" in
       53) compare_port_to_service_assigned  "${resolver}"
@@ -647,14 +638,18 @@ check_x_headers() {
   # server is operating correctly
   echo_current_diagnostic "Dashboard and block page"
   # Use curl -I to get the header and parse out just the X-Pi-hole one
-  local block_page=$(curl -Is localhost | awk '/X-Pi-hole/' | tr -d '\r')
+  local block_page
+  block_page=$(curl -Is localhost | awk '/X-Pi-hole/' | tr -d '\r')
   # Do it for the dashboard as well, as the header is different than above
-  local dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
+  local dashboard
+  dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
   # Store what the X-Header shoud be in variables for comparision later
-  local block_page_working="X-Pi-hole: A black hole for Internet advertisements."
-  local dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
+  local block_page_working
+  block_page_working="X-Pi-hole: A black hole for Internet advertisements."
+  local dashboard_working
+  dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
   # If the X-header found by curl matches what is should be,
-  if [[ $block_page == $block_page_working ]]; then
+  if [[ $block_page == "$block_page_working" ]]; then
     # display a success message
     log_write "$TICK ${COL_LIGHT_GREEN}${block_page}${COL_NC}"
   else
@@ -663,7 +658,7 @@ check_x_headers() {
   fi
 
   # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
-  if [[ $dashboard == $dashboard_working ]]; then
+  if [[ $dashboard == "$dashboard_working" ]]; then
     # then we can show a success
     log_write "$TICK ${COL_LIGHT_GREEN}${dashboard}${COL_NC}"
   else
@@ -682,7 +677,6 @@ dig_at() {
   echo_current_diagnostic "Name resolution (IPv${protocol}) using a random blocked domain and a known ad-serving domain"
   # Set more local variables
   # We need to test name resolution locally, via Pi-hole, and via a public resolver
-  local url
   local local_dig
   local pihole_dig
   local remote_dig
@@ -852,13 +846,15 @@ dir_check() {
   # Display the current test that is running
   echo_current_diagnostic "contents of ${COL_CYAN}${directory}${COL_NC}"
   # For each file in the directory,
-  for filename in "${directory}"; do
+  for filename in ${directory}; do
     # check if exists first; if it does,
-    if_file_exists "${filename}" && \
-    # do nothing
-    : || \
-    # Otherwise, show an error
-    log_write "${COL_LIGHT_RED}${directory} does not exist.${COL_NC}"
+    if ls "${filename}" 1> /dev/null 2>&1; then
+      # do nothing
+      :
+    else
+      # Otherwise, show an error
+      log_write "${COL_LIGHT_RED}${directory} does not exist.${COL_NC}"
+    fi
   done
 }
 
