@@ -131,6 +131,7 @@ ${WEB_GIT_DIRECTORY}
 ${BLOCK_PAGE_DIRECTORY})
 
 # Store the required directories in an array so it can be parsed through
+mapfile -t array <<< "$var"
 REQUIRED_FILES=(${PIHOLE_CRON_FILE}
 ${PIHOLE_DNS_CONFIG_FILE}
 ${PIHOLE_DHCP_CONFIG_FILE}
@@ -190,20 +191,6 @@ copy_to_debug_log() {
   cat /proc/$$/fd/3 >> "${PIHOLE_DEBUG_LOG}"
 }
 
-echo_succes_or_fail() {
-  # If the command was successful (a zero),
-  if [[ $? -eq 0 ]]; then
-    # Set the first argument passed to this function as a named variable for better readability
-    local message="${1}"
-    # show success
-    log_write "${TICK} ${message}"
-  else
-    local message="${1}"
-    # Otherwise, show a error
-    log_write "${CROSS} ${message}"
-  fi
-}
-
 initiate_debug() {
   # Clear the screen so the debug log is readable
   clear
@@ -235,19 +222,6 @@ if_file_exists() {
   fi
 }
 
-if_directory_exists() {
-  # Set the first argument passed to tihs function as a named variable for better readability
-  local directory_to_test="${1}"
-  # If the file is readable
-  if [[ -d "${directory_to_test}" ]]; then
-    # Return success
-    return 0
-  else
-    # Otherwise, return a failure
-    return 1
-  fi
-}
-
 compare_local_version_to_git_version() {
   # The git directory to check
   local git_dir="${1}"
@@ -266,18 +240,21 @@ compare_local_version_to_git_version() {
   # Store the error message in a variable in case we want to change and/or reuse it
   local error_msg="git status failed"
   # If the pihole git directory exists,
-  if_directory_exists "${git_dir}" && \
+  if [[ -d "${git_dir}" ]]; then
     # move into it
     cd "${git_dir}" || \
     # If not, show an error
     log_write "${COL_LIGHT_RED}Could not cd into ${git_dir}$COL_NC"
     if git status &> /dev/null; then
       # The current version the user is on
-      local remote_version=$(git describe --tags --abbrev=0);
+      local remote_version
+      remote_version=$(git describe --tags --abbrev=0);
       # What branch they are on
-      local remote_branch=$(git rev-parse --abbrev-ref HEAD);
+      local remote_branch
+      remote_branch=$(git rev-parse --abbrev-ref HEAD);
       # The commit they are on
-      local remote_commit=$(git describe --long --dirty --tags --always)
+      local remote_commit
+      remote_commit=$(git describe --long --dirty --tags --always)
       # echo this information out to the user in a nice format
       # If the current version matches what pihole -v produces, the user is up-to-date
       if [[ "${remote_version}" == "$(pihole -v | awk '/${search_term}/ {print $6}' | cut -d ')' -f1)" ]]; then
@@ -307,6 +284,9 @@ compare_local_version_to_git_version() {
       # and exit with a non zero code
       return 1
     fi
+  else
+    :
+  fi
 }
 
 check_ftl_version() {
@@ -874,7 +854,7 @@ dir_check() {
     # do nothing
     : || \
     # Otherwise, show an error
-    echo_succes_or_fail "${COL_LIGHT_RED}${directory} does not exist.${COL_NC}"
+    log_write "${COL_LIGHT_RED}${directory} does not exist.${COL_NC}"
   done
 }
 
