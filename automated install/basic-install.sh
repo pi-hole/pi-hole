@@ -368,8 +368,8 @@ useIPv6dialog() {
   # Determine type of found IPv6 addresses
   for i in "${IPV6_ADDRESSES[@]}"; do
     result=$(testIPv6 "$i")
-    [[ "${result}" == "ULA" ]] && ULA_ADDRESS="$i"
-    [[ "${result}" == "GUA" ]] && GUA_ADDRESS="$i"
+    [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
+    [[ "${result}" == "GUA" ]] && GUA_ADDRESS="${i%/*}"
   done
 
   # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
@@ -1495,7 +1495,7 @@ main() {
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-    
+
     stop_service dnsmasq
     if [[ ${INSTALL_WEB} == true ]]; then
       stop_service lighttpd
@@ -1575,7 +1575,7 @@ main() {
   if [[ "${useUpdateVars}" == false ]]; then
       displayFinalMessage "${pw}"
   fi
-  
+
   if [[ ${INSTALL_WEB} == true ]]; then
     if (( ${#pw} > 0 )) ; then
       echo -e "  ${INFO} Web Interface password: ${COL_LIGHT_GREEN}${pw}${COL_NC}
@@ -1597,7 +1597,7 @@ main() {
   else
     INSTALL_TYPE="Update"
   fi
-  
+
   echo -e "\n  ${INFO} The install log is located at: /etc/pihole/install.log
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 }
