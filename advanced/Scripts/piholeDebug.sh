@@ -180,7 +180,8 @@ make_temporary_log() {
   # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
   exec 3>"$TEMPLOG"
   # Delete templog, but allow for addressing via file handle
-  # This lets us write to the log without having a temporary file on the drive
+  # This lets us write to the log without having a temporary file on the drive, which
+  # is meant to be a security measure so there is not a lingering file on the drive during the debug process
   rm "$TEMPLOG"
 }
 
@@ -190,8 +191,12 @@ log_write() {
 }
 
 copy_to_debug_log() {
-  # Copy the contents of file descriptor 3 into the debug log so it can be uploaded to tricorder
+  # Copy the contents of file descriptor 3 into the debug log
   cat /proc/$$/fd/3 > "${PIHOLE_DEBUG_LOG}"
+  # Since we use color codes such as '\e[1;33m', they should be removed before being
+  # uploaded to our server, since it can't properly display in color
+  # This is accomplished by use sed to remove characters matching that patter
+  # The entire file is then copied over to a sanitized version of the log
   sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
 }
 
@@ -637,6 +642,10 @@ check_networking() {
 
 check_x_headers() {
   # The X-Headers allow us to determine from the command line if the Web
+  # lighttpd.conf has a directive to show "X-Pi-hole: A black hole for Internet advertisements."
+  # in the header of any Pi-holed domain
+  # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
+  # when accessing the dashboard (i.e curl -I pi.hole/admin/)
   # server is operating correctly
   echo_current_diagnostic "Dashboard and block page"
   # Use curl -I to get the header and parse out just the X-Pi-hole one
@@ -1061,9 +1070,9 @@ upload_to_tricorder() {
 
 # Run through all the functions we made
 make_temporary_log
+initiate_debug
 # setupVars.conf needs to be sourced before the networking so the values are
 # available to the other functions
-initiate_debug
 source_setup_variables
 check_component_versions
 check_critical_program_versions
