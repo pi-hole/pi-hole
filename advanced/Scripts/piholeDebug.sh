@@ -103,6 +103,7 @@ FTL_PORT="${RUN_DIRECTORY}/pihole-FTL.port"
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS=${LOG_DIRECTORY}/pihole.log.[0-9].*
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
+PIHOLE_DEBUG_LOG_SANITIZED="${LOG_DIRECTORY}/pihole_debug-sanitized.log"
 PIHOLE_FTL_LOG="${LOG_DIRECTORY}/pihole-FTL.log"
 
 PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
@@ -190,7 +191,8 @@ log_write() {
 
 copy_to_debug_log() {
   # Copy the contents of file descriptor 3 into the debug log so it can be uploaded to tricorder
-  cat /proc/$$/fd/3 >> "${PIHOLE_DEBUG_LOG}"
+  cat /proc/$$/fd/3 > "${PIHOLE_DEBUG_LOG}"
+  sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
 }
 
 initiate_debug() {
@@ -976,13 +978,13 @@ tricorder_use_nc_or_ssl() {
     # If the command exists,
     log_write "    * Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
     # encrypt and transmit the log and store the token returned in a variable
-    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG} | openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null)
+    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG_SANITIZED} | openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null)
   # Otherwise,
   else
     # use net cat
     log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
     # Save the token returned by our server in a variable
-    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG} | nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG_SANITIZED} | nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
   fi
 }
 
@@ -1054,7 +1056,7 @@ upload_to_tricorder() {
 		log_write "   * Please try again or contact the Pi-hole team for assistance."
 	fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
-		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\n"
+		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG_SANITIZED}${COL_NC}\n"
 }
 
 # Run through all the functions we made
