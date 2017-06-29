@@ -31,7 +31,7 @@ Options:
   -k, kelvin          Set Kelvin as preferred temperature unit
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage" 
+                        Add '-h' for more info on interface usage"
 	exit 0
 }
 
@@ -213,6 +213,10 @@ SetExcludeClients() {
 	change_setting "API_EXCLUDE_CLIENTS" "${args[2]}"
 }
 
+Halt(){
+        nohup bash -c "sleep 5; halt" &> /dev/null </dev/null &
+}
+
 Reboot() {
 	nohup bash -c "sleep 5; reboot" &> /dev/null </dev/null &
 }
@@ -225,7 +229,7 @@ RestartDNS() {
   else
     service dnsmasq restart
   fi
-  
+
   if [[ "$?" == 0 ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   else
@@ -402,7 +406,7 @@ SetHostRecord() {
 
 SetListeningMode() {
 	source "${setupVars}"
-  
+
   if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
     echo "Usage: pihole -a -i [interface]
 Example: 'pihole -a -i local'
@@ -415,7 +419,7 @@ Interfaces:
   all                 Listen on all interfaces, permit all origins"
     exit 0
   fi
-  
+
 	if [[ "${args[2]}" == "all" ]]; then
     echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
 		change_setting "DNSMASQ_LISTENING" "all"
@@ -457,6 +461,7 @@ main() {
 		"setdns"            ) SetDNSServers;;
 		"setexcludedomains" ) SetExcludeDomains;;
 		"setexcludeclients" ) SetExcludeClients;;
+		"halt"              ) Halt;;
 		"reboot"            ) Reboot;;
 		"restartdns"        ) RestartDNS;;
 		"setquerylog"       ) SetQueryLogOptions;;
