@@ -66,7 +66,7 @@ HandleOther() {
   domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
 
   # Check validity of domain
-  validDomain=$(echo "${domain}" | perl -lne 'print if /(?!.*[^a-z0-9-\.].*)^((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9-]+\.)*[a-z]{2,63}/')
+  validDomain=$(echo "${domain}" | perl -lne 'print if /(?!.*[^a-z0-9-\._].*)^((?=[a-z0-9-_]{1,63}\.)(xn--)?[a-z0-9-]+\._)*[a-z]{2,63}/')
   if [[ -z "${validDomain}" ]]; then
     echo -e "  ${CROSS} $1 is not a valid argument or domain name!"
   else
@@ -98,7 +98,7 @@ PoplistFile() {
 AddDomain() {
   list="$2"
   domain=$(EscapeRegexp "$1")
-  
+
   [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
   [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
   [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
@@ -151,7 +151,7 @@ AddDomain() {
 RemoveDomain() {
   list="$2"
   domain=$(EscapeRegexp "$1")
-  
+
   [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
   [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
   [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
