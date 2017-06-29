@@ -987,13 +987,13 @@ tricorder_use_nc_or_ssl() {
     # If the command exists,
     log_write "    * Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
     # encrypt and transmit the log and store the token returned in a variable
-    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG_SANITIZED} | openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null)
+    tricorder_token=$(< ${PIHOLE_DEBUG_LOG_SANITIZED} openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null)
   # Otherwise,
   else
     # use net cat
     log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
     # Save the token returned by our server in a variable
-    tricorder_token=$(cat ${PIHOLE_DEBUG_LOG_SANITIZED} | nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+    tricorder_token=$(< ${PIHOLE_DEBUG_LOG_SANITIZED} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
   fi
 }
 
