@@ -62,11 +62,14 @@ EscapeRegexp() {
 }
 
 HandleOther() {
-  # First, convert everything to lowercase
-  domain=$(sed -e "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/" <<< "$1")
+  # Convert to lowercase
+  domain="${1,,}"
 
   # Check validity of domain
-  validDomain=$(echo "${domain}" | perl -lne 'print if /(?!.*[^a-z0-9-\._].*)^((?=[a-z0-9-_]{1,63}\.)(xn--)?[a-z0-9-]+\._)*[a-z]{2,63}/')
+  validDomain=$(perl -lne 'print if /^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$/' <<< "${domain}") # Valid chars check
+  validDomain=$(perl -lne 'print if /^.{1,253}$/' <<< "${validDomain}") # Overall length check
+  validDomain=$(perl -lne 'print if /^[^\.]{1,63}(\.[^\.]{1,63})*$/' <<< "${validDomain}") # Length of each label
+  
   if [[ -z "${validDomain}" ]]; then
     echo -e "  ${CROSS} $1 is not a valid argument or domain name!"
   else
