@@ -442,22 +442,22 @@ finalWork() {
 	  case ${response} in
 		  [yY][eE][sS]|[yY])
 			  tricorder=$(cat /var/log/pihole_debug.log | nc tricorder.pi-hole.net 9999)
+        # Check if tricorder.pi-hole.net is reachable and provide token.
+        if [ -n "${tricorder}" ]; then
+          echo "::: ---=== Your debug token is : ${tricorder} Please make a note of it. ===---"
+          echo "::: Contact the Pi-hole team with your token for assistance."
+          echo "::: Thank you."
+        else
+          echo "::: There was an error uploading your debug log."
+          echo "::: Please try again or contact the Pi-hole team for assistance."
+        fi
 			  ;;
 		  *)
 			  echo "::: Log will NOT be uploaded to tricorder."
 			  ;;
 	  esac
   fi
-	# Check if tricorder.pi-hole.net is reachable and provide token.
-	if [ -n "${tricorder}" ]; then
-		echo "::: ---=== Your debug token is : ${tricorder} Please make a note of it. ===---"
-		echo "::: Contact the Pi-hole team with your token for assistance."
-		echo "::: Thank you."
-	else
-		echo "::: There was an error uploading your debug log."
-		echo "::: Please try again or contact the Pi-hole team for assistance."
-	fi
-		echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
+	echo "::: A local copy of the Debug log can be found at : /var/log/pihole_debug.log"
 }
 
 ### END FUNCTIONS ###
