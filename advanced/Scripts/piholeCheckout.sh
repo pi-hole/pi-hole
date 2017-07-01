@@ -3,7 +3,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# Switch Pi-hole subsystems to a different Github branch
+# Switch Pi-hole subsystems to a different Github branch.
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
@@ -60,7 +60,7 @@ fetch_checkout_pull_branch() {
   cd "${directory}"
   git remote set-branches origin "${branch}" || return 1
   git stash --all --quiet &> /dev/null || true
-  git clean --force -d || true
+  git clean --quiet --force -d || true
   git fetch --quiet || return 1
   checkout_pull_branch "${directory}" "${branch}" || return 1
 }
@@ -74,21 +74,21 @@ checkout_pull_branch() {
   cd "${directory}" || return 1
 
   oldbranch="$(git symbolic-ref HEAD)"
-  
-  git checkout "${branch}" || return 1
+
+  git checkout "${branch}" --quiet || return 1
 
   if [[ "$(git diff "${oldbranch}" | grep -c "^")" -gt "0" ]]; then
     update="true"
   fi
 
   git_pull=$(git pull || return 1)
-  
+
   if [[ "$git_pull" == *"up-to-date"* ]]; then
-    echo -e "\n  ${INFO} $(git pull)"
+    echo -e "  ${INFO} $(git pull)"
   else
     echo -e "$git_pull\n"
   fi
-  
+
   return 0
 }
 
@@ -143,13 +143,15 @@ checkout() {
   if [[ "${1}" == "dev" ]] ; then
     # Shortcut to check out development branches
     echo -e "  ${INFO} Shortcut \"dev\" detected - checking out development / devel branches..."
-    echo -e "  ${INFO} Pi-hole core"
+    echo ""
+    echo -e "  ${INFO} Pi-hole Core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
     if [[ ${INSTALL_WEB} == "true" ]]; then
+      echo ""
       echo -e "  ${INFO} Web interface"
       fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
     fi
-    echo -e "  ${TICK} Pi-hole core"
+    #echo -e "  ${TICK} Pi-hole Core"
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
@@ -159,8 +161,8 @@ checkout() {
       echo -e "  ${INFO} Web interface"
       fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
     fi
-    echo -e "  ${TICK} Web interface"
-     
+    #echo -e "  ${TICK} Web Interface"
+
   elif [[ "${1}" == "core" ]] ; then
     str="Fetching branches from ${piholeGitUrl}"
     echo -ne "  ${INFO} $str"
@@ -196,7 +198,7 @@ checkout() {
       exit 1
     fi
     webbranches=($(get_available_branches "${webInterfaceDir}"))
-    
+
     if [[ "${corebranches[@]}" == *"master"* ]]; then
       echo -e "${OVER}  ${TICK} $str
   ${INFO} ${#webbranches[@]} branches available for Web Admin"

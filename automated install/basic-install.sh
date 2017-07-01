@@ -212,7 +212,7 @@ update_repo() {
   # Pull the latest commits
   echo -ne "  ${INFO} ${str}..."
   git stash --all --quiet &> /dev/null || true # Okay for stash failure
-  git clean --force -d || true # Okay for already clean directory
+  git clean --quiet --force -d || true # Okay for already clean directory
   git pull --quiet &> /dev/null || return $?
   echo -e "${OVER}  ${TICK} ${str}"
   cd "${curdir}" &> /dev/null || return 1

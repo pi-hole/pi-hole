@@ -10,10 +10,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
 # Variables
-
 readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
@@ -82,7 +79,6 @@ GitCheckUpdateAvail() {
 }
 
 FTLcheckUpdate() {
-
 	local FTLversion
 	FTLversion=$(/usr/bin/pihole-FTL tag)
 	local FTLlatesttag
@@ -131,7 +127,7 @@ main() {
   # re-install (i.e. update) FTL
   if ${FTL_update} && ! ${core_update}; then
     echo ""
-    echo -e "  ${INFO}  FTL out of date"
+    echo -e "  ${INFO} FTL out of date"
     FTLdetect
     echo ""
   fi
