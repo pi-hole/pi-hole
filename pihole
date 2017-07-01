@@ -173,24 +173,32 @@ versionFunc() {
 
 restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
+  local str="Restarting DNS service"
+  echo -ne "  ${INFO} ${str}"
   if [[ "${dnsmasqPid}" ]]; then
     # Service already running - reload config
-    echo -ne "  ${INFO} Restarting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
-      systemctl restart dnsmasq
+      output=$( { systemctl restart dnsmasq; } 2>&1 )
     else
-      service dnsmasq restart
+      output=$( { service dnsmasq restart; } 2>&1 )
     fi
-    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
+    if [[ -z "${output}" ]]; then
+      echo -e "${OVER}  ${TICK} ${str}"
+    else
+      echo -e "${OVER}  ${CROSS} ${output}"
+    fi
   else
     # Service not running, start it up
-    echo -ne "  ${INFO} Starting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
-      systemctl start dnsmasq
+      output=$( { systemctl start dnsmasq; } 2>&1 )
     else
-      service dnsmasq start
+      output=$( { service dnsmasq start; } 2>&1 )
     fi
-    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
+    if [[ -z "${output}" ]]; then
+      echo -e "${OVER}  ${TICK} ${str}"
+    else
+      echo -e "${OVER}  ${CROSS} ${output}"
+    fi
   fi
 }
 
