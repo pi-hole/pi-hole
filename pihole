@@ -340,8 +340,13 @@ piholeStatus() {
 }
 
 tailFunc() {
+  date=$(date +'%b %d ')
   echo -e "  ${INFO} Press Ctrl-C to exit"
-  tail -F /var/log/pihole.log
+  tail -f /var/log/pihole.log | sed \
+    -e "s,\(${date}\| dnsmasq\[.*[0-9]]\),,g" \
+    -e "s,\(.*\(gravity.list\|black.list\| config \).* is \(${IPV4_ADDRESS%/*}\|${IPV6_ADDRESS:-NULL}\).*\),${COL_LIGHT_RED}&${COL_NC}," \
+    -e "s,.*\(query\[A\|DHCP\).*,${COL_NC}&${COL_NC}," \
+    -e "s,.*,${COL_DARK_GRAY}&${COL_NC},"
   exit 0
 }
 
