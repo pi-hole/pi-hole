@@ -122,7 +122,7 @@ if command -v apt-get &> /dev/null; then
   # #########################################
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
-  PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
+  PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-sqlite)
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
