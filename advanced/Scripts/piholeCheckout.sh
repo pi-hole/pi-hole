@@ -321,7 +321,7 @@ checkout() {
     if check_download_exists "$path"; then
         echo "  ${TICK} Branch ${2} exists"
     else
-        echo "  ${CROSS} Branch ${2} doesn't exist"
+        echo "  ${CROSS} Requested branch \"${2}\" is not available"
     fi
 
     FTLinstall "${binary}" "${path}"
