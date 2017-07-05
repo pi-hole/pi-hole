@@ -35,16 +35,19 @@ check_download_exists() {
 
 FTLinstall() {
   # Download and install FTL binary
-  local binary="${1}"
-  local path="${2}"
-  local str="Installing FTL"
+  local binary
+  binary="${1}"
+  local path
+  path="${2}"
+  local str
+  str="Installing FTL"
   echo -ne "  ${INFO} ${str}..."
 
   if curl -sSL --fail "https://ftl.pi-hole.net/${path}" -o "/tmp/${binary}"; then
     # Get sha1 of the binary we just downloaded for verification.
     curl -sSL --fail "https://ftl.pi-hole.net/${path}.sha1" -o "/tmp/${binary}.sha1"
     # Check if we just downloaded text, or a binary file.
-    cd /tmp
+    cd /tmp || return 1
     if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
       stop_service pihole-FTL &> /dev/null
@@ -66,15 +69,17 @@ FTLinstall() {
 
 get_binary_name() {
   local machine
-
   machine=$(uname -m)
 
-  local str="Detecting architecture"
+  local str
+  str="Detecting architecture"
   echo -ne "  ${INFO} ${str}..."
   if [[ ${machine} == arm* || ${machine} == *aarch* ]]; then
     # ARM
-    local rev=$(uname -m | sed "s/[^0-9]//g;")
-    local lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
+    local rev
+    rev=$(uname -m | sed "s/[^0-9]//g;")
+    local lib
+    lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
     if [[ "$lib" == "/lib/ld-linux-aarch64.so.1" ]]; then
       echo -e "${OVER}  ${TICK} Detected ARM-aarch64 architecture"
       binary="pihole-FTL-aarch64-linux-gnu"
@@ -127,7 +132,8 @@ fully_fetch_repo() {
 
 get_available_branches() {
   # Return available branches
-  local directory="${1}"
+  local directory
+  directory="${1}"
   local output
 
   cd "${directory}" || return 1
@@ -139,11 +145,13 @@ get_available_branches() {
 
 fetch_checkout_pull_branch() {
   # Check out specified branch
-  local directory="${1}"
-  local branch="${2}"
+  local directory
+  directory="${1}"
+  local branch
+  branch="${2}"
 
   # Set the reference for the requested branch, fetch, check it put and pull it
-  cd "${directory}"
+  cd "${directory}" || return 1
   git remote set-branches origin "${branch}" || return 1
   git stash --all --quiet &> /dev/null || true
   git clean --force -d || true
@@ -153,8 +161,10 @@ fetch_checkout_pull_branch() {
 
 checkout_pull_branch() {
   # Check out specified branch
-  local directory="${1}"
-  local branch="${2}"
+  local directory
+  directory="${1}"
+  local branch
+  branch="${2}"
   local oldbranch
 
   cd "${directory}" || return 1
