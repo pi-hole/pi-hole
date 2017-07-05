@@ -457,7 +457,7 @@ does_ip_match_setup_vars() {
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
     # Strip off the / (CIDR notation)
-    if [[ "${ip_address%/*}" == "${setup_vars_ip}" ]]; then
+    if [[ "${ip_address%/*}" == "${setup_vars_ip%/*}" ]]; then
       # if it matches, show it in green
       log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
     else
