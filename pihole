@@ -8,6 +8,9 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+colfile="/opt/pihole/COL_TABLE"
+source ${colfile}
+
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
@@ -17,7 +20,7 @@ if [[ ! $EUID -eq 0 ]];then
     exec sudo bash "$0" "$@"
     exit $?
   else
-    echo "::: sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+    echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
     exit 1
   fi
 fi
@@ -80,49 +83,73 @@ updateGravityFunc() {
   exit 0
 }
 
-scanList() {
+scanList(){
   domain="${1}"
   list="${2}"
   method="${3}"
-
-  if [[ "${method}" == "-exact" ]]; then
-    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list}
+  if [[ ${method} == "-exact" ]] ; then
+    grep -i -E "(^|\s)${domain}($|\s)" "${list}"
   else
-    grep -i "${domain}" ${list}
+    grep -i "${domain}" "${list}"
   fi
 }
 
+processWildcards() {
+  IFS="." read -r -a array <<< "${1}"
+  for (( i=${#array[@]}-1; i>=0; i-- )); do
+    ar=""
+    for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
+      if [[ $j == $((${#array[@]}-1)) ]]; then
+        ar="${array[$j]}"
+      else
+        ar="${array[$j]}.${ar}"
+      fi
+    done
+    echo "${ar}"
+  done
+}
+
 queryFunc() {
-  method="${3}"
-
-  # If domain contains non ASCII characters, convert domain to punycode if python exists
-  # Cr: https://serverfault.com/a/335079
-  if [[ -z "${2}" ]]; then
-    echo "::: No domain specified"
+  domain="${2}"
+  
+  if [[ -z "${domain}" ]]; then
+    echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}
+  Try 'pihole query --help' for more information."
     exit 1
-  elif [[ "${2}" = *[![:ascii:]]* ]]; then
-    [[ "$(which python)" ]] && domain=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${2}")
-  else
-    domain="${2}"
   fi
+  
+  method="${3}"
+  lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
+  for list in ${lists[@]}; do
+    if [ -e "${list}" ]; then
+      result=$(scanList ${domain} ${list} ${method})
+      # Remove empty lines before couting number of results
+      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+      echo "${list} (${count} results)"
+      if [[ ${count} > 0 ]]; then
+        echo "${result}"
+      fi
+      echo ""
+    else
+      echo -e "  ${CROSS} List does not exist"
+      echo ""
+    fi
+  done
 
-  # Scan Whitelist, Blacklist and Wildcards
-  lists="/etc/pihole/whitelist.txt /etc/pihole/blacklist.txt $wildcardlist"
-  result=$(scanList ${domain} "${lists}" ${method})
-  if [[ -n "$result" ]]; then
-    echo "$result"
-    [[ ! -t 1 ]] && exit 0
+  # Scan for possible wildcard matches
+  if [ -e "${wildcardlist}" ]; then
+    local wildcards=($(processWildcards "${domain}"))
+    for domain in ${wildcards[@]}; do
+      result=$(scanList "\/${domain}\/" ${wildcardlist})
+      # Remove empty lines before couting number of results
+      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
+      if [[ ${count} > 0 ]]; then
+        echo -e "  ${TICK} Wildcard blocking ${domain} (${count} results)"
+        echo "${result}"
+        echo ""
+      fi
+    done
   fi
-
-  # Scan Domains lists
-  result=$(scanList ${domain} "/etc/pihole/*.domains" ${method})
-  if [[ -n "$result" ]]; then
-    sort -t . -k 2 -g <<< "$result"
-  else
-    [ -n "$method" ] && exact="exact "
-    echo "::: No ${exact}results found for ${domain}"
-  fi
-
   exit 0
 }
 
@@ -148,18 +175,22 @@ restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
   if [[ "${dnsmasqPid}" ]]; then
     # Service already running - reload config
+    echo -ne "  ${INFO} Restarting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
       systemctl restart dnsmasq
     else
       service dnsmasq restart
     fi
+    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
   else
     # Service not running, start it up
+    echo -ne "  ${INFO} Starting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
       systemctl start dnsmasq
     else
       service dnsmasq start
     fi
+    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
   fi
 }
 
@@ -173,34 +204,65 @@ Time:
   #s                  Disable Pi-hole functionality for # second(s)
   #m                  Disable Pi-hole functionality for # minute(s)"
     exit 0
+
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
     sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
-    echo "::: Blocking has been disabled!"
+    sed -i 's/^addn-hosts=\/etc\/pihole\/black.list/#addn-hosts=\/etc\/pihole\/black.list/' /etc/dnsmasq.d/01-pihole.conf
+    if [[ -e "$wildcardlist" ]]; then
+      mv "$wildcardlist" "/etc/pihole/wildcard.list"
+    fi
     if [[ $# > 1 ]]; then
-      if [[ "${2}" == *"s"* ]]; then
+      local error=false
+      if [[ "${2}" == *"s" ]]; then
         tt=${2%"s"}
-        echo "::: Blocking will be re-enabled in ${tt} seconds"
-        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
-      elif [[ "${2}" == *"m"* ]]; then
+        if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
+          local str="Disabling blocking for ${tt} seconds"
+          echo -e "  ${INFO} ${str}..."
+          local str="Blocking will be re-enabled in ${tt} seconds"
+          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+        else
+          local error=true
+        fi
+      elif [[ "${2}" == *"m" ]]; then
         tt=${2%"m"}
-        echo "::: Blocking will be re-enabled in ${tt} minutes"
-        tt=$((${tt}*60))
-        nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+          if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
+          local str="Disabling blocking for ${tt} minutes"
+          echo -e "  ${INFO} ${str}..."
+          local str="Blocking will be re-enabled in ${tt} minutes"
+          tt=$((${tt}*60))
+          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+        else
+          local error=true
+        fi
+      elif [[ -n "${2}" ]]; then
+        local error=true
       else
-        echo "::: Unknown format for delayed reactivation of the blocking!"
-        echo "::: Example:"
-        echo ":::    pihole disable 5s    -    will disable blocking for 5 seconds"
-        echo ":::    pihole disable 7m    -    will disable blocking for 7 minutes"
-        echo "::: Blocking will not automatically be re-enabled!"
+        echo -e "  ${INFO} Disabling blocking"
       fi
+
+      if [[ ${error} == true ]];then
+        echo -e "  ${COL_LIGHT_RED}Unknown format for delayed reactivation of the blocking!${COL_NC}"
+        echo -e "  Try 'pihole disable --help' for more information."
+        exit 1
+      fi
+
+      local str="Pi-hole Disabled"
     fi
   else
     # Enable Pi-hole
-    echo "::: Blocking has been enabled!"
+    echo -e "  ${INFO} Enabling blocking"
+    local str="Pi-hole Enabled"
+    
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
+    if [[ -e "/etc/pihole/wildcard.list" ]]; then
+      mv "/etc/pihole/wildcard.list" "$wildcardlist"
+    fi
   fi
+  
   restartDNS
+  
+  echo -e "${OVER}  ${TICK} ${str}"
 }
 
 piholeLogging() {
@@ -219,29 +281,33 @@ Options:
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
     pihole -f
-    echo "::: Logging has been disabled!"
+    echo -e "  ${INFO} Disabling logging..."
+    local str="Logging has been disabled!"
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
     sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
-    echo "::: Logging has been enabled!"
+    echo -e "  ${INFO} Enabling logging..."
+    local str="Logging has been enabled!"
   else
-    echo "::: Invalid option passed, please pass 'on' or 'off'"
+    echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}
+  Try 'pihole logging --help' for more information."
     exit 1
   fi
   restartDNS
+  echo -e "${OVER}  ${TICK} ${str}"
 }
 
 piholeStatus() {
   if [[ "$(netstat -plnt | grep -c ':53 ')" -gt "0" ]]; then
     if [[ "${1}" != "web" ]]; then
-      echo "::: DNS service is running"
+      echo -e "  ${TICK} DNS service is running"
     fi
   else
     if [[ "${1}" == "web" ]]; then
       echo "-1";
     else
-      echo "::: DNS service is NOT running"
+      echo -e "  ${CROSS} DNS service is NOT running"
     fi
     return
   fi
@@ -251,21 +317,21 @@ piholeStatus() {
     if [[ "${1}" == "web" ]]; then
       echo 0;
     else
-      echo "::: Pi-hole blocking is Disabled";
+      echo -e "  ${CROSS} Pi-hole blocking is Disabled";
     fi
   elif [[ "$(grep -i "^addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)" ]]; then
     # List set
     if [[ "${1}" == "web" ]]; then
       echo 1;
     else
-      echo "::: Pi-hole blocking is Enabled";
+      echo -e "  ${TICK} Pi-hole blocking is Enabled";
     fi
   else
     # Addn-host not found
     if [[ "${1}" == "web" ]]; then
       echo 99
     else
-      echo ":::  No hosts file linked to dnsmasq, adding it in enabled state"
+      echo -e "  ${INFO} No hosts file linked to dnsmasq, adding it in enabled state"
     fi
     # Add addn-host= to dnsmasq
     echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
@@ -274,8 +340,13 @@ piholeStatus() {
 }
 
 tailFunc() {
-  echo "Press Ctrl-C to exit"
-  tail -F /var/log/pihole.log
+  date=$(date +'%b %d ')
+  echo -e "  ${INFO} Press Ctrl-C to exit"
+  tail -f /var/log/pihole.log | sed \
+    -e "s,\(${date}\| dnsmasq\[.*[0-9]]\),,g" \
+    -e "s,\(.*\(gravity.list\|black.list\| config \).* is \(${IPV4_ADDRESS%/*}\|${IPV6_ADDRESS:-NULL}\).*\),${COL_LIGHT_RED}&${COL_NC}," \
+    -e "s,.*\(query\[A\|DHCP\).*,${COL_NC}&${COL_NC}," \
+    -e "s,.*,${COL_DARK_GRAY}&${COL_NC},"
   exit 0
 }
 
@@ -302,12 +373,12 @@ Branches:
 
 tricorderFunc() {
   if [[ ! -p "/dev/stdin" ]]; then
-    echo "Please do not call Tricorder directly."
+    echo -e "  ${INFO} Please do not call Tricorder directly"
     exit 1
   fi
-  
+
   if ! timeout 2 nc -z tricorder.pi-hole.net 9998 &> /dev/null; then
-    echo "Unable to connect to Pi-hole's Tricorder server."
+    echo -e "  ${CROSS} Unable to connect to Pi-hole's Tricorder server"
     exit 1
   fi
 
@@ -315,9 +386,10 @@ tricorderFunc() {
     openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
     exit "$?"
   else
-    echo "Your debug log will be transmitted unencrypted via plain-text"
-    echo "There is a possibility that this could be intercepted by a third party"
-    echo "If you wish to cancel, press Ctrl-C to exit within 10 seconds"
+    echo -e "  ${INFO} ${COL_YELLOW}Security Notice${COL_NC}: ${COL_WHITE}openssl${COL_NC} is not installed
+       Your debug log will be transmitted unencrypted via plain-text
+       There is a possibility that this could be intercepted by a third party
+       If you wish to cancel, press Ctrl-C to exit within 10 seconds"
     secs="10"
     while [[ "$secs" -gt "0" ]]; do
        echo -ne "."
@@ -400,5 +472,6 @@ case "${1}" in
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
+  "tricorder"                   ) tricorderFunc;;
   *                             ) helpFunc;;
 esac
