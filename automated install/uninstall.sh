@@ -45,7 +45,7 @@ if [ -x "$(command -v rpm)" ]; then
 		PKG_MANAGER="yum"
 	fi
 	PKG_REMOVE="${PKG_MANAGER} remove -y"
-	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common git curl unzip wget findutils )
+	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-sqlite git curl unzip wget findutils )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
@@ -56,7 +56,7 @@ elif [ -x "$(command -v apt-get)" ]; then
 	# Debian Family
 	PKG_MANAGER="apt-get"
 	PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common git curl unzip wget )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-sqlite git curl unzip wget )
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
