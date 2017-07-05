@@ -1046,15 +1046,18 @@ runGravity() {
 
 create_pihole_user() {
   # Check if user pihole exists and create if not
+  # For updates, check if /var/lib/pihole exists and create if not
   local str="Checking for user 'pihole'"
   echo -ne "  ${INFO} ${str}..."
   if id -u pihole &> /dev/null; then
     echo -ne "${OVER}  ${TICK} ${str}"
+    [[ -d /var/lib/pihole ]] || mkdir -p /var/lib/pihole
+    [[ $(stat -c %U /var/lib/pihole) = "pihole" ]] || chown pihole:pihole /var/lib/pihole
   else
     echo -ne "${OVER}  ${CROSS} ${str}"
     local str="Creating user 'pihole'"
     echo -ne "  ${INFO} ${str}..."
-    useradd -r -s /usr/sbin/nologin pihole
+    useradd -c 'pihole user' -d /var/lib/pihole -r -m -s /usr/sbin/nologin pihole
     echo -ne "${OVER}  ${TICK} ${str}"
   fi
 }
@@ -1565,6 +1568,12 @@ main() {
   if [[ ${INSTALL_WEB} == true ]]; then
     start_service lighttpd
     enable_service lighttpd
+  fi
+
+  # versions <=3.1 have lists in /etc/pihole/ so we move them to /var/lib/lxc/
+  if [[ -d /var/lib/pihole ]]; then
+    [[ $(find /etc/pihole -type f -name 'list.*.domains' | wc -l) -eq 0 ]] ||
+      mv /etc/pihole/list.*.domains /var/lib/pihole
   fi
 
   runGravity

@@ -50,6 +50,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS%/*}
 # Variables for various stages of downloading and formatting the list
 basename=pihole
 piholeDir=/etc/${basename}
+piholeHome=/var/lib/${basename}
 adList=${piholeDir}/gravity.list
 blackList=${piholeDir}/black.list
 localList=${piholeDir}/local.list
@@ -185,7 +186,7 @@ gravity_spinup() {
     domain=$(cut -d'/' -f3 <<< "${url}")
 
     # Save the file as list.#.domain
-    saveLocation=${piholeDir}/list.${i}.${domain}.${justDomainsExtension}
+    saveLocation=${piholeHome}/list.${i}.${domain}.${justDomainsExtension}
     activeDomains[$i]=${saveLocation}
 
     agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36"
@@ -218,11 +219,11 @@ gravity_Schwarzchild() {
   local str="Aggregating list of domains"
   echo -ne "  ${INFO} ${str}..."
   
-  truncate -s 0 ${piholeDir}/${matterAndLight}
+  truncate -s 0 ${piholeHome}/${matterAndLight}
   for i in "${activeDomains[@]}"; do
     # Only assimilate list if it is available (download might have failed permanently)
     if [[ -r "${i}" ]]; then
-      cat "${i}" | tr -d '\r' >> ${piholeDir}/${matterAndLight}
+      cat "${i}" | tr -d '\r' >> ${piholeHome}/${matterAndLight}
     fi
   done
 
@@ -283,7 +284,7 @@ gravity_Whitelist() {
     echo -ne "  ${INFO} ${str}..."
 
     # Print everything from preEventHorizon into eventHorizon EXCEPT domains in whitelist.txt
-    grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeDir}/${eventHorizon}
+    grep -F -x -v -f ${whitelistFile} ${piholeDir}/${preEventHorizon} > ${piholeHome}/${eventHorizon}
 
     echo -e "${OVER}  ${TICK} ${str}"
   else
@@ -296,7 +297,7 @@ gravity_unique() {
   local str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
 
-  sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
+  sort -u  ${piholeHome}/${supernova} > ${piholeDir}/${preEventHorizon}
 
   echo -e "${OVER}  ${TICK} ${str}"
   numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
@@ -341,10 +342,10 @@ gravity_hostFormatLocal() {
 
 gravity_hostFormatGravity() {
   # Format domain list as "192.168.x.x domain.com"
-  echo "" > "${piholeDir}/${accretionDisc}"
-  gravity_doHostFormat "${piholeDir}/${eventHorizon}" "${piholeDir}/${accretionDisc}"
+  echo "" > "${piholeHome}/${accretionDisc}"
+  gravity_doHostFormat "${piholeHome}/${eventHorizon}" "${piholeHome}/${accretionDisc}"
   # Copy the file over as /etc/pihole/gravity.list so dnsmasq can use it
-  mv "${piholeDir}/${accretionDisc}" "${adList}"
+  mv "${piholeHome}/${accretionDisc}" "${adList}"
 
 }
 
@@ -363,7 +364,7 @@ gravity_hostFormatBlack() {
 # blackbody - remove any remnant files from script processes
 gravity_blackbody() {
   # Loop through list files
-  for file in ${piholeDir}/*.${justDomainsExtension}; do
+  for file in ${piholeHome}/*.${justDomainsExtension}; do
     # If list is in active array then leave it (noop) else rm the list
     if [[ " ${activeDomains[@]} " =~ ${file} ]]; then
       :
@@ -381,20 +382,20 @@ gravity_advanced() {
   local str="Formatting list of domains to remove comments"
   echo -ne "  ${INFO} ${str}..."
 
-  #awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' ${piholeDir}/${matterAndLight} | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+  #awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' ${piholeHome}/${matterAndLight} | sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeHome}/${supernova}
   #Above line does not correctly grab domains where comment is on the same line (e.g 'addomain.com #comment')
   #Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
   #Last awk command takes non-commented lines and if they have 2 fields, take the left field (the domain) and leave
   #+ the right (IP address), otherwise grab the single field.
-  cat ${piholeDir}/${matterAndLight} | \
+  cat ${piholeHome}/${matterAndLight} | \
     awk -F '#' '{print $1}' | \
     awk -F '/' '{print $1}' | \
     awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
-    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeDir}/${supernova}
+    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${piholeHome}/${supernova}
 
   echo -e "${OVER}  ${TICK} ${str}"
 
-  numberOf=$(wc -l < ${piholeDir}/${supernova})
+  numberOf=$(wc -l < ${piholeHome}/${supernova})
   echo -e "  ${INFO} ${COL_LIGHT_BLUE}${numberOf}${COL_NC} domains being pulled in by gravity"
 
   gravity_unique
@@ -467,7 +468,7 @@ if [[ ! "${blackListOnly}" == true ]]; then
   str="Cleaning up un-needed files"
   echo -ne "  ${INFO} ${str}..."
 
-  rm ${piholeDir}/pihole.*.txt 2> /dev/null
+  rm ${piholeHome}/pihole.*.txt 2> /dev/null
   
   echo -e "${OVER}  ${TICK} ${str}"
 fi
