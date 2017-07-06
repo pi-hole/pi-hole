@@ -660,6 +660,10 @@ check_x_headers() {
   block_page_working="X-Pi-hole: A black hole for Internet advertisements."
   local dashboard_working
   dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
+  local full_curl_output_block_page
+  full_curl_output_block_page="$(curl -Is localhost)"
+  local full_curl_output_dashboard
+  full_curl_output_dashboard="$(curl -Is localhost/admin/)"
   # If the X-header found by curl matches what is should be,
   if [[ $block_page == "$block_page_working" ]]; then
     # display a success message
@@ -667,6 +671,7 @@ check_x_headers() {
   else
     # Otherwise, show an error
     log_write "$CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "${COL_LIGHT_RED}${full_curl_output_block_page}${COL_NC}"
   fi
 
   # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
@@ -676,6 +681,7 @@ check_x_headers() {
   else
     # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
     log_write "$CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "${COL_LIGHT_RED}${full_curl_output_dashboard}${COL_NC}"
   fi
 }
 
