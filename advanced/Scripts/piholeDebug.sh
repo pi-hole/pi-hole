@@ -1038,17 +1038,7 @@ upload_to_tricorder() {
     # let the user know
     log_write "${INFO} Debug script running in automated mode"
     # and then decide again which tool to use to submit it
-    if command -v openssl &> /dev/null; then
-      # If openssl is available, use it
-      log_write "${INFO} Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
-      # Save the token returned by our server in a variable
-      tricorder_token=$(openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null < /dev/stdin)
-    else
-      # Otherwise, fallback to netcat
-      log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-      # Save the token returned by our server in a variable
-      tricorder_token=$(nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER} < /dev/stdin)
-    fi
+    tricorder_use_nc_or_ssl
   # If we're not running in automated mode,
 	else
     echo ""
