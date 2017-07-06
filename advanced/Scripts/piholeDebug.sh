@@ -39,6 +39,8 @@ else
   OVER="\r\033[K"
 fi
 
+OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
+
 # FAQ URLs for use in showing the debug log
 FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
@@ -992,18 +994,37 @@ analyze_pihole_log() {
   pihole_log_head=( $(head -n 20 ${PIHOLE_LOG}) )
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
   local error_to_check_for
+  local line_to_obfuscate
+  local obfuscated_line
   for head_line in "${pihole_log_head[@]}"; do
     # A common error in the pihole.log is when there is a non-hosts formatted file
     # that the DNS server is attempting to read.  Since it's not formatted
     # correctly, there will be an entry for "bad address at line n"
     # So we can check for that here and highlight it in red so the user can see it easily
     error_to_check_for=$(echo ${head_line} | grep 'bad address at')
+    # Some users may not want to have the domains they visit sent to us
+    # To that end, we check for lines in the log that would contain a domain name
+    line_to_obfuscate=$(echo ${head_line} | grep ': query\|: forwarded\|: reply')
     # If the variable contains a value, it found an error in the log
     if [[ -n ${error_to_check_for} ]]; then
       # So we can print it in red to make it visible to the user
       log_write "   ${CROSS} ${COL_LIGHT_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
     else
-      log_write "   ${head_line}"
+      # If the variable does not a value (the current default behavior), so do not obfuscate anything
+      if [[ -z ${OBFUSCATE} ]]; then
+        log_write "   ${head_line}"
+      # Othwerise, a flag was passed to this command to obfuscate domains in the log
+      else
+        # So first check if there are domains in the log that should be obfuscated
+        if [[ -n ${line_to_obfuscate} ]]; then
+          # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
+          # so we substitue the domain for the placeholder value
+          obfuscated_line=$(echo ${line_to_obfuscate} | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
+          log_write "   ${obfuscated_line}"
+        else
+          log_write "   ${head_line}"
+        fi
+      fi
     fi
   done
   log_write ""
