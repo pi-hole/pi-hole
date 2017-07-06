@@ -47,6 +47,7 @@ FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://discourse.pi-hole.net/t/hard
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
 FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
+FAQ_BAD_ADDRESS="${COL_CYAN}https://discourse.pi-hole.net/t/why-do-i-see-bad-address-at-in-pihole-log/3972${COL_NC}"
 
 # Other URLs we may use
 FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
@@ -972,8 +973,20 @@ analyze_pihole_log() {
   local pihole_log_head=()
   pihole_log_head=( $(head -n 20 ${PIHOLE_LOG}) )
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
+  local error_to_check_for
   for head_line in "${pihole_log_head[@]}"; do
-    log_write "   ${head_line}"
+    # A common error in the pihole.log is when there is a non-hosts formatted file
+    # that the DNS server is attempting to read.  Since it's not formatted
+    # correctly, there will be an entry for "bad address at line n"
+    # So we can check for that here and highlight it in red so the user can see it easily
+    error_to_check_for=$(echo ${head_line} | grep 'bad address at')
+    # If the variable contains a value, it found an error in the log
+    if [[ -n ${error_to_check_for} ]]; then
+      # So we can print it in red to make it visible to the user
+      log_write "   ${CROSS} ${COL_LIGHT_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
+    else
+      log_write "   ${head_line}"
+    fi
   done
   log_write ""
   # Set the IFS back to what it was
