@@ -36,6 +36,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB=true
+usedhcpcd5=false
 
 
 # Find the rows and columns will default to 80x24 is it can not be detected
@@ -120,9 +121,11 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
   # #########################################
+
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi)
+  usedhcpcd5=true
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
@@ -271,10 +274,6 @@ welcomeDialogs() {
   # Support for a part-time dev
   whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\n\nThe Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" ${r} ${c}
 
-  # Explain the need for a static address
-  whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\n\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
-
-In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." ${r} ${c}
 }
 
 verifyFreeDiskSpace() {
@@ -406,8 +405,20 @@ use4andor6() {
   done
   if [[ ${useIPv4} ]]; then
     find_IPv4_information
-    getStaticIPv4Settings
-    setStaticIPv4
+
+      # Explain the need for a static address
+    if whiptail --backtitle "Initiating network interface" --title "Static IP Needed" --yesno "\n\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+
+  In the next section, we can attempt to set the static IP for you based on your current IP address.
+
+  If you have already set a static IP, or wish to do this later, choose No" ${r} ${c}; then
+      getStaticIPv4Settings
+      setStaticIPv4
+    else
+      echo "::: User chose to set static IP themselves"
+      whiptail --msgbox --backtitle "IP information" --title "Current IP Settings" "Your current IP address is ${IPV4_ADDRESS} \n\n If you change this IP address in future, you will need to update the IPv4 address in /etc/pihole/setupVars.conf" ${r} ${c}
+    fi
+
   fi
   if [[ ${useIPv6} ]]; then
     useIPv6dialog
@@ -421,6 +432,8 @@ use4andor6() {
 }
 
 getStaticIPv4Settings() {
+
+
   local ipSettingsCorrect
   # Ask if the user wants to use DHCP settings as their static IP
   if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
@@ -476,6 +489,11 @@ setStaticIPv4() {
   local IFCFG_FILE
   local IPADDR
   local CIDR
+
+  if [[ ${usedhcpcd5} == true ]]; then
+    install_dependent_packages dhcpcd5
+  fi
+
   if [[ -f /etc/dhcpcd.conf ]]; then
     # Debian Family
     if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
