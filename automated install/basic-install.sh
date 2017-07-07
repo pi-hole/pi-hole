@@ -125,7 +125,7 @@ show_ascii_berry() {
 
 # Compatibility
 distro_check() {
-# If apt-get is isntalled, then we know it's part of the Debian family
+# If apt-get is installed, then we know it's part of the Debian family
 if command -v apt-get &> /dev/null; then
   # Set some global variables here
   # We don't set them earlier since the family might be Red Hat, so these values would be different
@@ -647,7 +647,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 # dhcpcd is very annoying,
 setDHCPCD() {
-  # but we cab append these lines to dhcpcd.conf to enable a static IP
+  # but we can append these lines to dhcpcd.conf to enable a static IP
   echo "interface ${PIHOLE_INTERFACE}
   static ip_address=${IPV4_ADDRESS}
   static routers=${IPv4gw}
