@@ -31,7 +31,7 @@ Options:
   -k, kelvin          Set Kelvin as preferred temperature unit
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage" 
+                        Add '-h' for more info on interface usage"
 	exit 0
 }
 
@@ -89,6 +89,9 @@ SetWebPassword() {
     readonly PASSWORD="${args[2]}"
     readonly CONFIRM="${PASSWORD}"
   else
+    # Prevnts a bug if the user presses Ctrl+C and it continues to hide the text typed.
+    # So we reset the terminal via stty if the user does press Ctrl+C
+    trap '{ echo "No password will be set" ; stty sane ; exit 1; }' INT
     read -s -p "Enter New Password (Blank for no password): " PASSWORD
     echo ""
 
@@ -225,7 +228,7 @@ RestartDNS() {
   else
     service dnsmasq restart
   fi
-  
+
   if [[ "$?" == 0 ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   else
@@ -402,7 +405,7 @@ SetHostRecord() {
 
 SetListeningMode() {
 	source "${setupVars}"
-  
+
   if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
     echo "Usage: pihole -a -i [interface]
 Example: 'pihole -a -i local'
@@ -415,7 +418,7 @@ Interfaces:
   all                 Listen on all interfaces, permit all origins"
     exit 0
   fi
-  
+
 	if [[ "${args[2]}" == "all" ]]; then
     echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
 		change_setting "DNSMASQ_LISTENING" "all"
