@@ -1,8 +1,8 @@
 #!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          pihole-FTL
-# Required-Start:    $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
+# Required-Start:    $remote_fs $syslog dnsmasq
+# Required-Stop:     $remote_fs $syslog dnsmasq
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: pihole-FTL daemon
