@@ -155,7 +155,7 @@ if command -v apt-get &> /dev/null; then
     phpVer="php5"
   fi
 
-  # Since our instal script is so large, we need several other programs to successfuly get a machine provisioned
+  # Since our install script is so large, we need several other programs to successfuly get a machine provisioned
   # These programs are stored in an array so they can be looped through later
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
@@ -227,7 +227,7 @@ is_repo() {
   # Use a named, local variable instead of the vague $1, which is the first arguement passed to this function
   # These local variables should always be lowercase
   local directory="${1}"
-  # A local variabled for the current directory
+  # A local variable for the current directory
   local curdir
   # A variable to store the return code
   local rc
@@ -1001,7 +1001,7 @@ version_check_dnsmasq() {
     fi
 }
 
-# Clean an exiting installation to prepare for upgrade/reinstall
+# Clean an existing installation to prepare for upgrade/reinstall
 clean_existing() {
   # Local, named variables
   # ${1} Directory to clean
