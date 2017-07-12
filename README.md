@@ -29,6 +29,9 @@ Digital Ocean helps with our infrastructure, but our developers are all voluntee
 -   ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
 -   ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
+### Other Ways To Support Us
+If you're not the type to give away money, there are [other ways support us](https://pi-hole.net/donate): you can sign up for services through our affiliate links, which will also help us offset some of the costs associated with keeping Pi-hole operational.
+
 ### One-Step Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
 2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
