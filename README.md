@@ -56,7 +56,11 @@ wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
 ```
 
-Once installed, [configure your router to have **DHCP clients use the Pi as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration. Alternatively, you can manually set each device to use Pi-hole as their DNS server.
+Once installed, [configure your router to have **DHCP clients use the Pi-hole as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) and then any device that connects to your network will have ads blocked without any further configuration.
+
+If your router does not support setting the DNS server, you can [use Pi-hole's built in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026); just be sure to disable DHCP on your router first.
+
+Alternatively, you can manually set each device to use Pi-hole as their DNS server.
 
 ## What is Pi-hole and how do I install it?
 <p align="center">
@@ -68,6 +72,7 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 -   [Users Forum](https://discourse.pi-hole.net/)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
+-   [Feature requests](https://discourse.pi-hole.net/c/feature-requests?order=votes)
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki)
 -   ![Twitter](https://assets.pi-hole.net/static/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
 -   ![Reddit](https://assets.pi-hole.net/static/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
@@ -78,9 +83,12 @@ Once installed, [configure your router to have **DHCP clients use the Pi as thei
 
 The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
 
-### Gravity
+### Gravity: Finding Ads To Block
 
-The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) does most of the magic. The script pulls in ad domains from many sources and compiles them into a single list of [over 1.6 million entries](http://jacobsalmela.com/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0) (if you decide to use the [mahakala list](https://github.com/pi-hole/pi-hole/commit/963eacfe0537a7abddf30441c754c67ca1e40965)). This script is controlled by the `pihole` command. Please run `pihole -h` to see what commands can be run via `pihole`.
+The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) script does most of the magic. The script pulls in over 100,000 known ad-serving domains from many sources and aggregates them into a single list.
+
+#### Additional Blocklists
+You can also use Pi-hole to block additional domains beyond the defaults.  It can even be used to block malware or phising domains.  [The Big Blocklist Collection](https://wally3k.github.io/) is a good resource for finding additional domains to block.
 
 
 
