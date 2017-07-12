@@ -1761,7 +1761,7 @@ FTLinstall() {
   local binary="${1}"
   local latesttag
   local orig_dir
-  local str="Installing FTL"
+  local str="Downloading and Installing FTL"
   echo -ne "  ${INFO} ${str}..."
 
   # Get the current working directory
@@ -1774,6 +1774,7 @@ FTLinstall() {
     echo -e "  ${COL_LIGHT_RED}Error: Unable to get latest release location from GitHub${COL_NC}"
     return 1
   fi
+
   # If the download worked,
   if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/${binary}"; then
     # get sha1 of the binary we just downloaded for verification.
@@ -1879,9 +1880,26 @@ FTLdetect() {
     binary="pihole-FTL-linux-x86_32"
   fi
 
-  # Install FTL
-  FTLinstall "${binary}" || return 1
+  #In the next section we check to see if FTL is already installed (in case of pihole -r).
+  #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
+  local FTLversion=$(/usr/bin/pihole-FTL tag)
+	local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
+	if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+		# Install FTL
+    FTLinstall "${binary}" || return 1
+	else
+	  local remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
+	  local localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+
+    echo -e "  ${INFO} Existing FTL Binary detected. Checking sha1sum..."
+	  if [[ "${remoteSha1}" != "${localSha1}" ]]; then
+	    echo -e "  ${INFO} Corruption detected..."
+	    FTLinstall "${binary}" || return 1
+	  else
+	    echo -e "  ${INFO} sha1sums match. No need to download!"
+	  fi
+	fi
 }
 
 main() {
