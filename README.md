@@ -268,6 +268,7 @@ Simply run `pihole -c` for some detailed information.
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
 -   [Feature requests](https://discourse.pi-hole.net/c/feature-requests?order=votes)
 -   [Wiki](https://github.com/pi-hole/pi-hole/wiki)
+-   [Facebook](https://www.facebook.com/ThePiHole/)
 -   ![Twitter](https://assets.pi-hole.net/static/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
 -   ![Reddit](https://assets.pi-hole.net/static/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
 -   ![YouTube](https://assets.pi-hole.net/static/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
