@@ -169,15 +169,18 @@ The settings page lets you control and configure your Pi-hole.  You can do thing
 
 - view networking information
 - flush logs or disable the logging of queries
-- enable Pi-hole's built-in DHCP server
-- manage block lists
+- [enable Pi-hole's built-in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026)
+- [manage block lists](https://discourse.pi-hole.net/t/how-do-i-add-additional-block-lists-to-pi-hole/259)
 - exclude domains from the graphs and enable privacy options
 - configure upstream DNS servers
 - restart Pi-hole's services
 - back up some of Pi-hole's important files
 - and more!
 
-![Settings page](https://assets.pi-hole.net/static/settings-page.png)
+<p align="center">
+<img src="https://assets.pi-hole.net/static/settings-page.png">
+</p>
+
 
 ## Built-in DHCP Server
 
@@ -191,7 +194,9 @@ One nice feature of using Pi-hole's DHCP server if you can set hostnames and DHC
 
 ## The FTL Engine: Our API
 
-A read-only API can be accessed at `admin/api.php`. It returns the following JSON:
+A read-only API can be accessed at `admin/api.php` (the same output can be achieved on the CLI by running `pihole -c -j`).
+
+It returns the following JSON:
 ``` json
 {
    "domains_being_blocked":111175,
@@ -204,9 +209,8 @@ A read-only API can be accessed at `admin/api.php`. It returns the following JSO
    "unique_clients":18
  }
 ```
-More details on the API can be found [here](https://discourse.pi-hole.net/t/pi-hole-api/1863) and on [the repo itself](https://github.com/pi-hole/FTL).
 
-The same output can be achieved on the CLI by running `chronometer.sh -j`
+More details on the API can be found [here](https://discourse.pi-hole.net/t/pi-hole-api/1863) and on [the repo itself](https://github.com/pi-hole/FTL).
 
 ### Real-time Statistics, Courtesy Of The Time Cops
 
@@ -254,20 +258,12 @@ Simply run `pihole -c` for some detailed information.
 -   ![YouTube](https://assets.pi-hole.net/static/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 -   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-## Technical Details
+# Technical Details
 
-The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
-
-### Gravity: Finding Ads To Block
-
-The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) script does most of the magic. The script pulls in over 100,000 known ad-serving domains from many sources and aggregates them into a single list.
-
-#### Other Operating Systems
-
-The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a web server, it should work OK. If there are other platforms you'd like supported, let us know.
+To summarize into a short sentence, the Pi-hole is an **advertising-aware DNS/Web server**.  And while quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how it was setup and how it works.  Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
 
 
-## Pi-hole Projects
+# Pi-hole Projects
 
 -   [An ad blocking Magic Mirror](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
 -   [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
@@ -288,7 +284,7 @@ The automated install is only for a clean install of a Debian family or Fedora b
 -   [Pi-hole Droid - open source Android client](https://github.com/friimaind/pi-hole-droid)
 -   [Windows DNS Swapper](https://github.com/roots84/DNS-Swapper), see [#1400](https://github.com/pi-hole/pi-hole/issues/1400)
 
-## Coverage
+# Coverage
 
 -   [Adafruit livestream install](https://www.youtube.com/watch?v=eg4u2j1HYlI)
 -   [TekThing: 5 fun, easy projects for a Raspberry Pi](https://youtu.be/QwrKlyC2kdM?t=1m42s)
