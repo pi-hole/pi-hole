@@ -74,36 +74,9 @@ Alternatively, you can manually set each device to use Pi-hole as their DNS serv
 <a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/video-explainer.png"></a>
 </p>
 
+# Overview Of Features
 
-## Get Help Or Connect With Us On The Web
-
--   [Users Forum](https://discourse.pi-hole.net/)
--   [FAQs](https://discourse.pi-hole.net/c/faqs)
--   [Feature requests](https://discourse.pi-hole.net/c/feature-requests?order=votes)
--   [Wiki](https://github.com/pi-hole/pi-hole/wiki)
--   ![Twitter](https://assets.pi-hole.net/static/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
--   ![Reddit](https://assets.pi-hole.net/static/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
--   ![YouTube](https://assets.pi-hole.net/static/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
--   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-## Technical Details
-
-The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
-
-### Gravity: Finding Ads To Block
-
-The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) script does most of the magic. The script pulls in over 100,000 known ad-serving domains from many sources and aggregates them into a single list.
-
-#### Additional Blocklists
-You can also use Pi-hole to block additional domains beyond the defaults.  It can even be used to block malware or phising domains.  [The Big Blocklist Collection](https://wally3k.github.io/) is a good resource for finding additional domains to block.
-
-
-
-#### Other Operating Systems
-
-The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a web server, it should work OK. If there are other platforms you'd like supported, let us know.
-
-### Web Interface
+## The Dashboard (Web Interface)
 
 The [Web interface](https://github.com/pi-hole/AdminLTE#pi-hole-admin-dashboard) will be installed automatically so you can view stats and change settings. You can find it at:
 
@@ -154,6 +127,35 @@ The same output can be achieved on the CLI by running `chronometer.sh -j`
 ## Real-time Statistics
 
 You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-pi-holes-stats-over-ssh-or-on-an-lcd-using-chronometer/240) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj). This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh). ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
+
+## Get Help Or Connect With Us On The Web
+
+-   [Users Forum](https://discourse.pi-hole.net/)
+-   [FAQs](https://discourse.pi-hole.net/c/faqs)
+-   [Feature requests](https://discourse.pi-hole.net/c/feature-requests?order=votes)
+-   [Wiki](https://github.com/pi-hole/pi-hole/wiki)
+-   ![Twitter](https://assets.pi-hole.net/static/twitter.png) [Tweet @The_Pi_Hole](https://twitter.com/The_Pi_Hole)
+-   ![Reddit](https://assets.pi-hole.net/static/reddit.png) [Reddit /r/pihole](https://www.reddit.com/r/pihole/)
+-   ![YouTube](https://assets.pi-hole.net/static/youtube.png)  [Pi-hole channel](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
+-   [![Join the chat at https://gitter.im/pi-hole/pi-hole](https://badges.gitter.im/pi-hole/pi-hole.svg)](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+## Technical Details
+
+The Pi-hole is an **advertising-aware DNS/Web server**. If an ad domain is queried, a small Web page or GIF is delivered in place of the advertisement.
+
+### Gravity: Finding Ads To Block
+
+The [gravity.sh](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) script does most of the magic. The script pulls in over 100,000 known ad-serving domains from many sources and aggregates them into a single list.
+
+#### Additional Blocklists
+You can also use Pi-hole to block additional domains beyond the defaults.  It can even be used to block malware or phising domains.  [The Big Blocklist Collection](https://wally3k.github.io/) is a good resource for finding additional domains to block.
+
+
+
+#### Other Operating Systems
+
+The automated install is only for a clean install of a Debian family or Fedora based system, such as the Raspberry Pi. However, this script will work for most UNIX-like systems, some with some slight **modifications** that we can help you work through. If you can install `dnsmasq` and a web server, it should work OK. If there are other platforms you'd like supported, let us know.
+
 
 ## Pi-hole Projects
 
