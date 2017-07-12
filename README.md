@@ -29,16 +29,6 @@ The Pi-hole blocks ads at the DNS-level, so all your devices are protected.
 - **Fast** - it speeds up high-cost, high-latency networks by caching DNS queries and saves bandwidth by not downloading advertisement elements
 - **Versatile** -  Pi-hole can function also function as a DHCP server
 
-# Pi-hole Is Free, But Powered By Your Donations
-
-[Digital Ocean](http://www.digitalocean.com/?refcode=344d234950e1) helps with our infrastructure, but [our developers](https://github.com/orgs/pi-hole/people) are all volunteers so *your donations help keep us innovating*.
-
--   ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
--   ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
-
-## Other Ways To Support Us
-If you'd rather not send money, there are [other ways to support us](https://pi-hole.net/donate): you can sign up for services through our affiliate links, which will also help us offset some of the costs associated with keeping Pi-hole operational.
-
 # One-Step Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
 2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
@@ -74,6 +64,29 @@ Alternatively, you can manually set each device to use Pi-hole as their DNS serv
 <a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/video-explainer.png"></a>
 </p>
 
+# Pi-hole Is Free, But Powered By Your Donations
+
+[Digital Ocean](http://www.digitalocean.com/?refcode=344d234950e1) helps with our infrastructure, but [our developers](https://github.com/orgs/pi-hole/people) are all volunteers so *your donations help keep us innovating*.
+
+-   ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
+-   ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+
+## Other Ways To Support Us
+### Affiliate Links
+If you'd rather not send money, there are [other ways to support us](https://pi-hole.net/donate): you can sign up for services through our affiliate links, which will also help us offset some of the costs associated with keeping Pi-hole operational; or you can support us in some non-tangible ways as listed below.
+
+### Contributing Code Via Pull Requests
+
+We don't work on Pi-hole for monetary reasons; we work on it because we think it's fun and we think our software is important in today's world.  To that end, we welcome all contributors--from novices to masters.
+
+If you feel you have some code to contribute, we're happy to take a look.  Just make sure to fill out our template when submitting a pull request.  We're all volunteers on the project and without all the information in the template, it's very difficult for us to quickly get the code merged in.
+
+You'll find that the [install script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) and the [debug script](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/piholeDebug.sh) have an abundance of comments.  These are two important scripts but we think they can also be a valuable resource to those who want to learn how to write scripts or code a program, which is why they are fully commented.  So we encourage anyone who likes to tinker to read through it and submit a PR for us to review.
+
+### Presenting About Pi-hole
+
+Word-of-mouth has immensely helped our project grow.  If you are going to be presenting about Pi-hole at a conference, meetup, or even for a school project, [get a hold of us for some free swag](https://pi-hole.net/2017/05/17/giving-a-presentation-on-pi-hole-contact-us-first-for-some-goodies-and-support/) to hand out to your audience.
+
 # Overview Of Features
 
 ## The Dashboard (Web Interface)
@@ -95,6 +108,8 @@ If enabled, the query log will show all of the DNS queries requested by clients 
 <p align="center">
 <img src="https://assets.pi-hole.net/static/query_log.png">
 </p>
+
+The query log and graphs are what have helped people [discover what sort of traffic is traversing their networks](https://pi-hole.net/2017/07/06/round-3-what-really-happens-on-your-network/).
 
 #### Long-term Statistics
 Using our Faster-Than-Light Engine ([FTL](https://github.com/pi-hole/FTL)), Pi-hole can store all of the domains queried in a database for retrieval or analysis later on.  You can view this data as a graph, individual queries, or top clients/advertisers.
@@ -139,7 +154,7 @@ This runs `gravity` to download any newly-added domains from your source lists.
 You can find out what list a certain domain was on.  This is useful for troubleshooting sites that may not work properly due to a blocked domain.
 
 #### `tail`ing Log Files
-You can watch the log files in real time to help debug any issues, or just see what's happening with your Pi-hole.
+You can [watch the log files](https://discourse.pi-hole.net/t/how-do-i-watch-and-interpret-the-pihole-log-file/276) in real time to help debug any issues, or just see what's happening with your Pi-hole.
 
 #### Pi-hole Debugger
 If you are having trouble with your Pi-hole, this is the place to go.  You can run the debugger and it will attempt to diagnose any issues and then link to an FAQ with instructions on rectifying the problem.
