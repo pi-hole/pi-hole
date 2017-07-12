@@ -181,31 +181,69 @@ The settings page lets you control and configure your Pi-hole.  You can do thing
 
 ## Built-in DHCP Server
 
-Pi-hole ships with a built-in DHCP server.  This allows you to let your network devices use Pi-hole as their DNS server if your router does not let you adjust the DHCP options.
+Pi-hole ships with a [built-in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026).  This allows you to let your network devices use Pi-hole as their DNS server if your router does not let you adjust the DHCP options.
+
+One nice feature of using Pi-hole's DHCP server if you can set hostnames and DHCP reservations so you'll [see hostnames in the query log instead of IP addresses](https://discourse.pi-hole.net/t/how-do-i-show-hostnames-instead-of-ip-addresses-in-the-dashboard/3530).  You can still do this without using Pi-hole's DHCP server; it just takes a little more work.  If you do plan to use Pi-hole's DHCP server, be sure to disable DHCP on your router first.
+
 <p align="center">
-<a href=hhttps://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245><img src="https://assets.pi-hole.net/static/piholedhcpserver.png"></a>
+<a href=https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026><img src="https://assets.pi-hole.net/static/piholedhcpserver.png"></a>
 </p>
 
-## API
+## The FTL Engine: Our API
 
-A basic read-only API can be accessed at `/admin/api.php`. It returns the following JSON:
-
+A read-only API can be accessed at `admin/api.php`. It returns the following JSON:
 ``` json
 {
-    "domains_being_blocked": "136708",
-    "dns_queries_today": "18108",
-    "ads_blocked_today": "14648",
-    "ads_percentage_today": "80.89"
-}
+   "domains_being_blocked":111175,
+   "dns_queries_today":15669,
+   "ads_blocked_today":1752,
+   "ads_percentage_today":11.181314,
+   "unique_domains":1178,
+   "queries_forwarded":9177,
+   "queries_cached":4740,
+   "unique_clients":18
+ }
 ```
+More details on the API can be found [here](https://discourse.pi-hole.net/t/pi-hole-api/1863) and on [the repo itself](https://github.com/pi-hole/FTL).
 
 The same output can be achieved on the CLI by running `chronometer.sh -j`
 
-## Real-time Statistics
+### Real-time Statistics, Courtesy Of The Time Cops
 
-You can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-pi-holes-stats-over-ssh-or-on-an-lcd-using-chronometer/240) via `ssh` or on an [2.8" LCD screen](http://amzn.to/1P0q1Fj). This is accomplished via [`chronometer.sh`](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh). ![Pi-hole LCD](http://i.imgur.com/nBEqycp.jpg)
+Using [chronometer2](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh), you can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-pi-holes-stats-over-ssh-or-on-an-lcd-using-chronometer/240) via `ssh` or on an LCD screen such as the [2.8" LCD screen from Adafruit](http://amzn.to/1P0q1Fj).
 
-## Get Help Or Connect With Us On The Web
+Simply run `pihole -c` for some detailed information.
+```
+|¯¯¯(¯)__|¯|_  ___|¯|___        Pi-hole: v3.2
+| ¯_/¯|__| ' \/ _ \ / -_)      AdminLTE: v3.2
+|_| |_|  |_||_\___/_\___|           FTL: v2.10
+ ——————————————————————————————————————————————————————————
+  Hostname: pihole              (Raspberry Pi 1, Model B)
+    Uptime: 11 days, 12:55:01
+ Task Load: 0.35 0.16 0.15      (Active: 5 of 33 tasks)
+ CPU usage: 48%                 (1 core @ 700 MHz, 47c)
+ RAM usage: 12%                 (Used: 54 MB of 434 MB)
+ HDD usage: 20%                 (Used: 1 GB of 7 GB)
+  LAN addr: 192.168.1.100       (Gateway: 192.168.1.1)
+   Pi-hole: Active              (Blocking: 111175 sites)
+ Ads Today: 11%                 (1759 of 15812 queries)
+   Fwd DNS: 208.67.222.222      (Alt DNS: 3 others)
+ ——————————————————————————————————————————————————————————
+ Recently blocked: www.google-analytics.com
+   Top Advertiser: www.example.org
+       Top Domain: www.example.org
+       Top Client: somehost
+```
+
+<p align="center">
+<img src="https://assets.pi-hole.net/static/chrono1.pn">
+</p>
+
+<p align="center">
+<img src="https://assets.pi-hole.net/static/chrono2.png">
+</p>
+
+# Get Help Or Connect With Us On The Web
 
 -   [Users Forum](https://discourse.pi-hole.net/)
 -   [FAQs](https://discourse.pi-hole.net/c/faqs)
