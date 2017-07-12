@@ -1217,7 +1217,7 @@ install_dependent_packages() {
   # amount of download traffic.
   # NOTE: We may be able to use this installArray in the future to create a list of package that were
   # installed by us, and remove only the installed packages, and not the entire list.
-  if command -v debconf-apt-progress &> /dev/null;
+  if command -v debconf-apt-progress &> /dev/null; then
     # For each package,
     for i in "${argArray1[@]}"; do
       echo -ne "  ${INFO}  Checking for $i..."
