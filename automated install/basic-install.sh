@@ -1817,7 +1817,7 @@ FTLinstall() {
 # Detect suitable FTL binary platform
 FTLdetect() {
   echo ""
-  echo -e "  ${INFO} Downloading latest version of FTL..."
+  echo -e "  ${INFO} FTL Checks..."
 
   # Local, named variables
   local machine
