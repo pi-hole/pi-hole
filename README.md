@@ -29,27 +29,26 @@ The Pi-hole blocks ads at the DNS-level, so all your devices are protected.
 - **Fast** - it speeds up high-cost, high-latency networks by caching DNS queries and saves bandwidth by not downloading advertisement elements
 - **Versatile** -  Pi-hole can function also function as a DHCP server
 
+# Pi-hole Is Free, But Powered By Your Donations
 
-## Your Support Still Matters
-
-Digital Ocean helps with our infrastructure, but our developers are all volunteers so *your donations help keep us innovating*. Sending a donation using our links below helps us offset a portion of our monthly costs.
+[Digital Ocean](http://www.digitalocean.com/?refcode=344d234950e1) helps with our infrastructure, but [our developers](https://github.com/orgs/pi-hole/people) are all volunteers so *your donations help keep us innovating*.
 
 -   ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
 -   ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
-### Other Ways To Support Us
-If you're not the type to give away money, there are [other ways support us](https://pi-hole.net/donate): you can sign up for services through our affiliate links, which will also help us offset some of the costs associated with keeping Pi-hole operational.
+## Other Ways To Support Us
+If you'd rather not send money, there are [other ways to support us](https://pi-hole.net/donate): you can sign up for services through our affiliate links, which will also help us offset some of the costs associated with keeping Pi-hole operational.
 
-### One-Step Automated Install
+# One-Step Automated Install
 1.  Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
 2.  Run the command below (it downloads [this script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) in case you want to read over it first!)
 
-### `curl -sSL https://install.pi-hole.net | bash`
+#### `curl -sSL https://install.pi-hole.net | bash`
 
-#### Alternative Semi-Automated Install Methods
+## Alternative Semi-Automated Install Methods
 _If you wish to read over the script before running it, run `nano basic-install.sh` to open the file in a text viewer._
 
-##### Clone our repository and run the automated installer from your device.
+### Clone our repository and run the automated installer from your device.
 
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
@@ -70,7 +69,7 @@ If your router does not support setting the DNS server, you can [use Pi-hole's b
 
 Alternatively, you can manually set each device to use Pi-hole as their DNS server.
 
-## What is Pi-hole and how do I install it?
+# What is Pi-hole and how do I install it?
 <p align="center">
 <a href=https://www.youtube.com/watch?v=vKWjx1AQYgs><img src="https://assets.pi-hole.net/static/video-explainer.png"></a>
 </p>
