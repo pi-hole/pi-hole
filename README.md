@@ -10,17 +10,25 @@
 
 ## Pi-hole®: The multi-platform, network-wide ad blocker
 
-Block ads for **all** your devices _without_ the need to install client-side software.  The Pi-hole blocks ads at the DNS-level, so all your devices are protected.
-
-- Web Browsers
-- Cell Phones
-- Smart TV's
-- Internet-connected home automation
-- Anything that communicates with the Internet
+Block ads for **all** your devices _without_ the need to install client-side software.
 
 <p align="center">
 <a href=http://www.digitalocean.com/?refcode=344d234950e1><img src="https://assets.pi-hole.net/static/DOHostingSlug.png"></a>
 </p>
+
+## Executive Summary
+The Pi-hole blocks ads at the DNS-level, so all your devices are protected.
+
+- **Easy-to-install** - our intelligent installer walks you through the process with no additional software needed on client devices
+- **Universal** - ads are blocked in _non-browser locations_ such as ad-supported mobile apps and smart TVs
+- **Quick** - installation takes less than ten minutes and it [_really_ is _that easy_](https://discourse.pi-hole.net/t/new-pi-hole-questions/3971/5?u=jacob.salmela)
+- **Informative** - an administrative Web interface shows ad-blocking statistics
+- **Lightweight** - designed to run on [minimal resources](https://discourse.pi-hole.net/t/hardware-software-requirements/273)
+- **Scalable** - even in large environments, [Pi-hole can handle hundreds of millions of queries](https://pi-hole.net/2017/05/24/how-much-traffic-can-pi-hole-handle/) (with the right hardware specs)
+- **Powerful** - advertisements are blocked over IPv4 _and_ IPv6
+- **Fast** - it speeds up high-cost, high-latency networks by caching DNS queries and saves bandwidth by not downloading advertisement elements
+- **Versatile** -  Pi-hole can function also function as a DHCP server
+
 
 ## Your Support Still Matters
 
