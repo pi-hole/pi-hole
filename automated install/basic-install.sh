@@ -1442,6 +1442,8 @@ configureFirewall() {
     firewall-cmd --permanent --add-service=http --add-service=dns
     # Reload the firewall to apply these changes
     firewall-cmd --reload
+    # Install script to activate firewall at reboot
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/firewall.sh /etc/pihole/firewall.sh
     return 0
   # Check for proper kernel modules to prevent failure
   elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
@@ -1456,6 +1458,23 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
+      # Reject https to avoid timeout issues for blocked https adds
+      iptables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
+
+      if [[ ! -z "${IPV6_ADDRESS}" ]]; then
+	  # Configure IPv6 firewall
+	  if ip6tables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || ip6tables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
+	      # Check chain first, otherwise a new rule will duplicate old ones
+	      ip6tables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
+	      ip6tables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
+	      ip6tables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
+	      ip6tables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
+	      # Reject https to avoid timeout issues for blocked https adds
+	      ip6tables -C INPUT -p tcp -m tcp --dport 443 -j REJECT &> /dev/null || ip6tables -I INPUT 1 -p tcp -m tcp --dport 443 -j REJECT
+	  fi
+      fi
+      # Install script to activate firewall at reboot
+      cp ${PI_HOLE_LOCAL_REPO}/advanced/firewall.sh /etc/pihole/firewall.sh
       return 0
     fi
   # Othwerwise,

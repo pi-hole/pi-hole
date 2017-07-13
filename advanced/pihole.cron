@@ -28,3 +28,6 @@
 00 00   * * *   root    PATH="$PATH:/usr/local/bin/" pihole flush once quiet
 
 @reboot root /usr/sbin/logrotate /etc/pihole/logrotate
+
+# Firewall script is only installed if firewall has been configured in setup
+@reboot root [ -f /etc/pihole/firewall.sh ] && /etc/pihole/firewall.sh
