@@ -255,11 +255,11 @@ Simply run `pihole -c` for some detailed information.
 ```
 
 <p align="center">
-<img src="https://assets.pi-hole.net/static/chrono1.pn">
+<img src="https://assets.pi-hole.net/static/chrono1.jpg">
 </p>
 
 <p align="center">
-<img src="https://assets.pi-hole.net/static/chrono2.png">
+<img src="https://assets.pi-hole.net/static/chrono2.jpg">
 </p>
 
 # Get Help Or Connect With Us On The Web
