@@ -165,10 +165,10 @@ restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
   if [[ "${dnsmasqPid}" ]]; then
     # Service already running - reload config
-    service dnsmasq restart
+    service dnsmasq restart 2>&1 > /dev/null
   else
     # Service not running, start it up
-    service dnsmasq start
+    service dnsmasq start 2>&1 > /dev/null
   fi
 }
 
