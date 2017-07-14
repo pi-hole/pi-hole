@@ -39,6 +39,8 @@ else
   OVER="\r\033[K"
 fi
 
+OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
+
 # FAQ URLs for use in showing the debug log
 FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
@@ -47,6 +49,7 @@ FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://discourse.pi-hole.net/t/hard
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
 FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
+FAQ_BAD_ADDRESS="${COL_CYAN}https://discourse.pi-hole.net/t/why-do-i-see-bad-address-at-in-pihole-log/3972${COL_NC}"
 
 # Other URLs we may use
 FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
@@ -159,6 +162,17 @@ ${PIHOLE_FTL_LOG}
 ${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}
 ${PIHOLE_WEB_SERVER_ERROR_LOG_FILE})
 
+DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
+
+The intent of this script is to allow users to self-diagnose their installations.  This is accomplished by running tests against our software and providing the user with links to FAQ articles when a problem is detected.  Since we are a small team and Pi-hole has been growing steadily, it is our hope that this will help us spend more time on development.
+
+NOTE: All log files auto-delete after 48 hours and ONLY the Pi-hole developers can access your data via the given token. We have taken these extra steps to secure your data and will work to further reduce any personal information gathered.
+"
+
+show_disclaimer(){
+  log_write "${DISCLAIMER}"
+}
+
 source_setup_variables() {
   # Display the current test that is running
   log_write "\n${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
@@ -203,6 +217,7 @@ copy_to_debug_log() {
 initiate_debug() {
   # Clear the screen so the debug log is readable
   clear
+  show_disclaimer
   # Display that the debug process is beginning
   log_write "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}"
   # Timestamp the start of the log
@@ -457,7 +472,7 @@ does_ip_match_setup_vars() {
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
     # Strip off the / (CIDR notation)
-    if [[ "${ip_address%/*}" == "${setup_vars_ip}" ]]; then
+    if [[ "${ip_address%/*}" == "${setup_vars_ip%/*}" ]]; then
       # if it matches, show it in green
       log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
     else
@@ -659,6 +674,10 @@ check_x_headers() {
   block_page_working="X-Pi-hole: A black hole for Internet advertisements."
   local dashboard_working
   dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
+  local full_curl_output_block_page
+  full_curl_output_block_page="$(curl -Is localhost)"
+  local full_curl_output_dashboard
+  full_curl_output_dashboard="$(curl -Is localhost/admin/)"
   # If the X-header found by curl matches what is should be,
   if [[ $block_page == "$block_page_working" ]]; then
     # display a success message
@@ -666,6 +685,7 @@ check_x_headers() {
   else
     # Otherwise, show an error
     log_write "$CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "${COL_LIGHT_RED}${full_curl_output_block_page}${COL_NC}"
   fi
 
   # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
@@ -675,6 +695,7 @@ check_x_headers() {
   else
     # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
     log_write "$CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "${COL_LIGHT_RED}${full_curl_output_dashboard}${COL_NC}"
   fi
 }
 
@@ -972,8 +993,39 @@ analyze_pihole_log() {
   local pihole_log_head=()
   pihole_log_head=( $(head -n 20 ${PIHOLE_LOG}) )
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
+  local error_to_check_for
+  local line_to_obfuscate
+  local obfuscated_line
   for head_line in "${pihole_log_head[@]}"; do
-    log_write "   ${head_line}"
+    # A common error in the pihole.log is when there is a non-hosts formatted file
+    # that the DNS server is attempting to read.  Since it's not formatted
+    # correctly, there will be an entry for "bad address at line n"
+    # So we can check for that here and highlight it in red so the user can see it easily
+    error_to_check_for=$(echo ${head_line} | grep 'bad address at')
+    # Some users may not want to have the domains they visit sent to us
+    # To that end, we check for lines in the log that would contain a domain name
+    line_to_obfuscate=$(echo ${head_line} | grep ': query\|: forwarded\|: reply')
+    # If the variable contains a value, it found an error in the log
+    if [[ -n ${error_to_check_for} ]]; then
+      # So we can print it in red to make it visible to the user
+      log_write "   ${CROSS} ${COL_LIGHT_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
+    else
+      # If the variable does not a value (the current default behavior), so do not obfuscate anything
+      if [[ -z ${OBFUSCATE} ]]; then
+        log_write "   ${head_line}"
+      # Othwerise, a flag was passed to this command to obfuscate domains in the log
+      else
+        # So first check if there are domains in the log that should be obfuscated
+        if [[ -n ${line_to_obfuscate} ]]; then
+          # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
+          # so we substitue the domain for the placeholder value
+          obfuscated_line=$(echo ${line_to_obfuscate} | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
+          log_write "   ${obfuscated_line}"
+        else
+          log_write "   ${head_line}"
+        fi
+      fi
+    fi
   done
   log_write ""
   # Set the IFS back to what it was
@@ -1019,17 +1071,7 @@ upload_to_tricorder() {
     # let the user know
     log_write "${INFO} Debug script running in automated mode"
     # and then decide again which tool to use to submit it
-    if command -v openssl &> /dev/null; then
-      # If openssl is available, use it
-      log_write "${INFO} Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
-      # Save the token returned by our server in a variable
-      tricorder_token=$(openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null < /dev/stdin)
-    else
-      # Otherwise, fallback to netcat
-      log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-      # Save the token returned by our server in a variable
-      tricorder_token=$(nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER} < /dev/stdin)
-    fi
+    tricorder_use_nc_or_ssl
   # If we're not running in automated mode,
 	else
     echo ""
