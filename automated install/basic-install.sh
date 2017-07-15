@@ -1003,7 +1003,7 @@ finalExports() {
 
   # Update variables in setupVars.conf file
   if [ -e "${setupVars}" ]; then
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
   fi
     {
   echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
@@ -1013,6 +1013,7 @@ finalExports() {
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
   echo "INSTALL_WEB=${INSTALL_WEB}"
+  echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
 
   # Look for DNS server settings which would have to be reapplied
@@ -1073,8 +1074,6 @@ installPihole() {
   installLogrotate
   FTLdetect || echo "::: FTL Engine not installed."
   configureFirewall
-  finalExports
-  #runGravity
 }
 
 accountForRefactor() {
@@ -1104,8 +1103,7 @@ updatePihole() {
   installCron
   installLogrotate
   FTLdetect || echo "::: FTL Engine not installed."
-  finalExports #re-export setupVars.conf to account for any new vars added in new versions
-  #runGravity
+
 }
 
 
@@ -1427,13 +1425,15 @@ main() {
     # Check to see if lighttpd was already running upon update
     if [[ ${useUpdateVars} == true ]]; then
       if [[ -x "$(command -v systemctl)" ]]; then
-        [[ "$(systemctl is-enabled lighttpd)" == "enabled" ]] && LIGHTTPD_ENABLED="0"
+        #value will either be 1 or 0/true or false
+        LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled')
       else
-        LIGHTTPD_ENABLED=$(service lighttpd status &> /dev/null; echo $?)
+        #value will either be 1 or 0/true or false
+        LIGHTTPD_ENABLED=$(service lighttpd status | sed -n 2p | grep -c 'enabled')
       fi
     fi
-    
-    if [[ -z "${LIGHTTPD_ENABLED}" ]] || [[ "${LIGHTTPD_ENABLED}" == "0" ]]; then
+
+    if [[  "${LIGHTTPD_ENABLED}" == "1" ]]; then
       start_service lighttpd
       enable_service lighttpd
     else
@@ -1480,6 +1480,9 @@ main() {
 
   echo ":::"
   echo "::: The install log is located at: /etc/pihole/install.log"
+
+  #update setupvars.conf with any variables that may or may not have been changed during the install
+  finalExports
 }
 
 if [[ "${PH_TEST}" != true ]] ; then
