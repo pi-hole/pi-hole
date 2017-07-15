@@ -30,7 +30,7 @@ Options:
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
-                      add -n to prevent logging to results list"
+                      use -sn to prevent logging to results list"
 	exit 0
 }
 
