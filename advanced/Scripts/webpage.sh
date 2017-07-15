@@ -13,6 +13,7 @@ readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
+readonly speedtestfile="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
 
 helpFunc() {
   echo "Usage: pihole -a [options]
@@ -313,11 +314,32 @@ SetWebUILayout() {
 	change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 }
 
-ChageSpeedTestStatus(){
-  change_setting "ENABLESPEEDTEST" "${args[2]}"
-}
+
 ChageSpeedTestSchedule(){
-  change_setting "SPEEDTESTSCHEDULE" "${args[2]}"
+  if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then
+      if [ "${args[2]}" -ge 0 -a "${args[2]}" -le 24 ]; then
+          change_setting "SPEEDTESTSCHEDULE" "${args[2]}"
+          SetCronTab ${args[2]}
+      fi
+  fi
+}
+
+SetCronTab()
+{
+  # Remove OLD
+  crontab -l >crontab.tmp
+  old=$(cat crontab.tmp | awk '/speedtest.sh/ {print FNR}')
+  if [[ "$old" =~ ^[0-9]+$ ]]; then
+    crontab -l | sed -e "${old}d" >crontab.tmp
+  fi
+  # Add New
+  if [[ "$1" == "0" ]]; then
+      crontab crontab.tmp && rm -f crontab.tmp
+  else
+    newtab="0 */"${1}" * * * sh "${speedtestfile}"  > /dev/null 2>&1"
+    printf '%s\n' "$newtab" >>crontab.tmp
+    crontab crontab.tmp && rm -f crontab.tmp
+  fi
 }
 
 CustomizeAdLists() {
@@ -461,7 +483,7 @@ main() {
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
-    "speedtest"         ) ChageSpeedTestStatus;
+    "-s"               ) ChageSpeedTestSchedule;;
 		*                   ) helpFunc;;
 	esac
 
