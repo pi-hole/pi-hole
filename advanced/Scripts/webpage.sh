@@ -27,7 +27,7 @@ Options:
   -k, kelvin          Set Kelvin as preferred temperature unit
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage" 
+                        Add '-h' for more info on interface usage"
 	exit 0
 }
 
@@ -313,6 +313,13 @@ SetWebUILayout() {
 	change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 }
 
+ChageSpeedTestStatus(){
+  change_setting "ENABLESPEEDTEST" "${args[2]}"
+}
+ChageSpeedTestSchedule(){
+  change_setting "SPEEDTESTSCHEDULE" "${args[2]}"
+}
+
 CustomizeAdLists() {
   list="/etc/pihole/adlists.list"
 
@@ -389,7 +396,7 @@ SetHostRecord() {
 
 SetListeningMode() {
 	source "${setupVars}"
-  
+
   if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
     echo "Usage: pihole -a -i [interface]
 Example: 'pihole -a -i local'
@@ -402,7 +409,7 @@ Interfaces:
   all                 Listen on all interfaces, permit all origins"
     exit 0
   fi
-  
+
 	if [[ "${args[2]}" == "all" ]]; then
 		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
 		change_setting "DNSMASQ_LISTENING" "all"
@@ -454,6 +461,7 @@ main() {
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
+    "speedtest"         ) ChageSpeedTestStatus;
 		*                   ) helpFunc;;
 	esac
 
