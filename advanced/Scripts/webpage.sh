@@ -28,7 +28,9 @@ Options:
   -k, kelvin          Set Kelvin as preferred temperature unit
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage"
+                        Add '-h' for more info on interface usage
+  -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
+                        "
 	exit 0
 }
 
@@ -336,9 +338,9 @@ SetCronTab()
   if [[ "$1" == "0" ]]; then
       crontab crontab.tmp && rm -f crontab.tmp
   else
-    newtab="0 */"${1}" * * * sh "${speedtestfile}"  > /dev/null 2>&1"
-    printf '%s\n' "$newtab" >>crontab.tmp
-    crontab crontab.tmp && rm -f crontab.tmp
+      newtab="0 */"${1}" * * * su root -c \""${speedtestfile}"\"  > /dev/null 2>&1"
+      printf '%s\n' "$newtab" >>crontab.tmp
+      crontab crontab.tmp && rm -f crontab.tmp
   fi
 }
 
@@ -483,7 +485,7 @@ main() {
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
-    "-s"               ) ChageSpeedTestSchedule;;
+    "-s" | "speedtest"  ) ChageSpeedTestSchedule;;
 		*                   ) helpFunc;;
 	esac
 
