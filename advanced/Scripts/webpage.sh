@@ -14,20 +14,24 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
+coltable="/opt/pihole/COL_TABLE"
+if [[ -f ${coltable} ]]; then
+  source ${coltable}
+fi
+
 helpFunc() {
   echo "Usage: pihole -a [options]
 Example: pihole -a -p password
 Set options for the Admin Console
 
 Options:
-  -f, flush           Flush the Pi-hole log
   -p, password        Set Admin Console password
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage" 
+                        Add '-h' for more info on interface usage"
 	exit 0
 }
 
@@ -58,6 +62,7 @@ delete_dnsmasq_setting() {
 
 SetTemperatureUnit() {
 	change_setting "TEMPERATUREUNIT" "${unit}"
+  echo -e "  ${TICK} Set temperature unit to ${unit}"
 }
 
 HashPassword() {
@@ -84,12 +89,15 @@ SetWebPassword() {
     readonly PASSWORD="${args[2]}"
     readonly CONFIRM="${PASSWORD}"
   else
+    # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
+    # So we reset the terminal via stty if the user does press Ctrl+C
+    trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
     read -s -p "Enter New Password (Blank for no password): " PASSWORD
     echo ""
 
     if [ "${PASSWORD}" == "" ]; then
       change_setting "WEBPASSWORD" ""
-      echo "Password Removed"
+      echo -e "  ${TICK} Password Removed"
       exit 0
     fi
 
@@ -101,9 +109,9 @@ SetWebPassword() {
 		hash=$(HashPassword ${PASSWORD})
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
-		echo "New password set"
+		echo -e "  ${TICK} New password set"
 	else
-		echo "Passwords don't match. Your password has not been changed"
+		echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
 		exit 1
 	fi
 }
@@ -213,11 +221,20 @@ Reboot() {
 }
 
 RestartDNS() {
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl restart dnsmasq &> /dev/null
-	else
-		service dnsmasq restart &> /dev/null
-	fi
+  local str="Restarting DNS service"
+  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}"
+  if command -v systemctl &> /dev/null; then
+    output=$( { systemctl restart dnsmasq; } 2>&1 )
+  else
+    output=$( { service dnsmasq restart; } 2>&1 )
+  fi
+
+ if [[ -z "${output}" ]]; then
+    [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
+  else
+    [[ ! -t 1 ]] && OVER=""
+    echo -e "${OVER}  ${CROSS} ${output}"
+  fi
 }
 
 SetQueryLogOptions() {
@@ -389,7 +406,7 @@ SetHostRecord() {
 
 SetListeningMode() {
 	source "${setupVars}"
-  
+
   if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
     echo "Usage: pihole -a -i [interface]
 Example: 'pihole -a -i local'
@@ -402,15 +419,15 @@ Interfaces:
   all                 Listen on all interfaces, permit all origins"
     exit 0
   fi
-  
+
 	if [[ "${args[2]}" == "all" ]]; then
-		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+    echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
 		change_setting "DNSMASQ_LISTENING" "all"
 	elif [[ "${args[2]}" == "local" ]]; then
-		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+    echo -e "  ${INFO} Listening on all interfaces, permiting origins from one hop away (LAN)"
 		change_setting "DNSMASQ_LISTENING" "local"
 	else
-		echo "Listening only on interface ${PIHOLE_INTERFACE}"
+		echo -e "  ${INFO} Listening only on interface ${PIHOLE_INTERFACE}"
 		change_setting "DNSMASQ_LISTENING" "single"
 	fi
 
@@ -426,6 +443,11 @@ Interfaces:
 Teleporter() {
 	local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
 	php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
+}
+
+audit()
+{
+	echo "${args[2]}" >> /etc/pihole/auditlog.list
 }
 
 main() {
@@ -454,6 +476,7 @@ main() {
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
+		"audit"             ) audit;;
 		*                   ) helpFunc;;
 	esac
 
