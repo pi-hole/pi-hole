@@ -30,7 +30,7 @@ Options:
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
-                        "
+                      add -n to prevent logging to results list"
 	exit 0
 }
 
@@ -326,6 +326,16 @@ ChageSpeedTestSchedule(){
   fi
 }
 
+RunSpeedtestNow(){
+    if [[ "${args[2]}" == "-n" ]]; then
+        speedtest-cli
+    else
+      echo "Testing Speed"
+      result=`$speedtestfile`
+      echo $result
+    fi
+}
+
 SetCronTab()
 {
   # Remove OLD
@@ -486,6 +496,7 @@ main() {
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
     "-s" | "speedtest"  ) ChageSpeedTestSchedule;;
+    "-sn"               ) RunSpeedtestNow;;
 		*                   ) helpFunc;;
 	esac
 
