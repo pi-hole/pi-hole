@@ -2061,7 +2061,7 @@ main() {
       fi
     fi
 
-    if [[  "${LIGHTTPD_ENABLED}" == "1" ]]; then
+    if [[ -z "${LIGHTTPD_ENABLED}" ]] || [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
       start_service lighttpd
       enable_service lighttpd
     else
