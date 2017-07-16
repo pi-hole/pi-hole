@@ -26,7 +26,7 @@ source ${coltable}
 
 check_download_exists() {
   status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
-  if echo "$status" | grep -q "404"; then
+  if grep -q "404" <<< "$status"; then
     return 1
   else
     return 0
@@ -74,17 +74,17 @@ get_binary_name() {
   local str
   str="Detecting architecture"
   echo -ne "  ${INFO} ${str}..."
-  if [[ ${machine} == arm* || ${machine} == *aarch* ]]; then
+  if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
     # ARM
     local rev
     rev=$(uname -m | sed "s/[^0-9]//g;")
     local lib
     lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
-    if [[ "$lib" == "/lib/ld-linux-aarch64.so.1" ]]; then
+    if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
       echo -e "${OVER}  ${TICK} Detected ARM-aarch64 architecture"
       binary="pihole-FTL-aarch64-linux-gnu"
-    elif [[ "$lib" == "/lib/ld-linux-armhf.so.3" ]]; then
-      if [ "$rev" -gt "6" ]; then
+    elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
+      if [[ "$rev" -gt "6" ]]; then
         echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv7+)"
         binary="pihole-FTL-arm-linux-gnueabihf"
       else
@@ -95,17 +95,17 @@ get_binary_name() {
       echo -e "${OVER}  ${TICK} Detected ARM architecture"
       binary="pihole-FTL-arm-linux-gnueabi"
     fi
-  elif [[ $machine == ppc ]]; then
+  elif [[ "${machine}" == "ppc" ]]; then
     # PowerPC
-    echo ":::  Detected PowerPC architecture"
+    echo -e "${OVER}  ${TICK} Detected PowerPC architecture"
     binary="pihole-FTL-powerpc-linux-gnu"
-  elif [[ ${machine} == x86_64 ]]; then
+  elif [[ "${machine}" == "x86_64" ]]; then
     # 64bit
     echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
     binary="pihole-FTL-linux-x86_64"
   else
     # Something else - we try to use 32bit executable and warn the user
-    if [[ ! ${machine} == i686 ]]; then
+    if [[ ! "${machine}" == "i686" ]]; then
       echo -e "${OVER}  ${CROSS} ${str}...
       ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable
       Contact support if you experience issues (e.g: FTL not running)${COL_NC}"
@@ -182,7 +182,7 @@ checkout_pull_branch() {
   if [[ "$git_pull" == *"up-to-date"* ]]; then
     echo -e "  ${INFO} $(git pull)"
   else
-    echo -e "$git_pull\n"
+    echo -e "$git_pull\\n"
   fi
 
   return 0
@@ -193,13 +193,13 @@ warning1() {
   echo "  Features that work on the master branch, may not on a development branch"
   echo -e "  ${COL_LIGHT_RED}This feature is NOT supported unless a Pi-hole developer explicitly asks!${COL_NC}"
   read -r -p "  Have you read and understood this? [y/N] " response
-  case ${response} in
+  case "${response}" in
   [yY][eE][sS]|[yY])
     echo ""
     return 0
     ;;
   *)
-    echo -e "\n  ${INFO} Branch change has been cancelled"
+    echo -e "\\n  ${INFO} Branch change has been cancelled"
     return 1
     ;;
   esac
@@ -218,7 +218,7 @@ checkout() {
   Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
     exit 1;
   fi
-  if [[ ${INSTALL_WEB} == "true" ]]; then
+  if [[ "${INSTALL_WEB}" == "true" ]]; then
     if ! is_repo "${webInterfaceDir}" ; then
      echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
   Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
@@ -242,7 +242,7 @@ checkout() {
     echo ""
     echo -e "  ${INFO} Pi-hole Core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
-    if [[ ${INSTALL_WEB} == "true" ]]; then
+    if [[ "${INSTALL_WEB}" == "true" ]]; then
       echo ""
       echo -e "  ${INFO} Web interface"
       fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
@@ -263,7 +263,7 @@ checkout() {
       fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
     fi
     #echo -e "  ${TICK} Web Interface"
-     get_binary_name
+    get_binary_name
     local path
     path="master/${binary}"
     FTLinstall "${binary}" "${path}"
@@ -276,12 +276,12 @@ checkout() {
     fi
     corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
 
-    if [[ "${corebranches[@]}" == *"master"* ]]; then
+    if [[ "${corebranches[*]}" == *"master"* ]]; then
       echo -e "${OVER}  ${TICK} $str
   ${INFO} ${#corebranches[@]} branches available for Pi-hole Core"
     else
       # Print STDERR output from get_available_branches
-      echo -e "${OVER}  ${CROSS} $str\n\n${corebranches[*]}"
+      echo -e "${OVER}  ${CROSS} $str\\n\\n${corebranches[*]}"
       exit 1
     fi
 
@@ -303,12 +303,12 @@ checkout() {
     fi
     webbranches=($(get_available_branches "${webInterfaceDir}"))
 
-    if [[ "${corebranches[@]}" == *"master"* ]]; then
+    if [[ "${webbranches[*]}" == *"master"* ]]; then
       echo -e "${OVER}  ${TICK} $str
   ${INFO} ${#webbranches[@]} branches available for Web Admin"
     else
       # Print STDERR output from get_available_branches
-      echo -e "${OVER}  ${CROSS} $str\n\n${corebranches[*]}"
+      echo -e "${OVER}  ${CROSS} $str\\n\\n${webbranches[*]}"
       exit 1
     fi
 
@@ -322,7 +322,6 @@ checkout() {
     fi
     checkout_pull_branch "${webInterfaceDir}" "${2}"
   elif [[ "${1}" == "ftl" ]] ; then
-
     get_binary_name
     local path
     path="${2}/${binary}"
