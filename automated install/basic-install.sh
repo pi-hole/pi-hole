@@ -2050,14 +2050,14 @@ main() {
 
   # If the Web server was installed,
   if [[ ${INSTALL_WEB} == true ]]; then
-    # Check to see if lighttpd was already running upon update
+    # Check to see if lighttpd was already set to run on reboot
     if [[ ${useUpdateVars} == true ]]; then
       if [[ -x "$(command -v systemctl)" ]]; then
-        #value will either be 1 or 0/true or false
+        # Value will either be 1, if true, or 0
         LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled')
       else
-        #value will either be 1 or 0/true or false
-        LIGHTTPD_ENABLED=$(service lighttpd status | sed -n 2p | grep -c 'enabled')
+        # Value will either be 1, if true, or 0
+        LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled')
       fi
     fi
 
