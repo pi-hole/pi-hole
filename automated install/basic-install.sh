@@ -1154,7 +1154,7 @@ update_package_cache() {
   else
     # show an error and exit
     echo -e "${OVER}  ${CROSS} ${str}"
-    echo -ne "  ${COL_LIGHT_RED}Error: Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\"${COL_NC}"
+    echo -e "  ${COL_LIGHT_RED}Error: Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\"${COL_NC}"
     return 1
   fi
 }
