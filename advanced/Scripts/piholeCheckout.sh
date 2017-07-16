@@ -303,12 +303,12 @@ checkout() {
     fi
     webbranches=($(get_available_branches "${webInterfaceDir}"))
 
-    if [[ "${corebranches[@]}" == *"master"* ]]; then
+    if [[ "${webbranches[@]}" == *"master"* ]]; then
       echo -e "${OVER}  ${TICK} $str
   ${INFO} ${#webbranches[@]} branches available for Web Admin"
     else
       # Print STDERR output from get_available_branches
-      echo -e "${OVER}  ${CROSS} $str\n\n${corebranches[*]}"
+      echo -e "${OVER}  ${CROSS} $str\n\n${webbranches[*]}"
       exit 1
     fi
 
@@ -329,11 +329,10 @@ checkout() {
 
     if check_download_exists "$path"; then
         echo "  ${TICK} Branch ${2} exists"
+        FTLinstall "${binary}" "${path}"
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
     fi
-
-    FTLinstall "${binary}" "${path}"
 
   else
     echo -e "  ${INFO} Requested option \"${1}\" is not available"
