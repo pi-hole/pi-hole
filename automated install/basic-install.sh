@@ -2054,10 +2054,10 @@ main() {
     if [[ "${useUpdateVars}" == true ]]; then
       if [[ -x "$(command -v systemctl)" ]]; then
         # Value will either be 1, if true, or 0
-        LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled')
+        LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
       else
         # Value will either be 1, if true, or 0
-        LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled')
+        LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
       fi
     fi
 
@@ -2067,7 +2067,6 @@ main() {
     else
       echo -e "  ${INFO} Lighttpd is disabled, skipping service restart"
     fi
-
   fi
 
   # Download and compile the aggregated block list
