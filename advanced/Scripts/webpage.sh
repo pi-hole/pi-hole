@@ -14,7 +14,7 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly speedtestfile="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
-readonly speedtestdb="/opt/pihole/speedtest.db"
+readonly speedtestdb="/etc/pihole/speedtest.db"
 
 helpFunc() {
   echo "Usage: pihole -a [options]
