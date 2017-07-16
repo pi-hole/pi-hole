@@ -1143,18 +1143,17 @@ update_package_cache() {
   # Update package cache on apt based OSes. Do this every time since
   # it's quick and packages can be updated at any time.
 
-  # Local, named variables
-  local str="Update local cache of available packages"
   echo ""
+  local str="Update local cache of available packages"
   echo -ne "  ${INFO} ${str}..."
-  # Create a command from the package cache variable
-  if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
+
+  # Output last three lines of error if apt-get update fails
+  output=$( { eval "${UPDATE_PKG_CACHE}"; } 2>&1 )
+  if [[ -z "${output}" ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
-  # Otherwise,
   else
-    # show an error and exit
     echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "  ${COL_LIGHT_RED}Error: Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\"${COL_NC}"
+    echo -e "\n$(tail -n 3 <<< "$output")\n"
     return 1
   fi
 }
@@ -1708,7 +1707,7 @@ update_dialogs() {
   case ${UpdateCmd} in
     # repair, or
     ${opt1a})
-      echo -e "  ${INFO} ${opt1a} option selected."
+      echo -e "  ${INFO} ${opt1a} option selected"
       useUpdateVars=true
       ;;
     # recongigure,
