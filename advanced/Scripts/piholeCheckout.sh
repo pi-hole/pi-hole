@@ -331,6 +331,10 @@ checkout() {
         FTLinstall "${binary}" "${path}"
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
+        ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+        echo -e "  ${INFO} Available branches for FTL are:"
+        for e in "${ftlbranches[@]}"; do echo "      - $e"; done
+        exit 1
     fi
 
   else
