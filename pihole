@@ -87,10 +87,14 @@ scanList(){
   domain="${1}"
   list="${2}"
   method="${3}"
-  if [[ ${method} == "-exact" ]] ; then
-    grep -i -E "(^|\s)${domain}($|\s)" "${list}"
+
+  # Switch folder, preventing grep from printing file path
+  cd "/etc/pihole" || return 1
+
+  if [[ -n "${method}" ]]; then
+    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} /dev/null 2> /dev/null
   else
-    grep -i "${domain}" "${list}"
+    grep -i "${domain}" ${list} /dev/null 2> /dev/null
   fi
 }
 
@@ -110,46 +114,210 @@ processWildcards() {
 }
 
 queryFunc() {
-  domain="${2}"
-  
-  if [[ -z "${domain}" ]]; then
-    echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}
-  Try 'pihole query --help' for more information."
+  options="$*"
+  options="${options/-q /}"
+
+  if [[ "${options}" == "-h" ]] || [[ "${options}" == "--help" ]]; then
+    echo "Usage: pihole -q [option] <domain>
+Example: 'pihole -q -exact domain.com'
+Query the adlists for a specified domain
+
+Options:
+  -adlist             Print the name of the block list URL
+  -exact              Search the block lists for exact domain matches
+  -all                Return all query matches within a block list
+  -h, --help          Show this help dialog"
+    exit 0
+  fi
+
+  if [[ "${options}" == *"-exact"* ]]; then
+    method="exact"
+    exact=true
+  fi
+
+  if [[ "${options}" == *"-adlist"* ]]; then
+    adlist=true
+  fi
+
+  if [[ "${options}" == *"-bp"* ]]; then
+    method="exact"
+    blockpage=true
+  fi
+
+  if [[ "${options}" == *"-all"* ]]; then
+    all=true
+  fi
+
+  # Strip valid options, leaving only the domain and invalid options
+  options=$(sed 's/ \?-\(exact\|adlist\|bp\|all\) \?//g' <<< "$options")
+
+  # Handle errors
+  if [[ "${options}" == *" "* ]]; then
+    error=true
+    str="Unknown option specified"
+  elif [[ "${options}" == "-q" ]]; then
+    error=true
+    str="No domain specified"
+  fi
+
+  if [[ -n "${error}" ]]; then
+    echo -e "  ${COL_LIGHT_RED}${str}${COL_NC}
+  Try 'pihole -q --help' for more information."
     exit 1
   fi
-  
-  method="${3}"
-  lists=( /etc/pihole/list.* /etc/pihole/blacklist.txt)
-  for list in ${lists[@]}; do
-    if [ -e "${list}" ]; then
-      result=$(scanList ${domain} ${list} ${method})
-      # Remove empty lines before couting number of results
-      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-      echo "${list} (${count} results)"
-      if [[ ${count} > 0 ]]; then
-        echo "${result}"
-      fi
-      echo ""
-    else
-      echo -e "  ${CROSS} List does not exist"
-      echo ""
-    fi
-  done
 
-  # Scan for possible wildcard matches
-  if [ -e "${wildcardlist}" ]; then
-    local wildcards=($(processWildcards "${domain}"))
-    for domain in ${wildcards[@]}; do
-      result=$(scanList "\/${domain}\/" ${wildcardlist})
-      # Remove empty lines before couting number of results
-      count=$(sed '/^\s*$/d' <<< "$result" | wc -l)
-      if [[ ${count} > 0 ]]; then
-        echo -e "  ${TICK} Wildcard blocking ${domain} (${count} results)"
-        echo "${result}"
-        echo ""
+  # If domain contains non ASCII characters, convert domain to punycode if python is available
+  # Cr: https://serverfault.com/a/335079
+  if [[ "$options" = *[![:ascii:]]* ]]; then
+    if command -v python &> /dev/null; then
+      query=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${options}")
+    fi
+  else
+    query="${options}"
+  fi
+
+  # Scan Whitelist and Blacklist
+  lists="whitelist.txt blacklist.txt"
+  results=($(scanList "${query}" "${lists}" "${method}"))
+
+  if [[ -n "${results[*]}" ]]; then
+    # Loop through each scanList line to print appropriate title
+    for result in "${results[@]}"; do
+      filename="${result/:*/}"
+      if [[ -n "$exact" ]]; then
+        printf "  Exact result in %s\n" "${filename}"
+      elif [[ -n "$blockpage" ]]; then
+        printf "  [i] %s\n" "${filename}"
+      else
+        domain="${result/*:/}"
+        if [[ ! "${filename}" == "${filename_prev:-}" ]]; then
+          printf "  Result from %s\n" "${filename}"
+        fi
+        printf "    %s\n" "${domain}"
+        filename_prev="${filename}"
       fi
     done
   fi
+
+  # Scan Wildcards
+  if [[ -e "${wildcardlist}" ]]; then
+    wildcards=($(processWildcards "${query}"))
+
+    for match in "${wildcards[@]}"; do
+      results=($(scanList "\/${match}\/" ${wildcardlist}))
+
+      if [[ -n "${results[*]}" ]]; then
+        # Remove empty lines before couting number of results
+        count=$(sed '/^\s*$/d' <<< "${results[@]}" | wc -l)
+        if [[ "${count}" -ge 0 ]]; then
+          blResult=true
+          if [[ -z "${blockpage}" ]]; then
+            printf "  Wildcard result in %s\n" "${wildcardlist/*dnsmasq.d\/}"
+          fi
+
+          if [[ -n "${blockpage}" ]]; then
+            echo "  ${INFO} ${match}"
+          else
+            echo "    *.${match}"
+          fi
+        fi
+      fi
+    done
+
+    [[ -n "${blResult}" ]] && [[ -n "${blockpage}" ]] && exit 0
+  fi
+
+  # Glob *.domains file names, remove file paths and sort by list number
+  lists_raw=(/etc/pihole/*.domains)
+  IFS_OLD=$IFS
+  IFS=$'\n'
+  lists=$(sort -t . -k 2 -g <<< "${lists_raw[*]//\/etc\/pihole\//}")
+
+  # Scan Domains files
+  results=($(scanList "${query}" "${lists}" "${method}"))
+
+  # Handle notices
+  if [[ -z "${blResult}" ]] && [[ -z "${results[*]}" ]]; then
+    notice=true
+    str="No ${method/t/t }results found for ${query} found within block lists"
+  elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 16000 ]]; then
+    # 16000 chars is 15 chars X 1000 lines worth of results
+    notice=true
+    str="Hundreds of ${method/t/t }results found for ${query}
+    This can be overriden using the -all option"
+  fi
+
+  if [[ -n "${notice}" ]]; then
+    echo -e "  ${INFO} ${str}"
+    exit
+  fi
+
+  # Remove unwanted content from results
+  if [[ -z "${method}" ]]; then
+    results=($(sed "/:#/d" <<< "${results[*]}")) # Lines starting with comments
+    results=($(sed "s/[ \t]#.*//g" <<< "${results[*]}")) # Comments after domain
+    results=($(sed "s/:.*[ \t]/:/g" <<< "${results[*]}")) # IP address
+  fi
+  IFS=$IFS_OLD
+
+  # Get adlist content as array
+  if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
+    if [[ -f "/etc/pihole/adlists.list" ]]; then
+      for url in $(< /etc/pihole/adlists.list); do
+        if [[ "${url:0:4}" == "http" ]] || [[ "${url:0:3}" == "www" ]]; then
+          adlists+=("$url")
+        fi
+      done
+    else
+      echo -e "  ${COL_LIGHT_RED}The file '/etc/pihole/adlists.list' was not found${COL_NC}"
+      exit 1
+    fi
+  fi
+
+  if [[ -n "${results[*]}" ]]; then
+    if [[ -n "${exact}" ]]; then
+      echo "  Exact result(s) for ${query} found in:"
+    fi
+
+    for result in "${results[@]}"; do
+      filename="${result/:*/}"
+
+      # Convert file name to URL name for -adlist or -bp options
+      if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
+        filenum=("${filename/list./}")
+        filenum=("${filenum/.*/}")
+        filename="${adlists[$filenum]}"
+      fi
+
+      if [[ -n "${exact}" ]]; then
+        printf "    %s\n" "${filename}"
+      elif [[ -n "${blockpage}" ]]; then
+        printf "  [%s] %s\n" "${filenum}" "${filename}"
+      else # Standard query output
+
+        # Print filename heading once per file, not for every match
+        if [[ ! "${filename}" == "${filename_prev:-}" ]]; then
+          unset count
+          printf "  Result from %s\n" "${filename}"
+        else
+          let count++
+        fi
+
+        # Print matching domain if $max_count has not been reached
+        [[ -z "${all}" ]] && max_count="20"
+        if [[ -z "${all}" ]] && [[ "${count}" -eq "${max_count}" ]]; then
+          echo "    Over $count results found, skipping rest of file"
+        elif [[ -z "${all}" ]] && [[ "${count}" -gt "${max_count}" ]]; then
+          continue
+        else
+          domain="${result/*:/}"
+          printf "    %s\n" "${domain}"
+        fi
+        filename_prev="${filename}"
+      fi
+    done
+  fi
+
   exit 0
 }
 
@@ -173,24 +341,32 @@ versionFunc() {
 
 restartDNS() {
   dnsmasqPid=$(pidof dnsmasq)
+  local str="Restarting DNS service"
+  echo -ne "  ${INFO} ${str}"
   if [[ "${dnsmasqPid}" ]]; then
     # Service already running - reload config
-    echo -ne "  ${INFO} Restarting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
-      systemctl restart dnsmasq
+      output=$( { systemctl restart dnsmasq; } 2>&1 )
     else
-      service dnsmasq restart
+      output=$( { service dnsmasq restart; } 2>&1 )
     fi
-    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
+    if [[ -z "${output}" ]]; then
+      echo -e "${OVER}  ${TICK} ${str}"
+    else
+      echo -e "${OVER}  ${CROSS} ${output}"
+    fi
   else
     # Service not running, start it up
-    echo -ne "  ${INFO} Starting dnsmasq"
     if [[ -x "$(command -v systemctl)" ]]; then
-      systemctl start dnsmasq
+      output=$( { systemctl start dnsmasq; } 2>&1 )
     else
-      service dnsmasq start
+      output=$( { service dnsmasq start; } 2>&1 )
     fi
-    [[ "$?" == 0 ]] && echo -e "${OVER}  ${TICK} Restarted dnsmasq" || echo -e "${OVER}  ${CROSS} Failed to restart dnsmasq"
+    if [[ -z "${output}" ]]; then
+      echo -e "${OVER}  ${TICK} ${str}"
+    else
+      echo -e "${OVER}  ${CROSS} ${output}"
+    fi
   fi
 }
 
@@ -430,7 +606,7 @@ Options:
   -l, logging         Specify whether the Pi-hole log should be used
                         Add '-h' for more info on logging usage
   -q, query           Query the adlists for a specified domain
-                        Add '-exact' AFTER a specified domain for exact match
+                        Add '-h' for more info on query usage
   -up, updatePihole   Update Pi-hole subsystems
   -v, version         Show installed versions of Pi-hole, Admin Console & FTL
                         Add '-h' for more info on version usage
