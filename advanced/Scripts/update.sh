@@ -10,10 +10,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
 # Variables
-
 readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
@@ -43,7 +40,7 @@ GitCheckUpdateAvail() {
 
   # @ alone is a shortcut for HEAD. Older versions of git
   # need @{0}
-  LOCAL="$("git rev-parse @{0}")"
+  LOCAL="$(git rev-parse "@{0}")"
 
   # The suffix @{upstream} to a branchname
   # (short form <branchname>@{u}) refers
@@ -52,7 +49,7 @@ GitCheckUpdateAvail() {
   # (configured with branch.<name>.remote and
   # branch.<name>.merge). A missing branchname
   # defaults to the current one.
-  REMOTE="$("git rev-parse @{upstream}")"
+  REMOTE="$(git rev-parse "@{upstream}")"
 
   if [[ ${#LOCAL} == 0 ]]; then
     echo -e "        ${COL_LIGHT_RED}Error: Local revision could not be obtained, ask Pi-hole support."
@@ -82,7 +79,6 @@ GitCheckUpdateAvail() {
 }
 
 FTLcheckUpdate() {
-
 	local FTLversion
 	FTLversion=$(/usr/bin/pihole-FTL tag)
 	local FTLlatesttag
@@ -131,7 +127,7 @@ main() {
   # re-install (i.e. update) FTL
   if ${FTL_update} && ! ${core_update}; then
     echo ""
-    echo -e "  ${INFO}  FTL out of date"
+    echo -e "  ${INFO} FTL out of date"
     FTLdetect
     echo ""
   fi
