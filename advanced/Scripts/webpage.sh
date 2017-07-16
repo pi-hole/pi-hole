@@ -14,6 +14,7 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly speedtestfile="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
+readonly speedtestdb="/opt/pihole/speedtest.db"
 
 helpFunc() {
   echo "Usage: pihole -a [options]
@@ -327,13 +328,29 @@ ChageSpeedTestSchedule(){
 }
 
 RunSpeedtestNow(){
+  mkdir -p /tmp/speedtest
+  lockfile="/tmp/speedtest/lock"
+  if [ -f $speedtestdb ]
+  then
+      echo ""
+  else
+      cp /var/www/html/admin/scripts/pi-hole/speedtest/speedtest.db $speedtestdb
+  fi
+  sleep 2
+  if [ -f "$lockfile" ]
+  then
+  	echo "Speedtest is already in progress, is something went wrong delete this file - "$lockfile
+  else
+    touch $lockfile
     if [[ "${args[2]}" == "-n" ]]; then
         speedtest-cli
     else
       echo "Testing Speed"
       result=`$speedtestfile`
       echo $result
+      rm $lockfile
     fi
+  fi
 }
 
 SetCronTab()
