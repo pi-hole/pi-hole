@@ -2049,9 +2049,9 @@ main() {
   enable_service dnsmasq
 
   # If the Web server was installed,
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     # Check to see if lighttpd was already set to run on reboot
-    if [[ ${useUpdateVars} == true ]]; then
+    if [[ "${useUpdateVars}" == true ]]; then
       if [[ -x "$(command -v systemctl)" ]]; then
         # Value will either be 1, if true, or 0
         LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled')
@@ -2065,7 +2065,7 @@ main() {
       start_service lighttpd
       enable_service lighttpd
     else
-      echo "::: Lighttpd service was disabled prior to update; not re-enabling service"
+      echo -e "  ${INFO} Lighttpd is disabled, skipping service restart"
     fi
 
   fi
