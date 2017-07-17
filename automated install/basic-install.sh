@@ -79,7 +79,7 @@ reconfigure=false
 runUnattended=false
 
 # If the color table file exists,
-if [[ -f ${coltable} ]]; then
+if [[ -f "${coltable}" ]]; then
   # source it
   source ${coltable}
 # Othwerise,
@@ -414,7 +414,7 @@ verifyFreeDiskSpace() {
     # exit with an error code
     exit 1
   # If there is insufficient free disk space,
-  elif [[ ${existing_free_kilobytes} -lt ${required_free_kilobytes} ]]; then
+  elif [[ "${existing_free_kilobytes}" -lt "${required_free_kilobytes}" ]]; then
     # show an error message
     echo -e "  ${CROSS} ${str}
       Your system disk appears to only have ${existing_free_kilobytes} KB free
@@ -455,7 +455,7 @@ chooseInterface() {
   interfaceCount=$(echo "${availableInterfaces}" | wc -l)
 
   # If there is one interface,
-  if [[ ${interfaceCount} -eq 1 ]]; then
+  if [[ "${interfaceCount}" -eq 1 ]]; then
       # Set it as the interface to use since there is no other option
       PIHOLE_INTERFACE="${availableInterfaces}"
   # Otherwise,
@@ -465,7 +465,7 @@ chooseInterface() {
         # use a variable to set the option as OFF to begin with
         mode="OFF"
         # If it's the first loop,
-        if [[ ${firstLoop} -eq 1 ]]; then
+        if [[ "${firstLoop}" -eq 1 ]]; then
           # set this as the interface to use (ON)
           firstLoop=0
           mode="ON"
@@ -575,14 +575,14 @@ use4andor6() {
     esac
   done
   # If IPv4 is to be used,
-  if [[ ${useIPv4} ]]; then
+  if [[ "${useIPv4}" ]]; then
     # Run our function to get the information we need
     find_IPv4_information
     getStaticIPv4Settings
     setStaticIPv4
   fi
   # If IPv6 is to be used,
-  if [[ ${useIPv6} ]]; then
+  if [[ "${useIPv6}" ]]; then
     # Run our function to get this information
     useIPv6dialog
   fi
@@ -590,7 +590,7 @@ use4andor6() {
     echo -e "  ${INFO} IPv4 address: ${IPV4_ADDRESS}"
     echo -e "  ${INFO} IPv6 address: ${IPV6_ADDRESS}"
   # If neither protocol is selected,
-  if [ ! ${useIPv4} ] && [ ! ${useIPv6} ]; then
+  if [[ ! "${useIPv4}" ]] && [[ ! "${useIPv6}" ]]; then
     # Show an error in red
     echo -e "  ${COL_LIGHT_RED}Error: Neither IPv4 or IPv6 selected${COL_NC}"
     # and exit with an error
@@ -616,7 +616,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
     # Otherwise, we need to ask the user to input their desired settings.
     # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
     # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-    until [[ ${ipSettingsCorrect} = True ]]; do
+    until [[ "${ipSettingsCorrect}" = True ]]; do
 
       # Ask for the IPv4 address
       IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" ${r} ${c} "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
@@ -660,7 +660,7 @@ setStaticIPv4() {
   local IPADDR
   local CIDR
   # For the Debian family, if dhcpcd.conf exists,
-  if [[ -f /etc/dhcpcd.conf ]]; then
+  if [[ -f "/etc/dhcpcd.conf" ]]; then
     # check if the IP is already in the file
     if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
       echo -e "  ${INFO} Static IP already configured"
@@ -675,7 +675,7 @@ setStaticIPv4() {
        You may need to restart after the install is complete"
     fi
   # If it's not Debian, check if it's the Fedora family by checking for the file below
-  elif [[ -f /etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE} ]];then
+  elif [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
     # If it exists,
     IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
     # check if the desired IP is already set
@@ -727,7 +727,7 @@ valid_ip() {
   local stat=1
 
   # If the IP matches the format xxx.xxx.xxx.xxx,
-  if [[ ${ip} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+  if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
     # Save the old Interfal Field Separator in a variable
     OIFS=$IFS
     # and set the new one to a dot (period)
@@ -737,8 +737,8 @@ valid_ip() {
     # Restore the IFS to what it was
     IFS=${OIFS}
     ## Evaluate each octet by checking if it's less than or equal to 255 (the max for each octet)
-    [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
-    && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+    [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 \
+    && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 ]]
     # Save the exit code
     stat=$?
   fi
@@ -801,13 +801,13 @@ setDNS() {
       ;;
     Custom)
       # Until the DNS settings are selected,
-      until [[ ${DNSSettingsCorrect} = True ]]; do
+      until [[ "${DNSSettingsCorrect}" = True ]]; do
       #
       strInvalid="Invalid"
       # If the first
-      if [ ! ${PIHOLE_DNS_1} ]; then
+      if [[ ! "${PIHOLE_DNS_1}" ]]; then
         # and second upstream servers do not exist
-        if [ ! ${PIHOLE_DNS_2} ]; then
+        if [[ ! "${PIHOLE_DNS_2}" ]]; then
           #
           prePopulate=""
         # Otherwise,
@@ -816,11 +816,11 @@ setDNS() {
           prePopulate=", ${PIHOLE_DNS_2}"
         fi
       #
-      elif  [ ${PIHOLE_DNS_1} ] && [ ! ${PIHOLE_DNS_2} ]; then
+      elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
         #
         prePopulate="${PIHOLE_DNS_1}"
       #
-      elif [ ${PIHOLE_DNS_1} ] && [ ${PIHOLE_DNS_2} ]; then
+      elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
         #
         prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
       fi
@@ -832,23 +832,23 @@ setDNS() {
       PIHOLE_DNS_1=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
       PIHOLE_DNS_2=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$2}')
       # If the IP is valid,
-      if ! valid_ip "${PIHOLE_DNS_1}" || [ ! "${PIHOLE_DNS_1}" ]; then
+      if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
         # store it in the variable so we can use it
         PIHOLE_DNS_1=${strInvalid}
       fi
       # Do the same for the secondary server
-      if ! valid_ip "${PIHOLE_DNS_2}" && [ "${PIHOLE_DNS_2}" ]; then
+      if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
         PIHOLE_DNS_2=${strInvalid}
       fi
       # If either of the DNS servers are invalid,
-      if [[ ${PIHOLE_DNS_1} == "${strInvalid}" ]] || [[ ${PIHOLE_DNS_2} == "${strInvalid}" ]]; then
+      if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
         # explain this to the user
         whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\n\n    DNS Server 1:   $PIHOLE_DNS_1\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
         # and set the variables back to nothing
-        if [[ ${PIHOLE_DNS_1} == "${strInvalid}" ]]; then
+        if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
           PIHOLE_DNS_1=""
         fi
-        if [[ ${PIHOLE_DNS_2} == "${strInvalid}" ]]; then
+        if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
           PIHOLE_DNS_2=""
         fi
         # Since the settings will not work, stay in the loop
@@ -939,7 +939,7 @@ version_check_dnsmasq() {
   local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
 
   # If the dnsmasq config file exists
-  if [ -f ${dnsmasq_conf} ]; then
+  if [[ -f "${dnsmasq_conf}" ]]; then
     echo -ne "  ${INFO} Existing dnsmasq.conf found..."
     # If gravity.list is found within this file, we presume it's from older versions on Pi-hole,
     if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
@@ -1062,15 +1062,15 @@ installConfigs() {
   version_check_dnsmasq
 
   # If the user chose to install the dashboard,
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     # and if the Web server conf directory does not exist,
-    if [ ! -d "/etc/lighttpd" ]; then
+    if [[ ! -d "/etc/lighttpd" ]]; then
       # make it
       mkdir /etc/lighttpd
       # and set the owners
       chown "${USER}":root /etc/lighttpd
     # Otherwise, if the config file already exists
-    elif [ -f "/etc/lighttpd/lighttpd.conf" ]; then
+    elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
       # back up the original
       mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
     fi
@@ -1172,7 +1172,7 @@ notify_package_updates_available() {
   #
   if [[ -d "/lib/modules/$(uname -r)" ]]; then
     #
-    if [[ ${updatesToInstall} -eq "0" ]]; then
+    if [[ "${updatesToInstall}" -eq 0 ]]; then
       #
       echo -e "${OVER}  ${TICK} ${str}... up to date!"
       echo ""
@@ -1198,7 +1198,7 @@ install_dependent_packages() {
   # Add one to the counter
   counter=$((counter+1))
   # If it equals 1,
-  if [ ${counter} == 1 ]; then
+  if [[ "${counter}" == 1 ]]; then
     #
     echo -e "  ${INFO} Installer Dependency checks..."
   else
@@ -1232,7 +1232,7 @@ install_dependent_packages() {
       fi
     done
     #
-    if [[ ${#installArray[@]} -gt 0 ]]; then
+    if [[ "${#installArray[@]}" -gt 0 ]]; then
       #
       test_dpkg_lock
       #
@@ -1257,7 +1257,7 @@ install_dependent_packages() {
     fi
   done
     #
-    if [[ ${#installArray[@]} -gt 0 ]]; then
+    if [[ "${#installArray[@]}" -gt 0 ]]; then
       #
       "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
       return
@@ -1272,7 +1272,7 @@ CreateLogFile() {
   echo ""
   echo -ne "  ${INFO} ${str}..."
   # If the pihole log does not exist,
-  if [ ! -f /var/log/pihole.log ]; then
+  if [[ ! -f "/var/log/pihole.log" ]]; then
     # Make it,
     touch /var/log/pihole.log
     # set the permissions,
@@ -1292,11 +1292,11 @@ installPiholeWeb() {
   echo ""
   echo "  ${INFO} Installing blocking page..."
   # If the pihole Web directory exists,
-  if [ -d "/var/www/html/pihole" ]; then
+  if [[ -d "/var/www/html/pihole" ]]; then
     local str="Installing index.php"
     echo -ne "  ${INFO} ${str}..."
     # and if the index file exists,
-    if [ -f "/var/www/html/pihole/index.php" ]; then
+    if [[ -f "/var/www/html/pihole/index.php" ]]; then
       # do not overwrite it,
       echo -e " ${COL_LIGHT_GREEN}detected index.php, not overwriting${COL_NC}"
     # if it doesn't exist
@@ -1309,7 +1309,7 @@ installPiholeWeb() {
     local str="Installing index.js"
     echo -ne "  ${INFO} ${str}..."
     # and if the index file exists,
-    if [ -f "/var/www/html/pihole/index.js" ]; then
+    if [[ -f "/var/www/html/pihole/index.js" ]]; then
       # do not overwrite it,
       echo -e " ${COL_LIGHT_GREEN}detected index.js, not overwriting${COL_NC}"
     else
@@ -1321,7 +1321,7 @@ installPiholeWeb() {
     local str="Installing blockingpage.css"
     echo -ne "  ${INFO} ${str}..."
     # and if the index file exists,
-    if [ -f "/var/www/html/pihole/blockingpage.css" ]; then
+    if [[ -f "/var/www/html/pihole/blockingpage.css" ]]; then
       # do not overwrite it,
       echo -e " ${COL_LIGHT_GREEN}detected blockingpage.css, not overwriting${COL_NC}"
     else
@@ -1342,7 +1342,7 @@ installPiholeWeb() {
     local str="Backing up index.lighttpd.html"
     echo -ne "  ${INFO} ${str}..."
     # If the default index file exists,
-    if [ -f /var/www/html/index.lighttpd.html ]; then
+    if [[ -f "/var/www/html/index.lighttpd.html" ]]; then
       # back it up
       mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
       echo -e "${OVER}  ${TICK} ${str}"
@@ -1470,20 +1470,20 @@ configureFirewall() {
 #
 finalExports() {
   # If the Web interface is not set to be installed,
-  if [[ ${INSTALL_WEB} == false ]]; then
+  if [[ "${INSTALL_WEB}" == false ]]; then
     # and if there is not an IPv4 address,
-    if [ ${IPV4_ADDRESS} ]; then
+    if [[ "${IPV4_ADDRESS}" ]]; then
       # there is no block page, so set IPv4 to 0.0.0.0 (all IP addresses)
       IPV4_ADDRESS="0.0.0.0"
     fi
-    if [ ${IPV6_ADDRESS} ]; then
+    if [[ "${IPV6_ADDRESS}" ]]; then
       # and IPv6 to ::/0
       IPV6_ADDRESS="::/0"
     fi
   fi
 
   # If the setup variable file exists,
-  if [ -e "${setupVars}" ]; then
+  if [[ -e "${setupVars}" ]]; then
     # update the variables in the file
     sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
   fi
@@ -1532,7 +1532,7 @@ installLogrotate() {
   # the local properties of the /var/log directory
   logusergroup="$(stat -c '%U %G' /var/log)"
   # If the variable has a value,
-  if [[ ! -z $logusergroup ]]; then
+  if [[ ! -z "${logusergroup}" ]]; then
     #
     sed -i "s/# su #/su ${logusergroup}/g;" /etc/pihole/logrotate
   fi
@@ -1545,8 +1545,8 @@ installPihole() {
   create_pihole_user
 
   # If the user wants to install the Web interface,
-  if [[ ${INSTALL_WEB} == true ]]; then
-    if [ ! -d "/var/www/html" ]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
+    if [[ ! -d "/var/www/html" ]]; then
       # make the Web directory if necessary
       mkdir -p /var/www/html
     fi
@@ -1556,7 +1556,7 @@ installPihole() {
     # Give pihole access to the Web server group
     usermod -a -G ${LIGHTTPD_GROUP} pihole
     # If the lighttpd command is executable,
-    if [ -x "$(command -v lighty-enable-mod)" ]; then
+    if [[ -x "$(command -v lighty-enable-mod)" ]]; then
       # enable fastcgi and fastcgi-php
       lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
     else
@@ -1572,7 +1572,7 @@ installPihole() {
   # and create the log file
   CreateLogFile
   # If the user wants to install the dashboard,
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     # do so
     installPiholeWeb
   fi
@@ -1610,7 +1610,7 @@ updatePihole() {
   # Create the log file
   CreateLogFile
   # If the user wants to install the dasboard,
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     # do so
     installPiholeWeb
   fi
@@ -1649,7 +1649,7 @@ checkSelinux() {
 # Installation complete message with instructions for the user
 displayFinalMessage() {
   # If
-  if [[ ${#1} -gt 0 ]] ; then
+  if [[ "${#1}" -gt 0 ]] ; then
     pwstring="$1"
   # else, if the dashboard password in the setup variables exists,
   elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
@@ -1660,7 +1660,7 @@ displayFinalMessage() {
     pwstring="NOT SET"
   fi
    # If the user wants to install the dashboard,
-   if [[ ${INSTALL_WEB} == true ]]; then
+   if [[ "${INSTALL_WEB}" == true ]]; then
        # Store a message in a variable and display it
        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
@@ -1682,7 +1682,7 @@ ${additional}" ${r} ${c}
 
 update_dialogs() {
   # If pihole -r "reconfigure" option was selected,
-  if [ "${reconfigure}" = true ]; then
+  if [[ "${reconfigure}" = true ]]; then
     # set some variables that will be used
     opt1a="Repair"
     opt1b="This will retain existing settings"
@@ -1729,7 +1729,7 @@ clone_or_update_repos() {
         exit 1; \
       }
     # If the Web interface was installed,
-    if [[ ${INSTALL_WEB} == true ]]; then
+    if [[ "${INSTALL_WEB}" == true ]]; then
       # reset it's repo
       resetRepo ${webInterfaceDir} || \
         { echo -e "  ${COL_LIGHT_RED}Unable to reset ${webInterfaceDir}, exiting installer${COL_NC}"; \
@@ -1744,7 +1744,7 @@ clone_or_update_repos() {
         exit 1; \
       }
       # If the Web interface was installed,
-      if [[ ${INSTALL_WEB} == true ]]; then
+      if [[ "${INSTALL_WEB}" == true ]]; then
         # get the Web git files
         getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
         { echo -e "  ${COL_LIGHT_RED}Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, exiting installer${COL_NC}"; \
@@ -1827,21 +1827,21 @@ FTLdetect() {
   local str="Detecting architecture"
   echo -ne "  ${INFO} ${str}..."
   # If the machine is arm or aarch
-  if [[ ${machine} == arm* || ${machine} == *aarch* ]]; then
+  if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
     # ARM
     #
     local rev=$(uname -m | sed "s/[^0-9]//g;")
     #
     local lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
     #
-    if [[ "$lib" == "/lib/ld-linux-aarch64.so.1" ]]; then
+    if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
       echo -e "${OVER}  ${TICK} Detected ARM-aarch64 architecture"
       # set the binary to be used
       binary="pihole-FTL-aarch64-linux-gnu"
     #
-    elif [[ "$lib" == "/lib/ld-linux-armhf.so.3" ]]; then
+    elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
       #
-      if [ "$rev" -gt "6" ]; then
+      if [[ "${rev}" -gt 6 ]]; then
         echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv7+)"
         # set the binary to be used
         binary="pihole-FTL-arm-linux-gnueabihf"
@@ -1856,19 +1856,19 @@ FTLdetect() {
       # set the binary to be used
       binary="pihole-FTL-arm-linux-gnueabi"
     fi
-  elif [[ $machine == ppc ]]; then
+  elif [[ "${machine}" == "ppc" ]]; then
     # PowerPC
     echo ":::  Detected PowerPC architecture"
     # set the binary to be used
     binary="pihole-FTL-powerpc-linux-gnu"
-  elif [[ ${machine} == x86_64 ]]; then
+  elif [[ "${machine}" == "x86_64" ]]; then
     # 64bit
     echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
     # set the binary to be used
     binary="pihole-FTL-linux-x86_64"
   else
     # Something else - we try to use 32bit executable and warn the user
-    if [[ ! ${machine} == i686 ]]; then
+    if [[ ! "${machine}" == "i686" ]]; then
       echo -e "${OVER}  ${CROSS} ${str}...
       ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable
       Contact support if you experience issues (e.g: FTL not running)${COL_NC}"
@@ -1893,7 +1893,7 @@ main() {
   echo ""
 
   # If the user's id is zero,
-  if [[ ${EUID} -eq 0 ]]; then
+  if [[ "${EUID}" -eq 0 ]]; then
     # they are root and all is good
     echo -e "  ${TICK} ${str}"
   # Otherwise,
@@ -1936,7 +1936,7 @@ main() {
   done
 
   # If the setup variable file exists,
-  if [[ -f ${setupVars} ]]; then
+  if [[ -f "${setupVars}" ]]; then
     # if it's running unattended,
     if [[ "${runUnattended}" == true ]]; then
       echo -e "  ${INFO} Performing unattended setup, no whiptail dialogs will be displayed"
@@ -1970,14 +1970,14 @@ main() {
   checkSelinux
 
 
-  if [[ ${useUpdateVars} == false ]]; then
+  if [[ "${useUpdateVars}" == false ]]; then
     # Display welcome dialogs
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
 
     stop_service dnsmasq
-    if [[ ${INSTALL_WEB} == true ]]; then
+    if [[ "${INSTALL_WEB}" == true ]]; then
       stop_service lighttpd
     fi
     # Determine available interfaces
@@ -1996,7 +1996,7 @@ main() {
     clone_or_update_repos
 
     # Install packages used by the Pi-hole
-    if [[ ${INSTALL_WEB} == true ]]; then
+    if [[ "${INSTALL_WEB}" == true ]]; then
       # Install the Web dependencies
       DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
     # Otherwise,
@@ -2017,7 +2017,7 @@ main() {
     source ${setupVars}
 
     # Install packages used by the Pi-hole
-    if [[ ${INSTALL_WEB} == true ]]; then
+    if [[ "${INSTALL_WEB}" == true ]]; then
       # Install the Web dependencies
       DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
     # Otherwise,
@@ -2033,7 +2033,7 @@ main() {
   # Move the log file into /etc/pihole for storage
   mv ${tmpLog} ${instalLogLoc}
 
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     # Add password to web UI if there is none
     pw=""
     # If no password is set,
@@ -2051,7 +2051,7 @@ main() {
   enable_service dnsmasq
 
   # If the Web server was installed,
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     # enable it
     start_service lighttpd
     enable_service lighttpd
@@ -2070,7 +2070,7 @@ main() {
   fi
 
   # If the Web interface was installed,
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     # If there is a password,
     if (( ${#pw} > 0 )) ; then
       # display the password
@@ -2083,7 +2083,7 @@ main() {
   #
   if [[ "${useUpdateVars}" == false ]]; then
     # If the Web interface was installed,
-    if [[ ${INSTALL_WEB} == true ]]; then
+    if [[ "${INSTALL_WEB}" == true ]]; then
       echo -e "  View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
       echo ""
     fi
