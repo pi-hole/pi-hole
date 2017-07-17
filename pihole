@@ -429,15 +429,15 @@ Time:
     # Enable Pi-hole
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
-    
+
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
     if [[ -e "/etc/pihole/wildcard.list" ]]; then
       mv "/etc/pihole/wildcard.list" "$wildcardlist"
     fi
   fi
-  
+
   restartDNS
-  
+
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -535,6 +535,7 @@ Switch Pi-hole subsystems to a different Github branch
 Repositories:
   core [branch]       Change the branch of Pi-hole's core subsystem
   web [branch]        Change the branch of Admin Console subsystem
+  ftl [branch]        Change the branch of Pi-hole's FTL subsystem
 
 Branches:
   master              Update subsystems to the latest stable release
