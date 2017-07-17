@@ -26,8 +26,6 @@ PH_TEST=true
 #shellcheck disable=SC1090
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
-source "/opt/pihole/COL_TABLE"
-
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
@@ -43,7 +41,7 @@ GitCheckUpdateAvail() {
 
   # @ alone is a shortcut for HEAD. Older versions of git
   # need @{0}
-  LOCAL="$("git rev-parse @{0}")"
+  LOCAL="$(git rev-parse @{0})"
 
   # The suffix @{upstream} to a branchname
   # (short form <branchname>@{u}) refers
@@ -52,7 +50,7 @@ GitCheckUpdateAvail() {
   # (configured with branch.<name>.remote and
   # branch.<name>.merge). A missing branchname
   # defaults to the current one.
-  REMOTE="$("git rev-parse @{upstream}")"
+  REMOTE="$(git rev-parse @{upstream})"
 
   if [[ ${#LOCAL} == 0 ]]; then
     echo "::: Error: Local revision could not be obtained, ask Pi-hole support."
