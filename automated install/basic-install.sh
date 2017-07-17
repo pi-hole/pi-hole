@@ -1492,6 +1492,7 @@ finalExports() {
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
   echo "INSTALL_WEB=${INSTALL_WEB}"
+  echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
 
   # Look for DNS server settings which would have to be reapplied
@@ -1579,9 +1580,6 @@ installPihole() {
   FTLdetect || echo -e "  ${CROSS} FTL Engine not installed"
   # Configure the firewall
   configureFirewall
-  # Run the final exports
-  finalExports
-  #runGravity
 }
 
 # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
@@ -1614,9 +1612,7 @@ updatePihole() {
   # Install logrotate
   installLogrotate
   # Detect if FTL is installed
-  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed"
-  finalExports #re-export setupVars.conf to account for any new vars added in new versions
-  #runGravity
+  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
 }
 
 
@@ -2044,9 +2040,23 @@ main() {
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB}" == true ]]; then
-    # enable it
-    start_service lighttpd
-    enable_service lighttpd
+    # Check to see if lighttpd was already set to run on reboot
+    if [[ "${useUpdateVars}" == true ]]; then
+      if [[ -x "$(command -v systemctl)" ]]; then
+        # Value will either be 1, if true, or 0
+        LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+      else
+        # Value will either be 1, if true, or 0
+        LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+      fi
+    fi
+
+    if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
+      start_service lighttpd
+      enable_service lighttpd
+    else
+      echo -e "  ${INFO} Lighttpd is disabled, skipping service restart"
+    fi
   fi
 
   # Download and compile the aggregated block list
@@ -2093,6 +2103,8 @@ main() {
   # Display where the log file is
   echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
+  #update setupvars.conf with any variables that may or may not have been changed during the install
+  finalExports
 }
 
 #
