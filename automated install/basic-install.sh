@@ -1,22 +1,20 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# Installs Pi-hole
+# Installs and Updates Pi-hole
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
-
-
 
 # pi-hole.net/donate
 #
 # Install with this command (from your Linux machine):
 #
 # curl -L install.pi-hole.net | bash
-
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # We do not want users to end up with a partially working install, so we exit the script
@@ -124,7 +122,6 @@ show_ascii_berry() {
                   ..'''.${COL_NC}
 "
 }
-
 
 # Compatibility
 distro_check() {
@@ -533,17 +530,17 @@ useIPv6dialog() {
     # set the IPv6 address to the ULA address
     IPV6_ADDRESS="${ULA_ADDRESS}"
     # Show this info to the user
-    echo "::: Found IPv6 ULA address, using it for blocking IPv6 ads"
+    echo -e "  ${INFO} Found IPv6 ULA address, using it for blocking IPv6 ads"
   # Otherwise, if the GUA_ADDRESS has a value,
   elif [[ ! -z "${GUA_ADDRESS}" ]]; then
     # Let the user know
-    echo "::: Found IPv6 GUA address, using it for blocking IPv6 ads"
+    echo -e "  ${INFO} Found IPv6 GUA address, using it for blocking IPv6 ads"
     # And assign it to the global variable
     IPV6_ADDRESS="${GUA_ADDRESS}"
   # If none of those work,
   else
     # explain that IPv6 blocking will not be used
-    echo "::: Found neither IPv6 ULA nor GUA address, blocking IPv6 ads will not be enabled"
+    echo -e "  ${INFO} Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled"
     # So set the variable to be empty
     IPV6_ADDRESS=""
   fi
@@ -676,7 +673,7 @@ setStaticIPv4() {
       ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
       # Also give a warning that the user may need to reboot their system
       echo -e "  ${TICK} Set IP address to ${IPV4_ADDRESS%/*}
-       You may need to restart after the install is complete"
+      You may need to restart after the install is complete"
     fi
   # If it's not Debian, check if it's the Fedora family by checking for the file below
   elif [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
@@ -714,7 +711,7 @@ setStaticIPv4() {
       fi
       # Show a warning that the user may need to restart
       echo -e "  ${TICK} Set IP address to ${IPV4_ADDRESS%/*}
-       You may need to restart after the install is complete"
+      You may need to restart after the install is complete"
     fi
   # If all that fails,
   else
@@ -920,12 +917,12 @@ setAdminFlag() {
     # Depending on their choice
     case ${WebChoices} in
       "On (Recommended)")
-        echo -e "  ${INFO} Web Interface On."
+        echo -e "  ${INFO} Web Interface On"
         # Set it to true
         INSTALL_WEB=true
         ;;
       Off)
-        echo -e "  ${INFO} Web Interface off."
+        echo -e "  ${INFO} Web Interface Off"
         # or false
         INSTALL_WEB=false
         ;;
@@ -1052,8 +1049,8 @@ installScripts() {
  # Otherwise,
   else
     # Show an error and exit
-    echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "  ${COL_LIGHT_RED}Error: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting installer${COL_NC}"
+    echo -e "${OVER}  ${CROSS} ${str}
+  ${COL_LIGHT_RED}Error: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting installer${COL_NC}"
     exit 1
   fi
 }
@@ -1167,13 +1164,10 @@ update_package_cache() {
 notify_package_updates_available() {
   # Local, named variables
   local str="Checking ${PKG_MANAGER} for upgraded packages"
-  echo ""
-  echo -ne "  ${INFO} ${str}..."
+  echo -ne "\\n  ${INFO} ${str}..."
   # Store the list of packages in a variable
   updatesToInstall=$(eval "${PKG_COUNT}")
-  #echo -e "\r\033[K  ${TICK} ${str}"
-  #echo ""
-  #
+
   if [[ -d "/lib/modules/$(uname -r)" ]]; then
     #
     if [[ "${updatesToInstall}" -eq 0 ]]; then
@@ -1187,10 +1181,8 @@ notify_package_updates_available() {
       echo ""
     fi
   else
-    #
     echo -e "${OVER}  ${CROSS} ${str}
-       Kernel update detected. If the install fails, please reboot and try again"
-    echo ""
+      Kernel update detected. If the install fails, please reboot and try again\\n"
   fi
 }
 
@@ -1353,8 +1345,8 @@ installPiholeWeb() {
     # Othwerwise,
     else
       # don't do anything
-      echo -e "${OVER}  ${CROSS} ${str}"
-      echo -e "        No default index.lighttpd.html file found... not backing up"
+      echo -e "${OVER}  ${CROSS} ${str}
+      No default index.lighttpd.html file found... not backing up"
     fi
 
   fi
@@ -1440,7 +1432,7 @@ configureFirewall() {
     # ask if the user wants to install Pi-hole's default firwall rules
     whiptail --title "Firewall in use" --yesno "We have detected a running firewall\\n\\nPi-hole currently requires HTTP and DNS port access.\\n\\n\\n\\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
     { echo -e "  ${INFO} Not installing firewall rulesets."; return 0; }
-    echo -e "  ${TICK} Configuring FirewallD for httpd and dnsmasq."
+    echo -e "  ${TICK} Configuring FirewallD for httpd and dnsmasq"
     # Allow HTTP and DNS traffice
     firewall-cmd --permanent --add-service=http --add-service=dns
     # Reload the firewall to apply these changes
@@ -1453,7 +1445,7 @@ configureFirewall() {
     if iptables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
       whiptail --title "Firewall in use" --yesno "We have detected a running firewall\\n\\nPi-hole currently requires HTTP and DNS port access.\\n\\n\\n\\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
       { echo -e "  ${INFO} Not installing firewall rulesets."; return 0; }
-      echo -e "  ${TICK} Installing new IPTables firewall rulesets."
+      echo -e "  ${TICK} Installing new IPTables firewall rulesets"
       # Check chain first, otherwise a new rule will duplicate old ones
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
@@ -1464,11 +1456,11 @@ configureFirewall() {
   # Othwerwise,
   else
     # no firewall is running
-    echo -e "  ${INFO} No active firewall detected.. skipping firewall configuration."
+    echo -e "  ${INFO} No active firewall detected.. skipping firewall configuration"
     # so just exit
     return 0
   fi
-  echo -e "  ${INFO} Skipping firewall configuration."
+  echo -e "  ${INFO} Skipping firewall configuration"
 }
 
 #
@@ -1565,7 +1557,7 @@ installPihole() {
     else
       # Othweise, show info about installing them
       echo -e  "  ${INFO} Warning: 'lighty-enable-mod' utility not found
-       Please ensure fastcgi is enabled if you experience issues\\n"
+      Please ensure fastcgi is enabled if you experience issues\\n"
     fi
   fi
   # Install scripts,
@@ -1584,7 +1576,7 @@ installPihole() {
   # Install the logrotate file
   installLogrotate
   # Check if FTL is installed
-  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
+  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed"
   # Configure the firewall
   configureFirewall
   # Run the final exports
@@ -1622,7 +1614,7 @@ updatePihole() {
   # Install logrotate
   installLogrotate
   # Detect if FTL is installed
-  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
+  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed"
   finalExports #re-export setupVars.conf to account for any new vars added in new versions
   #runGravity
 }
@@ -1632,19 +1624,17 @@ updatePihole() {
 checkSelinux() {
   # If the getenforce command exists,
   if command -v getenforce &> /dev/null; then
-    echo ""
-    echo -ne "  ${INFO} SELinux Support Detected... Mode: "
     # Store the current mode in a variable
     enforceMode=$(getenforce)
-    echo "${enforceMode}"
+    echo -e "\\n  ${INFO} SELinux mode detected: ${enforceMode}"
+
     # If it's enforcing,
     if [[ "${enforceMode}" == "Enforcing" ]]; then
       # Explain Pi-hole does not support it yet
-      whiptail --title "SELinux Enforcing Detected" --yesno "SELinux is being Enforced on your system!\\n\\nPi-hole currently does not support SELinux, but you may still continue with the installation.\\n\\nNote: Admin UI Will not function fully without setting your policies correctly\\n\\nContinue installing Pi-hole?" ${r} ${c} || \
-      { echo ""; echo -e "  ${COL_LIGHT_RED}SELinux Enforcing detected, exiting installer${COL_NC}"; exit 1; }
-      echo ""
-      echo -e " ${INFO} Continuing installation with SELinux Enforcing"
-      echo -e " ${INFO} Please refer to official SELinux documentation to create a custom policy"
+      whiptail --defaultno --title "SELinux Enforcing Detected" --yesno "SELinux is being ENFORCED on your system! \\n\\nPi-hole currently does not support SELinux, but you may still continue with the installation.\\n\\nNote: Web Admin will not be fully functional unless you set your policies correctly\\n\\nContinue installing Pi-hole?" ${r} ${c} || \
+        { echo -e "\\n  ${COL_LIGHT_RED}SELinux Enforcing detected, exiting installer${COL_NC}"; exit 1; }
+      echo -e "  ${INFO} Continuing installation with SELinux Enforcing
+  ${INFO} Please refer to official SELinux documentation to create a custom policy"
     fi
   fi
 }
@@ -1721,7 +1711,6 @@ update_dialogs() {
     esac
 }
 
-
 clone_or_update_repos() {
   # If the user wants to reconfigure,
   if [[ "${reconfigure}" == true ]]; then
@@ -1743,7 +1732,7 @@ clone_or_update_repos() {
   else
     # so get git files for Core
     getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-      { echo "!!! Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue."; \
+      { echo -e "  ${COL_LIGHT_RED}Unable to clone ${piholeGitUrl} into ${PI_HOLE_LOCAL_REPO}, unable to continue${COL_NC}"; \
         exit 1; \
       }
       # If the Web interface was installed,
@@ -1863,7 +1852,7 @@ FTLdetect() {
     fi
   elif [[ "${machine}" == "ppc" ]]; then
     # PowerPC
-    echo ":::  Detected PowerPC architecture"
+    echo -e "${OVER}  ${TICK} Detected PowerPC architecture"
     # set the binary to be used
     binary="pihole-FTL-powerpc-linux-gnu"
   elif [[ "${machine}" == "x86_64" ]]; then
@@ -1875,8 +1864,8 @@ FTLdetect() {
     # Something else - we try to use 32bit executable and warn the user
     if [[ ! "${machine}" == "i686" ]]; then
       echo -e "${OVER}  ${CROSS} ${str}...
-      ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable
-      Contact support if you experience issues (e.g: FTL not running)${COL_NC}"
+      ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable${COL_NC}
+      Contact Pi-hole Support if you experience issues (e.g: FTL not running)"
     else
       echo -e "${OVER}  ${TICK} Detected 32bit (i686) architecture"
     fi
@@ -1889,7 +1878,6 @@ FTLdetect() {
 }
 
 main() {
-
   ######## FIRST CHECK ########
   # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
   show_ascii_berry
@@ -1905,11 +1893,10 @@ main() {
   else
     # They do not have enough privileges, so let the user know
     echo -e "  ${CROSS} ${str}
-       Script called with non-root privileges
-       The Pi-hole requires elevated privleges to install and run
-       Please check the installer for any concerns regarding this requirement
-       Make sure to download this script from a trusted source"
-    echo ""
+      ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
+      The Pi-hole requires elevated privleges to install and run
+      Please check the installer for any concerns regarding this requirement
+      Make sure to download this script from a trusted source\\n"
     echo -ne "  ${INFO} Sudo utility check"
 
     # If the sudo command exists,
@@ -1922,7 +1909,7 @@ main() {
     else
       # Let them know they need to run it as root
       echo -e "${OVER}  ${CROSS} Sudo utility check
-       Sudo is needed for the Web Interface to run pihole commands\\n
+      Sudo is needed for the Web Interface to run pihole commands\\n
   ${COL_LIGHT_RED}Please re-run this installer as root${COL_NC}"
       exit 1
     fi
@@ -1973,7 +1960,6 @@ main() {
 
    # Check if SELinux is Enforcing
   checkSelinux
-
 
   if [[ "${useUpdateVars}" == false ]]; then
     # Display welcome dialogs
@@ -2081,8 +2067,7 @@ main() {
     if (( ${#pw} > 0 )) ; then
       # display the password
       echo -e "  ${INFO} Web Interface password: ${COL_LIGHT_GREEN}${pw}${COL_NC}
-       This can be changed using 'pihole -a -p'"
-      echo ""
+      This can be changed using 'pihole -a -p'\\n"
     fi
   fi
 
