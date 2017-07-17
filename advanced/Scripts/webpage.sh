@@ -31,7 +31,9 @@ Options:
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
-                      use -sn to prevent logging to results list"
+                      use -sn to prevent logging to results list
+  -sd                 Set speedtest display range"
+
 	exit 0
 }
 
@@ -335,8 +337,8 @@ RunSpeedtestNow(){
       echo ""
   else
       cp /var/www/html/admin/scripts/pi-hole/speedtest/speedtest.db $speedtestdb
+      sleep 2
   fi
-  sleep 2
   if [ -f "$lockfile" ]
   then
   	echo "Speedtest is already in progress, is something went wrong delete this file - "$lockfile
@@ -386,6 +388,14 @@ CustomizeAdLists() {
 	else
 		echo "Not permitted"
 		return 1
+  fi
+}
+
+function UpdateSpeedTestRange(){
+  if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then
+      if [ "${args[2]}" -ge 0 -a "${args[2]}" -le 30 ]; then
+          change_setting "SPEEDTEST_CHART_DAYS" "${args[2]}"
+      fi
   fi
 }
 
@@ -513,6 +523,7 @@ main() {
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
     "-s" | "speedtest"  ) ChageSpeedTestSchedule;;
+    "-sd"               ) UpdateSpeedTestRange;;
     "-sn"               ) RunSpeedtestNow;;
 		*                   ) helpFunc;;
 	esac
