@@ -344,8 +344,8 @@ useIPv6dialog() {
   # Determine type of found IPv6 addresses
   for i in "${IPV6_ADDRESSES[@]}"; do
     result=$(testIPv6 "$i")
-    [[ "${result}" == "ULA" ]] && ULA_ADDRESS="$i"
-    [[ "${result}" == "GUA" ]] && GUA_ADDRESS="$i"
+    [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
+    [[ "${result}" == "GUA" ]] && GUA_ADDRESS="${i%/*}"
   done
 
   # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
@@ -1510,10 +1510,9 @@ main() {
   else
     echo "::: Update complete!"
   fi
-
   if [[ ${INSTALL_WEB} == true ]]; then
     if (( ${#pw} > 0 )) ; then
-      echo ":::"
+  echo ":::"
       echo "::: Note: As security measure a password has been installed for your web interface"
       echo "::: The currently set password is"
       echo ":::                                ${pw}"
@@ -1524,7 +1523,8 @@ main() {
   fi
 
   echo ":::"
-  echo "::: The install log is located at: /etc/pihole/install.log"
+  echo "::: The install log is located at: /etc/pihole/install.log
+  "
 }
 
 if [[ "${PH_TEST}" != true ]] ; then
