@@ -181,6 +181,7 @@ Options:
   results=($(scanList "${query}" "${lists}" "${method}"))
 
   if [[ -n "${results[*]}" ]]; then
+    blResult=true
     # Loop through each scanList line to print appropriate title
     for result in "${results[@]}"; do
       filename="${result/:*/}"
