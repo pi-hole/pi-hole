@@ -365,12 +365,12 @@ get_ftl_stats() {
   local stats_raw
 
   mapfile -t stats_raw < <(pihole-FTL "stats")
-  domains_being_blocked_raw="${stats_raw[1]#* }"
-  dns_queries_today_raw="${stats_raw[3]#* }"
-  ads_blocked_today_raw="${stats_raw[5]#* }"
-  ads_percentage_today_raw="${stats_raw[7]#* }"
-  queries_forwarded_raw="${stats_raw[11]#* }"
-  queries_cached_raw="${stats_raw[13]#* }"
+  domains_being_blocked_raw="${stats_raw[0]#* }"
+  dns_queries_today_raw="${stats_raw[1]#* }"
+  ads_blocked_today_raw="${stats_raw[2]#* }"
+  ads_percentage_today_raw="${stats_raw[3]#* }"
+  queries_forwarded_raw="${stats_raw[5]#* }"
+  queries_cached_raw="${stats_raw[6]#* }"
 
   # Only retrieve these stats when not called from jsonFunc
   if [[ -z "$1" ]]; then
@@ -412,6 +412,8 @@ get_strings() {
     used_str="Used: "
     leased_str="Leased: "
     domains_being_blocked=$(printf "%'.0f" "$domains_being_blocked")
+    ads_blocked_today=$(printf "%'.0f" "$ads_blocked_today")
+    dns_queries_today=$(printf "%'.0f" "$dns_queries_today")
     ph_info="Blocking: $domains_being_blocked sites"
     total_str="Total: "
   else
