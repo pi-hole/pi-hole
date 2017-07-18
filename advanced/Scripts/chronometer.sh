@@ -290,7 +290,7 @@ get_sys_stats() {
   cpu_raw=$(ps -eo pcpu,rss --no-headers | grep -E -v "    0")
   cpu_tasks=$(wc -l <<< "$cpu_raw")
   cpu_taskact=$(sed -r "/(^ 0.)/d" <<< "$cpu_raw" | wc -l)
-  cpu_perc=$(awk '{sum+=$1} END {printf "%.0f\\n", sum/'"$sys_cores"'}' <<< "$cpu_raw")
+  cpu_perc=$(awk '{sum+=$1} END {printf "%.0f\n", sum/'"$sys_cores"'}' <<< "$cpu_raw")
 
   # Get CPU clock speed
   if [[ -n "$scaling_freq_file" ]]; then
