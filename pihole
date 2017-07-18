@@ -188,7 +188,7 @@ Options:
       if [[ -n "$exact" ]]; then
         printf "  Exact result in %s\n" "${filename}"
       elif [[ -n "$blockpage" ]]; then
-        printf "  [i] %s\n" "${filename}"
+        printf "π %s\n" "${filename}"
       else
         domain="${result/*:/}"
         if [[ ! "${filename}" == "${filename_prev:-}" ]]; then
@@ -217,7 +217,7 @@ Options:
           fi
 
           if [[ -n "${blockpage}" ]]; then
-            echo "  ${INFO} ${match}"
+            echo "π ${wildcardlist/*\/}"
           else
             echo "    *.${match}"
           fi
@@ -288,9 +288,9 @@ Options:
         filenum=("${filename/list./}")
         filenum=("${filenum/.*/}")
         filename="${adlists[$filenum]}"
-
-        # If gravity has generated domains files from one adlists.list
-        # but the content of adlists.list has been drastically modified since
+        
+        # If gravity has generated associated .domains files
+        # but adlists.list has been modified since
         if [[ -z "${filename}" ]]; then
           filename="${COL_LIGHT_RED}Error: no associated adlists URL found${COL_NC}"
         fi
@@ -299,7 +299,7 @@ Options:
       if [[ -n "${exact}" ]]; then
         printf "    %s\n" "${filename}"
       elif [[ -n "${blockpage}" ]]; then
-        printf "  [%s] %s\n" "${filenum}" "${filename}"
+        printf "%s %s\n" "${filenum}" "${filename}"
       else # Standard query output
 
         # Print filename heading once per file, not for every match
@@ -436,15 +436,15 @@ Time:
     # Enable Pi-hole
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
-
+    
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
     if [[ -e "/etc/pihole/wildcard.list" ]]; then
       mv "/etc/pihole/wildcard.list" "$wildcardlist"
     fi
   fi
-
+  
   restartDNS
-
+  
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -542,7 +542,6 @@ Switch Pi-hole subsystems to a different Github branch
 Repositories:
   core [branch]       Change the branch of Pi-hole's core subsystem
   web [branch]        Change the branch of Admin Console subsystem
-  ftl [branch]        Change the branch of Pi-hole's FTL subsystem
 
 Branches:
   master              Update subsystems to the latest stable release
