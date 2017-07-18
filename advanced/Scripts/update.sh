@@ -19,8 +19,12 @@ readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
+# shellcheck disable=SC2034
 PH_TEST=true
-source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
+
+# Have to ignore the following rule as spaces in paths are not supported by ShellCheck
+#shellcheck disable=SC1090
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
@@ -30,14 +34,14 @@ source ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh
 GitCheckUpdateAvail() {
   local directory="${1}"
   curdir=$PWD
-  cd "${directory}"
+  cd "${directory}" || return
 
   # Fetch latest changes in this repo
   git fetch --quiet origin
 
   # @ alone is a shortcut for HEAD. Older versions of git
   # need @{0}
-  LOCAL="$(git rev-parse @{0})"
+  LOCAL="$(git rev-parse "@{0}")"
 
   # The suffix @{upstream} to a branchname
   # (short form <branchname>@{u}) refers
@@ -46,7 +50,7 @@ GitCheckUpdateAvail() {
   # (configured with branch.<name>.remote and
   # branch.<name>.merge). A missing branchname
   # defaults to the current one.
-  REMOTE="$(git rev-parse @{upstream})"
+  REMOTE="$(git rev-parse "@{upstream}")"
 
   if [[ ${#LOCAL} == 0 ]]; then
     echo "::: Error: Local revision could not be obtained, ask Pi-hole support."
@@ -62,7 +66,7 @@ GitCheckUpdateAvail() {
   fi
 
   # Change back to original directory
-  cd "${curdir}"
+  cd "${curdir}" || exit
 
   if [[ "${LOCAL}" != "${REMOTE}" ]]; then
     # Local branch is behind remote branch -> Update
@@ -77,8 +81,10 @@ GitCheckUpdateAvail() {
 
 FTLcheckUpdate() {
 
-	local FTLversion=$(/usr/bin/pihole-FTL tag)
-	local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+	local FTLversion
+	FTLversion=$(/usr/bin/pihole-FTL tag)
+	local FTLlatesttag
+	FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
 	if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
 		return 0
@@ -90,6 +96,7 @@ FTLcheckUpdate() {
 main() {
   local pihole_version_current
   local web_version_current
+  #shellcheck disable=1090,2154
   source "${setupVars}"
 
   #This is unlikely
