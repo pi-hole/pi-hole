@@ -184,7 +184,8 @@ $wlOutput = (isset($wlInfo) && $wlInfo !== "recentwl") ? "<a href='http://$wlInf
 $phVersion = exec("cd /etc/.pihole/ && git describe --long --tags");
 
 // Print $execTime on development branches
-if (substr_count("-", $phVersion) != "1")
+// Marginally faster than "git rev-parse --abbrev-ref HEAD"
+if (explode("-", $phVersion)[1] != "0")
   $execTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
 ?>
 <!DOCTYPE html>
