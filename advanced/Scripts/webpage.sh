@@ -221,15 +221,22 @@ Reboot() {
 }
 
 RestartDNS() {
-  local str="Restarting DNS service"
-  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}"
-  if command -v systemctl &> /dev/null; then
-    output=$( { systemctl restart dnsmasq; } 2>&1 )
+  local svcOption str output status
+
+  # Get PID of dnsmasq to determine if it needs to start or restart
+  if pidof dnsmasq &> /dev/null; then
+    svcOption="restart"
   else
-    output=$( { service dnsmasq restart; } 2>&1 )
+    svcOption="start"
   fi
 
- if [[ -z "${output}" ]]; then
+  str="${svcOption^}ing DNS service"
+  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}..."
+
+  output=$( { service dnsmasq "${svcOption}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -eq 0 ]]; then
     [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
   else
     [[ ! -t 1 ]] && OVER=""
