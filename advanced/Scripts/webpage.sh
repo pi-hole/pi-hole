@@ -223,9 +223,9 @@ Reboot() {
 RestartDNS() {
   local svcOption str output status
 
-  # Get PID of dnsmasq to determine if it needs to start or restart
+  # Get PID of dnsmasq to determine if it needs to start or reload
   if pidof dnsmasq &> /dev/null; then
-    svcOption="restart"
+    svcOption="force-reload"
   else
     svcOption="start"
   fi
