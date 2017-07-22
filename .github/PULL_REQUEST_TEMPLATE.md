@@ -1,19 +1,32 @@
-**By submitting this pull request, I confirm the following (please check boxes, eg [X]) _Failure to fill the template will close your PR_:**
+**By submitting this pull request, I confirm the following:** `{please fill the checkboxes, e.g: [X]}`
 
-***Please submit all pull requests against the `development` branch. Failure to do so will delay or deny your request***
+`{Please ensure that your pull request is for the 'development' branch!}`
 
 - [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
-- [] I have written tests and verified that they fail without my change.
+- [] I have performed relevant testing to verify that they work with my change.
 - [] I have squashed any insignificant commits.
 - [] This change has comments for package types, values, functions, and non-obvious lines of code.
 - [] I am willing to help maintain this change if there are issues with it later.
-- [] I give this submission freely and claim no ownership. It is compatible with the EUPL 1.2 license.
-- [] I have Signed Off all commits. (`git commit --signoff`)
+- [] I give this submission freely and claim no ownership.
+- [] It is compatible with the EUPL 1.2 license.
+- [] I have Signed Off all commits. ([`git commit --signoff`](https://git-scm.com/docs/git-commit#git-commit---signoff))
 
-***Please explain what you have done and wish to accomplish with this Pull Request***
+---
 
-1. What does this change do, exactly?
+**What does this PR aim to fix?:**
 
-2. Please link to the relevant issues.
+`{A detailed description and/or screenshots of the issue, and links to any relevant GitHub issues}`
 
-3. Which documentation changes (if any) need to be made because of this PR?
+**How does this PR fix the issue?:**
+
+`{A detailed description and/or screenshots of the implemented fix}`
+
+**What documentation changes (if any) are needed to support this PR?:**
+
+`{A detailed list of any necessary changes}`
+
+> * `{Please delete this quoted section when opening your pull request}`
+> * You must follow the template instructions. Failure to do so will result in your issue being closed.
+> * Please respect that Pi-hole is developed by volunteers, who can only reply in their spare time.
+> * Detail helps us understand an issue quicker, but please ensure it's relevant.
+> * _This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._'
