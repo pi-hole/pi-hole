@@ -21,7 +21,7 @@
 
 `{Detailed steps of how we can reproduce this}`
 
-**Debug token provided by [uploading `pihole -d` log](https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/):**
+**Debug token provided by [uploading `pihole -d` log](https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#debug):**
 
 `{Alphanumeric token}`
 
@@ -31,6 +31,7 @@
 
 > * `{Please delete this quoted section when opening your issue}`
 > * You must follow the template instructions. Failure to do so will result in your issue being closed.
+> * Please [submit any feature requests here](https://discourse.pi-hole.net/c/feature-requests), so it is votable and trackable by the community.
 > * Please respect that Pi-hole is developed by volunteers, who can only reply in their spare time.
 > * Detail helps us understand and resolve an issue quicker, but please ensure it's relevant.
 > * _This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._
