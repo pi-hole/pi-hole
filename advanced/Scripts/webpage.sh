@@ -33,7 +33,7 @@ Options:
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
                       use -sn to prevent logging to results list
   -sd                 Set speedtest display range
-  -sc                 Clear speedtest data"
+  -sc                 Clear speedtest data
   -ss                 Set custom server"
 
 	exit 0
