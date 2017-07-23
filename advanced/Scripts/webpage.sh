@@ -32,7 +32,9 @@ Options:
                         Add '-h' for more info on interface usage
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
                       use -sn to prevent logging to results list
-  -sd                 Set speedtest display range"
+  -sd                 Set speedtest display range
+  -sc                 Clear speedtest data"
+  -ss                 Set custom server"
 
 	exit 0
 }
@@ -320,6 +322,11 @@ SetWebUILayout() {
 }
 
 
+ClearSpeedtestData(){
+    mv $speedtestdb $speedtestdb"_old"
+    cp /var/www/html/admin/scripts/pi-hole/speedtest/speedtest.db $speedtestdb
+}
+
 ChageSpeedTestSchedule(){
   if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then
       if [ "${args[2]}" -ge 0 -a "${args[2]}" -le 24 ]; then
@@ -328,6 +335,18 @@ ChageSpeedTestSchedule(){
       fi
   fi
 }
+
+SpeedtestServer(){
+  if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then
+      change_setting "SPEEDTEST_SERVER" "${args[2]}"
+          # SetCronTab ${args[2]}
+  else
+      # Autoselect for invalid data
+      change_setting "SPEEDTEST_SERVER" ""
+  fi
+
+}
+
 
 RunSpeedtestNow(){
   mkdir -p /tmp/speedtest
@@ -525,6 +544,8 @@ main() {
     "-s" | "speedtest"  ) ChageSpeedTestSchedule;;
     "-sd"               ) UpdateSpeedTestRange;;
     "-sn"               ) RunSpeedtestNow;;
+    "-sc"               ) ClearSpeedtestData;;
+    "-ss"               ) SpeedtestServer;;
 		*                   ) helpFunc;;
 	esac
 
