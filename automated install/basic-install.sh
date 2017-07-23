@@ -1499,22 +1499,15 @@ finalExports() {
   echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
 
-  # Look for DNS server settings which would have to be reapplied
+  # Bring in the current settings and the functions to manipulate them
   source "${setupVars}"
-  #
   source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
-  #
-  if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
-    #
-    ProcessDNSSettings
-  fi
+  # Look for DNS server settings which would have to be reapplied
+  ProcessDNSSettings
 
-  #
-  if [[ "${DHCP_ACTIVE}" != "" ]] ; then
-    #
-    ProcessDHCPSettings
-  fi
+  # Look for DHCP server settings which would have to be reapplied
+  ProcessDHCPSettings
 }
 
 # Install the logrotate script
