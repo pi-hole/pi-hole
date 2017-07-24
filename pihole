@@ -8,11 +8,11 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-colfile="/opt/pihole/COL_TABLE"
-source ${colfile}
-
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+
+colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
+source "${colfile}"
 
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
@@ -26,7 +26,7 @@ if [[ ! $EUID -eq 0 ]];then
 fi
 
 webpageFunc() {
-  source /opt/pihole/webpage.sh
+  source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
   main "$@"
   exit 0
 }
@@ -340,33 +340,33 @@ versionFunc() {
 }
 
 restartDNS() {
-  dnsmasqPid=$(pidof dnsmasq)
-  local str="Restarting DNS service"
-  echo -ne "  ${INFO} ${str}"
-  if [[ "${dnsmasqPid}" ]]; then
-    # Service already running - reload config
-    if [[ -x "$(command -v systemctl)" ]]; then
-      output=$( { systemctl restart dnsmasq; } 2>&1 )
+  local svcOption str output status over
+  
+  # Force-reload is used for "/etc/pihole/*.list" files
+  # Restart is needed for "/etc/dnsmasq.d/*.conf" files
+  svcOption="${1:-}"
+
+  if [[ -z "${svcOption}" ]]; then
+    # Get PID of dnsmasq to determine if it needs to start or restart
+    if pidof dnsmasq &> /dev/null; then
+      svcOption="restart"
     else
-      output=$( { service dnsmasq restart; } 2>&1 )
+      svcOption="start"
     fi
-    if [[ -z "${output}" ]]; then
-      echo -e "${OVER}  ${TICK} ${str}"
-    else
-      echo -e "${OVER}  ${CROSS} ${output}"
-    fi
+  fi
+
+  # Only print output to Terminal, not Web Admin
+  str="${svcOption^}ing DNS service"
+  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}..."
+
+  output=$( { service dnsmasq "${svcOption}"; } 2>&1 )
+  status="$?"
+
+  if [[ "$?" -eq 0 ]]; then
+    [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
   else
-    # Service not running, start it up
-    if [[ -x "$(command -v systemctl)" ]]; then
-      output=$( { systemctl start dnsmasq; } 2>&1 )
-    else
-      output=$( { service dnsmasq start; } 2>&1 )
-    fi
-    if [[ -z "${output}" ]]; then
-      echo -e "${OVER}  ${TICK} ${str}"
-    else
-      echo -e "${OVER}  ${CROSS} ${output}"
-    fi
+    [[ ! -t 1 ]] && OVER=""
+    echo -e "${OVER}  ${CROSS} ${output}"
   fi
 }
 
@@ -645,7 +645,7 @@ case "${1}" in
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
   "status"                      ) piholeStatus "$2";;
-  "restartdns"                  ) restartDNS;;
+  "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
