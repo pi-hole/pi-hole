@@ -138,7 +138,7 @@ AddDomain() {
       if [[ "${verbose}" == true ]]; then
       echo -e "  ${INFO} Adding $1 to wildcard blacklist..."
       fi
-      reload=true
+      reload="restart"
       echo "address=/$1/${IPV4_ADDRESS}" >> "${wildcardlist}"
       if [[ "${#IPV6_ADDRESS}" > 0 ]]; then
         echo "address=/$1/${IPV6_ADDRESS}" >> "${wildcardlist}"
@@ -183,7 +183,7 @@ RemoveDomain() {
       echo -e "  ${INFO} Removing $1 from $listname..."
       # /I flag: search case-insensitive
       sed -i "/address=\/${domain}/Id" "${list}"
-      reload=true
+      reload="restart"
     else
       if [[ "${verbose}" == true ]]; then
         echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
@@ -192,12 +192,16 @@ RemoveDomain() {
   fi
 }
 
+# Update Gravity
 Reload() {
-  # Reload hosts file
   echo ""
-  echo -e "  ${INFO} Updating gravity..."
-  echo ""
-  pihole -g -sd
+
+  # Ensure that "restart" is used for Wildcard updates
+  if [[ "${1}" == "restart" ]]; then
+    local type="--wildcard"
+  fi
+
+  pihole -g --skip-download --blacklist-only "${type:-}"
 }
 
 Displaylist() {
@@ -243,6 +247,7 @@ fi
 
 PoplistFile
 
-if ${reload}; then
-  Reload
+if [[ "${reload}" != false ]]; then
+  # Ensure that "restart" is used for Wildcard updates
+  Reload "${reload}"
 fi
