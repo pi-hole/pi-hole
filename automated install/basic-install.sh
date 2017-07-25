@@ -1883,25 +1883,35 @@ FTLdetect() {
   #In the next section we check to see if FTL is already installed (in case of pihole -r).
   #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
   echo -e "  ${INFO} Checking for existing FTL binary..."
-  local FTLversion=$(/usr/bin/pihole-FTL tag)
-	local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
-	if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
-		# Install FTL
-    FTLinstall "${binary}" || return 1
-	else
-	  echo -e "  ${INFO} Latest FTL Binary already installed (${FTLlatesttag}). Confirming Checksum..."
+  local ftlLoc=$(which pihole-FTL)
 
-	  local remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
-	  local localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+  if [[ ${ftlLoc} ]]; then
+    local FTLversion=$(/usr/bin/pihole-FTL tag)
+	  local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
-	  if [[ "${remoteSha1}" != "${localSha1}" ]]; then
-	    echo -e "  ${INFO} Corruption detected..."
-	    FTLinstall "${binary}" || return 1
+	  if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+		  # Install FTL
+      FTLinstall "${binary}" || return 1
 	  else
-	    echo -e "  ${INFO} Checksum correct. No need to download!"
+	    echo -e "  ${INFO} Latest FTL Binary already installed (${FTLlatesttag}). Confirming Checksum..."
+
+	    local remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
+	    local localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+
+	    if [[ "${remoteSha1}" != "${localSha1}" ]]; then
+	      echo -e "  ${INFO} Corruption detected..."
+	      FTLinstall "${binary}" || return 1
+	    else
+	      echo -e "  ${INFO} Checksum correct. No need to download!"
+	    fi
 	  fi
-	fi
+	else
+	  # Install FTL
+    FTLinstall "${binary}" || return 1
+  fi
+
+
 }
 
 main() {
