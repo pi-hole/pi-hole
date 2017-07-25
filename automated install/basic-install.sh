@@ -1144,17 +1144,18 @@ update_package_cache() {
   # Update package cache on apt based OSes. Do this every time since
   # it's quick and packages can be updated at any time.
 
-  echo ""
+  # Local, named variables
   local str="Update local cache of available packages"
+  echo ""
   echo -ne "  ${INFO} ${str}..."
-
-  # Output last three lines of error if apt-get update fails
-  output=$( { eval "${UPDATE_PKG_CACHE}"; } 2>&1 )
-  if [[ -z "${output}" ]]; then
+  # Create a command from the package cache variable
+  if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
     echo -e "${OVER}  ${TICK} ${str}"
+  # Otherwise,
   else
+    # show an error and exit
     echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "\\n$(tail -n 3 <<< "$output")\\n"
+    echo -ne "  ${COL_LIGHT_RED}Error: Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\"${COL_NC}"
     return 1
   fi
 }
