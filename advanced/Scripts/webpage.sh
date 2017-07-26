@@ -292,7 +292,9 @@ ra-param=*,0,0
     fi
 
 	else
-		rm "${dhcpconfig}" &> /dev/null
+	  if [[ -f "${dhcpconfig}" ]]; then
+		  rm "${dhcpconfig}" &> /dev/null
+		fi
 	fi
 }
 

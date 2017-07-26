@@ -59,6 +59,8 @@ def test_setupVars_saved_to_file(Pihole):
     TERM=xterm
     source /opt/pihole/basic-install.sh
     {}
+    mkdir -p /etc/dnsmasq.d
+    version_check_dnsmasq
     finalExports
     cat /etc/pihole/setupVars.conf
     '''.format(set_setup_vars))
