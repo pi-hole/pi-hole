@@ -319,11 +319,11 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = info_box + ' Downloading latest version of FTL...'
+    expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Detected ARM-aarch64 architecture'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + ' Installing FTL'
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_armv6l_no_errors(Pihole):
@@ -336,11 +336,11 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = info_box + ' Downloading latest version of FTL...'
+    expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Detected ARM-hf architecture (armv6 or lower)'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + ' Installing FTL'
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_armv7l_no_errors(Pihole):
@@ -353,11 +353,11 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = info_box + ' Downloading latest version of FTL...'
+    expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Detected ARM-hf architecture (armv7+)'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + ' Installing FTL'
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_x86_64_no_errors(Pihole):
@@ -366,11 +366,11 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = info_box + ' Downloading latest version of FTL...'
+    expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Detected x86_64 architecture'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + ' Installing FTL'
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_unknown_no_errors(Pihole):
@@ -391,7 +391,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-aarch64-linux-gnu
     ''')
-    expected_stdout = tick_box + ' Installing FTL'
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
     error = 'Error: Download of binary from Github failed'
     assert error not in download_binary.stdout
@@ -405,7 +405,7 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-mips
     ''')
-    expected_stdout = cross_box + ' Installing FTL'
+    expected_stdout = cross_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
     error = 'Error: URL not found'
     assert error in download_binary.stdout
