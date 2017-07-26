@@ -1503,11 +1503,16 @@ finalExports() {
   source "${setupVars}"
   source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
+  if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
   # Look for DNS server settings which would have to be reapplied
-  #ProcessDNSSettings
+    ProcessDNSSettings
+  fi
 
-  # Look for DHCP server settings which would have to be reapplied
-  ProcessDHCPSettings
+  if [[ "${DHCP_ACTIVE}" != "" ]] ; then
+    # Look for DHCP server settings which would have to be reapplied
+    ProcessDHCPSettings
+  fi
+
 }
 
 # Install the logrotate script
