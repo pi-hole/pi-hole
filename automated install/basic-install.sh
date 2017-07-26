@@ -1496,21 +1496,15 @@ finalExports() {
   echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
 
-  # Look for DNS server settings which would have to be reapplied
+  # Bring in the current settings and the functions to manipulate them
   source "${setupVars}"
   source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
-  #
-  if [[ "${DNS_FQDN_REQUIRED}" != "" ]] ; then
-    #
-    ProcessDNSSettings
-  fi
+  # Look for DNS server settings which would have to be reapplied
+  ProcessDNSSettings
 
-  #
-  if [[ "${DHCP_ACTIVE}" != "" ]] ; then
-    #
-    ProcessDHCPSettings
-  fi
+  # Look for DHCP server settings which would have to be reapplied
+  ProcessDHCPSettings
 }
 
 # Install the logrotate script
@@ -1581,6 +1575,9 @@ installPihole() {
   FTLdetect || echo -e "  ${CROSS} FTL Engine not installed"
   # Configure the firewall
   configureFirewall
+
+  #update setupvars.conf with any variables that may or may not have been changed during the install
+  finalExports
 }
 
 # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
@@ -1614,6 +1611,10 @@ updatePihole() {
   installLogrotate
   # Detect if FTL is installed
   FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
+
+  #update setupvars.conf with any variables that may or may not have been changed during the install
+  finalExports
+
 }
 
 
@@ -1749,7 +1750,7 @@ FTLinstall() {
   local binary="${1}"
   local latesttag
   local orig_dir
-  local str="Installing FTL"
+  local str="Downloading and Installing FTL"
   echo -ne "  ${INFO} ${str}..."
 
   # Get the current working directory
@@ -1762,6 +1763,7 @@ FTLinstall() {
     echo -e "  ${COL_LIGHT_RED}Error: Unable to get latest release location from GitHub${COL_NC}"
     return 1
   fi
+
   # If the download worked,
   if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/${binary}"; then
     # get sha1 of the binary we just downloaded for verification.
@@ -1804,7 +1806,7 @@ FTLinstall() {
 # Detect suitable FTL binary platform
 FTLdetect() {
   echo ""
-  echo -e "  ${INFO} Downloading latest version of FTL..."
+  echo -e "  ${INFO} FTL Checks..."
 
   # Local, named variables
   local machine
@@ -1869,8 +1871,37 @@ FTLdetect() {
     binary="pihole-FTL-linux-x86_32"
   fi
 
-  # Install FTL
-  FTLinstall "${binary}" || return 1
+  #In the next section we check to see if FTL is already installed (in case of pihole -r).
+  #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
+  echo -e "  ${INFO} Checking for existing FTL binary..."
+
+  local ftlLoc=$(which pihole-FTL)
+
+  if [[ ${ftlLoc} ]]; then
+    local FTLversion=$(/usr/bin/pihole-FTL tag)
+	  local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+
+	  if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+		  # Install FTL
+      FTLinstall "${binary}" || return 1
+	  else
+	    echo -e "  ${INFO} Latest FTL Binary already installed (${FTLlatesttag}). Confirming Checksum..."
+
+	    local remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
+	    local localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+
+	    if [[ "${remoteSha1}" != "${localSha1}" ]]; then
+	      echo -e "  ${INFO} Corruption detected..."
+	      FTLinstall "${binary}" || return 1
+	    else
+	      echo -e "  ${INFO} Checksum correct. No need to download!"
+	    fi
+	  fi
+	else
+	  # Install FTL
+    FTLinstall "${binary}" || return 1
+  fi
+
 
 }
 
@@ -1994,6 +2025,13 @@ main() {
     fi
     install_dependent_packages DEPS[@]
 
+    if [[ -x "$(command -v systemctl)" ]]; then
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+    else
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+    fi
 
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
@@ -2014,6 +2052,14 @@ main() {
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
     install_dependent_packages DEPS[@]
+
+    if [[ -x "$(command -v systemctl)" ]]; then
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+    else
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+    fi
 
     updatePihole | tee ${tmpLog}
   fi
@@ -2041,16 +2087,6 @@ main() {
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB}" == true ]]; then
-    # Check to see if lighttpd was already set to run on reboot
-    if [[ "${useUpdateVars}" == true ]]; then
-      if [[ -x "$(command -v systemctl)" ]]; then
-        # Value will either be 1, if true, or 0
-        LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
-      else
-        # Value will either be 1, if true, or 0
-        LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
-      fi
-    fi
 
     if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
       start_service lighttpd
@@ -2104,8 +2140,7 @@ main() {
   # Display where the log file is
   echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
-  #update setupvars.conf with any variables that may or may not have been changed during the install
-  finalExports
+
 }
 
 #
