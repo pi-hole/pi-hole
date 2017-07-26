@@ -80,7 +80,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = 'Configuring FirewallD for httpd and dnsmasq.'
+    expected_stdout = 'Configuring FirewallD for httpd and dnsmasq'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
     assert 'firewall-cmd --state' in firewall_calls
@@ -95,7 +95,7 @@ def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = 'No active firewall detected.. skipping firewall configuration.'
+    expected_stdout = 'No active firewall detected.. skipping firewall configuration'
     assert expected_stdout in configureFirewall.stdout
 
 def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
@@ -444,7 +444,7 @@ def test_IPv6_only_link_local(Pihole):
     source /opt/pihole/basic-install.sh
     useIPv6dialog
     ''')
-    expected_stdout = 'Found neither IPv6 ULA nor GUA address, blocking IPv6 ads will not be enabled'
+    expected_stdout = 'Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled'
     assert expected_stdout in detectPlatform.stdout
 
 def test_IPv6_only_ULA(Pihole):
