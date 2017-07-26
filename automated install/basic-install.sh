@@ -1504,7 +1504,7 @@ finalExports() {
   source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
   # Look for DNS server settings which would have to be reapplied
-  ProcessDNSSettings
+  #ProcessDNSSettings
 
   # Look for DHCP server settings which would have to be reapplied
   ProcessDHCPSettings
@@ -2002,6 +2002,13 @@ main() {
     fi
     install_dependent_packages DEPS[@]
 
+    if [[ -x "$(command -v systemctl)" ]]; then
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+    else
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+    fi
 
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
