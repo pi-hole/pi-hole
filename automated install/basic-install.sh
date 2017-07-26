@@ -1578,6 +1578,9 @@ installPihole() {
   FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
   # Configure the firewall
   configureFirewall
+
+  #update setupvars.conf with any variables that may or may not have been changed during the install
+  finalExports
 }
 
 # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
@@ -1612,6 +1615,8 @@ updatePihole() {
   # Detect if FTL is installed
   FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
 
+  #update setupvars.conf with any variables that may or may not have been changed during the install
+  finalExports
 
 }
 
@@ -2018,6 +2023,14 @@ main() {
     fi
     install_dependent_packages DEPS[@]
 
+    if [[ -x "$(command -v systemctl)" ]]; then
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+    else
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+    fi
+
     updatePihole | tee ${tmpLog}
   fi
 
@@ -2043,16 +2056,6 @@ main() {
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB}" == true ]]; then
-    # Check to see if lighttpd was already set to run on reboot
-    if [[ "${useUpdateVars}" == true ]]; then
-      if [[ -x "$(command -v systemctl)" ]]; then
-        # Value will either be 1, if true, or 0
-        LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
-      else
-        # Value will either be 1, if true, or 0
-        LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
-      fi
-    fi
 
     if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
       start_service lighttpd
@@ -2107,8 +2110,7 @@ main() {
   # Display where the log file is
   echo -e "\n  ${INFO} The install log is located at: /etc/pihole/install.log
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
-  #update setupvars.conf with any variables that may or may not have been changed during the install
-  finalExports
+
 }
 
 #
