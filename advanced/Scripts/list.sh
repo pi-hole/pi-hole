@@ -66,15 +66,15 @@ HandleOther() {
   domain="${1,,}"
 
   # Check validity of domain
-  validDomain=$(perl -lne 'print if /^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$/' <<< "${domain}") # Valid chars check
-  validDomain=$(perl -lne 'print if /^.{1,253}$/' <<< "${validDomain}") # Overall length check
-  validDomain=$(perl -lne 'print if /^[^\.]{1,63}(\.[^\.]{1,63})*$/' <<< "${validDomain}") # Length of each label
+  if [[ "${#domain}" -le 253 ]]; then
+    validDomain=$(grep -P "^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$" <<< "${domain}") # Valid chars check
+    validDomain=$(grep -P "^[^\.]{1,63}(\.[^\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+  fi
   
-  if [[ -z "${validDomain}" ]]; then
-    echo -e "  ${CROSS} $1 is not a valid argument or domain name!"
-  else
-    echo -e "  ${TICK} $1 is a valid domain name!"
+  if [[ -n "${validDomain}" ]]; then
     domList=("${domList[@]}" ${validDomain})
+  else
+    echo -e "  ${CROSS} ${domain} is not a valid argument or domain name!"
   fi
 }
 
@@ -107,6 +107,8 @@ AddDomain() {
   [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
 
   if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
+    [[ "${list}" == "${whitelist}" && -z "${type}" ]] && type="--whitelist-only"
+    [[ "${list}" == "${blacklist}" && -z "${type}" ]] && type="--blacklist-only"
     bool=true
     # Is the domain in the list we want to add it to?
     grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
@@ -129,7 +131,7 @@ AddDomain() {
     # Remove the /* from the end of the IP addresses
     IPV4_ADDRESS=${IPV4_ADDRESS%/*}
     IPV6_ADDRESS=${IPV6_ADDRESS%/*}
-
+    [[ -z "${type}" ]] && type="--wildcard-only"
     bool=true
     # Is the domain in the list?
     grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
@@ -161,6 +163,8 @@ RemoveDomain() {
 
   if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
     bool=true
+    [[ "${list}" == "${whitelist}" && -z "${type}" ]] && type="--whitelist-only"
+    [[ "${list}" == "${blacklist}" && -z "${type}" ]] && type="--blacklist-only"
     # Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
     grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
@@ -175,6 +179,7 @@ RemoveDomain() {
       fi
     fi
   elif [[ "${list}" == "${wildcardlist}" ]]; then
+    [[ -z "${type}" ]] && type="--wildcard-only"
     bool=true
     # Is it in the list?
     grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
@@ -183,7 +188,7 @@ RemoveDomain() {
       echo -e "  ${INFO} Removing $1 from $listname..."
       # /I flag: search case-insensitive
       sed -i "/address=\/${domain}/Id" "${list}"
-      reload="restart"
+      reload=true
     else
       if [[ "${verbose}" == true ]]; then
         echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
@@ -195,13 +200,7 @@ RemoveDomain() {
 # Update Gravity
 Reload() {
   echo ""
-
-  # Ensure that "restart" is used for Wildcard updates
-  if [[ "${1}" == "restart" ]]; then
-    local type="--wildcard"
-  fi
-
-  pihole -g --skip-download --blacklist-only "${type:-}"
+  pihole -g --skip-download "${type:-}"
 }
 
 Displaylist() {
