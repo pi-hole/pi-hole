@@ -171,7 +171,7 @@ checkout_pull_branch() {
 
   oldbranch="$(git symbolic-ref HEAD)"
 
-  str="Switching to branch: ${branch}"
+  str="Switching to branch: '${branch}' from '${oldbranch}'"
   echo -ne "  ${INFO} $str"
   git checkout "${branch}" --quiet || return 1
   echo -e "${OVER}  ${TICK} $str"
