@@ -171,7 +171,11 @@ checkout_pull_branch() {
 
   oldbranch="$(git symbolic-ref HEAD)"
 
+  str="Switching to branch: ${branch}"
+  echo -ne "  ${INFO} $str"
   git checkout "${branch}" --quiet || return 1
+  echo -e "${OVER}  ${TICK} $str"
+
 
   if [[ "$(git diff "${oldbranch}" | grep -c "^")" -gt "0" ]]; then
     update="true"
@@ -180,7 +184,7 @@ checkout_pull_branch() {
   git_pull=$(git pull || return 1)
 
   if [[ "$git_pull" == *"up-to-date"* ]]; then
-    echo -e "  ${INFO} $(git pull)"
+    echo -e "  ${INFO} ${git_pull}"
   else
     echo -e "$git_pull\\n"
   fi
@@ -271,7 +275,7 @@ checkout() {
     str="Fetching branches from ${piholeGitUrl}"
     echo -ne "  ${INFO} $str"
     if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
-      echo -e "  ${CROSS} $str"
+      echo -e "${OVER}  ${CROSS} $str"
       exit 1
     fi
     corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
@@ -298,7 +302,7 @@ checkout() {
     str="Fetching branches from ${webInterfaceGitUrl}"
     echo -ne "  ${INFO} $str"
     if ! fully_fetch_repo "${webInterfaceDir}" ; then
-      echo -e "  ${CROSS} $str"
+      echo -e "${OVER}  ${CROSS} $str"
       exit 1
     fi
     webbranches=($(get_available_branches "${webInterfaceDir}"))
