@@ -264,7 +264,7 @@ ProcessDHCPSettings() {
       leasetime="24h"
       change_setting "DHCP_LEASETIME" "${leasetime}"
     else
-      leasetime="${DHCP_LEASETIME}h"
+      leasetime="${DHCP_LEASETIME}"
     fi
 
     # Write settings to file
