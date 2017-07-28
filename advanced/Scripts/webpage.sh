@@ -261,10 +261,10 @@ ProcessDHCPSettings() {
     if [[ "${DHCP_LEASETIME}" == "0" ]]; then
       leasetime="infinite"
     elif [[ "${DHCP_LEASETIME}" == "" ]]; then
-      leasetime="24h"
+      leasetime="24"
       change_setting "DHCP_LEASETIME" "${leasetime}"
     else
-      leasetime="${DHCP_LEASETIME}"
+      leasetime="${DHCP_LEASETIME}h"
     fi
 
     # Write settings to file
