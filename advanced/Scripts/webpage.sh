@@ -29,6 +29,7 @@ Options:
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
+  -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage"
@@ -292,7 +293,9 @@ ra-param=*,0,0
     fi
 
 	else
-		rm "${dhcpconfig}" &> /dev/null
+	  if [[ -f "${dhcpconfig}" ]]; then
+		  rm "${dhcpconfig}" &> /dev/null
+		fi
 	fi
 }
 
@@ -390,12 +393,23 @@ RemoveDHCPStaticAddress() {
 }
 
 SetHostRecord() {
-	if [ -n "${args[3]}" ]; then
+  if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
+    echo "Usage: pihole -a hostrecord <domain> [IPv4-address],[IPv6-address]
+Example: 'pihole -a hostrecord home.domain.com 192.168.1.1,2001:db8:a0b:12f0::1'
+Add a name to the DNS associated to an IPv4/IPv6 address
+
+Options:
+  \"\"                  Empty: Remove host record
+  -h, --help          Show this help dialog"
+    exit 0
+  fi
+
+	if [[ -n "${args[3]}" ]]; then
 		change_setting "HOSTRECORD" "${args[2]},${args[3]}"
-		echo "Setting host record for ${args[2]} -> ${args[3]}"
+		echo -e "  ${TICK} Setting host record for ${args[2]} to ${args[3]}"
 	else
 		change_setting "HOSTRECORD" ""
-		echo "Removing host record"
+		echo -e "  ${TICK} Removing host record"
 	fi
 
 	ProcessDNSSettings
@@ -472,7 +486,7 @@ main() {
 		"resolve"           ) ResolutionSettings;;
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
-		"hostrecord"        ) SetHostRecord;;
+		"-r" | "hostrecord" ) SetHostRecord "$3";;
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;

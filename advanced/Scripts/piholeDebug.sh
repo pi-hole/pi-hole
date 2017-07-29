@@ -598,7 +598,7 @@ compare_port_to_service_assigned() {
   # The programs we use may change at some point, so they are in a varible here
   local resolver="dnsmasq"
   local web_server="lighttpd"
-  local ftl="pihole-FT"
+  local ftl="pihole-FTL"
   if [[ "${service_name}" == "${resolver}" ]] || [[ "${service_name}" == "${web_server}" ]] || [[ "${service_name}" == "${ftl}" ]]; then
         # if port 53 is dnsmasq, show it in green as it's standard
         log_write "[${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
@@ -615,7 +615,7 @@ check_required_ports() {
   # so we can detect any issues
   local resolver="dnsmasq"
   local web_server="lighttpd"
-  local ftl="pihole-FT"
+  local ftl="pihole-FTL"
   # Create an array for these ports in use
   ports_in_use=()
   # Sort the addresses and remove duplicates
