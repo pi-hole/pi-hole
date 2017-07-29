@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090,SC1091
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -91,10 +92,10 @@ printFunc() {
   printf "%s%s$spc" "$title" "$text_main"
 
   if [[ -n "$text_addn" ]]; then
-    printf "%s(%s)%s\n" "$COL_NC$COL_DARK_GRAY" "$text_addn" "$COL_NC"
+    printf "%s(%s)%s\\n" "$COL_NC$COL_DARK_GRAY" "$text_addn" "$COL_NC"
   else
     # Do not print trailing newline on final line
-    [[ -z "$text_last" ]] && printf "%s\n" "$COL_NC"
+    [[ -z "$text_last" ]] && printf "%s\\n" "$COL_NC"
   fi
 }
 
@@ -126,7 +127,7 @@ get_init_stats() {
     mins=$(( ($1%3600)/60 )); secs=$(( $1%60 ))
     [[ "$day" -ge "2" ]] && plu="s"
     [[ "$day" -ge "1" ]] && days="$day day${plu}, " || days=""
-    printf "%s%02d:%02d:%02d\n" "$days" "$hrs" "$mins" "$secs"
+    printf "%s%02d:%02d:%02d\\n" "$days" "$hrs" "$mins" "$secs"
   } 
 
   # Set Colour Codes
@@ -285,6 +286,7 @@ get_sys_stats() {
   sys_loadavg=$(cut -d " " -f1,2,3 /proc/loadavg)
 
   # Get CPU usage, only counting processes over 1% as active
+  # shellcheck disable=SC2009
   cpu_raw=$(ps -eo pcpu,rss --no-headers | grep -E -v "    0")
   cpu_tasks=$(wc -l <<< "$cpu_raw")
   cpu_taskact=$(sed -r "/(^ 0.)/d" <<< "$cpu_raw" | wc -l)
@@ -306,7 +308,7 @@ get_sys_stats() {
   # Determine colour for temperature
   if [[ -n "$temp_file" ]]; then
     if [[ "$temp_unit" == "C" ]]; then
-      cpu_temp=$(printf "%.0fc\n" "$(calcFunc "$(< $temp_file) / 1000")")
+      cpu_temp=$(printf "%.0fc\\n" "$(calcFunc "$(< $temp_file) / 1000")")
 
       case "${cpu_temp::-1}" in
         -*|[0-9]|[1-3][0-9]) cpu_col="$COL_LIGHT_BLUE";;
@@ -320,7 +322,7 @@ get_sys_stats() {
       cpu_temp_str=" @ $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
 
     elif [[ "$temp_unit" == "F" ]]; then
-      cpu_temp=$(printf "%.0ff\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
+      cpu_temp=$(printf "%.0ff\\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
 
       case "${cpu_temp::-1}" in
         -*|[0-9]|[0-9][0-9]) cpu_col="$COL_LIGHT_BLUE";;
@@ -333,7 +335,7 @@ get_sys_stats() {
       cpu_temp_str=" @ $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
 
     else
-      cpu_temp_str=$(printf " @ %.0fk\n" "$(calcFunc "($(< $temp_file) / 1000) + 273.15")")
+      cpu_temp_str=$(printf " @ %.0fk\\n" "$(calcFunc "($(< $temp_file) / 1000) + 273.15")")
     fi
   else
     cpu_temp_str=""
@@ -365,12 +367,12 @@ get_ftl_stats() {
   local stats_raw
 
   mapfile -t stats_raw < <(pihole-FTL "stats")
-  domains_being_blocked_raw="${stats_raw[1]#* }"
-  dns_queries_today_raw="${stats_raw[3]#* }"
-  ads_blocked_today_raw="${stats_raw[5]#* }"
-  ads_percentage_today_raw="${stats_raw[7]#* }"
-  queries_forwarded_raw="${stats_raw[11]#* }"
-  queries_cached_raw="${stats_raw[13]#* }"
+  domains_being_blocked_raw="${stats_raw[0]#* }"
+  dns_queries_today_raw="${stats_raw[1]#* }"
+  ads_blocked_today_raw="${stats_raw[2]#* }"
+  ads_percentage_today_raw="${stats_raw[3]#* }"
+  queries_forwarded_raw="${stats_raw[5]#* }"
+  queries_cached_raw="${stats_raw[6]#* }"
 
   # Only retrieve these stats when not called from jsonFunc
   if [[ -z "$1" ]]; then
@@ -378,11 +380,11 @@ get_ftl_stats() {
     local top_domain_raw
     local top_client_raw
 
-    domains_being_blocked=$(printf "%.0f\n" "${domains_being_blocked_raw}")
-    dns_queries_today=$(printf "%.0f\n" "${dns_queries_today_raw}")
-    ads_blocked_today=$(printf "%.0f\n" "${ads_blocked_today_raw}")
-    ads_percentage_today=$(printf "%'.0f\n" "${ads_percentage_today_raw}")
-    queries_cached_percentage=$(printf "%.0f\n" "$(calcFunc "$queries_cached_raw * 100 / ( $queries_forwarded_raw + $queries_cached_raw )")")
+    domains_being_blocked=$(printf "%.0f\\n" "${domains_being_blocked_raw}")
+    dns_queries_today=$(printf "%.0f\\n" "${dns_queries_today_raw}")
+    ads_blocked_today=$(printf "%.0f\\n" "${ads_blocked_today_raw}")
+    ads_percentage_today=$(printf "%'.0f\\n" "${ads_percentage_today_raw}")
+    queries_cached_percentage=$(printf "%.0f\\n" "$(calcFunc "$queries_cached_raw * 100 / ( $queries_forwarded_raw + $queries_cached_raw )")")
     recent_blocked=$(pihole-FTL recentBlocked)
     read -r -a top_ad_raw <<< "$(pihole-FTL "top-ads (1)")"
     read -r -a top_domain_raw <<< "$(pihole-FTL "top-domains (1)")"
@@ -412,6 +414,8 @@ get_strings() {
     used_str="Used: "
     leased_str="Leased: "
     domains_being_blocked=$(printf "%'.0f" "$domains_being_blocked")
+    ads_blocked_today=$(printf "%'.0f" "$ads_blocked_today")
+    dns_queries_today=$(printf "%'.0f" "$dns_queries_today")
     ph_info="Blocking: $domains_being_blocked sites"
     total_str="Total: "
   else
@@ -473,8 +477,8 @@ chronoFunc() {
  ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
     else
       echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc_ver_str
-[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\/ [0;1;36;96m_ [0;1;34;94m\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_ver_str
-[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m| [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_ver_str
+[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\\/ [0;1;36;96m_ [0;1;34;94m\\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_ver_str
+[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m| [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_ver_str
  ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
     fi
 
