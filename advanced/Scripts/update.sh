@@ -19,10 +19,9 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 # shellcheck disable=SC2034
 PH_TEST=true
 
-# Have to ignore the following rule as spaces in paths are not supported by ShellCheck
-#shellcheck disable=SC1090
+# shellcheck disable=SC1090
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-
+# shellcheck disable=SC1091
 source "/opt/pihole/COL_TABLE"
 
 # is_repo() sourced from basic-install.sh
@@ -51,15 +50,15 @@ GitCheckUpdateAvail() {
   # defaults to the current one.
   REMOTE="$(git rev-parse "@{upstream}")"
 
-  if [[ ${#LOCAL} == 0 ]]; then
-    echo -e "        ${COL_LIGHT_RED}Error: Local revision could not be obtained, ask Pi-hole support."
-    echo -e "        Additional debugging output:${COL_NC}"
+  if [[ "${#LOCAL}" == 0 ]]; then
+    echo -e "\\n  ${COL_LIGHT_RED}Error: Local revision could not be obtained, please contact Pi-hole Support
+  Additional debugging output:${COL_NC}"
     git status
     exit
   fi
-  if [[ ${#REMOTE} == 0 ]]; then
-    echo -e "        ${COL_LIGHT_RED}Error: Remote revision could not be obtained, ask Pi-hole support."
-    echo -e "        Additional debugging output:${COL_NC}"
+  if [[ "${#REMOTE}" == 0 ]]; then
+    echo -e "\\n  ${COL_LIGHT_RED}Error: Remote revision could not be obtained, please contact Pi-hole Support
+  Additional debugging output:${COL_NC}"
     git status
     exit
   fi
@@ -94,13 +93,15 @@ FTLcheckUpdate() {
 main() {
   local pihole_version_current
   local web_version_current
-  #shellcheck disable=1090,2154
+  local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
+  
+  # shellcheck disable=1090,2154
   source "${setupVars}"
 
-  #This is unlikely
+  # This is unlikely
   if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
-    echo -e "        ${COL_LIGHT_RED}Critical Error: Core Pi-hole repo is missing from system!"
-    echo -e "        Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
+    echo -e "\\n  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!
+  Please re-run install script from https://pi-hole.net${COL_NC}"
     exit 1;
   fi
 
@@ -108,18 +109,18 @@ main() {
 
   if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
     core_update=true
-    echo -e "  ${INFO} Pi-hole Core:\t${COL_YELLOW}update available${COL_NC}"
+    echo -e "  ${INFO} Pi-hole Core:\\t${COL_YELLOW}update available${COL_NC}"
   else
     core_update=false
-    echo -e "  ${INFO} Pi-hole Core:\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+    echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
   if FTLcheckUpdate ; then
     FTL_update=true
-    echo -e "  ${INFO} FTL:\t\t${COL_YELLOW}update available${COL_NC}"
+    echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
   else
     FTL_update=false
-    echo -e "  ${INFO} FTL:\t\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+    echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
   # Logic: Don't update FTL when there is a core update available
@@ -132,19 +133,19 @@ main() {
     echo ""
   fi
 
-  if [[ ${INSTALL_WEB} == true ]]; then
+  if [[ "${INSTALL_WEB}" == true ]]; then
     if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
-      echo -e "        ${COL_LIGHT_RED}Critical Error: Web Admin repo is missing from system!"
-      echo -e "        Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
+      echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
+  Please re-run install script from https://pi-hole.net${COL_NC}"
       exit 1;
     fi
 
     if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
       web_update=true
-      echo -e "  ${INFO} Web Interface:\t${COL_YELLOW}update available${COL_NC}"
+      echo -e "  ${INFO} Web Interface:\\t${COL_YELLOW}update available${COL_NC}"
     else
       web_update=false
-      echo -e "  ${INFO} Web Interface:\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+      echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
 
     # Logic
@@ -163,25 +164,24 @@ main() {
         echo -e "  ${TICK} Everything is up to date!"
         exit 0
       fi
-
     elif ! ${core_update} && ${web_update} ; then
       echo ""
       echo -e "  ${INFO} Pi-hole Web Admin files out of date"
       getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
-
     elif ${core_update} && ! ${web_update} ; then
       echo ""
       echo -e "  ${INFO} Pi-hole core files out of date"
       getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo -e "        ${COL_LIGHT_RED}Unable to complete update, contact Pi-hole${COL_NC}" && exit 1
-
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
+        echo -e "${basicError}" && exit 1
     elif ${core_update} && ${web_update} ; then
       echo ""
       echo -e "  ${INFO} Updating Pi-hole core and web admin files"
       getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || echo -e "        ${COL_LIGHT_RED}Unable to complete update, contact Pi-hole${COL_NC}" && exit 1
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || \
+        echo -e "${basicError}" && exit 1
     else
-      echo -e "        ${COL_LIGHT_RED}Update script has malfunctioned, fallthrough reached. Please contact support${COL_NC}"
+      echo -e "  ${COL_LIGHT_RED}Update script has malfunctioned, please contact Pi-hole Support${COL_NC}"
       exit 1
     fi
   else # Web Admin not installed, so only verify if core is up to date
@@ -193,38 +193,36 @@ main() {
       fi
     else
       echo ""
-      echo -e "  ${INFO} Pi-hole core files out of date"
+      echo -e "  ${INFO} Pi-hole Core files out of date"
       getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || echo -e "        ${COL_LIGHT_RED}Unable to complete update, contact Pi-hole${COL_NC}" && exit 1
+      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
+        echo -e "${basicError}" && exit 1
     fi
   fi
 
   if [[ "${web_update}" == true ]]; then
     web_version_current="$(/usr/local/bin/pihole version --admin --current)"
     echo ""
-    echo -e "  ${INFO} Web Admin version is now at ${web_version_current/* v/v}"
-    echo -e "  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
+    echo -e "  ${INFO} Web Admin version is now at ${web_version_current/* v/v}
+  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
   fi
 
   if [[ "${core_update}" == true ]]; then
     pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
     echo ""
-    echo -e "  ${INFO} Pi-hole version is now at ${pihole_version_current/* v/v}"
-    echo -e "  ${INFO} If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+    echo -e "  ${INFO} Pi-hole version is now at ${pihole_version_current/* v/v}
+  ${INFO} If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
   fi
 
-  if [[ ${FTL_update} == true ]]; then
+  if [[ "${FTL_update}" == true ]]; then
     FTL_version_current="$(/usr/bin/pihole-FTL tag)"
-    echo ""
-    echo -e "  ${INFO} FTL version is now at ${FTL_version_current/* v/v}"
+    echo -e "\\n  ${INFO} FTL version is now at ${FTL_version_current/* v/v}"
     start_service pihole-FTL
     enable_service pihole-FTL
   fi
 
-
   echo ""
   exit 0
-
 }
 
 main
