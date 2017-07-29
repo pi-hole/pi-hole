@@ -3,7 +3,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# shows version numbers
+# Show version numbers
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
@@ -124,7 +124,7 @@ versionOutput() {
   elif [[ -z "$curHash" ]] && [[ -n "$latHash" ]]; then
     output="Latest ${1^} hash is $latHash"
   else
-	  errorOutput
+    errorOutput
   fi
 
   [[ -n "$output" ]] && echo "  $output"
@@ -142,8 +142,9 @@ defaultOutput() {
 }
 
 helpFunc() {
-  echo "Usage: pihole -v [REPO | OPTION] [OPTION]
-Show Pi-hole, Web Admin & FTL versions
+  echo "Usage: pihole -v [repo | option] [option]
+Example: 'pihole -v -p -l'
+Show Pi-hole, Admin Console & FTL versions
 
 Repositories:
   -p, --pihole         Only retrieve info regarding Pi-hole repository
@@ -153,16 +154,15 @@ Repositories:
 Options:
   -c, --current        Return the current version
   -l, --latest         Return the latest version
-  -h, --hash           Return the Github hash from your local repositories
-  --help               Show this help dialog
-"
-	exit 0
+  --hash               Return the Github hash from your local repositories
+  -h, --help           Show this help dialog"
+  exit 0
 }
 
 case "${1}" in
   "-p" | "--pihole"    ) shift; versionOutput "pi-hole" "$@";;
   "-a" | "--admin"     ) shift; versionOutput "AdminLTE" "$@";;
   "-f" | "--ftl"       ) shift; versionOutput "FTL" "$@";;
-  "--help"             ) helpFunc;;
+  "-h" | "--help"      ) helpFunc;;
   *                    ) defaultOutput "$@";;
 esac
