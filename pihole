@@ -149,7 +149,7 @@ Options:
   fi
 
   # Strip valid options, leaving only the domain and invalid options
-  options=$(sed 's/ \?-\(exact\|adlist\|bp\|all\) \?//g' <<< "$options")
+  options=$(sed 's/ \?-\(exact\|adlist\(s\)\?\|bp\|all\) \?//g' <<< "$options")
 
   # Handle errors
   if [[ "${options}" == *" "* ]]; then
@@ -181,13 +181,14 @@ Options:
   results=($(scanList "${query}" "${lists}" "${method}"))
 
   if [[ -n "${results[*]}" ]]; then
+    blResult=true
     # Loop through each scanList line to print appropriate title
     for result in "${results[@]}"; do
       filename="${result/:*/}"
       if [[ -n "$exact" ]]; then
         printf "  Exact result in %s\n" "${filename}"
       elif [[ -n "$blockpage" ]]; then
-        printf "  [i] %s\n" "${filename}"
+        printf "π %s\n" "${filename}"
       else
         domain="${result/*:/}"
         if [[ ! "${filename}" == "${filename_prev:-}" ]]; then
@@ -216,7 +217,7 @@ Options:
           fi
 
           if [[ -n "${blockpage}" ]]; then
-            echo "  ${INFO} ${match}"
+            echo "π ${wildcardlist/*\/}"
           else
             echo "    *.${match}"
           fi
@@ -287,12 +288,18 @@ Options:
         filenum=("${filename/list./}")
         filenum=("${filenum/.*/}")
         filename="${adlists[$filenum]}"
+
+        # If gravity has generated associated .domains files
+        # but adlists.list has been modified since
+        if [[ -z "${filename}" ]]; then
+          filename="${COL_LIGHT_RED}Error: no associated adlists URL found${COL_NC}"
+        fi
       fi
 
       if [[ -n "${exact}" ]]; then
         printf "    %s\n" "${filename}"
       elif [[ -n "${blockpage}" ]]; then
-        printf "  [%s] %s\n" "${filenum}" "${filename}"
+        printf "%s %s\n" "${filenum}" "${filename}"
       else # Standard query output
 
         # Print filename heading once per file, not for every match
