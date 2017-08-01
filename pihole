@@ -347,32 +347,33 @@ versionFunc() {
 }
 
 restartDNS() {
-  local svcOption str output status over
-  
-  # Force-reload is used for "/etc/pihole/*.list" files
-  # Restart is needed for "/etc/dnsmasq.d/*.conf" files
+  local svcOption svc str output status
   svcOption="${1:-}"
 
-  if [[ -z "${svcOption}" ]]; then
+  if [[ "${svcOption}" =~ "reload" ]]; then
+    # SIGHUP does NOT re-read any *.conf files
+    svc="killall -s SIGHUP dnsmasq"
+  elif [[ -z "${svcOption}" ]]; then
     # Get PID of dnsmasq to determine if it needs to start or restart
     if pidof dnsmasq &> /dev/null; then
       svcOption="restart"
     else
       svcOption="start"
     fi
+    svc="service dnsmasq ${svcOption}"
   fi
 
-  # Only print output to Terminal, not Web Admin
+  # Print output to Terminal, not Web Admin
   str="${svcOption^}ing DNS service"
   [[ -t 1 ]] && echo -ne "  ${INFO} ${str}..."
 
-  output=$( { service dnsmasq "${svcOption}"; } 2>&1 )
+  output=$( { ${svc}; } 2>&1 )
   status="$?"
 
-  if [[ "$?" -eq 0 ]]; then
+  if [[ "${status}" -eq 0 ]]; then
     [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
   else
-    [[ ! -t 1 ]] && OVER=""
+    [[ ! -t 1 ]] && local OVER=""
     echo -e "${OVER}  ${CROSS} ${output}"
   fi
 }
