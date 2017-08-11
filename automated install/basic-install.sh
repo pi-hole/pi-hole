@@ -983,7 +983,8 @@ runGravity() {
     cp ${PI_HOLE_LOCAL_REPO}/adlists.default /etc/pihole/adlists.default
   fi
   echo "::: Running gravity.sh"
-  { /opt/pihole/gravity.sh; }
+  sleep 15s
+ { /opt/pihole/gravity.sh; }
 }
 
 create_pihole_user() {
