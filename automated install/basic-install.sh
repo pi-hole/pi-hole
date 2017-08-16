@@ -119,10 +119,16 @@ if command -v apt-get &> /dev/null; then
   else
     phpVer="php5"
   fi
+  # We also need the correct version for `php-sqlite` (which differs across distros)
+  if ${PKG_MANAGER} install --dry-run ${phpVer}-sqlite3 > /dev/null 2>&1; then
+    phpSqlite="sqlite3"
+  else
+    phpSqlite="sqlite"
+  fi
   # #########################################
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
-  PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-sqlite)
+  PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
   LIGHTTPD_USER="www-data"
   LIGHTTPD_GROUP="www-data"
   LIGHTTPD_CFG="lighttpd.conf.debian"
