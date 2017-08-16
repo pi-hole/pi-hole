@@ -292,7 +292,7 @@ gravity_Whitelist() {
 gravity_unique() {
 	# Sort and remove duplicates
 	echo -n "::: Removing duplicate domains...."
-	sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
+	sort -u -f ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
 	echo " done!"
 	numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
 	echo "::: $numberOf unique domains trapped in the event horizon."
