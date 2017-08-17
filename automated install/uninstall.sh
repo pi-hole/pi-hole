@@ -36,6 +36,24 @@ else
 	fi
 fi
 
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+# setupVars set in basic-install.sh
+source "${setupVars}"
+
+# distro_check() sourced from basic-install.sh
+distro_check
+
+# Install packages used by the Pi-hole
+if [[ "${INSTALL_WEB}" == true ]]; then
+  # Install the Web dependencies
+  DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
+# Otherwise,
+else
+  # just install the Core dependencies
+  DEPS=("${PIHOLE_DEPS[@]}")
+fi
+
 # Compatability
 if [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
@@ -45,7 +63,6 @@ if [ -x "$(command -v rpm)" ]; then
 		PKG_MANAGER="yum"
 	fi
 	PKG_REMOVE="${PKG_MANAGER} remove -y"
-	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common git curl unzip wget findutils )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
@@ -56,7 +73,6 @@ elif [ -x "$(command -v apt-get)" ]; then
 	# Debian Family
 	PKG_MANAGER="apt-get"
 	PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common git curl unzip wget )
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
@@ -72,7 +88,7 @@ fi
 removeAndPurge() {
 	# Purge dependencies
   echo ""
-	for i in "${PIHOLE_DEPS[@]}"; do
+	for i in "${DEPS[@]}"; do
 		package_check ${i} > /dev/null
 		if [[ "$?" -eq 0 ]]; then
 			while true; do
@@ -94,12 +110,12 @@ removeAndPurge() {
 	# Remove dnsmasq config files
 	${SUDO} rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
   echo -e "  ${TICK} Removing dnsmasq config files"
-  
+
 	# Take care of any additional package cleaning
 	echo -ne "  ${INFO} Removing & cleaning remaining dependencies..."
 	package_cleanup &> /dev/null
   echo -e "${OVER}  ${TICK} Removed & cleaned up remaining dependencies"
-  
+
 	# Call removeNoPurge to remove Pi-hole specific files
 	removeNoPurge
 }
@@ -145,7 +161,7 @@ removeNoPurge() {
 			${SUDO} mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
 		fi
 	fi
-  
+
 	${SUDO} rm /etc/dnsmasq.d/adList.conf &> /dev/null
 	${SUDO} rm /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 	${SUDO} rm -rf /var/log/*pihole* &> /dev/null
@@ -156,23 +172,23 @@ removeNoPurge() {
 	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
 	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null
   echo -e "  ${TICK} Removed config files"
-  
+
   # Remove FTL
   if command -v pihole-FTL &> /dev/null; then
     echo -ne "  ${INFO} Removing pihole-FTL..."
-    
+
     if [[ -x "$(command -v systemctl)" ]]; then
       systemctl stop pihole-FTL
     else
       service pihole-FTL stop
     fi
-    
+
     ${SUDO} rm /etc/init.d/pihole-FTL
     ${SUDO} rm /usr/bin/pihole-FTL
-    
+
     echo -e "${OVER}  ${TICK} Removed pihole-FTL"
   fi
-  
+
 	# If the pihole user exists, then remove
 	if id "pihole" &> /dev/null; then
 		${SUDO} userdel -r pihole 2> /dev/null
