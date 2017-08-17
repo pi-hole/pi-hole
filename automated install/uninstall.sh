@@ -37,6 +37,7 @@ else
 fi
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+PH_TEST="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # setupVars set in basic-install.sh
 source "${setupVars}"
