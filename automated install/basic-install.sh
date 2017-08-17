@@ -177,22 +177,22 @@ if command -v apt-get &> /dev/null; then
   # The DNS server user
   DNSMASQ_USER="dnsmasq"
 
-# A function to check...
-test_dpkg_lock() {
-    # An iterator used for counting loop iterations
-    i=0
-    # fuser is a program to show which processes use the named files, sockets, or filesystems
-    # So while the command is true
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-      # Wait half a second
-      sleep 0.5
-      # and increase the iterator
-      ((i=i+1))
-    done
-    # Always return success, since we only return if there is no
-    # lock (anymore)
-    return 0
-  }
+  # A function to check...
+  test_dpkg_lock() {
+      # An iterator used for counting loop iterations
+      i=0
+      # fuser is a program to show which processes use the named files, sockets, or filesystems
+      # So while the command is true
+      while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+        # Wait half a second
+        sleep 0.5
+        # and increase the iterator
+        ((i=i+1))
+      done
+      # Always return success, since we only return if there is no
+      # lock (anymore)
+      return 0
+    }
 
 # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
 elif command -v rpm &> /dev/null; then
