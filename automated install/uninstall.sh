@@ -48,11 +48,11 @@ distro_check
 # Install packages used by the Pi-hole
 if [[ "${INSTALL_WEB}" == true ]]; then
   # Install the Web dependencies
-  DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
+  DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
 # Otherwise,
 else
   # just install the Core dependencies
-  DEPS=("${PIHOLE_DEPS[@]}")
+  DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
 fi
 
 # Compatability
@@ -103,7 +103,7 @@ removeAndPurge() {
 	done
 
 	# Remove dnsmasq config files
-	${SUDO} rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+	${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
   echo -e "  ${TICK} Removing dnsmasq config files"
 
 	# Take care of any additional package cleaning
@@ -120,7 +120,7 @@ removeNoPurge() {
 	echo -ne "  ${INFO} Removing Web Interface..."
 	${SUDO} rm -rf /var/www/html/admin &> /dev/null
 	${SUDO} rm -rf /var/www/html/pihole &> /dev/null
-	${SUDO} rm /var/www/html/index.lighttpd.orig &> /dev/null
+	${SUDO} rm -f /var/www/html/index.lighttpd.orig &> /dev/null
 
 	# If the web directory is empty after removing these files, then the parent html folder can be removed.
 	if [ -d "/var/www/html" ]; then
@@ -143,7 +143,7 @@ removeNoPurge() {
 
 	# Attempt to preserve backwards compatibility with older versions
 	if [[ -f /etc/cron.d/pihole ]];then
-		${SUDO} rm /etc/cron.d/pihole &> /dev/null
+		${SUDO} rm -f /etc/cron.d/pihole &> /dev/null
     echo -e "  ${TICK} Removed /etc/cron.d/pihole"
 	fi
 
@@ -157,15 +157,15 @@ removeNoPurge() {
 		fi
 	fi
 
-	${SUDO} rm /etc/dnsmasq.d/adList.conf &> /dev/null
-	${SUDO} rm /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+	${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
+	${SUDO} rm -f /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 	${SUDO} rm -rf /var/log/*pihole* &> /dev/null
 	${SUDO} rm -rf /etc/pihole/ &> /dev/null
 	${SUDO} rm -rf /etc/.pihole/ &> /dev/null
 	${SUDO} rm -rf /opt/pihole/ &> /dev/null
-	${SUDO} rm /usr/local/bin/pihole &> /dev/null
-	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
-	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null
+	${SUDO} rm -f /usr/local/bin/pihole &> /dev/null
+	${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null
+	${SUDO} rm -f /etc/sudoers.d/pihole &> /dev/null
   echo -e "  ${TICK} Removed config files"
 
   # Remove FTL
@@ -178,8 +178,8 @@ removeNoPurge() {
       service pihole-FTL stop
     fi
 
-    ${SUDO} rm /etc/init.d/pihole-FTL
-    ${SUDO} rm /usr/bin/pihole-FTL
+    ${SUDO} rm -f /etc/init.d/pihole-FTL
+    ${SUDO} rm -f /usr/bin/pihole-FTL
 
     echo -e "${OVER}  ${TICK} Removed pihole-FTL"
   fi
