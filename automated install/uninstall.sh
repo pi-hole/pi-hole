@@ -57,11 +57,6 @@ fi
 # Compatability
 if [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
-	if [ -x "$(command -v dnf)" ]; then
-		PKG_MANAGER="dnf"
-	else
-		PKG_MANAGER="yum"
-	fi
 	PKG_REMOVE="${PKG_MANAGER} remove -y"
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
@@ -71,7 +66,6 @@ if [ -x "$(command -v rpm)" ]; then
 	}
 elif [ -x "$(command -v apt-get)" ]; then
 	# Debian Family
-	PKG_MANAGER="apt-get"
 	PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
