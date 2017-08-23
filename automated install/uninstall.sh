@@ -214,7 +214,7 @@ while true; do
   for i in "${DEPS[@]}"; do
     echo -n "${i} "
   done
-  echo "${COL_NC}"git pu
+  echo "${COL_NC}"
 	read -rp "  ${QST} Do you wish to go through each dependency for removal? (Choosing No will leave all dependencies installed) [Y/n] " yn
 	case ${yn} in
 		[Yy]* ) removeAndPurge; break;;
