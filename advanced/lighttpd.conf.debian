@@ -52,29 +52,42 @@ include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
 include_shell "/usr/share/lighttpd/create-mime.assign.pl"
 include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
 
-# If the URL starts with /admin, it is the Web interface
-$HTTP["url"] =~ "^/admin/" {
-	# Create a response header for debugging using curl -I
-    setenv.add-response-header = (
-        "X-Pi-hole" => "The Pi-hole Web interface is working!",
-        "X-Frame-Options" => "DENY"
-    )
+$SERVER["socket"] == ":443" {
+  protocol     = "https://"
+  ssl.engine = "enable"
+  ssl.pemfile = "/etc/lighttpd/ssl/pihole.pem"
+
+  # If the URL starts with /admin, it is the Web interface
+  $HTTP["url"] =~ "^/admin/" {
+  	# Create a response header for debugging using curl -I
+      setenv.add-response-header = (
+          "X-Pi-hole" => "The Pi-hole Web interface is working!",
+          "X-Frame-Options" => "DENY"
+      )
+  }
+
+  # Rewite js requests, must be out of $HTTP block due to bug #2526
+  url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
+
+  # If the URL does not start with /admin, then it is a query for an ad domain
+  $HTTP["url"] =~ "^(?!/admin)/.*" {
+      # Create a response header for debugging using curl -I
+      setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
+  }
+
+  # Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
+  $HTTP["host"] == "pi.hole" {
+      $HTTP["url"] == "/" {
+          url.redirect = ( "" => "/admin/" )
+      }
+  }
 }
 
-# Rewite js requests, must be out of $HTTP block due to bug #2526
-url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
-
-# If the URL does not start with /admin, then it is a query for an ad domain
-$HTTP["url"] =~ "^(?!/admin)/.*" {
-    # Create a response header for debugging using curl -I
-    setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
-}
-
-# Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
-$HTTP["host"] == "pi.hole" {
-    $HTTP["url"] == "/" {
-        url.redirect = ( "" => "/admin/" )
-    }
+# Redirect all requests from port 80 to 443
+$SERVER["socket"] == ":80" {
+  $HTTP["host"] =~ ".*" {
+    url.redirect = (".*" => "https://%0$0")
+  }
 }
 
 # Add user chosen options held in external file

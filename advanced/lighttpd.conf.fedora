@@ -72,26 +72,51 @@ fastcgi.server = ( ".php" =>
                    )
                  )
 
-# If the URL starts with /admin, it is the Web interface
-$HTTP["url"] =~ "^/admin/" {
-	# Create a response header for debugging using curl -I
-	setenv.add-response-header = ( "X-Pi-hole" => "The Pi-hole Web interface is working!" )
+# SSL Configuration from cipherli.st for strong SSL Security for all modern
+ssl.honor-cipher-order = "enable"
+ssl.cipher-list = "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH"
+ssl.use-compression = "disable"
+setenv.add-response-header = (
+    "Strict-Transport-Security" => "max-age=63072000; includeSubDomains; preload",
+    "X-Frame-Options" => "DENY",
+    "X-Content-Type-Options" => "nosniff"
+)
+ssl.use-sslv2 = "disable"
+ssl.use-sslv3 = "disable"
+
+$SERVER["socket"] == ":443" {
+  protocol     = "https://"
+  ssl.engine = "enable"
+  ssl.pemfile = "/etc/lighttpd/ssl/pihole.pem"
+
+  # If the URL starts with /admin, it is the Web interface
+  $HTTP["url"] =~ "^/admin/" {
+  	# Create a response header for debugging using curl -I
+  	setenv.add-response-header = ( "X-Pi-hole" => "The Pi-hole Web interface is working!" )
+  }
+
+  # Rewite js requests, must be out of $HTTP block due to bug #2526
+  url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
+
+  # If the URL does not start with /admin, then it is a query for an ad domain
+  $HTTP["url"] =~ "^(?!/admin)/.*" {
+  	# Create a response header for debugging using curl -I
+  	setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
+  }
+
+  # Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
+  $HTTP["host"] == "pi.hole" {
+      $HTTP["url"] == "/" {
+          url.redirect = ( "" => "/admin/" )
+      }
+  }
 }
 
-# Rewite js requests, must be out of $HTTP block due to bug #2526
-url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
-
-# If the URL does not start with /admin, then it is a query for an ad domain
-$HTTP["url"] =~ "^(?!/admin)/.*" {
-	# Create a response header for debugging using curl -I
-	setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
-}
-
-# Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
-$HTTP["host"] == "pi.hole" {
-    $HTTP["url"] == "/" {
-        url.redirect = ( "" => "/admin/" )
-    }
+# Redirect all requests from port 80 to 443
+$SERVER["socket"] == ":80" {
+  $HTTP["host"] =~ ".*" {
+    url.redirect = (".*" => "https://%0$0")
+  }
 }
 
 # Add user chosen options held in external file

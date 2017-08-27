@@ -1284,6 +1284,16 @@ CreateLogFile() {
   fi
 }
 
+createWebInterfaceCert() {
+  local webInterfaceCertDir="/etc/lighttpd/ssl"
+  # Create self-signed TLS certificates for web interface
+  mkdir "${webInterfaceCertDir}"
+  openssl req -new -x509 \
+    -keyout "${webInterfaceCertDir}"/pihole.pem -out "${webInterfaceCertDir}"/pihole.pem \
+    -subj "/CN=pi.hole"
+    -days 365 -nodes
+}
+
 # Install the Web interface dashboard
 installPiholeWeb() {
   echo ""
@@ -1351,6 +1361,11 @@ installPiholeWeb() {
     fi
 
   fi
+
+  # Install admin webinterface TLS certificates
+  echo ":::"
+  echo -n "::: Creating certificate for admin interface..."
+  createWebInterfaceCert
 
   # Install Sudoers file
   echo ""
@@ -1449,6 +1464,7 @@ configureFirewall() {
       echo -e "  ${TICK} Installing new IPTables firewall rulesets"
       # Check chain first, otherwise a new rule will duplicate old ones
       iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
+      iptables -C INPUT -p tcp -m tcp --dport 443 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 443 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
       iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
       iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
