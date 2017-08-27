@@ -261,7 +261,12 @@ ProcessDHCPSettings() {
     if [[ "${DHCP_LEASETIME}" == "0" ]]; then
       leasetime="infinite"
     elif [[ "${DHCP_LEASETIME}" == "" ]]; then
-      leasetime="24h"
+      leasetime="24"
+      change_setting "DHCP_LEASETIME" "${leasetime}"
+    elif [[ "${DHCP_LEASETIME}" == "24h" ]]; then
+      #Installation is affected by known bug, introduced in a previous version.
+      #This will automatically clean up setupVars.conf and remove the unnecessary "h"
+      leasetime="24"
       change_setting "DHCP_LEASETIME" "${leasetime}"
     else
       leasetime="${DHCP_LEASETIME}h"
