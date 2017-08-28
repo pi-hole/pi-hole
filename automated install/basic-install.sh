@@ -1221,7 +1221,7 @@ install_dependent_packages() {
   if command -v debconf-apt-progress &> /dev/null; then
     # For each package,
     for i in "${argArray1[@]}"; do
-      echo -ne "  ${INFO}  Checking for $i..."
+      echo -ne "  ${INFO} Checking for $i..."
       #
       if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
         #
@@ -1248,7 +1248,7 @@ install_dependent_packages() {
 
   # Install Fedora/CentOS packages
   for i in "${argArray1[@]}"; do
-    echo -ne "  ${INFO}  Checking for $i..."
+    echo -ne "  ${INFO} Checking for $i..."
     #
     if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
       echo -e "${OVER}  ${TICK} Checking for $i"
