@@ -1,4 +1,4 @@
-**By submitting this pull request, I confirm the following:** `{please fill the checkboxes, e.g: [X]}`
+**By submitting this pull request, I confirm the following:** `{please fill any appropriate checkboxes, e.g: [X]}`
 
 `{Please ensure that your pull request is for the 'development' branch!}`
 
@@ -13,13 +13,13 @@
 
 ---
 
-**What does this PR aim to fix?:**
+**What does this PR aim to accomplish?:**
 
-`{A detailed description and/or screenshots of the issue, and links to any relevant GitHub issues}`
+`{A detailed description, screenshots (if necessary), as well as links to any relevant GitHub issues}`
 
-**How does this PR fix the issue?:**
+**How does this PR accomplish the above?:**
 
-`{A detailed description and/or screenshots of the implemented fix}`
+`{A detailed description (such as a changelog) and screenshots (if necessary) of the implemented fix}`
 
 **What documentation changes (if any) are needed to support this PR?:**
 
@@ -29,4 +29,4 @@
 > * You must follow the template instructions. Failure to do so will result in your issue being closed.
 > * Please respect that Pi-hole is developed by volunteers, who can only reply in their spare time.
 > * Detail helps us understand an issue quicker, but please ensure it's relevant.
-> * _This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._'
+> * _This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._
