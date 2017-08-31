@@ -485,9 +485,11 @@ Options:
 statusFunc() {
   local addnConfigs
 
-  # Determine if service is running on port 53
-  if nc -z 127.0.0.1 53; then
-    [[ "${1}" != "web" ]] && echo -e "  ${TICK} DNS service is running"
+  # Determine if service is running on port 53 (Cr: https://superuser.com/a/806331)
+  if (echo > /dev/tcp/localhost/53) >/dev/null 2>&1; then
+    if [[ "${1}" != "web" ]]; then
+      echo -e "  ${TICK} DNS service is running"
+    fi
   else
     case "${1}" in
       "web") echo "-1";;
@@ -496,7 +498,7 @@ statusFunc() {
     return 0
   fi
 
-  # Determine if any of Pi-hole's addn-hosts configs are commented out
+  # Determine if Pi-hole's addn-hosts configs are commented out
   addnConfigs=$(grep -i "addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)
   
   if [[ "${addnConfigs}" =~ "#" ]]; then
@@ -562,7 +564,7 @@ tricorderFunc() {
     exit 1
   fi
 
-  if ! timeout 2 nc -z tricorder.pi-hole.net 9998 &> /dev/null; then
+  if ! (echo > /dev/tcp/tricorder.pi-hole.net/9998) >/dev/null 2>&1; then
     echo -e "  ${CROSS} Unable to connect to Pi-hole's Tricorder server"
     exit 1
   fi
