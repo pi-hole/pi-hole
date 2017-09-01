@@ -2,13 +2,14 @@
 
 `{Please ensure that your pull request is for the 'development' branch!}`
 
-- [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
-- [] I have performed relevant testing to verify that they work with my change.
-- [] I have squashed any insignificant commits.
-- [] This change has comments for package types, values, functions, and non-obvious lines of code.
+- [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md), as well as this entire template.
+- [] I have made only one major change in my proposed changes.
+- [] I have commented my proposed changes within the code.
+- [] I have tested my proposed changes, and have included unit tests where possible.
 - [] I am willing to help maintain this change if there are issues with it later.
 - [] I give this submission freely and claim no ownership.
 - [] It is compatible with the EUPL 1.2 license.
+- [] I have squashed any insignificant commits using [`git rebase`](https://git-scm.com/docs/git-rebase).
 - [] I have Signed Off all commits. ([`git commit --signoff`](https://git-scm.com/docs/git-commit#git-commit---signoff))
 
 ---
@@ -29,4 +30,3 @@
 > * You must follow the template instructions. Failure to do so will result in your issue being closed.
 > * Please respect that Pi-hole is developed by volunteers, who can only reply in their spare time.
 > * Detail helps us understand an issue quicker, but please ensure it's relevant.
-> * _This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._
