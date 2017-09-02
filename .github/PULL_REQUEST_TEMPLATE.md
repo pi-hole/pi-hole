@@ -8,8 +8,8 @@
 - [] I have tested my proposed changes, and have included unit tests where possible.
 - [] I am willing to help maintain this change if there are issues with it later.
 - [] I give this submission freely and claim no ownership.
-- [] It is compatible with the EUPL 1.2 license.
-- [] I have squashed any insignificant commits using [`git rebase`](https://git-scm.com/docs/git-rebase).
+- [] It is compatible with the [EUPL 1.2 license](https://opensource.org/licenses/EUPL-1.1)
+- [] I have squashed any insignificant commits. ([`git rebase`](http://gitready.com/advanced/2009/02/10/squashing-commits-with-rebase.html))
 - [] I have Signed Off all commits. ([`git commit --signoff`](https://git-scm.com/docs/git-commit#git-commit---signoff))
 
 ---
