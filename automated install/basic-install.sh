@@ -1401,8 +1401,10 @@ runGravity() {
     # copy it over from the local repo
     cp ${PI_HOLE_LOCAL_REPO}/adlists.default /etc/pihole/adlists.default
   fi
+
   echo -e "  ${INFO} Running gravity.sh"
   # Run gravity in the current shell
+  sleep 15s
   { /opt/pihole/gravity.sh; }
 }
 
