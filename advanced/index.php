@@ -21,8 +21,9 @@ if ($serverName === 'pi.hole')
 }
 
 // Retrieve server URI extension (EG: jpg, exe, php)
+// strtok($uri, '\?') splits the querystring from the path (if there is a querystring)
 ini_set('pcre.recursion_limit',100);
-$uriExt = pathinfo($uri, PATHINFO_EXTENSION);
+$uriExt = pathinfo(strtok($uri,'\?'), PATHINFO_EXTENSION);
 
 // Define which URL extensions get rendered as "Website Blocked"
 $webExt = array('asp', 'htm', 'html', 'php', 'rss', 'xml');
