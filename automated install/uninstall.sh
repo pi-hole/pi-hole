@@ -152,6 +152,7 @@ removeNoPurge() {
 	${SUDO} rm -rf /etc/pihole/ &> /dev/null
 	${SUDO} rm -rf /etc/.pihole/ &> /dev/null
 	${SUDO} rm -rf /opt/pihole/ &> /dev/null
+	${SUDO} rm -rf /var/lib/pihole/ &> /dev/null
 	${SUDO} rm /usr/local/bin/pihole &> /dev/null
 	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
 	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null

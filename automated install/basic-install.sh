@@ -1414,13 +1414,16 @@ create_pihole_user() {
   if id -u pihole &> /dev/null; then
     # just show a success
     echo -ne "${OVER}  ${TICK} ${str}"
+    # For updates, check if /var/lib/pihole/ exists and create if not
+    [[ -d /var/lib/pihole ]] || mkdir -p /var/lib/pihole
+    [[ $(stat -c %U /var/lib/pihole) = "pihole" ]] || chown pihole:pihole /var/lib/pihole
   # Othwerwise,
   else
     echo -ne "${OVER}  ${CROSS} ${str}"
     local str="Creating user 'pihole'"
     echo -ne "  ${INFO} ${str}..."
     # create her with the useradd command
-    useradd -r -s /usr/sbin/nologin pihole
+    useradd -c 'pihole user' -d /var/lib/pihole -r -m -s /usr/sbin/nologin pihole
     echo -ne "${OVER}  ${TICK} ${str}"
   fi
 }
@@ -2094,6 +2097,12 @@ main() {
     else
       echo -e "  ${INFO} Lighttpd is disabled, skipping service restart"
     fi
+  fi
+
+  # Versions <=3.1 have lists in /etc/pihole/ so we move them to /var/lib/lxc/
+  if [[ -d /var/lib/pihole ]]; then
+    [[ $(find /etc/pihole -type f -name 'list.*.domains' | wc -l) -eq 0 ]] ||
+      mv /etc/pihole/list.*.domains /var/lib/pihole
   fi
 
   # Download and compile the aggregated block list
