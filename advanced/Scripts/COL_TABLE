@@ -1,28 +1,49 @@
+# Determine if terminal is capable of showing colours
 if [[ -t 1 ]] && [[ $(tput colors) -ge 8 ]]; then
+  # Bold and underline may not show up on all clients
+  # If something MUST be emphasised, use both
+  COL_BOLD='[1m'
+  COL_ULINE='[4m'
+
   COL_NC='[0m'
-  COL_WHITE='[1;37m'
-  COL_BLACK='[0;30m'
-  COL_BLUE='[0;34m'
-  COL_LIGHT_BLUE='[1;34m'
-  COL_GREEN='[0;32m'
-  COL_LIGHT_GREEN='[1;32m'
-  COL_CYAN='[0;36m'
-  COL_LIGHT_CYAN='[1;36m'
-  COL_RED='[0;31m'
-  COL_LIGHT_RED='[1;31m'
-  COL_URG_RED='[39;41m'
-  COL_PURPLE='[0;35m'
-  COL_LIGHT_PURPLE='[1;35m'
-  COL_BROWN='[0;33m'
-  COL_YELLOW='[1;33m'
-  COL_GRAY='[0;30m'
-  COL_LIGHT_GRAY='[0;37m'
-  COL_DARK_GRAY='[1;30m'
+  COL_GRAY='[90m'
+  COL_RED='[91m'
+  COL_GREEN='[32m'
+  COL_YELLOW='[33m'
+  COL_BLUE='[94m'
+  COL_PURPLE='[95m'
+  COL_CYAN='[96m'
+else
+  # Provide empty variables for `set -u`
+  COL_BOLD=""
+  COL_ULINE=""
+
+  COL_NC=""
+  COL_GRAY=""
+  COL_RED=""
+  COL_GREEN=""
+  COL_YELLOW=""
+  COL_BLUE=""
+  COL_PURPLE=""
+  COL_CYAN=""
 fi
 
-TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
-CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+# Deprecated variables
+COL_WHITE="${COL_BOLD}"
+COL_BLACK="${COL_NC}"
+COL_LIGHT_BLUE="${COL_BLUE}"
+COL_LIGHT_GREEN="${COL_GREEN}"
+COL_LIGHT_CYAN="${COL_CYAN}"
+COL_LIGHT_RED="${COL_RED}"
+COL_URG_RED="${COL_RED}${COL_BOLD}${COL_ULINE}"
+COL_LIGHT_PURPLE="${COL_PURPLE}"
+COL_BROWN="${COL_YELLOW}"
+COL_LIGHT_GRAY="${COL_GRAY}"
+COL_DARK_GRAY="${COL_GRAY}"
+
+TICK="[${COL_GREEN}✓${COL_NC}]"
+CROSS="[${COL_RED}✗${COL_NC}]"
 INFO="[i]"
 QST="[?]"
-DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
-OVER="\r\033[K"
+DONE="${COL_GREEN} done!${COL_NC}"
+OVER="\\r[K"
