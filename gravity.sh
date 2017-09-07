@@ -341,7 +341,7 @@ gravity_hostFormatLocal() {
 
   # Generate local HOSTS list with information obtained from OpenVPN (if available)
   if [[ -f ${VPNList} ]]; then
-    awk -F, '{for (i=NF; i>=1; i-=2) printf $i"\t"$(i-1) "\n" }' "${VPNList}" >> "${localList}"
+    awk -F, '{printf $2"\t"$1"\n"}' "${VPNList}" >> "${localList}"
   fi
 }
 
