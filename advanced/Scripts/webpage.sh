@@ -234,8 +234,8 @@ RestartDNS() {
     output=$( { service dnsmasq restart; } 2>&1 )
   fi
 
-  if [[ "$?" == 0 ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
+  if [[ -z "${output}" ]]; then
+    [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
   else
     [[ ! -t 1 ]] && OVER=""
     echo -e "${OVER}  ${CROSS} ${output}"
