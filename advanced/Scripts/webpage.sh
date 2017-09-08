@@ -217,6 +217,10 @@ SetExcludeClients() {
 	change_setting "API_EXCLUDE_CLIENTS" "${args[2]}"
 }
 
+Poweroff(){
+        nohup bash -c "sleep 5; poweroff" &> /dev/null </dev/null &
+}
+
 Reboot() {
 	nohup bash -c "sleep 5; reboot" &> /dev/null </dev/null &
 }
@@ -230,7 +234,7 @@ RestartDNS() {
     output=$( { service dnsmasq restart; } 2>&1 )
   fi
 
- if [[ -z "${output}" ]]; then
+  if [[ -z "${output}" ]]; then
     [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
   else
     [[ ! -t 1 ]] && OVER=""
@@ -480,6 +484,7 @@ main() {
 		"setdns"            ) SetDNSServers;;
 		"setexcludedomains" ) SetExcludeDomains;;
 		"setexcludeclients" ) SetExcludeClients;;
+		"poweroff"          ) Poweroff;;
 		"reboot"            ) Reboot;;
 		"restartdns"        ) RestartDNS;;
 		"setquerylog"       ) SetQueryLogOptions;;
