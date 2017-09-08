@@ -217,8 +217,8 @@ SetExcludeClients() {
 	change_setting "API_EXCLUDE_CLIENTS" "${args[2]}"
 }
 
-Halt(){
-        nohup bash -c "sleep 5; halt" &> /dev/null </dev/null &
+Poweroff(){
+        nohup bash -c "sleep 5; poweroff" &> /dev/null </dev/null &
 }
 
 Reboot() {
@@ -484,7 +484,7 @@ main() {
 		"setdns"            ) SetDNSServers;;
 		"setexcludedomains" ) SetExcludeDomains;;
 		"setexcludeclients" ) SetExcludeClients;;
-		"halt"              ) Halt;;
+		"poweroff"          ) Poweroff;;
 		"reboot"            ) Reboot;;
 		"restartdns"        ) RestartDNS;;
 		"setquerylog"       ) SetQueryLogOptions;;
