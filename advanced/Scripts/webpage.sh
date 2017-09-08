@@ -29,6 +29,7 @@ Options:
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
+  -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage"
@@ -89,6 +90,9 @@ SetWebPassword() {
     readonly PASSWORD="${args[2]}"
     readonly CONFIRM="${PASSWORD}"
   else
+    # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
+    # So we reset the terminal via stty if the user does press Ctrl+C
+    trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
     read -s -p "Enter New Password (Blank for no password): " PASSWORD
     echo ""
 
@@ -222,18 +226,19 @@ Reboot() {
 }
 
 RestartDNS() {
-  local str="Restarting dnsmasq"
-  echo -ne "  ${INFO} ${str}..."
-  if [[ -x "$(command -v systemctl)" ]]; then
-    systemctl restart dnsmasq
+  local str="Restarting DNS service"
+  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}"
+  if command -v systemctl &> /dev/null; then
+    output=$( { systemctl restart dnsmasq; } 2>&1 )
   else
-    service dnsmasq restart
+    output=$( { service dnsmasq restart; } 2>&1 )
   fi
 
   if [[ "$?" == 0 ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   else
-    echo -e "${OVER}  ${CROSS} ${str}"
+    [[ ! -t 1 ]] && OVER=""
+    echo -e "${OVER}  ${CROSS} ${output}"
   fi
 }
 
@@ -260,7 +265,12 @@ ProcessDHCPSettings() {
     if [[ "${DHCP_LEASETIME}" == "0" ]]; then
       leasetime="infinite"
     elif [[ "${DHCP_LEASETIME}" == "" ]]; then
-      leasetime="24h"
+      leasetime="24"
+      change_setting "DHCP_LEASETIME" "${leasetime}"
+    elif [[ "${DHCP_LEASETIME}" == "24h" ]]; then
+      #Installation is affected by known bug, introduced in a previous version.
+      #This will automatically clean up setupVars.conf and remove the unnecessary "h"
+      leasetime="24"
       change_setting "DHCP_LEASETIME" "${leasetime}"
     else
       leasetime="${DHCP_LEASETIME}h"
@@ -292,7 +302,9 @@ ra-param=*,0,0
     fi
 
 	else
-		rm "${dhcpconfig}" &> /dev/null
+	  if [[ -f "${dhcpconfig}" ]]; then
+		  rm "${dhcpconfig}" &> /dev/null
+		fi
 	fi
 }
 
@@ -390,12 +402,23 @@ RemoveDHCPStaticAddress() {
 }
 
 SetHostRecord() {
-	if [ -n "${args[3]}" ]; then
+  if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
+    echo "Usage: pihole -a hostrecord <domain> [IPv4-address],[IPv6-address]
+Example: 'pihole -a hostrecord home.domain.com 192.168.1.1,2001:db8:a0b:12f0::1'
+Add a name to the DNS associated to an IPv4/IPv6 address
+
+Options:
+  \"\"                  Empty: Remove host record
+  -h, --help          Show this help dialog"
+    exit 0
+  fi
+
+	if [[ -n "${args[3]}" ]]; then
 		change_setting "HOSTRECORD" "${args[2]},${args[3]}"
-		echo "Setting host record for ${args[2]} -> ${args[3]}"
+		echo -e "  ${TICK} Setting host record for ${args[2]} to ${args[3]}"
 	else
 		change_setting "HOSTRECORD" ""
-		echo "Removing host record"
+		echo -e "  ${TICK} Removing host record"
 	fi
 
 	ProcessDNSSettings
@@ -473,7 +496,7 @@ main() {
 		"resolve"           ) ResolutionSettings;;
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
-		"hostrecord"        ) SetHostRecord;;
+		"-r" | "hostrecord" ) SetHostRecord "$3";;
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
