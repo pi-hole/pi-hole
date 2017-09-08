@@ -296,7 +296,7 @@ gravity_unique() {
   local str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
 
-  sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
+  sort -u -f ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
 
   echo -e "${OVER}  ${TICK} ${str}"
   numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
