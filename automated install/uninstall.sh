@@ -180,7 +180,6 @@ removeNoPurge() {
 
     ${SUDO} rm -f /etc/init.d/pihole-FTL
     ${SUDO} rm -f /usr/bin/pihole-FTL
-
     echo -e "${OVER}  ${TICK} Removed pihole-FTL"
   fi
 

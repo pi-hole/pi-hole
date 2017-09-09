@@ -53,6 +53,7 @@ piholeDir=/etc/${basename}
 adList=${piholeDir}/gravity.list
 blackList=${piholeDir}/black.list
 localList=${piholeDir}/local.list
+VPNList=/etc/openvpn/ipp.txt
 justDomainsExtension=domains
 matterAndLight=${basename}.0.matterandlight.txt
 supernova=${basename}.1.supernova.txt
@@ -217,7 +218,7 @@ gravity_Schwarzchild() {
   # Find all active domains and compile them into one file and remove CRs
   local str="Aggregating list of domains"
   echo -ne "  ${INFO} ${str}..."
-  
+
   truncate -s 0 ${piholeDir}/${matterAndLight}
   for i in "${activeDomains[@]}"; do
     # Only assimilate list if it is available (download might have failed permanently)
@@ -296,7 +297,7 @@ gravity_unique() {
   local str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
 
-  sort -u  ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
+  sort -u -f ${piholeDir}/${supernova} > ${piholeDir}/${preEventHorizon}
 
   echo -e "${OVER}  ${TICK} ${str}"
   numberOf=$(wc -l < ${piholeDir}/${preEventHorizon})
@@ -337,6 +338,11 @@ gravity_hostFormatLocal() {
   rm "${localList}"
   gravity_doHostFormat "${localList}.tmp" "${localList}"
   rm "${localList}.tmp"
+
+  # Generate local HOSTS list with information obtained from OpenVPN (if available)
+  if [[ -f ${VPNList} ]]; then
+    awk -F, '{printf $2"\t"$1"\n"}' "${VPNList}" >> "${localList}"
+  fi
 }
 
 gravity_hostFormatGravity() {
@@ -468,7 +474,7 @@ if [[ ! "${blackListOnly}" == true ]]; then
   echo -ne "  ${INFO} ${str}..."
 
   rm ${piholeDir}/pihole.*.txt 2> /dev/null
-  
+
   echo -e "${OVER}  ${TICK} ${str}"
 fi
 
