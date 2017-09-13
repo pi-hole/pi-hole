@@ -1082,6 +1082,10 @@ installConfigs() {
     fi
     # and copy in the config file Pi-hole needs
     cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
+    if [[ -f "/var/www/html/pihole/custom.php" ]]; then
+      sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
+    fi
     # Make the directories if they do not exist and set the owners
     mkdir -p /var/run/lighttpd
     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
@@ -1293,68 +1297,27 @@ CreateLogFile() {
 installPiholeWeb() {
   echo ""
   echo "  ${INFO} Installing blocking page..."
-  # If the pihole Web directory exists,
-  if [[ -d "/var/www/html/pihole" ]]; then
-    local str="Installing index.php"
-    echo -ne "  ${INFO} ${str}..."
-    # and if the index file exists,
-    if [[ -f "/var/www/html/pihole/index.php" ]]; then
-      # do not overwrite it,
-      echo -e " ${COL_LIGHT_GREEN}detected index.php, not overwriting${COL_NC}"
-    # if it doesn't exist
-    else
-      # install it by copying it from the repo
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.php /var/www/html/pihole/
-      echo -e "${OVER}  ${TICK} ${str}"
-    fi
 
-    local str="Installing index.js"
-    echo -ne "  ${INFO} ${str}..."
-    # and if the index file exists,
-    if [[ -f "/var/www/html/pihole/index.js" ]]; then
-      # do not overwrite it,
-      echo -e " ${COL_LIGHT_GREEN}detected index.js, not overwriting${COL_NC}"
-    else
-      # install it by copying it from the repo
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/index.js /var/www/html/pihole/
-      echo -e "${OVER}  ${TICK} ${str}"
-    fi
+  local str="Creating directory for blocking page, and copying files"
+  echo -ne "  ${INFO} ${str}..."
+  # Install the directory
+  install -d /var/www/html/pihole
+  # and the blockpage
+  install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+  echo -e "${OVER}  ${TICK} ${str}"
 
-    local str="Installing blockingpage.css"
-    echo -ne "  ${INFO} ${str}..."
-    # and if the index file exists,
-    if [[ -f "/var/www/html/pihole/blockingpage.css" ]]; then
-      # do not overwrite it,
-      echo -e " ${COL_LIGHT_GREEN}detected blockingpage.css, not overwriting${COL_NC}"
-    else
-      # install it by copying it from the repo
-      cp ${PI_HOLE_LOCAL_REPO}/advanced/blockingpage.css /var/www/html/pihole
-      echo -e "${OVER}  ${TICK} ${str}"
-    fi
-  # If the pihole Web directory does not exist,
-  else
-    local str="Creating directory for blocking page, and copying files"
-    echo -ne "  ${INFO} ${str}..."
-    # Install the directory
-    install -d /var/www/html/pihole
-    # and the blockpage
-    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+  local str="Backing up index.lighttpd.html"
+  echo -ne "  ${INFO} ${str}..."
+  # If the default index file exists,
+  if [[ -f "/var/www/html/index.lighttpd.html" ]]; then
+    # back it up
+    mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     echo -e "${OVER}  ${TICK} ${str}"
-
-    local str="Backing up index.lighttpd.html"
-    echo -ne "  ${INFO} ${str}..."
-    # If the default index file exists,
-    if [[ -f "/var/www/html/index.lighttpd.html" ]]; then
-      # back it up
-      mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
-      echo -e "${OVER}  ${TICK} ${str}"
-    # Othwerwise,
-    else
-      # don't do anything
-      echo -e "${OVER}  ${CROSS} ${str}
-      No default index.lighttpd.html file found... not backing up"
-    fi
-
+  # Othwerwise,
+  else
+    # don't do anything
+    echo -e "${OVER}  ${CROSS} ${str}
+    No default index.lighttpd.html file found... not backing up"
   fi
 
   # Install Sudoers file
