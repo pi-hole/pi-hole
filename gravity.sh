@@ -388,9 +388,7 @@ gravity_WhitelistBLD() {
   echo -ne "  ${INFO} ${str}..."
 
   # Create array of unique $sourceDomains
-  # Disable SC2046 as quoting will only return first domain
-  # shellcheck disable=SC2046
-  read -r -a uniqDomains <<< $(awk '{ if(!a[$1]++) { print $1 } }' <<< "$(printf '%s\n' "${sourceDomains[@]}")")
+  mapfile -t uniqDomains <<< "$(awk '{ if(!a[$1]++) { print $1 } }' <<< "$(printf '%s\n' "${sourceDomains[@]}")")"
 
   ${WHITELIST_COMMAND} -nr -q "${uniqDomains[*]}" > /dev/null
 
