@@ -32,6 +32,7 @@ wildcardFile="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 adList="${piholeDir}/gravity.list"
 blackList="${piholeDir}/black.list"
 localList="${piholeDir}/local.list"
+VPNList="/etc/openvpn/ipp.txt"
 
 domainsExtension="domains"
 matterAndLight="${basename}.0.matterandlight.txt"
@@ -66,10 +67,17 @@ fi
 
 # Determine if DNS resolution is available before proceeding with retrieving blocklists
 gravity_DNSLookup() {
-  local plu
+  local lookupDomain plu
 
-  # Determine if pi.hole can be resolved
-  if ! timeout 10 nslookup pi.hole > /dev/null; then
+  # Determine which domain to resolve depending on existence of $localList
+  if [[ -e "${localList}" ]]; then
+    lookupDomain="pi.hole"
+  else
+    lookupDomain="raw.githubusercontent.com"
+  fi
+
+  # Determine if domain can be resolved
+  if ! timeout 10 nslookup "${lookupDomain}" > /dev/null; then
     if [[ -n "${secs}" ]]; then
       echo -e "${OVER}  ${CROSS} DNS resolution is still unavailable, cancelling"
       exit 1
@@ -452,20 +460,28 @@ gravity_ParseDomainsIntoHosts() {
   fi
 }
 
-# Create "localhost" entries
+# Create "localhost" entries into hosts format
 gravity_ParseLocalDomains() {
   local hostname
 
   if [[ -f "/etc/hostname" ]]; then
     hostname=$(< "/etc/hostname")
-  elif command -v hostname > /dev/null; then
+  elif command -v hostname &> /dev/null; then
     hostname=$(hostname -f)
   else
     echo -e "  ${CROSS} Unable to determine fully qualified domain name of host"
   fi
 
   echo -e "${hostname}\\npi.hole" > "${localList}.tmp"
+  # Copy the file over as /etc/pihole/local.list so dnsmasq can use it
+  rm "${localList}" 2> /dev/null || true
   gravity_ParseDomainsIntoHosts "${localList}.tmp" "${localList}"
+  rm "${localList}.tmp" 2> /dev/null || true
+
+  # Add additional local hosts provided by OpenVPN (if available)
+  if [[ -f "${VPNList}" ]]; then
+    awk -F, '{printf $2"\t"$1"\n"}' "${VPNList}" >> "${localList}"
+  fi
 }
 
 # Create primary blacklist entries
@@ -494,8 +510,6 @@ gravity_ParseUserDomains() {
     # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
     mv "${blackList}.tmp" "${blackList}" 2> /dev/null || \
       echo -e "  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
-  else
-    echo -e "  ${INFO} Nothing to blacklist!"
   fi
 }
 
@@ -517,7 +531,7 @@ gravity_Cleanup() {
   # Remove any unused .domains files
   for file in ${piholeDir}/*.${domainsExtension}; do
     # If list is not in active array, then remove it
-    if [[ ! "${activeDomains[*]}" =~ "${file}" ]]; then
+    if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
       rm -f "${file}" 2> /dev/null || \
         echo -e "  ${CROSS} Failed to remove ${file##*/}"
     fi
