@@ -43,9 +43,6 @@ preEventHorizon="list.preEventHorizon"
 
 skipDownload="false"
 
-# Use "force-reload" when restarting dnsmasq for everything but Wildcards
-dnsRestart="force-reload"
-
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
 if [[ -f "${setupVars}" ]];then
@@ -67,9 +64,10 @@ fi
 
 # Determine if DNS resolution is available before proceeding with retrieving blocklists
 gravity_DNSLookup() {
-  local lookupDomain plu
+  local lookupDomain plural
 
-  # Determine which domain to resolve depending on existence of $localList
+  # Determine which domain should be resolved
+  # "pi.hole" is not always available (e.g: new install), but FTL will not log it
   if [[ -e "${localList}" ]]; then
     lookupDomain="pi.hole"
   else
@@ -77,25 +75,25 @@ gravity_DNSLookup() {
   fi
 
   # Determine if domain can be resolved
-  if ! timeout 10 nslookup "${lookupDomain}" > /dev/null; then
+  if ! timeout 5 nslookup "${lookupDomain}" &> /dev/null; then
     if [[ -n "${secs}" ]]; then
       echo -e "${OVER}  ${CROSS} DNS resolution is still unavailable, cancelling"
       exit 1
     fi
 
     # Determine error output message
-    if pidof dnsmasq > /dev/null; then
+    if pidof dnsmasq &> /dev/null; then
       echo -e "  ${CROSS} DNS resolution is temporarily unavailable"
     else
       echo -e "  ${CROSS} DNS service is not running"
       "${PIHOLE_COMMAND}" restartdns
     fi
 
-    # Give time for dnsmasq to be resolvable
+    # Give time for DNS server to be resolvable
     secs="30"
     while [[ "${secs}" -ne 0 ]]; do
-      [[ "${secs}" -ne 1 ]] && plu="s" || plu=""
-      echo -ne "${OVER}  ${INFO} Waiting $secs second${plu} before continuing..."
+      plural=; [[ "${secs}" -ne 1 ]] && plural="s"
+      echo -ne "${OVER}  ${INFO} Waiting $secs second${plural} before continuing..."
       sleep 1
       : $((secs--))
     done
@@ -127,7 +125,7 @@ gravity_Collapse() {
   echo -ne "  ${INFO} ${str}..."
 
   # Retrieve source URLs from $adListFile
-  # Awk Logic: Remove comments, CR line endings and empty lines
+  # Awk Logic: Remove comments (#@;![), CR (windows) line endings and empty lines
   mapfile -t sources < <(awk '!/^[#@;!\[]/ {gsub(/\r$/, "", $0); if ($1) { print $1 } }' "${adListFile}" 2> /dev/null)
 
   # Parse source domains from $sources
@@ -182,7 +180,7 @@ gravity_Supernova() {
   done
 }
 
-# Download specified URL and perform QA
+# Download specified URL and perform checks on HTTP status and file content
 gravity_Pull() {
   local url cmd_ext agent heisenbergCompensator patternBuffer str httpCode success
 
@@ -195,7 +193,8 @@ gravity_Pull() {
 
   heisenbergCompensator=""
   if [[ -r "${saveLocation}" ]]; then
-    # Allow curl to determine if a remote file has been modified since last retrieval
+    # Make curl determine if a remote file has been modified since last retrieval
+    # Uses "Last-Modified" header, which certain web servers do not provide (e.g: raw github links)
     heisenbergCompensator="-z ${saveLocation}"
   fi
 
@@ -206,28 +205,29 @@ gravity_Pull() {
 
   # Determine "Status:" output based on HTTP response
   case "${httpCode}" in
-    "200" ) echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success="true";;
-    "304" ) echo -e "${OVER}  ${TICK} ${str} No changes detected"; success="true";;
-    "403" ) echo -e "${OVER}  ${CROSS} ${str} Forbidden"; success="false";;
-    "404" ) echo -e "${OVER}  ${CROSS} ${str} Not found"; success="false";;
-    "408" ) echo -e "${OVER}  ${CROSS} ${str} Time-out"; success="false";;
-    "451" ) echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons"; success="false";;
-    "521" ) echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)"; success="false";;
-    "522" ) echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)"; success="false";;
-    "500" ) echo -e "${OVER}  ${CROSS} ${str} Internal Server Error"; success="false";;
-    *     ) echo -e "${OVER}  ${CROSS} ${str} Status ${httpCode}"; success="false";;
+    "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success="true";;
+    "304") echo -e "${OVER}  ${TICK} ${str} No changes detected"; success="true";;
+    "000") echo -e "${OVER}  ${CROSS} ${str} Connection Refused"; success="false";;
+    "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden"; success="false";;
+    "404") echo -e "${OVER}  ${CROSS} ${str} Not found"; success="false";;
+    "408") echo -e "${OVER}  ${CROSS} ${str} Time-out"; success="false";;
+    "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons"; success="false";;
+    "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)"; success="false";;
+    "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)"; success="false";;
+    "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error"; success="false";;
+    *    ) echo -e "${OVER}  ${CROSS} ${str} ${httpCode}"; success="false";;
   esac
 
   # Determine if the blocklist was downloaded and saved correctly
   if [[ "${success}" == "true" ]]; then
     if [[ "${httpCode}" == "304" ]]; then
-      : # Do nothing
-    # Check if patternbuffer is a non-zero length file
+      : # Do not attempt to re-parse file
+    # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
     else
-      # Fall back to previously cached list if patternBuffer is empty
+      # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
     fi
   else
@@ -248,9 +248,7 @@ gravity_Pull() {
 
 # Parse non-standard source files into domains-only format
 gravity_ParseFileIntoDomains() {
-  local source destination commentPattern firstLine abpFilter
-  source="${1}"
-  destination="${2}"
+  local source="${1}" destination="${2}" commentPattern firstLine abpFilter
 
   # Determine how to parse source file
   if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
@@ -286,7 +284,7 @@ gravity_ParseFileIntoDomains() {
 
     # Determine how to parse individual source file formats
     # Lists may not capitalise the first line correctly, so compare strings against lower case
-    if [[ "${firstLine,,}" =~ "adblock" ]] || [[ "${firstLine,,}" =~ "ublock" ]] || [[ "${firstLine,,}" =~ "! checksum" ]]; then
+    if [[ "${firstLine,,}" =~ (adblock|ublock|!checksum) ]]; then
       # Awk Logic: Parse Adblock domains & comments: https://adblockplus.org/filter-cheatsheet 
       abpFilter="/^(\\[|!)|^(\\|\\|.*\\^)/"
       awk ''"${abpFilter}"' {
@@ -298,14 +296,25 @@ gravity_ParseFileIntoDomains() {
         if ($0 ~ /(^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$|[\\^\/\*])/) { $0="" }
         if ($0) { print $0 }
       }' "${source}" 2> /dev/null > "${destination}"
+    # Parse URL list if source file contains http:// or IPv4
     elif grep -q -E "^(https?://|([0-9]{1,3}\\.){3}[0-9]{1,3}$)" "${source}" &> /dev/null; then
-      # Parse URLs if source file contains http:// or IPv4
       awk '{
         # Remove URL protocol, optional "username:password@", and ":?/;"
         if ($0 ~ /[:?\/;]/) { gsub(/(^.*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
         # Remove lines which are only IPv4 addresses
         if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
         if ($0) { print $0 }
+      }' "${source}" 2> /dev/null > "${destination}"
+    # Parse Dnsmasq format lists
+    elif grep -q "^address=/" "${source}" &> /dev/null; then
+      awk -F/ '{
+        # Print comments
+        if ($0 ~ "#") {
+          print $0 
+        # Print domains
+        } else if ($2) {
+          print $2
+        }
       }' "${source}" 2> /dev/null > "${destination}"
     else
       # Keep hosts/domains file in same format as it was downloaded
@@ -383,7 +392,7 @@ gravity_WhitelistBLD() {
   local plural str uniqDomains
 
   echo ""
-  plural=; [[ "${#sources[*]}" != "1" ]] && plural=s
+  plural=; [[ "${#sources[*]}" != "1" ]] && plural="s"
   str="Adding blocklist source${plural} to the whitelist"
   echo -ne "  ${INFO} ${str}..."
 
@@ -403,7 +412,7 @@ gravity_Whitelist() {
   if [[ -f "${whitelistFile}" ]]; then
     # Remove anything in whitelist.txt from the Event Horizon
     num=$(wc -l < "${whitelistFile}")
-    plural=; [[ "${num}" != "1" ]] && plural=s
+    plural=; [[ "${num}" -ne 1 ]] && plural="s"
     str="Whitelisting ${num} domain${plural}"
     echo -ne "  ${INFO} ${str}..."
 
@@ -422,7 +431,7 @@ gravity_ShowBlockCount() {
 
   if [[ -f "${blacklistFile}" ]]; then
     num=$(printf "%'.0f" "$(wc -l < "${blacklistFile}")")
-    plural=; [[ "${num}" != "1" ]] && plural=s
+    plural=; [[ "${num}" -ne 1 ]] && plural="s"
     str="Exact blocked domain${plural}: ${num}"
     echo -e "  ${INFO} ${str}"
   else
@@ -435,7 +444,7 @@ gravity_ShowBlockCount() {
     if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
       num=$(( num/2 ))
     fi
-    plural=; [[ "${num}" != "1" ]] && plural=s
+    plural=; [[ "${num}" -ne 1 ]] && plural="s"
     echo -e "  ${INFO} Wildcard blocked domain${plural}: ${num}"
   else
     echo -e "  ${INFO} No wildcards used!"
@@ -536,12 +545,11 @@ gravity_Cleanup() {
   done
 
   echo -e "${OVER}  ${TICK} ${str}"
-  
-  [[ -n "${error}" ]] && echo ""
 
   # Only restart DNS service if offline
   if ! pidof dnsmasq &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
+    dnsWasOffline=true
   fi
 
   # Print Pi-hole status if an error occured
@@ -634,5 +642,10 @@ if [[ "${skipDownload}" == false ]]; then
 fi
 
 echo ""
-"${PIHOLE_COMMAND}" restartdns "${dnsRestart}"
+
+# Determine if DNS has been restarted by this instance of gravity
+if [[ -z "${dnsWasOffline:-}" ]]; then
+  # Use "force-reload" when restarting dnsmasq for everything but Wildcards
+  "${PIHOLE_COMMAND}" restartdns "${dnsRestart:-force-reload}"
+fi
 "${PIHOLE_COMMAND}" status
