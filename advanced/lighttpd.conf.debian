@@ -50,7 +50,8 @@ compress.filetype           = ( "application/javascript", "text/css", "text/html
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
 include_shell "/usr/share/lighttpd/create-mime.assign.pl"
-include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
+#include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
+include_shell "find /etc/lighttpd/conf-enabled -name '*.conf' -a ! -name 'letsencrypt.conf' -printf 'include \"%p\"\n' 2>/dev/null"
 
 # If the URL starts with /admin, it is the Web interface
 $HTTP["url"] =~ "^/admin/" {
@@ -59,21 +60,9 @@ $HTTP["url"] =~ "^/admin/" {
         "X-Pi-hole" => "The Pi-hole Web interface is working!",
         "X-Frame-Options" => "DENY"
     )
-}
-
-# Rewite js requests, must be out of $HTTP block due to bug #2526
-url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
-
-# If the URL does not start with /admin, then it is a query for an ad domain
-$HTTP["url"] =~ "^(?!/admin)/.*" {
-    # Create a response header for debugging using curl -I
-    setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
-}
-
-# Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
-$HTTP["host"] == "pi.hole" {
-    $HTTP["url"] == "/" {
-        url.redirect = ( "" => "/admin/" )
+    $HTTP["url"] =~ ".ttf$" {
+        # Allow Block Page access to local fonts
+        setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }
 }
 
