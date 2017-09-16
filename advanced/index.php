@@ -28,7 +28,7 @@ $authorizedHosts = [];
 
 // Append FQDN to $authorizedHosts
 if (!empty($svFQDN)) array_push($authorizedHosts, $svFQDN);
-  
+
 // Append virtual hostname to $authorizedHosts
 if (!empty($_SERVER["VIRTUAL_HOST"])) {
     array_push($authorizedHosts, $_SERVER["VIRTUAL_HOST"]);
@@ -39,6 +39,15 @@ $validExtTypes = array("asp", "htm", "html", "php", "rss", "xml", "");
 
 // Get extension of current URL
 $currentUrlExt = pathinfo($_SERVER["REQUEST_URI"], PATHINFO_EXTENSION);
+
+// Check if this is served over HTTP or HTTPS
+if(isset($_SERVER['HTTPS'])) {
+    if ($_SERVER['HTTPS'] == "on") {
+        $proto = "https";
+    } else {
+        $proto = "http";
+    }
+}
 
 // Set mobile friendly viewport
 $viewPort = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>';
@@ -60,7 +69,7 @@ if ($serverName === "pi.hole") {
         <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
     </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements</body></html>
     ";
-    
+
     // Render splash page or landing page when directly browsing via IP or auth'd hostname
     $renderPage = is_file(getcwd()."/$landPage") ? include $landPage : "$splashPage";
     unset($serverName, $svFQDN, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
@@ -134,7 +143,7 @@ function queryAds($serverName) {
     } catch (Exception $e) {
         return array("0" => "error", "1" => $e->getMessage());
     }
-  
+
 }
 
 $queryAds = queryAds($serverName);
@@ -201,10 +210,10 @@ if (explode("-", $phVersion)[1] != "0")
   <?=setHeader() ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="http://pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="http://pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="shortcut icon" href="<?php echo $proto; ?>://pi.hole/admin/img/favicon.png" type="image/x-icon"/>
+  <link rel="stylesheet" href="<?php echo $proto; ?>://pi.hole/pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
-  <script src="http://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="<?php echo $proto; ?>://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php
@@ -264,7 +273,7 @@ if (explode("-", $phVersion)[1] != "0")
   <div id="bpMoreInfo">
     <span id="bpFoundIn"><span><?=$featuredTotal ?></span><?=$adlistsCount ?></span>
     <pre id='bpQueryOutput'><?php if ($featuredTotal > 0) foreach ($queryResults as $num => $value) { echo "<span>[$num]:</span>$adlistsUrls[$num]\n"; } ?></pre>
-    
+
     <form id="bpWLButtons" class="buttons">
       <input id="bpWLDomain" type="text" value="<?=$serverName ?>" disabled/>
       <input id="bpWLPassword" type="password" placeholder="<?=$wlPlaceHolder ?>" disabled/><button id="bpWhitelist" type="button" disabled></button>
