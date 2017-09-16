@@ -41,12 +41,10 @@ $validExtTypes = array("asp", "htm", "html", "php", "rss", "xml", "");
 $currentUrlExt = pathinfo($_SERVER["REQUEST_URI"], PATHINFO_EXTENSION);
 
 // Check if this is served over HTTP or HTTPS
-if(isset($_SERVER['HTTPS'])) {
-    if ($_SERVER['HTTPS'] == "on") {
-        $proto = "https";
-    } else {
-        $proto = "http";
-    }
+if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == "on") {
+    $proto = "https";
+} else {
+    $proto = "http";
 }
 
 // Set mobile friendly viewport
