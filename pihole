@@ -183,7 +183,7 @@ Options:
       fileName="${result%%.*}"
 
       if [[ -n "${blockpage}" ]]; then
-        echo "π ${fileName}"
+        echo "π ${result}"
         exit 0
       elif [[ -n "${exact}" ]]; then
         echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
