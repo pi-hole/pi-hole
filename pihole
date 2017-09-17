@@ -161,7 +161,7 @@ Options:
   # If $options contain non ASCII characters, convert to punycode
   case "${options}" in
     ""             ) str="No domain specified";;
-    *$'\n'*        ) str="Unknown query option specified";;
+    *" "*          ) str="Unknown query option specified";;
     *[![:ascii:]]* ) domainQuery=$(idn2 "${options}");;
     *              ) domainQuery="${options}";;
   esac
