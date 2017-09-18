@@ -244,7 +244,7 @@ is_repo() {
     cd "${directory}"
     # Use git to check if the folder is a repo
     # git -C is not used here to support git versions older than 1.8.4
-    git status --short &> /dev/null || rc=$?
+    /usr/bin/git status --short &> /dev/null || rc=$?
   # If the command was not successful,
   else
     # Set a non-zero return code if directory does not exist
@@ -271,7 +271,7 @@ make_repo() {
     rm -rf "${directory}"
   fi
   # Clone the repo and return the return code from this command
-  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+  /usr/bin/git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
   # Show a colored message showing it's status
   echo -e "${OVER}  ${TICK} ${str}"
   # Always return 0? Not sure this is correct
@@ -299,10 +299,10 @@ update_repo() {
   # Let the user know what's happening
   echo -ne "  ${INFO} ${str}..."
   # Stash any local commits as they conflict with our working code
-  git stash --all --quiet &> /dev/null || true # Okay for stash failure
-  git clean --quiet --force -d || true # Okay for already clean directory
+  /usr/bin/git stash --all --quiet &> /dev/null || true # Okay for stash failure
+  /usr/bin/git clean --quiet --force -d || true # Okay for already clean directory
   # Pull the latest commits
-  git pull --quiet &> /dev/null || return $?
+  /usr/bin/git pull --quiet &> /dev/null || return $?
   # Show a completion message
   echo -e "${OVER}  ${TICK} ${str}"
   # Move back into the oiginal directory
@@ -351,7 +351,7 @@ resetRepo() {
   # Show the message
   echo -ne "  ${INFO} ${str}"
   # Use git to remove the local changes
-  git reset --hard &> /dev/null || return $?
+  /usr/bin/git reset --hard &> /dev/null || return $?
   # And show the status
   echo -e "${OVER}  ${TICK} ${str}"
   # Returning success anyway?

@@ -122,8 +122,8 @@ fully_fetch_repo() {
 
   cd "${directory}" || return 1
   if is_repo "${directory}"; then
-    git remote set-branches origin '*' || return 1
-    git fetch --quiet || return 1
+    /usr/bin/git remote set-branches origin '*' || return 1
+    /usr/bin/git fetch --quiet || return 1
   else
     return 1
   fi
@@ -138,7 +138,7 @@ get_available_branches() {
 
   cd "${directory}" || return 1
   # Get reachable remote branches, but store STDERR as STDOUT variable
-  output=$( { git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'; } 2>&1 )
+  output=$( { /usr/bin/git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'; } 2>&1 )
   echo "$output"
   return
 }
@@ -152,10 +152,10 @@ fetch_checkout_pull_branch() {
 
   # Set the reference for the requested branch, fetch, check it put and pull it
   cd "${directory}" || return 1
-  git remote set-branches origin "${branch}" || return 1
-  git stash --all --quiet &> /dev/null || true
-  git clean --quiet --force -d || true
-  git fetch --quiet || return 1
+  /usr/bin/git remote set-branches origin "${branch}" || return 1
+  /usr/bin/git stash --all --quiet &> /dev/null || true
+  /usr/bin/git clean --quiet --force -d || true
+  /usr/bin/git fetch --quiet || return 1
   checkout_pull_branch "${directory}" "${branch}" || return 1
 }
 
@@ -169,19 +169,19 @@ checkout_pull_branch() {
 
   cd "${directory}" || return 1
 
-  oldbranch="$(git symbolic-ref HEAD)"
+  oldbranch="$(/usr/bin/git symbolic-ref HEAD)"
 
   str="Switching to branch: '${branch}' from '${oldbranch}'"
   echo -ne "  ${INFO} $str"
-  git checkout "${branch}" --quiet || return 1
+  /usr/bin/git checkout "${branch}" --quiet || return 1
   echo -e "${OVER}  ${TICK} $str"
 
 
-  if [[ "$(git diff "${oldbranch}" | grep -c "^")" -gt "0" ]]; then
+  if [[ "$(/usr/bin/git diff "${oldbranch}" | grep -c "^")" -gt "0" ]]; then
     update="true"
   fi
 
-  git_pull=$(git pull || return 1)
+  git_pull=$(/usr/bin/git pull || return 1)
 
   if [[ "$git_pull" == *"up-to-date"* ]]; then
     echo -e "  ${INFO} ${git_pull}"
@@ -335,7 +335,7 @@ checkout() {
         FTLinstall "${binary}" "${path}"
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
-        ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+        ftlbranches=( $(/usr/bin/git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
         echo -e "  ${INFO} Available branches for FTL are:"
         for e in "${ftlbranches[@]}"; do echo "      - $e"; done
         exit 1
