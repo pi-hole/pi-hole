@@ -217,6 +217,7 @@ gravity_Pull() {
     "408") echo -e "${OVER}  ${CROSS} ${str} Time-out";;
     "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons";;
     "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error";;
+    "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)";;
     "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)";;
     "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)";;
     *    ) echo -e "${OVER}  ${CROSS} ${str} ${httpCode}";;
@@ -286,6 +287,7 @@ gravity_ParseFileIntoDomains() {
   # Determine how to parse individual source file formats
   if [[ "${firstLine,,}" =~ (adblock|ublock|^!) ]]; then
     # Compare $firstLine against lower case words found in Adblock lists
+    echo -ne "  ${INFO} Format: Adblock"
 
     # Define symbols used as comments: [!
     # "||.*^" includes the "Example 2" domains we can extract
@@ -296,19 +298,42 @@ gravity_ParseFileIntoDomains() {
     # Logic: Ignore lines which do not include comments or domain name anchor
     awk ''"${abpFilter}"' {
       # Remove valid adblock type options
-      gsub(/~?(important|third-party|popup|subdocument|websocket),?/, "", $0)
-      # Remove starting domain name anchor "||" and ending seperator "^$" ($ optional)
-      gsub(/(\|\||\^\$?$)/, "", $0)
-      # Remove lines which are only IPv4 addresses or contain "^/*"
-      if($0 ~ /(^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$|[\\^\/\*])/) { $0="" }
+      gsub(/\$?~?(important|third-party|popup|subdocument|websocket),?/, "", $0)
+      # Remove starting domain name anchor "||" and ending seperator "^"
+      gsub(/^(\|\|)|(\^)/, "", $0)
+      # Remove invalid characters (*/,=$)
+      if($0 ~ /[*\/,=\$]/) { $0="" }
+      # Remove lines which are only IPv4 addresses
+      if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
       if($0) { print $0 }
-    }' "${source}" 2> /dev/null > "${destination}"
+    }' "${source}" > "${destination}"
+
+    # Determine if there are Adblock exception rules
+    # https://adblockplus.org/filters
+    if grep -q "^@@||" "${source}" &> /dev/null; then
+      # Parse Adblock lists by extracting exception rules
+      # Logic: Ignore lines which do not include exception format "@@||example.com^"
+      awk -F "[|^]" '/^@@\|\|.*\^/ {
+        # Remove valid adblock type options
+        gsub(/\$?~?(third-party)/, "", $0)
+        # Remove invalid characters (*/,=$)
+        if($0 ~ /[*\/,=\$]/) { $0="" }
+        if($3) { print $3 }
+      }' "${source}" > "${destination}.exceptionsFile.tmp"
+
+      # Remove exceptions
+      grep -F -x -v -f "${destination}.exceptionsFile.tmp" "${destination}" > "${source}"
+      mv "${source}" "${destination}"
+    fi
+
+    echo -e "${OVER}  ${TICK} Format: Adblock"
   elif grep -q "^address=/" "${source}" &> /dev/null; then
     # Parse Dnsmasq format lists
-    echo -e "  ${CROSS} ${COL_BOLD}dnsmasq${COL_NC} format lists are not supported"
-  elif grep -q -E "^(https?://|www\\.)" "${source}" &> /dev/null; then
-    # Parse URL list if source file contains "http://" or "www."
+    echo -e "  ${CROSS} Format: Dnsmasq (list type not supported)"
+  elif grep -q -E "^https?://" "${source}" &> /dev/null; then
+    # Parse URL list if source file contains "http://" or "https://"
     # Scanning for "^IPv4$" is too slow with large (1M) lists on low-end hardware
+    echo -ne "  ${INFO} Format: URL"
 
     awk '{
       # Remove URL protocol, optional "username:password@", and ":?/;"
@@ -317,6 +342,8 @@ gravity_ParseFileIntoDomains() {
       if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
       if ($0) { print $0 }
     }' "${source}" 2> /dev/null > "${destination}"
+
+    echo -e "${OVER}  ${TICK} Format: URL"
   else
     # Default: Keep hosts/domains file in same format as it was downloaded
     output=$( { mv "${source}" "${destination}"; } 2>&1 )
@@ -580,15 +607,11 @@ done
 gravity_Trap
 
 if [[ "${forceDelete:-}" == true ]]; then
-  str="Deleting exising list cache"
+  str="Deleting existing list cache"
   echo -ne "${INFO} ${str}..."
 
-  if rm /etc/pihole/list.* 2> /dev/null; then
-    echo -e "${OVER}  ${TICK} ${str}"
-  else
-    echo -e "${OVER}  ${CROSS} ${str}"
-    exit 1
-  fi
+  rm /etc/pihole/list.* 2> /dev/null || true
+  echo -e "${OVER}  ${TICK} ${str}"
 fi
 
 # Determine which functions to run
