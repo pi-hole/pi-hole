@@ -128,7 +128,7 @@ gravity_Collapse() {
   echo -ne "  ${INFO} ${str}..."
 
   # Retrieve source URLs from $adListFile
-  mapfile -t sources <<< $(
+  mapfile -t sources < <(
     # Logic: Remove comments (#@;![)
     awk '!/^[#@;!\[]/ {
       # Remove windows CR line endings
@@ -139,7 +139,7 @@ gravity_Collapse() {
   )
 
   # Parse source domains from $sources
-  mapfile -t sourceDomains <<< $(
+  mapfile -t sourceDomains < <(
     # Logic: Split by folder/port
     awk -F '[/:]' '{
       # Remove URL protocol & optional username:password@
@@ -291,7 +291,7 @@ gravity_ParseFileIntoDomains() {
 
     # Define symbols used as comments: [!
     # "||.*^" includes the "Example 2" domains we can extract
-    # https://adblockplus.org/filter-cheatsheet 
+    # https://adblockplus.org/filter-cheatsheet
     abpFilter="/^(\\[|!)|^(\\|\\|.*\\^)/"
 
     # Parse Adblock lists by extracting "Example 2" domains
