@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -14,20 +16,26 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
+coltable="/opt/pihole/COL_TABLE"
+if [[ -f ${coltable} ]]; then
+  source ${coltable}
+fi
+
 helpFunc() {
   echo "Usage: pihole -a [options]
 Example: pihole -a -p password
 Set options for the Admin Console
 
 Options:
-  -f, flush           Flush the Pi-hole log
   -p, password        Set Admin Console password
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
+  -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
+  -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage" 
+                        Add '-h' for more info on interface usage"
 	exit 0
 }
 
@@ -58,6 +66,7 @@ delete_dnsmasq_setting() {
 
 SetTemperatureUnit() {
 	change_setting "TEMPERATUREUNIT" "${unit}"
+  echo -e "  ${TICK} Set temperature unit to ${unit}"
 }
 
 HashPassword() {
@@ -84,12 +93,15 @@ SetWebPassword() {
     readonly PASSWORD="${args[2]}"
     readonly CONFIRM="${PASSWORD}"
   else
+    # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
+    # So we reset the terminal via stty if the user does press Ctrl+C
+    trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
     read -s -p "Enter New Password (Blank for no password): " PASSWORD
     echo ""
 
     if [ "${PASSWORD}" == "" ]; then
       change_setting "WEBPASSWORD" ""
-      echo "Password Removed"
+      echo -e "  ${TICK} Password Removed"
       exit 0
     fi
 
@@ -101,9 +113,9 @@ SetWebPassword() {
 		hash=$(HashPassword ${PASSWORD})
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
-		echo "New password set"
+		echo -e "  ${TICK} New password set"
 	else
-		echo "Passwords don't match. Your password has not been changed"
+		echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
 		exit 1
 	fi
 }
@@ -208,16 +220,29 @@ SetExcludeClients() {
 	change_setting "API_EXCLUDE_CLIENTS" "${args[2]}"
 }
 
+Poweroff(){
+        nohup bash -c "sleep 5; poweroff" &> /dev/null </dev/null &
+}
+
 Reboot() {
 	nohup bash -c "sleep 5; reboot" &> /dev/null </dev/null &
 }
 
 RestartDNS() {
-	if [ -x "$(command -v systemctl)" ]; then
-		systemctl restart dnsmasq &> /dev/null
-	else
-		service dnsmasq restart &> /dev/null
-	fi
+  local str="Restarting DNS service"
+  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}"
+  if command -v systemctl &> /dev/null; then
+    output=$( { systemctl restart dnsmasq; } 2>&1 )
+  else
+    output=$( { service dnsmasq restart; } 2>&1 )
+  fi
+
+  if [[ -z "${output}" ]]; then
+    [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
+  else
+    [[ ! -t 1 ]] && OVER=""
+    echo -e "${OVER}  ${CROSS} ${output}"
+  fi
 }
 
 SetQueryLogOptions() {
@@ -243,7 +268,12 @@ ProcessDHCPSettings() {
     if [[ "${DHCP_LEASETIME}" == "0" ]]; then
       leasetime="infinite"
     elif [[ "${DHCP_LEASETIME}" == "" ]]; then
-      leasetime="24h"
+      leasetime="24"
+      change_setting "DHCP_LEASETIME" "${leasetime}"
+    elif [[ "${DHCP_LEASETIME}" == "24h" ]]; then
+      #Installation is affected by known bug, introduced in a previous version.
+      #This will automatically clean up setupVars.conf and remove the unnecessary "h"
+      leasetime="24"
       change_setting "DHCP_LEASETIME" "${leasetime}"
     else
       leasetime="${DHCP_LEASETIME}h"
@@ -275,7 +305,9 @@ ra-param=*,0,0
     fi
 
 	else
-		rm "${dhcpconfig}" &> /dev/null
+	  if [[ -f "${dhcpconfig}" ]]; then
+		  rm "${dhcpconfig}" &> /dev/null
+		fi
 	fi
 }
 
@@ -373,12 +405,23 @@ RemoveDHCPStaticAddress() {
 }
 
 SetHostRecord() {
-	if [ -n "${args[3]}" ]; then
+  if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
+    echo "Usage: pihole -a hostrecord <domain> [IPv4-address],[IPv6-address]
+Example: 'pihole -a hostrecord home.domain.com 192.168.1.1,2001:db8:a0b:12f0::1'
+Add a name to the DNS associated to an IPv4/IPv6 address
+
+Options:
+  \"\"                  Empty: Remove host record
+  -h, --help          Show this help dialog"
+    exit 0
+  fi
+
+	if [[ -n "${args[3]}" ]]; then
 		change_setting "HOSTRECORD" "${args[2]},${args[3]}"
-		echo "Setting host record for ${args[2]} -> ${args[3]}"
+		echo -e "  ${TICK} Setting host record for ${args[2]} to ${args[3]}"
 	else
 		change_setting "HOSTRECORD" ""
-		echo "Removing host record"
+		echo -e "  ${TICK} Removing host record"
 	fi
 
 	ProcessDNSSettings
@@ -387,9 +430,30 @@ SetHostRecord() {
 	RestartDNS
 }
 
+SetAdminEmail() {
+  if [[ "${1}" == *"-h"* ]]; then
+    echo "Usage: pihole -a email <address>
+Example: 'pihole -a email admin@address.com'
+Set an administrative contact address for the Block Page
+
+Options:
+  \"\"                  Empty: Remove admin contact
+  -h, --help          Show this help dialog"
+    exit 0
+  fi
+
+	if [[ -n "${args[2]}" ]]; then
+		change_setting "ADMIN_EMAIL" "${args[2]}"
+		echo -e "  ${TICK} Setting admin contact to ${args[2]}"
+	else
+		change_setting "ADMIN_EMAIL" ""
+		echo -e "  ${TICK} Removing admin contact"
+	fi
+}
+
 SetListeningMode() {
 	source "${setupVars}"
-  
+
   if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
     echo "Usage: pihole -a -i [interface]
 Example: 'pihole -a -i local'
@@ -402,15 +466,15 @@ Interfaces:
   all                 Listen on all interfaces, permit all origins"
     exit 0
   fi
-  
+
 	if [[ "${args[2]}" == "all" ]]; then
-		echo "Listening on all interfaces, permiting all origins, hope you have a firewall!"
+    echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
 		change_setting "DNSMASQ_LISTENING" "all"
 	elif [[ "${args[2]}" == "local" ]]; then
-		echo "Listening on all interfaces, permitting only origins that are at most one hop away (local devices)"
+    echo -e "  ${INFO} Listening on all interfaces, permiting origins from one hop away (LAN)"
 		change_setting "DNSMASQ_LISTENING" "local"
 	else
-		echo "Listening only on interface ${PIHOLE_INTERFACE}"
+		echo -e "  ${INFO} Listening only on interface ${PIHOLE_INTERFACE}"
 		change_setting "DNSMASQ_LISTENING" "single"
 	fi
 
@@ -428,6 +492,11 @@ Teleporter() {
 	php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
+audit()
+{
+	echo "${args[2]}" >> /etc/pihole/auditlog.list
+}
+
 main() {
 	args=("$@")
 
@@ -439,6 +508,7 @@ main() {
 		"setdns"            ) SetDNSServers;;
 		"setexcludedomains" ) SetExcludeDomains;;
 		"setexcludeclients" ) SetExcludeClients;;
+		"poweroff"          ) Poweroff;;
 		"reboot"            ) Reboot;;
 		"restartdns"        ) RestartDNS;;
 		"setquerylog"       ) SetQueryLogOptions;;
@@ -450,10 +520,12 @@ main() {
 		"resolve"           ) ResolutionSettings;;
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
-		"hostrecord"        ) SetHostRecord;;
+		"-r" | "hostrecord" ) SetHostRecord "$3";;
+		"-e" | "email"      ) SetAdminEmail "$3";;
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
+		"audit"             ) audit;;
 		*                   ) helpFunc;;
 	esac
 
