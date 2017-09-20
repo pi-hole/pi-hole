@@ -128,25 +128,18 @@ gravity_Collapse() {
   echo -ne "  ${INFO} ${str}..."
 
   # Retrieve source URLs from $adListFile
-  mapfile -t sources < <(
-    # Logic: Remove comments (#@;![)
-    awk '!/^[#@;!\[]/ {
-      # Remove windows CR line endings
-      gsub(/\r$/, "", $0)
-      # Print non-empty line
-      if ($1) { print $1 }
-    }' "${adListFile}" 2> /dev/null
-  )
+  # Logic: Remove comments and empty lines
+  mapfile -t sources <<< "$(grep -v -E "^(#|$)" "${adListFile}" 2> /dev/null)"
 
   # Parse source domains from $sources
-  mapfile -t sourceDomains < <(
+  mapfile -t sourceDomains <<< "$(
     # Logic: Split by folder/port
     awk -F '[/:]' '{
       # Remove URL protocol & optional username:password@
       gsub(/(.*:\/\/|.*:.*@)/, "", $0)
       print $1
     }' <<< "$(printf '%s\n' "${sources[@]}")" 2> /dev/null
-  )
+  )"
 
   if [[ -n "${sources[*]}" ]] && [[ -n "${sourceDomains[*]}" ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
@@ -397,7 +390,7 @@ gravity_Filter() {
   # Format $parsedMatter line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
   echo -e "${OVER}  ${TICK} ${str}
-  ${INFO} ${COL_LIGHT_BLUE}${num}${COL_NC} domains being pulled in by gravity"
+  ${INFO} ${COL_BLUE}${num}${COL_NC} domains being pulled in by gravity"
 
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
@@ -406,20 +399,21 @@ gravity_Filter() {
 
   # Format $preEventHorizon line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} ${COL_LIGHT_BLUE}${num}${COL_NC} unique domains trapped in the Event Horizon"
+  echo -e "  ${INFO} ${COL_BLUE}${num}${COL_NC} unique domains trapped in the Event Horizon"
 }
 
 # Whitelist unique blocklist domain sources
 gravity_WhitelistBLD() {
-  local plural="" str uniqDomains
+  local uniqDomains plural="" str 
 
   echo ""
-  [[ "${#sources[@]}" -ne 1 ]] && plural="s"
-  str="Adding blocklist domain source${plural} to the whitelist"
-  echo -ne "  ${INFO} ${str}..."
 
   # Create array of unique $sourceDomains
   mapfile -t uniqDomains <<< "$(awk '{ if(!a[$1]++) { print $1 } }' <<< "$(printf '%s\n' "${sourceDomains[@]}")")"
+  [[ "${#uniqDomains[@]}" -ne 1 ]] && plural="s"
+
+  str="Adding ${#uniqDomains[@]} blocklist source domain${plural} to the whitelist"
+  echo -ne "  ${INFO} ${str}..."
 
   # Whitelist $uniqDomains
   "${PIHOLE_COMMAND}" -w -nr -q "${uniqDomains[*]}" &> /dev/null
@@ -627,7 +621,7 @@ else
   # Gravity needs to modify Blacklist/Whitelist/Wildcards
   echo -e "  ${INFO} Using cached Event Horizon list..."
   numberOf=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} ${COL_LIGHT_BLUE}${numberOf}${COL_NC} unique domains trapped in the Event Horizon"
+  echo -e "  ${INFO} ${COL_BLUE}${numberOf}${COL_NC} unique domains trapped in the Event Horizon"
 fi
 
 # Perform when downloading blocklists, or modifying the whitelist
