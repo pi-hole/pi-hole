@@ -2064,12 +2064,12 @@ main() {
     fi
   fi
 
-  # Download and compile the aggregated block list
-  runGravity
-
   # Enable FTL
   start_service pihole-FTL
   enable_service pihole-FTL
+
+  # Download and compile the aggregated block list
+  runGravity
 
   #
   if [[ "${useUpdateVars}" == false ]]; then
