@@ -208,7 +208,7 @@ else
   echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
 fi
 while true; do
-  echo -e "${COL_YELLOW}  ${INFO} The following dependencies may have been added to the system by Pi-hole install:"
+  echo -e "  ${INFO} ${COL_YELLOW}The following dependencies may have been added by the Pi-hole install:"
   echo -n "    "
   for i in "${DEPS[@]}"; do
     echo -n "${i} "
