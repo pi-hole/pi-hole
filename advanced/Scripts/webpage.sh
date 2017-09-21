@@ -229,20 +229,7 @@ Reboot() {
 }
 
 RestartDNS() {
-  local str="Restarting DNS service"
-  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}"
-  if command -v systemctl &> /dev/null; then
-    output=$( { systemctl restart dnsmasq; } 2>&1 )
-  else
-    output=$( { service dnsmasq restart; } 2>&1 )
-  fi
-
-  if [[ -z "${output}" ]]; then
-    [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
-  else
-    [[ ! -t 1 ]] && OVER=""
-    echo -e "${OVER}  ${CROSS} ${output}"
-  fi
+  /usr/local/bin/pihole restartdns
 }
 
 SetQueryLogOptions() {
