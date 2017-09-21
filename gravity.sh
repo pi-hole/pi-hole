@@ -631,8 +631,8 @@ fi
 
 gravity_ShowBlockCount
 
-# Perform when downloading blocklists, or modifying the blacklist
-if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "blacklist" ]]; then
+# Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)
+if [[ "${skipDownload}" == false ]] || [[ "${listType}" == *"list" ]]; then
   str="Parsing domains into hosts format"
   echo -ne "  ${INFO} ${str}..."
 
@@ -645,10 +645,7 @@ if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "blacklist" ]]; then
   fi
 
   echo -e "${OVER}  ${TICK} ${str}"
-fi
 
-# Perform when downloading blocklists
-if [[ "${skipDownload}" == false ]]; then
   gravity_Cleanup
 fi
 
