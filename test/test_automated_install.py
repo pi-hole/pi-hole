@@ -186,7 +186,6 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     assert tick_box + ' Installing sudoer file' in installWeb.stdout
     web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
     assert 'index.php' in web_directory
-    assert 'index.js' in web_directory
     assert 'blockingpage.css' in web_directory
 
 def test_update_package_cache_success_no_errors(Pihole):

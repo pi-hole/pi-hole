@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -30,6 +32,7 @@ Options:
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
   -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
+  -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage"
@@ -414,6 +417,27 @@ Options:
 	RestartDNS
 }
 
+SetAdminEmail() {
+  if [[ "${1}" == *"-h"* ]]; then
+    echo "Usage: pihole -a email <address>
+Example: 'pihole -a email admin@address.com'
+Set an administrative contact address for the Block Page
+
+Options:
+  \"\"                  Empty: Remove admin contact
+  -h, --help          Show this help dialog"
+    exit 0
+  fi
+
+	if [[ -n "${args[2]}" ]]; then
+		change_setting "ADMIN_EMAIL" "${args[2]}"
+		echo -e "  ${TICK} Setting admin contact to ${args[2]}"
+	else
+		change_setting "ADMIN_EMAIL" ""
+		echo -e "  ${TICK} Removing admin contact"
+	fi
+}
+
 SetListeningMode() {
 	source "${setupVars}"
 
@@ -484,6 +508,7 @@ main() {
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
 		"-r" | "hostrecord" ) SetHostRecord "$3";;
+		"-e" | "email"      ) SetAdminEmail "$3";;
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
