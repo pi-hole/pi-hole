@@ -208,10 +208,10 @@ if (explode("-", $phVersion)[1] != "0")
   <?=setHeader() ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="<?php echo $proto; ?>://pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="<?php echo $proto; ?>://pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="shortcut icon" href="<?=$proto ?>://pi.hole/admin/img/favicon.png" type="image/x-icon"/>
+  <link rel="stylesheet" href="<?=$proto ?>://pi.hole/pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
-  <script src="<?php echo $proto; ?>://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="<?=$proto ?>://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php
