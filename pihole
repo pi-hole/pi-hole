@@ -83,21 +83,27 @@ updateGravityFunc() {
   exit 0
 }
 
+# Scan an array of files for matching strings
 scanList(){
-  domain="${1}"
-  list="${2}"
-  method="${3}"
+  local domain="${1}" lists="${2}" type="${3:-}"
 
-  # Switch folder, preventing grep from printing file path
-  cd "/etc/pihole" || return 1
+  # Prevent grep from printing file path
+  cd "/etc/pihole" || exit 1
 
-  if [[ -n "${method}" ]]; then
-    grep -i -E -l "(^|\s|\/)${domain}($|\s|\/)" ${list} /dev/null 2> /dev/null
-  else
-    grep -i "${domain}" ${list} /dev/null 2> /dev/null
-  fi
+  # Prevent grep -i matching slowly: http://bit.ly/2xFXtUX
+  export LC_CTYPE=C
+
+  # /dev/null forces filename to be printed when only one list has been generated
+  # shellcheck disable=SC2086
+  case "${type}" in
+    "exact" ) grep -i -E -l "(^|\\s)${domain}($|\\s|#)" ${lists} /dev/null;;
+    "wc"    ) grep -i -o -m 1 "/${domain}/" ${lists};;
+    *       ) grep -i "${domain}" ${lists} /dev/null;;
+  esac
 }
 
+# Print each subdomain
+# e.g: foo.bar.baz.com = "foo.bar.baz.com bar.baz.com baz.com com"
 processWildcards() {
   IFS="." read -r -a array <<< "${1}"
   for (( i=${#array[@]}-1; i>=0; i-- )); do
@@ -114,8 +120,8 @@ processWildcards() {
 }
 
 queryFunc() {
-  options="$*"
-  options="${options/-q /}"
+  shift
+  local options="$*" adlist="" all="" exact="" blockpage="" matchType="match"
 
   if [[ "${options}" == "-h" ]] || [[ "${options}" == "--help" ]]; then
     echo "Usage: pihole -q [option] <domain>
@@ -130,200 +136,175 @@ Options:
     exit 0
   fi
 
-  if [[ "${options}" == *"-exact"* ]]; then
-    method="exact"
-    exact=true
-  fi
-
-  if [[ "${options}" == *"-adlist"* ]]; then
-    adlist=true
-  fi
-
-  if [[ "${options}" == *"-bp"* ]]; then
-    method="exact"
-    blockpage=true
-  fi
-
-  if [[ "${options}" == *"-all"* ]]; then
-    all=true
-  fi
-
-  # Strip valid options, leaving only the domain and invalid options
-  options=$(sed 's/ \?-\(exact\|adlist\(s\)\?\|bp\|all\) \?//g' <<< "$options")
-
-  # Handle errors
-  if [[ "${options}" == *" "* ]]; then
-    error=true
-    str="Unknown option specified"
-  elif [[ "${options}" == "-q" ]]; then
-    error=true
-    str="No domain specified"
-  fi
-
-  if [[ -n "${error}" ]]; then
-    echo -e "  ${COL_LIGHT_RED}${str}${COL_NC}
-  Try 'pihole -q --help' for more information."
+  if [[ ! -e "/etc/pihole/adlists.list" ]]; then
+    echo -e "${COL_LIGHT_RED}The file '/etc/pihole/adlists.list' was not found${COL_NC}"
     exit 1
   fi
 
-  # If domain contains non ASCII characters, convert domain to punycode if python is available
-  # Cr: https://serverfault.com/a/335079
-  if [[ "$options" = *[![:ascii:]]* ]]; then
-    if command -v python &> /dev/null; then
-      query=$(python -c 'import sys;print sys.argv[1].decode("utf-8").encode("idna")' "${options}")
-    fi
+  # Handle valid options
+  if [[ "${options}" == *"-bp"* ]]; then
+    exact="exact"; blockpage=true
   else
-    query="${options}"
+    [[ "${options}" == *"-adlist"* ]] && adlist=true
+    [[ "${options}" == *"-all"* ]] && all=true
+    if [[ "${options}" == *"-exact"* ]]; then
+      exact="exact"; matchType="exact ${matchType}"
+    fi
+  fi
+
+  # Strip valid options, leaving only the domain and invalid options
+  # This allows users to place the options before or after the domain
+  options=$(sed -E 's/ ?-(bp|adlists?|all|exact)//g' <<< "${options}")
+
+  # Handle remaining options
+  # If $options contain non ASCII characters, convert to punycode
+  case "${options}" in
+    ""             ) str="No domain specified";;
+    *" "*          ) str="Unknown query option specified";;
+    *[![:ascii:]]* ) domainQuery=$(idn2 "${options}");;
+    *              ) domainQuery="${options}";;
+  esac
+
+  if [[ -n "${str:-}" ]]; then
+    echo -e "${str}${COL_NC}\\nTry 'pihole -q --help' for more information."
+    exit 1
   fi
 
   # Scan Whitelist and Blacklist
   lists="whitelist.txt blacklist.txt"
-  results=($(scanList "${query}" "${lists}" "${method}"))
+  mapfile -t results <<< "$(scanList "${domainQuery}" "${lists}" "${exact}")"
 
   if [[ -n "${results[*]}" ]]; then
-    blResult=true
-    # Loop through each scanList line to print appropriate title
+    wbMatch=true
+
+    # Loop through each result in order to print unique file title once
     for result in "${results[@]}"; do
-      filename="${result/:*/}"
-      if [[ -n "$exact" ]]; then
-        printf "  Exact result in %s\n" "${filename}"
-      elif [[ -n "$blockpage" ]]; then
-        printf "π %s\n" "${filename}"
+      fileName="${result%%.*}"
+
+      if [[ -n "${blockpage}" ]]; then
+        echo "π ${result}"
+        exit 0
+      elif [[ -n "${exact}" ]]; then
+        echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
       else
-        domain="${result/*:/}"
-        if [[ ! "${filename}" == "${filename_prev:-}" ]]; then
-          printf "  Result from %s\n" "${filename}"
+        # Only print filename title once per file
+        if [[ ! "${fileName}" == "${fileName_prev:-}" ]]; then
+          echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
+          fileName_prev="${fileName}"
         fi
-        printf "    %s\n" "${domain}"
-        filename_prev="${filename}"
+        echo "   ${result#*:}"
       fi
     done
   fi
 
   # Scan Wildcards
   if [[ -e "${wildcardlist}" ]]; then
-    wildcards=($(processWildcards "${query}"))
+    # Determine all subdomains, domain and TLDs 
+    mapfile -t wildcards <<< "$(processWildcards "${domainQuery}")"
 
     for match in "${wildcards[@]}"; do
-      results=($(scanList "\/${match}\/" ${wildcardlist}))
+      # Search wildcard list for matches
+      mapfile -t results <<< "$(scanList "${match}" "${wildcardlist}" "wc")"
 
       if [[ -n "${results[*]}" ]]; then
-        # Remove empty lines before couting number of results
-        count=$(sed '/^\s*$/d' <<< "${results[@]}" | wc -l)
-        if [[ "${count}" -ge 0 ]]; then
-          blResult=true
-          if [[ -z "${blockpage}" ]]; then
-            printf "  Wildcard result in %s\n" "${wildcardlist/*dnsmasq.d\/}"
-          fi
-
-          if [[ -n "${blockpage}" ]]; then
-            echo "π ${wildcardlist/*\/}"
-          else
-            echo "    *.${match}"
-          fi
+        if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
+          wcMatch=true
+          echo " ${matchType^} found in ${COL_BOLD}Wildcards${COL_NC}:"
         fi
+
+        case "${blockpage}" in
+          true ) echo "π ${wildcardlist##*/}"; exit 0;;
+          *    ) echo "   *.${match}";;
+        esac
       fi
     done
-
-    [[ -n "${blResult}" ]] && [[ -n "${blockpage}" ]] && exit 0
   fi
 
-  # Glob *.domains file names, remove file paths and sort by list number
-  lists_raw=(/etc/pihole/*.domains)
-  IFS_OLD=$IFS
-  IFS=$'\n'
-  lists=$(sort -t . -k 2 -g <<< "${lists_raw[*]//\/etc\/pihole\//}")
+  # Get version sorted *.domains filenames (without dir path)
+  lists=("$(cd "/etc/pihole" || exit 0; printf "%s\\n" -- *.domains | sort -V)")
 
-  # Scan Domains files
-  results=($(scanList "${query}" "${lists}" "${method}"))
+  # Query blocklists for occurences of domain
+  mapfile -t results <<< "$(scanList "${domainQuery}" "${lists[*]}" "${exact}")"
 
   # Handle notices
-  if [[ -z "${blResult}" ]] && [[ -z "${results[*]}" ]]; then
-    notice=true
-    str="No ${method/t/t }results found for ${query} found within block lists"
-  elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 16000 ]]; then
-    # 16000 chars is 15 chars X 1000 lines worth of results
-    notice=true
-    str="Hundreds of ${method/t/t }results found for ${query}
-    This can be overriden using the -all option"
+  if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
+    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} found within block lists"
+    exit 0
+  elif [[ -z "${results[*]}" ]]; then
+    # Result found in WL/BL/Wildcards
+    exit 0
+  elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
+    echo -e "  ${INFO} Over 100 ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC}
+      This can be overridden using the -all option"
+    exit 0
   fi
 
-  if [[ -n "${notice}" ]]; then
-    echo -e "  ${INFO} ${str}"
-    exit
+  # Remove unwanted content from non-exact $results
+  if [[ -z "${exact}" ]]; then
+    # Delete lines starting with #
+    # Remove comments after domain
+    # Remove hosts format IP address
+    mapfile -t results <<< "$(IFS=$'\n'; sed \
+      -e "/:#/d" \
+      -e "s/[ \\t]#.*//g" \
+      -e "s/:.*[ \\t]/:/g" \
+    <<< "${results[*]}")"
+
+    # Exit if result was in a comment
+    [[ -z "${results[*]}" ]] && exit 0
   fi
 
-  # Remove unwanted content from results
-  if [[ -z "${method}" ]]; then
-    results=($(sed "/:#/d" <<< "${results[*]}")) # Lines starting with comments
-    results=($(sed "s/[ \t]#.*//g" <<< "${results[*]}")) # Comments after domain
-    results=($(sed "s/:.*[ \t]/:/g" <<< "${results[*]}")) # IP address
-  fi
-  IFS=$IFS_OLD
-
-  # Get adlist content as array
+  # Get adlist file content as array
   if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-    if [[ -f "/etc/pihole/adlists.list" ]]; then
-      for url in $(< /etc/pihole/adlists.list); do
-        if [[ "${url:0:4}" == "http" ]] || [[ "${url:0:3}" == "www" ]]; then
-          adlists+=("$url")
-        fi
-      done
-    else
-      echo -e "  ${COL_LIGHT_RED}The file '/etc/pihole/adlists.list' was not found${COL_NC}"
-      exit 1
-    fi
-  fi
-
-  if [[ -n "${results[*]}" ]]; then
-    if [[ -n "${exact}" ]]; then
-      echo "  Exact result(s) for ${query} found in:"
-    fi
-
-    for result in "${results[@]}"; do
-      filename="${result/:*/}"
-
-      # Convert file name to URL name for -adlist or -bp options
-      if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-        filenum=("${filename/list./}")
-        filenum=("${filenum/.*/}")
-        filename="${adlists[$filenum]}"
-
-        # If gravity has generated associated .domains files
-        # but adlists.list has been modified since
-        if [[ -z "${filename}" ]]; then
-          filename="${COL_LIGHT_RED}Error: no associated adlists URL found${COL_NC}"
-        fi
-      fi
-
-      if [[ -n "${exact}" ]]; then
-        printf "    %s\n" "${filename}"
-      elif [[ -n "${blockpage}" ]]; then
-        printf "%s %s\n" "${filenum}" "${filename}"
-      else # Standard query output
-
-        # Print filename heading once per file, not for every match
-        if [[ ! "${filename}" == "${filename_prev:-}" ]]; then
-          unset count
-          printf "  Result from %s\n" "${filename}"
-        else
-          let count++
-        fi
-
-        # Print matching domain if $max_count has not been reached
-        [[ -z "${all}" ]] && max_count="20"
-        if [[ -z "${all}" ]] && [[ "${count}" -eq "${max_count}" ]]; then
-          echo "    Over $count results found, skipping rest of file"
-        elif [[ -z "${all}" ]] && [[ "${count}" -gt "${max_count}" ]]; then
-          continue
-        else
-          domain="${result/*:/}"
-          printf "    %s\n" "${domain}"
-        fi
-        filename_prev="${filename}"
+    for adlistUrl in $(< "/etc/pihole/adlists.list"); do
+      if [[ "${adlistUrl:0:4}" =~ (http|www.) ]]; then
+        adlists+=("${adlistUrl}")
       fi
     done
   fi
+
+  # Print "Exact matches for" title
+  if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
+    plural=""; [[ "${#results[*]}" -gt 1 ]] && plural="es"
+    echo " ${matchType^}${plural} for ${COL_BOLD}${domainQuery}${COL_NC} found in:"
+  fi
+
+  for result in "${results[@]}"; do
+    fileName="${result/:*/}"
+
+    # Determine *.domains URL using filename's number
+    if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
+      fileNum="${fileName/list./}"; fileNum="${fileNum%%.*}"
+      fileName="${adlists[$fileNum]}"
+
+      # Discrepency occurs when adlists has been modified, but Gravity has not been run
+      if [[ -z "${fileName}" ]]; then
+        fileName="${COL_LIGHT_RED}(no associated adlists URL found)${COL_NC}"
+      fi
+    fi
+
+    if [[ -n "${blockpage}" ]]; then
+      echo "${fileNum} ${fileName}"
+    elif [[ -n "${exact}" ]]; then
+      echo "   ${fileName}"
+    else
+      if [[ ! "${fileName}" == "${fileName_prev:-}" ]]; then
+        count=""
+        echo " ${matchType^} found in ${COL_BOLD}${fileName}${COL_NC}:"
+        fileName_prev="${fileName}"
+      fi
+      : $((count++))
+
+      # Print matching domain if $max_count has not been reached
+      [[ -z "${all}" ]] && max_count="50"
+      if [[ -z "${all}" ]] && [[ "${count}" -ge "${max_count}" ]]; then
+        [[ "${count}" -gt "${max_count}" ]] && continue
+        echo "   ${COL_GRAY}Over ${count} results found, skipping rest of file${COL_NC}"
+      else
+        echo "   ${result#*:}"
+      fi
+    fi
+  done
 
   exit 0
 }
