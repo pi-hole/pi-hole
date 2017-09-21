@@ -77,14 +77,14 @@ gravity_DNSLookup() {
   fi
 
   # Determine if $lookupDomain is resolvable
-  if timeout 5 getent hosts "${lookupDomain}" &> /dev/null; then
+  if timeout 1 getent hosts "${lookupDomain}" &> /dev/null; then
     # Print confirmation of resolvability if it had previously failed
     if [[ -n "${secs:-}" ]]; then
       echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
     fi
     return 0
   elif [[ -n "${secs:-}" ]]; then
-    echo -e "${OVER}  ${CROSS} DNS resolution is still unavailable, cancelling"
+    echo -e "${OVER}  ${CROSS} DNS resolution is not available"
     exit 1
   fi
 
@@ -96,13 +96,15 @@ gravity_DNSLookup() {
     "${PIHOLE_COMMAND}" restartdns
   fi
 
-  # Give time for DNS server to be resolvable
-  secs="30"
-  while [[ "${secs}" -ne 0 ]]; do
-    [[ "${secs}" -ne 1 ]] && plural="s"
-    echo -ne "${OVER}  ${INFO} Waiting $secs second${plural} before continuing..."
-    sleep 1
+  # Ensure DNS server is given time to be resolvable
+  secs="120"
+  echo -ne "  ${INFO} Waiting up to ${secs} seconds before continuing..."
+  until timeout 1 getent hosts "${lookupDomain}" &> /dev/null; do
+    [[ "${secs:-}" -eq 0 ]] && break
+    [[ "${secs:-}" -ne 1 ]] && plural="s"
+    echo -ne "${OVER}  ${INFO} Waiting up to ${secs} second${plural} before continuing..."
     : $((secs--))
+    sleep 1
   done
 
   # Try again
