@@ -85,8 +85,8 @@ $HTTP["url"] =~ "^/admin/" {
     }
 }
 
-# Block the github files from being accessible.
-$HTTP["url"] =~ "^/admin/(.git|.gitignore|.github)" {
+# Block . files from being served, such as .git, .github, .gitignore
+$HTTP["url"] =~ "^/admin/\.(.*)" {
      url.access-deny = ("")
 }
 
