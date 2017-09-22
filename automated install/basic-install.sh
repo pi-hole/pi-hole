@@ -1450,7 +1450,7 @@ finalExports() {
   # If the setup variable file exists,
   if [[ -e "${setupVars}" ]]; then
     # update the variables in the file
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
   fi
   # echo the information to the user
     {
