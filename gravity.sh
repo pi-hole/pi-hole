@@ -554,14 +554,17 @@ gravity_Cleanup() {
   rm ${piholeDir}/*.tmp 2> /dev/null
   rm /tmp/*.phgpb 2> /dev/null
 
-  # Remove any unused .domains files
-  for file in ${piholeDir}/*.${domainsExtension}; do
-    # If list is not in active array, then remove it
-    if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
-      rm -f "${file}" 2> /dev/null || \
-        echo -e "  ${CROSS} Failed to remove ${file##*/}"
-    fi
-  done
+  # Ensure this function only runs alongside gravity_Supernova()
+  if [[ "${skipDownload}" == false ]]; then
+    # Remove any unused .domains files
+    for file in ${piholeDir}/*.${domainsExtension}; do
+      # If list is not in active array, then remove it
+      if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
+        rm -f "${file}" 2> /dev/null || \
+          echo -e "  ${CROSS} Failed to remove ${file##*/}"
+      fi
+    done
+  fi
 
   echo -e "${OVER}  ${TICK} ${str}"
 
