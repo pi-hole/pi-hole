@@ -2046,6 +2046,9 @@ main() {
         . /opt/pihole/webpage.sh
         echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
     fi
+
+    # Update permissions for admin interface to be web user
+    chown -R ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webInterfaceDir}
   fi
 
   echo -e "  ${INFO} Restarting services..."
