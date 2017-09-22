@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -30,6 +32,7 @@ Options:
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
   -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
+  -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage"
@@ -173,7 +176,10 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 		# Listen only on one interface
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
-
+	if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
+		add_dnsmasq_setting "server=/${args[8]}/${args[7]}"
+		add_dnsmasq_setting "server=/${args[9]}/${args[7]}"
+	fi
 }
 
 SetDNSServers() {
@@ -203,6 +209,16 @@ SetDNSServers() {
 		change_setting "DNSSEC" "false"
 	fi
 
+	if [[ "${args[6]}" == "conditional_forwarding" ]]; then
+		change_setting "CONDITIONAL_FORWARDING" "true"
+		change_setting "CONDITIONAL_FORWARDING_IP" "${args[7]}"
+		change_setting "CONDITIONAL_FORWARDING_DOMAIN" "${args[8]}"
+	else
+		change_setting "CONDITIONAL_FORWARDING" "false"
+		delete_setting "CONDITIONAL_FORWARDING_IP"
+		delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
+	fi
+
 	ProcessDNSSettings
 
 	# Restart dnsmasq to load new configuration
@@ -226,20 +242,7 @@ Reboot() {
 }
 
 RestartDNS() {
-  local str="Restarting DNS service"
-  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}"
-  if command -v systemctl &> /dev/null; then
-    output=$( { systemctl restart dnsmasq; } 2>&1 )
-  else
-    output=$( { service dnsmasq restart; } 2>&1 )
-  fi
-
-  if [[ -z "${output}" ]]; then
-    [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
-  else
-    [[ ! -t 1 ]] && OVER=""
-    echo -e "${OVER}  ${CROSS} ${output}"
-  fi
+  /usr/local/bin/pihole restartdns
 }
 
 SetQueryLogOptions() {
@@ -427,6 +430,27 @@ Options:
 	RestartDNS
 }
 
+SetAdminEmail() {
+  if [[ "${1}" == *"-h"* ]]; then
+    echo "Usage: pihole -a email <address>
+Example: 'pihole -a email admin@address.com'
+Set an administrative contact address for the Block Page
+
+Options:
+  \"\"                  Empty: Remove admin contact
+  -h, --help          Show this help dialog"
+    exit 0
+  fi
+
+	if [[ -n "${args[2]}" ]]; then
+		change_setting "ADMIN_EMAIL" "${args[2]}"
+		echo -e "  ${TICK} Setting admin contact to ${args[2]}"
+	else
+		change_setting "ADMIN_EMAIL" ""
+		echo -e "  ${TICK} Removing admin contact"
+	fi
+}
+
 SetListeningMode() {
 	source "${setupVars}"
 
@@ -497,6 +521,7 @@ main() {
 		"addstaticdhcp"     ) AddDHCPStaticAddress;;
 		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
 		"-r" | "hostrecord" ) SetHostRecord "$3";;
+		"-e" | "email"      ) SetAdminEmail "$3";;
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
