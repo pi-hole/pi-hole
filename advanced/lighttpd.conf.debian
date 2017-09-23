@@ -41,7 +41,7 @@ accesslog.format            = "%{%s}t|%V|%r|%s|%b"
 
 
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
-url.access-deny             = ( "~", ".inc" )
+url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )
 static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
 
 compress.cache-dir          = "/var/cache/lighttpd/compress/"
@@ -64,6 +64,11 @@ $HTTP["url"] =~ "^/admin/" {
         # Allow Block Page access to local fonts
         setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }
+}
+
+# Block . files from being served, such as .git, .github, .gitignore
+$HTTP["url"] =~ "^/admin/\.(.*)" {
+     url.access-deny = ("")
 }
 
 # Add user chosen options held in external file
