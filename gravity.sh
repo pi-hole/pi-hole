@@ -181,6 +181,7 @@ gravity_Supernova() {
       echo ""
     fi
   done
+  gravity_Blackbody=true
 }
 
 # Download specified URL and perform checks on HTTP status and file content
@@ -554,8 +555,8 @@ gravity_Cleanup() {
   rm ${piholeDir}/*.tmp 2> /dev/null
   rm /tmp/*.phgpb 2> /dev/null
 
-  # Ensure this function only runs alongside gravity_Supernova()
-  if [[ "${skipDownload}" == false ]]; then
+  # Ensure this function only runs when gravity_Supernova() has completed
+  if [[ "${gravity_Blackbody:-}" == true ]]; then
     # Remove any unused .domains files
     for file in ${piholeDir}/*.${domainsExtension}; do
       # If list is not in active array, then remove it
