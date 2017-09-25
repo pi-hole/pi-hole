@@ -345,7 +345,7 @@ gravity_ParseFileIntoDomains() {
     output=$( { mv "${source}" "${destination}"; } 2>&1 )
 
     if [[ ! -e "${destination}" ]]; then
-      echo -e "  ${CROSS} Unable to move tmp file to ${piholeDir}
+      echo -e "\\n  ${CROSS} Unable to move tmp file to ${piholeDir}
     ${output}"
       gravity_Cleanup "error"
     fi
@@ -521,7 +521,7 @@ gravity_ParseBlacklistDomains() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
     gravity_Cleanup "error"
   fi
 }
@@ -535,7 +535,7 @@ gravity_ParseUserDomains() {
   gravity_ParseDomainsIntoHosts "${blacklistFile}" "${blackList}.tmp"
   # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
   mv "${blackList}.tmp" "${blackList}" 2> /dev/null || \
-    echo -e "  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
+    echo -e "\\n  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
 }
 
 # Trap Ctrl-C
