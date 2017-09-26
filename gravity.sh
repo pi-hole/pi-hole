@@ -369,7 +369,7 @@ gravity_ParseFileIntoDomains() {
     fi
   fi
 }
-      
+
 # Create (unfiltered) "Matter and Light" or "Wild Duck Cluster" consolidated list
 gravity_Schwarzschild() {
   local str lastLine
