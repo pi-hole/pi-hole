@@ -366,8 +366,8 @@ gravity_Schwarzschild() {
   for i in "${activeDomains[@]}"; do
     # Determine if file has read permissions, as download might have failed
     if [[ -r "${i}" ]]; then
-      # Remove windows CRs from file, and append into $matterAndLight
-      tr -d '\r' < "${i}" >> "${piholeDir}/${matterAndLight}"
+      # Remove windows CRs from file, convert list to lower case, and append into $matterAndLight
+      tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${matterAndLight}"
 
       # Ensure that the first line of a new list is on a new line
       lastLine=$(tail -1 "${piholeDir}/${matterAndLight}")
