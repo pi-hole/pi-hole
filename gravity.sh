@@ -264,7 +264,7 @@ gravity_ParseFileIntoDomains() {
   local source="${1}" destination="${2}" commentPattern firstLine abpFilter
 
   # Determine if we are parsing a consolidated list
-  if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
+  if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]] | [[ "${source}" == "${piholeDir}/${quasar}" ]]; then
     # Define symbols used as comments: #;@![/
     commentPattern="[#;@![\\/]"
 
@@ -388,10 +388,10 @@ gravity_Schwarzschild() {
     if [[ -r "${i}" ]] & [[ ${listExtension} = ${2} ]]; then
       # Remove windows CRs from file, and append into $matterAndLight/$wildDuckCluster
       tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${1}"
+      
       # Ensure that the first line of a new list is on a new line
       lastLine=$(tail -1 "${piholeDir}/${1}")
-      countLines=$(wc -l < "${piholeDir}/${1}")
-      if [[ "${#lastLine}" -gt 0 ]] & [[ ${countLines} < 2 ]]; then
+      if [[ "${#lastLine}" -gt 0 ]]; then
         echo "" >> "${piholeDir}/${1}"
       fi
     fi
