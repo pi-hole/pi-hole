@@ -391,7 +391,7 @@ gravity_Schwarzschild() {
       # Ensure that the first line of a new list is on a new line
       lastLine=$(tail -1 "${piholeDir}/${1}")
       countLines=$(wc -l < "${piholeDir}/${1}")
-      if [[ "${#lastLine}" -gt 0 ]] & [[ countLines < 2 ]]; then
+      if [[ "${#lastLine}" -gt 0 ]] & [[ ${countLines} < 2 ]]; then
         echo "" >> "${piholeDir}/${1}"
       fi
     fi
