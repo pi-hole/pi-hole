@@ -458,13 +458,12 @@ gravity_Whitelist() {
   str="Whitelisting ${num} ${4}${plural}"
   echo -ne "  ${INFO} ${str}..."
 
+  # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
   if [[ -z "${3}" ]]; then
     mv "${piholeDir}/${2}" "${piholeDir}/${2}.tmp"
     grep -F -x -v -f "${1}" "${piholeDir}/${2}.tmp" > "${piholeDir}/${2}"
     rm "${piholeDir}/${2}.tmp"
   else
-    # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-#  grep -F -x -v -f "${whitelistFile}" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/${whitelistMatter}"
     grep -F -x -v -f "${1}" "${piholeDir}/${2}" > "${piholeDir}/${3}"
   fi
 
