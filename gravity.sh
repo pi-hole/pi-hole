@@ -27,6 +27,7 @@ adListRepoDefault="${piholeRepo}/adlists.default"
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 wildcardFile="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+wildcardLists="/etc/dnsmasq.d/103-pihole-wildcardBL.conf"
 
 adList="${piholeDir}/gravity.list"
 blackList="${piholeDir}/black.list"
@@ -34,11 +35,15 @@ localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
 domainsExtension="domains"
+wildcardExtension="sdomains"
 matterAndLight="${basename}.0.matterandlight.txt"
+quasar="${basename}.0.quasar.txt"
 parsedMatter="${basename}.1.parsedmatter.txt"
+parsedQuasar="${basename}.1.parsedQuasar.txt"
 whitelistMatter="${basename}.2.whitelistmatter.txt"
 accretionDisc="${basename}.3.accretionDisc.txt"
 preEventHorizon="list.preEventHorizon"
+wildDuckCluster="list.wildDuckCluster"
 
 skipDownload="false"
 
@@ -131,8 +136,20 @@ gravity_Collapse() {
 
   # Retrieve source URLs from $adListFile
   # Logic: Remove comments and empty lines
-  mapfile -t sources <<< "$(grep -v -E "^(#|$)" "${adListFile}" 2> /dev/null)"
-
+  mapfile -t preSource <<< "$(grep -v -E "^(#|$)" "${adListFile}" 2> /dev/null)"
+  
+  # Process lines as URL which may or may not be followed by a delimiter space and lowercase "w", to indicate wildcard type list
+  for line in "${preSource[@]}"; do
+    column1=(`echo ${line} | cut -f 1 -d ' ' `) && column2=(`echo ${line} | cut -f 2 -d ' ' `)
+    sources+=(${column1})
+    if [[ "${column2}" == w ]]; then
+      blockListType+=(${wildcardExtension})
+      printf detecttd
+    else
+      blockListType+=(${domainsExtension})
+    fi
+  done
+  
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
     # Logic: Split by folder/port
@@ -161,9 +178,10 @@ gravity_Supernova() {
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
     domain="${sourceDomains[$i]}"
+    blockTypeExtension="${blockListType[$i]}"
 
-    # Save the file as list.#.domain
-    saveLocation="${piholeDir}/list.${i}.${domain}.${domainsExtension}"
+    # Save the file as list.#.(s)domains
+    saveLocation="${piholeDir}/list.${i}.${domain}.${blockTypeExtension}"
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
@@ -351,31 +369,34 @@ gravity_ParseFileIntoDomains() {
     fi
   fi
 }
-
-# Create (unfiltered) "Matter and Light" consolidated list
+      
+# Create (unfiltered) "Matter and Light" or "Wild Duck Cluster" consolidated list
 gravity_Schwarzschild() {
   local str lastLine
 
   str="Consolidating blocklists"
   echo -ne "  ${INFO} ${str}..."
 
-  # Empty $matterAndLight if it already exists, otherwise, create it
-  : > "${piholeDir}/${matterAndLight}"
+  # Empty $matterAndLight/$wildDuckCluster if it already exists, otherwise, create it
+  : > "${piholeDir}/${1}"
 
-  # Loop through each *.domains file
+  # Loop through each *.domains/sdomains file
   for i in "${activeDomains[@]}"; do
-    # Determine if file has read permissions, as download might have failed
-    if [[ -r "${i}" ]]; then
-      # Remove windows CRs from file, convert list to lower case, and append into $matterAndLight
-      tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${matterAndLight}"
-
+    filename="$(basename "${i}")"
+    listExtension="${filename##*.}"
+    # Determine if file has read permissions, as download might have failed, and appropriate file extension
+    if [[ -r "${i}" ]] & [[ ${listExtension} = ${2} ]]; then
+      # Remove windows CRs from file, and append into $matterAndLight/$wildDuckCluster
+      tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${1}"
       # Ensure that the first line of a new list is on a new line
-      lastLine=$(tail -1 "${piholeDir}/${matterAndLight}")
-      if [[ "${#lastLine}" -gt 0 ]]; then
-        echo "" >> "${piholeDir}/${matterAndLight}"
+      lastLine=$(tail -1 "${piholeDir}/${1}")
+      countLines=$(wc -l < "${piholeDir}/${1}")
+      if [[ "${#lastLine}" -gt 0 ]] & [[ countLines < 2 ]]; then
+        echo "" >> "${piholeDir}/${1}"
       fi
     fi
   done
+  
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -388,21 +409,21 @@ gravity_Filter() {
   echo -ne "  ${INFO} ${str}..."
 
   # Parse into hosts file
-  gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
+  gravity_ParseFileIntoDomains "${piholeDir}/${1}" "${piholeDir}/${2}"
 
   # Format $parsedMatter line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
+  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${2}")")
   echo -e "${OVER}  ${TICK} ${str}
   ${INFO} ${COL_BLUE}${num}${COL_NC} domains being pulled in by gravity"
 
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  sort -u "${piholeDir}/${2}" > "${piholeDir}/${3}"
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Format $preEventHorizon line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} ${COL_BLUE}${num}${COL_NC} unique domains trapped in the Event Horizon"
+  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${3}")")
+  echo -e "  ${INFO} ${COL_BLUE}${num}${COL_NC} unique ${4} trapped in the Event Horizon"
 }
 
 # Whitelist unique blocklist domain sources
@@ -435,11 +456,18 @@ gravity_Whitelist() {
 
   num=$(wc -l < "${whitelistFile}")
   [[ "${num}" -ne 1 ]] && plural="s"
-  str="Whitelisting ${num} domain${plural}"
+  str="Whitelisting ${num} ${4}${plural}"
   echo -ne "  ${INFO} ${str}..."
 
-  # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-  grep -F -x -v -f "${whitelistFile}" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/${whitelistMatter}"
+  if [[ -z "${3}" ]]; then
+    mv "${piholeDir}/${2}" "${piholeDir}/${2}.tmp"
+    grep -F -x -v -f "${1}" "${piholeDir}/${2}.tmp" > "${piholeDir}/${2}"
+    rm "${piholeDir}/${2}.tmp"
+  else
+    # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
+#  grep -F -x -v -f "${whitelistFile}" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/${whitelistMatter}"
+    grep -F -x -v -f "${1}" "${piholeDir}/${2}" > "${piholeDir}/${3}"
+  fi
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -479,6 +507,22 @@ gravity_ParseDomainsIntoHosts() {
       print ipv6" "$0
     }
   }' >> "${2}" < "${1}"
+}
+
+# Parse list of sub-domains into config format (address=)
+gravity_ParseSubdomainsIntoConfig() {
+  awk -v ipv4="$IPV4_ADDRESS" -v ipv6="$IPV6_ADDRESS" '{
+    # Remove windows CR line endings
+    sub(/\r$/, "")
+    # Parse each line as "address=//"
+    if(ipv6 && ipv4) {
+      print "address=/"$0"/"ipv4"\n""address=/"$0"/"ipv6
+    } else if(!ipv6) {
+      print "address=/"$0"/"ipv4
+    } else {
+      print "address=/"$0"/"ipv6
+    }
+  }' > "${2}" < "${1}"
 }
 
 # Create "localhost" entries into hosts format
@@ -538,6 +582,14 @@ gravity_ParseUserDomains() {
     echo -e "\\n  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
 }
 
+# De-duplicate wildcarded sub-domains that exist in hosts list
+gravity_ReducePreEventHorizon () {
+# Since at this point preEventHorizon and wildDuckCluster are both sorted, we can use compare command to remove duplicates
+  mv ${piholeDir}/${preEventHorizon} ${piholeDir}/${preEventHorizon}.tmp
+  comm -2 -3 ${piholeDir}/${preEventHorizon}.tmp ${piholeDir}/${wildDuckCluster} > ${piholeDir}/${preEventHorizon}
+  rm ${piholeDir}/${preEventHorizon}.tmp
+}
+
 # Trap Ctrl-C
 gravity_Trap() {
   trap '{ echo -e "\\n\\n  ${INFO} ${COL_LIGHT_RED}User-abort detected${COL_NC}"; gravity_Cleanup "error"; }' INT
@@ -558,7 +610,7 @@ gravity_Cleanup() {
   # Ensure this function only runs when gravity_Supernova() has completed
   if [[ "${gravity_Blackbody:-}" == true ]]; then
     # Remove any unused .domains files
-    for file in ${piholeDir}/*.${domainsExtension}; do
+    for file in ${piholeDir}/*.${domainsExtension} ${piholeDir}/*.${wildcardExtension}; do
       # If list is not in active array, then remove it
       if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
         rm -f "${file}" 2> /dev/null || \
@@ -620,8 +672,14 @@ if [[ "${skipDownload}" == false ]]; then
   gravity_DNSLookup
   gravity_Collapse
   gravity_Supernova
-  gravity_Schwarzschild
-  gravity_Filter
+  gravity_Schwarzschild "${matterAndLight}" "${domainsExtension}"
+  gravity_Schwarzschild "${quasar}" "${wildcardExtension}"
+  gravity_Filter "${matterAndLight}" "${parsedMatter}" "${preEventHorizon}" "domains"
+  # Drop domains in hosts that exist in sub-domain blocklist
+  if [[ -r ${piholeDir}/${quasar} ]]; then
+    gravity_Filter "${quasar}" "${parsedQuasar}" "${wildDuckCluster}" "sub-domains"
+    gravity_ReducePreEventHorizon
+  fi
   gravity_WhitelistBLD
 else
   # Gravity needs to modify Blacklist/Whitelist/Wildcards
@@ -632,7 +690,9 @@ fi
 
 # Perform when downloading blocklists, or modifying the whitelist
 if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "whitelist" ]]; then
-  gravity_Whitelist
+  gravity_Whitelist "${whitelistFile}" "${preEventHorizon}" "${whitelistMatter}" "domain"
+  gravity_Whitelist "${whitelistFile}" "${wildDuckCluster}" "" "wildcard domain"
+  gravity_ParseSubdomainsIntoConfig ${piholeDir}/${wildDuckCluster} ${wildcardLists}
 fi
 
 gravity_ShowBlockCount
