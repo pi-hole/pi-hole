@@ -264,7 +264,7 @@ gravity_ParseFileIntoDomains() {
   local source="${1}" destination="${2}" commentPattern firstLine abpFilter
 
   # Determine if we are parsing a consolidated list
-  if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]] | [[ "${source}" == "${piholeDir}/${quasar}" ]]; then
+  if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]] || [[ "${source}" == "${piholeDir}/${quasar}" ]]; then
     # Define symbols used as comments: #;@![/
     commentPattern="[#;@![\\/]"
 
