@@ -396,7 +396,6 @@ gravity_Schwarzschild() {
       fi
     fi
   done
-  
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
