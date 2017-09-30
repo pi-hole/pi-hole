@@ -176,6 +176,10 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 		# Listen only on one interface
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
+	if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
+		add_dnsmasq_setting "server=/${args[8]}/${args[7]}"
+		add_dnsmasq_setting "server=/${args[9]}/${args[7]}"
+	fi
 
 }
 
@@ -204,6 +208,15 @@ SetDNSServers() {
 		change_setting "DNSSEC" "true"
 	else
 		change_setting "DNSSEC" "false"
+	fi
+	if [[ "${args[6]}" == "conditional_forwarding" ]]; then
+		change_setting "CONDITIONAL_FORWARDING" "true"
+		change_setting "CONDITIONAL_FORWARDING_IP" "${args[7]}"
+		change_setting "CONDITIONAL_FORWARDING_DOMAIN" "${args[8]}"
+	else
+		change_setting "CONDITIONAL_FORWARDING" "false"
+		delete_setting "CONDITIONAL_FORWARDING_IP"
+		delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
 	fi
 
 	ProcessDNSSettings
