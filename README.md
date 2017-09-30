@@ -19,7 +19,7 @@ The Pi-hole blocks ads via a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Si
 - **Fast**: speeds up the feel of everyday browsing by caching DNS queries, saving bandwidth
 - **Lightweight**: runs smoothly and requires [minimal resources](https://discourse.pi-hole.net/t/hardware-software-requirements/273)
 - **Robust**: a command line interface for those preferring CLI, and/or wanting to automate tasks
-- **Informative**: a beautiful and secure Web Admin dashboard to control your Pi-hole
+- **Informative**: a beautiful and secure Web Interface dashboard to control your Pi-hole
 - **Versatile**: can optionally function as a DHCP server, ensuring each device will not need further intervention
 - **Scalable**: [capable of handling hundreds of millions of queries](https://pi-hole.net/2017/05/24/how-much-traffic-can-pi-hole-handle/) when installed on powerful hardware
 - **Modern**: blocks ads over both IPv4 and IPv6
@@ -102,12 +102,12 @@ Word-of-mouth continues to help our project grow immensely, and we'd like to hel
 - [@The_Pi_Hole on Twitter](https://twitter.com/The_Pi_Hole)
 - [Pi-hole on YouTube](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
 - [ThePiHole on Facebook](https://www.facebook.com/ThePiHole/)
-- [Chat on Gitter](https://gitter.im/pi-hole/pi-hole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+- [Chat on Gitter](https://gitter.im/pi-hole/pi-hole)
 
 -----
 
 ## Features
-* <sub>[The Web Admin Dashboard](#the-web-admin-dashboard)</sub>
+* <sub>[The Web Interface Dashboard](#the-web-interface-dashboard)</sub>
 * <sub>[The Faster-Than-Light Engine](#the-faster-than-light-engine)</sub>
 * <sub>[The Query Log](#the-query-log)</sub>
 * <sub>[Long-term Statistics](#long-term-statistics)</sub>
@@ -115,12 +115,12 @@ Word-of-mouth continues to help our project grow immensely, and we'd like to hel
 * <sub>[Additional Blocklists](#additional-blocklists)</sub>
 * <sub>[Enable and Disable Pi-hole](#enable-and-disable-pi-hole)</sub>
 * <sub>[Tools](#tools)</sub>
-* <sub>[Web Admin Settings](#web-admin-settings)</sub>
+* <sub>[Web Interface Settings](#web-interface-settings)</sub>
 * <sub>[Built-in DHCP Server](#built-in-dhcp-server)</sub>
 * <sub>[Real-time Statistics](#real-time-statistics)</sub>
 
-### The Web Admin Dashboard
-The optional dashboard (based on [almasaeed2010's AdminLTE](https://github.com/almasaeed2010/AdminLTE) Admin Control Panel) allows you to view stats, change settings, and configure your Pi-hole.
+### The Web Interface Dashboard
+This optional [open source](https://github.com/almasaeed2010/AdminLTE) dashboard allows you to view stats, change settings, and configure your Pi-hole.
 
 ![Pi-hole Dashboard](https://assets.pi-hole.net/static/dashboard.png)
 
@@ -150,7 +150,7 @@ The Web (`admin/api.php`) and Command Line (`pihole -c -j`) will return `json` f
 More details on the API can be found [here](https://discourse.pi-hole.net/t/pi-hole-api/1863) and `telnet` on [the repo itself](https://github.com/pi-hole/FTL).
 
 ### The Query Log
-If enabled, the query log will show all of the DNS queries requested by clients using Pi-hole as their DNS server. Forwarded domains will show in green, and blocked (_Pi-holed_) domains will show in red. You can also whitelist or blacklist domains from within this section.
+If enabled, the query log will show all of the DNS queries requested by clients using Pi-hole as their DNS server. Standard domains will show in green, and blocked (_Pi-holed_) domains will show in red. You can also whitelist or blacklist domains from within this section.
 
 <p align="center">
 <img src="https://assets.pi-hole.net/static/query_log.png">
@@ -159,7 +159,7 @@ If enabled, the query log will show all of the DNS queries requested by clients 
 The query log and graphs are what have helped people [discover all sorts of unexpected traffic traversing their networks](https://pi-hole.net/2017/07/06/round-3-what-really-happens-on-your-network/).
 
 #### Long-term Statistics
-Using our FTL API, Pi-hole can store all of the domains queried in a database for retrieval or analysis later on. You can view this data as a graph, individual queries, top clients/advertisers, or even query the database yourself for your own applications.
+Using our FTL API, Pi-hole will store all the DNS queries in a database for later retrieval and analysis. You can view this data as a graph, individual queries, top clients/advertisers, or even query the database yourself for your own applications.
 
 <p align="center">
 <img src="https://assets.pi-hole.net/static/long-term-stats.png">
@@ -222,7 +222,7 @@ After the debugger has finished, you have the option to upload it to our secure 
 
 You should be able to resolve most issues using the provided FAQ links, but we're always happy to help out if you'd like assistance!
 
-### Web Admin Settings
+### Web Interface Settings
 The settings page lets you control and configure your Pi-hole. You can do things like:
 
 - view networking information
