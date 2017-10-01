@@ -59,7 +59,7 @@ QUERY_LOGGING=true
 INSTALL_WEB=true
 
 
-# Find the rows and columns will default to 80x24 is it can not be detected
+# Find the rows and columns will default to 80x24 if it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
 rows=$(echo "${screen_size}" | awk '{print $1}')
 columns=$(echo "${screen_size}" | awk '{print $2}')
