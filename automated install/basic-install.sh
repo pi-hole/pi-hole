@@ -23,9 +23,9 @@ instalLogLoc=/etc/pihole/install.log
 setupVars=/etc/pihole/setupVars.conf
 lighttpdConfig=/etc/lighttpd/lighttpd.conf
 
-webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
+webInterfaceGitUrl="https://github.com/arevindh/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+piholeGitUrl="https://github.com/arevindh/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 PI_HOLE_INSTALL_DIR="/opt/pihole"
@@ -249,7 +249,10 @@ get_available_interfaces() {
 welcomeDialogs() {
   # Display the welcome dialog
   whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "\n\nThis installer will transform your device into a network-wide ad blocker!" ${r} ${c}
-
+  
+  #Display speedtest mod dialog
+  whiptail --msgbox --backtitle "Speedtest Mod" --title "Speedtest Mod Included" "\n\nSpeedtestMod faq @ https://goo.gl/7FSZ43" ${r} ${c}
+  
   # Support for a part-time dev
   whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\n\nThe Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" ${r} ${c}
 
