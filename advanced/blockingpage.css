@@ -228,7 +228,6 @@ header #bpAlt label {
 .aboutImg {
   background: url("/admin/img/logo.svg") no-repeat center;
   background-size: 90px 90px;
-  border: 3px solid rgba(255,255,255,0.2);
   height: 90px;
   margin: 0 auto;
   padding: 2px;
