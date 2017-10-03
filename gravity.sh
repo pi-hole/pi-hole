@@ -503,7 +503,7 @@ gravity_ParseLocalDomains() {
 
   # Add additional LAN hosts provided by OpenVPN (if available)
   if [[ -f "${VPNList}" ]]; then
-    awk -F, '{printf $2"\t"$1"\n"}' "${VPNList}" >> "${localList}"
+    awk -F, '{printf $2"\t"$1".vpn\n"}' "${VPNList}" >> "${localList}"
   fi
 }
 
