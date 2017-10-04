@@ -1304,6 +1304,12 @@ installPiholeWeb() {
   install -d /var/www/html/pihole
   # and the blockpage
   install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+
+  # Remove superseded file
+  if [[ -e "/var/www/html/pihole/index.js" ]]; then
+    rm "/var/www/html/pihole/index.js"
+  fi
+
   echo -e "${OVER}  ${TICK} ${str}"
 
   local str="Backing up index.lighttpd.html"
