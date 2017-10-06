@@ -103,22 +103,27 @@ Word-of-mouth continues to help our project grow immensely, and we'd like to hel
 -----
 
 ## Features
-* <sub>[The Web Interface Dashboard](#the-web-interface-dashboard)</sub>
-* <sub>[The Faster-Than-Light Engine](#the-faster-than-light-engine)</sub>
-* <sub>[The Query Log](#the-query-log)</sub>
-* <sub>[Long-term Statistics](#long-term-statistics)</sub>
-* <sub>[Whitelisting and Blacklisting](#whitelisting-and-blacklisting)</sub>
-* <sub>[Additional Blocklists](#additional-blocklists)</sub>
-* <sub>[Enable and Disable Pi-hole](#enable-and-disable-pi-hole)</sub>
-* <sub>[Tools](#tools)</sub>
-* <sub>[Web Interface Settings](#web-interface-settings)</sub>
-* <sub>[Built-in DHCP Server](#built-in-dhcp-server)</sub>
-* <sub>[Real-time Statistics](#real-time-statistics)</sub>
+### The Command Line Interface
+The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole.
+
+<a href="https://assets.pi-hole.net/static/ASCII-Vortex.png"><img src="https://firebog.net/ASCII-Logo.png" width="200" height="280" alt="Pi-hole ASCII Logo"/></a>
+
+Some of the features include:
+* [Whitelisting, Blacklisting and Wildcards](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#whitelisting-blacklisting-and-wildcards)
+* [Debugging utility](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#debugger)
+* [Viewing the live log file](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#tail)
+* [Real-time Statistics via `ssh`](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#chronometer) or [your TFT LCD screen](http://www.amazon.com/exec/obidos/ASIN/B00ID39LM4/pihole09-20)
+* [Updating Ad Lists](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#gravity)
+* [Querying Ad Lists for matching domains](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#query)
+* [Enabling and Disabling Pi-hole](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#enable--disable)
+* ... and *many* more!
+
+You can read our [Core Feature Breakdown](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown), as well as read up on [example usage](https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738) for more information.
 
 ### The Web Interface Dashboard
-This optional [open source](https://github.com/almasaeed2010/AdminLTE) dashboard allows you to view stats, change settings, and configure your Pi-hole.
+This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
 
-![Pi-hole Dashboard](https://assets.pi-hole.net/static/dashboard.png)
+<a href="https://assets.pi-hole.net/static/dashboard.png"><img src="https://camo.githubusercontent.com/313742e96fc7dee581e77b8c7eff1e4c078024ee/68747470733a2f2f66697265626f672e6e65742f44617368626f6172642e706e67" width="888" height="522" alt="Pi-hole Dashboard"/></a>
 
 There are several ways to [access the dashboard](https://discourse.pi-hole.net/t/how-do-i-access-pi-holes-dashboard-admin-interface/3168):
 
@@ -127,132 +132,19 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 3. `http://pi.hole/` (when using Pi-hole as your DNS server)
 
 ## The Faster-Than-Light Engine
-The [FTL API](https://github.com/pi-hole/FTL) can be accessed via the Web, Command Line and `telnet`.
+The [FTL Engine](https://github.com/pi-hole/FTL) is a lightweight purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily intergrated into your own projects. As the name implies, FTL does this all *very quickly*!
 
-The Web (`admin/api.php`) and Command Line (`pihole -c -j`) will return `json` formatted output:
-``` 
-{
-   "domains_being_blocked":111175,
-   "dns_queries_today":15669,
-   "ads_blocked_today":1752,
-   "ads_percentage_today":11.181314,
-   "unique_domains":1178,
-   "queries_forwarded":9177,
-   "queries_cached":4740,
-   "unique_clients":18
-}
-```
+Some of the statistics you can intergrate include:
+* Total number of domains being blocked
+* Total number of DNS queries today
+* Total number of ads blocked today
+* Percentage of ads blocked
+* Unique domains
+* Queries forwarded (to your chosen upstream DNS server)
+* Queries cached (served by Pi-hole)
+* Unique Pi-hole clients
 
-More details on the API can be found [here](https://discourse.pi-hole.net/t/pi-hole-api/1863) and `telnet` on [the repo itself](https://github.com/pi-hole/FTL).
-
-### The Query Log
-If enabled, the query log will show all of the DNS queries requested by clients using Pi-hole as their DNS server. Standard domains will show in green, and blocked (_Pi-holed_) domains will show in red. You can also whitelist or blacklist domains from within this section.
-
-<p align="center">
-<img src="https://assets.pi-hole.net/static/query_log.png">
-</p>
-
-The query log and graphs are what have helped people [discover all sorts of unexpected traffic traversing their networks](https://pi-hole.net/2017/07/06/round-3-what-really-happens-on-your-network/).
-
-#### Long-term Statistics
-Using our FTL API, Pi-hole will store all the DNS queries in a database for later retrieval and analysis. You can view this data as a graph, individual queries, top clients/advertisers, or even query the database yourself for your own applications.
-
-<p align="center">
-<img src="https://assets.pi-hole.net/static/long-term-stats.png">
-</p>
-
-### Whitelisting and Blacklisting
-Domains can be [whitelisted](https://discourse.pi-hole.net/t/commonly-whitelisted-domains/212) or [blacklisted](https://discourse.pi-hole.net/t/commonly-blacklisted-domains/305) using either the dashboard, or via [the `pihole` command](https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738).
-
-<p align="center">
-<a href=https://github.com/pi-hole/pi-hole/wiki/Whitelisting-and-Blacklisting><img src="https://assets.pi-hole.net/static/whitelist.png"></a>
-</p>
-
-#### Additional Blocklists
-Pi-hole's stock block lists cover over 100,000 known ad-serving domains, which helps ensure you encounter minimal false positives. You can expand the blocking power of your Pi-hole by [adding additional lists](https://discourse.pi-hole.net/t/how-do-i-add-additional-block-lists-to-pi-hole/259) such as the ones found at [The Big Blocklist Collection](https://wally3k.github.io/).
-
-<p align="center">
-<a href=https://discourse.pi-hole.net/t/how-do-i-add-additional-block-lists-to-pi-hole/259><img src="https://assets.pi-hole.net/static/manage-ad-lists.png"></a>
-</p>
-
-### Enable and Disable Pi-hole
-There are times where you may want to disable the blocking functionality, and turn it back on again. You can toggle this via the dashboard or command line.
-
-<p align="center">
-<img src="https://assets.pi-hole.net/static/enable-disable.png">
-</p>
-
-### Tools
-
-<p align="center">
-<img src="https://assets.pi-hole.net/static/tools.png">
-</p>
-
-##### Update Ad Lists
-This runs [`gravity`](https://github.com/pi-hole/pi-hole/blob/master/gravity.sh) which checks your source list for updates, and downloads if changes are found.
-
-##### Query Ad Lists
-You can find out what blocklist a specific domain was found on. This is useful for troubleshooting websites that may not work properly due to a blocked domain.
-
-##### `tail`ing Log Files
-You can [watch the log files](https://discourse.pi-hole.net/t/how-do-i-watch-and-interpret-the-pihole-log-file/276) in real time to help debug any issues, or just see what's happening on your network.
-
-##### Pi-hole Debugger
-If you are having trouble with your Pi-hole, this is the place to go. You can run the debugger and it will attempt to diagnose any issues, and then link to an FAQ with instructions on rectifying the problem.
-
-<p align="center">
-<img src="https://assets.pi-hole.net/static/debug-gui.png">
-</p>
-
-If run [via the command line](https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#debug), you will see coloured text, which makes it easy to identify any problems.
-
-<p align="center">
-<a href=https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#debugs><img src="https://assets.pi-hole.net/static/debug-cli.png"></a>
-</p>
-
-After the debugger has finished, you have the option to upload it to our secure server for 48 hours. All you need to do is provide [one of our developers](https://github.com/orgs/pi-hole/teams/debug/members) the unique token generated by the debugger via [one of the various ways of getting in touch with us](#getting-in-touch-with-us).
-
-<p align="center">
-<a href=https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#debugs><img src="https://assets.pi-hole.net/static/debug-token.png"></a>
-</p>
-
-You should be able to resolve most issues using the provided FAQ links, but we're always happy to help out if you'd like assistance!
-
-### Web Interface Settings
-The settings page lets you control and configure your Pi-hole. You can do things like:
-
-- view networking information
-- flush logs or disable the logging of queries
-- [enable Pi-hole's built-in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026)
-- [manage block lists](https://discourse.pi-hole.net/t/how-do-i-add-additional-block-lists-to-pi-hole/259)
-- exclude domains from the graphs and enable privacy options
-- configure upstream DNS servers
-- restart Pi-hole's services
-- back up some of Pi-hole's important files
-- and more!
-
-<p align="center">
-<img src="https://assets.pi-hole.net/static/settings-page.png">
-</p>
-
-### Built-in DHCP Server
-Pi-hole ships with a [built-in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026). This allows you to let your network devices use Pi-hole as their DNS server if your router does not let you adjust the DHCP options.
-
-One nice feature of using Pi-hole's DHCP server if you can set hostnames and DHCP reservations so you'll [see hostnames in the query log instead of IP addresses](https://discourse.pi-hole.net/t/how-do-i-show-hostnames-instead-of-ip-addresses-in-the-dashboard/3530). You can still do this without using Pi-hole's DHCP server; it just takes a little more work. If you do plan to use Pi-hole's DHCP server, be sure to disable DHCP on your router first.
-
-<p align="center">
-<a href=https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026><img src="https://assets.pi-hole.net/static/piholedhcpserver.png"></a>
-</p>
-
-### Real-time Statistics
-Using [chronometer2](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/chronometer.sh), you can view [real-time stats](https://discourse.pi-hole.net/t/how-do-i-view-my-pi-holes-stats-over-ssh-or-on-an-lcd-using-chronometer/240) via `ssh` or on an LCD screen such as the [2.8" LCD screen from Adafruit](http://amzn.to/1P0q1Fj).
-
-Simply run `pihole -c` for some detailed information.
-
-<p align="center">
-<img src="https://assets.pi-hole.net/static/chrono1.jpg">
-<sub><a href="https://www.reddit.com/r/pihole/comments/6ldjna/pihole_setup_went_so_well_at_home_for_the_1st/">Image courtesy of /u/super_nicktendo22</a></sub>
-</p>
+The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). [More details are found here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
 
 -----
 
