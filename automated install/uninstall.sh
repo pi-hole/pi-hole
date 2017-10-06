@@ -16,7 +16,7 @@ if [[ ${EUID} -eq 0 ]]; then
 else
 	echo "::: Sudo will be used for the uninstall."
 	# Check if it is actually installed
-	# If it isn't, exit because the unnstall cannot complete
+	# If it isn't, exit because the uninstall cannot complete
 	if [ -x "$(command -v sudo)" ]; then
 		export SUDO="sudo"
 	else
@@ -25,7 +25,7 @@ else
 	fi
 fi
 
-# Compatability
+# Compatibility
 if [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
 	if [ -x "$(command -v dnf)" ]; then
@@ -34,7 +34,7 @@ if [ -x "$(command -v rpm)" ]; then
 		PKG_MANAGER="yum"
 	fi
 	PKG_REMOVE="${PKG_MANAGER} remove -y"
-	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common git curl unzip wget findutils )
+	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-zip git curl unzip wget findutils )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
@@ -45,7 +45,7 @@ elif [ -x "$(command -v apt-get)" ]; then
 	# Debian Family
 	PKG_MANAGER="apt-get"
 	PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common git curl unzip wget )
+	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php-zip git curl unzip wget )
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
