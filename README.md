@@ -106,7 +106,7 @@ Word-of-mouth continues to help our project grow immensely, and we'd like to hel
 ### The Command Line Interface
 The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole.
 
-<a href="https://assets.pi-hole.net/static/ASCII-Vortex.png"><img src="https://firebog.net/ASCII-Logo.png" width="200" height="280" alt="Pi-hole ASCII Logo"/></a>
+<a href="https://assets.pi-hole.net/static/ASCII-Vortex.png"><img src="https://camo.githubusercontent.com/822cc9cac2a7b6b9eacc0874e098119186db10ec/68747470733a2f2f66697265626f672e6e65742f41534349492d4c6f676f2e706e67" width="200" height="280" alt="Pi-hole ASCII Logo"/></a>
 
 Some of the features include:
 * [Whitelisting, Blacklisting and Wildcards](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#whitelisting-blacklisting-and-wildcards)
