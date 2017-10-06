@@ -1,16 +1,12 @@
 <p align="center">
-<a href=https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"></a>
-<a href="https://www.codacy.com/app/Pi-hole/pi-hole?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pi-hole/pi-hole&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/c558a0f8d7124c99b02b84f0f5564238"/></a>
-<a href=https://travis-ci.org/pi-hole/pi-hole><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"></a>
-</p>
-
-<p align="center">
-<a href=https://discourse.pi-hole.net><img src="https://assets.pi-hole.net/static/Vortex_with_text_and_TM.png" width=210></a><br/>
+<a href="https://pi-hole.net"><img src="https://camo.githubusercontent.com/578cfb146b0bb867e3609c5581761cf0b845b527/68747470733a2f2f66697265626f672e6e65742f566f72746578322e706e67" width="150" height="255"></a><br/>
 <b>Network-wide ad blocking via your own Linux hardware</b>
 </p>
 
-# Core & Command Line Interface
-
+# Core: Command Line Interface
+<a href="https://www.codacy.com/app/Pi-hole/pi-hole?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pi-hole/pi-hole&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/c558a0f8d7124c99b02b84f0f5564238"/></a>
+<a href="https://travis-ci.org/pi-hole/pi-hole"><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"/></a>
+<a href="https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE"><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"/></a>
 ## Summary
 The Pi-hole blocks ads via a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole), so all your devices are protected without the need to install client-side software.
 
@@ -20,7 +16,7 @@ The Pi-hole blocks ads via a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Si
 - **Lightweight**: runs smoothly and requires [minimal resources](https://discourse.pi-hole.net/t/hardware-software-requirements/273)
 - **Robust**: a command line interface for those preferring CLI, and/or wanting to automate tasks
 - **Informative**: a beautiful and secure Web Interface dashboard to control your Pi-hole
-- **Versatile**: can optionally function as a DHCP server, ensuring each device will not need further intervention
+- **Versatile**: can optionally function as a DHCP server, ensuring your devices will not need configuring individually
 - **Scalable**: [capable of handling hundreds of millions of queries](https://pi-hole.net/2017/05/24/how-much-traffic-can-pi-hole-handle/) when installed on powerful hardware
 - **Modern**: blocks ads over both IPv4 and IPv6
 - **Free**: open source software which helps ensure _you_ are the sole person in control of your privacy
@@ -41,7 +37,7 @@ You can install Pi-hole via one of the two alternative methods:
 ### Clone our repository and run the automated installer from your device
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
-cd Pi-hole/automated\ install/
+cd "Pi-hole/automated install/"
 bash basic-install.sh
 ```
 
@@ -266,39 +262,38 @@ To summarize into a short sentence, the Pi-hole is an **advertising-aware DNS/We
 -----
 
 ## Pi-hole Projects
-- [An ad blocking Magic Mirror](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
-- [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
-- [Get LED alerts for each blocked ad](http://thetimmy.silvernight.org/pages/endisbutton/)
-- [Pi-hole on Ubuntu 14.04 on VirtualBox](http://hbalagtas.blogspot.com/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
 - [Docker Pi-hole container (x86 and ARM)](https://hub.docker.com/r/diginc/pi-hole/)
+- [Pi-Hole in the cloud](http://blog.codybunch.com/2015/07/28/Pi-Hole-in-the-cloud/)
+- [Pie in the Sky-Hole [A Pi-Hole in the cloud for ad-blocking via DNS]](https://dlaa.me/blog/post/skyhole)
+- [Pi-hole Enable/Disable Button](http://thetimmy.silvernight.org/pages/endisbutton/)
+- [Minibian Pi-hole](https://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
+- [CHiP-hole: Network-wide Ad-blocker](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
+- [Chrome Extension: Pi-Hole List Editor](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([Source Code](https://github.com/packtloss/pihole-extension))
 - [Splunk: Pi-hole Visualiser](https://splunkbase.splunk.com/app/3023/)
-- [Pi-hole Chrome extension](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([open source](https://github.com/packtloss/pihole-extension))
-- [Go Bananas for CHiP-hole ad blocking](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
-- [Sky-Hole](http://dlaa.me/blog/post/skyhole)
-- [Pi-hole in the Cloud!](http://blog.codybunch.com/2015/07/28/Pi-Hole-in-the-cloud/)
-- [unRaid-hole](https://github.com/spants/unraidtemplates/blob/master/Spants/unRaid-hole.xml#L13)--[Repo and more info](http://lime-technology.com/forum/index.php?PHPSESSID=c0eae3e5ef7e521f7866034a3336489d&topic=38486.0)
-- [Pi-hole on/off button](http://thetimmy.silvernight.org/pages/endisbutton/)
-- [Minibian Pi-hole](http://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
-- [Windows Tray Stat Application](https://github.com/goldbattle/copernicus)
+- [Adblocking with P-hole and Ubuntu 14.04 on VirtualBox](https://hbalagtas.blogspot.com.au/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
+- [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
+- [Pi-hole unRAID Template](https://forums.lime-technology.com/topic/36810-support-spants-nodered-mqtt-dashing-couchdb/)
+- [Copernicus: Windows Tray Application](https://github.com/goldbattle/copernicus)
 - [Let your blink1 device blink when Pi-hole filters ads](https://gist.github.com/elpatron68/ec0b4c582e5abf604885ac1e068d233f)
-- [Pi-hole Prometheus exporter](https://github.com/nlamirault/pihole_exporter): a [Prometheus](https://prometheus.io/) exporter for Pi-hole
-- [Pi-hole Droid - open source Android client](https://github.com/friimaind/pi-hole-droid)
-- [Windows DNS Swapper](https://github.com/roots84/DNS-Swapper), see [#1400](https://github.com/pi-hole/pi-hole/issues/1400)
+- [Pi-hole metrics](https://github.com/nlamirault/pihole_exporter) exporter for [Prometheus](https://prometheus.io/)
+- [Magic Mirror with DNS Filtering](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
+- [Pi-hole Droid: Android client](https://github.com/friimaind/pi-hole-droid)
 
 -----
 
 ## Coverage
-- [Adafruit livestream install](https://www.youtube.com/watch?v=eg4u2j1HYlI)
-- [TekThing: 5 fun, easy projects for a Raspberry Pi](https://youtu.be/QwrKlyC2kdM?t=1m42s)
-- [Pi-hole on Adafruit's blog](https://blog.adafruit.com/2016/03/04/pi-hole-is-a-black-hole-for-internet-ads-piday-raspberrypi-raspberry_pi/)
-- [The Defrag Show - MSDN/Channel 9](https://channel9.msdn.com/Shows/The-Defrag-Show/Defrag-Endoscope-USB-Camera-The-Final-HoloLens-Vote-Adblock-Pi-and-more?WT.mc_id=dlvr_twitter_ch9#time=20m39s)
-- [MacObserver Podcast 585](http://www.macobserver.com/tmo/podcast/macgeekgab-585)
-- [Medium: Block All Ads For $53](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d)
-- [MakeUseOf: Adblock Everywhere, The Pi-hole Way](http://www.makeuseof.com/tag/adblock-everywhere-raspberry-pi-hole-way/)
-- [Lifehacker: Turn Your Pi Into An Ad Blocker With A Single Command](http://lifehacker.com/turn-a-raspberry-pi-into-an-ad-blocker-with-a-single-co-1686093533)!
-- [Pi-hole on TekThing](https://youtu.be/8Co59HU2gY0?t=2m)
-- [Pi-hole on Security Now! Podcast](http://www.youtube.com/watch?v=p7-osq_y8i8&t=100m26s)
+- [Lifehacker: Turn A Raspberry Pi Into An Ad Blocker With A Single Command](https://www.lifehacker.com.au/2015/02/turn-a-raspberry-pi-into-an-ad-blocker-with-a-single-command/)
+- [MakeUseOf: Adblock Everywhere: The Raspberry Pi-Hole Way](http://www.makeuseof.com/tag/adblock-everywhere-raspberry-pi-hole-way/)
+- [Catchpoint: Ad-Blocking on Apple iOS9: Valuing the End User Experience](http://blog.catchpoint.com/2015/09/14/ad-blocking-apple/)
+- [Security Now Netcast: Pi-hole](https://www.youtube.com/watch?v=p7-osq_y8i8&t=100m26s)
+- [TekThing: Raspberry Pi-Hole Makes Ads Disappear!](https://youtu.be/8Co59HU2gY0?t=2m)
 - [Foolish Tech Show](https://youtu.be/bYyena0I9yc?t=2m4s)
-- [Pi-hole on Ubuntu](http://www.boyter.org/2015/12/pi-hole-ubuntu-14-04/)
-- [Catchpoint: iOS 9 Ad Blocking](http://blog.catchpoint.com/2015/09/14/ad-blocking-apple/)
-- [Build an Ad-Blocker for less than 10$ with Orange-Pi](http://www.devacron.com/orangepi-zero-as-an-ad-block-server-with-pi-hole/)
+- [Block Ads on All Home Devices for $53.18](https://medium.com/@robleathern/block-ads-on-all-home-devices-for-53-18-a5f1ec139693#.gj1xpgr5d)
+- [Pi-Hole for Ubuntu 14.04](http://www.boyter.org/2015/12/pi-hole-ubuntu-14-04/)
+- [MacObserver Podcast 585](https://www.macobserver.com/tmo/podcast/macgeekgab-585)
+- [The Defrag Show: Endoscope USB Camera, The Final [HoloLens] Vote, Adblock Pi and more](https://channel9.msdn.com/Shows/The-Defrag-Show/Defrag-Endoscope-USB-Camera-The-Final-HoloLens-Vote-Adblock-Pi-and-more?WT.mc_id=dlvr_twitter_ch9#time=20m39s)
+- [Adafruit: Pi-hole is a black hole for internet ads](https://blog.adafruit.com/2016/03/04/pi-hole-is-a-black-hole-for-internet-ads-piday-raspberrypi-raspberry_pi/)
+- [Digital Trends: 5 Fun, Easy Projects You Can Try With a $35 Raspberry Pi](https://youtu.be/QwrKlyC2kdM?t=1m42s)
+- [Adafruit: Raspberry Pi Quick Look at Pi Hole ad blocking server with Tony D](https://www.youtube.com/watch?v=eg4u2j1HYlI)
+- [Devacron: OrangePi Zero as an Ad-Block server with Pi-Hole](http://www.devacron.com/orangepi-zero-as-an-ad-block-server-with-pi-hole/)
+- [CryptoAUSTRALIA Blog: How We Tried 5 Privacy Focused Raspberry Pi Projects](https://blog.cryptoaustralia.org.au/2017/10/05/5-privacy-focused-raspberry-pi-projects/)
