@@ -209,11 +209,17 @@ if (explode("-", $phVersion)[1] != "0")
     window.onload = function () {
       <?php
       // Remove href fallback from "Back to safety" button
-      if ($featuredTotal > 0) echo '$("#bpBack").removeAttr("href");';
-      // Enable whitelisting if $svPasswd is present & JS is available
-      if (!empty($svPasswd) && $featuredTotal > 0) {
-          echo '$("#bpWLPassword, #bpWhitelist").prop("disabled", false);';
+      if ($featuredTotal > 0) {
+        echo '$("#bpBack").removeAttr("href");';
+
+        // Enable whitelisting if JS is available
+        echo '$("#bpWhitelist").prop("disabled", false);';
+
+        // Enable password input if necessary
+        if (!empty($svPasswd)) {
           echo '$("#bpWLPassword").attr("placeholder", "Password");';
+          echo '$("#bpWLPassword").prop("disabled", false);';
+        }
       }
       ?>
     }
