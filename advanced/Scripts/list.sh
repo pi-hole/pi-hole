@@ -226,6 +226,9 @@ Displaylist() {
 
 NukeList() {
   if [[ -f "${listMain}" ]]; then
+    # Back up original list
+    cp "${listMain}" "${listMain}.bck"
+    # Empty out file
     echo "" > "${listMain}"
   fi
 }
