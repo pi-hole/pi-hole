@@ -59,7 +59,7 @@ QUERY_LOGGING=true
 INSTALL_WEB=true
 
 
-# Find the rows and columns will default to 80x24 is it can not be detected
+# Find the rows and columns will default to 80x24 if it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
 rows=$(echo "${screen_size}" | awk '{print $1}')
 columns=$(echo "${screen_size}" | awk '{print $2}')
@@ -164,7 +164,7 @@ if command -v apt-get &> /dev/null; then
   # These programs are stored in an array so they can be looped through later
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget idn2)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -208,7 +208,7 @@ elif command -v rpm &> /dev/null; then
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget)
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget idn2)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
   if ! grep -q 'Fedora' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
@@ -1304,6 +1304,12 @@ installPiholeWeb() {
   install -d /var/www/html/pihole
   # and the blockpage
   install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+
+  # Remove superseded file
+  if [[ -e "/var/www/html/pihole/index.js" ]]; then
+    rm "/var/www/html/pihole/index.js"
+  fi
+
   echo -e "${OVER}  ${TICK} ${str}"
 
   local str="Backing up index.lighttpd.html"
@@ -1450,7 +1456,7 @@ finalExports() {
   # If the setup variable file exists,
   if [[ -e "${setupVars}" ]]; then
     # update the variables in the file
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
   fi
   # echo the information to the user
     {
@@ -2064,12 +2070,12 @@ main() {
     fi
   fi
 
-  # Download and compile the aggregated block list
-  runGravity
-
   # Enable FTL
   start_service pihole-FTL
   enable_service pihole-FTL
+
+  # Download and compile the aggregated block list
+  runGravity
 
   #
   if [[ "${useUpdateVars}" == false ]]; then

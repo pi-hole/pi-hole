@@ -36,16 +36,29 @@ else
 	fi
 fi
 
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+PH_TEST="true"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+# setupVars set in basic-install.sh
+source "${setupVars}"
+
+# distro_check() sourced from basic-install.sh
+distro_check
+
+# Install packages used by the Pi-hole
+if [[ "${INSTALL_WEB}" == true ]]; then
+  # Install the Web dependencies
+  DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
+# Otherwise,
+else
+  # just install the Core dependencies
+  DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
+fi
+
 # Compatability
 if [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
-	if [ -x "$(command -v dnf)" ]; then
-		PKG_MANAGER="dnf"
-	else
-		PKG_MANAGER="yum"
-	fi
 	PKG_REMOVE="${PKG_MANAGER} remove -y"
-	PIHOLE_DEPS=( bind-utils bc dnsmasq lighttpd lighttpd-fastcgi php-common php-pdo git curl unzip wget findutils )
 	package_check() {
 		rpm -qa | grep ^$1- > /dev/null
 	}
@@ -54,9 +67,7 @@ if [ -x "$(command -v rpm)" ]; then
 	}
 elif [ -x "$(command -v apt-get)" ]; then
 	# Debian Family
-	PKG_MANAGER="apt-get"
 	PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-	PIHOLE_DEPS=( dnsutils bc dnsmasq lighttpd php5-common php5-sqlite git curl unzip wget )
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
@@ -72,7 +83,7 @@ fi
 removeAndPurge() {
 	# Purge dependencies
   echo ""
-	for i in "${PIHOLE_DEPS[@]}"; do
+	for i in "${DEPS[@]}"; do
 		package_check ${i} > /dev/null
 		if [[ "$?" -eq 0 ]]; then
 			while true; do
@@ -92,7 +103,7 @@ removeAndPurge() {
 	done
 
 	# Remove dnsmasq config files
-	${SUDO} rm /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+	${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
   echo -e "  ${TICK} Removing dnsmasq config files"
 
 	# Take care of any additional package cleaning
@@ -109,7 +120,7 @@ removeNoPurge() {
 	echo -ne "  ${INFO} Removing Web Interface..."
 	${SUDO} rm -rf /var/www/html/admin &> /dev/null
 	${SUDO} rm -rf /var/www/html/pihole &> /dev/null
-	${SUDO} rm /var/www/html/index.lighttpd.orig &> /dev/null
+	${SUDO} rm -f /var/www/html/index.lighttpd.orig &> /dev/null
 
 	# If the web directory is empty after removing these files, then the parent html folder can be removed.
 	if [ -d "/var/www/html" ]; then
@@ -132,7 +143,7 @@ removeNoPurge() {
 
 	# Attempt to preserve backwards compatibility with older versions
 	if [[ -f /etc/cron.d/pihole ]];then
-		${SUDO} rm /etc/cron.d/pihole &> /dev/null
+		${SUDO} rm -f /etc/cron.d/pihole &> /dev/null
     echo -e "  ${TICK} Removed /etc/cron.d/pihole"
 	fi
 
@@ -146,15 +157,15 @@ removeNoPurge() {
 		fi
 	fi
 
-	${SUDO} rm /etc/dnsmasq.d/adList.conf &> /dev/null
-	${SUDO} rm /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+	${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
+	${SUDO} rm -f /etc/dnsmasq.d/01-pihole.conf &> /dev/null
 	${SUDO} rm -rf /var/log/*pihole* &> /dev/null
 	${SUDO} rm -rf /etc/pihole/ &> /dev/null
 	${SUDO} rm -rf /etc/.pihole/ &> /dev/null
 	${SUDO} rm -rf /opt/pihole/ &> /dev/null
-	${SUDO} rm /usr/local/bin/pihole &> /dev/null
-	${SUDO} rm /etc/bash_completion.d/pihole &> /dev/null
-	${SUDO} rm /etc/sudoers.d/pihole &> /dev/null
+	${SUDO} rm -f /usr/local/bin/pihole &> /dev/null
+	${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null
+	${SUDO} rm -f /etc/sudoers.d/pihole &> /dev/null
   echo -e "  ${TICK} Removed config files"
 
   # Remove FTL
@@ -167,9 +178,8 @@ removeNoPurge() {
       service pihole-FTL stop
     fi
 
-    ${SUDO} rm /etc/init.d/pihole-FTL
-    ${SUDO} rm /usr/bin/pihole-FTL
-
+    ${SUDO} rm -f /etc/init.d/pihole-FTL
+    ${SUDO} rm -f /usr/bin/pihole-FTL
     echo -e "${OVER}  ${TICK} Removed pihole-FTL"
   fi
 
@@ -198,7 +208,13 @@ else
   echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
 fi
 while true; do
-	read -rp "  ${QST} Do you wish to go through each dependency for removal? [Y/n] " yn
+  echo -e "  ${INFO} ${COL_YELLOW}The following dependencies may have been added by the Pi-hole install:"
+  echo -n "    "
+  for i in "${DEPS[@]}"; do
+    echo -n "${i} "
+  done
+  echo "${COL_NC}"
+	read -rp "  ${QST} Do you wish to go through each dependency for removal? (Choosing No will leave all dependencies installed) [Y/n] " yn
 	case ${yn} in
 		[Yy]* ) removeAndPurge; break;;
 		[Nn]* ) removeNoPurge; break;;
