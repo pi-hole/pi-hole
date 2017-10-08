@@ -9,32 +9,30 @@
 // Sanitise HTTP_HOST output
 $serverName = htmlspecialchars($_SERVER["HTTP_HOST"]);
 
+if (!is_file("/etc/pihole/setupVars.conf"))
+  die("[ERROR] File not found: <code>/etc/pihole/setupVars.conf</code>");
+
 // Get values from setupVars.conf
-if (is_file("/etc/pihole/setupVars.conf")) {
-    $setupVars = parse_ini_file("/etc/pihole/setupVars.conf");
-    $svFQDN = $setupVars["FQDN"];
-    $svPasswd = !empty($setupVars["WEBPASSWORD"]);
-    $svEmail = (!empty($setupVars["ADMIN_EMAIL"]) && filter_var($setupVars["ADMIN_EMAIL"], FILTER_VALIDATE_EMAIL)) ? $setupVars["ADMIN_EMAIL"] : "";
-    unset($setupVars);
-} else {
-    die("[ERROR] File not found: <code>/etc/pihole/setupVars.conf</code>");
-}
+$setupVars = parse_ini_file("/etc/pihole/setupVars.conf");
+$svPasswd = !empty($setupVars["WEBPASSWORD"]);
+$svEmail = (!empty($setupVars["ADMIN_EMAIL"]) && filter_var($setupVars["ADMIN_EMAIL"], FILTER_VALIDATE_EMAIL)) ? $setupVars["ADMIN_EMAIL"] : "";
+unset($setupVars);
 
 // Set landing page location, found within /var/www/html/
 $landPage = "../landing.php";
 
-// Set empty array for hostnames to be accepted as self address for splash page
+// Define array for hostnames to be accepted as self address for splash page
 $authorizedHosts = [];
-
-// Append FQDN to $authorizedHosts
-if (!empty($svFQDN)) array_push($authorizedHosts, $svFQDN);
-  
-// Append virtual hostname to $authorizedHosts
-if (!empty($_SERVER["VIRTUAL_HOST"])) {
+if (!empty($_SERVER["FQDN"])) {
+    // If setenv.add-environment = ("fqdn" => "true") is configured in lighttpd,
+    // append $serverName to $authorizedHosts
+    array_push($authorizedHosts, $serverName);
+} else if (!empty($_SERVER["VIRTUAL_HOST"])) {
+    // Append virtual hostname to $authorizedHosts
     array_push($authorizedHosts, $_SERVER["VIRTUAL_HOST"]);
 }
 
-// Set which extension types render as Block Page (Including "" for index.wxyz)
+// Set which extension types render as Block Page (Including "" for index.ext)
 $validExtTypes = array("asp", "htm", "html", "php", "rss", "xml", "");
 
 // Get extension of current URL
@@ -49,8 +47,9 @@ function setHeader($type = "x") {
     if (isset($type) && $type === "js") header("Content-Type: application/javascript");
 }
 
-// Determine block page redirect type
+// Determine block page type
 if ($serverName === "pi.hole") {
+    // Redirect to Web Interface
     exit(header("Location: /admin"));
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
     // Set Splash Page output
@@ -60,22 +59,29 @@ if ($serverName === "pi.hole") {
         <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
     </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements</body></html>
     ";
-    
-    // Render splash page or landing page when directly browsing via IP or auth'd hostname
+
+    // Set splash/landing page based off presence of $landPage
     $renderPage = is_file(getcwd()."/$landPage") ? include $landPage : "$splashPage";
-    unset($serverName, $svFQDN, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
+
+    // Unset variables so as to not be included in $landPage
+    unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
+
+    // Render splash/landing page when directly browsing via IP or authorised hostname
     exit($renderPage);
 } elseif ($currentUrlExt === "js") {
-    // Serve dummy Javascript for blocked domains
+    // Serve Pi-hole Javascript for blocked domains requesting JS
     exit(setHeader("js").'var x = "Pi-hole: A black hole for Internet advertisements."');
 } elseif (strpos($_SERVER["REQUEST_URI"], "?") !== FALSE && isset($_SERVER["HTTP_REFERER"])) {
-    // Serve blank image upon receiving REQUEST_URI w/ query string & HTTP_REFERRER (e.g: an iframe of a blocked domain)
+    // Serve blank image upon receiving REQUEST_URI w/ query string & HTTP_REFERRER
+    // e.g: An iframe of a blocked domain
     exit(setHeader().'<html>
         <head><script>window.close();</script></head>
         <body><img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs="></body>
     </html>');
 } elseif (!in_array($currentUrlExt, $validExtTypes) || substr_count($_SERVER["REQUEST_URI"], "?")) {
-    // Serve SVG upon receiving non $validExtTypes URL extension or query string (e.g: not an iframe of a blocked domain)
+    // Serve SVG upon receiving non $validExtTypes URL extension or query string
+    // e.g: Not an iframe of a blocked domain, such as when browsing to a file/query directly
+    // QoL addition: Allow the SVG to be clicked on in order to quickly show the full Block Page
     $blockImg = '<a href="/"><svg xmlns="http://www.w3.org/2000/svg" width="110" height="16"><defs><style>a {text-decoration: none;} circle {stroke: rgba(152,2,2,0.5); fill: none; stroke-width: 2;} rect {fill: rgba(152,2,2,0.5);} text {opacity: 0.3; font: 11px Arial;}</style></defs><circle cx="8" cy="8" r="7"/><rect x="10.3" y="-6" width="2" height="12" transform="rotate(45)"/><text x="19.3" y="12">Blocked by Pi-hole</text></svg></a>';
     exit(setHeader()."<html>
         <head>$viewPort</head>
@@ -88,7 +94,7 @@ if ($serverName === "pi.hole") {
 // Determine placeholder text based off $svPasswd presence
 $wlPlaceHolder = empty($svPasswd) ? "No admin password set" : "Javascript disabled";
 
-// Define admin email address text
+// Define admin email address text based off $svEmail presence
 $bpAskAdmin = !empty($svEmail) ? '<a href="mailto:'.$svEmail.'?subject=Site Blocked: '.$serverName.'"></a>' : "<span/>";
 
 // Determine if at least one block list has been generated
@@ -113,8 +119,10 @@ if (empty($adlistsUrls))
 // Get total number of blocklists (Including Whitelist, Blacklist & Wildcard lists)
 $adlistsCount = count($adlistsUrls) + 3;
 
-// Get results of queryads.php exact search
+// Set query timeout
 ini_set("default_socket_timeout", 3);
+
+// Logic for querying blocklists
 function queryAds($serverName) {
     // Determine the time it takes while querying adlists
     $preQueryTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
@@ -124,32 +132,39 @@ function queryAds($serverName) {
 
     // Exception Handling
     try {
-        if ($queryTime >= ini_get("default_socket_timeout")) {
+        // Define Exceptions
+        if (strpos($queryAds[0], "No exact results") !== FALSE) {
+            // Return "none" into $queryAds array
+            return array("0" => "none");
+        } else if ($queryTime >= ini_get("default_socket_timeout")) {
+            // Connection Timeout
             throw new Exception ("Connection timeout (".ini_get("default_socket_timeout")."s)");
         } elseif (!strpos($queryAds[0], ".") !== false) {
-            if (strpos($queryAds[0], "No exact results") !== FALSE) return array("0" => "none");
+            // Unknown $queryAds output
             throw new Exception ("Unhandled error message (<code>$queryAds[0]</code>)");
         }
         return $queryAds;
     } catch (Exception $e) {
+        // Return exception as array
         return array("0" => "error", "1" => $e->getMessage());
     }
-  
 }
 
+// Get results of queryads.php exact search
 $queryAds = queryAds($serverName);
 
-if ($queryAds[0] === "error") {
+// Pass error through to Block Page
+if ($queryAds[0] === "error")
     die("[ERROR]: Unable to parse results from <i>queryads.php</i>: <code>".$queryAds[1]."</code>");
-} else {
-    $featuredTotal = count($queryAds);
 
-    // Place results into key => value array
-    $queryResults = null;
-    foreach ($queryAds as $str) {
-      $value = explode(" ", $str);
-      @$queryResults[$value[0]] .= "$value[1]";
-    }
+// Count total number of matching blocklists
+$featuredTotal = count($queryAds);
+
+// Place results into key => value array
+$queryResults = null;
+foreach ($queryAds as $str) {
+    $value = explode(" ", $str);
+    @$queryResults[$value[0]] .= "$value[1]";
 }
 
 // Determine if domain has been blacklisted, whitelisted, wildcarded or CNAME blocked
@@ -167,7 +182,8 @@ if (strpos($queryAds[0], "blacklist") !== FALSE) {
     $featuredTotal = "0";
     $notableFlagClass = "noblock";
 
-    // Determine appropriate info message if CNAME exists
+    // QoL addition: Determine appropriate info message if CNAME exists
+    // Suggests to the user that $serverName has a CNAME (alias) that may be blocked
     $dnsRecord = dns_get_record("$serverName")[0];
     if (array_key_exists("target", $dnsRecord)) {
         $wlInfo = $dnsRecord['target'];
@@ -184,9 +200,12 @@ $wlOutput = (isset($wlInfo) && $wlInfo !== "recentwl") ? "<a href='http://$wlInf
 $phVersion = exec("cd /etc/.pihole/ && git describe --long --tags");
 
 // Print $execTime on development branches
-// Marginally faster than "git rev-parse --abbrev-ref HEAD"
+// Testing for - is marginally faster than "git rev-parse --abbrev-ref HEAD"
 if (explode("-", $phVersion)[1] != "0")
   $execTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
+
+// Please Note: Text is added via CSS to allow an admin to provide a localised
+// language without the need to edit this file
 ?>
 <!DOCTYPE html>
 <!-- Pi-hole: A black hole for Internet advertisements
