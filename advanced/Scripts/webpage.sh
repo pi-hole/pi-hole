@@ -418,7 +418,7 @@ Options:
 }
 
 SetAdminEmail() {
-  if [[ "${1}" == "-h" || "${1}" == "--help" ]]; then
+  if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
     echo "Usage: pihole -a email <address>
 Example: 'pihole -a email admin@address.com'
 Set an administrative contact address for the Block Page
