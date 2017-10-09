@@ -11,7 +11,7 @@
 #     FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE INSTALL/UPDATE PROCEDURE.     #
 # ANY CHANGES MADE TO THIS FILE AFTER INSTALL WILL BE LOST ON THE NEXT UPDATE #
 #                                                                             #
-#              CHANGES SHOULD BE MADE IN A SEPERATE CONFIG FILE:              #
+#              CHANGES SHOULD BE MADE IN A SEPARATE CONFIG FILE:              #
 #                         /etc/lighttpd/external.conf                         #
 ###############################################################################
 
