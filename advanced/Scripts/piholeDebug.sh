@@ -30,12 +30,12 @@ if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
 else
   COL_NC='\e[0m' # No Color
   COL_YELLOW='\e[1;33m'
-  COL_LIGHT_PURPLE='\e[1;35m'
+  COL_PURPLE='\e[1;35m'
   COL_CYAN='\e[0;36m'
-  TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
-  CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+  TICK="[${COL_GREEN}✓${COL_NC}]"
+  CROSS="[${COL_RED}✗${COL_NC}]"
   INFO="[i]"
-  DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
+  DONE="${COL_GREEN} done!${COL_NC}"
   OVER="\r\033[K"
 fi
 
@@ -175,7 +175,7 @@ show_disclaimer(){
 
 source_setup_variables() {
   # Display the current test that is running
-  log_write "\n${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
+  log_write "\n${COL_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
   # If the variable file exists,
   if ls "${PIHOLE_SETUP_VARS_FILE}" 1> /dev/null 2>&1; then
     log_write "${INFO} Sourcing ${PIHOLE_SETUP_VARS_FILE}...";
@@ -183,7 +183,7 @@ source_setup_variables() {
     source ${PIHOLE_SETUP_VARS_FILE}
   else
     # If it can't, show an error
-    log_write "${PIHOLE_SETUP_VARS_FILE} ${COL_LIGHT_RED}does not exist or cannot be read.${COL_NC}"
+    log_write "${PIHOLE_SETUP_VARS_FILE} ${COL_RED}does not exist or cannot be read.${COL_NC}"
   fi
 }
 
@@ -219,7 +219,7 @@ initiate_debug() {
   clear
   show_disclaimer
   # Display that the debug process is beginning
-  log_write "${COL_LIGHT_PURPLE}*** [ INITIALIZING ]${COL_NC}"
+  log_write "${COL_PURPLE}*** [ INITIALIZING ]${COL_NC}"
   # Timestamp the start of the log
   log_write "${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initiated."
 }
@@ -230,7 +230,7 @@ initiate_debug() {
 echo_current_diagnostic() {
   # Colors are used for visually distinguishing each test in the output
   # These colors do not show in the GUI, but the formatting will
-  log_write "\n${COL_LIGHT_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
+  log_write "\n${COL_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
 }
 
 compare_local_version_to_git_version() {
@@ -255,7 +255,7 @@ compare_local_version_to_git_version() {
     # move into it
     cd "${git_dir}" || \
     # If not, show an error
-    log_write "${COL_LIGHT_RED}Could not cd into ${git_dir}$COL_NC"
+    log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
     if git status &> /dev/null; then
       # The current version the user is on
       local remote_version
@@ -269,7 +269,7 @@ compare_local_version_to_git_version() {
       # echo this information out to the user in a nice format
       # If the current version matches what pihole -v produces, the user is up-to-date
       if [[ "${remote_version}" == "$(pihole -v | awk '/${search_term}/ {print $6}' | cut -d ')' -f1)" ]]; then
-        log_write "${TICK} ${pihole_component}: ${COL_LIGHT_GREEN}${remote_version}${COL_NC}"
+        log_write "${TICK} ${pihole_component}: ${COL_GREEN}${remote_version}${COL_NC}"
       # If not,
       else
         # echo the current version in yellow, signifying it's something to take a look at, but not a critical error
@@ -280,7 +280,7 @@ compare_local_version_to_git_version() {
       # If the repo is on the master branch, they are on the stable codebase
       if [[ "${remote_branch}" == "master" ]]; then
         # so the color of the text is green
-        log_write "${INFO} Branch: ${COL_LIGHT_GREEN}${remote_branch}${COL_NC}"
+        log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
       # If it is any other branch, they are in a developement branch
       else
         # So show that in yellow, signifying it's something to take a look at, but not a critical error
@@ -308,7 +308,7 @@ check_ftl_version() {
   # Compare the current FTL version to the remote version
   if [[ "${FTL_VERSION}" == "$(pihole -v | awk '/FTL/ {print $6}' | cut -d ')' -f1)" ]]; then
     # If they are the same, FTL is up-to-date
-    log_write "${TICK} ${ftl_name}: ${COL_LIGHT_GREEN}${FTL_VERSION}${COL_NC}"
+    log_write "${TICK} ${ftl_name}: ${COL_GREEN}${FTL_VERSION}${COL_NC}"
   else
     # If not, show it in yellow, signifying there is an update
     log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
@@ -345,7 +345,7 @@ get_program_version() {
   # If the program does not have a version (the variable is empty)
   if [[ -z "${program_version}" ]]; then
     # Display and error
-    log_write "${CROSS} ${COL_LIGHT_RED}${program_name} version could not be detected.${COL_NC}"
+    log_write "${CROSS} ${COL_RED}${program_name} version could not be detected.${COL_NC}"
   else
     # Otherwise, display the version
     log_write "${INFO} ${program_version}"
@@ -368,13 +368,13 @@ is_os_supported() {
   # If the variable is one of our supported OSes,
   case "${the_os}" in
     # Print it in green
-    "Raspbian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
-    "Ubuntu") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
-    "Fedora") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
-    "Debian") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
-    "CentOS") log_write "${TICK} ${COL_LIGHT_GREEN}${os_to_check}${COL_NC}";;
+    "Raspbian") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
+    "Ubuntu") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
+    "Fedora") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
+    "Debian") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
+    "CentOS") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
       # If not, show it in red and link to our software requirements page
-      *) log_write "${CROSS} ${COL_LIGHT_RED}${os_to_check}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})";
+      *) log_write "${CROSS} ${COL_RED}${os_to_check}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})";
   esac
 }
 
@@ -418,7 +418,7 @@ diagnose_operating_system() {
     get_distro_attributes
   else
     # If it doesn't exist, it's not a system we currently support and link to FAQ
-    log_write "${CROSS} ${COL_LIGHT_RED}${error_msg}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})"
+    log_write "${CROSS} ${COL_RED}${error_msg}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})"
   fi
 }
 
@@ -431,24 +431,24 @@ check_selinux() {
     DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
     case "${DEFAULT_SELINUX,,}" in
       enforcing)
-        log_write "${CROSS} ${COL_LIGHT_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+        log_write "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
         ;;
       *)  # 'permissive' and 'disabled'
-        log_write "${TICK} ${COL_LIGHT_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
+        log_write "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
         ;;
     esac
     # Check the current state of SELinux
     CURRENT_SELINUX=$(getenforce)
     case "${CURRENT_SELINUX,,}" in
       enforcing)
-        log_write "${CROSS} ${COL_LIGHT_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+        log_write "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
         ;;
       *)  # 'permissive' and 'disabled'
-        log_write "${TICK} ${COL_LIGHT_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
+        log_write "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
         ;;
     esac
   else
-    log_write "${TICK} ${COL_LIGHT_GREEN}SELinux not Supported${COL_NC}";
+    log_write "${TICK} ${COL_GREEN}SELinux not Supported${COL_NC}";
   fi
 }
 
@@ -460,19 +460,19 @@ processor_check() {
   if [[ -z "${PROCESSOR}" ]]; then
     # we couldn't detect it, so show an error
     PROCESSOR=$(lscpu | awk '/Architecture/ {print $2}')
-    log_write "${CROSS} ${COL_LIGHT_RED}${PROCESSOR}${COL_NC} has not been tested with FTL, but may still work: (${FAQ_FTL_COMPATIBILITY})"
+    log_write "${CROSS} ${COL_RED}${PROCESSOR}${COL_NC} has not been tested with FTL, but may still work: (${FAQ_FTL_COMPATIBILITY})"
   else
     # Check if the architecture is currently supported for FTL
     case "${PROCESSOR}" in
-      "amd64") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      "amd64") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "armv6l") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      "armv6l") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "armv6") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      "armv6") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "armv7l") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      "armv7l") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "aarch64") "${TICK} ${COL_LIGHT_GREEN}${PROCESSOR}${COL_NC}"
+      "aarch64") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
     # Otherwise, show the processor type
     *) log_write "${INFO} ${PROCESSOR}";
@@ -488,7 +488,7 @@ parse_setup_vars() {
     parse_file "${PIHOLE_SETUP_VARS_FILE}"
   else
     # If not, show an error
-    log_write "${CROSS} ${COL_LIGHT_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
+    log_write "${CROSS} ${COL_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
   fi
 }
 
@@ -504,10 +504,10 @@ does_ip_match_setup_vars() {
     # Strip off the / (CIDR notation)
     if [[ "${ip_address%/*}" == "${setup_vars_ip%/*}" ]]; then
       # if it matches, show it in green
-      log_write "   ${COL_LIGHT_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
+      log_write "   ${COL_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
     else
       # otherwise show it in red with an FAQ URL
-      log_write "   ${COL_LIGHT_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
+      log_write "   ${COL_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
     fi
 
   else
@@ -515,10 +515,10 @@ does_ip_match_setup_vars() {
     # since it exists in the setupVars.conf that way
     if [[ "${ip_address}" == "${setup_vars_ip}" ]]; then
       # show in green if it matches
-      log_write "   ${COL_LIGHT_GREEN}${ip_address}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
+      log_write "   ${COL_GREEN}${ip_address}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
     else
       # otherwise show it in red
-      log_write "   ${COL_LIGHT_RED}${ip_address}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
+      log_write "   ${COL_RED}${ip_address}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
     fi
   fi
 }
@@ -546,7 +546,7 @@ detect_ip_addresses() {
     log_write ""
   else
     # If there are no IPs detected, explain that the protocol is not configured
-    log_write "${CROSS} ${COL_LIGHT_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interace.\n"
+    log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interace.\n"
     return 1
   fi
   # If the protocol is v6
@@ -593,13 +593,13 @@ ping_gateway() {
     # If pinging the gateway is not successful,
     if ! ${cmd} -c 3 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
       # let the user know
-      log_write "${CROSS} ${COL_LIGHT_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\n"
+      log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\n"
       # and return an error code
       return 1
     # Otherwise,
     else
       # show a success
-      log_write "${TICK} ${COL_LIGHT_GREEN}Gateway responded.${COL_NC}"
+      log_write "${TICK} ${COL_GREEN}Gateway responded.${COL_NC}"
       # and return a success code
       return 0
     fi
@@ -614,11 +614,11 @@ ping_internet() {
   # Try to ping the address 3 times
   if ! ${cmd} -W 2 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
     # if it's unsuccessful, show an error
-    log_write "${CROSS} ${COL_LIGHT_RED}Cannot reach the Internet.${COL_NC}\n"
+    log_write "${CROSS} ${COL_RED}Cannot reach the Internet.${COL_NC}\n"
     return 1
   else
     # Otherwise, show success
-    log_write "${TICK} ${COL_LIGHT_GREEN}Query responded.${COL_NC}\n"
+    log_write "${TICK} ${COL_GREEN}Query responded.${COL_NC}\n"
     return 0
   fi
 }
@@ -631,11 +631,11 @@ compare_port_to_service_assigned() {
   local ftl="pihole-FTL"
   if [[ "${service_name}" == "${resolver}" ]] || [[ "${service_name}" == "${web_server}" ]] || [[ "${service_name}" == "${ftl}" ]]; then
         # if port 53 is dnsmasq, show it in green as it's standard
-        log_write "[${COL_LIGHT_GREEN}${port_number}${COL_NC}] is in use by ${COL_LIGHT_GREEN}${service_name}${COL_NC}"
+        log_write "[${COL_GREEN}${port_number}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
       # Otherwise,
       else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_LIGHT_RED}${port_number}${COL_NC}] is in use by ${COL_LIGHT_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
+        log_write "[${COL_RED}${port_number}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
       fi
 }
 
@@ -711,21 +711,21 @@ check_x_headers() {
   # If the X-header found by curl matches what is should be,
   if [[ $block_page == "$block_page_working" ]]; then
     # display a success message
-    log_write "$TICK ${COL_LIGHT_GREEN}${block_page}${COL_NC}"
+    log_write "$TICK ${COL_GREEN}${block_page}${COL_NC}"
   else
     # Otherwise, show an error
-    log_write "$CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-    log_write "${COL_LIGHT_RED}${full_curl_output_block_page}${COL_NC}"
+    log_write "$CROSS ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "${COL_RED}${full_curl_output_block_page}${COL_NC}"
   fi
 
   # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
   if [[ $dashboard == "$dashboard_working" ]]; then
     # then we can show a success
-    log_write "$TICK ${COL_LIGHT_GREEN}${dashboard}${COL_NC}"
+    log_write "$TICK ${COL_GREEN}${dashboard}${COL_NC}"
   else
     # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
-    log_write "$CROSS ${COL_LIGHT_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-    log_write "${COL_LIGHT_RED}${full_curl_output_dashboard}${COL_NC}"
+    log_write "$CROSS ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
   fi
 }
 
@@ -770,10 +770,10 @@ dig_at() {
   # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
   if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
     # If it can, show sucess
-    log_write "${TICK} ${random_url} ${COL_LIGHT_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC (${local_address})"
+    log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC (${local_address})"
   else
     # Otherwise, show a failure
-    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_LIGHT_RED}localhost${COL_NC} (${local_address})"
+    log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_RED}localhost${COL_NC} (${local_address})"
   fi
 
   # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
@@ -784,20 +784,20 @@ dig_at() {
   # If Pi-hole can dig itself from it's IP (not the loopback address)
   if pihole_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
     # show a success
-    log_write "${TICK} ${random_url} ${COL_LIGHT_GREEN}is ${pihole_dig}${COL_NC} via ${COL_CYAN}Pi-hole${COL_NC} (${pihole_address})"
+    log_write "${TICK} ${random_url} ${COL_GREEN}is ${pihole_dig}${COL_NC} via ${COL_CYAN}Pi-hole${COL_NC} (${pihole_address})"
   else
     # Othewise, show a failure
-    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_LIGHT_RED}Pi-hole${COL_NC} (${pihole_address})"
+    log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_RED}Pi-hole${COL_NC} (${pihole_address})"
   fi
 
   # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
   # We are using the static remote_url here instead of a random one because we know it works with IPv4 and IPv6
   if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
     # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
-    log_write "${TICK} ${remote_url} ${COL_LIGHT_GREEN}is ${remote_dig}${COL_NC} via ${COL_CYAN}a remote, public DNS server${COL_NC} (${remote_address})"
+    log_write "${TICK} ${remote_url} ${COL_GREEN}is ${remote_dig}${COL_NC} via ${COL_CYAN}a remote, public DNS server${COL_NC} (${remote_address})"
   else
     # Otherwise, show an error
-    log_write "${CROSS} ${COL_LIGHT_RED}Failed to resolve${COL_NC} ${remote_url} via ${COL_LIGHT_RED}a remote, public DNS server${COL_NC} (${remote_address})"
+    log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${remote_url} via ${COL_RED}a remote, public DNS server${COL_NC} (${remote_address})"
   fi
 }
 
@@ -813,10 +813,10 @@ process_status(){
     # and print it out to the user
     if [[ "${status_of_process}" == "active" ]]; then
       # If it's active, show it in green
-      log_write "${TICK} ${COL_LIGHT_GREEN}${i}${COL_NC} daemon is ${COL_LIGHT_GREEN}${status_of_process}${COL_NC}"
+      log_write "${TICK} ${COL_GREEN}${i}${COL_NC} daemon is ${COL_GREEN}${status_of_process}${COL_NC}"
     else
       # If it's not, show it in red
-      log_write "${CROSS} ${COL_LIGHT_RED}${i}${COL_NC} daemon is ${COL_LIGHT_RED}${status_of_process}${COL_NC}"
+      log_write "${CROSS} ${COL_RED}${i}${COL_NC} daemon is ${COL_RED}${status_of_process}${COL_NC}"
     fi
   done
 }
@@ -915,7 +915,7 @@ dir_check() {
       :
     else
       # Otherwise, show an error
-      log_write "${COL_LIGHT_RED}${directory} does not exist.${COL_NC}"
+      log_write "${COL_RED}${directory} does not exist.${COL_NC}"
     fi
   done
 }
@@ -944,7 +944,7 @@ list_files_in_dir() {
       for i in "${!REQUIRED_FILES[@]}"; do
         if [[ "${dir_to_parse}/${each_file}" == ${REQUIRED_FILES[$i]} ]]; then
           # display the filename
-          log_write "\n${COL_LIGHT_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
+          log_write "\n${COL_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
           # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
           case "${dir_to_parse}/${each_file}" in
             # If it's Web server error log, just give the first 25 lines
@@ -993,7 +993,7 @@ analyze_gravity_list() {
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
   local gravity_permissions=$(ls -ld "${PIHOLE_BLOCKLIST_FILE}")
-  log_write "${COL_LIGHT_GREEN}${gravity_permissions}${COL_NC}"
+  log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
   local gravity_head=()
   gravity_head=( $(head -n 4 ${PIHOLE_BLOCKLIST_FILE}) )
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_BLOCKLIST_FILE})------${COL_NC}"
@@ -1019,7 +1019,7 @@ analyze_pihole_log() {
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
   local pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
-  log_write "${COL_LIGHT_GREEN}${pihole_log_permissions}${COL_NC}"
+  log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
   local pihole_log_head=()
   pihole_log_head=( $(head -n 20 ${PIHOLE_LOG}) )
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
@@ -1038,7 +1038,7 @@ analyze_pihole_log() {
     # If the variable contains a value, it found an error in the log
     if [[ -n ${error_to_check_for} ]]; then
       # So we can print it in red to make it visible to the user
-      log_write "   ${CROSS} ${COL_LIGHT_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
+      log_write "   ${CROSS} ${COL_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
     else
       # If the variable does not a value (the current default behavior), so do not obfuscate anything
       if [[ -z ${OBFUSCATE} ]]; then
@@ -1067,7 +1067,7 @@ tricorder_use_nc_or_ssl() {
   # Check for openssl first since encryption is a good thing
   if command -v openssl &> /dev/null; then
     # If the command exists,
-    log_write "    * Using ${COL_LIGHT_GREEN}openssl${COL_NC} for transmission."
+    log_write "    * Using ${COL_GREEN}openssl${COL_NC} for transmission."
     # encrypt and transmit the log and store the token returned in a variable
     tricorder_token=$(< ${PIHOLE_DEBUG_LOG_SANITIZED} openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null)
   # Otherwise,
@@ -1088,9 +1088,9 @@ upload_to_tricorder() {
 
   # Let the user know debugging is complete with something strikingly visual
   log_write ""
-  log_write "${COL_LIGHT_PURPLE}********************************************${COL_NC}"
-  log_write "${COL_LIGHT_PURPLE}********************************************${COL_NC}"
-	log_write "${TICK} ${COL_LIGHT_GREEN}** FINISHED DEBUGGING! **${COL_NC}\n"
+  log_write "${COL_PURPLE}********************************************${COL_NC}"
+  log_write "${COL_PURPLE}********************************************${COL_NC}"
+	log_write "${TICK} ${COL_GREEN}** FINISHED DEBUGGING! **${COL_NC}\n"
 
   # Provide information on what they should do with their token
 	log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
@@ -1112,7 +1112,7 @@ upload_to_tricorder() {
       # If they say yes, run our function for uploading the log
 		  [yY][eE][sS]|[yY]) tricorder_use_nc_or_ssl;;
       # If they choose no, just exit out of the script
-		  *) log_write "    * Log will ${COL_LIGHT_GREEN}NOT${COL_NC} be uploaded to tricorder.";exit;
+		  *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.";exit;
 	  esac
   fi
 	# Check if tricorder.pi-hole.net is reachable and provide token
@@ -1121,19 +1121,19 @@ upload_to_tricorder() {
     # Again, try to make this visually striking so the user realizes they need to do something with this information
     # Namely, provide the Pi-hole devs with the token
     log_write ""
-    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
-    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
-		log_write "${TICK} Your debug token is: ${COL_LIGHT_GREEN}${tricorder_token}${COL_NC}"
-    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
-    log_write "${COL_LIGHT_PURPLE}***********************************${COL_NC}"
+    log_write "${COL_PURPLE}***********************************${COL_NC}"
+    log_write "${COL_PURPLE}***********************************${COL_NC}"
+		log_write "${TICK} Your debug token is: ${COL_GREEN}${tricorder_token}${COL_NC}"
+    log_write "${COL_PURPLE}***********************************${COL_NC}"
+    log_write "${COL_PURPLE}***********************************${COL_NC}"
     log_write ""
 		log_write "   * Provide the token above to the Pi-hole team for assistance at"
 		log_write "   * ${FORUMS_URL}"
-    log_write "   * Your log will self-destruct on our server after ${COL_LIGHT_RED}48 hours${COL_NC}."
+    log_write "   * Your log will self-destruct on our server after ${COL_RED}48 hours${COL_NC}."
   # If no token was generated
   else
     # Show an error and some help instructions
-		log_write "${CROSS}  ${COL_LIGHT_RED}There was an error uploading your debug log.${COL_NC}"
+		log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
 		log_write "   * Please try again or contact the Pi-hole team for assistance."
 	fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
