@@ -29,6 +29,8 @@ if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
   source ${PIHOLE_COLTABLE_FILE}
 else
   COL_NC='\e[0m' # No Color
+  COL_RED='\e[1;91m'
+  COL_GREEN='\e[1;32m'
   COL_YELLOW='\e[1;33m'
   COL_PURPLE='\e[1;35m'
   COL_CYAN='\e[0;36m'
