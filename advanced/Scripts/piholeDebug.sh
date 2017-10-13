@@ -428,8 +428,8 @@ check_selinux() {
   # Check if a SELinux configuration file exists
   if [[ -f /etc/selinux/config ]]; then
     # If a SELinux configuration file was found, check the default SELinux mode.
-    DEFAULT_SELINUX=$(egrep -i '^SELINUX=' /etc/selinux/config | cut -d'=' -f2 | awk '{print tolower($0)}')
-    case $DEFAULT_SELINUX in
+    DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
+    case "${DEFAULT_SELINUX,,}" in
       enforcing)
         log_write "${CROSS} ${COL_LIGHT_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
         ;;
@@ -438,8 +438,8 @@ check_selinux() {
         ;;
     esac
     # Check the current state of SELinux
-    CURRENT_SELINUX=$(getenforce | awk '{print tolower($0)}')
-    case $CURRENT_SELINUX in
+    CURRENT_SELINUX=$(getenforce)
+    case "${CURRENT_SELINUX,,}" in
       enforcing)
         log_write "${CROSS} ${COL_LIGHT_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
         ;;
