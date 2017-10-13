@@ -422,6 +422,36 @@ diagnose_operating_system() {
   fi
 }
 
+check_selinux() {
+  # SELinux is not supported by the Pi-hole
+  echo_current_diagnostic "SELinux"
+  # Check if a SELinux configuration file exists
+  if [[ -f /etc/selinux/config ]]; then
+    # If a SELinux configuration file was found, check the default SELinux mode.
+    DEFAULT_SELINUX=$(egrep -i '^SELINUX=' /etc/selinux/config | cut -d'=' -f2 | awk '{print tolower($0)}')
+    case $DEFAULT_SELINUX in
+      enforcing)
+        log_write "${CROSS} ${COL_LIGHT_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+        ;;
+      *)  # 'permissive' and 'disabled'
+        log_write "${TICK} ${COL_LIGHT_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
+        ;;
+    esac
+    # Check the current state of SELinux
+    CURRENT_SELINUX=$(getenforce | awk '{print tolower($0)}')
+    case $CURRENT_SELINUX in
+      enforcing)
+        log_write "${CROSS} ${COL_LIGHT_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+        ;;
+      *)  # 'permissive' and 'disabled'
+        log_write "${TICK} ${COL_LIGHT_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
+        ;;
+    esac
+  else
+    log_write "${TICK} ${COL_LIGHT_GREEN}SELinux not Supported${COL_NC}";
+  fi
+}
+
 processor_check() {
   echo_current_diagnostic "Processor"
   # Store the processor type in a variable
@@ -1119,6 +1149,7 @@ source_setup_variables
 check_component_versions
 check_critical_program_versions
 diagnose_operating_system
+check_selinux
 processor_check
 check_networking
 check_name_resolution
