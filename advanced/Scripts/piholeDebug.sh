@@ -448,7 +448,7 @@ check_selinux() {
         ;;
     esac
   else
-    log_write "${TICK} ${COL_GREEN}SELinux not Supported${COL_NC}";
+    log_write "${INFO} ${COL_GREEN}SELinux not detected${COL_NC}";
   fi
 }
 
