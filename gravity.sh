@@ -33,6 +33,7 @@ adListDefault=/etc/pihole/adlists.default #being deprecated
 adListRepoDefault=/etc/.pihole/adlists.default
 whitelistScript="${PIHOLE_COMMAND} -w"
 whitelistFile=/etc/pihole/whitelist.txt
+whitelistWild=/etc/pihole/whitelist_wild.txt
 blacklistFile=/etc/pihole/blacklist.txt
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
@@ -274,6 +275,17 @@ gravity_Whitelist() {
 
 	# Ensure adlist domains are in whitelist.txt
 	${whitelistScript} -nr -q "${urls[@]}" > /dev/null
+
+        # Ensure adlist domains are in whitelist.txt
+        ${whitelistScript} -nr -q "${urls[@]}" > /dev/null
+
+        if [[ -f "${whitelistWild}" ]]; then
+        while read p
+        do
+                echo "::: wildcard whitelisting ${p}"
+                sed -i "/${p}/d" ${piholeDir}/${preEventHorizon}
+        done < ${whitelistWild}
+        fi
 
     # Check whitelist.txt exists.
 	if [[ -f "${whitelistFile}" ]]; then
