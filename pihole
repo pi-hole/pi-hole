@@ -85,7 +85,8 @@ updateGravityFunc() {
 
 # Scan an array of files for matching strings
 scanList(){
-  local domain="${1}" lists="${2}" type="${3:-}"
+  # Escape full stops
+  local domain="${1//./\\.}" lists="${2}" type="${3:-}"
 
   # Prevent grep from printing file path
   cd "/etc/pihole" || exit 1
