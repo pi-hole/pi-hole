@@ -336,7 +336,7 @@ restartDNS() {
   if [[ "${svcOption}" =~ "reload" ]]; then
     # Using SIGHUP will NOT re-read any *.conf files
     svc="killall -s SIGHUP dnsmasq"
-  elif [[ -z "${svcOption}" ]]; then
+  else
     # Get PID of dnsmasq to determine if it needs to start or restart
     if pidof dnsmasq &> /dev/null; then
       svcOption="restart"
