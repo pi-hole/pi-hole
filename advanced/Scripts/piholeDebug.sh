@@ -37,7 +37,6 @@ else
   TICK="[${COL_GREEN}✓${COL_NC}]"
   CROSS="[${COL_RED}✗${COL_NC}]"
   INFO="[i]"
-  DONE="${COL_GREEN} done!${COL_NC}"
   OVER="\r\033[K"
 fi
 
