@@ -14,8 +14,8 @@
 # is updated or re-installed. Please make any changes to the appropriate crontab
 # or other cron file snippets.
 
-# Pi-hole: Update the ad sources once a week on Sunday at 01:59
-#          Download any updates from the adlists
+# Pi-hole: Update the ad sources once a week on Sunday at a random time in the
+#          early morning. Download any updates from the adlists
 59 1    * * 7   root    PATH="$PATH:/usr/local/bin/" pihole updateGravity
 
 # Pi-hole: Update Pi-hole! Uncomment to enable auto update
