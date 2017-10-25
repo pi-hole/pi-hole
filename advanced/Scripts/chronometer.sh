@@ -302,7 +302,8 @@ get_sys_stats() {
 
   # Determine whether to display CPU clock speed as MHz or GHz
   if [[ -n "$cpu_mhz" ]]; then
-    [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000) GHz"
+    [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(printf "%.1f" $(calcFunc "$cpu_mhz"/1000)) GHz"
+    [[ "${cpu_freq}" == *".0"* ]] && cpu_freq="${cpu_freq/.0/}"
   fi
 
   # Determine colour for temperature
@@ -380,7 +381,7 @@ get_ftl_stats() {
     local top_domain_raw
     local top_client_raw
 
-    domains_being_blocked=$(printf "%.0f\\n" "${domains_being_blocked_raw}")
+    domains_being_blocked=$(printf "%.0f\\n" "${domains_being_blocked_raw}" 2> /dev/null)
     dns_queries_today=$(printf "%.0f\\n" "${dns_queries_today_raw}")
     ads_blocked_today=$(printf "%.0f\\n" "${ads_blocked_today_raw}")
     ads_percentage_today=$(printf "%'.0f\\n" "${ads_percentage_today_raw}")
@@ -403,9 +404,9 @@ get_ftl_stats() {
 get_strings() {
   # Expand or contract strings depending on screen size
   if [[ "$chrono_width" == "large" ]]; then
-    phc_str="        ${COL_DARK_GRAY}Pi-hole"
-    lte_str="         ${COL_DARK_GRAY}Admin"
-    ftl_str="           ${COL_DARK_GRAY}FTL"
+    phc_str="        ${COL_DARK_GRAY}Core"
+    lte_str="        ${COL_DARK_GRAY}Web"
+    ftl_str="        ${COL_DARK_GRAY}FTL"
     api_str="${COL_LIGHT_RED}API Offline"
 
     host_info="$sys_type"
@@ -419,7 +420,7 @@ get_strings() {
     ph_info="Blocking: $domains_being_blocked sites"
     total_str="Total: "
   else
-    phc_str="   ${COL_DARK_GRAY}PH"
+    phc_str=" ${COL_DARK_GRAY}Core"
     lte_str=" ${COL_DARK_GRAY}Web"
     ftl_str=" ${COL_DARK_GRAY}FTL"
     api_str="${COL_LIGHT_RED}API Down"
