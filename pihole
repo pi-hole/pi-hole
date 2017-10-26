@@ -346,9 +346,6 @@ restartDNS() {
     svc="service dnsmasq ${svcOption}"
   fi
 
-  # Send signal to FTL to have it re-parse the gravity files
-  killall -s SIGHUP pihole-FTL
-
   # Print output to Terminal, but not to Web Admin
   str="${svcOption^}ing DNS service"
   [[ -t 1 ]] && echo -ne "  ${INFO} ${str}..."
@@ -362,6 +359,9 @@ restartDNS() {
     [[ ! -t 1 ]] && local OVER=""
     echo -e "${OVER}  ${CROSS} ${output}"
   fi
+
+  # Send signal to FTL to have it re-parse the gravity files
+  killall -s SIGHUP pihole-FTL
 }
 
 piholeEnable() {
