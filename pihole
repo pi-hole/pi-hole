@@ -200,7 +200,7 @@ Options:
 
   # Scan Wildcards
   if [[ -e "${wildcardlist}" ]]; then
-    # Determine all subdomains, domain and TLDs 
+    # Determine all subdomains, domain and TLDs
     mapfile -t wildcards <<< "$(processWildcards "${domainQuery}")"
 
     for match in "${wildcards[@]}"; do
@@ -359,6 +359,9 @@ restartDNS() {
     [[ ! -t 1 ]] && local OVER=""
     echo -e "${OVER}  ${CROSS} ${output}"
   fi
+
+  # Send signal to FTL to have it re-parse the gravity files
+  killall -s SIGHUP pihole-FTL
 }
 
 piholeEnable() {
@@ -483,7 +486,7 @@ statusFunc() {
 
   # Determine if Pi-hole's addn-hosts configs are commented out
   addnConfigs=$(grep -i "addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)
-  
+
   if [[ "${addnConfigs}" =~ "#" ]]; then
     # A config is commented out
     case "${1}" in
