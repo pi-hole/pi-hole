@@ -200,7 +200,7 @@ Options:
 
   # Scan Wildcards
   if [[ -e "${wildcardlist}" ]]; then
-    # Determine all subdomains, domain and TLDs 
+    # Determine all subdomains, domain and TLDs
     mapfile -t wildcards <<< "$(processWildcards "${domainQuery}")"
 
     for match in "${wildcards[@]}"; do
@@ -483,7 +483,7 @@ statusFunc() {
 
   # Determine if Pi-hole's addn-hosts configs are commented out
   addnConfigs=$(grep -i "addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)
-  
+
   if [[ "${addnConfigs}" =~ "#" ]]; then
     # A config is commented out
     case "${1}" in
@@ -579,6 +579,11 @@ tricorderFunc() {
   fi
 }
 
+updateCheckFunc() {
+  "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh "$@"
+  exit 0
+}
+
 helpFunc() {
   echo "Usage: pihole [options]
 Example: 'pihole -w -h'
@@ -650,5 +655,6 @@ case "${1}" in
   "-t" | "tail"                 ) tailFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
+  "updatechecker"               ) updateCheckFunc;;
   *                             ) helpFunc;;
 esac
