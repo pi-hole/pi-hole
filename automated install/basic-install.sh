@@ -2077,6 +2077,9 @@ main() {
   # Download and compile the aggregated block list
   runGravity
 
+  # Force an update of the updatechecker
+  . /opt/pihole/updatecheck.sh
+
   #
   if [[ "${useUpdateVars}" == false ]]; then
       displayFinalMessage "${pw}"
