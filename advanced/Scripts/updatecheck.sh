@@ -46,7 +46,7 @@ function get_local_branch() {
 
 CORE_BRANCH="$(get_local_branch /etc/.pihole)"
 WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
-FTL_BRANCH="$(pihole-FTL tag)"
+FTL_BRANCH="$(pihole-FTL branch)"
 
 echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
 
