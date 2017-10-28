@@ -37,7 +37,7 @@ function get_local_branch() {
   directory="${1}"
   local output
 
-  cd "${directory}" || return 1
+  cd "${directory}" 2> /dev/null || return 1
   # Store STDERR as STDOUT variable
   output=$( { git rev-parse --abbrev-ref HEAD; } 2>&1 )
   echo "$output"
@@ -59,7 +59,7 @@ function get_local_version() {
   directory="${1}"
   local output
 
-  cd "${directory}" || return 1
+  cd "${directory}" 2> /dev/null || return 1
   # Store STDERR as STDOUT variable
   output=$( { git describe --long --dirty --tags; } 2>&1 )
   echo "$output"
