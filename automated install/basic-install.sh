@@ -1357,7 +1357,7 @@ installCron() {
   # Copy the cron file over from the local repo
   cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
   # Randomize gravity update time
-  sed -i "s/59 1/$((RANDOM % 60)) $((2 + RANDOM % 2))/" /etc/cron.d/pihole
+  sed -i "s/59 1/$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
