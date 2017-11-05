@@ -1262,14 +1262,14 @@ install_dependent_packages() {
       installArray+=("${i}")
     fi
   done
+  #
+  if [[ "${#installArray[@]}" -gt 0 ]]; then
     #
-    if [[ "${#installArray[@]}" -gt 0 ]]; then
-      #
-      "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
-      return
-    fi
-    echo ""
-    return 0
+    "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
+    return
+  fi
+  echo ""
+  return 0
 }
 
 # Create logfiles if necessary
