@@ -1670,7 +1670,7 @@ update_dialogs() {
   "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3) || \
   { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
 
-  # Set the variable based on if the user user chooses
+  # Set the variable based on if the user chooses
   case ${UpdateCmd} in
     # repair, or
     ${opt1a})
