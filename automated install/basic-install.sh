@@ -218,7 +218,7 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
 
-# If neither apt-get or rmp/dnf are not found
+# If neither apt-get or rmp/dnf are found
 else
   # it's not an OS we can support,
   echo -e "  ${CROSS} OS distribution not supported"
