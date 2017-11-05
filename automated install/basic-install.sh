@@ -1677,7 +1677,7 @@ update_dialogs() {
       echo -e "  ${INFO} ${opt1a} option selected"
       useUpdateVars=true
       ;;
-    # recongigure,
+    # reconfigure,
     ${opt2a})
       echo -e "  ${INFO} ${opt2a} option selected"
       useUpdateVars=false
