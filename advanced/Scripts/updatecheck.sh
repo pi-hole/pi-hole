@@ -33,15 +33,8 @@ echo "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/et
 
 function get_local_branch() {
   # Return active branch
-  local directory
-  directory="${1}"
-  local output
-
-  cd "${directory}" 2> /dev/null || return 1
-  # Store STDERR as STDOUT variable
-  output=$( { git rev-parse --abbrev-ref HEAD; } 2>&1 )
-  echo "$output"
-  return
+  cd "${1}" 2> /dev/null || return 1
+  git rev-parse --abbrev-ref HEAD || return 1
 }
 
 CORE_BRANCH="$(get_local_branch /etc/.pihole)"
@@ -55,15 +48,8 @@ echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
 
 function get_local_version() {
   # Return active branch
-  local directory
-  directory="${1}"
-  local output
-
-  cd "${directory}" 2> /dev/null || return 1
-  # Store STDERR as STDOUT variable
-  output=$( { git describe --long --dirty --tags; } 2>&1 )
-  echo "$output"
-  return
+  cd "${1}" 2> /dev/null || return 1
+  git describe --long --dirty --tags || return 1
 }
 
 CORE_VERSION="$(get_local_version /etc/.pihole)"
