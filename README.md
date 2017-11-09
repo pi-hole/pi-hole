@@ -3,11 +3,6 @@
 <b>Network-wide ad blocking via your own Linux hardware</b>
 </p>
 
-# Core: Command Line Interface
-<a href="https://www.codacy.com/app/Pi-hole/pi-hole?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pi-hole/pi-hole&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/c558a0f8d7124c99b02b84f0f5564238"/></a>
-<a href="https://travis-ci.org/pi-hole/pi-hole"><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"/></a>
-<a href="https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE"><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"/></a>
-## Summary
 The Pi-hole blocks ads via a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole), so all your devices are protected without the need to install client-side software.
 
 - **Easy-to-install**: our versatile installer walks you through the process, and [takes less than ten minutes](https://www.youtube.com/watch?v=vKWjx1AQYgs)
@@ -22,6 +17,9 @@ The Pi-hole blocks ads via a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Si
 - **Free**: open source software which helps ensure _you_ are the sole person in control of your privacy
 
 -----
+<a href="https://www.codacy.com/app/Pi-hole/pi-hole?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pi-hole/pi-hole&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/c558a0f8d7124c99b02b84f0f5564238"/></a>
+<a href="https://travis-ci.org/pi-hole/pi-hole"><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"/></a>
+<a href="https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE"><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"/></a>
 
 ## One-Step Automated Install
 1. Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
@@ -30,7 +28,7 @@ The Pi-hole blocks ads via a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Si
 #### `curl -sSL https://install.pi-hole.net | bash`
 
 ## Alternative Install Methods
-[Piping to `bash` can be dangerous](https://pi-hole.net/2016/07/25/curling-and-piping-to-bash/), so we understand the importance of giving people the option to review our code! Our installer is [found here](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh), if you wish to read it before running.
+[Piping to `bash` _can_ be dangerous](https://pi-hole.net/2016/07/25/curling-and-piping-to-bash/), so we understand the importance of giving people the option to review our code! Our installer is [found here](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh), if you wish to read it before running.
 
 You can install Pi-hole via one of the two alternative methods:
 
@@ -58,15 +56,15 @@ As a last resort, you can always manually set each device to use Pi-hole as thei
 -----
 
 ## Pi-hole is free, but powered by your support
-There are many reoccuring costs involved with maintaining free, open source and privacy respecting software; expenses which [our volunteers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software, as well as the importance of keeping it maintained.
+There are many reoccurring costs involved with maintaining free, open source, and privacy-respecting software; expenses which [our volunteers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software, as well as the importance of keeping it maintained.
 
 Make no mistake: **your support is absolutely vital to help keep us innovating!**
 
 ### Donations
-Sending a donation using our links below is **extremely helpful** in offset a portion of our monthly costs:
+Sending a donation using our links below is **extremely helpful** in offsetting a portion of our monthly expenses:
 
 - ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
-- ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) Bitcoin Address: 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+- ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
 
 ### Alternative support
 If you'd rather not donate (_which is okay!_), there are other ways you can help support us:
@@ -78,7 +76,7 @@ If you'd rather not donate (_which is okay!_), there are other ways you can help
 - Spreading the word about our software, and how you have benefited from it
 
 ### Contributing via GitHub
-We welcome everyone to contribute to issue reports, suggest new features and create pull requests.
+We welcome _everyone_ to contribute to issue reports, suggest new features, and create pull requests.
 
 If you have something to add - anything from a typo through to a whole new feature, we're happy to check it out! Just make sure to fill out our template when submitting your request; the questions that it asks will help the volunteers quickly understand what you're aiming to achieve.
 
@@ -102,7 +100,7 @@ Word-of-mouth continues to help our project grow immensely, and we'd like to hel
 
 -----
 
-## Features
+## Breakdown Of Features
 ### The Command Line Interface
 The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole.
 
@@ -112,7 +110,7 @@ Some of the features include:
 * [Whitelisting, Blacklisting and Wildcards](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#whitelisting-blacklisting-and-wildcards)
 * [Debugging utility](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#debugger)
 * [Viewing the live log file](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#tail)
-* [Real-time Statistics via `ssh`](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#chronometer) or [your TFT LCD screen](http://www.amazon.com/exec/obidos/ASIN/B00ID39LM4/pihole09-20)
+* [Real-time Statistics via `ssh`](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#chronometer) or [your TFT LCD screen](https://www.amazon.com/gp/product/B01HN0LL2A/ref=as_li_qf_sp_asin_il_tl?ie=UTF8&tag=pihole09-20&camp=1789&creative=9325&linkCode=as2&creativeASIN=B01HN0LL2A&linkId=fb33e9efb10c1daba0dd1dd9fea72b1a)
 * [Updating Ad Lists](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#gravity)
 * [Querying Ad Lists for matching domains](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#query)
 * [Enabling and Disabling Pi-hole](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#enable--disable)
@@ -132,9 +130,9 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 3. `http://pi.hole/` (when using Pi-hole as your DNS server)
 
 ## The Faster-Than-Light Engine
-The [FTL Engine](https://github.com/pi-hole/FTL) is a lightweight purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily intergrated into your own projects. As the name implies, FTL does this all *very quickly*!
+The [FTL Engine](https://github.com/pi-hole/FTL) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTL does this all *very quickly*!
 
-Some of the statistics you can intergrate include:
+Some of the statistics you can integrate include:
 * Total number of domains being blocked
 * Total number of DNS queries today
 * Total number of ads blocked today
@@ -148,8 +146,8 @@ The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web 
 
 -----
 
-## Technical Details
-To summarize into a short sentence, the Pi-hole is an **advertising-aware DNS/Web server**. While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how it was setup and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
+## The Origin Of Pi-hole
+While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how Pi-hole was originally setup and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
 
 -----
 
@@ -189,3 +187,4 @@ To summarize into a short sentence, the Pi-hole is an **advertising-aware DNS/We
 - [Adafruit: Raspberry Pi Quick Look at Pi Hole ad blocking server with Tony D](https://www.youtube.com/watch?v=eg4u2j1HYlI)
 - [Devacron: OrangePi Zero as an Ad-Block server with Pi-Hole](http://www.devacron.com/orangepi-zero-as-an-ad-block-server-with-pi-hole/)
 - [CryptoAUSTRALIA Blog: How We Tried 5 Privacy Focused Raspberry Pi Projects](https://blog.cryptoaustralia.org.au/2017/10/05/5-privacy-focused-raspberry-pi-projects/)
+- [CryptoAUSTRALIA Pi-hole Workshop](https://blog.cryptoaustralia.org.au/2017/11/02/pi-hole-network-wide-ad-blocker/)
