@@ -582,6 +582,11 @@ tricorderFunc() {
   fi
 }
 
+updateCheckFunc() {
+  "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh "$@"
+  exit 0
+}
+
 helpFunc() {
   echo "Usage: pihole [options]
 Example: 'pihole -w -h'
@@ -653,5 +658,6 @@ case "${1}" in
   "-t" | "tail"                 ) tailFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
+  "updatechecker"               ) updateCheckFunc;;
   *                             ) helpFunc;;
 esac
