@@ -30,7 +30,7 @@ set -e
 
 # We write to a temporary file before moving the log to the pihole folder
 tmpLog=/tmp/pihole-install.log
-instalLogLoc=/etc/pihole/install.log
+instalLogLoc=/var/log/pihole-install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
@@ -2114,7 +2114,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
+  echo -e "\\n  ${INFO} The install log is located at: /var/log/pihole-install.log
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }
