@@ -2114,7 +2114,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: /var/log/pihole-install.log
+  echo -e "\\n  ${INFO} The install log is located at: ${instalLogLoc}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }
