@@ -28,9 +28,9 @@ set -e
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
-# We write to a temporary file before moving the log to the pihole folder
-tmpLog=/tmp/pihole-install.log
-instalLogLoc=/var/log/pihole-install.log
+# We write to a temporary file before moving the log to the /var/log folder
+tmpLog=/tmp/pihole_install.log
+instalLogLoc=/var/log/pihole_install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
