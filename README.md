@@ -1,45 +1,42 @@
 <p align="center">
-<a href="https://pi-hole.net"><img src="https://camo.githubusercontent.com/578cfb146b0bb867e3609c5581761cf0b845b527/68747470733a2f2f66697265626f672e6e65742f566f72746578322e706e67" width="150" height="255"></a><br/>
-<b>Network-wide ad blocking via your own Linux hardware</b>
+<a href="https://pi-hole.net"><img src="https://pi-hole.github.io/graphics/Vortex/Vortex_with_text.png" width="150" height="255" alt="Pi-hole"></a><br/>
+<b>Network-wide ad blocking via your own Linux hardware</b><br/>
 </p>
 
-The Pi-hole blocks ads via a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole), so all your devices are protected without the need to install client-side software.
+The Pi-hole is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) that protects your devices from unwanted content, without installing any client-side software.
 
 - **Easy-to-install**: our versatile installer walks you through the process, and [takes less than ten minutes](https://www.youtube.com/watch?v=vKWjx1AQYgs)
-- **Resolute**: ads are blocked in _non-browser locations_ such as ad-laden mobile apps and smart TVs
-- **Fast**: speeds up the feel of everyday browsing by caching DNS queries, saving bandwidth
-- **Lightweight**: runs smoothly and requires [minimal resources](https://discourse.pi-hole.net/t/hardware-software-requirements/273)
-- **Robust**: a command line interface for those preferring CLI, and/or wanting to automate tasks
-- **Informative**: a beautiful and secure Web Interface dashboard to control your Pi-hole
-- **Versatile**: can optionally function as a DHCP server, ensuring your devices will not need configuring individually
-- **Scalable**: [capable of handling hundreds of millions of queries](https://pi-hole.net/2017/05/24/how-much-traffic-can-pi-hole-handle/) when installed on powerful hardware
+- **Resolute**: content is blocked in _non-browser locations_, such as ad-laden mobile apps and smart TVs
+- **Responsive**: seamlessly speeds up the feel of everyday browsing by caching DNS queries
+- **Lightweight**: runs smoothly with [minimal hardware and software requirements](https://discourse.pi-hole.net/t/hardware-software-requirements/273)
+- **Robust**: a command line interface that is quality assured for interoperability
+- **Insightful**: a beautiful responsive Web Interface dashboard to view and control your Pi-hole
+- **Versatile**: can optionally function as a [DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026), ensuring *all* your devices are protected automatically
+- **Scalable**: [capable of handling hundreds of millions of queries](https://pi-hole.net/2017/05/24/how-much-traffic-can-pi-hole-handle/) when installed on server-grade hardware
 - **Modern**: blocks ads over both IPv4 and IPv6
 - **Free**: open source software which helps ensure _you_ are the sole person in control of your privacy
 
 -----
-<a href="https://www.codacy.com/app/Pi-hole/pi-hole?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pi-hole/pi-hole&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/c558a0f8d7124c99b02b84f0f5564238"/></a>
-<a href="https://travis-ci.org/pi-hole/pi-hole"><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development"/></a>
-<a href="https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE"><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939"/></a>
+<a href="https://www.codacy.com/app/Pi-hole/pi-hole?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pi-hole/pi-hole&amp;utm_campaign=Badge_Grade"><img src="https://api.codacy.com/project/badge/Grade/c558a0f8d7124c99b02b84f0f5564238" alt="Codacy Grade"/></a>
+<a href="https://travis-ci.org/pi-hole/pi-hole"><img src="https://travis-ci.org/pi-hole/pi-hole.svg?branch=development" alt="Travis Build Status"/></a>
+<a href="https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE"><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939" alt="BountySource"/></a>
 
 ## One-Step Automated Install
-1. Install a [supported operating system](https://discourse.pi-hole.net/t/hardware-software-requirements/273/1)
-2. Run the following command
+Those who want to get started quickly and conveniently, may install Pi-hole using the following command:
 
 #### `curl -sSL https://install.pi-hole.net | bash`
 
 ## Alternative Install Methods
-[Piping to `bash` _can_ be dangerous](https://pi-hole.net/2016/07/25/curling-and-piping-to-bash/), so we understand the importance of giving people the option to review our code! Our installer is [found here](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh), if you wish to read it before running.
+[Piping to `bash` is controversial](https://pi-hole.net/2016/07/25/curling-and-piping-to-bash), as it prevents you from [reading code that is about to run](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) on your system. Therefore, we provide these alternative installation methods which allow code review before installation: 
 
-You can install Pi-hole via one of the two alternative methods:
-
-### Clone our repository and run the automated installer from your device
+### Method 1: Clone our repository and run
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
 cd "Pi-hole/automated install/"
 bash basic-install.sh
 ```
 
-### Manually download and execute the install file
+### Method 2: Manually download the installer and run
 ```
 wget -O basic-install.sh https://install.pi-hole.net
 bash basic-install.sh
@@ -47,7 +44,7 @@ bash basic-install.sh
 
 ## Post-install: Make your network take advantage of Pi-hole
 
-Once the installer has been run, you will need to [configure your router to have **DHCP clients use the Pi-hole as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) so that any device that connects to your network will have ads blocked without any further intervention.
+Once the installer has been run, you will need to [configure your router to have **DHCP clients use Pi-hole as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) which ensures that all devices connecting to your network will have content blocked without any further intervention.
 
 If your router does not support setting the DNS server, you can [use Pi-hole's built in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026); just be sure to disable DHCP on your router first (if it has that feature available).
 
@@ -56,15 +53,15 @@ As a last resort, you can always manually set each device to use Pi-hole as thei
 -----
 
 ## Pi-hole is free, but powered by your support
-There are many reoccurring costs involved with maintaining free, open source, and privacy-respecting software; expenses which [our volunteers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software, as well as the importance of keeping it maintained.
+There are many reoccurring costs involved with maintaining free, open source, and privacy respecting software; expenses which [our volunteer developers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software, as well as the importance of keeping it maintained.
 
 Make no mistake: **your support is absolutely vital to help keep us innovating!**
 
 ### Donations
 Sending a donation using our links below is **extremely helpful** in offsetting a portion of our monthly expenses:
 
-- ![Paypal](https://assets.pi-hole.net/static/paypal.png) [Donate via PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY)
-- ![Bitcoin](https://assets.pi-hole.net/static/Bitcoin.png) 1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL
+&nbsp;<img src="https://pi-hole.github.io/graphics/Badges/paypal-badge-black.svg" width="24" height="24" alt="PP"/> <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY">Donate via PayPal</a><br/>
+&nbsp;<img src="https://pi-hole.github.io/graphics/Badges/bitcoin-badge-black.svg" width="24" height="24" alt="BTC"/> Bitcoin Address: <code>1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL</code>
 
 ### Alternative support
 If you'd rather not donate (_which is okay!_), there are other ways you can help support us:
@@ -83,36 +80,44 @@ If you have something to add - anything from a typo through to a whole new featu
 You'll find that the [install script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) and the [debug script](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/piholeDebug.sh) have an abundance of comments, which will help you better understand how Pi-hole works. They're also a valuable resource to those who want to learn how to write scripts or code a program! We encourage anyone who likes to tinker to read through it, and submit a pull request for us to review.
 
 ### Presentations about Pi-hole
-Word-of-mouth continues to help our project grow immensely, and we'd like to help those who are going to be presenting Pi-hole at a conference, meetup or even a school project. If you'd like some free swag to hand out to your audience, [get in touch with us](https://pi-hole.net/2017/05/17/giving-a-presentation-on-pi-hole-contact-us-first-for-some-goodies-and-support/).
+Word-of-mouth continues to help our project grow immensely, and so we are helping make this easier for people.
+
+If you are going to be presenting Pi-hole at a conference, meetup or even a school project, [get in touch with us](https://pi-hole.net/2017/05/17/giving-a-presentation-on-pi-hole-contact-us-first-for-some-goodies-and-support/) so we can hook you up with free swag to hand out to your audience!
 
 -----
 
 ## Getting in touch with us
-- [Users Forum](https://discourse.pi-hole.net/)
-- [Feature requests](https://discourse.pi-hole.net/c/feature-requests?order=votes)
-- [FAQs](https://discourse.pi-hole.net/c/faqs)
-- [Wiki](https://github.com/pi-hole/pi-hole/wiki)
-- [/r/pihole on Reddit](https://www.reddit.com/r/pihole/)
-- [@The_Pi_Hole on Twitter](https://twitter.com/The_Pi_Hole)
-- [Pi-hole on YouTube](https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w)
-- [ThePiHole on Facebook](https://www.facebook.com/ThePiHole/)
-- [Chat on Gitter](https://gitter.im/pi-hole/pi-hole)
+While we are primarily reachable on our <a href="https://discourse.pi-hole.net/">Discourse User Forum</a>, we can also be found on a variety of social media outlets. **Please be sure to check the FAQ's** before starting a new discussion, as we do not have the spare time to reply to every request for assistance.
+
+<ul>
+  <li><a href="https://discourse.pi-hole.net/c/faqs">Frequently Asked Questions</a></li>
+  <li><a href="https://github.com/pi-hole/pi-hole/wiki">Pi-hole Wiki</a></li>
+  <li><a href="https://discourse.pi-hole.net/c/feature-requests?order=votes">Feature Requests</a></li>
+</ul>
+<ul>
+  <li><a href="https://discourse.pi-hole.net/">Discourse User Forum</a></li>
+  <li><a href="https://www.reddit.com/r/pihole/">Reddit</a></li>
+  <li><a href="https://gitter.im/pi-hole/pi-hole">Gitter</a> (Real-time chat)</li>
+  <li><a href="https://twitter.com/The_Pi_Hole">Twitter</a></li>
+  <li><a href="https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w">YouTube</a></li>
+  <li><a href="https://www.facebook.com/ThePiHole/">Facebook</a></li>
+</ul>
 
 -----
 
-## Breakdown Of Features
+## Breakdown of Features
 ### The Command Line Interface
-The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole.
+The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole, without the need of the Web Interface. It's fast, user-friendly, and auditable by anyone with understanding of `bash`.
 
-<a href="https://assets.pi-hole.net/static/ASCII-Vortex.png"><img src="https://camo.githubusercontent.com/822cc9cac2a7b6b9eacc0874e098119186db10ec/68747470733a2f2f66697265626f672e6e65742f41534349492d4c6f676f2e706e67" width="200" height="280" alt="Pi-hole ASCII Logo"/></a>
+<a href="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif"><img src="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif" alt="Pi-hole Blacklist Demo"/></a>
 
-Some of the features include:
+Some notable features include:
 * [Whitelisting, Blacklisting and Wildcards](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#whitelisting-blacklisting-and-wildcards)
 * [Debugging utility](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#debugger)
 * [Viewing the live log file](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#tail)
-* [Real-time Statistics via `ssh`](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#chronometer) or [your TFT LCD screen](https://www.amazon.com/gp/product/B01HN0LL2A/ref=as_li_qf_sp_asin_il_tl?ie=UTF8&tag=pihole09-20&camp=1789&creative=9325&linkCode=as2&creativeASIN=B01HN0LL2A&linkId=fb33e9efb10c1daba0dd1dd9fea72b1a)
+* [Real-time Statistics via `ssh`](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#chronometer) or [your TFT LCD screen](http://www.amazon.com/exec/obidos/ASIN/B00ID39LM4/pihole09-20)
 * [Updating Ad Lists](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#gravity)
-* [Querying Ad Lists for matching domains](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#query)
+* [Querying Ad Lists for blocked domains](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#query)
 * [Enabling and Disabling Pi-hole](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#enable--disable)
 * ... and *many* more!
 
@@ -121,7 +126,17 @@ You can read our [Core Feature Breakdown](https://github.com/pi-hole/pi-hole/wik
 ### The Web Interface Dashboard
 This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
 
-<a href="https://assets.pi-hole.net/static/dashboard.png"><img src="https://camo.githubusercontent.com/313742e96fc7dee581e77b8c7eff1e4c078024ee/68747470733a2f2f66697265626f672e6e65742f44617368626f6172642e706e67" width="888" height="522" alt="Pi-hole Dashboard"/></a>
+<a href="https://pi-hole.github.io/graphics/Screenshots/dashboard.png"><img src="https://pi-hole.github.io/graphics/Screenshots/dashboard.png" width="888" height="522" alt="Pi-hole Dashboard"/></a>
+
+Some notable features include:
+* Mobile friendly interface
+* Password protection
+* Detailed graphs and doughnut charts
+* Top lists of domains and clients
+* A filterable and sortable query log
+* Long Term Statistics to view data over user defined time ranges
+* The ability to easily manage and configure Pi-hole features
+* ... and all the main features of the Command Line Interface!
 
 There are several ways to [access the dashboard](https://discourse.pi-hole.net/t/how-do-i-access-pi-holes-dashboard-admin-interface/3168):
 
@@ -139,19 +154,28 @@ Some of the statistics you can integrate include:
 * Percentage of ads blocked
 * Unique domains
 * Queries forwarded (to your chosen upstream DNS server)
-* Queries cached (served by Pi-hole)
-* Unique Pi-hole clients
+* Queries cached
+* Unique clients
 
-The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). [More details are found here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
+The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). You can out find [more details over here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
 
 -----
 
 ## The Origin Of Pi-hole
+Pi-hole being a **advertising-aware DNS/Web server**, makes use of the following technologies:
+
+* [`dnsmasq`](http://www.thekelleys.org.uk/dnsmasq/doc.html) - a lightweight DNS and DHCP server
+* [`curl`](https://curl.haxx.se) - A command line tool for transferring data with URL syntax
+* [`lighttpd`](https://www.lighttpd.net) - webserver designed and optimized for high performance
+* [`php`](https://secure.php.net) - a popular general-purpose web scripting language
+* [AdminLTE Dashboard](https://github.com/almasaeed2010/AdminLTE) - premium admin control panel based on Bootstrap 3.x
+
 While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how Pi-hole was originally setup and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
 
 -----
 
 ## Pi-hole Projects
+- [The Big Blocklist Collection](https://wally3k.github.io)
 - [Docker Pi-hole container (x86 and ARM)](https://hub.docker.com/r/diginc/pi-hole/)
 - [Pi-Hole in the cloud](http://blog.codybunch.com/2015/07/28/Pi-Hole-in-the-cloud/)
 - [Pie in the Sky-Hole [A Pi-Hole in the cloud for ad-blocking via DNS]](https://dlaa.me/blog/post/skyhole)
@@ -186,5 +210,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [Digital Trends: 5 Fun, Easy Projects You Can Try With a $35 Raspberry Pi](https://youtu.be/QwrKlyC2kdM?t=1m42s)
 - [Adafruit: Raspberry Pi Quick Look at Pi Hole ad blocking server with Tony D](https://www.youtube.com/watch?v=eg4u2j1HYlI)
 - [Devacron: OrangePi Zero as an Ad-Block server with Pi-Hole](http://www.devacron.com/orangepi-zero-as-an-ad-block-server-with-pi-hole/)
-- [CryptoAUSTRALIA Blog: How We Tried 5 Privacy Focused Raspberry Pi Projects](https://blog.cryptoaustralia.org.au/2017/10/05/5-privacy-focused-raspberry-pi-projects/)
-- [CryptoAUSTRALIA Pi-hole Workshop](https://blog.cryptoaustralia.org.au/2017/11/02/pi-hole-network-wide-ad-blocker/)
+- [Linux Pro: The Hole Truth](http://www.linuxpromagazine.com/Issues/2017/200/The-sysadmin-s-daily-grind-Pi-hole)
+- [CryptoAUSTRALIA: How We Tried 5 Privacy Focused Raspberry Pi Projects](https://blog.cryptoaustralia.org.au/2017/10/05/5-privacy-focused-raspberry-pi-projects/)
+- [CryptoAUSTRALIA: Pi-hole Workshop](https://blog.cryptoaustralia.org.au/2017/11/02/pi-hole-network-wide-ad-blocker/)
+- [Know How 355: Killing ads with a Raspberry Pi-Hole!](https://www.twit.tv/shows/know-how/episodes/355)
