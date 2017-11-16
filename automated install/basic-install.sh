@@ -28,9 +28,9 @@ set -e
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
-# We write to a temporary file before moving the log to the pihole folder
-tmpLog=/tmp/pihole-install.log
-instalLogLoc=/etc/pihole/install.log
+# Store log files in specified directory
+logdir=/var/log/pihole
+LOG_FILE="${logdir}/install-$(date -Iseconds).log"
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
@@ -1642,7 +1642,7 @@ IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
 If you set a new IP address, you should restart the Pi.
 
-The install log is in /etc/pihole.
+The install log is in ${LOG_FILE}.
 
 ${additional}" ${r} ${c}
 }
@@ -1881,8 +1881,24 @@ FTLdetect() {
 
 }
 
+make_temporary_log() {
+  # Create a random temporary file for the log
+  local TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+  # Open handle 3 for templog
+  # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
+  exec 3>"$TEMPLOG"
+  # Delete templog, but allow for addressing via file handle
+  # This lets us write to the log without having a temporary file on the drive, which
+  # is meant to be a security measure so there is not a lingering file on the drive during the debug process
+  rm "$TEMPLOG"
+  # Ensure directory for logfile exists
+  mkdir -p "${logdir}"
+}
+
 main() {
   ######## FIRST CHECK ########
+  # Create log file location
+  make_temporary_log
   # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
   show_ascii_berry
   # Must be root to install
@@ -2010,7 +2026,7 @@ main() {
     fi
 
     # Install and log everything to a file
-    installPihole | tee ${tmpLog}
+    installPihole | tee -a /proc/$$/fd/3
   else
     # Clone/Update the repos
     clone_or_update_repos
@@ -2037,11 +2053,11 @@ main() {
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
     fi
 
-    updatePihole | tee ${tmpLog}
+    updatePihole | tee -a /proc/$$/fd/3
   fi
 
-  # Move the log file into /etc/pihole for storage
-  mv ${tmpLog} ${instalLogLoc}
+  # Copy the contents of file descriptor 3 into the debug log
+  cat /proc/$$/fd/3 > "${LOG_FILE}"
 
   if [[ "${INSTALL_WEB}" == true ]]; then
     # Add password to web UI if there is none
@@ -2117,7 +2133,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
+  echo -e "\\n  ${INFO} The install log is located at: ${LOG_FILE}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }
