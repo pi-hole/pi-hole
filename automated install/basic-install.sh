@@ -767,7 +767,7 @@ setDNS() {
       Quad9 ""
       Custom "")
   # In a whiptail dialog, show the options
-  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
+  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
     # exit if Cancel is selected
     { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
