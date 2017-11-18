@@ -764,9 +764,10 @@ setDNS() {
       Norton ""
       Comodo ""
       DNSWatch ""
+      Quad9 ""
       Custom "")
   # In a whiptail dialog, show the options
-  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
+  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
     # exit if Cancel is selected
     { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
@@ -804,6 +805,10 @@ setDNS() {
       echo "DNS.WATCH servers"
       PIHOLE_DNS_1="84.200.69.80"
       PIHOLE_DNS_2="84.200.70.40"
+      ;;
+    Quad9)
+      echo "Quad9 servers"
+      PIHOLE_DNS_1="9.9.9.9"
       ;;
     Custom)
       # Until the DNS settings are selected,
