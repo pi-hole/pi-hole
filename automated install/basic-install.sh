@@ -809,6 +809,7 @@ setDNS() {
     Quad9)
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
+      PIHOLE_DNS_2="149.112.112.112"
       ;;
     Custom)
       # Until the DNS settings are selected,
