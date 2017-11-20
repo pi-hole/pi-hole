@@ -94,6 +94,7 @@ While we are primarily reachable on our <a href="https://discourse.pi-hole.net/"
   <li><a href="https://github.com/pi-hole/pi-hole/wiki">Pi-hole Wiki</a></li>
   <li><a href="https://discourse.pi-hole.net/c/feature-requests?order=votes">Feature Requests</a></li>
 </ul>
+<br/>
 <ul>
   <li><a href="https://discourse.pi-hole.net/">Discourse User Forum</a></li>
   <li><a href="https://www.reddit.com/r/pihole/">Reddit</a></li>
