@@ -138,8 +138,9 @@ gravity_Collapse() {
     # Logic: Split by folder/port
     awk -F '[/:]' '{
       # Remove URL protocol & optional username:password@
-      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
-      print $1
+      gsub(/(.*:\/\/|)/, "", $0)
+      if(length($1)>0){print $1}
+      else {print "local"}
     }' <<< "$(printf '%s\n' "${sources[@]}")" 2> /dev/null
   )"
 
@@ -203,20 +204,27 @@ gravity_Pull() {
   # shellcheck disable=SC2086
   httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
-  # Determine "Status:" output based on HTTP response
-  case "${httpCode}" in
-    "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true;;
-    "304") echo -e "${OVER}  ${TICK} ${str} No changes detected"; success=true;;
-    "000") echo -e "${OVER}  ${CROSS} ${str} Connection Refused";;
-    "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden";;
-    "404") echo -e "${OVER}  ${CROSS} ${str} Not found";;
-    "408") echo -e "${OVER}  ${CROSS} ${str} Time-out";;
-    "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons";;
-    "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error";;
-    "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)";;
-    "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)";;
-    "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)";;
-    *    ) echo -e "${OVER}  ${CROSS} ${str} ${httpCode}";;
+  case $url in
+    # Did we "download" a remote file?
+    "http"*)
+      # Determine "Status:" output based on HTTP response
+      case "${httpCode}" in
+        "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true;;
+        "304") echo -e "${OVER}  ${TICK} ${str} No changes detected"; success=true;;
+        "000") echo -e "${OVER}  ${CROSS} ${str} Connection Refused";;
+        "403") echo -e "${OVER}  ${CROSS} ${str} Forbidden";;
+        "404") echo -e "${OVER}  ${CROSS} ${str} Not found";;
+        "408") echo -e "${OVER}  ${CROSS} ${str} Time-out";;
+        "451") echo -e "${OVER}  ${CROSS} ${str} Unavailable For Legal Reasons";;
+        "500") echo -e "${OVER}  ${CROSS} ${str} Internal Server Error";;
+        "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)";;
+        "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)";;
+        "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)";;
+        *    ) echo -e "${OVER}  ${CROSS} ${str} ${httpCode}";;
+      esac;;
+    # Did we "download" a local file?
+    "file"*) echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true;;
+    *      ) echo -e "${OVER}  ${CROSS} ${str} ${url} ${httpCode}";;
   esac
 
   # Determine if the blocklist was downloaded and saved correctly
@@ -229,7 +237,7 @@ gravity_Pull() {
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
-      echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
+      echo -e "  ${INFO} ${COL_LIGHT_GREEN}Using previously cached list${COL_NC}"
     fi
   else
     # Determine if cached list has read permission
@@ -407,7 +415,7 @@ gravity_Filter() {
 
 # Whitelist unique blocklist domain sources
 gravity_WhitelistBLD() {
-  local uniqDomains plural="" str 
+  local uniqDomains plural="" str
 
   echo ""
 
