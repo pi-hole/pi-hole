@@ -193,9 +193,10 @@ gravity_Pull() {
   patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
 
   # Determine if $saveLocation has read permission
-  if [[ -r "${saveLocation}" ]]; then
+  if [[ -r "${saveLocation}" && $url != "file"* ]]; then
     # Have curl determine if a remote file has been modified since last retrieval
     # Uses "Last-Modified" header, which certain web servers do not provide (e.g: raw github urls)
+    # Note: Don't do this for local files, always download them
     heisenbergCompensator="-z ${saveLocation}"
   fi
 
@@ -223,7 +224,12 @@ gravity_Pull() {
         *    ) echo -e "${OVER}  ${CROSS} ${str} ${httpCode}";;
       esac;;
     # Did we "download" a local file?
-    "file"*) echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true;;
+    "file"*)
+        if [[ -s "${patternBuffer}" ]]; then
+          echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
+        else
+          echo -e "${OVER}  ${CROSS} ${str} Not found"
+        fi;;
     *      ) echo -e "${OVER}  ${CROSS} ${str} ${url} ${httpCode}";;
   esac
 
@@ -237,7 +243,7 @@ gravity_Pull() {
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
-      echo -e "  ${INFO} ${COL_LIGHT_GREEN}Using previously cached list${COL_NC}"
+      echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
     fi
   else
     # Determine if cached list has read permission
