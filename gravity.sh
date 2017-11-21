@@ -228,7 +228,7 @@ gravity_Pull() {
         if [[ -s "${patternBuffer}" ]]; then
           echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
         else
-          echo -e "${OVER}  ${CROSS} ${str} Not found"
+          echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
         fi;;
     *      ) echo -e "${OVER}  ${CROSS} ${str} ${url} ${httpCode}";;
   esac
