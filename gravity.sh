@@ -230,8 +230,7 @@ gravity_Pull() {
         else
           echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
         fi;;
-    *      )
-        echo -e "${OVER}  ${CROSS} ${str} ${url} ${httpCode}";;
+    *) echo -e "${OVER}  ${CROSS} ${str} ${url} ${httpCode}";;
   esac
 
   # Determine if the blocklist was downloaded and saved correctly
