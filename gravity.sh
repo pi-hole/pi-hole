@@ -138,7 +138,7 @@ gravity_Collapse() {
     # Logic: Split by folder/port
     awk -F '[/:]' '{
       # Remove URL protocol & optional username:password@
-      gsub(/(.*:\/\/|)/, "", $0)
+      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
       if(length($1)>0){print $1}
       else {print "local"}
     }' <<< "$(printf '%s\n' "${sources[@]}")" 2> /dev/null
