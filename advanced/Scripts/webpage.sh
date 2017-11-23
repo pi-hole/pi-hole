@@ -110,7 +110,7 @@ SetWebPassword() {
   fi
 
 	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
-		hash=$(HashPassword ${PASSWORD})
+		hash=$(HashPassword "${PASSWORD}")
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
 		echo -e "  ${TICK} New password set"
