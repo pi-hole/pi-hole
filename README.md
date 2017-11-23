@@ -33,13 +33,13 @@ Those who want to get started quickly and conveniently, may install Pi-hole usin
 ```
 git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
 cd "Pi-hole/automated install/"
-bash basic-install.sh
+sudo bash basic-install.sh
 ```
 
 ### Method 2: Manually download the installer and run
 ```
 wget -O basic-install.sh https://install.pi-hole.net
-bash basic-install.sh
+sudo bash basic-install.sh
 ```
 
 ## Post-install: Make your network take advantage of Pi-hole
