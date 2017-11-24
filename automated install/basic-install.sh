@@ -218,7 +218,7 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
 
-# If neither apt-get or rmp/dnf are not found
+# If neither apt-get or rmp/dnf are found
 else
   # it's not an OS we can support,
   echo -e "  ${CROSS} OS distribution not supported"
@@ -764,9 +764,10 @@ setDNS() {
       Norton ""
       Comodo ""
       DNSWatch ""
+      Quad9 ""
       Custom "")
   # In a whiptail dialog, show the options
-  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
+  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
     # exit if Cancel is selected
     { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
@@ -804,6 +805,10 @@ setDNS() {
       echo "DNS.WATCH servers"
       PIHOLE_DNS_1="84.200.69.80"
       PIHOLE_DNS_2="84.200.70.40"
+      ;;
+    Quad9)
+      echo "Quad9 servers"
+      PIHOLE_DNS_1="9.9.9.9"
       ;;
     Custom)
       # Until the DNS settings are selected,
@@ -1262,14 +1267,14 @@ install_dependent_packages() {
       installArray+=("${i}")
     fi
   done
+  #
+  if [[ "${#installArray[@]}" -gt 0 ]]; then
     #
-    if [[ "${#installArray[@]}" -gt 0 ]]; then
-      #
-      "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
-      return
-    fi
-    echo ""
-    return 0
+    "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
+    return
+  fi
+  echo ""
+  return 0
 }
 
 # Create logfiles if necessary
@@ -1670,14 +1675,14 @@ update_dialogs() {
   "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3) || \
   { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
 
-  # Set the variable based on if the user user chooses
+  # Set the variable based on if the user chooses
   case ${UpdateCmd} in
     # repair, or
     ${opt1a})
       echo -e "  ${INFO} ${opt1a} option selected"
       useUpdateVars=true
       ;;
-    # recongigure,
+    # reconfigure,
     ${opt2a})
       echo -e "  ${INFO} ${opt2a} option selected"
       useUpdateVars=false
