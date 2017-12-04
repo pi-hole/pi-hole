@@ -39,10 +39,7 @@ function get_local_branch() {
 
 CORE_BRANCH="$(get_local_branch /etc/.pihole)"
 WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
-#FTL_BRANCH="$(pihole-FTL branch)"
-# Don't store FTL branch until the next release of FTL which
-# supports returning the branch in an easy way
-FTL_BRANCH="XXX"
+FTL_BRANCH="$(pihole-FTL branch)"
 
 echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
 
