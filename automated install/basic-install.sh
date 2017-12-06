@@ -208,7 +208,7 @@ elif command -v rpm &> /dev/null; then
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget idn2)
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
   if ! grep -q 'Fedora' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
