@@ -507,15 +507,15 @@ testIPv6() {
   # will contain 162 which is the decimal value corresponding to 0xa2
   value2=$(( (0x$first)%256 ))
   # the ULA test is testing for fc00::/7 according to RFC 4193
-  if (( value1&254 == 252 )); then
+  if (( (value1&254)==252 )); then
     echo "ULA"
   fi
   # the GUA test is testing for 2000::/3 according to RFC 4291
-  if (( value1&112 == 32 )); then
+  if (( (value1&112)==32 )); then
     echo "GUA"
   fi
   # the LL test is testing for fe80::/10 according to RFC 4193
-  if (( value1 == 254 )) && (( value2&192 == 128 )); then
+  if (( (value1)==254 )) && (( (value2&192)==128 )); then
     echo "Link-local"
   fi
 }
