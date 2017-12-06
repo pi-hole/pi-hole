@@ -1328,7 +1328,7 @@ installPiholeWeb() {
   else
     # don't do anything
     echo -e "${OVER}  ${CROSS} ${str}
-    No default index.lighttpd.html file found... not backing up"
+      No default index.lighttpd.html file found... not backing up"
   fi
 
   # Install Sudoers file
