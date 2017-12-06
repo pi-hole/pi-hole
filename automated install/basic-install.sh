@@ -2004,7 +2004,14 @@ main() {
       # just install the Core dependencies
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
+
     install_dependent_packages DEPS[@]
+
+    # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
+    # has chosen to install the web interface, else the `LIGHTTPD_ENABLED` check will fail
+    if [[ "${INSTALL_WEB}" == true ]]; then
+      enable_service lighttpd
+    fi
 
     if [[ -x "$(command -v systemctl)" ]]; then
       # Value will either be 1, if true, or 0
