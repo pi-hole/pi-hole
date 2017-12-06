@@ -1856,7 +1856,7 @@ FTLdetect() {
   #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
   echo -e "  ${INFO} Checking for existing FTL binary..."
 
-  local ftlLoc=$(which pihole-FTL)
+  local ftlLoc=$(which pihole-FTL 2>/dev/null)
 
   if [[ ${ftlLoc} ]]; then
     local FTLversion=$(/usr/bin/pihole-FTL tag)
