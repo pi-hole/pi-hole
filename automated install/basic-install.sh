@@ -42,7 +42,7 @@ coltable=/opt/pihole/COL_TABLE
 # We store several other folders and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+piholeGitUrl="https://github.com/arevindh/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # These are the names of piholes files, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
@@ -390,6 +390,9 @@ welcomeDialogs() {
   # Request that users donate if they enjoy the software since we all work on it in our free time
   whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\\n\\nThe Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" ${r} ${c}
 
+  #Display speedtest mod dialog
+  whiptail --msgbox --backtitle "Speedtest Mod" --title "Speedtest Mod Included" "\n\nSpeedtestMod faq @ https://goo.gl/7FSZ43" ${r} ${c}
+  
   # Explain the need for a static address
   whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
@@ -1918,7 +1921,7 @@ main() {
     if command -v sudo &> /dev/null; then
       echo -e "${OVER}  ${TICK} Sudo utility check"
       # Download the install script and run it with admin rights
-      exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
+      exec curl -sSL https://raw.githubusercontent.com/arevindh/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
       exit $?
     # Otherwise,
     else

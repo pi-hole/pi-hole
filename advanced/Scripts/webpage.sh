@@ -37,17 +37,15 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-<<<<<<< HEAD
                         Add '-h' for more info on interface usage
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
                       use -sn to prevent logging to results list
   -sd                 Set speedtest display range
+  -sn                 Run speedtest now
   -sc                 Clear speedtest data
   -ss                 Set custom server"
 
-=======
                         Add '-h' for more info on interface usage"
->>>>>>> 5ba413569ea8a4220c7e3bd2fa8c28b33b9e8492
 	exit 0
 }
 
