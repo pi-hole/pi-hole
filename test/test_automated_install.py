@@ -9,6 +9,10 @@ SETUPVARS = {
     'PIHOLE_DNS_2' : '4.2.2.2'
 }
 
+tick_box="[\x1b[1;32m\xe2\x9c\x93\x1b[0m]".decode("utf-8")
+cross_box="[\x1b[1;31m\xe2\x9c\x97\x1b[0m]".decode("utf-8")
+info_box="[i]".decode("utf-8")
+
 def test_setupVars_are_sourced_to_global_scope(Pihole):
     ''' currently update_dialogs sources setupVars with a dot,
     then various other functions use the variables.
@@ -55,6 +59,8 @@ def test_setupVars_saved_to_file(Pihole):
     TERM=xterm
     source /opt/pihole/basic-install.sh
     {}
+    mkdir -p /etc/dnsmasq.d
+    version_check_dnsmasq
     finalExports
     cat /etc/pihole/setupVars.conf
     '''.format(set_setup_vars))
@@ -74,7 +80,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = 'Configuring FirewallD for httpd and dnsmasq.'
+    expected_stdout = 'Configuring FirewallD for httpd and dnsmasq'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
     assert 'firewall-cmd --state' in firewall_calls
@@ -89,7 +95,7 @@ def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = 'No active firewall detected.. skipping firewall configuration.'
+    expected_stdout = 'No active firewall detected.. skipping firewall configuration'
     assert expected_stdout in configureFirewall.stdout
 
 def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
@@ -173,105 +179,13 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     installPiholeWeb
     ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
+    assert info_box + ' Installing blocking page...' in installWeb.stdout
+    assert tick_box + ' Creating directory for blocking page, and copying files' in installWeb.stdout
+    assert cross_box + ' Backing up index.lighttpd.html' in installWeb.stdout
     assert 'No default index.lighttpd.html file found... not backing up' in installWeb.stdout
+    assert tick_box + ' Installing sudoer file' in installWeb.stdout
     web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
     assert 'index.php' in web_directory
-    assert 'index.js' in web_directory
-    assert 'blockingpage.css' in web_directory
-
-def test_installPiholeWeb_empty_directory_no_errors(Pihole):
-    ''' confirms all web page assets from Core repo are installed in an emtpy directory '''
-    installWeb = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    mkdir -p /var/www/html/pihole
-    installPiholeWeb
-    ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
-    assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
-    assert 'index.php missing, replacing...' in installWeb.stdout
-    assert 'index.js missing, replacing...' in installWeb.stdout
-    assert 'blockingpage.css missing, replacing...' in installWeb.stdout
-    web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
-    assert 'index.php' in web_directory
-    assert 'index.js' in web_directory
-    assert 'blockingpage.css' in web_directory
-
-def test_installPiholeWeb_index_php_no_errors(Pihole):
-    ''' confirms all web page assets from Core repo are installed when necessary '''
-    installWeb = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    mkdir -p /var/www/html/pihole
-    touch /var/www/html/pihole/index.php
-    installPiholeWeb
-    ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
-    assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
-    assert 'Existing index.php detected, not overwriting' in installWeb.stdout
-    assert 'index.js missing, replacing...' in installWeb.stdout
-    assert 'blockingpage.css missing, replacing...' in installWeb.stdout
-    web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
-    assert 'index.php' in web_directory
-    assert 'index.js' in web_directory
-    assert 'blockingpage.css' in web_directory
-
-def test_installPiholeWeb_index_js_no_errors(Pihole):
-    ''' confirms all web page assets from Core repo are installed when necessary '''
-    installWeb = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    mkdir -p /var/www/html/pihole
-    touch /var/www/html/pihole/index.js
-    installPiholeWeb
-    ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
-    assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
-    assert 'index.php missing, replacing...' in installWeb.stdout
-    assert 'Existing index.js detected, not overwriting' in installWeb.stdout
-    assert 'blockingpage.css missing, replacing...' in installWeb.stdout
-    web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
-    assert 'index.php' in web_directory
-    assert 'index.js' in web_directory
-    assert 'blockingpage.css' in web_directory
-
-def test_installPiholeWeb_blockingpage_css_no_errors(Pihole):
-    ''' confirms all web page assets from Core repo are installed when necessary '''
-    installWeb = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    mkdir -p /var/www/html/pihole
-    touch /var/www/html/pihole/blockingpage.css
-    installPiholeWeb
-    ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
-    assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
-    assert 'index.php missing, replacing...' in installWeb.stdout
-    assert 'index.js missing, replacing...' in installWeb.stdout
-    assert 'Existing blockingpage.css detected, not overwriting' in installWeb.stdout
-    web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
-    assert 'index.php' in web_directory
-    assert 'index.js' in web_directory
-    assert 'blockingpage.css' in web_directory
-
-def test_installPiholeWeb_already_populated_no_errors(Pihole):
-    ''' confirms all web page assets from Core repo are installed when necessary '''
-    installWeb = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    mkdir -p /var/www/html/pihole
-    touch /var/www/html/pihole/index.php
-    touch /var/www/html/pihole/index.js
-    touch /var/www/html/pihole/blockingpage.css
-    installPiholeWeb
-    ''')
-    assert 'Installing pihole custom index page...' in installWeb.stdout
-    assert 'No default index.lighttpd.html file found... not backing up' not in installWeb.stdout
-    assert 'Existing index.php detected, not overwriting' in installWeb.stdout
-    assert 'index.php missing, replacing...' not in installWeb.stdout
-    assert 'Existing index.js detected, not overwriting' in installWeb.stdout
-    assert 'index.js missing, replacing...' not in installWeb.stdout
-    assert 'Existing blockingpage.css detected, not overwriting' in installWeb.stdout
-    assert 'blockingpage.css missing, replacing... ' not in installWeb.stdout
-    web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
-    assert 'index.php' in web_directory
-    assert 'index.js' in web_directory
     assert 'blockingpage.css' in web_directory
 
 def test_update_package_cache_success_no_errors(Pihole):
@@ -281,9 +195,8 @@ def test_update_package_cache_success_no_errors(Pihole):
     distro_check
     update_package_cache
     ''')
-    assert 'Updating local cache of available packages...' in updateCache.stdout
-    assert 'ERROR' not in updateCache.stdout
-    assert 'done!' in updateCache.stdout
+    assert tick_box + ' Update local cache of available packages' in updateCache.stdout
+    assert 'Error: Unable to update package cache.' not in updateCache.stdout
 
 def test_update_package_cache_failure_no_errors(Pihole):
     ''' confirms package cache was not updated'''
@@ -293,9 +206,8 @@ def test_update_package_cache_failure_no_errors(Pihole):
     distro_check
     update_package_cache
     ''')
-    assert 'Updating local cache of available packages...' in updateCache.stdout
-    assert 'ERROR' in updateCache.stdout
-    assert 'done!' not in updateCache.stdout
+    assert cross_box + ' Update local cache of available packages' in updateCache.stdout
+    assert 'Error: Unable to update package cache.' in updateCache.stdout
 
 def test_FTL_detect_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
@@ -307,7 +219,11 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = 'Detected ARM-aarch64 architecture'
+    expected_stdout = info_box + ' FTL Checks...'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Detected ARM-aarch64 architecture'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_armv6l_no_errors(Pihole):
@@ -320,7 +236,11 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = 'Detected ARM-hf architecture (armv6 or lower)'
+    expected_stdout = info_box + ' FTL Checks...'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Detected ARM-hf architecture (armv6 or lower)'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_armv7l_no_errors(Pihole):
@@ -333,7 +253,11 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = 'Detected ARM-hf architecture (armv7+)'
+    expected_stdout = info_box + ' FTL Checks...'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Detected ARM-hf architecture (armv7+)'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_x86_64_no_errors(Pihole):
@@ -342,7 +266,11 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLdetect
     ''')
-    expected_stdout = 'Detected x86_64 architecture'
+    expected_stdout = info_box + ' FTL Checks...'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Detected x86_64 architecture'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
 def test_FTL_detect_unknown_no_errors(Pihole):
@@ -363,9 +291,12 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-aarch64-linux-gnu
     ''')
-    expected_stdout = 'done'
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
-    assert 'failed' not in download_binary.stdout
+    error = 'Error: Download of binary from Github failed'
+    assert error not in download_binary.stdout
+    error = 'Error: URL not found'
+    assert error not in download_binary.stdout
 
 def test_FTL_download_unknown_fails_no_errors(Pihole):
     ''' confirms unknown binary is not downloaded for FTL engine '''
@@ -374,9 +305,10 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     FTLinstall pihole-FTL-mips
     ''')
-    expected_stdout = 'failed'
+    expected_stdout = cross_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
-    assert 'done' not in download_binary.stdout
+    error = 'Error: URL not found'
+    assert error in download_binary.stdout
 
 def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     ''' confirms FTL binary is copied and functional in installed location '''
@@ -410,7 +342,7 @@ def test_IPv6_only_link_local(Pihole):
     source /opt/pihole/basic-install.sh
     useIPv6dialog
     ''')
-    expected_stdout = 'Found neither IPv6 ULA nor GUA address, blocking IPv6 ads will not be enabled'
+    expected_stdout = 'Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled'
     assert expected_stdout in detectPlatform.stdout
 
 def test_IPv6_only_ULA(Pihole):
