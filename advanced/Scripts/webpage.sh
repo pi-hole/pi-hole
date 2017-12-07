@@ -37,7 +37,6 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-<<<<<<< HEAD
                         Add '-h' for more info on interface usage
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
                       use -sn to prevent logging to results list
@@ -45,9 +44,6 @@ Options:
   -sc                 Clear speedtest data
   -ss                 Set custom server"
 
-=======
-                        Add '-h' for more info on interface usage"
->>>>>>> 5ba413569ea8a4220c7e3bd2fa8c28b33b9e8492
 	exit 0
 }
 
@@ -108,7 +104,7 @@ SetWebPassword() {
     # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
     # So we reset the terminal via stty if the user does press Ctrl+C
     trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
-    read -s -p "Enter New Password \(Blank for no password\): " PASSWORD
+    read -s -p "Enter New Password (Blank for no password): " PASSWORD
     echo ""
 
     if [ "${PASSWORD}" == "" ]; then
@@ -603,13 +599,16 @@ main() {
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
+<<<<<<< HEAD
     "-s" | "speedtest"  ) ChageSpeedTestSchedule;;
     "-sd"               ) UpdateSpeedTestRange;;
     "-sn"               ) RunSpeedtestNow;;
     "-sc"               ) ClearSpeedtestData;;
     "-ss"               ) SpeedtestServer;;
+=======
 		"audit"             ) audit;;
-		"*"                  ) helpFunc;;
+>>>>>>> 5ba413569ea8a4220c7e3bd2fa8c28b33b9e8492
+		*                   ) helpFunc;;
 	esac
 
 	shift
