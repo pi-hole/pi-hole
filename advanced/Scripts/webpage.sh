@@ -45,7 +45,6 @@ Options:
   -sc                 Clear speedtest data
   -ss                 Set custom server"
 
-                        Add '-h' for more info on interface usage"
 	exit 0
 }
 
