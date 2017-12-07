@@ -499,7 +499,7 @@ does_ip_match_setup_vars() {
   # IP address to check for
   local ip_address="${2}"
   # See what IP is in the setupVars.conf file
-  local setup_vars_ip=$(cat ${PIHOLE_SETUP_VARS_FILE} | grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
+  local setup_vars_ip=$(< ${PIHOLE_SETUP_VARS_FILE} grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
     # Strip off the / (CIDR notation)
