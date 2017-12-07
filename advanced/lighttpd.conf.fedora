@@ -7,13 +7,11 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
 ###############################################################################
 #     FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE INSTALL/UPDATE PROCEDURE.     #
 # ANY CHANGES MADE TO THIS FILE AFTER INSTALL WILL BE LOST ON THE NEXT UPDATE #
 #                                                                             #
-#              CHANGES SHOULD BE MADE IN A SEPERATE CONFIG FILE:              #
+#              CHANGES SHOULD BE MADE IN A SEPARATE CONFIG FILE:              #
 #                         /etc/lighttpd/external.conf                         #
 ###############################################################################
 
@@ -42,7 +40,7 @@ accesslog.format            = "%{%s}t|%V|%r|%s|%b"
 
 
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
-url.access-deny             = ( "~", ".inc" )
+url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )
 static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
 
 compress.cache-dir          = "/var/cache/lighttpd/compress/"
@@ -74,24 +72,21 @@ fastcgi.server = ( ".php" =>
 
 # If the URL starts with /admin, it is the Web interface
 $HTTP["url"] =~ "^/admin/" {
-	# Create a response header for debugging using curl -I
-	setenv.add-response-header = ( "X-Pi-hole" => "The Pi-hole Web interface is working!" )
-}
+	  # Create a response header for debugging using curl -I
+    setenv.add-response-header = (
+        "X-Pi-hole" => "The Pi-hole Web interface is working!",
+        "X-Frame-Options" => "DENY"
+    )
 
-# Rewite js requests, must be out of $HTTP block due to bug #2526
-url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
-
-# If the URL does not start with /admin, then it is a query for an ad domain
-$HTTP["url"] =~ "^(?!/admin)/.*" {
-	# Create a response header for debugging using curl -I
-	setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
-}
-
-# Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
-$HTTP["host"] == "pi.hole" {
-    $HTTP["url"] == "/" {
-        url.redirect = ( "" => "/admin/" )
+    $HTTP["url"] =~ ".ttf$" {
+        # Allow Block Page access to local fonts
+        setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }
+}
+
+# Block . files from being served, such as .git, .github, .gitignore
+$HTTP["url"] =~ "^/admin/\.(.*)" {
+     url.access-deny = ("")
 }
 
 # Add user chosen options held in external file

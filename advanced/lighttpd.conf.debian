@@ -2,18 +2,16 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# lighttpd config for Pi-hole
+# Lighttpd config for Pi-hole
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
-
-
 
 ###############################################################################
 #     FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE INSTALL/UPDATE PROCEDURE.     #
 # ANY CHANGES MADE TO THIS FILE AFTER INSTALL WILL BE LOST ON THE NEXT UPDATE #
 #                                                                             #
-#              CHANGES SHOULD BE MADE IN A SEPERATE CONFIG FILE:              #
+#              CHANGES SHOULD BE MADE IN A SEPARATE CONFIG FILE:              #
 #                         /etc/lighttpd/external.conf                         #
 ###############################################################################
 
@@ -39,9 +37,8 @@ server.port                 = 80
 accesslog.filename          = "/var/log/lighttpd/access.log"
 accesslog.format            = "%{%s}t|%V|%r|%s|%b"
 
-
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
-url.access-deny             = ( "~", ".inc" )
+url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )
 static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
 
 compress.cache-dir          = "/var/cache/lighttpd/compress/"
@@ -50,31 +47,28 @@ compress.filetype           = ( "application/javascript", "text/css", "text/html
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
 include_shell "/usr/share/lighttpd/create-mime.assign.pl"
-include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
+
+# Prevent Lighttpd from enabling Let's Encrypt SSL for every blocked domain
+#include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
+include_shell "find /etc/lighttpd/conf-enabled -name '*.conf' -a ! -name 'letsencrypt.conf' -printf 'include \"%p\"\n' 2>/dev/null"
 
 # If the URL starts with /admin, it is the Web interface
 $HTTP["url"] =~ "^/admin/" {
-	# Create a response header for debugging using curl -I
+    # Create a response header for debugging using curl -I
     setenv.add-response-header = (
         "X-Pi-hole" => "The Pi-hole Web interface is working!",
         "X-Frame-Options" => "DENY"
     )
-}
 
-# Rewite js requests, must be out of $HTTP block due to bug #2526
-url.rewrite = ( "^(?!/admin/).*\.js$"  => "pihole/index.js"   )
-
-# If the URL does not start with /admin, then it is a query for an ad domain
-$HTTP["url"] =~ "^(?!/admin)/.*" {
-    # Create a response header for debugging using curl -I
-    setenv.add-response-header = ( "X-Pi-hole" => "A black hole for Internet advertisements." )
-}
-
-# Entering just "pi.hole" into a browser redirects to "pi.hole/admin/"
-$HTTP["host"] == "pi.hole" {
-    $HTTP["url"] == "/" {
-        url.redirect = ( "" => "/admin/" )
+    $HTTP["url"] =~ ".ttf$" {
+        # Allow Block Page access to local fonts
+        setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }
+}
+
+# Block . files from being served, such as .git, .github, .gitignore
+$HTTP["url"] =~ "^/admin/\.(.*)" {
+     url.access-deny = ("")
 }
 
 # Add user chosen options held in external file

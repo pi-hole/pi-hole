@@ -8,8 +8,11 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+colfile="/opt/pihole/COL_TABLE"
+source ${colfile}
+
 if [[ "$@" != *"quiet"* ]]; then
-  echo -n "::: Flushing /var/log/pihole.log ..."
+  echo -ne "  ${INFO} Flushing /var/log/pihole.log ..."
 fi
 if [[ "$@" == *"once"* ]]; then
   # Nightly logrotation
@@ -41,5 +44,5 @@ else
 fi
 
 if [[ "$@" != *"quiet"* ]]; then
-  echo "... done!"
+  echo -e "${OVER}  ${TICK} Flushed /var/log/pihole.log"
 fi
