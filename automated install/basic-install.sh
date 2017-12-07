@@ -503,15 +503,21 @@ testIPv6() {
   # first will contain fda2 (ULA)
   first="$(cut -f1 -d":" <<< "$1")"
   # value1 will contain 253 which is the decimal value corresponding to 0xfd
-  value1=$(((0x$first)/256))
+  value1=$(( (0x$first)/256 ))
   # will contain 162 which is the decimal value corresponding to 0xa2
-  value2=$(((0x$first)%256))
+  value2=$(( (0x$first)%256 ))
   # the ULA test is testing for fc00::/7 according to RFC 4193
-  (((value1&254)==252)) && echo "ULA" || true
+  if (( (value1&254)==252 )); then
+    echo "ULA"
+  fi
   # the GUA test is testing for 2000::/3 according to RFC 4291
-  (((value1&112)==32)) && echo "GUA" || true
+  if (( (value1&112)==32 )); then
+    echo "GUA"
+  fi
   # the LL test is testing for fe80::/10 according to RFC 4193
-  (((value1==254) && ((value2&192)==128))) && echo "Link-local" || true
+  if (( (value1)==254 )) && (( (value2&192)==128 )); then
+    echo "Link-local"
+  fi
 }
 
 # A dialog for showing the user about IPv6 blocking
