@@ -599,15 +599,12 @@ main() {
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
-<<<<<<< HEAD
     "-s" | "speedtest"  ) ChageSpeedTestSchedule;;
     "-sd"               ) UpdateSpeedTestRange;;
     "-sn"               ) RunSpeedtestNow;;
     "-sc"               ) ClearSpeedtestData;;
     "-ss"               ) SpeedtestServer;;
-=======
 		"audit"             ) audit;;
->>>>>>> 5ba413569ea8a4220c7e3bd2fa8c28b33b9e8492
 		*                   ) helpFunc;;
 	esac
 
