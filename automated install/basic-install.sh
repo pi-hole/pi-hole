@@ -709,8 +709,8 @@ setStaticIPv4() {
       }> "${IFCFG_FILE}"
       # Use ip to immediately set the new address
       ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-      # If NetworkMangler command line interface exists,
-      if command -v nmcli &> /dev/null;then
+      # If NetworkMangler command line interface exists and ready to mangle,
+      if command -v nmcli &> /dev/null && nmcli general status &> /dev/null; then
         # Tell NetworkManagler to read our new sysconfig file
         nmcli con load "${IFCFG_FILE}" > /dev/null
       fi
