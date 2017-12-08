@@ -19,7 +19,6 @@ addmode=true
 verbose=true
 
 domList=()
-domToRemoveList=()
 
 listMain=""
 listAlt=""
@@ -240,7 +239,6 @@ for var in "$@"; do
     "-wild" | "wildcard" ) listMain="${wildcardlist}";;
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
-    "-f" | "--force"     ) force=true;;
     "-q" | "--quiet"     ) verbose=false;;
     "-h" | "--help"      ) helpFunc;;
     "-l" | "--list"      ) Displaylist;;

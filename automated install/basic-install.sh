@@ -208,7 +208,7 @@ elif command -v rpm &> /dev/null; then
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget idn2)
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
   if ! grep -q 'Fedora' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
@@ -503,15 +503,21 @@ testIPv6() {
   # first will contain fda2 (ULA)
   first="$(cut -f1 -d":" <<< "$1")"
   # value1 will contain 253 which is the decimal value corresponding to 0xfd
-  value1=$(((0x$first)/256))
+  value1=$(( (0x$first)/256 ))
   # will contain 162 which is the decimal value corresponding to 0xa2
-  value2=$(((0x$first)%256))
+  value2=$(( (0x$first)%256 ))
   # the ULA test is testing for fc00::/7 according to RFC 4193
-  (((value1&254)==252)) && echo "ULA" || true
+  if (( (value1&254)==252 )); then
+    echo "ULA"
+  fi
   # the GUA test is testing for 2000::/3 according to RFC 4291
-  (((value1&112)==32)) && echo "GUA" || true
+  if (( (value1&112)==32 )); then
+    echo "GUA"
+  fi
   # the LL test is testing for fe80::/10 according to RFC 4193
-  (((value1==254) && ((value2&192)==128))) && echo "Link-local" || true
+  if (( (value1)==254 )) && (( (value2&192)==128 )); then
+    echo "Link-local"
+  fi
 }
 
 # A dialog for showing the user about IPv6 blocking
@@ -1328,7 +1334,7 @@ installPiholeWeb() {
   else
     # don't do anything
     echo -e "${OVER}  ${CROSS} ${str}
-    No default index.lighttpd.html file found... not backing up"
+      No default index.lighttpd.html file found... not backing up"
   fi
 
   # Install Sudoers file
@@ -1856,7 +1862,7 @@ FTLdetect() {
   #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
   echo -e "  ${INFO} Checking for existing FTL binary..."
 
-  local ftlLoc=$(which pihole-FTL)
+  local ftlLoc=$(which pihole-FTL 2>/dev/null)
 
   if [[ ${ftlLoc} ]]; then
     local FTLversion=$(/usr/bin/pihole-FTL tag)
@@ -2004,7 +2010,14 @@ main() {
       # just install the Core dependencies
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
+
     install_dependent_packages DEPS[@]
+
+    # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
+    # has chosen to install the web interface, else the `LIGHTTPD_ENABLED` check will fail
+    if [[ "${INSTALL_WEB}" == true ]]; then
+      enable_service lighttpd
+    fi
 
     if [[ -x "$(command -v systemctl)" ]]; then
       # Value will either be 1, if true, or 0
