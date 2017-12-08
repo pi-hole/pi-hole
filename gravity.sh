@@ -88,6 +88,19 @@ gravity_DNSLookup() {
     exit 1
   fi
 
+  # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
+  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventualy fails
+  # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
+  if timeout 1 dig +short "${lookupDomain}" &> /dev/null; then
+    if [[ -n "${secs:-}" ]]; then
+      echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
+    fi
+    return 0
+  elif [[ -n "${secs:-}" ]]; then
+    echo -e "${OVER}  ${CROSS} DNS resolution is not available"
+    exit 1
+  fi
+
   # Determine error output message
   if pidof dnsmasq &> /dev/null; then
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
