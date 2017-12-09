@@ -1,0 +1,11 @@
+linters:
+  shellcheck:
+    shell: bash
+  flake8: {  }
+  phpcs:
+    standard: PSR2
+  csslint: {  }
+files:
+  ignore:
+    - 'vendor/*'
+    - 'bower_components/*'
