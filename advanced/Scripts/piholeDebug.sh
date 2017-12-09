@@ -212,7 +212,7 @@ copy_to_debug_log() {
   # uploaded to our server, since it can't properly display in color
   # This is accomplished by use sed to remove characters matching that patter
   # The entire file is then copied over to a sanitized version of the log
-  # sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
+  sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
 }
 
 initiate_debug() {
