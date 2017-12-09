@@ -210,18 +210,21 @@ elif command -v rpm &> /dev/null; then
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
-  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi)
-  PHP_DEFAULT_PACKAGES=(php-common php-cli php-pdo)
+  # Note: the package 'php' is not included as it pulls 'httpd' as a dependency
+  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
+  # PHP package prefix when installing from Software Collections (SCL)
+  SCL_PHP_PREFIX='php71u'
   # If the host OS is Fedora,
   if grep -q 'Fedora' /etc/redhat-release; then
     # the latest PHP packages should be available by default
-    PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${PHP_DEFAULT_PACKAGES[@]}");
+    : # do nothing (use default PIHOLE_WEB_DEPS)
   # or if CentOS,
   elif grep -q 'CentOS' /etc/redhat-release; then
-    # ensure we are using a supported CentOS release
+    # Pi-Hole currently supports CentOS 7+
     SUPPORTED_CENTOS_VERSION=7
+    # Check current CentOS major release version
     CURRENT_CENTOS_VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release)
-    # Check CentOS version and exit if unsupported
+    # Check if CentOS version is supported
     if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
       echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not suported."
       echo -e "      Please update to CentOS release $SUPPORTED_CENTOS_VERSION or later"
@@ -230,41 +233,61 @@ elif command -v rpm &> /dev/null; then
     fi
     # on CentOS we need to add the EPEL repository to gain access to Fedora packages
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
-    # Pi-Hole requires a recent version of PHP which is not available via CentOS default repositories
-    # The following function will be called if we require PHP from Software Collections
+    # The default php on CentOS 7.x is 5.4 which is EOL
+    # The following function will be called to install PHP 7.x from Software Collections
     install_scl_php() {
       # install Software Collections to access latest PHP packages
-      INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "centos-release-scl");
-      # seed the scl php package names into the web dependency array
-      SCL_PHP_DEPS=(php71u-common php71u-cli php71u-pdo)
-      PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${SCL_PHP_DEPS[@]}");
+      if ${PKG_MANAGER} info centos-release-scl &> /dev/null; then
+        echo -e "  ${INFO} CentOS Software Collections repository detected. PHP 7 will be installed"
+        # Add the SCL repository to the installer dependencies
+        INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "centos-release-scl");
+        # rename php package names with the SCL php prefix
+        PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]//php/${SCL_PHP_PREFIX}}");
+      else
+        echo -e "  ${INFO} CentOS Software Collections repository unavailable. Using default PHP version"
+      fi
     }
     # Check if the version of PHP available via installed repositories is >= to PHP 7
     AVAILABLE_PHP_VERSION=$(${PKG_MANAGER} info php | grep -i version | grep -o '[0-9]\+' | head -1)
-    if [[ $AVAILABLE_PHP_VERSION -le 7 ]]; then
-      # check if PHP is already installed
-      if command -v php &> /dev/null; then
-        # check installed PHP version is >= PHP 7
+    if [[ $AVAILABLE_PHP_VERSION -ge 7 ]]; then
+      # Since PHP 7 is available by default, install via default PHP package names
+      : # do nothing (use default PIHOLE_WEB_DEPS)
+    else
+      # The PHP version available via default repositories is older than version 7
+      # Check to see if the PHP cli is already installed
+      if ! command -v php &> /dev/null; then
+        # PHP is not installed,
+        # Install via Software Collections since the default version is outdated
+        install_scl_php
+      else
+        # PHP is installed.
+        # Check what version and assign the 'major' version to a variable
         INSTALLED_PHP_VERSION=$(php -v | grep -o '^PHP\s[0-9]\+' | awk '{print $2}')
+        # Check if the currently installed version of PHP is >= 7
         if [[ $INSTALLED_PHP_VERSION -ge 7 ]]; then
-          PHP_PREFIX=$(rpm -qf $(which php) | grep -o '^\w\+')
+          # Detected PHP 7+ already installed
+          # RPM query the package which provides the php binary in $PATH
+          # Assign the package 'prefix' to a variable. ie: php-cli = 'php' or php71u-cli = 'php71u'
+          PHP_PREFIX=$(rpm -qf "$(which php)" | grep -o '^\w\+')
           echo -e "  ${INFO} PHP version ${INSTALLED_PHP_VERSION} detected (${PHP_PREFIX})"
-          # replace 'php' with the currently installed php package prefix and update web dependency array
-          PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${PHP_DEFAULT_PACKAGES[@]//php/${PHP_PREFIX}}");
+          # Replace default prefix of 'php' with the prefix of the currently installed packages
+          PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]//php/${PHP_PREFIX}}");
         else
           # Installed php version is too old.
-          # remove existing outdated php packages via default package names
-          "${PKG_REMOVE[@]}" "${PHP_DEFAULT_PACKAGES[@]}" &> /dev/null
-          # install supported PHP version via Software Collections
-          install_scl_php
+          # create an array of PHP packages by filtering the web dependencies
+          PHP_PACKAGES=($(echo "${PIHOLE_WEB_DEPS[@]}" | sed 's/ /\n/g' | grep php));
+          # Prompt the user to decide if they would like to replace their installed PHP version with PHP 7.x from Software Collections
+          if ! whiptail --defaultno --title "Legacy PHP Version Detected" --yesno "Detected PHP ${INSTALLED_PHP_VERSION}.x currently installed\\n\\n\\nUpdate PHP to version 7.x via Software Collections?\\n\\nNote:\\nThe following packages will be replaced:\\n${PHP_PACKAGES[*]}\\n\\n\\nUpdate PHP?" ${r} ${c}; then
+            # User decided to NOT update PHP from SCL, attempt to install the default available PHP version
+            : # do nothing (use default PIHOLE_WEB_DEPS)
+          else
+            # remove existing outdated php packages via default package names
+            "${PKG_REMOVE[@]}" "${PHP_PACKAGES[@]}" &> /dev/null
+            # install supported PHP version via Software Collections
+            install_scl_php
+          fi
         fi
-      else
-        # Supported version of PHP is not installed, install via Software Collections
-        install_scl_php
       fi
-    else
-      # Since PHP 7 is available by default, install via default PHP package names
-      PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${PHP_DEFAULT_PACKAGES[@]}");
     fi
   else
     # If not a supported version of Fedora or CentOS,
