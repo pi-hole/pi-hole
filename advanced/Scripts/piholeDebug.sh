@@ -212,7 +212,7 @@ copy_to_debug_log() {
   # uploaded to our server, since it can't properly display in color
   # This is accomplished by use sed to remove characters matching that patter
   # The entire file is then copied over to a sanitized version of the log
-  sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
+  # sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
 }
 
 initiate_debug() {
@@ -809,8 +809,14 @@ process_status(){
   local i
   # For each process,
   for i in "${PIHOLE_PROCESSES[@]}"; do
-    # get its status via systemctl
-    local status_of_process=$(systemctl is-active "${i}")
+    # If systemd
+    if command -v systemctl &> /dev/null; then
+      # get its status via systemctl
+      local status_of_process=$(systemctl is-active "${i}")
+    else
+      # Otherwise, use the service command
+      local status_of_process=$(service "${i}" status | awk '/Active:/ {print $2}') &> /dev/null
+    fi
     # and print it out to the user
     if [[ "${status_of_process}" == "active" ]]; then
       # If it's active, show it in green
