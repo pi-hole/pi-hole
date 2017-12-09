@@ -29,5 +29,8 @@
 
 @reboot root /usr/sbin/logrotate /etc/pihole/logrotate
 
-# Pi-hole: Grab remote version and branch every 10 minutes
-*/10 *  * * *   root    PATH="$PATH:/usr/local/bin/" pihole updatechecker
+# Pi-hole: Grab local version and branch every 10 minutes
+*/10 *  * * *   root    PATH="$PATH:/usr/local/bin/" pihole updatechecker local
+
+# Pi-hole: Grab remote version every 24 hours
+00 00  * * *   root    PATH="$PATH:/usr/local/bin/" pihole updatechecker remote
