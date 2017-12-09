@@ -213,7 +213,7 @@ copy_to_debug_log() {
   # uploaded to our server, since it can't properly display in color
   # This is accomplished by use sed to remove characters matching that patter
   # The entire file is then copied over to a sanitized version of the log
-  sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
+  #sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
 }
 
 initiate_debug() {
@@ -593,7 +593,7 @@ ping_gateway() {
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
-    if ! ${cmd} -c 3 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
+    if ! ${cmd} -c 1 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
       # let the user know
       log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\n"
       # and return an error code
@@ -614,7 +614,7 @@ ping_internet() {
   ping_ipv4_or_ipv6 "${protocol}"
   log_write "* Checking Internet connectivity via IPv${protocol}..."
   # Try to ping the address 3 times
-  if ! ${cmd} -W 2 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
+  if ! ${cmd} -c 1 -W 2 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
     # if it's unsuccessful, show an error
     log_write "${CROSS} ${COL_RED}Cannot reach the Internet.${COL_NC}\n"
     return 1
