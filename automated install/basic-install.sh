@@ -194,7 +194,7 @@ if command -v apt-get &> /dev/null; then
       return 0
     }
 
-# If apt-get is not found, check for rpm to see if it's a Red Hat family OS
+# If apt-get is not found, check for rpm to see if it's a Fedora family OS
 elif command -v rpm &> /dev/null; then
   # Then check if dnf or yum is the package manager
   if command -v dnf &> /dev/null; then
@@ -206,17 +206,76 @@ elif command -v rpm &> /dev/null; then
   # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
+  PKG_REMOVE=(${PKG_MANAGER} remove -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
-  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
-  if ! grep -q 'Fedora' /etc/redhat-release; then
+  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi)
+  PHP_DEFAULT_PACKAGES=(php-common php-cli php-pdo)
+  # If the host OS is Fedora,
+  if grep -q 'Fedora' /etc/redhat-release; then
+    # the latest PHP packages should be available by default
+    PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${PHP_DEFAULT_PACKAGES[@]}");
+  # or if CentOS,
+  elif grep -q 'CentOS' /etc/redhat-release; then
+    # ensure we are using a supported CentOS release
+    SUPPORTED_CENTOS_VERSION=7
+    CURRENT_CENTOS_VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release)
+    # Check CentOS version and exit if unsupported
+    if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
+      echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not suported."
+      echo -e "      Please update to CentOS release $SUPPORTED_CENTOS_VERSION or later"
+      # exit the installer
+      exit
+    fi
+    # on CentOS we need to add the EPEL repository to gain access to Fedora packages
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
+    # Pi-Hole requires a recent version of PHP which is not available via CentOS default repositories
+    # The following function will be called if we require PHP from Software Collections
+    install_scl_php() {
+      # install Software Collections to access latest PHP packages
+      INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "centos-release-scl");
+      # seed the scl php package names into the web dependency array
+      SCL_PHP_DEPS=(php71u-common php71u-cli php71u-pdo)
+      PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${SCL_PHP_DEPS[@]}");
+    }
+    # Check if the version of PHP available via installed repositories is >= to PHP 7
+    AVAILABLE_PHP_VERSION=$(${PKG_MANAGER} info php | grep -i version | grep -o '[0-9]\+' | head -1)
+    if [[ $AVAILABLE_PHP_VERSION -le 7 ]]; then
+      # check if PHP is already installed
+      if command -v php &> /dev/null; then
+        # check installed PHP version is >= PHP 7
+        INSTALLED_PHP_VERSION=$(php -v | grep -o '^PHP\s[0-9]\+' | awk '{print $2}')
+        if [[ $INSTALLED_PHP_VERSION -ge 7 ]]; then
+          PHP_PREFIX=$(rpm -qf $(which php) | grep -o '^\w\+')
+          echo -e "  ${INFO} PHP version ${INSTALLED_PHP_VERSION} detected (${PHP_PREFIX})"
+          # replace 'php' with the currently installed php package prefix and update web dependency array
+          PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${PHP_DEFAULT_PACKAGES[@]//php/${PHP_PREFIX}}");
+        else
+          # Installed php version is too old.
+          # remove existing outdated php packages via default package names
+          "${PKG_REMOVE[@]}" "${PHP_DEFAULT_PACKAGES[@]}" &> /dev/null
+          # install supported PHP version via Software Collections
+          install_scl_php
+        fi
+      else
+        # Supported version of PHP is not installed, install via Software Collections
+        install_scl_php
+      fi
+    else
+      # Since PHP 7 is available by default, install via default PHP package names
+      PIHOLE_WEB_DEPS=("${PIHOLE_WEB_DEPS[@]}" "${PHP_DEFAULT_PACKAGES[@]}");
+    fi
+  else
+    # If not a supported version of Fedora or CentOS,
+    echo -e "  ${CROSS} OS distribution not supported"
+    # exit the installer
+    exit
   fi
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
-    DNSMASQ_USER="nobody"
+  LIGHTTPD_USER="lighttpd"
+  LIGHTTPD_GROUP="lighttpd"
+  LIGHTTPD_CFG="lighttpd.conf.fedora"
+  DNSMASQ_USER="nobody"
 
 # If neither apt-get or rmp/dnf are found
 else
