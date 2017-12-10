@@ -111,11 +111,11 @@ gravity_DNSLookup() {
 
   # Ensure DNS server is given time to be resolvable
   secs="120"
-  echo -ne "  ${INFO} Waiting up to ${secs} seconds before continuing..."
+  echo -ne "  ${INFO} Waiting up to $(printf "%'.0f" "$secs") seconds before continuing..."
   until timeout 1 getent hosts "${lookupDomain}" &> /dev/null; do
-    [[ "${secs:-}" -eq 0 ]] && break
+    [[ "${secs:-}" == 0 ]] && break
     [[ "${secs:-}" != 1 ]] && plural="s"
-    echo -ne "${OVER}  ${INFO} Waiting up to ${secs} second${plural} before continuing..."
+    echo -ne "${OVER}  ${INFO} Waiting up to $(printf "%'.0f" "$secs") second${plural} before continuing..."
     : $((secs--))
     sleep 1
   done
@@ -418,9 +418,9 @@ gravity_Filter() {
   gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
 
   # Format $parsedMatter line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
+  num=$(wc -l < "${piholeDir}/${parsedMatter}")
   echo -e "${OVER}  ${TICK} ${str}
-  ${INFO} ${COL_BLUE}${num}${COL_NC} domains being pulled in by gravity"
+  ${INFO} ${COL_BLUE}$(printf "%'.0f" "$num")${COL_NC} domains being pulled in by gravity"
 
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
@@ -428,8 +428,8 @@ gravity_Filter() {
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Format $preEventHorizon line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} ${COL_BLUE}${num}${COL_NC} unique domains trapped in the Event Horizon"
+  num=$(wc -l < "${piholeDir}/${preEventHorizon}")
+  echo -e "  ${INFO} ${COL_BLUE}$(printf "%'.0f" "$num")${COL_NC} unique domains trapped in the Event Horizon"
 }
 
 # Whitelist unique blocklist domain sources
@@ -460,9 +460,9 @@ gravity_Whitelist() {
     return 0
   fi
 
-  num=$(wc -l < "${whitelistFile}")
+  num=$(printf "%'.0f" "$(wc -l < "${whitelistFile}")")
   [[ "${num}" != 1 ]] && plural="s"
-  str="Whitelisting ${num} domain${plural}"
+  str="Whitelisting $(printf "%'.0f" "$num") domain${plural}"
   echo -ne "  ${INFO} ${str}..."
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
@@ -476,9 +476,9 @@ gravity_ShowBlockCount() {
   local num plural
 
   if [[ -f "${blacklistFile}" ]]; then
-    num=$(printf "%'.0f" "$(wc -l < "${blacklistFile}")")
+    num=$(wc -l < "${blacklistFile}")
     plural=; [[ "${num}" != 1 ]] && plural="s"
-    echo -e "  ${INFO} Blacklisted ${num} domain${plural}"
+    echo -e "  ${INFO} Blacklisted $(printf "%'.0f" "$num") domain${plural}"
   fi
 
   if [[ -f "${wildcardFile}" ]]; then
@@ -488,7 +488,7 @@ gravity_ShowBlockCount() {
       num=$(( num/2 ))
     fi
     plural=; [[ "${num}" != 1 ]] && plural="s"
-    echo -e "  ${INFO} Wildcard blocked ${num} domain${plural}"
+    echo -e "  ${INFO} Wildcard blocked $(printf "%'.0f" "$num") domain${plural}"
   fi
 }
 
