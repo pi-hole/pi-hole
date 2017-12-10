@@ -114,7 +114,7 @@ gravity_DNSLookup() {
   echo -ne "  ${INFO} Waiting up to ${secs} seconds before continuing..."
   until timeout 1 getent hosts "${lookupDomain}" &> /dev/null; do
     [[ "${secs:-}" -eq 0 ]] && break
-    [[ "${secs:-}" != 1 ]] && f="s"
+    [[ "${secs:-}" != 1 ]] && plural="s"
     echo -ne "${OVER}  ${INFO} Waiting up to ${secs} second${plural} before continuing..."
     : $((secs--))
     sleep 1
