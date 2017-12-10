@@ -114,7 +114,7 @@ gravity_DNSLookup() {
   echo -ne "  ${INFO} Waiting up to ${secs} seconds before continuing..."
   until timeout 1 getent hosts "${lookupDomain}" &> /dev/null; do
     [[ "${secs:-}" -eq 0 ]] && break
-    [[ "${secs:-}" -ne 1 ]] && plural="s"
+    [[ "${secs:-}" != 1 ]] && f="s"
     echo -ne "${OVER}  ${INFO} Waiting up to ${secs} second${plural} before continuing..."
     : $((secs--))
     sleep 1
@@ -440,7 +440,7 @@ gravity_WhitelistBLD() {
 
   # Create array of unique $sourceDomains
   mapfile -t uniqDomains <<< "$(awk '{ if(!a[$1]++) { print $1 } }' <<< "$(printf '%s\n' "${sourceDomains[@]}")")"
-  [[ "${#uniqDomains[@]}" -ne 1 ]] && plural="s"
+  [[ "${#uniqDomains[@]}" != 1 ]] && plural="s"
 
   str="Adding ${#uniqDomains[@]} blocklist source domain${plural} to the whitelist"
   echo -ne "  ${INFO} ${str}..."
@@ -461,7 +461,7 @@ gravity_Whitelist() {
   fi
 
   num=$(wc -l < "${whitelistFile}")
-  [[ "${num}" -ne 1 ]] && plural="s"
+  [[ "${num}" != 1 ]] && plural="s"
   str="Whitelisting ${num} domain${plural}"
   echo -ne "  ${INFO} ${str}..."
 
@@ -477,7 +477,7 @@ gravity_ShowBlockCount() {
 
   if [[ -f "${blacklistFile}" ]]; then
     num=$(printf "%'.0f" "$(wc -l < "${blacklistFile}")")
-    plural=; [[ "${num}" -ne 1 ]] && plural="s"
+    plural=; [[ "${num}" != 1 ]] && plural="s"
     echo -e "  ${INFO} Blacklisted ${num} domain${plural}"
   fi
 
@@ -487,7 +487,7 @@ gravity_ShowBlockCount() {
     if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
       num=$(( num/2 ))
     fi
-    plural=; [[ "${num}" -ne 1 ]] && plural="s"
+    plural=; [[ "${num}" != 1 ]] && plural="s"
     echo -e "  ${INFO} Wildcard blocked ${num} domain${plural}"
   fi
 }
