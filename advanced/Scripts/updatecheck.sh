@@ -39,11 +39,20 @@ git describe --long --dirty --tags || return 1
 
 if [[ "$2" == "remote" ]]; then
 
-  GITHUB_CORE_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)")"
-  GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
-  GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
+  GITHUB_CORE_JSON="$(curl -q 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)"
+  GITHUB_CORE_VERSION="$(json_extract tag_name "${GITHUB_CORE_JSON}")"
+  GITHUB_CORE_PRERELEASE="$(json_extract prerelease "${GITHUB_CORE_JSON}")"
+
+  GITHUB_WEB_JSON="$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)"
+  GITHUB_WEB_VERSION="$(json_extract tag_name "${GITHUB_WEB_JSON}")"
+  GITHUB_WEB_PRERELEASE="$(json_extract prerelease "${GITHUB_WEB_JSON}")"
+
+  GITHUB_FTL_JSON="$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)"
+  GITHUB_FTL_VERSION="$(json_extract tag_name "${GITHUB_FTL_JSON}")"
+  GITHUB_FTL_PRERELEASE="$(json_extract prerelease "${GITHUB_FTL_JSON}")"
 
   echo "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
+  echo "${GITHUB_CORE_PRERELEASE} ${GITHUB_WEB_PRERELEASE} ${GITHUB_FTL_PRERELEASE}" > "/etc/pihole/GitHubPreRelease"
 
 else
 
