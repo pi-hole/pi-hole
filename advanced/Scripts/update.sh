@@ -120,7 +120,7 @@ main() {
 
   # Check if upstream version is a bet release and determine if user wants to
   # update to beta releases
-  if [[ "${GitHubPreRelease[0]}" == "true" && "${USE_BETA}" != "true" ]]; then
+  if [[ ${core_update} && "${GitHubPreRelease[0]}" == "true" && "${USE_BETA}" != "true" ]]; then
     core_update=false
     echo -e "  ${INFO} Pi-hole Core update is a beta release ${COL_YELLOW} Skipping update! ${COL_NC}"
   fi
@@ -135,7 +135,7 @@ main() {
 
   # Check if upstream version is a bet release and determine if user wants to
   # update to beta releases
-  if [[ "${GitHubPreRelease[2]}" == "true" && "${USE_BETA}" != "true" ]]; then
+  if [[ ${FTL_update} && "${GitHubPreRelease[2]}" == "true" && "${USE_BETA}" != "true" ]]; then
     FTL_update=false
     echo -e "  ${INFO} Pi-hole FTL update is a beta release ${COL_YELLOW} Skipping update! ${COL_NC}"
   fi
@@ -166,7 +166,7 @@ main() {
     fi
     # Check if upstream version is a bet release and determine if user wants to
     # update to beta releases
-    if [[ "${GitHubPreRelease[1]}" == "true" && "${USE_BETA}" != "true" ]]; then
+    if [[ ${web_update} && "${GitHubPreRelease[1]}" == "true" && "${USE_BETA}" != "true" ]]; then
       web_update=false
       echo -e "  ${INFO} Web interface update is a beta release ${COL_YELLOW} Skipping update! ${COL_NC}"
     fi
