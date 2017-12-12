@@ -9,37 +9,18 @@
 # Please see LICENSE file for your rights under this license.
 
 # Get local and remote versions using the update checker
+echo "Getting local versions..."
 pihole updatechecker local
+echo "Getting remote versions..."
 pihole updatechecker remote
+
+COREGITDIR="/etc/.pihole/"
+WEBGITDIR="/var/www/html/admin/"
 
 read -a GitHubVersions < "/etc/pihole/GitHubVersions"
 read -a GitHubPreRelease < "/etc/pihole/GitHubPreRelease"
 read -a localbranches < "/etc/pihole/localbranches"
 read -a localversions < "/etc/pihole/localversions"
-
-getLocalVersion() {
-  # FTL requires a different method
-  if [[ "$1" == "FTL" ]]; then
-    pihole-FTL version
-    return 0
-  fi
-
-  # Get the tagged version of the local repository
-  local directory="${1}"
-  local version
-
-  cd "${directory}" 2> /dev/null || { echo "${DEFAULT}"; return 1; }
-  version=$(git describe --tags --always || echo "$DEFAULT")
-  if [[ "${version}" =~ ^v ]]; then
-    echo "${version}"
-  elif [[ "${version}" == "${DEFAULT}" ]]; then
-    echo "ERROR"
-    return 1
-  else
-    echo "Untagged"
-  fi
-  return 0
-}
 
 getLocalHash() {
   # Local FTL hash does not exist on filesystem
@@ -84,34 +65,40 @@ getRemoteHash(){
   return 0
 }
 
-getRemoteVersion(){
-  # Get the version from the remote origin
-  local daemon="${1}"
-  local version
-
-  version=$(curl --silent --fail "https://api.github.com/repos/pi-hole/${daemon}/releases/latest" | \
-            awk -F: '$1 ~/tag_name/ { print $2 }' | \
-            tr -cd '[[:alnum:]]._-')
-  if [[ "${version}" =~ ^v ]]; then
-    echo "${version}"
-  else
-    echo "ERROR"
-    return 1
-  fi
-  return 0
-}
-
 versionOutput() {
 
-  [[ "$1" == "0" ]] && NAME="Pi-hole core"
-  [[ "$1" == "1" ]] && NAME="Pi-hole web"
-  [[ "$1" == "2" ]] && NAME="Pi-hole FTL"
+  if [[ "$1" == "0" ]]; then
+    NAME="Pi-hole core"
+    GITDIR="${COREGITDIR}"
+  elif [[ "$1" == "1" ]]; then
+    NAME="Pi-hole web"
+    GITDIR="${WEBGITDIR}"
+  elif [[ "$1" == "2" ]]; then
+    NAME="Pi-hole FTL"
+    GITDIR="FTL"
+  fi
 
-  [[ "$2" == "-c" ]] || [[ "$2" == "--current" ]] || [[ -z "$2" ]] && current=${localversions[$1]}
-  [[ "$2" == "-l" ]] || [[ "$2" == "--latest" ]] || [[ -z "$2" ]] && latest=${GitHubVersions[$1]}
-  if [[ "$2" == "-h" ]] || [[ "$2" == "--hash" ]]; then
-    [[ "$3" == "-c" ]] || [[ "$3" == "--current" ]] || [[ -z "$3" ]] && curHash=$(getLocalHash "$GITDIR")
-    [[ "$3" == "-l" ]] || [[ "$3" == "--latest" ]] || [[ -z "$3" ]] && latHash=$(getRemoteHash "$1" "$(cd "$GITDIR" 2> /dev/null && git rev-parse --abbrev-ref HEAD)")
+  if [[ "$2" == "-c" || "$2" == "--current" || -z "$2" ]]; then
+    current=${localversions[$1]}
+  fi
+
+  if [[ "$2" == "-l" || "$2" == "--latest" || -z "$2" ]]; then
+    latest=${GitHubVersions[$1]}
+  fi
+
+  if [[ "$2" == "--hash" ]]; then
+    if [[ "$3" == "-c" || "$3" == "--current" || -z "$3" ]]; then
+      curHash=$(getLocalHash "$GITDIR")
+    fi
+    if [[ "$3" == "-l" || "$3" == "--latest" || -z "$3" ]]; then
+      latHash=$(getRemoteHash "$1" "$(cd "$GITDIR" 2> /dev/null && git rev-parse --abbrev-ref HEAD)")
+    fi
+  fi
+
+  curbeta=${GitHubPreRelease[$1]}
+
+  if [[ "$2" == "--branch" ]]; then
+    curbranch=${localbranches[$1]}
   fi
 
   if [[ -n "$current" ]] && [[ -n "$latest" ]]; then
@@ -128,8 +115,20 @@ versionOutput() {
     output="Current ${NAME} hash is $curHash"
   elif [[ -z "$curHash" ]] && [[ -n "$latHash" ]]; then
     output="Latest ${NAME} hash is $latHash"
+  elif [[ -n "$curbranch" ]]; then
+    output="Local ${NAME} branch is $curbranch"
+  elif [[ -n "$curbeta" ]]; then
+    if [[ "$curbeta" == "true" ]]; then
+      output="Current ${NAME} release is a beta release"
+    else
+      output="Current ${NAME} release is a regular release"
+    fi
   else
     errorOutput
+  fi
+
+  if [[ "$curbeta" == "true" ]]; then
+    output="${output} (this is a beta release)"
   fi
 
   [[ -n "$output" ]] && echo "  $output"
@@ -160,14 +159,16 @@ Options:
   -c, --current        Return the current version
   -l, --latest         Return the latest version
   --hash               Return the Github hash from your local repositories
+  --beta               Return if latest versions on GitHub are beta releases
+  --branch             Return the local branches
   -h, --help           Show this help dialog"
   exit 0
 }
 
 case "${1}" in
-  "-p" | "--pihole"    ) shift; versionOutput "pi-hole" "$@";;
-  "-a" | "--admin"     ) shift; versionOutput "AdminLTE" "$@";;
-  "-f" | "--ftl"       ) shift; versionOutput "FTL" "$@";;
+  "-p" | "--pihole"    ) shift; versionOutput "0" "$@";;
+  "-a" | "--admin"     ) shift; versionOutput "1" "$@";;
+  "-f" | "--ftl"       ) shift; versionOutput "2" "$@";;
   "-h" | "--help"      ) helpFunc;;
   *                    ) defaultOutput "$@";;
 esac
