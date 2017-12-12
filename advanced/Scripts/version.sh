@@ -17,10 +17,10 @@ pihole updatechecker remote
 COREGITDIR="/etc/.pihole/"
 WEBGITDIR="/var/www/html/admin/"
 
-read -a GitHubVersions < "/etc/pihole/GitHubVersions"
-read -a GitHubPreRelease < "/etc/pihole/GitHubPreRelease"
-read -a localbranches < "/etc/pihole/localbranches"
-read -a localversions < "/etc/pihole/localversions"
+read -r -a GitHubVersions < "/etc/pihole/GitHubVersions"
+read -r -a GitHubPreRelease < "/etc/pihole/GitHubPreRelease"
+read -r -a localbranches < "/etc/pihole/localbranches"
+read -r -a localversions < "/etc/pihole/localversions"
 
 getLocalHash() {
   # Local FTL hash does not exist on filesystem
@@ -127,7 +127,7 @@ versionOutput() {
     errorOutput
   fi
 
-  if [[ "$curbeta" == "true" ]]; then
+  if [[  -n "$latest" && "$curbeta" == "true" ]]; then
     output="${output} (this is a beta release)"
   fi
 
