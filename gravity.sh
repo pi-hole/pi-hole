@@ -270,36 +270,22 @@ gravity_Pull() {
 
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
-  local source="${1}" destination="${2}" commentPattern firstLine abpFilter
+  local source="${1}" destination="${2}" firstLine abpFilter
 
   # Determine if we are parsing a consolidated list
   if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
-    # Define symbols used as comments: #;@![/
-    commentPattern="[#;@![\\/]"
-
-    # Parse Domains/Hosts files by removing comments & host IPs
-    # Logic: Ignore lines which begin with comments
-    awk '!/^'"${commentPattern}"'/ {
-      # Determine if there are multiple words seperated by a space
-      if(NF>1) {
-        # Remove comments (including prefixed spaces/tabs)
-        if($0 ~ /'"${commentPattern}"'/) { gsub("( |\t)'"${commentPattern}"'.*", "", $0) }
-        # Determine if there are aliased domains
-        if($3) {
-          # Remove IP address
-          $1=""
-          # Remove space which is left in $0 when removing $1
-          gsub("^ ", "", $0)
-          print $0
-        } else if($2) {
-          # Print single domain without IP
-          print $2
-        }
-      # If there are no words seperated by space
-      } else if($1) {
-        print $1
-      }
-    }' "${source}" 2> /dev/null > "${destination}"
+    # Remove comments and print only the domain name
+    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+    # This helps with that and makes it easier to read
+    # It also helps with debugging so each stage of the script can be researched more in depth
+    #Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
+    #Last awk command takes non-commented lines and if they have 2 fields, take the left field (the domain) and leave
+    #+ the right (IP address), otherwise grab the single field.
+    cat ${source} | \
+    awk -F '#' '{print $1}' | \
+    awk -F '/' '{print $1}' | \
+    awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
+    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${destination}
     return 0
   fi
 
