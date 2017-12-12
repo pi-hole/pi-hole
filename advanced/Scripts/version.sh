@@ -8,10 +8,14 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Variables
-DEFAULT="-1"
-COREGITDIR="/etc/.pihole/"
-WEBGITDIR="/var/www/html/admin/"
+# Get local and remote versions using the update checker
+pihole updatechecker local
+pihole updatechecker remote
+
+read -a GitHubVersions < "/etc/pihole/GitHubVersions"
+read -a GitHubPreRelease < "/etc/pihole/GitHubPreRelease"
+read -a localbranches < "/etc/pihole/localbranches"
+read -a localversions < "/etc/pihole/localversions"
 
 getLocalVersion() {
   # FTL requires a different method
@@ -43,7 +47,7 @@ getLocalHash() {
     echo "N/A"
     return 0
   fi
-  
+
   # Get the short hash of the local repository
   local directory="${1}"
   local hash
@@ -98,31 +102,32 @@ getRemoteVersion(){
 }
 
 versionOutput() {
-  [[ "$1" == "pi-hole" ]] && GITDIR=$COREGITDIR
-  [[ "$1" == "AdminLTE" ]] && GITDIR=$WEBGITDIR
-  [[ "$1" == "FTL" ]] && GITDIR="FTL"
-  
-  [[ "$2" == "-c" ]] || [[ "$2" == "--current" ]] || [[ -z "$2" ]] && current=$(getLocalVersion $GITDIR)
-  [[ "$2" == "-l" ]] || [[ "$2" == "--latest" ]] || [[ -z "$2" ]] && latest=$(getRemoteVersion "$1")
+
+  [[ "$1" == "0" ]] && NAME="Pi-hole core"
+  [[ "$1" == "1" ]] && NAME="Pi-hole web"
+  [[ "$1" == "2" ]] && NAME="Pi-hole FTL"
+
+  [[ "$2" == "-c" ]] || [[ "$2" == "--current" ]] || [[ -z "$2" ]] && current=${localversions[$1]}
+  [[ "$2" == "-l" ]] || [[ "$2" == "--latest" ]] || [[ -z "$2" ]] && latest=${GitHubVersions[$1]}
   if [[ "$2" == "-h" ]] || [[ "$2" == "--hash" ]]; then
     [[ "$3" == "-c" ]] || [[ "$3" == "--current" ]] || [[ -z "$3" ]] && curHash=$(getLocalHash "$GITDIR")
     [[ "$3" == "-l" ]] || [[ "$3" == "--latest" ]] || [[ -z "$3" ]] && latHash=$(getRemoteHash "$1" "$(cd "$GITDIR" 2> /dev/null && git rev-parse --abbrev-ref HEAD)")
   fi
 
   if [[ -n "$current" ]] && [[ -n "$latest" ]]; then
-    output="${1^} version is $current (Latest: $latest)"
+    output="${NAME} version is $current (Latest: $latest)"
   elif [[ -n "$current" ]] && [[ -z "$latest" ]]; then
-    output="Current ${1^} version is $current"
+    output="Current ${NAME} version is $current"
   elif [[ -z "$current" ]] && [[ -n "$latest" ]]; then
-    output="Latest ${1^} version is $latest"
+    output="Latest ${NAME} version is $latest"
   elif [[ "$curHash" == "N/A" ]] || [[ "$latHash" == "N/A" ]]; then
-    output="${1^} hash is not applicable"
+    output="${NAME} hash is not applicable"
   elif [[ -n "$curHash" ]] && [[ -n "$latHash" ]]; then
-    output="${1^} hash is $curHash (Latest: $latHash)"
+    output="${NAME} hash is $curHash (Latest: $latHash)"
   elif [[ -n "$curHash" ]] && [[ -z "$latHash" ]]; then
-    output="Current ${1^} hash is $curHash"
+    output="Current ${NAME} hash is $curHash"
   elif [[ -z "$curHash" ]] && [[ -n "$latHash" ]]; then
-    output="Latest ${1^} hash is $latHash"
+    output="Latest ${NAME} hash is $latHash"
   else
     errorOutput
   fi
@@ -134,11 +139,11 @@ errorOutput() {
   echo "  Invalid Option! Try 'pihole -v --help' for more information."
   exit 1
 }
-  
+
 defaultOutput() {
-  versionOutput "pi-hole" "$@"
-  versionOutput "AdminLTE" "$@"
-  versionOutput "FTL" "$@"
+  versionOutput "0" "$@"
+  versionOutput "1" "$@"
+  versionOutput "2" "$@"
 }
 
 helpFunc() {
@@ -150,7 +155,7 @@ Repositories:
   -p, --pihole         Only retrieve info regarding Pi-hole repository
   -a, --admin          Only retrieve info regarding AdminLTE repository
   -f, --ftl            Only retrieve info regarding FTL repository
-  
+
 Options:
   -c, --current        Return the current version
   -l, --latest         Return the latest version
