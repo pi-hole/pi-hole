@@ -1243,7 +1243,7 @@ install_dependent_packages() {
         echo -e "${OVER}  ${TICK} Checking for $i"
       else
         #
-        echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+        echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
         #
         installArray+=("${i}")
       fi
@@ -1268,7 +1268,7 @@ install_dependent_packages() {
     if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
       echo -e "${OVER}  ${TICK} Checking for $i"
     else
-      echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+      echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
       #
       installArray+=("${i}")
     fi
