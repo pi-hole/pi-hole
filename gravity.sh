@@ -405,7 +405,7 @@ gravity_Filter() {
   # Format $parsedMatter line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
   echo -e "${OVER}  ${TICK} ${str}
-  ${INFO}  Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
+  ${INFO} Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
 
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
@@ -414,7 +414,7 @@ gravity_Filter() {
 
   # Format $preEventHorizon line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO}  Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
+  echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
 }
 
 # Whitelist unique blocklist domain sources
