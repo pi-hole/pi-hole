@@ -432,7 +432,7 @@ gravity_WhitelistBLD() {
   echo -ne "  ${INFO} ${str}..."
 
   # Whitelist $uniqDomains
-  "${PIHOLE_COMMAND}" -w -nr -q "${uniqDomains[*]}" &> /dev/null
+  "${PIHOLE_COMMAND}" -w -nr -q ${uniqDomains[*]} &> /dev/null
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
