@@ -1,0 +1,3 @@
+linters:
+  shellcheck:
+    shell: bash
