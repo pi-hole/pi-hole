@@ -69,7 +69,7 @@ fi
 
 # Determine if DNS resolution is available before proceeding
 gravity_DNSLookup() {
-  local lookupDomain="pi.hole" plural=""
+  local lookupDomain="pi.hole"
 
   # Determine if $localList does not exist
   if [[ ! -e "${localList}" ]]; then
@@ -111,11 +111,10 @@ gravity_DNSLookup() {
 
   # Ensure DNS server is given time to be resolvable
   secs="120"
-  echo -ne "  ${INFO} Waiting up to ${secs} seconds before continuing..."
+  echo -ne "  ${INFO} Time until retry: ${secs}"
   until timeout 1 getent hosts "${lookupDomain}" &> /dev/null; do
     [[ "${secs:-}" -eq 0 ]] && break
-    [[ "${secs:-}" -ne 1 ]] && plural="s"
-    echo -ne "${OVER}  ${INFO} Waiting up to ${secs} second${plural} before continuing..."
+    echo -ne "${OVER}  ${INFO} Time until retry: ${secs}"
     : $((secs--))
     sleep 1
   done
@@ -406,7 +405,7 @@ gravity_Filter() {
   # Format $parsedMatter line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
   echo -e "${OVER}  ${TICK} ${str}
-  ${INFO} ${COL_BLUE}${num}${COL_NC} domains being pulled in by gravity"
+  ${INFO}  Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
 
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
@@ -415,20 +414,19 @@ gravity_Filter() {
 
   # Format $preEventHorizon line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} ${COL_BLUE}${num}${COL_NC} unique domains trapped in the Event Horizon"
+  echo -e "  ${INFO}  Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
 }
 
 # Whitelist unique blocklist domain sources
 gravity_WhitelistBLD() {
-  local uniqDomains plural="" str
+  local uniqDomains
 
   echo ""
 
   # Create array of unique $sourceDomains
   mapfile -t uniqDomains <<< "$(awk '{ if(!a[$1]++) { print $1 } }' <<< "$(printf '%s\n' "${sourceDomains[@]}")")"
-  [[ "${#uniqDomains[@]}" -ne 1 ]] && plural="s"
 
-  str="Adding ${#uniqDomains[@]} blocklist source domain${plural} to the whitelist"
+  str="Number of blocklist source domains being added to the whitelist: ${#uniqDomains[@]}"
   echo -ne "  ${INFO} ${str}..."
 
   # Whitelist $uniqDomains
@@ -439,7 +437,7 @@ gravity_WhitelistBLD() {
 
 # Whitelist user-defined domains
 gravity_Whitelist() {
-  local num plural="" str
+  local num str
 
   if [[ ! -f "${whitelistFile}" ]]; then
     echo -e "  ${INFO} Nothing to whitelist!"
@@ -447,8 +445,7 @@ gravity_Whitelist() {
   fi
 
   num=$(wc -l < "${whitelistFile}")
-  [[ "${num}" -ne 1 ]] && plural="s"
-  str="Whitelisting ${num} domain${plural}"
+  str="Number of whitelisted domains: ${num}"
   echo -ne "  ${INFO} ${str}..."
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
@@ -459,12 +456,11 @@ gravity_Whitelist() {
 
 # Output count of blacklisted domains and wildcards
 gravity_ShowBlockCount() {
-  local num plural
+  local num
 
   if [[ -f "${blacklistFile}" ]]; then
     num=$(printf "%'.0f" "$(wc -l < "${blacklistFile}")")
-    plural=; [[ "${num}" -ne 1 ]] && plural="s"
-    echo -e "  ${INFO} Blacklisted ${num} domain${plural}"
+    echo -e "  ${INFO} Number of blacklisted domains: ${num}"
   fi
 
   if [[ -f "${wildcardFile}" ]]; then
@@ -473,8 +469,7 @@ gravity_ShowBlockCount() {
     if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
       num=$(( num/2 ))
     fi
-    plural=; [[ "${num}" -ne 1 ]] && plural="s"
-    echo -e "  ${INFO} Wildcard blocked ${num} domain${plural}"
+    echo -e "  ${INFO} Number of wildcard blocked domains: ${num}"
   fi
 }
 
