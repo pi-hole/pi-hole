@@ -809,8 +809,14 @@ process_status(){
   local i
   # For each process,
   for i in "${PIHOLE_PROCESSES[@]}"; do
-    # get its status via systemctl
-    local status_of_process=$(systemctl is-active "${i}")
+    # If systemd
+    if command -v systemctl &> /dev/null; then
+      # get its status via systemctl
+      local status_of_process=$(systemctl is-active "${i}")
+    else
+      # Otherwise, use the service command
+      local status_of_process=$(service "${i}" status | awk '/Active:/ {print $2}') &> /dev/null
+    fi
     # and print it out to the user
     if [[ "${status_of_process}" == "active" ]]; then
       # If it's active, show it in green
