@@ -419,7 +419,7 @@ gravity_Filter() {
 
 # Whitelist unique blocklist domain sources
 gravity_WhitelistBLD() {
-  local uniqDomains
+  local uniqDomains str
 
   echo ""
 
@@ -432,7 +432,7 @@ gravity_WhitelistBLD() {
   # Whitelist $uniqDomains
   "${PIHOLE_COMMAND}" -w -nr -q ${uniqDomains[*]} &> /dev/null
 
-  echo -e "${OVER}  ${TICK} ${str}"
+  echo -e "${OVER}  ${INFO} ${str}"
 }
 
 # Whitelist user-defined domains
@@ -451,7 +451,7 @@ gravity_Whitelist() {
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
   grep -F -x -v -f "${whitelistFile}" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/${whitelistMatter}"
 
-  echo -e "${OVER}  ${TICK} ${str}"
+  echo -e "${OVER}  ${INFO} ${str}"
 }
 
 # Output count of blacklisted domains and wildcards
