@@ -39,6 +39,10 @@ git describe --long --dirty --tags || return 1
 
 if [[ "$2" == "remote" ]]; then
 
+  if [[ "$3" == "reboot" ]]; then
+    sleep 30
+  fi
+
   GITHUB_CORE_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)")"
   GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
   GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
