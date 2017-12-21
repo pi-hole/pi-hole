@@ -952,8 +952,8 @@ list_files_in_dir() {
             # If it's Web server error log, just give the first 25 lines
             "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") make_array_from_file "${dir_to_parse}/${each_file}" 25
             ;;
-            # Same for the FTL log
-            "${PIHOLE_FTL_LOG}") make_array_from_file "${dir_to_parse}/${each_file}" 25
+            # For the FTL log, get the head and tail
+            "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 25
             ;;
             # parse the file into an array in case we ever need to analyze it line-by-line
             *) make_array_from_file "${dir_to_parse}/${each_file}";
@@ -984,6 +984,34 @@ show_content_of_pihole_files() {
   show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
   show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
   show_content_of_files_in_dir "${LOG_DIRECTORY}"
+}
+
+head_tail_log() {
+  # The file being processed
+  local filename="${1}"
+  # The number of lines to use for head and tail
+  local qty="${2}"
+  local head_line
+  local tail_line
+  # Put the current Internal Field Separator into another variable so it can be restored later
+  OLD_IFS="$IFS"
+  # Get the lines that are in the file(s) and store them in an array for parsing later
+  IFS=$'\r\n'
+  local log_head=()
+  log_head=( $(head -n ${qty} ${filename}) )
+  log_write "   ${COL_CYAN}-----head of $(basename ${filename})------${COL_NC}"
+  for head_line in "${log_head[@]}"; do
+    log_write "   ${head_line}"
+  done
+  log_write ""
+  local log_tail=()
+  log_tail=( $(tail -n ${qty} ${filename}) )
+  log_write "   ${COL_CYAN}-----tail of $(basename ${filename})------${COL_NC}"
+  for tail_line in "${log_tail[@]}"; do
+    log_write "   ${tail_line}"
+  done
+  # Set the IFS back to what it was
+  IFS="$OLD_IFS"
 }
 
 analyze_gravity_list() {
