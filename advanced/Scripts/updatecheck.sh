@@ -47,6 +47,7 @@ if [[ "$2" == "remote" ]]; then
   GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
   GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
 
+  # Have to store an extra dummy character at the end, see https://github.com/pi-hole/pi-hole/pull/1866
   echo "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION} X" > "/etc/pihole/GitHubVersions"
 
 else
@@ -55,12 +56,14 @@ else
   WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
   FTL_BRANCH="$(pihole-FTL branch)"
 
+  # Have to store an extra dummy character at the end, see https://github.com/pi-hole/pi-hole/pull/1866
   echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH} X" > "/etc/pihole/localbranches"
 
   CORE_VERSION="$(get_local_version /etc/.pihole)"
   WEB_VERSION="$(get_local_version /var/www/html/admin)"
   FTL_VERSION="$(pihole-FTL version)"
 
+  # Have to store an extra dummy character at the end, see https://github.com/pi-hole/pi-hole/pull/1866
   echo "${CORE_VERSION} ${WEB_VERSION} ${FTL_VERSION} X" > "/etc/pihole/localversions"
 
 fi
