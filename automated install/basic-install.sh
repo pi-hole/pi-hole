@@ -715,8 +715,8 @@ setStaticIPv4() {
       }> "${IFCFG_FILE}"
       # Use ip to immediately set the new address
       ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-      # If NetworkMangler command line interface exists,
-      if command -v nmcli &> /dev/null;then
+      # If NetworkMangler command line interface exists and ready to mangle,
+      if command -v nmcli &> /dev/null && nmcli general status &> /dev/null; then
         # Tell NetworkManagler to read our new sysconfig file
         nmcli con load "${IFCFG_FILE}" > /dev/null
       fi
@@ -1243,7 +1243,7 @@ install_dependent_packages() {
         echo -e "${OVER}  ${TICK} Checking for $i"
       else
         #
-        echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+        echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
         #
         installArray+=("${i}")
       fi
@@ -1268,7 +1268,7 @@ install_dependent_packages() {
     if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
       echo -e "${OVER}  ${TICK} Checking for $i"
     else
-      echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+      echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
       #
       installArray+=("${i}")
     fi
@@ -1368,7 +1368,9 @@ installCron() {
   # Copy the cron file over from the local repo
   cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
   # Randomize gravity update time
-  sed -i "s/59 1/$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+  sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+  # Randomize update checker time
+  sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
