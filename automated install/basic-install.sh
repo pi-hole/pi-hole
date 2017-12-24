@@ -2032,11 +2032,11 @@ main() {
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
   else
+    # Source ${setupVars} to use predefined user variables in the functions
+    source ${setupVars}
+
     # Clone/Update the repos
     clone_or_update_repos
-
-    # Source ${setupVars} for use in the rest of the functions
-    source ${setupVars}
 
     # Install packages used by the Pi-hole
     if [[ "${INSTALL_WEB}" == true ]]; then
