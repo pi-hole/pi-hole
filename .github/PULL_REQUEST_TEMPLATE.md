@@ -10,7 +10,7 @@
 - [] I give this submission freely and claim no ownership.
 - [] It is compatible with the [EUPL 1.2 license](https://opensource.org/licenses/EUPL-1.1)
 - [] I have squashed any insignificant commits. ([`git rebase`](http://gitready.com/advanced/2009/02/10/squashing-commits-with-rebase.html))
-- [] I have Signed Off all commits. ([`git commit --signoff`](https://git-scm.com/docs/git-commit#git-commit---signoff))
+- [] I have Signed Off all commits. ([`git commit --signoff`](https://github.com/pi-hole/pi-hole/wiki/How-to-signoff-your-commits.))
 
 ---
 
