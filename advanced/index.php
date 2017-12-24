@@ -213,6 +213,8 @@ if (explode("-", $phVersion)[1] != "0")
 
 // Please Note: Text is added via CSS to allow an admin to provide a localised
 // language without the need to edit this file
+
+setHeader();
 ?>
 <!DOCTYPE html>
 <!-- Pi-hole: A black hole for Internet advertisements
@@ -224,7 +226,6 @@ if (explode("-", $phVersion)[1] != "0")
 <head>
   <meta charset="UTF-8">
   <?=$viewPort ?>
-  <?=setHeader() ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
   <link rel="shortcut icon" href="<?=$proto ?>://pi.hole/admin/img/favicon.png" type="image/x-icon"/>

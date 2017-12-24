@@ -658,6 +658,6 @@ case "${1}" in
   "-t" | "tail"                 ) tailFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
-  "updatechecker"               ) updateCheckFunc;;
+  "updatechecker"               ) updateCheckFunc "$@";;
   *                             ) helpFunc;;
 esac

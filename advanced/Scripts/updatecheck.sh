@@ -3,7 +3,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# Checks for updates via GitHub
+# Checks for local or remote versions and branches
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
@@ -25,35 +25,42 @@ function json_extract() {
   fi
 }
 
-GITHUB_CORE_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)")"
-GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
-GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
-
-echo "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
-
 function get_local_branch() {
   # Return active branch
   cd "${1}" 2> /dev/null || return 1
   git rev-parse --abbrev-ref HEAD || return 1
 }
 
-CORE_BRANCH="$(get_local_branch /etc/.pihole)"
-WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
-#FTL_BRANCH="$(pihole-FTL branch)"
-# Don't store FTL branch until the next release of FTL which
-# supports returning the branch in an easy way
-FTL_BRANCH="XXX"
-
-echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
-
 function get_local_version() {
-  # Return active branch
-  cd "${1}" 2> /dev/null || return 1
-  git describe --long --dirty --tags || return 1
+# Return active branch
+cd "${1}" 2> /dev/null || return 1
+git describe --long --dirty --tags || return 1
 }
 
-CORE_VERSION="$(get_local_version /etc/.pihole)"
-WEB_VERSION="$(get_local_version /var/www/html/admin)"
-FTL_VERSION="$(pihole-FTL version)"
+if [[ "$2" == "remote" ]]; then
 
-echo "${CORE_VERSION} ${WEB_VERSION} ${FTL_VERSION}" > "/etc/pihole/localversions"
+  if [[ "$3" == "reboot" ]]; then
+    sleep 30
+  fi
+
+  GITHUB_CORE_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)")"
+  GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
+  GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
+
+  echo "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
+
+else
+
+  CORE_BRANCH="$(get_local_branch /etc/.pihole)"
+  WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
+  FTL_BRANCH="$(pihole-FTL branch)"
+
+  echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
+
+  CORE_VERSION="$(get_local_version /etc/.pihole)"
+  WEB_VERSION="$(get_local_version /var/www/html/admin)"
+  FTL_VERSION="$(pihole-FTL version)"
+
+  echo "${CORE_VERSION} ${WEB_VERSION} ${FTL_VERSION}" > "/etc/pihole/localversions"
+
+fi
