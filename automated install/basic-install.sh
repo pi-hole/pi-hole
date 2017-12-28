@@ -2101,6 +2101,7 @@ main() {
 
   # Force an update of the updatechecker
   . /opt/pihole/updatecheck.sh
+  . /opt/pihole/updatecheck.sh x remote
 
   #
   if [[ "${useUpdateVars}" == false ]]; then
