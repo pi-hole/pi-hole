@@ -39,6 +39,10 @@ git describe --long --dirty --tags || return 1
 
 if [[ "$2" == "remote" ]]; then
 
+  if [[ "$3" == "reboot" ]]; then
+    sleep 30
+  fi
+
   GITHUB_CORE_JSON="$(curl -q 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)"
   GITHUB_CORE_VERSION="$(json_extract tag_name "${GITHUB_CORE_JSON}")"
   GITHUB_CORE_PRERELEASE="$(json_extract prerelease "${GITHUB_CORE_JSON}")"
@@ -51,8 +55,8 @@ if [[ "$2" == "remote" ]]; then
   GITHUB_FTL_VERSION="$(json_extract tag_name "${GITHUB_FTL_JSON}")"
   GITHUB_FTL_PRERELEASE="$(json_extract prerelease "${GITHUB_FTL_JSON}")"
 
-  echo "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
-  echo "${GITHUB_CORE_PRERELEASE} ${GITHUB_WEB_PRERELEASE} ${GITHUB_FTL_PRERELEASE}" > "/etc/pihole/GitHubPreRelease"
+  echo -n "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
+  echo -n "${GITHUB_CORE_PRERELEASE} ${GITHUB_WEB_PRERELEASE} ${GITHUB_FTL_PRERELEASE}" > "/etc/pihole/GitHubPreRelease"
 
 else
 
@@ -60,12 +64,12 @@ else
   WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
   FTL_BRANCH="$(pihole-FTL branch)"
 
-  echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
+  echo -n "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
 
   CORE_VERSION="$(get_local_version /etc/.pihole)"
   WEB_VERSION="$(get_local_version /var/www/html/admin)"
   FTL_VERSION="$(pihole-FTL version)"
 
-  echo "${CORE_VERSION} ${WEB_VERSION} ${FTL_VERSION}" > "/etc/pihole/localversions"
+  echo -n "${CORE_VERSION} ${WEB_VERSION} ${FTL_VERSION}" > "/etc/pihole/localversions"
 
 fi

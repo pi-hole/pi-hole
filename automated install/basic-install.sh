@@ -1243,7 +1243,7 @@ install_dependent_packages() {
         echo -e "${OVER}  ${TICK} Checking for $i"
       else
         #
-        echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+        echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
         #
         installArray+=("${i}")
       fi
@@ -1268,7 +1268,7 @@ install_dependent_packages() {
     if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
       echo -e "${OVER}  ${TICK} Checking for $i"
     else
-      echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+      echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
       #
       installArray+=("${i}")
     fi
@@ -1368,7 +1368,9 @@ installCron() {
   # Copy the cron file over from the local repo
   cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
   # Randomize gravity update time
-  sed -i "s/59 1/$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+  sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+  # Randomize update checker time
+  sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -2030,11 +2032,11 @@ main() {
     # Install and log everything to a file
     installPihole | tee ${tmpLog}
   else
+    # Source ${setupVars} to use predefined user variables in the functions
+    source ${setupVars}
+
     # Clone/Update the repos
     clone_or_update_repos
-
-    # Source ${setupVars} for use in the rest of the functions
-    source ${setupVars}
 
     # Install packages used by the Pi-hole
     if [[ "${INSTALL_WEB}" == true ]]; then
@@ -2099,6 +2101,7 @@ main() {
 
   # Force an update of the updatechecker
   . /opt/pihole/updatecheck.sh
+  . /opt/pihole/updatecheck.sh x remote
 
   #
   if [[ "${useUpdateVars}" == false ]]; then
