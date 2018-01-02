@@ -529,6 +529,21 @@ tailFunc() {
   exit 0
 }
 
+cleanTailFunc() {
+  echo -e "Press Ctrl-C to exit"
+
+  # Filter out non-blocking messages
+  # Remove everthing in front of the domain
+  # Remove everthing after the domain
+  tail -f /var/log/pihole.log | grep --line-buffered -E 'gravity.list|black.list' | sed -u -E \
+    -e "s,.*(gravity.list |black.list ),," \
+    -e "s, .*,,"
+
+  # Get rid of everything up to and including gravity.list or black.list, and match everything until there is a space
+  # NOTE: Uses perl-regexp, which is experimental and might not always work
+  # tail -f /var/log/pihole.log | grep --color=never -Po "(gravity\.list |black\.list )\K(.*?)(?= )"
+}
+
 piholeCheckoutFunc() {
   if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
     echo "Usage: pihole checkout [repo] [branch]
@@ -656,6 +671,7 @@ case "${1}" in
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
+  "-ct" | "cleantail"           ) cleantail;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
