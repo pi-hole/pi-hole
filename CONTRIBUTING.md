@@ -28,6 +28,7 @@ When requesting or submitting new features, first consider whether it might be u
 
 - Check the codebase to ensure that your feature doesn't already exist.
 - Check the pull requests to ensure that another person hasn't already submitted the feature or fix.
+- Read and understand our Pull Request [DCO guidelines](https://github.com/pi-hole/pi-hole/wiki/Contributing-to-the-project).
 
 ## Technical Requirements
 
