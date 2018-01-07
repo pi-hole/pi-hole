@@ -193,7 +193,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [Pi-hole metrics](https://github.com/nlamirault/pihole_exporter) exporter for [Prometheus](https://prometheus.io/)
 - [Magic Mirror with DNS Filtering](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
 - [Pi-hole Droid: Android client](https://github.com/friimaind/pi-hole-droid)
-
+- [Windows DNS Swapper](https://github.com/roots84/DNS-Swapper), see [#1400](https://github.com/pi-hole/pi-hole/issues/1400)
 -----
 
 ## Coverage
