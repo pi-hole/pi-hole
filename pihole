@@ -529,7 +529,7 @@ tailFunc() {
   exit 0
 }
 
-cleanTailFunc() {
+tailDomainsFunc() {
   echo -e "Press Ctrl-C to exit"
 
   # Filter out non-blocking messages
@@ -671,7 +671,7 @@ case "${1}" in
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
-  "-ct" | "cleantail"           ) cleanTailFunc;;
+  "-td" | "tailDomains"         ) tailDomainsFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
