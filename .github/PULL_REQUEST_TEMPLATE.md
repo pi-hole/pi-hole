@@ -1,6 +1,5 @@
-**By submitting this pull request, I confirm the following:** `{please fill any appropriate checkboxes, e.g: [X]}`
-
-`{Please ensure that your pull request is for the 'development' branch!}`
+**By submitting this pull request, I confirm the following:** 
+`{please fill any appropriate checkboxes, e.g: [X]}`
 
 - [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md), as well as this entire template.
 - [] I have made only one major change in my proposed changes.
@@ -10,7 +9,8 @@
 - [] I give this submission freely and claim no ownership.
 - [] It is compatible with the [EUPL 1.2 license](https://opensource.org/licenses/EUPL-1.1)
 - [] I have squashed any insignificant commits. ([`git rebase`](http://gitready.com/advanced/2009/02/10/squashing-commits-with-rebase.html))
-- [] I have Signed Off all commits. ([`git commit --signoff`](https://github.com/pi-hole/pi-hole/wiki/How-to-signoff-your-commits.))
+
+Please make sure you [Sign Off](https://github.com/pi-hole/pi-hole/wiki/How-to-signoff-your-commits.) all commits. Pi-hole enforces the [DCO](https://github.com/pi-hole/pi-hole/wiki/Contributing-to-the-project)
 
 ---
 
@@ -27,6 +27,7 @@
 `{A detailed list of any necessary changes}`
 
 > * `{Please delete this quoted section when opening your pull request}`
-> * You must follow the template instructions. Failure to do so will result in your issue being closed.
-> * Please respect that Pi-hole is developed by volunteers, who can only reply in their spare time.
-> * Detail helps us understand an issue quicker, but please ensure it's relevant.
+
+* You must follow the template instructions. Failure to do so will result in your issue being closed.
+* Please respect that Pi-hole is developed by volunteers, who can only reply in their spare time.
+* Detail helps us understand an issue quicker, but please ensure it's relevant.
