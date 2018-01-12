@@ -547,7 +547,7 @@ detect_ip_addresses() {
     log_write ""
   else
     # If there are no IPs detected, explain that the protocol is not configured
-    log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interace.\n"
+    log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\n"
     return 1
   fi
   # If the protocol is v6
