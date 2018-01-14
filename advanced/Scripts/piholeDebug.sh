@@ -40,6 +40,7 @@ else
   OVER="\r\033[K"
 fi
 
+OBFUSCATE=true
 OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
 
 # FAQ URLs for use in showing the debug log
@@ -592,7 +593,7 @@ ping_gateway() {
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
-    if ! ${cmd} -c 3 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
+    if ! ${cmd} -c 1 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
       # let the user know
       log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\n"
       # and return an error code
@@ -613,7 +614,7 @@ ping_internet() {
   ping_ipv4_or_ipv6 "${protocol}"
   log_write "* Checking Internet connectivity via IPv${protocol}..."
   # Try to ping the address 3 times
-  if ! ${cmd} -W 2 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
+  if ! ${cmd} -c 1 -W 2 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
     # if it's unsuccessful, show an error
     log_write "${CROSS} ${COL_RED}Cannot reach the Internet.${COL_NC}\n"
     return 1
@@ -957,8 +958,8 @@ list_files_in_dir() {
             # If it's Web server error log, just give the first 25 lines
             "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") make_array_from_file "${dir_to_parse}/${each_file}" 25
             ;;
-            # Same for the FTL log
-            "${PIHOLE_FTL_LOG}") make_array_from_file "${dir_to_parse}/${each_file}" 25
+            # For the FTL log, get the head and tail
+            "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 25
             ;;
             # parse the file into an array in case we ever need to analyze it line-by-line
             *) make_array_from_file "${dir_to_parse}/${each_file}";
@@ -991,6 +992,34 @@ show_content_of_pihole_files() {
   show_content_of_files_in_dir "${LOG_DIRECTORY}"
 }
 
+head_tail_log() {
+  # The file being processed
+  local filename="${1}"
+  # The number of lines to use for head and tail
+  local qty="${2}"
+  local head_line
+  local tail_line
+  # Put the current Internal Field Separator into another variable so it can be restored later
+  OLD_IFS="$IFS"
+  # Get the lines that are in the file(s) and store them in an array for parsing later
+  IFS=$'\r\n'
+  local log_head=()
+  log_head=( $(head -n ${qty} ${filename}) )
+  log_write "   ${COL_CYAN}-----head of $(basename ${filename})------${COL_NC}"
+  for head_line in "${log_head[@]}"; do
+    log_write "   ${head_line}"
+  done
+  log_write ""
+  local log_tail=()
+  log_tail=( $(tail -n ${qty} ${filename}) )
+  log_write "   ${COL_CYAN}-----tail of $(basename ${filename})------${COL_NC}"
+  for tail_line in "${log_tail[@]}"; do
+    log_write "   ${tail_line}"
+  done
+  # Set the IFS back to what it was
+  IFS="$OLD_IFS"
+}
+
 analyze_gravity_list() {
   echo_current_diagnostic "Gravity list"
   local head_line
@@ -1018,53 +1047,66 @@ analyze_gravity_list() {
   IFS="$OLD_IFS"
 }
 
+gravity_log_checks_and_obfuscation() {
+  local error_to_check_for
+  local line_to_obfuscate="${1}"
+  local obfuscated_line
+  # A common error in the pihole.log is when there is a non-hosts formatted file
+  # that the DNS server is attempting to read.  Since it's not formatted
+  # correctly, there will be an entry for "bad address at line n"
+  # So we can check for that here and highlight it in red so the user can see it easily
+  error_to_check_for=$(echo ${line_to_obfuscate}} | grep 'bad address at')
+  # Some users may not want to have the domains they visit sent to us
+  # To that end, we check for lines in the log that would contain a domain name
+  line_to_obfuscate=$(echo ${line_to_obfuscate} | grep ': query\|: forwarded\|: reply\|: cached \|: /etc/pihole/gravity\.list')
+  # If the variable contains a value, it found an error in the log
+  if [[ -n ${error_to_check_for} ]]; then
+    # So we can print it in red to make it visible to the user
+    log_write "   ${CROSS} ${COL_RED}${line_to_obfuscate}${COL_NC} (${FAQ_BAD_ADDRESS})"
+  else
+    # If the variable is set to true,
+    if [[ ${OBFUSCATE} == "true" ]]; then
+      # check if there are domains in the log that should be obfuscated
+      if [[ -n ${line_to_obfuscate} ]]; then
+        # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
+        # so we substitue the domain for the placeholder value
+        obfuscated_line=$(echo ${line_to_obfuscate} | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
+        log_write "   ${obfuscated_line}"
+      # Othwerwise, write the line as normal
+      else
+        log_write "   ${line_to_obfuscate}"
+      fi
+    # If obfuscation is off, just write the line
+    else
+      log_write "   ${line_to_obfuscate}"
+    fi
+  fi
+}
+
 analyze_pihole_log() {
   echo_current_diagnostic "Pi-hole log"
   local head_line
+  local tail_line
+  local pihole_log_head=()
+  local pihole_log_tail=()
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
   local pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
   log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
-  local pihole_log_head=()
+  # Get head and tail of pihole.log
   pihole_log_head=( $(head -n 20 ${PIHOLE_LOG}) )
+  pihole_log_tail=( $(tail -n 20 ${PIHOLE_LOG}) )
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
-  local error_to_check_for
-  local line_to_obfuscate
-  local obfuscated_line
   for head_line in "${pihole_log_head[@]}"; do
-    # A common error in the pihole.log is when there is a non-hosts formatted file
-    # that the DNS server is attempting to read.  Since it's not formatted
-    # correctly, there will be an entry for "bad address at line n"
-    # So we can check for that here and highlight it in red so the user can see it easily
-    error_to_check_for=$(echo ${head_line} | grep 'bad address at')
-    # Some users may not want to have the domains they visit sent to us
-    # To that end, we check for lines in the log that would contain a domain name
-    line_to_obfuscate=$(echo ${head_line} | grep ': query\|: forwarded\|: reply')
-    # If the variable contains a value, it found an error in the log
-    if [[ -n ${error_to_check_for} ]]; then
-      # So we can print it in red to make it visible to the user
-      log_write "   ${CROSS} ${COL_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
-    else
-      # If the variable does not a value (the current default behavior), so do not obfuscate anything
-      if [[ -z ${OBFUSCATE} ]]; then
-        log_write "   ${head_line}"
-      # Othwerise, a flag was passed to this command to obfuscate domains in the log
-      else
-        # So first check if there are domains in the log that should be obfuscated
-        if [[ -n ${line_to_obfuscate} ]]; then
-          # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
-          # so we substitue the domain for the placeholder value
-          obfuscated_line=$(echo ${line_to_obfuscate} | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
-          log_write "   ${obfuscated_line}"
-        else
-          log_write "   ${head_line}"
-        fi
-      fi
-    fi
+    gravity_log_checks_and_obfuscation "${head_line}"
   done
   log_write ""
+  log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_LOG})------${COL_NC}"
+  for tail_line in "${pihole_log_tail[@]}"; do
+    gravity_log_checks_and_obfuscation "${tail_line}"
+  done
   # Set the IFS back to what it was
   IFS="$OLD_IFS"
 }
