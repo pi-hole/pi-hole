@@ -218,7 +218,7 @@ SetDNSServers() {
 		change_setting "CONDITIONAL_FORWARDING" "false"
 		delete_setting "CONDITIONAL_FORWARDING_IP"
 		delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
-		delete_setting "CONDITIONAL_FORWARDING_REVERSE" "${args[9]}"
+		delete_setting "CONDITIONAL_FORWARDING_REVERSE"
 	fi
 
 	ProcessDNSSettings
