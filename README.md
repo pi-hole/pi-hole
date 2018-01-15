@@ -185,7 +185,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [CHiP-hole: Network-wide Ad-blocker](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
 - [Chrome Extension: Pi-Hole List Editor](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([Source Code](https://github.com/packtloss/pihole-extension))
 - [Splunk: Pi-hole Visualiser](https://splunkbase.splunk.com/app/3023/)
-- [Adblocking with P-hole and Ubuntu 14.04 on VirtualBox](https://hbalagtas.blogspot.com.au/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
+- [Adblocking with Pi-hole and Ubuntu 14.04 on VirtualBox](https://hbalagtas.blogspot.com.au/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
 - [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
 - [Pi-hole unRAID Template](https://forums.lime-technology.com/topic/36810-support-spants-nodered-mqtt-dashing-couchdb/)
 - [Copernicus: Windows Tray Application](https://github.com/goldbattle/copernicus)
