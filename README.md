@@ -86,6 +86,7 @@ If you are going to be presenting Pi-hole at a conference, meetup or even a scho
 
 -----
 
+
 ## Getting in touch with us
 While we are primarily reachable on our <a href="https://discourse.pi-hole.net/">Discourse User Forum</a>, we can also be found on a variety of social media outlets. **Please be sure to check the FAQ's** before starting a new discussion, as we do not have the spare time to reply to every request for assistance.
 
