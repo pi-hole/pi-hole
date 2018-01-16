@@ -254,7 +254,7 @@ ProcessDHCPSettings() {
     fi
 
     if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
-      PIHOLE_DOMAIN="local"
+      PIHOLE_DOMAIN="lan"
       change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
     fi
 
