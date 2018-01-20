@@ -29,7 +29,7 @@ set -e
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
 # Location for final installation log storage
-instalLogLoc=/etc/pihole/install.log
+installLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
@@ -1900,14 +1900,14 @@ make_temporary_log() {
   exec 3>"$TEMPLOG"
   # Delete templog, but allow for addressing via file handle
   # This lets us write to the log without having a temporary file on the drive, which
-  # is meant to be a security measure so there is not a lingering file on the drive during the debug process
+  # is meant to be a security measure so there is not a lingering file on the drive during the install process
   rm "$TEMPLOG"
 }
 
 copy_to_install_log() {
   # Copy the contents of file descriptor 3 into the install log
   # Since we use color codes such as '\e[1;33m', they should be removed
-  cat /proc/$$/fd/3 | sed 's/\[[0-9;]\{1,5\}m//g' > "${installLogLoc}"
+  sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
 }
 
 main() {
@@ -1922,6 +1922,7 @@ main() {
     echo -e "  ${TICK} ${str}"
     # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
     show_ascii_berry
+    make_temporary_log
   # Otherwise,
   else
     # They do not have enough privileges, so let the user know
@@ -2046,7 +2047,7 @@ main() {
     fi
 
     # Install and log everything to a file
-    installPihole | tee ${TEMPLOG}
+    installPihole | tee -a /proc/$$/fd/3
   else
     # Source ${setupVars} to use predefined user variables in the functions
     source ${setupVars}
@@ -2072,11 +2073,10 @@ main() {
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
     fi
-
-    updatePihole | tee ${TEMPLOG}
+    updatePihole | tee -a /proc/$$/fd/3
   fi
 
-  # Move the log file into /etc/pihole for storage
+  # Copy the temp log file into final log location for storage
   copy_to_install_log
 
   if [[ "${INSTALL_WEB}" == true ]]; then
@@ -2154,7 +2154,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
+  echo -e "\\n  ${INFO} The install log is located at: ${INSTALL_LOG_LOC}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }
