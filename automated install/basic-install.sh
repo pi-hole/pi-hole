@@ -2154,7 +2154,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: ${INSTALL_LOG_LOC}
+  echo -e "\\n  ${INFO} The install log is located at: ${installLogLoc}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }
