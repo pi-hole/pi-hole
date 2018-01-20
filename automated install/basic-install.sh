@@ -28,8 +28,7 @@ set -e
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
-# We write to a temporary file before moving the log to the pihole folder
-tmpLog=/tmp/pihole-install.log
+# Location for final installation log storage
 instalLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
@@ -1891,8 +1890,24 @@ FTLdetect() {
 	  # Install FTL
     FTLinstall "${binary}" || return 1
   fi
+}
 
+make_temporary_log() {
+  # Create a random temporary file for the log
+  TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+  # Open handle 3 for templog
+  # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
+  exec 3>"$TEMPLOG"
+  # Delete templog, but allow for addressing via file handle
+  # This lets us write to the log without having a temporary file on the drive, which
+  # is meant to be a security measure so there is not a lingering file on the drive during the debug process
+  rm "$TEMPLOG"
+}
 
+copy_to_install_log() {
+  # Copy the contents of file descriptor 3 into the install log
+  # Since we use color codes such as '\e[1;33m', they should be removed
+  cat /proc/$$/fd/3 | sed 's/\[[0-9;]\{1,5\}m//g' > "${installLogLoc}"
 }
 
 main() {
@@ -2031,7 +2046,7 @@ main() {
     fi
 
     # Install and log everything to a file
-    installPihole | tee ${tmpLog}
+    installPihole | tee ${TEMPLOG}
   else
     # Source ${setupVars} to use predefined user variables in the functions
     source ${setupVars}
@@ -2058,11 +2073,11 @@ main() {
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
     fi
 
-    updatePihole | tee ${tmpLog}
+    updatePihole | tee ${TEMPLOG}
   fi
 
   # Move the log file into /etc/pihole for storage
-  mv ${tmpLog} ${instalLogLoc}
+  copy_to_install_log
 
   if [[ "${INSTALL_WEB}" == true ]]; then
     # Add password to web UI if there is none
