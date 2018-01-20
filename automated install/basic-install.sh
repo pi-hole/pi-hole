@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# (c) 2017-2018 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -14,7 +14,7 @@
 #
 # Install with this command (from your Linux machine):
 #
-# curl -L install.pi-hole.net | bash
+# curl -sSL https://install.pi-hole.net | bash
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # We do not want users to end up with a partially working install, so we exit the script
