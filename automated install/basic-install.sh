@@ -209,7 +209,8 @@ elif command -v rpm &> /dev/null; then
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
-  if ! grep -q 'Fedora' /etc/redhat-release; then
+  # EPEL (https://fedoraproject.org/wiki/EPEL) is required for lighttpd on CentOS
+  if grep -qi 'centos' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
   fi
     LIGHTTPD_USER="lighttpd"
