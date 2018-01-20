@@ -1897,8 +1897,6 @@ FTLdetect() {
 
 main() {
   ######## FIRST CHECK ########
-  # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
-  show_ascii_berry
   # Must be root to install
   local str="Root user check"
   echo ""
@@ -1907,6 +1905,8 @@ main() {
   if [[ "${EUID}" -eq 0 ]]; then
     # they are root and all is good
     echo -e "  ${TICK} ${str}"
+    # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
+    show_ascii_berry
   # Otherwise,
   else
     # They do not have enough privileges, so let the user know
