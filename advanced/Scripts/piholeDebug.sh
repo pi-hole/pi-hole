@@ -215,14 +215,14 @@ copy_to_debug_log() {
   sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
 }
 
-initiate_debug() {
+initialize_debug() {
   # Clear the screen so the debug log is readable
   clear
   show_disclaimer
   # Display that the debug process is beginning
   log_write "${COL_PURPLE}*** [ INITIALIZING ]${COL_NC}"
   # Timestamp the start of the log
-  log_write "${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initiated."
+  log_write "${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initialized."
 }
 
 # This is a function for visually displaying the curent test that is being run.
@@ -547,7 +547,7 @@ detect_ip_addresses() {
     log_write ""
   else
     # If there are no IPs detected, explain that the protocol is not configured
-    log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interace.\n"
+    log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\n"
     return 1
   fi
   # If the protocol is v6
@@ -1149,7 +1149,7 @@ upload_to_tricorder() {
 
 # Run through all the functions we made
 make_temporary_log
-initiate_debug
+initialize_debug
 # setupVars.conf needs to be sourced before the networking so the values are
 # available to the other functions
 source_setup_variables
