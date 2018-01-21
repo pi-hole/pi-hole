@@ -218,13 +218,14 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
 
-# If neither apt-get or rmp/dnf are found, check for emerge to see if it's gentoo family OS
+# If neither apt-get or rmp/dnf are found,
+# check for emerge to see if it's gentoo family OS
 elif command -v emerge -get &> /dev/null; then
   #Gentoo
   #############################################
   PKG_MANAGER="emerge"
   UPDATE_PKG_CACHE=":" # don't execute eix-sync
-  PKG_INSTALL=(${PKG_MANAGER})
+  PKG_INSTALL=("${PKG_MANAGER}")
   PKG_COUNT="echo 0 || true" # Do not check for outdated packages in gentoo
   # #########################################
   # fixes for dependency differences
@@ -239,9 +240,9 @@ elif command -v emerge -get &> /dev/null; then
   # Select your cron implementation
   cron_pkg="virtual/cron"
   # #########################################
-  INSTALLER_DEPS=(dev-util/dialog ${iproute_pkg} dev-vcs/git ${dhcp_pkg} sys-apps/net-tools dev-libs/newt sys-process/procps)
-  PIHOLE_DEPS=(sys-devel/bc ${cron_pkg} net-misc/curl sys-apps/findutils net-dns/dnsmasq net-misc/iputils sys-process/lsof net-analyzer/netcat app-admin/sudo app-arch/unzip net-misc/wget net-dns/libidn2)
-  PIHOLE_WEB_DEPS=(www-servers/lighttpd ${phpVer})
+  INSTALLER_DEPS=(dev-util/dialog "${iproute_pkg}" dev-vcs/git "${dhcp_pkg}" sys-apps/net-tools dev-libs/newt sys-process/procps)
+  PIHOLE_DEPS=(sys-devel/bc "${cron_pkg}" net-misc/curl sys-apps/findutils net-dns/dnsmasq net-misc/iputils sys-process/lsof net-analyzer/netcat app-admin/sudo app-arch/unzip net-misc/wget net-dns/libidn2)
+  PIHOLE_WEB_DEPS=(www-servers/lighttpd "${phpVer}")
   LIGHTTPD_USER="lighttpd"
   LIGHTTPD_GROUP="lighttpd"
   # Reuse the fedora config file
@@ -1308,7 +1309,7 @@ install_dependent_packages() {
     for i in "${argArray1[@]}"; do
       echo -ne "  ${INFO} Checking for $i..."
 	  # Test if package is installed
-      if eix "${i}" | grep \\[I\\] &> /dev/null; then
+      if eix "${i}" | grep "\\[I\\]" &> /dev/null; then
         # Success: Is installed
         echo -e "${OVER}  ${TICK} Checking for $i"
       else
