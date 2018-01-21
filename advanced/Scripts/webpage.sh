@@ -110,7 +110,7 @@ SetWebPassword() {
   fi
 
 	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
-		hash=$(HashPassword ${PASSWORD})
+		hash=$(HashPassword "${PASSWORD}")
 		# Save hash to file
 		change_setting "WEBPASSWORD" "${hash}"
 		echo -e "  ${TICK} New password set"
@@ -153,6 +153,7 @@ ProcessDNSSettings() {
 	if [[ "${DNSSEC}" == true ]]; then
 		echo "dnssec
 trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
+trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D
 " >> "${dnsmasqconfig}"
 	fi
 
@@ -174,6 +175,11 @@ trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE3
 		add_dnsmasq_setting "local-service"
 	else
 		# Listen only on one interface
+		# Use eth0 as fallback interface if interface is missing in setupVars.conf
+		if [ -z "${PIHOLE_INTERFACE}" ]; then
+			PIHOLE_INTERFACE="eth0"
+		fi
+
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
 
@@ -240,7 +246,7 @@ ProcessDHCPSettings() {
 	source "${setupVars}"
 
 	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
-    interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
+    interface="${PIHOLE_INTERFACE}"
 
     # Use eth0 as fallback interface
     if [ -z ${interface} ]; then
@@ -248,7 +254,7 @@ ProcessDHCPSettings() {
     fi
 
     if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
-      PIHOLE_DOMAIN="local"
+      PIHOLE_DOMAIN="lan"
       change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
     fi
 
@@ -418,7 +424,7 @@ Options:
 }
 
 SetAdminEmail() {
-  if [[ "${1}" == *"-h"* ]]; then
+  if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
     echo "Usage: pihole -a email <address>
 Example: 'pihole -a email admin@address.com'
 Set an administrative contact address for the Block Page

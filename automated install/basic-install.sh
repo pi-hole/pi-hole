@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# (c) 2017-2018 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -14,7 +14,7 @@
 #
 # Install with this command (from your Linux machine):
 #
-# curl -L install.pi-hole.net | bash
+# curl -sSL https://install.pi-hole.net | bash
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # We do not want users to end up with a partially working install, so we exit the script
@@ -28,9 +28,8 @@ set -e
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
-# We write to a temporary file before moving the log to the pihole folder
-tmpLog=/tmp/pihole-install.log
-instalLogLoc=/etc/pihole/install.log
+# Location for final installation log storage
+installLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
@@ -208,9 +207,10 @@ elif command -v rpm &> /dev/null; then
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget idn2)
+  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
-  if ! grep -q 'Fedora' /etc/redhat-release; then
+  # EPEL (https://fedoraproject.org/wiki/EPEL) is required for lighttpd on CentOS
+  if grep -qi 'centos' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
   fi
     LIGHTTPD_USER="lighttpd"
@@ -218,7 +218,7 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
 
-# If neither apt-get or rmp/dnf are not found
+# If neither apt-get or rmp/dnf are found
 else
   # it's not an OS we can support,
   echo -e "  ${CROSS} OS distribution not supported"
@@ -503,15 +503,21 @@ testIPv6() {
   # first will contain fda2 (ULA)
   first="$(cut -f1 -d":" <<< "$1")"
   # value1 will contain 253 which is the decimal value corresponding to 0xfd
-  value1=$(((0x$first)/256))
+  value1=$(( (0x$first)/256 ))
   # will contain 162 which is the decimal value corresponding to 0xa2
-  value2=$(((0x$first)%256))
+  value2=$(( (0x$first)%256 ))
   # the ULA test is testing for fc00::/7 according to RFC 4193
-  (((value1&254)==252)) && echo "ULA" || true
+  if (( (value1&254)==252 )); then
+    echo "ULA"
+  fi
   # the GUA test is testing for 2000::/3 according to RFC 4291
-  (((value1&112)==32)) && echo "GUA" || true
+  if (( (value1&112)==32 )); then
+    echo "GUA"
+  fi
   # the LL test is testing for fe80::/10 according to RFC 4193
-  (((value1==254) && ((value2&192)==128))) && echo "Link-local" || true
+  if (( (value1)==254 )) && (( (value2&192)==128 )); then
+    echo "Link-local"
+  fi
 }
 
 # A dialog for showing the user about IPv6 blocking
@@ -709,8 +715,8 @@ setStaticIPv4() {
       }> "${IFCFG_FILE}"
       # Use ip to immediately set the new address
       ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-      # If NetworkMangler command line interface exists,
-      if command -v nmcli &> /dev/null;then
+      # If NetworkMangler command line interface exists and ready to mangle,
+      if command -v nmcli &> /dev/null && nmcli general status &> /dev/null; then
         # Tell NetworkManagler to read our new sysconfig file
         nmcli con load "${IFCFG_FILE}" > /dev/null
       fi
@@ -764,9 +770,10 @@ setDNS() {
       Norton ""
       Comodo ""
       DNSWatch ""
+      Quad9 ""
       Custom "")
   # In a whiptail dialog, show the options
-  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 6 \
+  DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
     # exit if Cancel is selected
     { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
@@ -804,6 +811,11 @@ setDNS() {
       echo "DNS.WATCH servers"
       PIHOLE_DNS_1="84.200.69.80"
       PIHOLE_DNS_2="84.200.70.40"
+      ;;
+    Quad9)
+      echo "Quad9 servers"
+      PIHOLE_DNS_1="9.9.9.9"
+      PIHOLE_DNS_2="149.112.112.112"
       ;;
     Custom)
       # Until the DNS settings are selected,
@@ -1232,7 +1244,7 @@ install_dependent_packages() {
         echo -e "${OVER}  ${TICK} Checking for $i"
       else
         #
-        echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+        echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
         #
         installArray+=("${i}")
       fi
@@ -1257,19 +1269,19 @@ install_dependent_packages() {
     if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
       echo -e "${OVER}  ${TICK} Checking for $i"
     else
-      echo -e "${OVER}  ${CROSS} Checking for $i (will be installed)"
+      echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
       #
       installArray+=("${i}")
     fi
   done
+  #
+  if [[ "${#installArray[@]}" -gt 0 ]]; then
     #
-    if [[ "${#installArray[@]}" -gt 0 ]]; then
-      #
-      "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
-      return
-    fi
-    echo ""
-    return 0
+    "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
+    return
+  fi
+  echo ""
+  return 0
 }
 
 # Create logfiles if necessary
@@ -1323,7 +1335,7 @@ installPiholeWeb() {
   else
     # don't do anything
     echo -e "${OVER}  ${CROSS} ${str}
-    No default index.lighttpd.html file found... not backing up"
+      No default index.lighttpd.html file found... not backing up"
   fi
 
   # Install Sudoers file
@@ -1356,6 +1368,10 @@ installCron() {
   echo -ne "  ${INFO} ${str}..."
   # Copy the cron file over from the local repo
   cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
+  # Randomize gravity update time
+  sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+  # Randomize update checker time
+  sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -1668,14 +1684,14 @@ update_dialogs() {
   "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3) || \
   { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
 
-  # Set the variable based on if the user user chooses
+  # Set the variable based on if the user chooses
   case ${UpdateCmd} in
     # repair, or
     ${opt1a})
       echo -e "  ${INFO} ${opt1a} option selected"
       useUpdateVars=true
       ;;
-    # recongigure,
+    # reconfigure,
     ${opt2a})
       echo -e "  ${INFO} ${opt2a} option selected"
       useUpdateVars=false
@@ -1849,7 +1865,7 @@ FTLdetect() {
   #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
   echo -e "  ${INFO} Checking for existing FTL binary..."
 
-  local ftlLoc=$(which pihole-FTL)
+  local ftlLoc=$(which pihole-FTL 2>/dev/null)
 
   if [[ ${ftlLoc} ]]; then
     local FTLversion=$(/usr/bin/pihole-FTL tag)
@@ -1875,14 +1891,28 @@ FTLdetect() {
 	  # Install FTL
     FTLinstall "${binary}" || return 1
   fi
+}
 
+make_temporary_log() {
+  # Create a random temporary file for the log
+  TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+  # Open handle 3 for templog
+  # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
+  exec 3>"$TEMPLOG"
+  # Delete templog, but allow for addressing via file handle
+  # This lets us write to the log without having a temporary file on the drive, which
+  # is meant to be a security measure so there is not a lingering file on the drive during the install process
+  rm "$TEMPLOG"
+}
 
+copy_to_install_log() {
+  # Copy the contents of file descriptor 3 into the install log
+  # Since we use color codes such as '\e[1;33m', they should be removed
+  sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
 }
 
 main() {
   ######## FIRST CHECK ########
-  # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
-  show_ascii_berry
   # Must be root to install
   local str="Root user check"
   echo ""
@@ -1891,6 +1921,9 @@ main() {
   if [[ "${EUID}" -eq 0 ]]; then
     # they are root and all is good
     echo -e "  ${TICK} ${str}"
+    # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
+    show_ascii_berry
+    make_temporary_log
   # Otherwise,
   else
     # They do not have enough privileges, so let the user know
@@ -1997,7 +2030,14 @@ main() {
       # just install the Core dependencies
       DEPS=("${PIHOLE_DEPS[@]}")
     fi
+
     install_dependent_packages DEPS[@]
+
+    # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
+    # has chosen to install the web interface, else the `LIGHTTPD_ENABLED` check will fail
+    if [[ "${INSTALL_WEB}" == true ]]; then
+      enable_service lighttpd
+    fi
 
     if [[ -x "$(command -v systemctl)" ]]; then
       # Value will either be 1, if true, or 0
@@ -2008,13 +2048,13 @@ main() {
     fi
 
     # Install and log everything to a file
-    installPihole | tee ${tmpLog}
+    installPihole | tee -a /proc/$$/fd/3
   else
+    # Source ${setupVars} to use predefined user variables in the functions
+    source ${setupVars}
+
     # Clone/Update the repos
     clone_or_update_repos
-
-    # Source ${setupVars} for use in the rest of the functions
-    source ${setupVars}
 
     # Install packages used by the Pi-hole
     if [[ "${INSTALL_WEB}" == true ]]; then
@@ -2034,12 +2074,11 @@ main() {
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
     fi
-
-    updatePihole | tee ${tmpLog}
+    updatePihole | tee -a /proc/$$/fd/3
   fi
 
-  # Move the log file into /etc/pihole for storage
-  mv ${tmpLog} ${instalLogLoc}
+  # Copy the temp log file into final log location for storage
+  copy_to_install_log
 
   if [[ "${INSTALL_WEB}" == true ]]; then
     # Add password to web UI if there is none
@@ -2077,6 +2116,10 @@ main() {
   # Download and compile the aggregated block list
   runGravity
 
+  # Force an update of the updatechecker
+  . /opt/pihole/updatecheck.sh
+  . /opt/pihole/updatecheck.sh x remote
+
   #
   if [[ "${useUpdateVars}" == false ]]; then
       displayFinalMessage "${pw}"
@@ -2112,7 +2155,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
+  echo -e "\\n  ${INFO} The install log is located at: ${installLogLoc}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }

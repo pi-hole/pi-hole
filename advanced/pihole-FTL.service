@@ -25,9 +25,13 @@ start() {
   if is_running; then
     echo "pihole-FTL is already running"
   else
-    touch /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
+    touch /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
+    mkdir -p /var/run/pihole
+    mkdir -p /var/log/pihole
+    chown pihole:pihole /var/run/pihole /var/log/pihole
+    rm /var/run/pihole/FTL.sock
     chown pihole:pihole /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /etc/pihole
-    chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
+    chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
     su -s /bin/sh -c "/usr/bin/pihole-FTL" "$FTLUSER"
     echo
   fi

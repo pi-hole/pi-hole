@@ -7,13 +7,11 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
-
 ###############################################################################
 #     FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE INSTALL/UPDATE PROCEDURE.     #
 # ANY CHANGES MADE TO THIS FILE AFTER INSTALL WILL BE LOST ON THE NEXT UPDATE #
 #                                                                             #
-#              CHANGES SHOULD BE MADE IN A SEPERATE CONFIG FILE:              #
+#              CHANGES SHOULD BE MADE IN A SEPARATE CONFIG FILE:              #
 #                         /etc/lighttpd/external.conf                         #
 ###############################################################################
 
@@ -74,11 +72,12 @@ fastcgi.server = ( ".php" =>
 
 # If the URL starts with /admin, it is the Web interface
 $HTTP["url"] =~ "^/admin/" {
-	# Create a response header for debugging using curl -I
+	  # Create a response header for debugging using curl -I
     setenv.add-response-header = (
         "X-Pi-hole" => "The Pi-hole Web interface is working!",
         "X-Frame-Options" => "DENY"
     )
+
     $HTTP["url"] =~ ".ttf$" {
         # Allow Block Page access to local fonts
         setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )

@@ -15,7 +15,7 @@ pihole-FTL() {
   ftl_port=$(cat /var/run/pihole-FTL.port 2> /dev/null)
   if [[ -n "$ftl_port" ]]; then
     # Open connection to FTL
-    exec 3<>"/dev/tcp/localhost/$ftl_port"
+    exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
 
     # Test if connection is open
     if { "true" >&3; } 2> /dev/null; then
@@ -122,13 +122,13 @@ get_init_stats() {
   }
 
   # Convert seconds to human-readable format
-  hrSecs() { 
+  hrSecs() {
     day=$(( $1/60/60/24 )); hrs=$(( $1/3600%24 ))
     mins=$(( ($1%3600)/60 )); secs=$(( $1%60 ))
     [[ "$day" -ge "2" ]] && plu="s"
     [[ "$day" -ge "1" ]] && days="$day day${plu}, " || days=""
     printf "%s%02d:%02d:%02d\\n" "$days" "$hrs" "$mins" "$secs"
-  } 
+  }
 
   # Set Colour Codes
   coltable="/opt/pihole/COL_TABLE"
@@ -199,7 +199,7 @@ get_init_stats() {
   # Test existence of temperature file
   if [[ -f "/sys/class/thermal/thermal_zone0/temp" ]]; then
     temp_file="/sys/class/thermal/thermal_zone0/temp"
-  elif [[ -f "/sys/class/hwmon/hwmon0/temp1_input" ]]; then 
+  elif [[ -f "/sys/class/hwmon/hwmon0/temp1_input" ]]; then
     temp_file="/sys/class/hwmon/hwmon0/temp1_input"
   else
     temp_file=""
@@ -302,7 +302,8 @@ get_sys_stats() {
 
   # Determine whether to display CPU clock speed as MHz or GHz
   if [[ -n "$cpu_mhz" ]]; then
-    [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(calcFunc "$cpu_mhz"/1000) GHz"
+    [[ "$cpu_mhz" -le "999" ]] && cpu_freq="$cpu_mhz MHz" || cpu_freq="$(printf "%.1f" $(calcFunc "$cpu_mhz"/1000)) GHz"
+    [[ "${cpu_freq}" == *".0"* ]] && cpu_freq="${cpu_freq/.0/}"
   fi
 
   # Determine colour for temperature
@@ -380,7 +381,7 @@ get_ftl_stats() {
     local top_domain_raw
     local top_client_raw
 
-    domains_being_blocked=$(printf "%.0f\\n" "${domains_being_blocked_raw}")
+    domains_being_blocked=$(printf "%.0f\\n" "${domains_being_blocked_raw}" 2> /dev/null)
     dns_queries_today=$(printf "%.0f\\n" "${dns_queries_today_raw}")
     ads_blocked_today=$(printf "%.0f\\n" "${ads_blocked_today_raw}")
     ads_percentage_today=$(printf "%'.0f\\n" "${ads_percentage_today_raw}")
@@ -403,9 +404,9 @@ get_ftl_stats() {
 get_strings() {
   # Expand or contract strings depending on screen size
   if [[ "$chrono_width" == "large" ]]; then
-    phc_str="        ${COL_DARK_GRAY}Pi-hole"
-    lte_str="         ${COL_DARK_GRAY}Admin"
-    ftl_str="           ${COL_DARK_GRAY}FTL"
+    phc_str="        ${COL_DARK_GRAY}Core"
+    lte_str="        ${COL_DARK_GRAY}Web"
+    ftl_str="        ${COL_DARK_GRAY}FTL"
     api_str="${COL_LIGHT_RED}API Offline"
 
     host_info="$sys_type"
@@ -419,7 +420,7 @@ get_strings() {
     ph_info="Blocking: $domains_being_blocked sites"
     total_str="Total: "
   else
-    phc_str="   ${COL_DARK_GRAY}PH"
+    phc_str=" ${COL_DARK_GRAY}Core"
     lte_str=" ${COL_DARK_GRAY}Web"
     ftl_str=" ${COL_DARK_GRAY}FTL"
     api_str="${COL_LIGHT_RED}API Down"
@@ -530,7 +531,7 @@ chronoFunc() {
         sleep 5
       fi
     fi
-    
+
   done
 }
 

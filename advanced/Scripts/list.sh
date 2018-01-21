@@ -19,7 +19,6 @@ addmode=true
 verbose=true
 
 domList=()
-domToRemoveList=()
 
 listMain=""
 listAlt=""
@@ -49,7 +48,8 @@ Options:
   -nr, --noreload     Update ${type}list without refreshing dnsmasq
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
-  -l, --list          Display all your ${type}listed domains"
+  -l, --list          Display all your ${type}listed domains
+  --nuke              Removes all entries in a list"
 
   exit 0
 }
@@ -70,7 +70,7 @@ HandleOther() {
     validDomain=$(grep -P "^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$" <<< "${domain}") # Valid chars check
     validDomain=$(grep -P "^[^\.]{1,63}(\.[^\.]{1,63})*$" <<< "${validDomain}") # Length of each label
   fi
-  
+
   if [[ -n "${validDomain}" ]]; then
     domList=("${domList[@]}" ${validDomain})
   else
@@ -223,6 +223,15 @@ Displaylist() {
   exit 0;
 }
 
+NukeList() {
+  if [[ -f "${listMain}" ]]; then
+    # Back up original list
+    cp "${listMain}" "${listMain}.bck~"
+    # Empty out file
+    echo "" > "${listMain}"
+  fi
+}
+
 for var in "$@"; do
   case "${var}" in
     "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
@@ -230,10 +239,10 @@ for var in "$@"; do
     "-wild" | "wildcard" ) listMain="${wildcardlist}";;
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
-    "-f" | "--force"     ) force=true;;
     "-q" | "--quiet"     ) verbose=false;;
     "-h" | "--help"      ) helpFunc;;
     "-l" | "--list"      ) Displaylist;;
+    "--nuke"             ) NukeList;;
     *                    ) HandleOther "${var}";;
   esac
 done
