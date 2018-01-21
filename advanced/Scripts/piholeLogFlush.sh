@@ -42,8 +42,11 @@ else
     fi
   fi
   # Delete most recent 24 hours from FTL's database
+  deleted=$(sqlite3 /etc/pihole/pihole-FTL.db "DELETE FROM queries WHERE timestamp >= strftime('%s','now')-86400; select changes() from queries limit 1")
+
 fi
 
 if [[ "$@" != *"quiet"* ]]; then
   echo -e "${OVER}  ${TICK} Flushed /var/log/pihole.log"
+  echo -e "  ${TICK} Deleted ${deleted} queries from database"
 fi
