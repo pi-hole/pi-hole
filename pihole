@@ -343,7 +343,13 @@ restartDNS() {
     else
       svcOption="start"
     fi
-    svc="service dnsmasq ${svcOption}"
+	# Test if service command is available
+	if [[ -x "$(command -v service)" ]]; then
+		svcCmd="service dnsmasq"
+	else
+		svcCmd="/etc/init.d/dnsmasq"
+	fi
+    svc="${svcCmd} ${svcOption}"
   fi
 
   # Print output to Terminal, but not to Web Admin
