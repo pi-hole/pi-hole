@@ -41,6 +41,7 @@ else
       echo " " > /var/log/pihole.log.1
     fi
   fi
+  # Delete most recent 24 hours from FTL's database
 fi
 
 if [[ "$@" != *"quiet"* ]]; then
