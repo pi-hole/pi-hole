@@ -245,7 +245,6 @@ setHeader();
         // Enable password input if necessary
         if (!empty($svPasswd)) {
           echo '$("#bpWLPassword").attr("placeholder", "Password");';
-          echo '$("#bpWLPassword").css("display", "inline-block");';
           echo '$("#bpWLPassword").prop("disabled", false);';
         }
       }
@@ -301,7 +300,7 @@ setHeader();
 
     <form id="bpWLButtons" class="buttons">
       <input id="bpWLDomain" type="text" value="<?=$serverName ?>" disabled/>
-      <input id="bpWLPassword" type="password" placeholder="<?=$wlPlaceHolder ?>" disabled style="display: none"/><button id="bpWhitelist" type="button" disabled></button>
+      <input id="bpWLPassword" type="password" placeholder="<?=$wlPlaceHolder ?>" disabled/><button id="bpWhitelist" type="button" disabled></button>
     </form>
   </div>
 </main>
