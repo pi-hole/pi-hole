@@ -1929,7 +1929,7 @@ main() {
     # They do not have enough privileges, so let the user know
     echo -e "  ${CROSS} ${str}
       ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
-      The Pi-hole requires elevated privleges to install and run
+      The Pi-hole requires elevated privileges to install and run
       Please check the installer for any concerns regarding this requirement
       Make sure to download this script from a trusted source\\n"
     echo -ne "  ${INFO} Sudo utility check"
