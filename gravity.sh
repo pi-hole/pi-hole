@@ -330,7 +330,7 @@ gravity_ParseFileIntoDomains() {
       }' "${source}" > "${destination}.exceptionsFile.tmp"
 
       # Remove exceptions
-      grep -F -x -v -f "${destination}.exceptionsFile.tmp" "${destination}" > "${source}"
+      comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
       mv "${source}" "${destination}"
     fi
 
