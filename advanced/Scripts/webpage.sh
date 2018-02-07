@@ -245,7 +245,7 @@ SetQueryLogOptions() {
 ProcessDHCPSettings() {
 	source "${setupVars}"
 
-	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
+    if [[ "${DHCP_ACTIVE}" == "true" ]]; then
     interface="${PIHOLE_INTERFACE}"
 
     # Use eth0 as fallback interface
@@ -346,7 +346,9 @@ CustomizeAdLists() {
 	elif [[ "${args[2]}" == "disable" ]]; then
 		sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
 	elif [[ "${args[2]}" == "add" ]]; then
-		echo "${args[3]}" >> ${list}
+		if [[ $(grep -c "${args[3]}" "${list}") -eq 0 ]] ; then
+			echo "${args[3]}" >> ${list}
+		fi
 	elif [[ "${args[2]}" == "del" ]]; then
 	  var=$(echo "${args[3]}" | sed 's/\//\\\//g')
 	  sed -i "/${var}/Id" "${list}"
