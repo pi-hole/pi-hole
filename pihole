@@ -538,11 +538,6 @@ tailDomainsFunc() {
   tail -f /var/log/pihole.log | grep --line-buffered -E 'gravity.list|black.list' | sed -u -E \
     -e "s,.*(gravity.list |black.list ),," \
     -e "s, .*,,"
-
-  # Get rid of everything up to and including gravity.list or black.list, and match everything until there is a space
-  # Also does not highlight the match, which would be gravity.list or black.list
-  # NOTE: Uses perl-regexp, which is experimental and might not always work
-  # tail -f /var/log/pihole.log | grep --color=never -Po "(gravity\.list |black\.list )\K(.*?)(?= )"
 }
 
 piholeCheckoutFunc() {
