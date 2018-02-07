@@ -245,7 +245,7 @@ SetQueryLogOptions() {
 ProcessDHCPSettings() {
 	source "${setupVars}"
 
-	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
+    if [[ "${DHCP_ACTIVE}" == "true" ]]; then
     interface="${PIHOLE_INTERFACE}"
 
     # Use eth0 as fallback interface
