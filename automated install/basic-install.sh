@@ -23,7 +23,7 @@ set -e
 
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
-# This allows us to make a change in one place that can propogate to all instances of the variable
+# This allows us to make a change in one place that can propagate to all instances of the variable
 # These variables should all be GLOBAL variables, written in CAPS
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
@@ -43,7 +43,7 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-# These are the names of piholes files, stored in an array
+# These are the names of pi-holes files, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This folder is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
@@ -81,7 +81,7 @@ runUnattended=false
 if [[ -f "${coltable}" ]]; then
   # source it
   source ${coltable}
-# Othwerise,
+# Otherwise,
 else
   # Set these values so the installer can still run in color
   COL_NC='\e[0m' # No Color
@@ -918,7 +918,7 @@ setLogging() {
     esac
 }
 
-# Funtion to ask the user if they want to install the dashboard
+# Function to ask the user if they want to install the dashboard
 setAdminFlag() {
   # Local, named variables
   local WebToggleCommand
@@ -946,7 +946,7 @@ setAdminFlag() {
     esac
 }
 
-# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+# Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
 version_check_dnsmasq() {
   # Local, named variables
   local dnsmasq_conf="/etc/dnsmasq.conf"
@@ -1929,7 +1929,7 @@ main() {
     # They do not have enough privileges, so let the user know
     echo -e "  ${CROSS} ${str}
       ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
-      The Pi-hole requires elevated privleges to install and run
+      The Pi-hole requires elevated privileges to install and run
       Please check the installer for any concerns regarding this requirement
       Make sure to download this script from a trusted source\\n"
     echo -ne "  ${INFO} Sudo utility check"
