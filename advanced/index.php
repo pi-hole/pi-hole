@@ -98,9 +98,6 @@ if ($serverName === "pi.hole") {
 
 /* Start processing Block Page from here */
 
-// Determine placeholder text based off $svPasswd presence
-$wlPlaceHolder = empty($svPasswd) ? "" : "Javascript disabled";
-
 // Define admin email address text based off $svEmail presence
 $bpAskAdmin = !empty($svEmail) ? '<a href="mailto:'.$svEmail.'?subject=Site Blocked: '.$serverName.'"></a>' : "<span/>";
 
@@ -304,7 +301,7 @@ setHeader();
 
     <form id="bpWLButtons" class="buttons">
       <input id="bpWLDomain" type="text" value="<?=$serverName ?>" disabled/>
-      <input id="bpWLPassword" type="password" placeholder="<?=$wlPlaceHolder ?>" disabled/><button id="bpWhitelist" type="button" disabled></button>
+      <input id="bpWLPassword" type="password" placeholder="Javascript disabled" disabled/><button id="bpWhitelist" type="button" disabled></button>
     </form>
   </div>
 </main>
