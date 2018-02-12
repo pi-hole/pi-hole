@@ -1939,7 +1939,7 @@ main() {
   for var in "$@"; do
     case "$var" in
       "--reconfigure" ) reconfigure=true;;
-      "--i_do_not_follow_recommendations" ) skipSpaceCheck=false;;
+      "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
       "--unattended" ) runUnattended=true;;
     esac
   done
