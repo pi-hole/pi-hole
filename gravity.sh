@@ -68,7 +68,7 @@ if [[ -r "${piholeDir}/pihole.conf" ]]; then
 fi
 
 # Determine if DNS resolution is available before proceeding
-gravity_DNSLookup() {
+gravity_CheckDNSResolutionAvailable() {
   local lookupDomain="pi.hole"
 
   # Determine if $localList does not exist
@@ -120,11 +120,11 @@ gravity_DNSLookup() {
   done
 
   # Try again
-  gravity_DNSLookup
+  gravity_CheckDNSResolutionAvailable
 }
 
 # Retrieve blocklist URLs and parse domains from adlists.list
-gravity_Collapse() {
+gravity_GetBlocklistUrls() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
   # Determine if adlists file needs handling
@@ -165,7 +165,7 @@ gravity_Collapse() {
 }
 
 # Define options for when retrieving blocklists
-gravity_Supernova() {
+gravity_SetDownloadOptions() {
   local url domain agent cmd_ext str
 
   echo ""
@@ -190,7 +190,7 @@ gravity_Supernova() {
 
     if [[ "${skipDownload}" == false ]]; then
       echo -e "  ${INFO} Target: ${domain} (${url##*/})"
-      gravity_Pull "${url}" "${cmd_ext}" "${agent}"
+      gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}"
       echo ""
     fi
   done
@@ -198,7 +198,7 @@ gravity_Supernova() {
 }
 
 # Download specified URL and perform checks on HTTP status and file content
-gravity_Pull() {
+gravity_DownloadBlocklistFromUrl() {
   local url="${1}" cmd_ext="${2}" agent="${3}" heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
@@ -330,7 +330,7 @@ gravity_ParseFileIntoDomains() {
       }' "${source}" > "${destination}.exceptionsFile.tmp"
 
       # Remove exceptions
-      grep -F -x -v -f "${destination}.exceptionsFile.tmp" "${destination}" > "${source}"
+      comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
       mv "${source}" "${destination}"
     fi
 
@@ -365,7 +365,7 @@ gravity_ParseFileIntoDomains() {
 }
 
 # Create (unfiltered) "Matter and Light" consolidated list
-gravity_Schwarzschild() {
+gravity_ConsolidateDownloadedBlocklists() {
   local str lastLine
 
   str="Consolidating blocklists"
@@ -393,7 +393,7 @@ gravity_Schwarzschild() {
 }
 
 # Parse consolidated list into (filtered, unique) domains-only format
-gravity_Filter() {
+gravity_SortAndFilterConsolidatedList() {
   local str num
 
   str="Extracting domains from blocklists"
@@ -418,7 +418,7 @@ gravity_Filter() {
 }
 
 # Whitelist unique blocklist domain sources
-gravity_WhitelistBLD() {
+gravity_WhitelistBlocklistSourceUrls() {
   local uniqDomains str
 
   echo ""
@@ -449,7 +449,7 @@ gravity_Whitelist() {
   echo -ne "  ${INFO} ${str}..."
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-  grep -F -x -v -f "${whitelistFile}" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/${whitelistMatter}"
+  comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
@@ -563,7 +563,7 @@ gravity_Cleanup() {
   rm ${piholeDir}/*.tmp 2> /dev/null
   rm /tmp/*.phgpb 2> /dev/null
 
-  # Ensure this function only runs when gravity_Supernova() has completed
+  # Ensure this function only runs when gravity_SetDownloadOptions() has completed
   if [[ "${gravity_Blackbody:-}" == true ]]; then
     # Remove any unused .domains files
     for file in ${piholeDir}/*.${domainsExtension}; do
@@ -625,12 +625,12 @@ fi
 # Determine which functions to run
 if [[ "${skipDownload}" == false ]]; then
   # Gravity needs to download blocklists
-  gravity_DNSLookup
-  gravity_Collapse
-  gravity_Supernova
-  gravity_Schwarzschild
-  gravity_Filter
-  gravity_WhitelistBLD
+  gravity_CheckDNSResolutionAvailable
+  gravity_GetBlocklistUrls
+  gravity_SetDownloadOptions
+  gravity_ConsolidateDownloadedBlocklists
+  gravity_SortAndFilterConsolidatedList
+  gravity_WhitelistBlocklistSourceUrls
 else
   # Gravity needs to modify Blacklist/Whitelist/Wildcards
   echo -e "  ${INFO} Using cached Event Horizon list..."

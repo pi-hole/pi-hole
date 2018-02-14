@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# (c) 2017-2018 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -14,7 +14,7 @@
 #
 # Install with this command (from your Linux machine):
 #
-# curl -L install.pi-hole.net | bash
+# curl -sSL https://install.pi-hole.net | bash
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # We do not want users to end up with a partially working install, so we exit the script
@@ -28,9 +28,8 @@ set -e
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
-# We write to a temporary file before moving the log to the pihole folder
-tmpLog=/tmp/pihole-install.log
-instalLogLoc=/etc/pihole/install.log
+# Location for final installation log storage
+installLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
@@ -210,7 +209,8 @@ elif command -v rpm &> /dev/null; then
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
   PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
-  if ! grep -q 'Fedora' /etc/redhat-release; then
+  # EPEL (https://fedoraproject.org/wiki/EPEL) is required for lighttpd on CentOS
+  if grep -qi 'centos' /etc/redhat-release; then
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
   fi
     LIGHTTPD_USER="lighttpd"
@@ -815,6 +815,7 @@ setDNS() {
     Quad9)
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
+      PIHOLE_DNS_2="149.112.112.112"
       ;;
     Custom)
       # Until the DNS settings are selected,
@@ -1890,14 +1891,28 @@ FTLdetect() {
 	  # Install FTL
     FTLinstall "${binary}" || return 1
   fi
+}
 
+make_temporary_log() {
+  # Create a random temporary file for the log
+  TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+  # Open handle 3 for templog
+  # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
+  exec 3>"$TEMPLOG"
+  # Delete templog, but allow for addressing via file handle
+  # This lets us write to the log without having a temporary file on the drive, which
+  # is meant to be a security measure so there is not a lingering file on the drive during the install process
+  rm "$TEMPLOG"
+}
 
+copy_to_install_log() {
+  # Copy the contents of file descriptor 3 into the install log
+  # Since we use color codes such as '\e[1;33m', they should be removed
+  sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
 }
 
 main() {
   ######## FIRST CHECK ########
-  # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
-  show_ascii_berry
   # Must be root to install
   local str="Root user check"
   echo ""
@@ -1906,12 +1921,15 @@ main() {
   if [[ "${EUID}" -eq 0 ]]; then
     # they are root and all is good
     echo -e "  ${TICK} ${str}"
+    # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
+    show_ascii_berry
+    make_temporary_log
   # Otherwise,
   else
     # They do not have enough privileges, so let the user know
     echo -e "  ${CROSS} ${str}
       ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
-      The Pi-hole requires elevated privleges to install and run
+      The Pi-hole requires elevated privileges to install and run
       Please check the installer for any concerns regarding this requirement
       Make sure to download this script from a trusted source\\n"
     echo -ne "  ${INFO} Sudo utility check"
@@ -2030,13 +2048,13 @@ main() {
     fi
 
     # Install and log everything to a file
-    installPihole | tee ${tmpLog}
+    installPihole | tee -a /proc/$$/fd/3
   else
+    # Source ${setupVars} to use predefined user variables in the functions
+    source ${setupVars}
+
     # Clone/Update the repos
     clone_or_update_repos
-
-    # Source ${setupVars} for use in the rest of the functions
-    source ${setupVars}
 
     # Install packages used by the Pi-hole
     if [[ "${INSTALL_WEB}" == true ]]; then
@@ -2056,12 +2074,11 @@ main() {
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
     fi
-
-    updatePihole | tee ${tmpLog}
+    updatePihole | tee -a /proc/$$/fd/3
   fi
 
-  # Move the log file into /etc/pihole for storage
-  mv ${tmpLog} ${instalLogLoc}
+  # Copy the temp log file into final log location for storage
+  copy_to_install_log
 
   if [[ "${INSTALL_WEB}" == true ]]; then
     # Add password to web UI if there is none
@@ -2101,6 +2118,7 @@ main() {
 
   # Force an update of the updatechecker
   . /opt/pihole/updatecheck.sh
+  . /opt/pihole/updatecheck.sh x remote
 
   #
   if [[ "${useUpdateVars}" == false ]]; then
@@ -2137,7 +2155,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
+  echo -e "\\n  ${INFO} The install log is located at: ${installLogLoc}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }

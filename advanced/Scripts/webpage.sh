@@ -175,6 +175,11 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 		add_dnsmasq_setting "local-service"
 	else
 		# Listen only on one interface
+		# Use eth0 as fallback interface if interface is missing in setupVars.conf
+		if [ -z "${PIHOLE_INTERFACE}" ]; then
+			PIHOLE_INTERFACE="eth0"
+		fi
+
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
 
@@ -241,7 +246,7 @@ ProcessDHCPSettings() {
 	source "${setupVars}"
 
 	if [[ "${DHCP_ACTIVE}" == "true" ]]; then
-    interface=$(grep 'PIHOLE_INTERFACE=' /etc/pihole/setupVars.conf | sed "s/.*=//")
+    interface="${PIHOLE_INTERFACE}"
 
     # Use eth0 as fallback interface
     if [ -z ${interface} ]; then
@@ -249,7 +254,7 @@ ProcessDHCPSettings() {
     fi
 
     if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
-      PIHOLE_DOMAIN="local"
+      PIHOLE_DOMAIN="lan"
       change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
     fi
 
