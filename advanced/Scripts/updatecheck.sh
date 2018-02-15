@@ -50,6 +50,20 @@ function version_cmp() {
   [[ "$1" < "$2" ]] && echo 2
 }
 
+# Compare dnsmasq version against 2.73
+dnsmasqversion=$(version_cmp 2.73 "$(extract_dnsmasq_version)")
+
+# Special section used to test the logic
+if [[ "$2" == "test" ]]; then
+  FTLupstreamversion=$(version_cmp v4.0 "$3")
+  if [[ $dnsmasqversion == 1 && $FTLupstreamversion == 1 ]]; then
+    echo "No update"
+  else
+    echo "Update"
+  fi
+  exit 0
+fi
+
 if [[ "$2" == "remote" ]]; then
 
   if [[ "$3" == "reboot" ]]; then
@@ -64,8 +78,6 @@ if [[ "$2" == "remote" ]]; then
   # We save the upstream version if either
   #  - the dnsmasq version is at least 2.73, or
   #  - the upstream version of FTL is at least v4.0
-  dnsmasqversion=$(version_cmp 2.73 "$(extract_dnsmasq_version)")
-  FTLupstreamversion=$(version_cmp v4.0 "${GITHUB_FTL_VERSION}")
   if [[ $dnsmasqversion == 1 && $FTLupstreamversion == 1 ]]; then
     GITHUB_CORE_VERSION="$(get_local_version /etc/.pihole)"
     GITHUB_WEB_VERSION="$(get_local_version /var/www/html/admin)"

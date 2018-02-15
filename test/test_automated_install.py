@@ -389,6 +389,43 @@ def test_IPv6_ULA_GUA_test(Pihole):
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
 
+# Test special update checker logic for too old versions of dnsmasq
+def test_dnsmasq_2_72_3_FTL_3_0(Pihole):
+    ''' confirms online tags are not stored for a too old version of dnsmasq with FTL v3.x '''
+    # mock uname to return aarch64 platform
+    mock_command('dnsmasq', {'-v':('Dnsmasq version 2.72-3  Copyright (c) 2000-2017 Simon Kelley', '0')}, Pihole)
+    updateCheck = Pihole.run('''
+    ./opt/pihole/updatecheck.sh X test 3.0
+    ''')
+    expected_stdout = 'No update'
+    assert expected_stdout in updateCheck.stdout
+    error = 'Update'
+    assert error not in updateCheck.stdout
+
+def test_dnsmasq_2_72_3_FTL_4_0(Pihole):
+    ''' confirms online tags are stored for a too old version of dnsmasq with FTL v4.x '''
+    # mock uname to return aarch64 platform
+    mock_command('dnsmasq', {'-v':('Dnsmasq version 2.72-3  Copyright (c) 2000-2017 Simon Kelley', '0')}, Pihole)
+    updateCheck = Pihole.run('''
+    ./opt/pihole/updatecheck.sh X test 4.0
+    ''')
+    expected_stdout = 'Update'
+    assert expected_stdout in updateCheck.stdout
+    error = 'Np update'
+    assert error not in updateCheck.stdout
+
+def test_dnsmasq_2_73_FTL_3_0(Pihole):
+    ''' confirms online tags are stored for a fairly recent version of dnsmasq with FTL v3.x '''
+    # mock uname to return aarch64 platform
+    mock_command('dnsmasq', {'-v':('Dnsmasq version 2.73  Copyright (c) 2000-2017 Simon Kelley', '0')}, Pihole)
+    updateCheck = Pihole.run('''
+    ./opt/pihole/updatecheck.sh X test 3.0
+    ''')
+    expected_stdout = 'Update'
+    assert expected_stdout in updateCheck.stdout
+    error = 'Np update'
+    assert error not in updateCheck.stdout
+
 # Helper functions
 def mock_command(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
