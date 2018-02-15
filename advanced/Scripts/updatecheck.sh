@@ -64,8 +64,8 @@ if [[ "$2" == "remote" ]]; then
   # We save the upstream version if either
   #  - the dnsmasq version is at least 2.73, or
   #  - the upstream version of FTL is at least v4.0
-  dnsmasqversion="$(version_cmp 2.73 $(extract_dnsmasq_version))"
-  FTLupstreamversion="$(version_cmp v4.0 ${GITHUB_FTL_VERSION})"
+  dnsmasqversion=$(version_cmp 2.73 "$(extract_dnsmasq_version)")
+  FTLupstreamversion=$(version_cmp v4.0 "${GITHUB_FTL_VERSION}")
   if [[ $dnsmasqversion == 1 && $FTLupstreamversion == 1 ]]; then
     GITHUB_CORE_VERSION="$(get_local_version /etc/.pihole)"
     GITHUB_WEB_VERSION="$(get_local_version /var/www/html/admin)"
