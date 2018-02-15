@@ -15,7 +15,7 @@ pihole-FTL() {
   ftl_port=$(cat /var/run/pihole-FTL.port 2> /dev/null)
   if [[ -n "$ftl_port" ]]; then
     # Open connection to FTL
-    exec 3<>"/dev/tcp/localhost/$ftl_port"
+    exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
 
     # Test if connection is open
     if { "true" >&3; } 2> /dev/null; then
@@ -122,13 +122,13 @@ get_init_stats() {
   }
 
   # Convert seconds to human-readable format
-  hrSecs() { 
+  hrSecs() {
     day=$(( $1/60/60/24 )); hrs=$(( $1/3600%24 ))
     mins=$(( ($1%3600)/60 )); secs=$(( $1%60 ))
     [[ "$day" -ge "2" ]] && plu="s"
     [[ "$day" -ge "1" ]] && days="$day day${plu}, " || days=""
     printf "%s%02d:%02d:%02d\\n" "$days" "$hrs" "$mins" "$secs"
-  } 
+  }
 
   # Set Colour Codes
   coltable="/opt/pihole/COL_TABLE"
@@ -199,7 +199,7 @@ get_init_stats() {
   # Test existence of temperature file
   if [[ -f "/sys/class/thermal/thermal_zone0/temp" ]]; then
     temp_file="/sys/class/thermal/thermal_zone0/temp"
-  elif [[ -f "/sys/class/hwmon/hwmon0/temp1_input" ]]; then 
+  elif [[ -f "/sys/class/hwmon/hwmon0/temp1_input" ]]; then
     temp_file="/sys/class/hwmon/hwmon0/temp1_input"
   else
     temp_file=""
@@ -531,7 +531,7 @@ chronoFunc() {
         sleep 5
       fi
     fi
-    
+
   done
 }
 

@@ -47,7 +47,7 @@ if [[ "$2" == "remote" ]]; then
   GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
   GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
 
-  echo "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
+  echo -n "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
 
 else
 
@@ -55,12 +55,12 @@ else
   WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
   FTL_BRANCH="$(pihole-FTL branch)"
 
-  echo "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
+  echo -n "${CORE_BRANCH} ${WEB_BRANCH} ${FTL_BRANCH}" > "/etc/pihole/localbranches"
 
   CORE_VERSION="$(get_local_version /etc/.pihole)"
   WEB_VERSION="$(get_local_version /var/www/html/admin)"
   FTL_VERSION="$(pihole-FTL version)"
 
-  echo "${CORE_VERSION} ${WEB_VERSION} ${FTL_VERSION}" > "/etc/pihole/localversions"
+  echo -n "${CORE_VERSION} ${WEB_VERSION} ${FTL_VERSION}" > "/etc/pihole/localversions"
 
 fi
