@@ -17,16 +17,6 @@ group_defaults:
 
 
 groups:
-  development:
-    approve_by_comment:
-      enabled: true
-    conditions:
-      branches:
-        - development
-    required: 2
-    teams:
-      - approvers
-
   master:
     approve_by_comment:
       enabled: true
@@ -35,4 +25,4 @@ groups:
         - master
     required: 4
     teams:
-      - approvers
+      - core-approvers
