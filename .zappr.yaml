@@ -3,14 +3,14 @@
 # https://zappr.readthedocs.io/en/latest/setup
 
 # uncomment this if you want to change anything
-# approvals:
+approvals:
 #   by default, an approval is the thumbs up emoji only: ^:\\+1:$
 #   uncomment this line to change the approval pattern to "lgtm" at the beginning of the comment
-#   pattern: "^lgtm"
+  pattern: "^lgtm"
 
 #   by default, every pull request requires two approvals
 #   uncomment this line to change it to three
-#   minimum: 3
+  minimum: 1
 
 #   by default, the pull request opener can approve its own pull request
 #   uncomment this line to ignore approvals from the pull request opener
