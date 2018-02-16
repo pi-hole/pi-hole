@@ -40,6 +40,7 @@ function get_local_version() {
 function extract_dnsmasq_version() {
   # Return version of system-wide dnsmasq daemon
   dnsmasq -v | awk '/Dnsmasq version/{print $3}'
+  # echo "2.73"
 }
 
 # Compare versions
@@ -52,6 +53,9 @@ function version_cmp() {
 
 # Compare dnsmasq version against 2.73
 dnsmasqversion=$(version_cmp 2.73 "$(extract_dnsmasq_version)")
+
+echo "dnsmasq version: \"$(extract_dnsmasq_version)\""
+echo "FTL version: \"$3\""
 
 # Special section used to test the logic
 if [[ "$2" == "test" ]]; then
