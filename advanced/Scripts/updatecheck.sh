@@ -54,6 +54,7 @@ function version_cmp() {
 # Compare dnsmasq version against 2.73
 dnsmasqversion=$(version_cmp 2.73 "$(extract_dnsmasq_version)")
 
+echo "raw dnsmasq output: \"$(dnsmasq -v)\""
 echo "dnsmasq version: \"$(extract_dnsmasq_version)\""
 echo "FTL version: \"$3\""
 
