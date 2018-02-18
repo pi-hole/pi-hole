@@ -1754,6 +1754,9 @@ FTLinstall() {
     return 1
   fi
 
+  # Always replace pihole-FTL.service
+  install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+
   # If the download worked,
   if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/${binary}"; then
     # get sha1 of the binary we just downloaded for verification.
@@ -1773,7 +1776,6 @@ FTLinstall() {
       # Move back into the original directory the user was in
       cd "${orig_dir}"
       # Install the FTL service
-      install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
       echo -e "${OVER}  ${TICK} ${str}"
       return 0
     # Otherise,
