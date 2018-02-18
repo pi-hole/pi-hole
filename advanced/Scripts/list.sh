@@ -84,6 +84,11 @@ PoplistFile() {
     touch ${whitelist}
   fi
 
+  # Check blacklist file exists, and if not, create it
+  if [[ ! -f ${blacklist} ]]; then
+    touch ${blacklist}
+  fi
+
   for dom in "${domList[@]}"; do
       # Logic: If addmode then add to desired list and remove from the other; if delmode then remove from desired list but do not add to the other
     if ${addmode}; then
