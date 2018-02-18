@@ -10,9 +10,9 @@
 
 # Globals
 basename=pihole
-piholeDir=/etc/${basename}
-whitelist=${piholeDir}/whitelist.txt
-blacklist=${piholeDir}/blacklist.txt
+piholeDir=/etc/"${basename}"
+whitelist="${piholeDir}"/whitelist.txt
+blacklist="${piholeDir}"/blacklist.txt
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 reload=false
 addmode=true
@@ -80,13 +80,13 @@ HandleOther() {
 
 PoplistFile() {
   # Check whitelist file exists, and if not, create it
-  if [[ ! -f ${whitelist} ]]; then
-    touch ${whitelist}
+  if [[ ! -f "${whitelist}" ]]; then
+    touch "${whitelist}"
   fi
 
   # Check blacklist file exists, and if not, create it
-  if [[ ! -f ${blacklist} ]]; then
-    touch ${blacklist}
+  if [[ ! -f "${blacklist}" ]]; then
+    touch "${blacklist}"
   fi
 
   for dom in "${domList[@]}"; do
