@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017 Pi-hole, LLC (https://pi-hole.net)
+# (c) 2017-2018 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -14,7 +14,7 @@
 #
 # Install with this command (from your Linux machine):
 #
-# curl -L install.pi-hole.net | bash
+# curl -sSL https://install.pi-hole.net | bash
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # We do not want users to end up with a partially working install, so we exit the script
@@ -23,14 +23,13 @@ set -e
 
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
-# This allows us to make a change in one place that can propogate to all instances of the variable
+# This allows us to make a change in one place that can propagate to all instances of the variable
 # These variables should all be GLOBAL variables, written in CAPS
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
-# We write to a temporary file before moving the log to the pihole folder
-tmpLog=/tmp/pihole-install.log
-instalLogLoc=/etc/pihole/install.log
+# Location for final installation log storage
+installLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
@@ -44,7 +43,7 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-# These are the names of piholes files, stored in an array
+# These are the names of pi-holes files, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This folder is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
@@ -82,7 +81,7 @@ runUnattended=false
 if [[ -f "${coltable}" ]]; then
   # source it
   source ${coltable}
-# Othwerise,
+# Otherwise,
 else
   # Set these values so the installer can still run in color
   COL_NC='\e[0m' # No Color
@@ -164,7 +163,7 @@ if command -v apt-get &> /dev/null; then
   # These programs are stored in an array so they can be looped through later
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget idn2)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget idn2 sqlite3)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -231,7 +230,7 @@ elif command -v rpm &> /dev/null; then
       # exit the installer
       exit
     fi
-    # on CentOS we need to add the EPEL repository to gain access to Fedora packages
+    # EPEL (https://fedoraproject.org/wiki/EPEL) is required for lighttpd on CentOS
     INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
     # The default php on CentOS 7.x is 5.4 which is EOL
     # The following function will be called to install PHP 7.x from Software Collections
@@ -897,6 +896,7 @@ setDNS() {
     Quad9)
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
+      PIHOLE_DNS_2="149.112.112.112"
       ;;
     Custom)
       # Until the DNS settings are selected,
@@ -999,7 +999,7 @@ setLogging() {
     esac
 }
 
-# Funtion to ask the user if they want to install the dashboard
+# Function to ask the user if they want to install the dashboard
 setAdminFlag() {
   # Local, named variables
   local WebToggleCommand
@@ -1027,7 +1027,7 @@ setAdminFlag() {
     esac
 }
 
-# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+# Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
 version_check_dnsmasq() {
   # Local, named variables
   local dnsmasq_conf="/etc/dnsmasq.conf"
@@ -1972,14 +1972,28 @@ FTLdetect() {
 	  # Install FTL
     FTLinstall "${binary}" || return 1
   fi
+}
 
+make_temporary_log() {
+  # Create a random temporary file for the log
+  TEMPLOG=$(mktemp /tmp/pihole_temp.XXXXXX)
+  # Open handle 3 for templog
+  # https://stackoverflow.com/questions/18460186/writing-outputs-to-log-file-and-console
+  exec 3>"$TEMPLOG"
+  # Delete templog, but allow for addressing via file handle
+  # This lets us write to the log without having a temporary file on the drive, which
+  # is meant to be a security measure so there is not a lingering file on the drive during the install process
+  rm "$TEMPLOG"
+}
 
+copy_to_install_log() {
+  # Copy the contents of file descriptor 3 into the install log
+  # Since we use color codes such as '\e[1;33m', they should be removed
+  sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
 }
 
 main() {
   ######## FIRST CHECK ########
-  # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
-  show_ascii_berry
   # Must be root to install
   local str="Root user check"
   echo ""
@@ -1988,12 +2002,15 @@ main() {
   if [[ "${EUID}" -eq 0 ]]; then
     # they are root and all is good
     echo -e "  ${TICK} ${str}"
+    # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
+    show_ascii_berry
+    make_temporary_log
   # Otherwise,
   else
     # They do not have enough privileges, so let the user know
     echo -e "  ${CROSS} ${str}
       ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
-      The Pi-hole requires elevated privleges to install and run
+      The Pi-hole requires elevated privileges to install and run
       Please check the installer for any concerns regarding this requirement
       Make sure to download this script from a trusted source\\n"
     echo -ne "  ${INFO} Sudo utility check"
@@ -2021,7 +2038,7 @@ main() {
   for var in "$@"; do
     case "$var" in
       "--reconfigure" ) reconfigure=true;;
-      "--i_do_not_follow_recommendations" ) skipSpaceCheck=false;;
+      "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
       "--unattended" ) runUnattended=true;;
     esac
   done
@@ -2112,7 +2129,7 @@ main() {
     fi
 
     # Install and log everything to a file
-    installPihole | tee ${tmpLog}
+    installPihole | tee -a /proc/$$/fd/3
   else
     # Source ${setupVars} to use predefined user variables in the functions
     source ${setupVars}
@@ -2138,12 +2155,11 @@ main() {
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
     fi
-
-    updatePihole | tee ${tmpLog}
+    updatePihole | tee -a /proc/$$/fd/3
   fi
 
-  # Move the log file into /etc/pihole for storage
-  mv ${tmpLog} ${instalLogLoc}
+  # Copy the temp log file into final log location for storage
+  copy_to_install_log
 
   if [[ "${INSTALL_WEB}" == true ]]; then
     # Add password to web UI if there is none
@@ -2183,6 +2199,7 @@ main() {
 
   # Force an update of the updatechecker
   . /opt/pihole/updatecheck.sh
+  . /opt/pihole/updatecheck.sh x remote
 
   #
   if [[ "${useUpdateVars}" == false ]]; then
@@ -2219,7 +2236,7 @@ main() {
   fi
 
   # Display where the log file is
-  echo -e "\\n  ${INFO} The install log is located at: /etc/pihole/install.log
+  echo -e "\\n  ${INFO} The install log is located at: ${installLogLoc}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
 }
