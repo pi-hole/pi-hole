@@ -330,7 +330,7 @@ gravity_ParseFileIntoDomains() {
       }' "${source}" > "${destination}.exceptionsFile.tmp"
 
       # Remove exceptions
-      comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
+      LC_ALL=C comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
       mv "${source}" "${destination}"
     fi
 
@@ -409,7 +409,7 @@ gravity_SortAndFilterConsolidatedList() {
 
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  LC_ALL=C sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Format $preEventHorizon line total as currency
@@ -431,7 +431,7 @@ gravity_Whitelist() {
   echo -ne "  ${INFO} ${str}..."
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-  comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
+  LC_ALL=C comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
