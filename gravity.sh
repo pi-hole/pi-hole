@@ -431,7 +431,7 @@ gravity_Whitelist() {
   echo -ne "  ${INFO} ${str}..."
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-  comm -23 <(sort"${piholeDir}/${preEventHorizon}") <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
+  comm -23 <(sort "${piholeDir}/${preEventHorizon}") <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
