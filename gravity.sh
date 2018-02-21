@@ -11,6 +11,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+export LC_ALL=C
+
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 
@@ -330,7 +332,7 @@ gravity_ParseFileIntoDomains() {
       }' "${source}" > "${destination}.exceptionsFile.tmp"
 
       # Remove exceptions
-      LC_ALL=C comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
+      comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
       mv "${source}" "${destination}"
     fi
 
@@ -409,7 +411,7 @@ gravity_SortAndFilterConsolidatedList() {
 
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
-  LC_ALL=C sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Format $preEventHorizon line total as currency
@@ -431,7 +433,7 @@ gravity_Whitelist() {
   echo -ne "  ${INFO} ${str}..."
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-  LC_ALL=C comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
+  comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
