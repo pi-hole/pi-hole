@@ -1734,17 +1734,14 @@ clone_or_update_repos() {
   fi
 }
 
-# Download and install FTL binary
+# Download FTL binary to random temp directory and install FTL binary
 FTLinstall() {
   # Local, named variables
   local binary="${1}"
   local latesttag
-  local orig_dir
   local str="Downloading and Installing FTL"
   echo -ne "  ${INFO} ${str}..."
 
-  # Get the current working directory
-  orig_dir="${PWD}"
   # Find the latest version tag for FTL
   latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
   # Tags should always start with v, check for that.
@@ -1754,44 +1751,44 @@ FTLinstall() {
     return 1
   fi
 
+  # Move into the temp ftl directory
+  pushd "$(mktmp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
+
   # Always replace pihole-FTL.service
   install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
   # If the download worked,
-  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/${binary}"; then
+  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "${binary}"; then
     # get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "/tmp/${binary}.sha1"
+    curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "${binary}.sha1"
 
-    # Move into the temp directory
-    cd /tmp
     # If we downloaded binary file (as opposed to text),
     if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
       # Stop FTL
       stop_service pihole-FTL &> /dev/null
       # Install the new version with the correct permissions
-      install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
-      # Remove the tempoary file
-      rm /tmp/${binary} /tmp/${binary}.sha1
+      install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
       # Move back into the original directory the user was in
-      cd "${orig_dir}"
+      popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
       echo -e "${OVER}  ${TICK} ${str}"
       return 0
     # Otherise,
     else
+      # the download failed, so just go back to the original directory
+      popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       echo -e "${OVER}  ${CROSS} ${str}"
       echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
-      # the download failed, so just go back to the original directory
-      cd "${orig_dir}"
       return 1
     fi
   # Otherwise,
   else
-    cd "${orig_dir}"
+    popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
     echo -e "${OVER}  ${CROSS} ${str}"
     # The URL could not be found
     echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
+    return 1
   fi
 }
 
