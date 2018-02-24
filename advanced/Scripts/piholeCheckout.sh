@@ -68,8 +68,19 @@ FTLinstall() {
 }
 
 get_binary_name() {
+  # This gives the machine architecture which may be different from the OS architecture...
   local machine
   machine=$(uname -m)
+
+  # This gives the architecture of packages dpkg installs (for example, "i386")
+  local dpkgarch
+  dpkgarch=$(dpkg --print-architecture 2> /dev/null)
+
+  # Special case: This is a 32 bit OS, installed on a 64 bit machine
+  # -> change machine architecture to download the 32 bit executable
+  if [[ "${machine}" == "x86_64" && "${dpkgarch}" == "i386" ]]; then
+    machine="i686"
+  fi
 
   local str
   str="Detecting architecture"
