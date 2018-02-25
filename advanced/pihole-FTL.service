@@ -20,6 +20,7 @@ is_running() {
     ps "$(get_pid)" > /dev/null 2>&1
 }
 
+
 # Start the service
 start() {
   if is_running; then
@@ -34,6 +35,7 @@ start() {
     chown pihole:pihole /etc/pihole /etc/pihole/dhcp.leases /var/log/pihole.log
     chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
     setcap CAP_NET_BIND_SERVICE=+eip "$(which pihole-FTL)"
+    echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL
     su -s /bin/sh -c "/usr/bin/pihole-FTL" "$FTLUSER"
     echo
   fi
@@ -42,6 +44,7 @@ start() {
 # Stop the service
 stop() {
   if is_running; then
+    /sbin/resolvconf -d lo.piholeFTL
     kill "$(get_pid)"
     for i in {1..5}; do
       if ! is_running; then
