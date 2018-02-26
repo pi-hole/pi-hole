@@ -337,7 +337,7 @@ restartDNS() {
   # Determine if we should reload or restart restart
   if [[ "${svcOption}" =~ "reload" ]]; then
     # Using SIGHUP will NOT re-read any *.conf files
-    svc="killall -s SIGHUP \"${resolver}\""
+    svc="killall -s SIGHUP ${resolver}"
   else
     # Get PID of resolver to determine if it needs to start or restart
     if pidof dnsmasq &> /dev/null; then
@@ -345,7 +345,7 @@ restartDNS() {
     else
       svcOption="start"
     fi
-    svc="service \"${resolver}\" ${svcOption}"
+    svc="service ${resolver} ${svcOption}"
   fi
 
   # Print output to Terminal, but not to Web Admin

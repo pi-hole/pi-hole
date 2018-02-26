@@ -104,7 +104,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine error output message
-  if pidof "${resolver}" &> /dev/null; then
+  if pidof ${resolver} &> /dev/null; then
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   else
     echo -e "  ${CROSS} DNS service is not running"
@@ -562,7 +562,7 @@ gravity_Cleanup() {
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Only restart DNS service if offline
-  if ! pidof "${resolver}" &> /dev/null; then
+  if ! pidof ${resolver} &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
     dnsWasOffline=true
   fi
