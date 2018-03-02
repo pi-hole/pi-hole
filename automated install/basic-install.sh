@@ -951,7 +951,7 @@ setAdminFlag() {
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {  
   # Let use select (or not) blocklists via a checklist
-  cmd=(whiptail --separate-output --checklist "In order to block ads Pi-Hole needs to download third party lists from the internet.\\nBelow you will find some examples, or you can add your own after the install has completed" "${r}" "${c}" 7)
+  cmd=(whiptail --separate-output --checklist "In order to block ads Pi-Hole needs to download third party lists from the internet.\\nBelow you will find some examples, or you can add your own after the install has completed\\n\\nNOTE: If no lists are selected, DNS resolution will still be possible, however nothing will be blocked." "${r}" "${c}" 7)
   # In an array, show the options available (all off by default): 
   options=(StevenBlack "StevenBlack's Unified Hosts List" off
   MalwareDom "MalwareDomains" off
