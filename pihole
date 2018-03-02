@@ -615,6 +615,7 @@ Debugging Options:
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
   -t, tail            View the live output of the Pi-hole log
+  -td, tailDomains    View blocked domains live from the Pi-hole log
 
 Options:
   -a, admin           Admin Console options
