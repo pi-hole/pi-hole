@@ -1752,7 +1752,7 @@ FTLinstall() {
   fi
 
   # Move into the temp ftl directory
-  pushd "$(mktmp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
+  pushd "$(mktemp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
   # Always replace pihole-FTL.service
   install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
