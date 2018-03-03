@@ -624,8 +624,8 @@ for var in "$@"; do
     "-f" | "--force" ) forceDelete=true;;
     "-h" | "--help" ) helpFunc;;
     "-sd" | "--skip-download" ) skipDownload=true;;
-    "-b" | "--blacklist-only" ) listType="blacklist";;
-    "-w" | "--whitelist-only" ) listType="whitelist";;
+    "-b" | "--blacklist-only" ) listType="blacklist"; if [[ "${BLOCKSTYLE_NXDOMAIN}" == true ]]; then dnsRestartType="restart"; fi;;
+    "-w" | "--whitelist-only" ) listType="whitelist"; if [[ "${BLOCKSTYLE_NXDOMAIN}" == true ]]; then dnsRestartType="restart"; fi;;
     "-wild" | "--wildcard-only" ) listType="wildcard"; dnsRestartType="restart";;
   esac
 done
