@@ -40,7 +40,6 @@ function get_local_version() {
 function extract_dnsmasq_version() {
   # Return version of system-wide dnsmasq daemon
   dnsmasq -v | awk '/Dnsmasq version/{print $3}'
-  # echo "2.73"
 }
 
 # Compare versions
@@ -51,17 +50,27 @@ function version_cmp() {
   [[ "$1" < "$2" ]] && echo 2
 }
 
-# Compare dnsmasq version against 2.73
-dnsmasqversion=$(version_cmp 2.73 "$(extract_dnsmasq_version)")
+function should_ignore_update() {
+  # We only save the upstream version if either
+  #  - the dnsmasq version is at least 2.73, or
+  #  - the upstream version of FTL is at least v4.0
+  [[ $dnsmasq_version_cmp == 1 && $FTL_version_cmp == 1 ]]
+}
 
-echo "raw dnsmasq output: \"$(dnsmasq -v)\""
-echo "dnsmasq version: \"$(extract_dnsmasq_version)\""
-echo "FTL version: \"$3\""
+# Get the dnsmasq and FTL versions to check update edge case
+dnsmasq_version="$(extract_dnsmasq_version)"
+dnsmasq_version_cmp=$(version_cmp 2.73 "$dnsmasq_version")
+
+FTL_version="$(pihole-FTL version)"
+FTL_version_cmp=$(version_cmp v4.0 "$FTL_version")
 
 # Special section used to test the logic
 if [[ "$2" == "test" ]]; then
-  FTLupstreamversion=$(version_cmp v4.0 "$3")
-  if [[ $dnsmasqversion == 1 && $FTLupstreamversion == 1 ]]; then
+  echo "raw dnsmasq output: \"$(dnsmasq -v)\""
+  echo "dnsmasq version: \"$dnsmasq_version\""
+  echo "FTL version: \"$FTL_version\""
+
+  if should_ignore_update; then
     echo "No update"
   else
     echo "Update"
@@ -80,10 +89,7 @@ if [[ "$2" == "remote" ]]; then
   GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
   GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
 
-  # We save the upstream version if either
-  #  - the dnsmasq version is at least 2.73, or
-  #  - the upstream version of FTL is at least v4.0
-  if [[ $dnsmasqversion == 1 && $FTLupstreamversion == 1 ]]; then
+  if should_ignore_update; then
     GITHUB_CORE_VERSION="$(get_local_version /etc/.pihole)"
     GITHUB_WEB_VERSION="$(get_local_version /var/www/html/admin)"
     GITHUB_FTL_VERSION="$(pihole-FTL version)"
