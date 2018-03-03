@@ -35,6 +35,10 @@ blackList="${piholeDir}/black.list"
 localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
+adListNX="/etc/dnsmasq.d/00-pihole-gravity.conf"
+blackListNX="/etc/dnsmasq.d/00-pihole-userblacklist.conf"
+whiteListNX="/etc/dnsmasq.d/99-pihole-whitelist.conf"
+
 domainsExtension="domains"
 matterAndLight="${basename}.0.matterandlight.txt"
 parsedMatter="${basename}.1.parsedmatter.txt"
@@ -58,6 +62,17 @@ if [[ -f "${setupVars}" ]];then
     echo -e "  ${COL_LIGHT_RED}No IP addresses found! Please run 'pihole -r' to reconfigure${COL_NC}"
     exit 1
   fi
+  
+  #If setupvars has BLOCKSTYLE_NXDOMAIN set, then clear out gravity.list and black.list
+  if [[ "${BLOCKSTYLE_NXDOMAIN}" == true ]]; then 
+    truncate -s 0 "${blackList}"
+    truncate -s 0 "${adList}"
+  else
+    rm "${adListNX}" 2> /dev/null
+    rm "${blackListNX}" 2> /dev/null
+    rm "${whiteListNX}" 2> /dev/null
+  fi
+
 else
   echo -e "  ${COL_LIGHT_RED}Installation Failure: ${setupVars} does not exist! ${COL_NC}
   Please run 'pihole -r', and choose the 'reconfigure' option to fix."
@@ -473,6 +488,14 @@ gravity_ParseDomainsIntoHosts() {
   }' >> "${2}" < "${1}"
 }
 
+gravity_ParseDomainsIntoConfFile() {
+  sed 's*^*server=/*;s*$*/*' "${1}" > "${2}"
+}
+
+gravity_ParseDomainsIntoConfFile_WL() {
+  sed 's*^*server=/*;s*$*/#*' "${1}" > "${2}"
+}
+
 # Create "localhost" entries into hosts format
 gravity_ParseLocalDomains() {
   local hostname
@@ -502,19 +525,24 @@ gravity_ParseLocalDomains() {
 # Create primary blacklist entries
 gravity_ParseBlacklistDomains() {
   local output status
+  
 
-  # Empty $accretionDisc if it already exists, otherwise, create it
-  : > "${piholeDir}/${accretionDisc}"
+  if [[ "${BLOCKSTYLE_NXDOMAIN}" == true ]]; then
+    gravity_ParseDomainsIntoConfFile "${piholeDir}/${whitelistMatter}" "${adListNX}" 
+  else
+    # Empty $accretionDisc if it already exists, otherwise, create it
+    : > "${piholeDir}/${accretionDisc}"
 
-  gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+    gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
 
-  # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
-  output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
-  status="$?"
+    # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
+    output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
+    status="$?"
 
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
-    gravity_Cleanup "error"
+    if [[ "${status}" -ne 0 ]]; then
+      echo -e "\\n  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
+      gravity_Cleanup "error"
+    fi
   fi
 }
 
@@ -524,10 +552,17 @@ gravity_ParseUserDomains() {
     return 0
   fi
 
-  gravity_ParseDomainsIntoHosts "${blacklistFile}" "${blackList}.tmp"
-  # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
-  mv "${blackList}.tmp" "${blackList}" 2> /dev/null || \
+  if [[ "${BLOCKSTYLE_NXDOMAIN}" == true ]]; then
+    gravity_ParseDomainsIntoConfFile "${blacklistFile}" "${blackListNX}"
+    gravity_ParseDomainsIntoConfFile_WL "${whitelistFile}" "${whiteListNX}"
+  else
+    gravity_ParseDomainsIntoHosts "${blacklistFile}" "${blackList}.tmp"
+    # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
+    mv "${blackList}.tmp" "${blackList}" 2> /dev/null || \
     echo -e "\\n  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
+  fi
+
+  
 }
 
 # Trap Ctrl-C
@@ -626,13 +661,15 @@ if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "whitelist" ]]; then
   gravity_Whitelist
 fi
 
+#"${piholeDir}/${whitelistMatter}" Now contains everything from preEventHorizon excluding everything from the blocklist
+
 gravity_ShowBlockCount
 
 # Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)
 if [[ "${skipDownload}" == false ]] || [[ "${listType}" == *"list" ]]; then
   str="Parsing domains into hosts format"
   echo -ne "  ${INFO} ${str}..."
-
+    
   gravity_ParseUserDomains
 
   # Perform when downloading blocklists
