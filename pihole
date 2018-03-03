@@ -340,7 +340,7 @@ restartDNS() {
     svc="killall -s SIGHUP ${resolver}"
   else
     # Get PID of resolver to determine if it needs to start or restart
-    if pidof dnsmasq &> /dev/null; then
+    if pidof pihole-FTL &> /dev/null; then
       svcOption="restart"
     else
       svcOption="start"
