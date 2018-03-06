@@ -1931,8 +1931,10 @@ FTLdetect() {
     FTLinstall "${binary}" || return 1
   else
     if [[ ${ftlLoc} ]]; then
-      local FTLversion=$(/usr/bin/pihole-FTL tag)
-      local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+      local FTLversion
+      FTLversion=$(/usr/bin/pihole-FTL tag)
+      local FTLlatesttag
+      FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
       if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
         # Install FTL
@@ -1940,8 +1942,10 @@ FTLdetect() {
       else
         echo -e "  ${INFO} Latest FTL Binary already installed (${FTLlatesttag}). Confirming Checksum..."
 
-        local remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
-        local localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+        local remoteSha1
+        remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
+        local localSha1
+        localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
 
         if [[ "${remoteSha1}" != "${localSha1}" ]]; then
           echo -e "  ${INFO} Corruption detected..."
