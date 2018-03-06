@@ -11,6 +11,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+export LC_ALL=C
+
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 
