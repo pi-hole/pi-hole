@@ -332,6 +332,7 @@ checkout() {
 
     if check_download_exists "$path"; then
         echo "  ${TICK} Branch ${2} exists"
+        echo "${2}" > /etc/pihole/ftlbranch
         FTLinstall "${binary}" "${path}"
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
