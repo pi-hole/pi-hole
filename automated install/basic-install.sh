@@ -1112,8 +1112,7 @@ installConfigs() {
 stop_service() {
   # Stop service passed in as argument.
   # Can softfail, as process may not be installed when this is called
-  local str="Stopping ${1} service"
-  echo ""
+  local str="Stopping ${1} service"  
   echo -ne "  ${INFO} ${str}..."
   if command -v systemctl &> /dev/null; then
     systemctl stop "${1}" &> /dev/null || true
@@ -1126,8 +1125,7 @@ stop_service() {
 # Start/Restart service passed in as argument
 start_service() {
   # Local, named variables
-  local str="Starting ${1} service"
-  echo ""
+  local str="Starting ${1} service"  
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1144,8 +1142,7 @@ start_service() {
 # Enable service so that it will start with next reboot
 enable_service() {
   # Local, named variables
-  local str="Enabling ${1} service to start on reboot"
-  echo ""
+  local str="Enabling ${1} service to start on reboot"  
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1162,8 +1159,7 @@ enable_service() {
 # Disable service so that it will not with next reboot
 disable_service() {
   # Local, named variables
-  local str="Disabling ${1} service"
-  echo ""
+  local str="Disabling ${1} service"  
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1175,6 +1171,26 @@ disable_service() {
     update-rc.d "${1}" disable &> /dev/null
   fi
   echo -e "${OVER}  ${TICK} ${str}"
+}
+
+check_service_active() {
+    # If systemctl exists,
+  if command -v systemctl &> /dev/null; then
+    # use that to disable the service
+    if systemctl status "${1}" | grep -q "Active: active" > /dev/null; then
+      return 0
+    else
+      return 1
+    fi
+  # Othwerwise,
+  else
+    # fall back to service command
+   if service "${1}" status | grep "Active: active" > /dev/null; then
+     return 0
+   else
+     return 1
+   fi
+  fi  
 }
 
 update_package_cache() {
@@ -1796,25 +1812,8 @@ FTLinstall() {
   # If the download worked,
   if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
     # get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
-    
-    # Make the tempory binary executable so that we can test the --resolver flag
-    chmod +x "${binary}"
+    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"    
 
-    # If the --resolver flag returns True (exit code 0), then we can safely stop & disable dnsmasq
-    if ./"${binary}" --resolver > /dev/null; then
-      if [[ $(which dnsmasq 2>/dev/null) ]]; then
-        stop_service dnsmasq
-        disable_service dnsmasq                
-        #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
-        confdir="conf-dir=/etc/dnsmasq.d"
-        conffile="/etc/dnsmasq.conf"
-        if ! grep -q "$confdir" "$conffile"; then
-            echo "$confdir" >> "$conffile"
-        fi
-      fi
-    fi
-    
     # If we downloaded binary file (as opposed to text),
     if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
@@ -1826,6 +1825,23 @@ FTLinstall() {
       popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
       echo -e "${OVER}  ${TICK} ${str}"
+      # If the --resolver flag returns True (exit code 0), then we can safely stop & disable dnsmasq
+      if pihole-FTL --resolver > /dev/null; then
+        if [[ $(which dnsmasq 2>/dev/null) ]]; then
+          if check_service_active "dnsmasq";then
+            echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
+            stop_service dnsmasq
+            disable_service dnsmasq            
+          fi          
+        fi
+        
+        #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
+        confdir="conf-dir=/etc/dnsmasq.d"
+        conffile="/etc/dnsmasq.conf"
+        if ! grep -q "$confdir" "$conffile"; then
+            echo "$confdir" >> "$conffile"
+        fi
+      fi
       return 0
     # Otherise,
     else
@@ -1834,7 +1850,7 @@ FTLinstall() {
       echo -e "${OVER}  ${CROSS} ${str}"
       echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
       return 1
-    fi
+    fi    
   # Otherwise,
   else
     popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
@@ -1959,6 +1975,7 @@ FTLdetect() {
       FTLinstall "${binary}" || return 1
     fi
   fi
+  echo ""
 }
 
 make_temporary_log() {
