@@ -1771,7 +1771,7 @@ FTLinstall() {
   fi
 
   # Move into the temp ftl directory
-  pushd "$(mktemp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
+  pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
   # Always replace pihole-FTL.service
   install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
@@ -1830,14 +1830,14 @@ FTLinstall() {
     # Otherise,
     else
       # the download failed, so just go back to the original directory
-      popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
+      popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       echo -e "${OVER}  ${CROSS} ${str}"
       echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
       return 1
     fi
   # Otherwise,
   else
-    popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
+    popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
     echo -e "${OVER}  ${CROSS} ${str}"
     # The URL could not be found
     echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
