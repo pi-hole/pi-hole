@@ -346,12 +346,16 @@ gravity_ParseFileIntoDomains() {
     echo -ne "  ${INFO} Format: URL"
 
     awk '
-      # Remove URL protocol, optional "username:password@", and ":?/;"
-      /[:?\/;]/ { gsub(/(^.*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
+      # Remove URL scheme, optional "username:password@", and ":?/;"
+      # The scheme must be matched carefully to avoid blocking the wrong URL
+      # in cases like:
+      #   http://www.evil.com?http://www.good.com
+      # See RFC 3986 section 3.1 for details.
+      /[:?\/;]/ { gsub(/(^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
       # Skip lines which are only IPv4 addresses
       /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { next }
       # Print if nonempty
-      length { print $0 }
+      length { print }
     ' "${source}" 2> /dev/null > "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
