@@ -822,6 +822,7 @@ setDNS() {
       echo "FamilyShield servers"
       PIHOLE_DNS_1="208.67.222.123"
       PIHOLE_DNS_2="208.67.220.123"
+      ;;
     Custom)
       # Until the DNS settings are selected,
       until [[ "${DNSSettingsCorrect}" = True ]]; do
