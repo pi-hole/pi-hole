@@ -1173,6 +1173,25 @@ disable_service() {
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
+# Mask service so that it cannot be started accidentally 
+mask_service() {
+  # Local, named variables
+  local str="Masking ${1} service"  
+  echo -ne "  ${INFO} ${str}..."
+  # If systemctl exists,
+  if command -v systemctl &> /dev/null; then
+    # use that to disable the service
+    systemctl mask "${1}" &> /dev/null
+    echo -e "${OVER}  ${TICK} ${str}"
+  # Othwerwise,
+  else
+    # use update-rc.d to accomplish this
+    echo -e "${OVER}  ${CROSS} ${str}"
+    echo -e "  ${INFO} systemctl not detected. Cannot mask service."
+  fi
+  
+}
+
 check_service_active() {
     # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1831,7 +1850,8 @@ FTLinstall() {
           if check_service_active "dnsmasq";then
             echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
             stop_service dnsmasq
-            disable_service dnsmasq            
+            disable_service dnsmasq
+            mask_service dnsmasq            
           fi          
         fi
         
