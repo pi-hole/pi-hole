@@ -11,6 +11,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+export LC_ALL=C
+
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 
@@ -505,8 +507,13 @@ gravity_ParseBlacklistDomains() {
 
   # Empty $accretionDisc if it already exists, otherwise, create it
   : > "${piholeDir}/${accretionDisc}"
-
-  gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+  
+  if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
+    gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+  else
+    # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
+    gravity_ParseDomainsIntoHosts "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+  fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
   output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
