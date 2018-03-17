@@ -1148,7 +1148,7 @@ enable_service() {
   if command -v systemctl &> /dev/null; then
     # use that to enable the service
     systemctl enable "${1}" &> /dev/null
-  # Othwerwise,
+  # Otherwise,
   else
     # use update-rc.d to accomplish this
     update-rc.d "${1}" defaults &> /dev/null
@@ -1165,31 +1165,12 @@ disable_service() {
   if command -v systemctl &> /dev/null; then
     # use that to disable the service
     systemctl disable "${1}" &> /dev/null
-  # Othwerwise,
+  # Otherwise,
   else
     # use update-rc.d to accomplish this
     update-rc.d "${1}" disable &> /dev/null
   fi
   echo -e "${OVER}  ${TICK} ${str}"
-}
-
-# Mask service so that it cannot be started accidentally 
-mask_service() {
-  # Local, named variables
-  local str="Masking ${1} service"  
-  echo -ne "  ${INFO} ${str}..."
-  # If systemctl exists,
-  if command -v systemctl &> /dev/null; then
-    # use that to disable the service
-    systemctl mask "${1}" &> /dev/null
-    echo -e "${OVER}  ${TICK} ${str}"
-  # Othwerwise,
-  else
-    # use update-rc.d to accomplish this
-    echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "  ${INFO} systemctl not detected. Cannot mask service."
-  fi
-  
 }
 
 check_service_active() {
@@ -1201,7 +1182,7 @@ check_service_active() {
     else
       return 1
     fi
-  # Othwerwise,
+  # Otherwise,
   else
     # fall back to service command
    if service "${1}" status | grep "Active: active" > /dev/null; then
@@ -1385,7 +1366,7 @@ installPiholeWeb() {
     # back it up
     mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     echo -e "${OVER}  ${TICK} ${str}"
-  # Othwerwise,
+  # Otherwise,
   else
     # don't do anything
     echo -e "${OVER}  ${CROSS} ${str}
@@ -1458,7 +1439,7 @@ create_pihole_user() {
   if id -u pihole &> /dev/null; then
     # just show a success
     echo -ne "${OVER}  ${TICK} ${str}"
-  # Othwerwise,
+  # Otherwise,
   else
     echo -ne "${OVER}  ${CROSS} ${str}"
     local str="Creating user 'pihole'"
@@ -1498,7 +1479,7 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
       return 0
     fi
-  # Othwerwise,
+  # Otherwise,
   else
     # no firewall is running
     echo -e "  ${INFO} No active firewall detected.. skipping firewall configuration"
