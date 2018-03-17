@@ -1176,12 +1176,9 @@ disable_service() {
 check_service_active() {
     # If systemctl exists,
   if command -v systemctl &> /dev/null; then
-    # use that to disable the service
-    if systemctl status "${1}" | grep -q "Active: active" > /dev/null; then
-      return 0
-    else
-      return 1
-    fi
+    # use that to check the status of the service
+    systemctl is-enabled "${1}" > /dev/null
+    return $?   
   # Otherwise,
   else
     # fall back to service command
@@ -1832,7 +1829,6 @@ FTLinstall() {
             echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
             stop_service dnsmasq
             disable_service dnsmasq
-            mask_service dnsmasq            
           fi          
         fi
         
