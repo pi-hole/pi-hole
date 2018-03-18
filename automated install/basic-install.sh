@@ -1177,17 +1177,12 @@ check_service_active() {
     # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to check the status of the service
-    systemctl is-enabled "${1}" > /dev/null
-    return $?   
+    systemctl is-enabled "${1}" > /dev/null    
   # Otherwise,
   else
     # fall back to service command
-   if service "${1}" status | grep "Active: active" > /dev/null; then
-     return 0
-   else
-     return 1
-   fi
-  fi  
+    service "${1}" status > /dev/null    
+  fi
 }
 
 update_package_cache() {
@@ -1824,12 +1819,12 @@ FTLinstall() {
       echo -e "${OVER}  ${TICK} ${str}"
       # If the --resolver flag returns True (exit code 0), then we can safely stop & disable dnsmasq
       if pihole-FTL --resolver > /dev/null; then
-        if [[ $(which dnsmasq 2>/dev/null) ]]; then
+        if which dnsmasq > /dev/null; then
           if check_service_active "dnsmasq";then
             echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
             stop_service dnsmasq
             disable_service dnsmasq
-          fi          
+          fi
         fi
         
         #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
