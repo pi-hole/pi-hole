@@ -172,7 +172,7 @@ if command -v apt-get &> /dev/null; then
   # group,
   LIGHTTPD_GROUP="www-data"
   # and config file
-  LIGHTTPD_CFG="lighttpd.conf.debian" 
+  LIGHTTPD_CFG="lighttpd.conf.debian"
 
   # A function to check...
   test_dpkg_lock() {
@@ -200,7 +200,7 @@ elif command -v rpm &> /dev/null; then
     PKG_MANAGER="yum"
   fi
 
-  # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update. 
+  # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
@@ -213,7 +213,7 @@ elif command -v rpm &> /dev/null; then
   fi
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"    
+    LIGHTTPD_CFG="lighttpd.conf.fedora"
 
 # If neither apt-get or rmp/dnf are found
 else
@@ -1112,7 +1112,7 @@ installConfigs() {
 stop_service() {
   # Stop service passed in as argument.
   # Can softfail, as process may not be installed when this is called
-  local str="Stopping ${1} service"  
+  local str="Stopping ${1} service"
   echo -ne "  ${INFO} ${str}..."
   if command -v systemctl &> /dev/null; then
     systemctl stop "${1}" &> /dev/null || true
@@ -1125,7 +1125,7 @@ stop_service() {
 # Start/Restart service passed in as argument
 start_service() {
   # Local, named variables
-  local str="Starting ${1} service"  
+  local str="Starting ${1} service"
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1142,7 +1142,7 @@ start_service() {
 # Enable service so that it will start with next reboot
 enable_service() {
   # Local, named variables
-  local str="Enabling ${1} service to start on reboot"  
+  local str="Enabling ${1} service to start on reboot"
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1159,7 +1159,7 @@ enable_service() {
 # Disable service so that it will not with next reboot
 disable_service() {
   # Local, named variables
-  local str="Disabling ${1} service"  
+  local str="Disabling ${1} service"
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1177,11 +1177,11 @@ check_service_active() {
     # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to check the status of the service
-    systemctl is-enabled "${1}" > /dev/null    
+    systemctl is-enabled "${1}" > /dev/null
   # Otherwise,
   else
     # fall back to service command
-    service "${1}" status > /dev/null    
+    service "${1}" status > /dev/null
   fi
 }
 
@@ -1787,13 +1787,13 @@ FTLinstall() {
   local ftlBranch
   local url
   local ftlBranch
-    
+
   if [[ -f "/etc/pihole/ftlbranch" ]];then
     ftlBranch=$(</etc/pihole/ftlbranch)
   else
     ftlBranch="master"
   fi
-  
+
   # Determine which version of FTL to download
   if [[ "${ftlBranch}" == "master" ]];then
     url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
@@ -1804,7 +1804,7 @@ FTLinstall() {
   # If the download worked,
   if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
     # get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"    
+    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
 
     # If we downloaded binary file (as opposed to text),
     if sha1sum --status --quiet -c "${binary}".sha1; then
@@ -1826,7 +1826,7 @@ FTLinstall() {
             disable_service dnsmasq
           fi
         fi
-        
+
         #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
         confdir="conf-dir=/etc/dnsmasq.d"
         conffile="/etc/dnsmasq.conf"
@@ -1842,7 +1842,7 @@ FTLinstall() {
       echo -e "${OVER}  ${CROSS} ${str}"
       echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
       return 1
-    fi    
+    fi
   # Otherwise,
   else
     popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
@@ -1926,9 +1926,9 @@ FTLdetect() {
   echo -e "  ${INFO} Checking for existing FTL binary..."
 
   local ftlLoc=$(which pihole-FTL 2>/dev/null)
-  
+
   local ftlBranch
-    
+
   if [[ -f "/etc/pihole/ftlbranch" ]];then
     ftlBranch=$(</etc/pihole/ftlbranch)
   else
@@ -2078,10 +2078,10 @@ main() {
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-    
+
     #Do we need to stop pihole-FTL or dnsmasq(if coming from an old install)?
     if [[ $(which pihole-FTL 2>/dev/null) ]]; then
-      if pihole-FTL --resolver > /dev/null; then 
+      if pihole-FTL --resolver > /dev/null; then
         stop_service pihole-FTL
       else
         stop_service dnsmasq
@@ -2185,7 +2185,7 @@ main() {
   echo -e "  ${INFO} Restarting services..."
   # Start services
   # Only start and enable dnsmasq if FTL does not have the --resolver switch
-  if ! pihole-FTL --resolver > /dev/null; then 
+  if ! pihole-FTL --resolver > /dev/null; then
     start_service dnsmasq
     enable_service dnsmasq
   fi
