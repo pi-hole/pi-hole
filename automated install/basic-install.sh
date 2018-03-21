@@ -771,6 +771,7 @@ setDNS() {
       Comodo ""
       DNSWatch ""
       Quad9 ""
+      FamilyShield ""
       Custom "")
   # In a whiptail dialog, show the options
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
@@ -816,6 +817,11 @@ setDNS() {
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
       PIHOLE_DNS_2="149.112.112.112"
+      ;;
+    FamilyShield)
+      echo "FamilyShield servers"
+      PIHOLE_DNS_1="208.67.222.123"
+      PIHOLE_DNS_2="208.67.220.123"
       ;;
     Custom)
       # Until the DNS settings are selected,
