@@ -19,7 +19,6 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # setupVars set in basic-install.sh
 
 source "${setupVars}"
-update="false"
 
 coltable="/opt/pihole/COL_TABLE"
 source ${coltable}
@@ -30,40 +29,6 @@ check_download_exists() {
     return 1
   else
     return 0
-  fi
-}
-
-FTLinstall() {
-  # Download and install FTL binary
-  local binary
-  binary="${1}"
-  local path
-  path="${2}"
-  local str
-  str="Installing FTL"
-  echo -ne "  ${INFO} ${str}..."
-
-  if curl -sSL --fail "https://ftl.pi-hole.net/${path}" -o "/tmp/${binary}"; then
-    # Get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "https://ftl.pi-hole.net/${path}.sha1" -o "/tmp/${binary}.sha1"
-    # Check if we just downloaded text, or a binary file.
-    cd /tmp || return 1
-    if sha1sum --status --quiet -c "${binary}".sha1; then
-      echo -n "transferred... "
-      stop_service pihole-FTL &> /dev/null
-      install -T -m 0755 "/tmp/${binary}" "/usr/bin/pihole-FTL"
-      rm "/tmp/${binary}" "/tmp/${binary}.sha1"
-      start_service pihole-FTL &> /dev/null
-      echo -e "${OVER}  ${TICK} ${str}"
-      return 0
-    else
-      echo -e "${OVER}  ${CROSS} ${str}"
-      echo -e "  ${COL_LIGHT_RED}Error: Download of binary from ftl.pi-hole.net failed${COL_NC}"
-      return 1
-    fi
-  else
-    echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
   fi
 }
 
@@ -176,11 +141,6 @@ checkout_pull_branch() {
   git checkout "${branch}" --quiet || return 1
   echo -e "${OVER}  ${TICK} $str"
 
-
-  if [[ "$(git diff "${oldbranch}" | grep -c "^")" -gt "0" ]]; then
-    update="true"
-  fi
-
   git_pull=$(git pull || return 1)
 
   if [[ "$git_pull" == *"up-to-date"* ]]; then
@@ -257,7 +217,6 @@ checkout() {
     local path
     path="development/${binary}"
     echo "development" > /etc/pihole/ftlbranch
-    FTLinstall "${binary}" "${path}"
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
@@ -272,7 +231,6 @@ checkout() {
     local path
     path="master/${binary}"
     echo "master" > /etc/pihole/ftlbranch
-    FTLinstall "${binary}" "${path}"
   elif [[ "${1}" == "core" ]] ; then
     str="Fetching branches from ${piholeGitUrl}"
     echo -ne "  ${INFO} $str"
@@ -335,7 +293,6 @@ checkout() {
     if check_download_exists "$path"; then
         echo "  ${TICK} Branch ${2} exists"
         echo "${2}" > /etc/pihole/ftlbranch
-        FTLinstall "${binary}" "${path}"
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
         ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
@@ -350,7 +307,7 @@ checkout() {
   fi
 
   # Force updating everything
-  if [[ ( ! "${1}" == "web" && ! "${1}" == "ftl" ) && "${update}" == "true" ]]; then
+  if [[  ! "${1}" == "web"  ]]; then
     echo -e "  ${INFO} Running installer to upgrade your installation"
     if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
       exit 0
