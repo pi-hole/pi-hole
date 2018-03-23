@@ -64,7 +64,7 @@ if ($serverName === "pi.hole") {
     <html><head>
         $viewPort
         <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
-    </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements</body></html>
+    </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements<br><a href='/admin'>Did you mean to go to the admin panel?</a></body></html>
     ";
 
     // Set splash/landing page based off presence of $landPage
