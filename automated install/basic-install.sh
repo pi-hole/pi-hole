@@ -1311,27 +1311,6 @@ install_dependent_packages() {
   return 0
 }
 
-# Create logfiles if necessary
-CreateLogFile() {
-  local str="Creating log and changing owner to pihole"
-  echo ""
-  echo -ne "  ${INFO} ${str}..."
-  # If the pihole log does not exist,
-  if [[ ! -f "/var/log/pihole.log" ]]; then
-    # Make it,
-    touch /var/log/pihole.log
-    # set the permissions,
-    chmod 644 /var/log/pihole.log
-    # and owners
-    chown pihole:pihole /var/log/pihole.log
-    echo -e "${OVER}  ${TICK} ${str}"
-  # Otherwise,
-  else
-    # the file should already exist
-    echo -e " ${COL_LIGHT_GREEN}log already exists!${COL_NC}"
-  fi
-}
-
 # Install the Web interface dashboard
 installPiholeWeb() {
   echo ""
@@ -1577,8 +1556,6 @@ installPihole() {
   installScripts
   # configs,
   installConfigs
-  # and create the log file
-  CreateLogFile
   # If the user wants to install the dashboard,
   if [[ "${INSTALL_WEB}" == true ]]; then
     # do so
@@ -1614,9 +1591,7 @@ updatePihole() {
   # Install base files and web interface
   installScripts
   # Install config files
-  installConfigs
-  # Create the log file
-  CreateLogFile
+  installConfigs  
   # If the user wants to install the dasboard,
   if [[ "${INSTALL_WEB}" == true ]]; then
     # do so
