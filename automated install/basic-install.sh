@@ -1323,7 +1323,7 @@ CreateLogFile() {
     # set the permissions,
     chmod 644 /var/log/pihole.log
     # and owners
-    chown pihole:root /var/log/pihole.log
+    chown pihole:pihole /var/log/pihole.log
     echo -e "${OVER}  ${TICK} ${str}"
   # Otherwise,
   else
