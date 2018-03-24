@@ -23,7 +23,7 @@ set -e
 
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
-# This allows us to make a change in one place that can propogate to all instances of the variable
+# This allows us to make a change in one place that can propagate to all instances of the variable
 # These variables should all be GLOBAL variables, written in CAPS
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
@@ -43,7 +43,7 @@ webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-# These are the names of piholes files, stored in an array
+# These are the names of pi-holes files, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This folder is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
@@ -81,7 +81,7 @@ runUnattended=false
 if [[ -f "${coltable}" ]]; then
   # source it
   source ${coltable}
-# Othwerise,
+# Otherwise,
 else
   # Set these values so the installer can still run in color
   COL_NC='\e[0m' # No Color
@@ -163,7 +163,7 @@ if command -v apt-get &> /dev/null; then
   # These programs are stored in an array so they can be looped through later
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget idn2)
+  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget idn2 sqlite3)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -771,6 +771,7 @@ setDNS() {
       Comodo ""
       DNSWatch ""
       Quad9 ""
+      FamilyShield ""
       Custom "")
   # In a whiptail dialog, show the options
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
@@ -816,6 +817,11 @@ setDNS() {
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
       PIHOLE_DNS_2="149.112.112.112"
+      ;;
+    FamilyShield)
+      echo "FamilyShield servers"
+      PIHOLE_DNS_1="208.67.222.123"
+      PIHOLE_DNS_2="208.67.220.123"
       ;;
     Custom)
       # Until the DNS settings are selected,
@@ -918,7 +924,7 @@ setLogging() {
     esac
 }
 
-# Funtion to ask the user if they want to install the dashboard
+# Function to ask the user if they want to install the dashboard
 setAdminFlag() {
   # Local, named variables
   local WebToggleCommand
@@ -946,7 +952,7 @@ setAdminFlag() {
     esac
 }
 
-# Check if /etc/dnsmasq.conf is from pihole.  If so replace with an original and install new in .d directory
+# Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
 version_check_dnsmasq() {
   # Local, named variables
   local dnsmasq_conf="/etc/dnsmasq.conf"
@@ -1734,17 +1740,14 @@ clone_or_update_repos() {
   fi
 }
 
-# Download and install FTL binary
+# Download FTL binary to random temp directory and install FTL binary
 FTLinstall() {
   # Local, named variables
   local binary="${1}"
   local latesttag
-  local orig_dir
   local str="Downloading and Installing FTL"
   echo -ne "  ${INFO} ${str}..."
 
-  # Get the current working directory
-  orig_dir="${PWD}"
   # Find the latest version tag for FTL
   latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
   # Tags should always start with v, check for that.
@@ -1754,42 +1757,44 @@ FTLinstall() {
     return 1
   fi
 
-  # If the download worked,
-  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "/tmp/${binary}"; then
-    # get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "/tmp/${binary}.sha1"
+  # Move into the temp ftl directory
+  pushd "$(mktemp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
-    # Move into the temp directory
-    cd /tmp
+  # Always replace pihole-FTL.service
+  install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+
+  # If the download worked,
+  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "${binary}"; then
+    # get sha1 of the binary we just downloaded for verification.
+    curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "${binary}.sha1"
+
     # If we downloaded binary file (as opposed to text),
     if sha1sum --status --quiet -c "${binary}".sha1; then
       echo -n "transferred... "
       # Stop FTL
       stop_service pihole-FTL &> /dev/null
       # Install the new version with the correct permissions
-      install -T -m 0755 /tmp/${binary} /usr/bin/pihole-FTL
-      # Remove the tempoary file
-      rm /tmp/${binary} /tmp/${binary}.sha1
+      install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
       # Move back into the original directory the user was in
-      cd "${orig_dir}"
+      popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
-      install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
       echo -e "${OVER}  ${TICK} ${str}"
       return 0
     # Otherise,
     else
+      # the download failed, so just go back to the original directory
+      popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       echo -e "${OVER}  ${CROSS} ${str}"
       echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
-      # the download failed, so just go back to the original directory
-      cd "${orig_dir}"
       return 1
     fi
   # Otherwise,
   else
-    cd "${orig_dir}"
+    popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
     echo -e "${OVER}  ${CROSS} ${str}"
     # The URL could not be found
     echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
+    return 1
   fi
 }
 
@@ -1957,7 +1962,7 @@ main() {
   for var in "$@"; do
     case "$var" in
       "--reconfigure" ) reconfigure=true;;
-      "--i_do_not_follow_recommendations" ) skipSpaceCheck=false;;
+      "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
       "--unattended" ) runUnattended=true;;
     esac
   done
