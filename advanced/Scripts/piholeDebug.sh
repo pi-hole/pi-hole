@@ -652,7 +652,7 @@ check_required_ports() {
   # Sort the addresses and remove duplicates
   while IFS= read -r line; do
       ports_in_use+=( "$line" )
-  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $9, $1}' | sort -n | uniq | cut -d':' -f2 )
+  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $1, $9}' | sort -n | tr -d '[*]\r' | uniq | awk '{print $2, $1}' )
 
   # Now that we have the values stored,
   for i in "${!ports_in_use[@]}"; do
