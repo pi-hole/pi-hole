@@ -712,20 +712,20 @@ check_x_headers() {
   # If the X-header found by curl matches what is should be,
   if [[ $block_page == "$block_page_working" ]]; then
     # display a success message
-    log_write "$TICK ${COL_GREEN}${block_page}${COL_NC}"
+    log_write "$TICK Block page X-Header: ${COL_GREEN}${block_page}${COL_NC}"
   else
     # Otherwise, show an error
-    log_write "$CROSS ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "$CROSS Block page X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
     log_write "${COL_RED}${full_curl_output_block_page}${COL_NC}"
   fi
 
   # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
   if [[ $dashboard == "$dashboard_working" ]]; then
     # then we can show a success
-    log_write "$TICK ${COL_GREEN}${dashboard}${COL_NC}"
+    log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
   else
     # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
-    log_write "$CROSS ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
     log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
   fi
 }
