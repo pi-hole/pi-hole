@@ -1,5 +1,3 @@
-_This template was created based on the work of [`udemy-dl`](https://github.com/nishad/udemy-dl/blob/master/LICENSE)._
-
 # Contributors Guide
 
 Please read and understand the contribution guide before creating an issue or pull request.
