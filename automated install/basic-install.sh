@@ -690,13 +690,13 @@ setStaticIPv4() {
   elif [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
     # If it exists,
     IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
+    IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
     # check if the desired IP is already set
-    if grep -q "${IPV4_ADDRESS}" "${IFCFG_FILE}"; then
+    if grep -q "${IPADDR}" "${IFCFG_FILE}"; then
       echo -e "  ${INFO} Static IP already configured"
     # Otherwise,
     else
       # Put the IP in variables without the CIDR notation
-      IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
       CIDR=$(echo "${IPV4_ADDRESS}" | cut -f2 -d/)
       # Backup existing interface configuration:
       cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
