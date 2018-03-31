@@ -382,9 +382,8 @@ gravity_ConsolidateDownloadedBlocklists() {
     if [[ -r "${i}" ]]; then
       # Remove windows CRs from file, convert list to lower case, and append into $matterAndLight
       tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${matterAndLight}"
-
       # Ensure that the first line of a new list is on a new line
-      lastLine=$(tail -1 "${piholeDir}/${matterAndLight}" | tr -d '\0')
+      IFS= read -r -d '' lastLine <"${piholeDir}/${matterAndLight}" || [[ $lastLine ]]
       if [[ "${#lastLine}" -gt 0 ]]; then
         echo "" >> "${piholeDir}/${matterAndLight}"
       fi
