@@ -384,7 +384,7 @@ gravity_ConsolidateDownloadedBlocklists() {
       tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${matterAndLight}"
 
       # Ensure that the first line of a new list is on a new line
-      lastLine=$(tail -1 "${piholeDir}/${matterAndLight}")
+      lastLine=$(tail -1 "${piholeDir}/${matterAndLight}" | tr -d '\0')
       if [[ "${#lastLine}" -gt 0 ]]; then
         echo "" >> "${piholeDir}/${matterAndLight}"
       fi
@@ -505,7 +505,7 @@ gravity_ParseBlacklistDomains() {
 
   # Empty $accretionDisc if it already exists, otherwise, create it
   : > "${piholeDir}/${accretionDisc}"
-  
+
   if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
     gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
   else
