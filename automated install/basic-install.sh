@@ -771,6 +771,7 @@ setDNS() {
       Comodo ""
       DNSWatch ""
       Quad9 ""
+      Cloudflare ""
       Custom "")
   # In a whiptail dialog, show the options
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
@@ -816,6 +817,11 @@ setDNS() {
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
       PIHOLE_DNS_2="149.112.112.112"
+      ;;
+    Cloudflare)
+      echo "Cloudflare servers"
+      PIHOLE_DNS_1="1.1.1.1"
+      PIHOLE_DNS_2="1.0.0.1"
       ;;
     Custom)
       # Until the DNS settings are selected,
