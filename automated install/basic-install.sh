@@ -772,6 +772,7 @@ setDNS() {
       DNSWatch ""
       Quad9 ""
       FamilyShield ""
+      Cloudflare ""
       Custom "")
   # In a whiptail dialog, show the options
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
@@ -822,6 +823,11 @@ setDNS() {
       echo "FamilyShield servers"
       PIHOLE_DNS_1="208.67.222.123"
       PIHOLE_DNS_2="208.67.220.123"
+      ;;
+    Cloudflare)
+      echo "Cloudflare servers"
+      PIHOLE_DNS_1="1.1.1.1"
+      PIHOLE_DNS_2="1.0.0.1"
       ;;
     Custom)
       # Until the DNS settings are selected,
