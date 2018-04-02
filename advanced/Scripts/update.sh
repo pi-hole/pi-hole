@@ -110,8 +110,6 @@ main() {
     echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
-  get_binary_name > /dev/null # Needed so that we have the correct binary name for the FTL Update check function
-
   if FTLcheckUpdate > /dev/null; then
     FTL_update=true
     echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"

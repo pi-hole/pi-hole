@@ -1893,7 +1893,14 @@ get_binary_name() {
 
 FTLcheckUpdate()
 {
-  local ftlLoc=$(which pihole-FTL 2>/dev/null)
+  get_binary_name
+
+  #In the next section we check to see if FTL is already installed (in case of pihole -r).
+  #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
+  echo -e "  ${INFO} Checking for existing FTL binary..."
+
+  local ftlLoc
+  ftlLoc=$(which pihole-FTL 2>/dev/null)
 
   local ftlBranch
 
@@ -1957,11 +1964,6 @@ FTLdetect() {
   echo ""
   echo -e "  ${INFO} FTL Checks..."
 
-  get_binary_name
-
-  #In the next section we check to see if FTL is already installed (in case of pihole -r).
-  #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
-  echo -e "  ${INFO} Checking for existing FTL binary..."
   if FTLcheckUpdate ; then
     FTLinstall "${binary}" || return 1
   fi
