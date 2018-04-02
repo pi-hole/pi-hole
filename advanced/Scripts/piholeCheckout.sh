@@ -32,55 +32,6 @@ check_download_exists() {
   fi
 }
 
-get_binary_name() {
-  local machine
-  machine=$(uname -m)
-
-  local str
-  str="Detecting architecture"
-  echo -ne "  ${INFO} ${str}..."
-  if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
-    # ARM
-    local rev
-    rev=$(uname -m | sed "s/[^0-9]//g;")
-    local lib
-    lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
-    if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
-      echo -e "${OVER}  ${TICK} Detected ARM-aarch64 architecture"
-      binary="pihole-FTL-aarch64-linux-gnu"
-    elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
-      if [[ "$rev" -gt "6" ]]; then
-        echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv7+)"
-        binary="pihole-FTL-arm-linux-gnueabihf"
-      else
-        echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv6 or lower) Using ARM binary"
-        binary="pihole-FTL-arm-linux-gnueabi"
-      fi
-    else
-      echo -e "${OVER}  ${TICK} Detected ARM architecture"
-      binary="pihole-FTL-arm-linux-gnueabi"
-    fi
-  elif [[ "${machine}" == "ppc" ]]; then
-    # PowerPC
-    echo -e "${OVER}  ${TICK} Detected PowerPC architecture"
-    binary="pihole-FTL-powerpc-linux-gnu"
-  elif [[ "${machine}" == "x86_64" ]]; then
-    # 64bit
-    echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
-    binary="pihole-FTL-linux-x86_64"
-  else
-    # Something else - we try to use 32bit executable and warn the user
-    if [[ ! "${machine}" == "i686" ]]; then
-      echo -e "${OVER}  ${CROSS} ${str}...
-      ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable
-      Contact support if you experience issues (e.g: FTL not running)${COL_NC}"
-    else
-      echo -e "${OVER}  ${TICK} Detected 32bit (i686) architecture"
-    fi
-    binary="pihole-FTL-linux-x86_32"
-  fi
-}
-
 fully_fetch_repo() {
   # Add upstream branches to shallow clone
   local directory="${1}"

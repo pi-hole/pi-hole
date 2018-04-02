@@ -77,24 +77,18 @@ GitCheckUpdateAvail() {
   fi
 }
 
-FTLcheckUpdate() {
-	local FTLversion
-	FTLversion=$(/usr/bin/pihole-FTL tag)
-	local FTLlatesttag
-	FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
-
-	if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
-		return 0
-	else
-		return 1
-	fi
-}
-
 main() {
   local pihole_version_current
   local web_version_current
   local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
-  
+  local core_update
+  local web_update
+  local FTL_update
+
+  core_update=false
+  web_update=false
+  FTL_update=false
+
   # shellcheck disable=1090,2154
   source "${setupVars}"
 
@@ -115,22 +109,14 @@ main() {
     echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
-  if FTLcheckUpdate ; then
+  get_binary_name > /dev/null # Needed so that we have the correct binary name for the FTL Update check function
+
+  if FTLcheckUpdate > /dev/null; then # Function is in sourced basic-install.sh
     FTL_update=true
     echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
   else
     FTL_update=false
     echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
-  fi
-
-  # Logic: Don't update FTL when there is a core update available
-  # since the core update will run the installer which will itself
-  # re-install (i.e. update) FTL
-  if ${FTL_update} && ! ${core_update}; then
-    echo ""
-    echo -e "  ${INFO} FTL out of date"
-    FTLdetect
-    echo ""
   fi
 
   if [[ "${INSTALL_WEB}" == true ]]; then
@@ -147,80 +133,37 @@ main() {
       web_update=false
       echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
-
-    # Logic
-    # If Core up to date AND web up to date:
-    #            Do nothing
-    # If Core up to date AND web NOT up to date:
-    #            Pull web repo
-    # If Core NOT up to date AND web up to date:
-    #            pull pihole repo, run install --unattended -- reconfigure
-    # if Core NOT up to date AND web NOT up to date:
-    #            pull pihole repo run install --unattended
-
-    if ! ${core_update} && ! ${web_update} ; then
-      if ! ${FTL_update} ; then
-        echo ""
-        echo -e "  ${TICK} Everything is up to date!"
-        exit 0
-      fi
-    elif ! ${core_update} && ${web_update} ; then
-      echo ""
-      echo -e "  ${INFO} Pi-hole Web Admin files out of date"
-      getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
-    elif ${core_update} && ! ${web_update} ; then
-      echo ""
-      echo -e "  ${INFO} Pi-hole core files out of date"
-      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
-        echo -e "${basicError}" && exit 1
-    elif ${core_update} && ${web_update} ; then
-      echo ""
-      echo -e "  ${INFO} Updating Pi-hole core and web admin files"
-      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --unattended || \
-        echo -e "${basicError}" && exit 1
-    else
-      echo -e "  ${COL_LIGHT_RED}Update script has malfunctioned, please contact Pi-hole Support${COL_NC}"
-      exit 1
-    fi
-  else # Web Admin not installed, so only verify if core is up to date
-    if ! ${core_update}; then
-      if ! ${FTL_update} ; then
-        echo ""
-        echo -e "  ${INFO} Everything is up to date!"
-        exit 0
-      fi
-    else
-      echo ""
-      echo -e "  ${INFO} Pi-hole Core files out of date"
-      getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-      ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
-        echo -e "${basicError}" && exit 1
-    fi
   fi
 
-  if [[ "${web_update}" == true ]]; then
-    web_version_current="$(/usr/local/bin/pihole version --admin --current)"
+  if [[ "${core_update}" == false && "${web_update}" == false && "${FTL_update}" == false ]]; then
     echo ""
-    echo -e "  ${INFO} Web Admin version is now at ${web_version_current/* v/v}
-  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
+    echo -e "  ${TICK} Everything is up to date!"
+    exit 0
   fi
 
   if [[ "${core_update}" == true ]]; then
-    pihole_version_current="$(/usr/local/bin/pihole version --pihole --current)"
     echo ""
-    echo -e "  ${INFO} Pi-hole version is now at ${pihole_version_current/* v/v}
-  ${INFO} If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+    echo -e "  ${INFO} Pi-hole core files out of date, updating local repo."
+    getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
+    echo -e "  ${INFO} If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+  fi
+
+  if [[ "${web_update}" == true ]]; then
+    echo ""
+    echo -e "  ${INFO} Pi-hole Web Admin files out of date, updating local repo."
+    getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
+    echo -e "  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
   fi
 
   if [[ "${FTL_update}" == true ]]; then
-    FTL_version_current="$(/usr/bin/pihole-FTL tag)"
-    echo -e "\\n  ${INFO} FTL version is now at ${FTL_version_current/* v/v}"
-    start_service pihole-FTL
-    enable_service pihole-FTL
+    echo ""
+    echo -e "  ${INFO} FTL out of date, it will be updated by the installer."
   fi
 
+  if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
+    ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
+         echo -e "${basicError}" && exit 1
+  fi
   echo ""
   exit 0
 }
