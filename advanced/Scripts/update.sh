@@ -28,9 +28,12 @@ source "/opt/pihole/COL_TABLE"
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
 # getGitFiles() sourced from basic-install.sh
+# get_binary_name() sourced from basic-install.sh
+# FTLcheckUpdate() sourced from basic-install.sh
 
 GitCheckUpdateAvail() {
-  local directory="${1}"
+  local directory
+  directory="${1}"
   curdir=$PWD
   cd "${directory}" || return
 
@@ -78,8 +81,6 @@ GitCheckUpdateAvail() {
 }
 
 main() {
-  local pihole_version_current
-  local web_version_current
   local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
   local core_update
   local web_update
@@ -111,7 +112,7 @@ main() {
 
   get_binary_name > /dev/null # Needed so that we have the correct binary name for the FTL Update check function
 
-  if FTLcheckUpdate > /dev/null; then # Function is in sourced basic-install.sh
+  if FTLcheckUpdate > /dev/null; then
     FTL_update=true
     echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
   else
