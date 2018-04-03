@@ -11,6 +11,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+export LC_ALL=C
+
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 
@@ -417,24 +419,6 @@ gravity_SortAndFilterConsolidatedList() {
   echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
 }
 
-# Whitelist unique blocklist domain sources
-gravity_WhitelistBlocklistSourceUrls() {
-  local uniqDomains str
-
-  echo ""
-
-  # Create array of unique $sourceDomains
-  mapfile -t uniqDomains <<< "$(awk '{ if(!a[$1]++) { print $1 } }' <<< "$(printf '%s\n' "${sourceDomains[@]}")")"
-
-  str="Number of blocklist source domains being added to the whitelist: ${#uniqDomains[@]}"
-  echo -ne "  ${INFO} ${str}..."
-
-  # Whitelist $uniqDomains
-  "${PIHOLE_COMMAND}" -w -nr -q ${uniqDomains[*]} &> /dev/null
-
-  echo -e "${OVER}  ${INFO} ${str}"
-}
-
 # Whitelist user-defined domains
 gravity_Whitelist() {
   local num str
@@ -521,8 +505,13 @@ gravity_ParseBlacklistDomains() {
 
   # Empty $accretionDisc if it already exists, otherwise, create it
   : > "${piholeDir}/${accretionDisc}"
-
-  gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+  
+  if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
+    gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+  else
+    # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
+    gravity_ParseDomainsIntoHosts "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+  fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
   output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
@@ -630,7 +619,6 @@ if [[ "${skipDownload}" == false ]]; then
   gravity_SetDownloadOptions
   gravity_ConsolidateDownloadedBlocklists
   gravity_SortAndFilterConsolidatedList
-  gravity_WhitelistBlocklistSourceUrls
 else
   # Gravity needs to modify Blacklist/Whitelist/Wildcards
   echo -e "  ${INFO} Using cached Event Horizon list..."
