@@ -1828,15 +1828,9 @@ FTLinstall() {
   fi
 }
 
-# Detect suitable FTL binary platform
-FTLdetect() {
-  echo ""
-  echo -e "  ${INFO} FTL Checks..."
-
-  # Local, named variables
+get_binary_name() {
+# Local, named variables
   local machine
-  local binary
-
   # Store architecture in a variable
   machine=$(uname -m)
 
@@ -1895,12 +1889,18 @@ FTLdetect() {
     fi
     binary="pihole-FTL-linux-x86_32"
   fi
+}
+
+FTLcheckUpdate()
+{
+  get_binary_name
 
   #In the next section we check to see if FTL is already installed (in case of pihole -r).
   #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
   echo -e "  ${INFO} Checking for existing FTL binary..."
 
-  local ftlLoc=$(which pihole-FTL 2>/dev/null)
+  local ftlLoc
+  ftlLoc=$(which pihole-FTL 2>/dev/null)
 
   local ftlBranch
 
@@ -1910,8 +1910,26 @@ FTLdetect() {
     ftlBranch="master"
   fi
 
+  local remoteSha1
+  local localSha1
+
   if [[ ! "${ftlBranch}" == "master" ]]; then
-    FTLinstall "${binary}" || return 1
+    if [[ ${ftlLoc} ]]; then
+      # We already have a pihole-FTL binary downloaded.
+      # Alt branches don't have a tagged version against them, so just confirm the checksum of the local vs remote to decide whether we download or not
+      remoteSha1=$(curl -sSL --fail "https://ftl.pi-hole.net/${ftlBranch}/${binary}.sha1" | cut -d ' ' -f 1)
+      localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+
+      if [[ "${remoteSha1}" != "${localSha1}" ]]; then
+        echo -e "  ${INFO} Checksums do not match, downloading from ftl.pi-hole.net."
+        return 0
+      else
+        echo -e "  ${INFO} Checksum of installed binary matches remote. No need to download!"
+        return 1
+      fi
+    else
+      return 0
+    fi
   else
     if [[ ${ftlLoc} ]]; then
       local FTLversion
@@ -1920,28 +1938,36 @@ FTLdetect() {
       FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
       if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
-        # Install FTL
-        FTLinstall "${binary}" || return 1
+        return 0
       else
         echo -e "  ${INFO} Latest FTL Binary already installed (${FTLlatesttag}). Confirming Checksum..."
 
-        local remoteSha1
         remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
-        local localSha1
         localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
 
         if [[ "${remoteSha1}" != "${localSha1}" ]]; then
           echo -e "  ${INFO} Corruption detected..."
-          FTLinstall "${binary}" || return 1
+          return 0
         else
           echo -e "  ${INFO} Checksum correct. No need to download!"
+          return 1
         fi
       fi
     else
-      # Install FTL
-      FTLinstall "${binary}" || return 1
+      return 0
     fi
   fi
+}
+
+# Detect suitable FTL binary platform
+FTLdetect() {
+  echo ""
+  echo -e "  ${INFO} FTL Checks..."
+
+  if FTLcheckUpdate ; then
+    FTLinstall "${binary}" || return 1
+  fi
+
   echo ""
 }
 
@@ -2225,6 +2251,10 @@ main() {
   echo -e "\\n  ${INFO} The install log is located at: ${installLogLoc}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
+  if [[ "${INSTALL_TYPE}" == "Update" ]]; then
+    echo ""
+    /usr/local/bin/pihole version --current
+  fi
 }
 
 #
