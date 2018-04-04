@@ -13,6 +13,7 @@
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
+readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
@@ -50,6 +51,19 @@ delete_setting() {
 change_setting() {
 	delete_setting "${1}"
 	add_setting "${1}" "${2}"
+}
+
+addFTLsetting() {
+	echo "${1}=${2}" >> "${FTLconf}"
+}
+
+deleteFTLsetting() {
+	sed -i "/${1}/d" "${FTLconf}"
+}
+
+changeFTLsetting() {
+	deleteFTLsetting "${1}"
+	addFTLsetting "${1}" "${2}"
 }
 
 add_dnsmasq_setting() {
@@ -505,6 +519,13 @@ audit()
 	echo "${args[2]}" >> /etc/pihole/auditlog.list
 }
 
+SetPrivacyLevel() {
+	# Set privacy level. Minimum is 0, maximum is 3
+	if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
+		changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
+	fi
+}
+
 main() {
 	args=("$@")
 
@@ -534,6 +555,7 @@ main() {
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
 		"audit"             ) audit;;
+		"privacylevel"      ) SetPrivacyLevel;;
 		*                   ) helpFunc;;
 	esac
 
