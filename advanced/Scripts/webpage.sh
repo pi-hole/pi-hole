@@ -36,7 +36,7 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage"
+  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)"
 	exit 0
 }
 
@@ -530,33 +530,33 @@ main() {
 	args=("$@")
 
 	case "${args[1]}" in
-		"-p" | "password"   ) SetWebPassword;;
-		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
-		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
-		"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
-		"setdns"            ) SetDNSServers;;
-		"setexcludedomains" ) SetExcludeDomains;;
-		"setexcludeclients" ) SetExcludeClients;;
-		"poweroff"          ) Poweroff;;
-		"reboot"            ) Reboot;;
-		"restartdns"        ) RestartDNS;;
-		"setquerylog"       ) SetQueryLogOptions;;
-		"enabledhcp"        ) EnableDHCP;;
-		"disabledhcp"       ) DisableDHCP;;
-		"layout"            ) SetWebUILayout;;
-		"-h" | "--help"     ) helpFunc;;
-		"privacymode"       ) SetPrivacyMode;;
-		"resolve"           ) ResolutionSettings;;
-		"addstaticdhcp"     ) AddDHCPStaticAddress;;
-		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
-		"-r" | "hostrecord" ) SetHostRecord "$3";;
-		"-e" | "email"      ) SetAdminEmail "$3";;
-		"-i" | "interface"  ) SetListeningMode "$@";;
-		"-t" | "teleporter" ) Teleporter;;
-		"adlist"            ) CustomizeAdLists;;
-		"audit"             ) audit;;
-		"privacylevel"      ) SetPrivacyLevel;;
-		*                   ) helpFunc;;
+		"-p" | "password"     ) SetWebPassword;;
+		"-c" | "celsius"      ) unit="C"; SetTemperatureUnit;;
+		"-f" | "fahrenheit"   ) unit="F"; SetTemperatureUnit;;
+		"-k" | "kelvin"       ) unit="K"; SetTemperatureUnit;;
+		"setdns"              ) SetDNSServers;;
+		"setexcludedomains"   ) SetExcludeDomains;;
+		"setexcludeclients"   ) SetExcludeClients;;
+		"poweroff"            ) Poweroff;;
+		"reboot"              ) Reboot;;
+		"restartdns"          ) RestartDNS;;
+		"setquerylog"         ) SetQueryLogOptions;;
+		"enabledhcp"          ) EnableDHCP;;
+		"disabledhcp"         ) DisableDHCP;;
+		"layout"              ) SetWebUILayout;;
+		"-h" | "--help"       ) helpFunc;;
+		"privacymode"         ) SetPrivacyMode;;
+		"resolve"             ) ResolutionSettings;;
+		"addstaticdhcp"       ) AddDHCPStaticAddress;;
+		"removestaticdhcp"    ) RemoveDHCPStaticAddress;;
+		"-r" | "hostrecord"   ) SetHostRecord "$3";;
+		"-e" | "email"        ) SetAdminEmail "$3";;
+		"-i" | "interface"    ) SetListeningMode "$@";;
+		"-t" | "teleporter"   ) Teleporter;;
+		"adlist"              ) CustomizeAdLists;;
+		"audit"               ) audit;;
+		"-l" | "privacylevel" ) SetPrivacyLevel;;
+		*                     ) helpFunc;;
 	esac
 
 	shift
