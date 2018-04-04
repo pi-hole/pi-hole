@@ -110,14 +110,6 @@ main() {
     echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
-  if FTLcheckUpdate > /dev/null; then
-    FTL_update=true
-    echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
-  else
-    FTL_update=false
-    echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
-  fi
-
   if [[ "${INSTALL_WEB}" == true ]]; then
     if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
       echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
@@ -132,6 +124,14 @@ main() {
       web_update=false
       echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
+  fi
+
+  if FTLcheckUpdate > /dev/null; then
+    FTL_update=true
+    echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
+  else
+    FTL_update=false
+    echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
   if [[ "${core_update}" == false && "${web_update}" == false && "${FTL_update}" == false ]]; then
