@@ -771,6 +771,7 @@ setDNS() {
       Comodo ""
       DNSWatch ""
       Quad9 ""
+      1.1.1.1 ""
       FamilyShield ""
       Custom "")
   # In a whiptail dialog, show the options
@@ -817,6 +818,11 @@ setDNS() {
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
       PIHOLE_DNS_2="149.112.112.112"
+      ;;
+    1.1.1.1)
+      echo "1.1.1.1 DNS servers"
+      PIHOLE_DNS_1="1.1.1.1"
+      PIHOLE_DNS_2="1.0.0.1"
       ;;
     FamilyShield)
       echo "FamilyShield servers"
