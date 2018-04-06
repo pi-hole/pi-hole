@@ -1390,22 +1390,8 @@ installCron() {
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
-  echo ""
-  echo -e "  ${INFO} Preparing to run gravity.sh to refresh hosts..."
-  # If cached lists exist,
-  if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-    echo -e "  ${INFO} Cleaning up previous install (preserving whitelist/blacklist)"
-    # remove them
-    rm /etc/pihole/list.*
-  fi
-  # If the default ad lists file exists,
-  if [[ ! -e /etc/pihole/adlists.default ]]; then
-    # copy it over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/adlists.default /etc/pihole/adlists.default
-  fi
-  echo -e "  ${INFO} Running gravity.sh"
   # Run gravity in the current shell
-  { /opt/pihole/gravity.sh; }
+  { /opt/pihole/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
