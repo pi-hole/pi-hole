@@ -765,6 +765,7 @@ setDNS() {
 
   # In an array, list the available upstream providers
   DNSChooseOptions=(Google ""
+      Cloudflare ""
       OpenDNS ""
       Level3 ""
       Norton ""
@@ -787,6 +788,11 @@ setDNS() {
       echo "Google DNS servers"
       PIHOLE_DNS_1="8.8.8.8"
       PIHOLE_DNS_2="8.8.4.4"
+      ;;
+    Cloudflare)
+      echo "Cloudflare servers"
+      PIHOLE_DNS_1="1.1.1.1"
+      PIHOLE_DNS_2="1.0.0.1"
       ;;
     OpenDNS)
       echo "OpenDNS servers"
