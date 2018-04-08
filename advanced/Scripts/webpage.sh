@@ -15,6 +15,8 @@ readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
+readonly speedtestfile="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
+readonly speedtestdb="/etc/pihole/speedtest.db"
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
@@ -35,7 +37,14 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage"
+                        Add '-h' for more info on interface usage
+  -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
+                      use -sn to prevent logging to results list
+  -sd                 Set speedtest display range
+  -sn                 Run speedtest now
+  -sc                 Clear speedtest data
+  -ss                 Set custom server"
+
 	exit 0
 }
 
@@ -182,10 +191,6 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
-	if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
-		add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
-		add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
-	fi
 
 }
 
@@ -214,17 +219,6 @@ SetDNSServers() {
 		change_setting "DNSSEC" "true"
 	else
 		change_setting "DNSSEC" "false"
-	fi
-	if [[ "${args[6]}" == "conditional_forwarding" ]]; then
-		change_setting "CONDITIONAL_FORWARDING" "true"
-		change_setting "CONDITIONAL_FORWARDING_IP" "${args[7]}"
-		change_setting "CONDITIONAL_FORWARDING_DOMAIN" "${args[8]}"
-		change_setting "CONDITIONAL_FORWARDING_REVERSE" "${args[9]}"
-	else
-		change_setting "CONDITIONAL_FORWARDING" "false"
-		delete_setting "CONDITIONAL_FORWARDING_IP"
-		delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
-		delete_setting "CONDITIONAL_FORWARDING_REVERSE"
 	fi
 
 	ProcessDNSSettings
@@ -353,6 +347,77 @@ SetWebUILayout() {
 	change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 }
 
+
+ClearSpeedtestData(){
+    mv $speedtestdb $speedtestdb"_old"
+    cp /var/www/html/admin/scripts/pi-hole/speedtest/speedtest.db $speedtestdb
+}
+
+ChageSpeedTestSchedule(){
+  if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then
+      if [ "${args[2]}" -ge 0 -a "${args[2]}" -le 24 ]; then
+          change_setting "SPEEDTESTSCHEDULE" "${args[2]}"
+          SetCronTab ${args[2]}
+      fi
+  fi
+}
+
+SpeedtestServer(){
+  if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then
+      change_setting "SPEEDTEST_SERVER" "${args[2]}"
+          # SetCronTab ${args[2]}
+  else
+      # Autoselect for invalid data
+      change_setting "SPEEDTEST_SERVER" ""
+  fi
+
+}
+
+
+RunSpeedtestNow(){
+  mkdir -p /tmp/speedtest
+  lockfile="/tmp/speedtest/lock"
+  if [ -f $speedtestdb ]
+  then
+      echo ""
+  else
+      cp /var/www/html/admin/scripts/pi-hole/speedtest/speedtest.db $speedtestdb
+      sleep 2
+  fi
+  if [ -f "$lockfile" ]
+  then
+  	echo "Speedtest is already in progress, is something went wrong delete this file - "$lockfile
+  else
+    touch $lockfile
+    if [[ "${args[2]}" == "-n" ]]; then
+        speedtest-cli
+    else
+      echo "Testing Speed"
+      result=`$speedtestfile`
+      echo $result
+      rm $lockfile
+    fi
+  fi
+}
+
+SetCronTab()
+{
+  # Remove OLD
+  crontab -l >crontab.tmp
+  old=$(cat crontab.tmp | awk '/speedtest.sh/ {print FNR}')
+  if [[ "$old" =~ ^[0-9]+$ ]]; then
+    crontab -l | sed -e "${old}d" >crontab.tmp
+  fi
+  # Add New
+  if [[ "$1" == "0" ]]; then
+      crontab crontab.tmp && rm -f crontab.tmp
+  else
+      newtab="0 */"${1}" * * * su root -c \""${speedtestfile}"\"  > /dev/null 2>&1"
+      printf '%s\n' "$newtab" >>crontab.tmp
+      crontab crontab.tmp && rm -f crontab.tmp
+  fi
+}
+
 CustomizeAdLists() {
   list="/etc/pihole/adlists.list"
 
@@ -368,6 +433,14 @@ CustomizeAdLists() {
 	else
 		echo "Not permitted"
 		return 1
+  fi
+}
+
+function UpdateSpeedTestRange(){
+  if [[ "${args[2]}" =~ ^[0-9]+$ ]]; then
+      if [ "${args[2]}" -ge 0 -a "${args[2]}" -le 30 ]; then
+          change_setting "SPEEDTEST_CHART_DAYS" "${args[2]}"
+      fi
   fi
 }
 
@@ -533,6 +606,11 @@ main() {
 		"-i" | "interface"  ) SetListeningMode "$@";;
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
+    "-s" | "speedtest"  ) ChageSpeedTestSchedule;;
+    "-sd"               ) UpdateSpeedTestRange;;
+    "-sn"               ) RunSpeedtestNow;;
+    "-sc"               ) ClearSpeedtestData;;
+    "-ss"               ) SpeedtestServer;;
 		"audit"             ) audit;;
 		*                   ) helpFunc;;
 	esac
