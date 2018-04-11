@@ -494,8 +494,9 @@ parse_setup_vars() {
 }
 
 parse_locale() {
+  local pihole_locale
   echo_current_diagnostic "Locale"
-  local pihole_locale="$(locale)"
+  pihole_locale="$(locale)"
   parse_file "${pihole_locale}"
 }
 
