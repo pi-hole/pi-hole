@@ -652,15 +652,22 @@ check_required_ports() {
   # Sort the addresses and remove duplicates
   while IFS= read -r line; do
       ports_in_use+=( "$line" )
-  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $1, $9}' | sort -n | tr -d '[*]\r' | uniq | awk '{print $2, $1}' )
+  done < <( lsof -iTCP -sTCP:LISTEN -P -n +c 10 )
 
   # Now that we have the values stored,
   for i in "${!ports_in_use[@]}"; do
     # loop through them and assign some local variables
-    local port_number
-    port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
     local service_name
-    service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
+    service_name=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
+    local protocol_type
+    protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $5}')
+    local port_number
+    port_number="$(echo "${ports_in_use[$i]}" | awk '{print $9}')"
+
+    # Skip the line if it's the titles of the columns the lsof command produces
+    if [[ "${service_name}" == COMMAND ]]; then
+      continue
+    fi
     # Use a case statement to determine if the right services are using the right ports
     case "${port_number}" in
       53) compare_port_to_service_assigned  "${resolver}"
@@ -670,7 +677,7 @@ check_required_ports() {
       4711) compare_port_to_service_assigned  "${ftl}"
           ;;
       # If it's not a default port that Pi-hole needs, just print it out for the user to see
-      *) log_write "[${port_number}] is in use by ${service_name}";
+      *) log_write "${port_number} ${service_name} (${protocol_type})";
     esac
   done
 }
