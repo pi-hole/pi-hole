@@ -151,7 +151,7 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 3. `http://pi.hole/` (when using Pi-hole as your DNS server)
 
 ## Faster-than-light Engine
-The FTLDNS[™](https://pi-hole.net/trademark-rules-and-brand-guidelines/) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
+FTLDNS[™](https://pi-hole.net/trademark-rules-and-brand-guidelines/) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
 
 Some of the statistics you can integrate include:
 * Total number of domains being blocked
