@@ -475,7 +475,7 @@ statusFunc() {
   local addnConfigs
 
   # Determine if service is running on port 53 (Cr: https://superuser.com/a/806331)
-  if (echo > /dev/tcp/localhost/53) >/dev/null 2>&1; then
+  if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
     if [[ "${1}" != "web" ]]; then
       echo -e "  ${TICK} DNS service is running"
     fi
