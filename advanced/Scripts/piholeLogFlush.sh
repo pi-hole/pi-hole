@@ -20,6 +20,11 @@ FTLconf="/etc/pihole/pihole-FTL.conf"
 if [ -e "$FTLconf" ]; then
   DBFILE="$(sed -n -e 's/^\s*DBFILE\s*=\s*//p' ${FTLconf})"
 fi
+# Test for empty string. Use standard path in this case.
+if [ -z "$DBFILE" ]; then
+  DBFILE="/etc/pihole/pihole-FTL.db"
+fi
+
 if [[ "$@" != *"quiet"* ]]; then
   echo -ne "  ${INFO} Flushing /var/log/pihole.log ..."
 fi
