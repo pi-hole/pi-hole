@@ -17,7 +17,9 @@ source ${colfile}
 # a) the setting is not present in the config file, or
 # b) the setting is commented out (e.g. "#DBFILE=...")
 FTLconf="/etc/pihole/pihole-FTL.conf"
-[ -e "$FTLconf" ] && DBFILE="$(sed -n -e 's/^\s*DBFILE\s*=\s*//p' ${FTLconf})"
+if [ -e "$FTLconf" ]; then
+  DBFILE="$(sed -n -e 's/^\s*DBFILE\s*=\s*//p' ${FTLconf})"
+fi
 # Test for empty string. Use standard path in this case.
 if [ -z "$DBFILE" ]; then
   DBFILE="/etc/pihole/pihole-FTL.db"
