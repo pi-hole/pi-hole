@@ -1999,7 +1999,6 @@ main() {
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
 
-    stop_service dnsmasq
     if [[ "${INSTALL_WEB}" == true ]]; then
       stop_service lighttpd
     fi
@@ -2017,6 +2016,9 @@ main() {
     setLogging
     # Clone/Update the repos
     clone_or_update_repos
+
+    #Stop DNSMASQ if running so we can install
+    stop_service dnsmasq
 
     # Install packages used by the Pi-hole
     if [[ "${INSTALL_WEB}" == true ]]; then
