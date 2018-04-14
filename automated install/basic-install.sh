@@ -218,7 +218,37 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     DNSMASQ_USER="nobody"
 
-# If neither apt-get or rmp/dnf are found
+# If neither apt-get or rmp/dnf are found,
+# check for emerge to see if it's gentoo family OS
+elif command -v emerge -get &> /dev/null; then
+  #Gentoo
+  #############################################
+  PKG_MANAGER="emerge"
+  UPDATE_PKG_CACHE=":" # don't execute eix-sync
+  PKG_INSTALL=("${PKG_MANAGER}")
+  PKG_COUNT="echo 0 || true" # Do not check for outdated packages in gentoo
+  # #########################################
+  # fixes for dependency differences
+  # gentoo uses sys-apps/iproute2
+  iproute_pkg="sys-apps/iproute2"
+
+  # USE for dev-lang/php: +sqlite +fpm +sockets
+  phpVer="dev-lang/php"
+
+  # Select dhcp
+  dhcp_pkg="net-misc/dhcp"
+  # Select your cron implementation
+  cron_pkg="virtual/cron"
+  # #########################################
+  INSTALLER_DEPS=(dev-util/dialog "${iproute_pkg}" dev-vcs/git "${dhcp_pkg}" sys-apps/net-tools dev-libs/newt sys-process/procps)
+  PIHOLE_DEPS=(sys-devel/bc "${cron_pkg}" net-misc/curl sys-apps/findutils net-dns/dnsmasq net-misc/iputils sys-process/lsof net-analyzer/netcat app-admin/sudo app-arch/unzip net-misc/wget net-dns/libidn2)
+  PIHOLE_WEB_DEPS=(www-servers/lighttpd "${phpVer}")
+  LIGHTTPD_USER="lighttpd"
+  LIGHTTPD_GROUP="lighttpd"
+  # Reuse the fedora config file
+  LIGHTTPD_CFG="lighttpd.conf.gentoo"
+  DNSMASQ_USER="dnsmasq"
+# If neither apt-get, emerge, or rmp/dnf are found
 else
   # it's not an OS we can support,
   echo -e "  ${CROSS} OS distribution not supported"
@@ -1128,8 +1158,10 @@ stop_service() {
   echo -ne "  ${INFO} ${str}..."
   if command -v systemctl &> /dev/null; then
     systemctl stop "${1}" &> /dev/null || true
-  else
+  elif command -v service &> /dev/null; then
     service "${1}" stop &> /dev/null || true
+  elif command -v rc-service &> /dev/null; then
+    rc-service "${1}" stop &> /dev/null || true
   fi
   echo -e "${OVER}  ${TICK} ${str}..."
 }
@@ -1144,10 +1176,16 @@ start_service() {
   if command -v systemctl &> /dev/null; then
     # use that to restart the service
     systemctl restart "${1}" &> /dev/null
-  # Otherwise,
-  else
-    # fall back to the service command
+  # Otherwise, test if service command exists
+  elif command -v service &> /dev/null; then
+	# use it to restart the service
     service "${1}" restart &> /dev/null
+  # otherwise, test if rc-service exists
+  elif command -v rc-service &> /dev/null; then
+	# use it to restart the service
+    rc-service "${1}" restart &> /dev/null || true
+  else
+	  echo "Please manually restart ${1}."
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -1162,6 +1200,10 @@ enable_service() {
   if command -v systemctl &> /dev/null; then
     # use that to enable the service
     systemctl enable "${1}" &> /dev/null
+  # If systemctrl is not existent, check if rc-update is available
+  elif command -v rc-update &> /dev/null; then
+	# use rc-update and add the service to the runlevel 'default'
+	rc-update add "${1}" default
   # Othwerwise,
   else
     # use update-rc.d to accomplish this
@@ -1274,6 +1316,30 @@ install_dependent_packages() {
       return 0
   fi
 
+  if command -v eix &> /dev/null; then
+	  # For each package
+    for i in "${argArray1[@]}"; do
+      echo -ne "  ${INFO} Checking for $i..."
+	  # Test if package is installed
+      if eix "${i}" | grep "\\[I\\]" &> /dev/null; then
+        # Success: Is installed
+        echo -e "${OVER}  ${TICK} Checking for $i"
+      else
+        # Needs to be installed
+        echo -e "${OVER}  ${INFO} Checking for $i (needs to be installed)"
+        # Store in install list
+        installArray+=("${i}")
+      fi
+    done
+    # All dependencies installed?
+    if [[ "${#installArray[@]}" -gt 0 ]]; then
+	  # On gentoo: Promt the user to install the missing packages
+	  echo -e "  ${CROSS} Please install the following dependencies before continuing: " "${installArray[@]}"
+	  # Exit installer
+      exit 1
+    fi
+	return 0
+  fi
   # Install Fedora/CentOS packages
   for i in "${argArray1[@]}"; do
     echo -ne "  ${INFO} Checking for $i..."
@@ -2039,6 +2105,9 @@ main() {
     if [[ -x "$(command -v systemctl)" ]]; then
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+    elif [[ -x "$(command -v rc-status)" ]]; then
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(rc-status | grep lighttpd | grep -c 'started' || true)
     else
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
@@ -2067,6 +2136,9 @@ main() {
     if [[ -x "$(command -v systemctl)" ]]; then
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+    elif [[ -x "$(command -v rc-status)" ]]; then
+      # Value will either be 1, if true, or 0
+      LIGHTTPD_ENABLED=$(rc-status | grep lighttpd | grep -c 'started' || true)
     else
       # Value will either be 1, if true, or 0
       LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
