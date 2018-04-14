@@ -1760,7 +1760,7 @@ FTLinstall() {
   fi
 
   # Always replace pihole-FTL.service
-  install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/systemd/system/pihole-FTL.service"
+  install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/systemd/system/pihole-FTL.service"
   # Enable service script (we have to do this after replacing the service unit)
   systemctl enable pihole-FTL.service
 
