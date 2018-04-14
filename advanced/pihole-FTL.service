@@ -12,12 +12,11 @@ PIDFile=/run/pihole-FTL.pid
 
 ExecStartPre=/bin/bash /etc/.pihole/advanced/pihole-FTL-prestart.sh
 ExecStart=/bin/su -s /bin/sh -c "/usr/bin/pihole-FTL" "pihole"
-ExecReload=/bin/kill -USR1 $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
 
 ; Use graceful shutdown with a reasonable timeout
 KillMode=mixed
-KillSignal=SIGQUIT
-TimeoutStopSec=5s
+TimeoutStopSec=10s
 
 ; Make /usr, /boot, /etc and possibly some more folders read-only...
 ProtectSystem=full
