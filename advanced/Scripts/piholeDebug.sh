@@ -38,7 +38,7 @@ else
   TICK="[${COL_GREEN}✓${COL_NC}]"
   CROSS="[${COL_RED}✗${COL_NC}]"
   INFO="[i]"
-  OVER="\\r\\033[K"
+  #OVER="\\r\\033[K"
 fi
 
 OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
@@ -75,7 +75,7 @@ WEB_SERVER_LOG_DIRECTORY="${LOG_DIRECTORY}/lighttpd"
 WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
-BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
+#BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
 
 # Files required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
@@ -86,7 +86,7 @@ PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
 PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
-WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
+#WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
 PIHOLE_DEFAULT_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.default"
 PIHOLE_USER_DEFINED_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.list"
@@ -116,25 +116,25 @@ PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 
 # An array of operating system "pretty names" that we officialy support
 # We can loop through the array at any time to see if it matches a value
-SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
+#SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
 # Store Pi-hole's processes in an array for easy use and parsing
 PIHOLE_PROCESSES=( "dnsmasq" "lighttpd" "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
-REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
-"${CRON_D_DIRECTORY}"
-"${DNSMASQ_D_DIRECTORY}"
-"${PIHOLE_DIRECTORY}"
-"${PIHOLE_SCRIPTS_DIRECTORY}"
-"${BIN_DIRECTORY}"
-"${RUN_DIRECTORY}"
-"${LOG_DIRECTORY}"
-"${WEB_SERVER_LOG_DIRECTORY}"
-"${WEB_SERVER_CONFIG_DIRECTORY}"
-"${HTML_DIRECTORY}"
-"${WEB_GIT_DIRECTORY}"
-"${BLOCK_PAGE_DIRECTORY}")
+#REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
+#"${CRON_D_DIRECTORY}"
+#"${DNSMASQ_D_DIRECTORY}"
+#"${PIHOLE_DIRECTORY}"
+#"${PIHOLE_SCRIPTS_DIRECTORY}"
+#"${BIN_DIRECTORY}"
+#"${RUN_DIRECTORY}"
+#"${LOG_DIRECTORY}"
+#"${WEB_SERVER_LOG_DIRECTORY}"
+#"${WEB_SERVER_CONFIG_DIRECTORY}"
+#"${HTML_DIRECTORY}"
+#"${WEB_GIT_DIRECTORY}"
+#"${BLOCK_PAGE_DIRECTORY}")
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
@@ -898,7 +898,7 @@ parse_file() {
   for file_lines in "${file_info[@]}"; do
     if [[ ! -z "${file_lines}" ]]; then
       # don't include the Web password hash
-      [[ "${file_linesline}" =~ ^\#.*$  || ! "${file_lines}" || "${file_lines}" == "WEBPASSWORD="* ]] && continue
+      [[ "${file_lines}" =~ ^\#.*$  || ! "${file_lines}" || "${file_lines}" == "WEBPASSWORD="* ]] && continue
       # otherwise, display the lines of the file
       log_write "    ${file_lines}"
     fi
