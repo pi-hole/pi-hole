@@ -1754,14 +1754,27 @@ FTLinstall() {
   # Move into the temp ftl directory
   pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
-  # Always replace pihole-FTL.service (init.d script)
-  install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.initd" "/etc/init.d/pihole-FTL"
+  # Determine if systemd is used on this system
+  file $(which init) | grep "systemd" &> /dev/null
 
-  # Always replace pihole-FTL.service (systemd unit)
-  install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/systemd/system/pihole-FTL.service"
+  if [ $? -eq 0 ]; then
+    # Use systemd unit
+    # Always replace pihole-FTL.service (systemd unit)
+    install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/systemd/system/pihole-FTL.service"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL-prestart.sh" "/opt/pihole/pihole-FTL-prestart.sh"
 
-  # Enable service script (we have to do this after replacing the service unit)
-  systemctl enable pihole-FTL.service
+    # Remove old init.d script if present as it cannot coexist with the systemd unit we are installing here
+    if [ -e "/etc/init.d/pihole-FTL" ]; then
+      rm "/etc/init.d/pihole-FTL"
+    fi
+
+    # Enable service script (we have to do this after replacing the service unit)
+    systemctl enable pihole-FTL.service
+  else
+    # Use old init.d script
+    # Always replace pihole-FTL.service (init.d script)
+    install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.initd" "/etc/init.d/pihole-FTL"
+  fi
 
   local ftlBranch
   local url
