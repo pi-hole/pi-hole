@@ -55,7 +55,7 @@ IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
-INSTALL_WEB=true
+INSTALL_WEB_INTERFACE=true
 
 
 # Find the rows and columns will default to 80x24 if it can not be detected
@@ -76,6 +76,16 @@ c=$(( c < 70 ? 70 : c ))
 skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
+INSTALL_WEB_SERVER=true
+# Check arguments for the undocumented flags
+for var in "$@"; do
+  case "$var" in
+  "--reconfigure" ) reconfigure=true;;
+  "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
+  "--unattended" ) runUnattended=true;;
+  "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
+  esac
+done
 
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
@@ -948,12 +958,13 @@ setAdminFlag() {
       "On (Recommended)")
         echo -e "  ${INFO} Web Interface On"
         # Set it to true
-        INSTALL_WEB=true
+        INSTALL_WEB_INTERFACE=true
         ;;
       Off)
         echo -e "  ${INFO} Web Interface Off"
         # or false
-        INSTALL_WEB=false
+        INSTALL_WEB_INTERFACE=false
+		INSTALL_WEB_SERVER=false
         ;;
     esac
 }
@@ -1092,7 +1103,7 @@ installConfigs() {
   version_check_dnsmasq
 
   # If the user chose to install the dashboard,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     # and if the Web server conf directory does not exist,
     if [[ ! -d "/etc/lighttpd" ]]; then
       # make it
@@ -1455,7 +1466,7 @@ configureFirewall() {
 #
 finalExports() {
   # If the Web interface is not set to be installed,
-  if [[ "${INSTALL_WEB}" == false ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
     # and if there is not an IPv4 address,
     if [[ "${IPV4_ADDRESS}" ]]; then
       # there is no block page, so set IPv4 to 0.0.0.0 (all IP addresses)
@@ -1470,7 +1481,7 @@ finalExports() {
   # If the setup variable file exists,
   if [[ -e "${setupVars}" ]]; then
     # update the variables in the file
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
   fi
   # echo the information to the user
     {
@@ -1480,7 +1491,8 @@ finalExports() {
   echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
-  echo "INSTALL_WEB=${INSTALL_WEB}"
+  echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
+  echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
   echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
 
@@ -1524,25 +1536,28 @@ installPihole() {
   create_pihole_user
 
   # If the user wants to install the Web interface,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     if [[ ! -d "/var/www/html" ]]; then
       # make the Web directory if necessary
       mkdir -p /var/www/html
     fi
-    # Set the owner and permissions
-    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-    chmod 775 /var/www/html
-    # Give pihole access to the Web server group
-    usermod -a -G ${LIGHTTPD_GROUP} pihole
-    # If the lighttpd command is executable,
-    if [[ -x "$(command -v lighty-enable-mod)" ]]; then
-      # enable fastcgi and fastcgi-php
-      lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-    else
-      # Othweise, show info about installing them
-      echo -e  "  ${INFO} Warning: 'lighty-enable-mod' utility not found
-      Please ensure fastcgi is enabled if you experience issues\\n"
-    fi
+
+    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+      # Set the owner and permissions
+      chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
+      chmod 775 /var/www/html
+      # Give pihole access to the Web server group
+      usermod -a -G ${LIGHTTPD_GROUP} pihole
+      # If the lighttpd command is executable,
+      if [[ -x "$(command -v lighty-enable-mod)" ]]; then
+        # enable fastcgi and fastcgi-php
+        lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
+      else
+        # Othweise, show info about installing them
+        echo -e  "  ${INFO} Warning: 'lighty-enable-mod' utility not found
+        Please ensure fastcgi is enabled if you experience issues\\n"
+      fi
+	fi
   fi
   # Install scripts,
   installScripts
@@ -1551,7 +1566,7 @@ installPihole() {
   # and create the log file
   CreateLogFile
   # If the user wants to install the dashboard,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # do so
     installPiholeWeb
   fi
@@ -1589,7 +1604,7 @@ updatePihole() {
   # Create the log file
   CreateLogFile
   # If the user wants to install the dasboard,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # do so
     installPiholeWeb
   fi
@@ -1639,7 +1654,7 @@ displayFinalMessage() {
     pwstring="NOT SET"
   fi
    # If the user wants to install the dashboard,
-   if [[ "${INSTALL_WEB}" == true ]]; then
+   if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
        # Store a message in a variable and display it
        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
@@ -1707,7 +1722,7 @@ clone_or_update_repos() {
         exit 1; \
       }
     # If the Web interface was installed,
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
       # reset it's repo
       resetRepo ${webInterfaceDir} || \
         { echo -e "  ${COL_LIGHT_RED}Unable to reset ${webInterfaceDir}, exiting installer${COL_NC}"; \
@@ -1722,7 +1737,7 @@ clone_or_update_repos() {
         exit 1; \
       }
       # If the Web interface was installed,
-      if [[ "${INSTALL_WEB}" == true ]]; then
+      if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # get the Web git files
         getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
         { echo -e "  ${COL_LIGHT_RED}Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, exiting installer${COL_NC}"; \
@@ -1950,15 +1965,6 @@ main() {
   # Check for supported distribution
   distro_check
 
-  # Check arguments for the undocumented flags
-  for var in "$@"; do
-    case "$var" in
-      "--reconfigure" ) reconfigure=true;;
-      "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
-      "--unattended" ) runUnattended=true;;
-    esac
-  done
-
   # If the setup variable file exists,
   if [[ -f "${setupVars}" ]]; then
     # if it's running unattended,
@@ -2000,7 +2006,7 @@ main() {
     mkdir -p /etc/pihole/
 
     stop_service dnsmasq
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
       stop_service lighttpd
     fi
     # Determine available interfaces
@@ -2018,21 +2024,19 @@ main() {
     # Clone/Update the repos
     clone_or_update_repos
 
-    # Install packages used by the Pi-hole
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    # Install the Core dependencies
+    local dep_install_list=("${PIHOLE_DEPS[@]}")
+    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
       # Install the Web dependencies
-      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
-    # Otherwise,
-    else
-      # just install the Core dependencies
-      DEPS=("${PIHOLE_DEPS[@]}")
+      dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
     fi
 
-    install_dependent_packages DEPS[@]
+    install_dependent_packages dep_install_list[@]
+    unset dep_install_list
 
     # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
     # has chosen to install the web interface, else the `LIGHTTPD_ENABLED` check will fail
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
       enable_service lighttpd
     fi
 
@@ -2053,16 +2057,15 @@ main() {
     # Clone/Update the repos
     clone_or_update_repos
 
-    # Install packages used by the Pi-hole
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    # Install the Core dependencies
+    local dep_install_list=("${PIHOLE_DEPS[@]}")
+    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
       # Install the Web dependencies
-      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
-    # Otherwise,
-    else
-      # just install the Core dependencies
-      DEPS=("${PIHOLE_DEPS[@]}")
+      dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
     fi
-    install_dependent_packages DEPS[@]
+
+    install_dependent_packages dep_install_list[@]
+    unset dep_install_list
 
     if [[ -x "$(command -v systemctl)" ]]; then
       # Value will either be 1, if true, or 0
@@ -2077,7 +2080,7 @@ main() {
   # Copy the temp log file into final log location for storage
   copy_to_install_log
 
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # Add password to web UI if there is none
     pw=""
     # If no password is set,
@@ -2096,7 +2099,7 @@ main() {
   enable_service dnsmasq
 
   # If the Web server was installed,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 
     if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
       start_service lighttpd
@@ -2123,7 +2126,7 @@ main() {
   fi
 
   # If the Web interface was installed,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # If there is a password,
     if (( ${#pw} > 0 )) ; then
       # display the password
@@ -2135,7 +2138,7 @@ main() {
   #
   if [[ "${useUpdateVars}" == false ]]; then
     # If the Web interface was installed,
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
       echo -e "  View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
       echo ""
     fi

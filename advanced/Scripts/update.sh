@@ -94,7 +94,7 @@ main() {
   local pihole_version_current
   local web_version_current
   local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
-  
+
   # shellcheck disable=1090,2154
   source "${setupVars}"
 
@@ -133,7 +133,7 @@ main() {
     echo ""
   fi
 
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
       echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
   Please re-run install script from https://pi-hole.net${COL_NC}"
