@@ -19,7 +19,7 @@ Group=root
 Type=forking
 PIDFile=/run/pihole-FTL.pid
 
-ExecStartPre=/bin/bash /etc/.pihole/advanced/pihole-FTL-prestart.sh
+ExecStartPre=/bin/bash /opt/pihole/pihole-FTL-prestart.sh
 ExecStart=/bin/su -s /bin/sh -c "/usr/bin/pihole-FTL" "pihole"
 ExecReload=/bin/kill -HUP $MAINPID
 

@@ -7,5 +7,4 @@ if [ -e "/var/run/pihole/FTL.sock" ]; then
 fi
 /bin/chown pihole:pihole /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /etc/pihole /etc/pihole/dhcp.leases /var/log/pihole.log
 /bin/chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
-#/sbin/setcap "CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip" "/usr/bin/pihole-FTL"
 /bin/echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL
