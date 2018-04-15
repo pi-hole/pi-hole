@@ -365,6 +365,7 @@ check_critical_program_versions() {
 is_os_supported() {
   local os_to_check="${1}"
   # Strip just the base name of the system using sed
+  # shellcheck disable=SC2001
   the_os=$(echo "${os_to_check}" | sed 's/ .*//')
   # If the variable is one of our supported OSes,
   case "${the_os}" in
