@@ -245,6 +245,7 @@ compare_local_version_to_git_version() {
     local search_term="Pi-hole"
   elif [[ "${pihole_component}" == "Web" ]]; then
     # We need to search for "AdminLTE" so store it in a variable as well
+    #shellcheck disable=2034
     local search_term="AdminLTE"
   fi
   # Display what we are checking
@@ -385,6 +386,8 @@ get_distro_attributes() {
   OLD_IFS="$IFS"
   # Store the distro info in an array and make it global since the OS won't change,
   # but we'll keep it within the function for better unit testing
+  local distro_info
+  #shellcheck disable=SC2016
   IFS=$'\r\n' command eval 'distro_info=( $(cat /etc/*release) )'
 
   # Set a named variable for better readability
@@ -754,14 +757,14 @@ dig_at() {
   if [[ ${protocol} == "6" ]]; then
     # Set the IPv6 variables and record type
     local local_address="::1"
-    local pihole_address="${IPV6_ADDRESS%/*}"
+    local pihole_address="${IP}"
     local remote_address="2001:4860:4860::8888"
     local record_type="AAAA"
   # Othwerwise, it should be 4
   else
     # so use the IPv4 values
     local local_address="127.0.0.1"
-    local pihole_address="${IPV4_ADDRESS%/*}"
+    local pihole_address="${IP}"
     local remote_address="8.8.8.8"
     local record_type="A"
   fi
@@ -885,6 +888,8 @@ parse_file() {
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
+  local file_info
+  #shellcheck disable=SC2016
   IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
 
   # Set a named variable for better readability
