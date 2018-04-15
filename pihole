@@ -620,6 +620,7 @@ Options:
   -q, query           Query the adlists for a specified domain
                         Add '-h' for more info on query usage
   -up, updatePihole   Update Pi-hole subsystems
+                        Add '--check-only' to exit script before update is performed.
   -v, version         Show installed versions of Pi-hole, Admin Console & FTL
                         Add '-h' for more info on version usage
   uninstall           Uninstall Pi-hole from your system
