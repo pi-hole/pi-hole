@@ -71,6 +71,7 @@ flushFunc() {
 }
 
 updatePiholeFunc() {
+  shift
   "${PI_HOLE_SCRIPT_DIR}"/update.sh "$@"
   exit 0
 }
