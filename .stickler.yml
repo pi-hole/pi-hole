@@ -2,5 +2,5 @@ linters:
   shellcheck:
     shell: bash
   phpcs:
-  css:
+  csslint:
   flake8:
