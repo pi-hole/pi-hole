@@ -8,6 +8,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+# shellcheck source=/dev/null
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # -u a reference to any variable you haven't previously defined
@@ -37,7 +38,7 @@ else
   TICK="[${COL_GREEN}✓${COL_NC}]"
   CROSS="[${COL_RED}✗${COL_NC}]"
   INFO="[i]"
-  OVER="\r\033[K"
+  OVER="\\r\\033[K"
 fi
 
 OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
@@ -92,7 +93,7 @@ PIHOLE_USER_DEFINED_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.list"
 PIHOLE_BLACKLIST_FILE="${PIHOLE_DIRECTORY}/blacklist.txt"
 PIHOLE_BLOCKLIST_FILE="${PIHOLE_DIRECTORY}/gravity.list"
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
-PIHOLE_RAW_BLOCKLIST_FILES=${PIHOLE_DIRECTORY}/list.*
+PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
@@ -105,7 +106,7 @@ FTL_PID="${RUN_DIRECTORY}/pihole-FTL.pid"
 FTL_PORT="${RUN_DIRECTORY}/pihole-FTL.port"
 
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
-PIHOLE_LOG_GZIPS=${LOG_DIRECTORY}/pihole.log.[0-9].*
+PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
 PIHOLE_DEBUG_LOG_SANITIZED="${LOG_DIRECTORY}/pihole_debug-sanitized.log"
 PIHOLE_FTL_LOG="${LOG_DIRECTORY}/pihole-FTL.log"
@@ -121,47 +122,46 @@ SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 PIHOLE_PROCESSES=( "dnsmasq" "lighttpd" "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
-REQUIRED_DIRECTORIES=(${CORE_GIT_DIRECTORY}
-${CRON_D_DIRECTORY}
-${DNSMASQ_D_DIRECTORY}
-${PIHOLE_DIRECTORY}
-${PIHOLE_SCRIPTS_DIRECTORY}
-${BIN_DIRECTORY}
-${RUN_DIRECTORY}
-${LOG_DIRECTORY}
-${WEB_SERVER_LOG_DIRECTORY}
-${WEB_SERVER_CONFIG_DIRECTORY}
-${HTML_DIRECTORY}
-${WEB_GIT_DIRECTORY}
-${BLOCK_PAGE_DIRECTORY})
+REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
+"${CRON_D_DIRECTORY}"
+"${DNSMASQ_D_DIRECTORY}"
+"${PIHOLE_DIRECTORY}"
+"${PIHOLE_SCRIPTS_DIRECTORY}"
+"${BIN_DIRECTORY}"
+"${RUN_DIRECTORY}"
+"${LOG_DIRECTORY}"
+"${WEB_SERVER_LOG_DIRECTORY}"
+"${WEB_SERVER_CONFIG_DIRECTORY}"
+"${HTML_DIRECTORY}"
+"${WEB_GIT_DIRECTORY}"
+"${BLOCK_PAGE_DIRECTORY}")
 
 # Store the required directories in an array so it can be parsed through
-mapfile -t array <<< "$var"
-REQUIRED_FILES=(${PIHOLE_CRON_FILE}
-${PIHOLE_DNS_CONFIG_FILE}
-${PIHOLE_DHCP_CONFIG_FILE}
-${PIHOLE_WILDCARD_CONFIG_FILE}
-${WEB_SERVER_CONFIG_FILE}
-${PIHOLE_DEFAULT_AD_LISTS}
-${PIHOLE_USER_DEFINED_AD_LISTS}
-${PIHOLE_BLACKLIST_FILE}
-${PIHOLE_BLOCKLIST_FILE}
-${PIHOLE_INSTALL_LOG_FILE}
-${PIHOLE_RAW_BLOCKLIST_FILES}
-${PIHOLE_LOCAL_HOSTS_FILE}
-${PIHOLE_LOGROTATE_FILE}
-${PIHOLE_SETUP_VARS_FILE}
-${PIHOLE_WHITELIST_FILE}
-${PIHOLE_COMMAND}
-${PIHOLE_COLTABLE_FILE}
-${FTL_PID}
-${FTL_PORT}
-${PIHOLE_LOG}
-${PIHOLE_LOG_GZIPS}
-${PIHOLE_DEBUG_LOG}
-${PIHOLE_FTL_LOG}
-${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}
-${PIHOLE_WEB_SERVER_ERROR_LOG_FILE})
+REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
+"${PIHOLE_DNS_CONFIG_FILE}"
+"${PIHOLE_DHCP_CONFIG_FILE}"
+"${PIHOLE_WILDCARD_CONFIG_FILE}"
+"${WEB_SERVER_CONFIG_FILE}"
+"${PIHOLE_DEFAULT_AD_LISTS}"
+"${PIHOLE_USER_DEFINED_AD_LISTS}"
+"${PIHOLE_BLACKLIST_FILE}"
+"${PIHOLE_BLOCKLIST_FILE}"
+"${PIHOLE_INSTALL_LOG_FILE}"
+"${PIHOLE_RAW_BLOCKLIST_FILES}"
+"${PIHOLE_LOCAL_HOSTS_FILE}"
+"${PIHOLE_LOGROTATE_FILE}"
+"${PIHOLE_SETUP_VARS_FILE}"
+"${PIHOLE_WHITELIST_FILE}"
+"${PIHOLE_COMMAND}"
+"${PIHOLE_COLTABLE_FILE}"
+"${FTL_PID}"
+"${FTL_PORT}"
+"${PIHOLE_LOG}"
+"${PIHOLE_LOG_GZIPS}"
+"${PIHOLE_DEBUG_LOG}"
+"${PIHOLE_FTL_LOG}"
+"${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}"
+"${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
@@ -176,7 +176,7 @@ show_disclaimer(){
 
 source_setup_variables() {
   # Display the current test that is running
-  log_write "\n${COL_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
+  log_write "\\n${COL_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
   # If the variable file exists,
   if ls "${PIHOLE_SETUP_VARS_FILE}" 1> /dev/null 2>&1; then
     log_write "${INFO} Sourcing ${PIHOLE_SETUP_VARS_FILE}...";
@@ -231,7 +231,7 @@ initialize_debug() {
 echo_current_diagnostic() {
   # Colors are used for visually distinguishing each test in the output
   # These colors do not show in the GUI, but the formatting will
-  log_write "\n${COL_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
+  log_write "\\n${COL_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
 }
 
 compare_local_version_to_git_version() {
@@ -365,7 +365,7 @@ check_critical_program_versions() {
 is_os_supported() {
   local os_to_check="${1}"
   # Strip just the base name of the system using sed
-  the_os=$(echo ${os_to_check} | sed 's/ .*//')
+  the_os=$(echo "${os_to_check}" | sed 's/ .*//')
   # If the variable is one of our supported OSes,
   case "${the_os}" in
     # Print it in green
@@ -391,7 +391,8 @@ get_distro_attributes() {
   # For each line found in an /etc/*release file,
   for distro_attribute in "${distro_info[@]}"; do
     # store the key in a variable
-    local pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
+    local pretty_name_key
+    pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
     # we need just the OS PRETTY_NAME,
     if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
       # so save in in a variable when we find it
@@ -499,7 +500,8 @@ does_ip_match_setup_vars() {
   # IP address to check for
   local ip_address="${2}"
   # See what IP is in the setupVars.conf file
-  local setup_vars_ip=$(< ${PIHOLE_SETUP_VARS_FILE} grep IPV${protocol}_ADDRESS | cut -d '=' -f2)
+  local setup_vars_ip
+  setup_vars_ip=$(< ${PIHOLE_SETUP_VARS_FILE} grep IPV"${protocol}"_ADDRESS | cut -d '=' -f2)
   # If it's an IPv6 address
   if [[ "${protocol}" == "6" ]]; then
     # Strip off the / (CIDR notation)
@@ -530,10 +532,10 @@ detect_ip_addresses() {
   # Use ip to show the addresses for the chosen protocol
   # Store the values in an arry so they can be looped through
   # Get the lines that are in the file(s) and store them in an array for parsing later
-  declare -a ip_addr_list=( $(ip -${protocol} addr show dev ${PIHOLE_INTERFACE} | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }') )
+  mapfile -t ip_addr_list < <(ip -"${protocol}" addr show dev "${PIHOLE_INTERFACE}" | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')
 
   # If there is something in the IP address list,
-  if [[ -n ${ip_addr_list} ]]; then
+  if [[ -n ${ip_addr_list[*]} ]]; then
     # Local iterator
     local i
     # Display the protocol and interface
@@ -547,15 +549,15 @@ detect_ip_addresses() {
     log_write ""
   else
     # If there are no IPs detected, explain that the protocol is not configured
-    log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\n"
+    log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\\n"
     return 1
   fi
   # If the protocol is v6
   if [[ "${protocol}" == "6" ]]; then
     # let the user know that as long as there is one green address, things should be ok
     log_write "   ^ Please note that you may have more than one IP address listed."
-    log_write "   As long as one of them is green, and it matches what is in ${PIHOLE_SETUP_VARS_FILE}, there is no need for concern.\n"
-    log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it.\n"
+    log_write "   As long as one of them is green, and it matches what is in ${PIHOLE_SETUP_VARS_FILE}, there is no need for concern.\\n"
+    log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it.\\n"
   fi
 }
 
@@ -582,7 +584,7 @@ ping_gateway() {
   # Check if we are using IPv4 or IPv6
   # Find the default gateway using IPv4 or IPv6
   local gateway
-  gateway="$(ip -${protocol} route | grep default | cut -d ' ' -f 3)"
+  gateway="$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3)"
 
   # If the gateway variable has a value (meaning a gateway was found),
   if [[ -n "${gateway}" ]]; then
@@ -592,9 +594,9 @@ ping_gateway() {
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
-    if ! ${cmd} -c 1 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
+    if ! ${cmd} -c 1 -W 2 -n "${gateway}" -I "${PIHOLE_INTERFACE}" >/dev/null; then
       # let the user know
-      log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\n"
+      log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\\n"
       # and return an error code
       return 1
     # Otherwise,
@@ -613,13 +615,13 @@ ping_internet() {
   ping_ipv4_or_ipv6 "${protocol}"
   log_write "* Checking Internet connectivity via IPv${protocol}..."
   # Try to ping the address 3 times
-  if ! ${cmd} -c 1 -W 2 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
+  if ! ${cmd} -c 1 -W 2 -n ${public_address} -I "${PIHOLE_INTERFACE}" >/dev/null; then
     # if it's unsuccessful, show an error
-    log_write "${CROSS} ${COL_RED}Cannot reach the Internet.${COL_NC}\n"
+    log_write "${CROSS} ${COL_RED}Cannot reach the Internet.${COL_NC}\\n"
     return 1
   else
     # Otherwise, show success
-    log_write "${TICK} ${COL_GREEN}Query responded.${COL_NC}\n"
+    log_write "${TICK} ${COL_GREEN}Query responded.${COL_NC}\\n"
     return 0
   fi
 }
@@ -766,7 +768,8 @@ dig_at() {
   # Find a random blocked url that has not been whitelisted.
   # This helps emulate queries to different domains that a user might query
   # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
-  local random_url=$(shuf -n 1 "${PIHOLE_BLOCKLIST_FILE}" | awk -F ' ' '{ print $2 }')
+  local random_url
+  random_url=$(shuf -n 1 "${PIHOLE_BLOCKLIST_FILE}" | awk -F ' ' '{ print $2 }')
 
   # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
   if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
@@ -783,7 +786,7 @@ dig_at() {
   # The default timeouts and tries are reduced in case the DNS server isn't working, so the user isn't waiting for too long
 
   # If Pi-hole can dig itself from it's IP (not the loopback address)
-  if pihole_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${pihole_address} +short "${record_type}"); then
+  if pihole_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${pihole_address}" +short "${record_type}"); then
     # show a success
     log_write "${TICK} ${random_url} ${COL_GREEN}is ${pihole_dig}${COL_NC} via ${COL_CYAN}Pi-hole${COL_NC} (${pihole_address})"
   else
@@ -812,10 +815,12 @@ process_status(){
     # If systemd
     if command -v systemctl &> /dev/null; then
       # get its status via systemctl
-      local status_of_process=$(systemctl is-active "${i}")
+      local status_of_process
+      status_of_process=$(systemctl is-active "${i}")
     else
       # Otherwise, use the service command
-      local status_of_process=$(service "${i}" status | awk '/Active:/ {print $2}') &> /dev/null
+      local status_of_process
+      status_of_process=$(service "${i}" status | awk '/Active:/ {print $2}') &> /dev/null
     fi
     # and print it out to the user
     if [[ "${status_of_process}" == "active" ]]; then
@@ -931,7 +936,7 @@ list_files_in_dir() {
   # Set the first argument passed to tihs function as a named variable for better readability
   local dir_to_parse="${1}"
   # Store the files found in an array
-  local files_found=( $(ls "${dir_to_parse}") )
+  mapfile -t files_found < <(ls "${dir_to_parse}")
   # For each file in the array,
   for each_file in "${files_found[@]}"; do
     if [[ -d "${dir_to_parse}/${each_file}" ]]; then
@@ -939,19 +944,19 @@ list_files_in_dir() {
       :
     elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_BLOCKLIST_FILE}" ]] || \
          [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
-         [[ ${dir_to_parse}/${each_file} == ${PIHOLE_RAW_BLOCKLIST_FILES} ]] || \
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
          [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
          [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_SETUP_VARS_FILE}" ]] || \
          [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
          [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
-         [[ ${dir_to_parse}/${each_file} == ${PIHOLE_LOG_GZIPS} ]]; then
+         [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
            :
     else
       # Then, parse the file's content into an array so each line can be analyzed if need be
       for i in "${!REQUIRED_FILES[@]}"; do
-        if [[ "${dir_to_parse}/${each_file}" == ${REQUIRED_FILES[$i]} ]]; then
+        if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
           # display the filename
-          log_write "\n${COL_GREEN}$(ls -ld ${dir_to_parse}/${each_file})${COL_NC}"
+          log_write "\\n${COL_GREEN}$(ls -ld "${dir_to_parse}"/"${each_file}")${COL_NC}"
           # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
           case "${dir_to_parse}/${each_file}" in
             # If it's Web server error log, just give the first 25 lines
@@ -1003,15 +1008,15 @@ head_tail_log() {
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
   local log_head=()
-  log_head=( $(head -n ${qty} ${filename}) )
-  log_write "   ${COL_CYAN}-----head of $(basename ${filename})------${COL_NC}"
+  mapfile -t log_head < <(head -n "${qty}" "${filename}")
+  log_write "   ${COL_CYAN}-----head of $(basename "${filename}")------${COL_NC}"
   for head_line in "${log_head[@]}"; do
     log_write "   ${head_line}"
   done
   log_write ""
   local log_tail=()
-  log_tail=( $(tail -n ${qty} ${filename}) )
-  log_write "   ${COL_CYAN}-----tail of $(basename ${filename})------${COL_NC}"
+  mapfile -t log_tail < <(tail -n "${qty}" "${filename}")
+  log_write "   ${COL_CYAN}-----tail of $(basename "${filename}")------${COL_NC}"
   for tail_line in "${log_tail[@]}"; do
     log_write "   ${tail_line}"
   done
@@ -1027,17 +1032,18 @@ analyze_gravity_list() {
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
-  local gravity_permissions=$(ls -ld "${PIHOLE_BLOCKLIST_FILE}")
+  local gravity_permissions
+  gravity_permissions=$(ls -ld "${PIHOLE_BLOCKLIST_FILE}")
   log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
   local gravity_head=()
-  gravity_head=( $(head -n 4 ${PIHOLE_BLOCKLIST_FILE}) )
+  mapfile -t gravity_head < <(head -n 4 ${PIHOLE_BLOCKLIST_FILE})
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_BLOCKLIST_FILE})------${COL_NC}"
   for head_line in "${gravity_head[@]}"; do
     log_write "   ${head_line}"
   done
   log_write ""
   local gravity_tail=()
-  gravity_tail=( $(tail -n 4 ${PIHOLE_BLOCKLIST_FILE}) )
+  mapfile -t gravity_tail < <(tail -n 4 ${PIHOLE_BLOCKLIST_FILE})
   log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_BLOCKLIST_FILE})------${COL_NC}"
   for tail_line in "${gravity_tail[@]}"; do
     log_write "   ${tail_line}"
@@ -1053,10 +1059,11 @@ analyze_pihole_log() {
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
-  local pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
+  local pihole_log_permissions
+  pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
   log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
   local pihole_log_head=()
-  pihole_log_head=( $(head -n 20 ${PIHOLE_LOG}) )
+  mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
   local error_to_check_for
   local line_to_obfuscate
@@ -1066,10 +1073,10 @@ analyze_pihole_log() {
     # that the DNS server is attempting to read.  Since it's not formatted
     # correctly, there will be an entry for "bad address at line n"
     # So we can check for that here and highlight it in red so the user can see it easily
-    error_to_check_for=$(echo ${head_line} | grep 'bad address at')
+    error_to_check_for=$(echo "${head_line}" | grep 'bad address at')
     # Some users may not want to have the domains they visit sent to us
     # To that end, we check for lines in the log that would contain a domain name
-    line_to_obfuscate=$(echo ${head_line} | grep ': query\|: forwarded\|: reply')
+    line_to_obfuscate=$(echo "${head_line}" | grep ': query\|: forwarded\|: reply')
     # If the variable contains a value, it found an error in the log
     if [[ -n ${error_to_check_for} ]]; then
       # So we can print it in red to make it visible to the user
@@ -1084,7 +1091,7 @@ analyze_pihole_log() {
         if [[ -n ${line_to_obfuscate} ]]; then
           # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
           # so we substitue the domain for the placeholder value
-          obfuscated_line=$(echo ${line_to_obfuscate} | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
+          obfuscated_line=$(echo "${line_to_obfuscate}" | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
           log_write "   ${obfuscated_line}"
         else
           log_write "   ${head_line}"
@@ -1125,7 +1132,7 @@ upload_to_tricorder() {
   log_write ""
   log_write "${COL_PURPLE}********************************************${COL_NC}"
   log_write "${COL_PURPLE}********************************************${COL_NC}"
-	log_write "${TICK} ${COL_GREEN}** FINISHED DEBUGGING! **${COL_NC}\n"
+	log_write "${TICK} ${COL_GREEN}** FINISHED DEBUGGING! **${COL_NC}\\n"
 
   # Provide information on what they should do with their token
 	log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
@@ -1172,7 +1179,7 @@ upload_to_tricorder() {
 		log_write "   * Please try again or contact the Pi-hole team for assistance."
 	fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
-		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG_SANITIZED}${COL_NC}\n"
+		log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG_SANITIZED}${COL_NC}\\n"
 }
 
 # Run through all the functions we made
