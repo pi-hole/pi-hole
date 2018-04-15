@@ -71,7 +71,7 @@ flushFunc() {
 }
 
 updatePiholeFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/update.sh
+  "${PI_HOLE_SCRIPT_DIR}"/update.sh "$@"
   exit 0
 }
 
@@ -644,7 +644,7 @@ case "${1}" in
   "-wild" | "wildcard"          ) wildcardFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
-  "-up" | "updatePihole"        ) updatePiholeFunc;;
+  "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
   "-c" | "chronometer"          ) chronometerFunc "$@";;

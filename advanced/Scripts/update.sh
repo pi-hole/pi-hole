@@ -19,6 +19,9 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 # shellcheck disable=SC2034
 PH_TEST=true
 
+# when --check-only is passed to this script, it will not perform the actual update
+CHECK_ONLY=false
+
 # shellcheck disable=SC1090
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # shellcheck disable=SC1091
@@ -140,6 +143,11 @@ main() {
     exit 0
   fi
 
+  if [[ "${CHECK_ONLY}" == true ]]; then
+    echo ""
+    exit 0
+  fi
+
   if [[ "${core_update}" == true ]]; then
     echo ""
     echo -e "  ${INFO} Pi-hole core files out of date, updating local repo."
@@ -159,12 +167,16 @@ main() {
     echo -e "  ${INFO} FTL out of date, it will be updated by the installer."
   fi
 
-  if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
+  if [[ "${FTL_update}" == true || "${core_update}" == true ]]; then
     ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
          echo -e "${basicError}" && exit 1
   fi
   echo ""
   exit 0
 }
+
+if [[ "$1" == "--check-only" ]]; then
+  CHECK_ONLY=true
+fi
 
 main
