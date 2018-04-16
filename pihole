@@ -14,6 +14,8 @@ readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
+resolver="pihole-FTL"
+
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
   if [[ -x "$(command -v sudo)" ]]; then
@@ -69,7 +71,8 @@ flushFunc() {
 }
 
 updatePiholeFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/update.sh
+  shift
+  "${PI_HOLE_SCRIPT_DIR}"/update.sh "$@"
   exit 0
 }
 
@@ -332,18 +335,18 @@ restartDNS() {
   local svcOption svc str output status
   svcOption="${1:-}"
 
-  # Determine if we should reload or restart dnsmasq
+  # Determine if we should reload or restart restart
   if [[ "${svcOption}" =~ "reload" ]]; then
     # Using SIGHUP will NOT re-read any *.conf files
-    svc="killall -s SIGHUP dnsmasq"
+    svc="killall -s SIGHUP ${resolver}"
   else
-    # Get PID of dnsmasq to determine if it needs to start or restart
-    if pidof dnsmasq &> /dev/null; then
+    # Get PID of resolver to determine if it needs to start or restart
+    if pidof pihole-FTL &> /dev/null; then
       svcOption="restart"
     else
       svcOption="start"
     fi
-    svc="service dnsmasq ${svcOption}"
+    svc="service ${resolver} ${svcOption}"
   fi
 
   # Print output to Terminal, but not to Web Admin
@@ -359,9 +362,6 @@ restartDNS() {
     [[ ! -t 1 ]] && local OVER=""
     echo -e "${OVER}  ${CROSS} ${output}"
   fi
-
-  # Send signal to FTL to have it re-parse the gravity files
-  killall -s SIGHUP pihole-FTL
 }
 
 piholeEnable() {
@@ -621,6 +621,7 @@ Options:
   -q, query           Query the adlists for a specified domain
                         Add '-h' for more info on query usage
   -up, updatePihole   Update Pi-hole subsystems
+                        Add '--check-only' to exit script before update is performed.
   -v, version         Show installed versions of Pi-hole, Admin Console & FTL
                         Add '-h' for more info on version usage
   uninstall           Uninstall Pi-hole from your system
@@ -645,7 +646,7 @@ case "${1}" in
   "-wild" | "wildcard"          ) wildcardFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
-  "-up" | "updatePihole"        ) updatePiholeFunc;;
+  "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
   "-c" | "chronometer"          ) chronometerFunc "$@";;
