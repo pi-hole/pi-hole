@@ -692,13 +692,13 @@ setStaticIPv4() {
   elif [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
     # If it exists,
     IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
+    IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
     # check if the desired IP is already set
-    if grep -q "${IPV4_ADDRESS}" "${IFCFG_FILE}"; then
+    if grep -q "${IPADDR}" "${IFCFG_FILE}"; then
       echo -e "  ${INFO} Static IP already configured"
     # Otherwise,
     else
       # Put the IP in variables without the CIDR notation
-      IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
       CIDR=$(echo "${IPV4_ADDRESS}" | cut -f2 -d/)
       # Backup existing interface configuration:
       cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
@@ -773,6 +773,8 @@ setDNS() {
       Comodo ""
       DNSWatch ""
       Quad9 ""
+      FamilyShield ""
+      Cloudflare ""
       Custom "")
   # In a whiptail dialog, show the options
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
@@ -818,6 +820,16 @@ setDNS() {
       echo "Quad9 servers"
       PIHOLE_DNS_1="9.9.9.9"
       PIHOLE_DNS_2="149.112.112.112"
+      ;;
+    FamilyShield)
+      echo "FamilyShield servers"
+      PIHOLE_DNS_1="208.67.222.123"
+      PIHOLE_DNS_2="208.67.220.123"
+      ;;
+    Cloudflare)
+      echo "Cloudflare servers"
+      PIHOLE_DNS_1="1.1.1.1"
+      PIHOLE_DNS_2="1.0.0.1"
       ;;
     Custom)
       # Until the DNS settings are selected,
@@ -1413,17 +1425,8 @@ installCron() {
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
-  echo ""
-  echo -e "  ${INFO} Preparing to run gravity.sh to refresh hosts..."
-  # If cached lists exist,
-  if ls /etc/pihole/list* 1> /dev/null 2>&1; then
-    echo -e "  ${INFO} Cleaning up previous install (preserving whitelist/blacklist)"
-    # remove them
-    rm /etc/pihole/list.*
-  fi  
-  echo -e "  ${INFO} Running gravity.sh"
   # Run gravity in the current shell
-  { /opt/pihole/gravity.sh; }
+  { /opt/pihole/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -1782,7 +1785,7 @@ FTLinstall() {
   fi
 
   # Move into the temp ftl directory
-  pushd "$(mktmp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
+  pushd "$(mktemp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
   # Always replace pihole-FTL.service
   install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
