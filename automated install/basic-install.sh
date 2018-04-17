@@ -959,15 +959,15 @@ setAdminFlag() {
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {  
   # Let user select (or not) blocklists via a checklist
-  cmd=(whiptail --separate-output --checklist "In order to block ads Pi-Hole relies on blacklists, either sourced from third party curated lists, or through building up a custom blacklist.\\n\\nBelow you will find some examples of third party lists.\\n\\nPlease note, the installation can be completed without any of these lists selected, but nothing will be blocked until you add your own." "${r}" "${c}" 7)
+  cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 7)
   # In an array, show the options available (all off by default): 
-  options=(StevenBlack "StevenBlack's Unified Hosts List" off
-  MalwareDom "MalwareDomains" off
-  Cameleon "Cameleon" off
-  ZeusTracker "ZeusTracker" off
-  DisconTrack "Disconnect.me Tracking" off
-  DisconAd "Disconnect.me Ads" off
-  HostsFile "Hosts-file.net Ads" off)
+  options=(StevenBlack "StevenBlack's Unified Hosts List" on
+  MalwareDom "MalwareDomains" on
+  Cameleon "Cameleon" on
+  ZeusTracker "ZeusTracker" on
+  DisconTrack "Disconnect.me Tracking" on
+  DisconAd "Disconnect.me Ads" on
+  HostsFile "Hosts-file.net Ads" on)
 
   # In a variable, show the choices available; exit if Cancel is selected
   choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
@@ -984,9 +984,7 @@ chooseBlocklists() {
     DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
     HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
     esac
-  done  
-  
-
+  done
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
