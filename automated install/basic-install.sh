@@ -49,6 +49,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
+adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=""
@@ -953,6 +954,39 @@ setAdminFlag() {
         INSTALL_WEB=false
         ;;
     esac
+}
+
+# A function to display a list of example blocklists for users to select
+chooseBlocklists() {  
+  # Let user select (or not) blocklists via a checklist
+  cmd=(whiptail --separate-output --checklist "In order to block ads Pi-Hole relies on blacklists, either sourced from third party curated lists, or through building up a custom blacklist.\\n\\nBelow you will find some examples of third party lists.\\n\\nPlease note, the installation can be completed without any of these lists selected, but nothing will be blocked until you add your own." "${r}" "${c}" 7)
+  # In an array, show the options available (all off by default): 
+  options=(StevenBlack "StevenBlack's Unified Hosts List" off
+  MalwareDom "MalwareDomains" off
+  Cameleon "Cameleon" off
+  ZeusTracker "ZeusTracker" off
+  DisconTrack "Disconnect.me Tracking" off
+  DisconAd "Disconnect.me Ads" off
+  HostsFile "Hosts-file.net Ads" off)
+
+  # In a variable, show the choices available; exit if Cancel is selected
+  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+  # For each choice available,
+  for choice in ${choices}
+  do
+    # Set the values to true
+    case ${choice} in
+    StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
+    MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
+    Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+    ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
+    DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
+    DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
+    HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
+    esac
+  done  
+  
+
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -2100,6 +2134,10 @@ main() {
     chooseInterface
     # Decide what upstream DNS Servers to use
     setDNS
+     # If adlists.list file does not exist, give the user the choice of adding some example lists
+    if [[ ! -f "${adlistFile}" ]]; then
+      chooseBlocklists
+    fi
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
     use4andor6
     # Let the user decide if they want the web interface to be installed automatically

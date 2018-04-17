@@ -20,11 +20,9 @@ basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
 piholeDir="/etc/${basename}"
-piholeRepo="/etc/.${basename}"
 
 adListFile="${piholeDir}/adlists.list"
 adListDefault="${piholeDir}/adlists.default"
-adListRepoDefault="${piholeRepo}/adlists.default"
 
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
@@ -133,9 +131,7 @@ gravity_GetBlocklistUrls() {
 
   # Determine if adlists file needs handling
   if [[ ! -f "${adListFile}" ]]; then
-    # Create "adlists.list" by copying "adlists.default" from internal core repo
-    cp "${adListRepoDefault}" "${adListFile}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to copy ${adListFile##*/} from ${piholeRepo}"
+    echo -e "  ${CROSS} No adlists file found. Nothing to do!"
   elif [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
     # Remove superceded $adListDefault file
     rm "${adListDefault}" 2> /dev/null || \
