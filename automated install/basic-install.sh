@@ -957,10 +957,10 @@ setAdminFlag() {
 }
 
 # A function to display a list of example blocklists for users to select
-chooseBlocklists() {  
+chooseBlocklists() {
   # Let user select (or not) blocklists via a checklist
   cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 7)
-  # In an array, show the options available (all off by default): 
+  # In an array, show the options available (all off by default):
   options=(StevenBlack "StevenBlack's Unified Hosts List" on
   MalwareDom "MalwareDomains" on
   Cameleon "Cameleon" on
@@ -970,7 +970,7 @@ chooseBlocklists() {
   HostsFile "Hosts-file.net Ads" on)
 
   # In a variable, show the choices available; exit if Cancel is selected
-  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; rm "${adlistFile}" ;exit 1; }
   # For each choice available,
   for choice in ${choices}
   do
