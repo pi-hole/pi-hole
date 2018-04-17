@@ -958,6 +958,10 @@ setAdminFlag() {
 
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {
+  # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
+  if [[ -f "${adlistFile}" ]]; then
+    mv "${adlistFile}" "${adlistFile}.old"
+  fi
   # Let user select (or not) blocklists via a checklist
   cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 7)
   # In an array, show the options available (all off by default):
@@ -1708,7 +1712,7 @@ update_dialogs() {
     strAdd="You will be updated to the latest version."
   fi
   opt2a="Reconfigure"
-  opt2b="This will allow you to enter new settings"
+  opt2b="This will reset your Pi-hole and allow you to enter new settings."
 
   # Display the information to the user
   UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\\n\\nWe have detected an existing install.\\n\\nPlease choose from the following options: \\n($strAdd)" ${r} ${c} 2 \
@@ -2132,10 +2136,8 @@ main() {
     chooseInterface
     # Decide what upstream DNS Servers to use
     setDNS
-     # If adlists.list file does not exist, give the user the choice of adding some example lists
-    if [[ ! -f "${adlistFile}" ]]; then
-      chooseBlocklists
-    fi
+    # Give the user a choice of blocklists to include in their install. Or not.
+    chooseBlocklists
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
     use4andor6
     # Let the user decide if they want the web interface to be installed automatically
