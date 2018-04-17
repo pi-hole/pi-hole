@@ -347,13 +347,18 @@ gravity_ParseFileIntoDomains() {
     # Scanning for "^IPv4$" is too slow with large (1M) lists on low-end hardware
     echo -ne "  ${INFO} Format: URL"
 
-    awk '{
-      # Remove URL protocol, optional "username:password@", and ":?/;"
-      if ($0 ~ /[:?\/;]/) { gsub(/(^.*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
-      # Remove lines which are only IPv4 addresses
-      if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
-      if ($0) { print $0 }
-    }' "${source}" 2> /dev/null > "${destination}"
+    awk '
+      # Remove URL scheme, optional "username:password@", and ":?/;"
+      # The scheme must be matched carefully to avoid blocking the wrong URL
+      # in cases like:
+      #   http://www.evil.com?http://www.good.com
+      # See RFC 3986 section 3.1 for details.
+      /[:?\/;]/ { gsub(/(^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
+      # Skip lines which are only IPv4 addresses
+      /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { next }
+      # Print if nonempty
+      length { print }
+    ' "${source}" 2> /dev/null > "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
   else
