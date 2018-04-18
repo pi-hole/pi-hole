@@ -964,9 +964,25 @@ setAdminFlag() {
         echo -e "  ${INFO} Web Interface Off"
         # or false
         INSTALL_WEB_INTERFACE=false
-		INSTALL_WEB_SERVER=false
         ;;
     esac
+
+  # Request user to install web server, if --disable-install-webserver has not been used (INSTALL_WEB_SERVER=true is default).
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+    WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd)?" ${r} ${c} 6)
+    # with the default being enabled
+    WebChooseOptions=("On (Recommended)" "" on
+        Off "" off)
+    WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
+      # Depending on their choice
+      case ${WebChoices} in
+        Off)
+          echo -e "  ${INFO} Web Server Off"
+          # or false
+		  INSTALL_WEB_SERVER=false
+          ;;
+      esac
+	fi
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1593,6 +1609,15 @@ accountForRefactor() {
   sed -i 's/piholeIPv6/IPV6_ADDRESS/g' ${setupVars}
   sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}
   sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}
+  sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' ${setupVars}
+  # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
+  if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
+    local webserver_installed=false
+    if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
+      webserver_installed=true
+    fi
+    echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> ${setupVars}
+  fi
 }
 
 updatePihole() {
