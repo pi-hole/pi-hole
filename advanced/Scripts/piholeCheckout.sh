@@ -256,6 +256,7 @@ checkout() {
     get_binary_name
     local path
     path="development/${binary}"
+    echo "development" > /etc/pihole/ftlbranch
     FTLinstall "${binary}" "${path}"
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
@@ -270,6 +271,7 @@ checkout() {
     get_binary_name
     local path
     path="master/${binary}"
+    echo "master" > /etc/pihole/ftlbranch
     FTLinstall "${binary}" "${path}"
   elif [[ "${1}" == "core" ]] ; then
     str="Fetching branches from ${piholeGitUrl}"
@@ -332,6 +334,7 @@ checkout() {
 
     if check_download_exists "$path"; then
         echo "  ${TICK} Branch ${2} exists"
+        echo "${2}" > /etc/pihole/ftlbranch
         FTLinstall "${binary}" "${path}"
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
