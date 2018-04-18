@@ -3,6 +3,7 @@
 - [] I have read and understood the [contributors guide](https://github.com/pi-hole/pi-hole/blob/master/CONTRIBUTING.md).
 - [] The issue I am reporting can be *replicated*.
 - [] The issue I am reporting isn't a duplicate (see [FAQs](https://github.com/pi-hole/pi-hole/wiki/FAQs), [closed issues](https://github.com/pi-hole/pi-hole/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), and [open issues](https://github.com/pi-hole/pi-hole/issues)).
+- [] I have followed _all_ instructions in this issue template.
 
 **How familiar are you with the the source code relevant to this issue?:**
 
