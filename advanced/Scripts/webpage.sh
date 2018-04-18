@@ -149,8 +149,8 @@ ProcessDNSSettings() {
 		let COUNTER=COUNTER+1
 	done
 
-  if [ ! -z "${LOCAL_RECURSIVE}" ]; then
-    add_dnsmasq_setting "server" "127.0.0.1#${LOCAL_RECURSIVE}"
+  if [ ! -z "${LOCAL_DNS_PORT}" ]; then
+    add_dnsmasq_setting "server" "127.0.0.1#${LOCAL_DNS_PORT}"
   fi
 
 	delete_dnsmasq_setting "domain-needed"
@@ -529,13 +529,13 @@ SetPrivacyLevel() {
 		changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
 	fi
 }
-SetLocalRecursivePort() {
+SetLocalDNSport() {
   # Ensure port is a natural number { 0, 1, 2, 3, ... }
   if [[ "${1}" == "0" ]]; then
-    delete_setting "LOCAL_RECURSIVE"
+    delete_setting "LOCAL_DNS_PORT"
     ProcessDNSSettings
   elif [[ "${1}" =~ ^[0-9]+$ ]]; then
-    change_setting "LOCAL_RECURSIVE" "${1}"
+    change_setting "LOCAL_DNS_PORT" "${1}"
     ProcessDNSSettings
   fi
 }
@@ -570,7 +570,7 @@ main() {
 		"adlist"              ) CustomizeAdLists;;
 		"audit"               ) audit;;
 		"-l" | "privacylevel" ) SetPrivacyLevel;;
-		"localrecursivedns"   ) SetLocalRecursivePort "$3";;
+		"localdnsport"        ) SetLocalDNSport "$3";;
 		*                     ) helpFunc;;
 	esac
 
