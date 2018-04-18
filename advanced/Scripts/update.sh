@@ -26,8 +26,24 @@ source "/opt/pihole/COL_TABLE"
 
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
-# update_repo() source from basic-install.sh
+# update_repo() sourced from basic-install.sh
 # getGitFiles() sourced from basic-install.sh
+# PIHOLE_DNS_1 sourced from basic-install.sh
+
+ConnectionTest() {
+  # This function checks if device is connected to the internet
+  # It pings DNS server that user choosed during installation process
+  # If the ping fails - then the script exits
+  # If the ping pass - then the script continue its work
+  echo -e "  ${INFO} Checking internet connection..."
+
+  if ping -q -W 1 -c 2 "${PIHOLE_DNS_1}" > /dev/null 2>&1; then
+    echo -e "  ${TICK} Internet connection available"
+  else
+    echo -e "  ${CROSS}Internet connection not available. Connect your device to internet."
+    exit
+  fi
+}
 
 GitCheckUpdateAvail() {
   local directory="${1}"
@@ -104,6 +120,8 @@ main() {
   Please re-run install script from https://pi-hole.net${COL_NC}"
     exit 1;
   fi
+
+  ConnectionTest  
 
   echo -e "  ${INFO} Checking for updates..."
 
