@@ -11,6 +11,9 @@
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+readonly adListNX="/etc/dnsmasq.d/00-pihole-gravity.conf"
+readonly userListNX="/etc/dnsmasq.d/00-pihole-userblacklist.conf"
+readonly whiteListNX="/etc/dnsmasq.d/99-pihole-whitelist.conf"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
@@ -382,6 +385,15 @@ Time:
     if [[ -e "$wildcardlist" ]]; then
       mv "$wildcardlist" "/etc/pihole/wildcard.list"
     fi
+    if [[ -e "$adListNX" ]]; then
+      mv "$adListNX" "/etc/pihole/gravityNX.list"
+    fi
+    if [[ -e "$userListNX" ]]; then
+      mv "$userListNX" "/etc/pihole/blackNX.list"
+    fi
+    if [[ -e "$whiteListNX" ]]; then
+      mv "$whiteListNX" "/etc/pihole/whitelistNX.list"
+    fi
     if [[ $# > 1 ]]; then
       local error=false
       if [[ "${2}" == *"s" ]]; then
@@ -427,6 +439,15 @@ Time:
     sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
     if [[ -e "/etc/pihole/wildcard.list" ]]; then
       mv "/etc/pihole/wildcard.list" "$wildcardlist"
+    fi
+    if [[ -e "/etc/pihole/gravityNX.list" ]]; then
+      mv "/etc/pihole/gravityNX.list" "$adListNX"
+    fi
+    if [[ -e "/etc/pihole/blackNX.list" ]]; then
+      mv "/etc/pihole/blackNX.list" "$userListNX"
+    fi
+    if [[ -e "/etc/pihole/whitelistNX.list" ]]; then
+      mv "/etc/pihole/whitelistNX.list" "$whiteListNX"
     fi
   fi
 
