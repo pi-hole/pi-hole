@@ -969,7 +969,7 @@ setAdminFlag() {
 
   # Request user to install web server, if --disable-install-webserver has not been used (INSTALL_WEB_SERVER=true is default).
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-    WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd)?" ${r} ${c} 6)
+    WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd)?\n\nNB: If you disable this, and, do not have an existing webserver installed, the web interface will not function." ${r} ${c} 6)
     # with the default being enabled
     WebChooseOptions=("On (Recommended)" "" on
         Off "" off)
