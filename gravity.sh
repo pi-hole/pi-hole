@@ -44,6 +44,8 @@ preEventHorizon="list.preEventHorizon"
 
 skipDownload="false"
 
+resolver="pihole-FTL"
+
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
 if [[ -f "${setupVars}" ]];then
@@ -104,7 +106,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine error output message
-  if pidof dnsmasq &> /dev/null; then
+  if pidof ${resolver} &> /dev/null; then
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   else
     echo -e "  ${CROSS} DNS service is not running"
@@ -513,9 +515,11 @@ gravity_ParseBlacklistDomains() {
   
   if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
     gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+    grep -c "^" "${piholeDir}/${whitelistMatter}" > "${piholeDir}/numBlocked" 2> /dev/null
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
     gravity_ParseDomainsIntoHosts "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    grep -c "^" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/numBlocked" 2> /dev/null
   fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
@@ -572,7 +576,7 @@ gravity_Cleanup() {
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Only restart DNS service if offline
-  if ! pidof dnsmasq &> /dev/null; then
+  if ! pidof ${resolver} &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
     dnsWasOffline=true
   fi

@@ -163,7 +163,7 @@ if command -v apt-get &> /dev/null; then
   # These programs are stored in an array so they can be looped through later
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsmasq dnsutils iputils-ping lsof netcat sudo unzip wget idn2 sqlite3)
+  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -173,8 +173,6 @@ if command -v apt-get &> /dev/null; then
   LIGHTTPD_GROUP="www-data"
   # and config file
   LIGHTTPD_CFG="lighttpd.conf.debian"
-  # The DNS server user
-  DNSMASQ_USER="dnsmasq"
 
   # A function to check...
   test_dpkg_lock() {
@@ -207,7 +205,7 @@ elif command -v rpm &> /dev/null; then
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
   INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
-  PIHOLE_DEPS=(bc bind-utils cronie curl dnsmasq findutils nmap-ncat sudo unzip wget libidn2 psmisc)
+  PIHOLE_DEPS=(bc bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
   # EPEL (https://fedoraproject.org/wiki/EPEL) is required for lighttpd on CentOS
   if grep -qi 'centos' /etc/redhat-release; then
@@ -216,7 +214,6 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
-    DNSMASQ_USER="nobody"
 
 # If neither apt-get or rmp/dnf are found
 else
@@ -996,6 +993,10 @@ version_check_dnsmasq() {
   fi
 
   echo -en "  ${INFO} Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
+  # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
+  if [[ ! -d "/etc/dnsmasq.d"  ]];then
+    mkdir "/etc/dnsmasq.d"
+  fi
   # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
   cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
   echo -e "${OVER}  ${TICK} Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf"
@@ -1124,7 +1125,6 @@ stop_service() {
   # Stop service passed in as argument.
   # Can softfail, as process may not be installed when this is called
   local str="Stopping ${1} service"
-  echo ""
   echo -ne "  ${INFO} ${str}..."
   if command -v systemctl &> /dev/null; then
     systemctl stop "${1}" &> /dev/null || true
@@ -1138,7 +1138,6 @@ stop_service() {
 start_service() {
   # Local, named variables
   local str="Starting ${1} service"
-  echo ""
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
@@ -1156,18 +1155,46 @@ start_service() {
 enable_service() {
   # Local, named variables
   local str="Enabling ${1} service to start on reboot"
-  echo ""
   echo -ne "  ${INFO} ${str}..."
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to enable the service
     systemctl enable "${1}" &> /dev/null
-  # Othwerwise,
+  # Otherwise,
   else
     # use update-rc.d to accomplish this
     update-rc.d "${1}" defaults &> /dev/null
   fi
   echo -e "${OVER}  ${TICK} ${str}"
+}
+
+# Disable service so that it will not with next reboot
+disable_service() {
+  # Local, named variables
+  local str="Disabling ${1} service"
+  echo -ne "  ${INFO} ${str}..."
+  # If systemctl exists,
+  if command -v systemctl &> /dev/null; then
+    # use that to disable the service
+    systemctl disable "${1}" &> /dev/null
+  # Otherwise,
+  else
+    # use update-rc.d to accomplish this
+    update-rc.d "${1}" disable &> /dev/null
+  fi
+  echo -e "${OVER}  ${TICK} ${str}"
+}
+
+check_service_active() {
+    # If systemctl exists,
+  if command -v systemctl &> /dev/null; then
+    # use that to check the status of the service
+    systemctl is-enabled "${1}" > /dev/null
+  # Otherwise,
+  else
+    # fall back to service command
+    service "${1}" status > /dev/null
+  fi
 }
 
 update_package_cache() {
@@ -1296,27 +1323,6 @@ install_dependent_packages() {
   return 0
 }
 
-# Create logfiles if necessary
-CreateLogFile() {
-  local str="Creating log and changing owner to dnsmasq"
-  echo ""
-  echo -ne "  ${INFO} ${str}..."
-  # If the pihole log does not exist,
-  if [[ ! -f "/var/log/pihole.log" ]]; then
-    # Make it,
-    touch /var/log/pihole.log
-    # set the permissions,
-    chmod 644 /var/log/pihole.log
-    # and owners
-    chown "${DNSMASQ_USER}":root /var/log/pihole.log
-    echo -e "${OVER}  ${TICK} ${str}"
-  # Otherwise,
-  else
-    # the file should already exist
-    echo -e " ${COL_LIGHT_GREEN}log already exists!${COL_NC}"
-  fi
-}
-
 # Install the Web interface dashboard
 installPiholeWeb() {
   echo ""
@@ -1343,7 +1349,7 @@ installPiholeWeb() {
     # back it up
     mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
     echo -e "${OVER}  ${TICK} ${str}"
-  # Othwerwise,
+  # Otherwise,
   else
     # don't do anything
     echo -e "${OVER}  ${CROSS} ${str}
@@ -1402,7 +1408,7 @@ create_pihole_user() {
   if id -u pihole &> /dev/null; then
     # just show a success
     echo -ne "${OVER}  ${TICK} ${str}"
-  # Othwerwise,
+  # Otherwise,
   else
     echo -ne "${OVER}  ${CROSS} ${str}"
     local str="Creating user 'pihole'"
@@ -1421,7 +1427,7 @@ configureFirewall() {
     # ask if the user wants to install Pi-hole's default firwall rules
     whiptail --title "Firewall in use" --yesno "We have detected a running firewall\\n\\nPi-hole currently requires HTTP and DNS port access.\\n\\n\\n\\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
     { echo -e "  ${INFO} Not installing firewall rulesets."; return 0; }
-    echo -e "  ${TICK} Configuring FirewallD for httpd and dnsmasq"
+    echo -e "  ${TICK} Configuring FirewallD for httpd and pihole-FTL"
     # Allow HTTP and DNS traffice
     firewall-cmd --permanent --add-service=http --add-service=dns
     # Reload the firewall to apply these changes
@@ -1442,7 +1448,7 @@ configureFirewall() {
       iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
       return 0
     fi
-  # Othwerwise,
+  # Otherwise,
   else
     # no firewall is running
     echo -e "  ${INFO} No active firewall detected.. skipping firewall configuration"
@@ -1548,8 +1554,6 @@ installPihole() {
   installScripts
   # configs,
   installConfigs
-  # and create the log file
-  CreateLogFile
   # If the user wants to install the dashboard,
   if [[ "${INSTALL_WEB}" == true ]]; then
     # do so
@@ -1585,9 +1589,7 @@ updatePihole() {
   # Install base files and web interface
   installScripts
   # Install config files
-  installConfigs
-  # Create the log file
-  CreateLogFile
+  installConfigs  
   # If the user wants to install the dasboard,
   if [[ "${INSTALL_WEB}" == true ]]; then
     # do so
@@ -1750,15 +1752,32 @@ FTLinstall() {
   fi
 
   # Move into the temp ftl directory
-  pushd "$(mktemp -d)" || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
+  pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
   # Always replace pihole-FTL.service
   install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
+  local ftlBranch
+  local url
+  local ftlBranch
+
+  if [[ -f "/etc/pihole/ftlbranch" ]];then
+    ftlBranch=$(</etc/pihole/ftlbranch)
+  else
+    ftlBranch="master"
+  fi
+
+  # Determine which version of FTL to download
+  if [[ "${ftlBranch}" == "master" ]];then
+    url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
+  else
+    url="https://ftl.pi-hole.net/${ftlBranch}"
+  fi
+
   # If the download worked,
-  if curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}" -o "${binary}"; then
+  if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
     # get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}/${binary}.sha1" -o "${binary}.sha1"
+    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
 
     # If we downloaded binary file (as opposed to text),
     if sha1sum --status --quiet -c "${binary}".sha1; then
@@ -1768,21 +1787,38 @@ FTLinstall() {
       # Install the new version with the correct permissions
       install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
       # Move back into the original directory the user was in
-      popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
+      popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
       echo -e "${OVER}  ${TICK} ${str}"
+      # If the --resolver flag returns True (exit code 0), then we can safely stop & disable dnsmasq
+      if pihole-FTL --resolver > /dev/null; then
+        if which dnsmasq > /dev/null; then
+          if check_service_active "dnsmasq";then
+            echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
+            stop_service dnsmasq
+            disable_service dnsmasq
+          fi
+        fi
+
+        #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
+        confdir="conf-dir=/etc/dnsmasq.d"
+        conffile="/etc/dnsmasq.conf"
+        if ! grep -q "$confdir" "$conffile"; then
+            echo "$confdir" >> "$conffile"
+        fi
+      fi
       return 0
     # Otherise,
     else
       # the download failed, so just go back to the original directory
-      popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
+      popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       echo -e "${OVER}  ${CROSS} ${str}"
       echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
       return 1
     fi
   # Otherwise,
   else
-    popd || { echo "Unable to return to original directory after FTL binary download."; return 1; }
+    popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
     echo -e "${OVER}  ${CROSS} ${str}"
     # The URL could not be found
     echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
@@ -1790,15 +1826,9 @@ FTLinstall() {
   fi
 }
 
-# Detect suitable FTL binary platform
-FTLdetect() {
-  echo ""
-  echo -e "  ${INFO} FTL Checks..."
-
-  # Local, named variables
+get_binary_name() {
+# Local, named variables
   local machine
-  local binary
-
   # Store architecture in a variable
   machine=$(uname -m)
 
@@ -1857,37 +1887,86 @@ FTLdetect() {
     fi
     binary="pihole-FTL-linux-x86_32"
   fi
+}
+
+FTLcheckUpdate()
+{
+  get_binary_name
 
   #In the next section we check to see if FTL is already installed (in case of pihole -r).
   #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
   echo -e "  ${INFO} Checking for existing FTL binary..."
 
-  local ftlLoc=$(which pihole-FTL 2>/dev/null)
+  local ftlLoc
+  ftlLoc=$(which pihole-FTL 2>/dev/null)
 
-  if [[ ${ftlLoc} ]]; then
-    local FTLversion=$(/usr/bin/pihole-FTL tag)
-	  local FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+  local ftlBranch
 
-	  if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
-		  # Install FTL
-      FTLinstall "${binary}" || return 1
-	  else
-	    echo -e "  ${INFO} Latest FTL Binary already installed (${FTLlatesttag}). Confirming Checksum..."
+  if [[ -f "/etc/pihole/ftlbranch" ]];then
+    ftlBranch=$(</etc/pihole/ftlbranch)
+  else
+    ftlBranch="master"
+  fi
 
-	    local remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
-	    local localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+  local remoteSha1
+  local localSha1
 
-	    if [[ "${remoteSha1}" != "${localSha1}" ]]; then
-	      echo -e "  ${INFO} Corruption detected..."
-	      FTLinstall "${binary}" || return 1
-	    else
-	      echo -e "  ${INFO} Checksum correct. No need to download!"
-	    fi
-	  fi
-	else
-	  # Install FTL
+  if [[ ! "${ftlBranch}" == "master" ]]; then
+    if [[ ${ftlLoc} ]]; then
+      # We already have a pihole-FTL binary downloaded.
+      # Alt branches don't have a tagged version against them, so just confirm the checksum of the local vs remote to decide whether we download or not
+      remoteSha1=$(curl -sSL --fail "https://ftl.pi-hole.net/${ftlBranch}/${binary}.sha1" | cut -d ' ' -f 1)
+      localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+
+      if [[ "${remoteSha1}" != "${localSha1}" ]]; then
+        echo -e "  ${INFO} Checksums do not match, downloading from ftl.pi-hole.net."
+        return 0
+      else
+        echo -e "  ${INFO} Checksum of installed binary matches remote. No need to download!"
+        return 1
+      fi
+    else
+      return 0
+    fi
+  else
+    if [[ ${ftlLoc} ]]; then
+      local FTLversion
+      FTLversion=$(/usr/bin/pihole-FTL tag)
+      local FTLlatesttag
+      FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+
+      if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+        return 0
+      else
+        echo -e "  ${INFO} Latest FTL Binary already installed (${FTLlatesttag}). Confirming Checksum..."
+
+        remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
+        localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+
+        if [[ "${remoteSha1}" != "${localSha1}" ]]; then
+          echo -e "  ${INFO} Corruption detected..."
+          return 0
+        else
+          echo -e "  ${INFO} Checksum correct. No need to download!"
+          return 1
+        fi
+      fi
+    else
+      return 0
+    fi
+  fi
+}
+
+# Detect suitable FTL binary platform
+FTLdetect() {
+  echo ""
+  echo -e "  ${INFO} FTL Checks..."
+
+  if FTLcheckUpdate ; then
     FTLinstall "${binary}" || return 1
   fi
+
+  echo ""
 }
 
 make_temporary_log() {
@@ -1999,7 +2078,19 @@ main() {
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
 
-    stop_service dnsmasq
+    #Do we need to stop pihole-FTL or dnsmasq(if coming from an old install)?
+    if [[ $(which pihole-FTL 2>/dev/null) ]]; then
+      if pihole-FTL --resolver > /dev/null; then
+        stop_service pihole-FTL
+      else
+        stop_service dnsmasq
+      fi
+    else
+      if [[ $(which dnsmasq 2>/dev/null) ]]; then
+        stop_service dnsmasq
+      fi
+    fi
+
     if [[ "${INSTALL_WEB}" == true ]]; then
       stop_service lighttpd
     fi
@@ -2092,8 +2183,11 @@ main() {
 
   echo -e "  ${INFO} Restarting services..."
   # Start services
-  start_service dnsmasq
-  enable_service dnsmasq
+  # Only start and enable dnsmasq if FTL does not have the --resolver switch
+  if ! pihole-FTL --resolver > /dev/null; then
+    start_service dnsmasq
+    enable_service dnsmasq
+  fi
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB}" == true ]]; then
@@ -2155,6 +2249,10 @@ main() {
   echo -e "\\n  ${INFO} The install log is located at: ${installLogLoc}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
+  if [[ "${INSTALL_TYPE}" == "Update" ]]; then
+    echo ""
+    /usr/local/bin/pihole version --current
+  fi
 }
 
 #
