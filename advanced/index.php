@@ -98,9 +98,6 @@ if ($serverName === "pi.hole") {
 
 /* Start processing Block Page from here */
 
-// Determine placeholder text based off $svPasswd presence
-$wlPlaceHolder = empty($svPasswd) ? "No admin password set" : "Javascript disabled";
-
 // Define admin email address text based off $svEmail presence
 $bpAskAdmin = !empty($svEmail) ? '<a href="mailto:'.$svEmail.'?subject=Site Blocked: '.$serverName.'"></a>' : "<span/>";
 
@@ -236,11 +233,21 @@ setHeader();
     window.onload = function () {
       <?php
       // Remove href fallback from "Back to safety" button
-      if ($featuredTotal > 0) echo '$("#bpBack").removeAttr("href");';
-      // Enable whitelisting if $svPasswd is present & JS is available
-      if (!empty($svPasswd) && $featuredTotal > 0) {
-          echo '$("#bpWLPassword, #bpWhitelist").prop("disabled", false);';
+      if ($featuredTotal > 0) {
+        echo '$("#bpBack").removeAttr("href");';
+
+        // Enable whitelisting if JS is available
+        echo '$("#bpWhitelist").prop("disabled", false);';
+
+        // Enable password input if necessary
+        if (!empty($svPasswd)) {
           echo '$("#bpWLPassword").attr("placeholder", "Password");';
+          echo '$("#bpWLPassword").prop("disabled", false);';
+        }
+        // Otherwise hide the input
+        else {
+          echo '$("#bpWLPassword").hide();';
+        }
       }
       ?>
     }
@@ -294,7 +301,7 @@ setHeader();
 
     <form id="bpWLButtons" class="buttons">
       <input id="bpWLDomain" type="text" value="<?=$serverName ?>" disabled/>
-      <input id="bpWLPassword" type="password" placeholder="<?=$wlPlaceHolder ?>" disabled/><button id="bpWhitelist" type="button" disabled></button>
+      <input id="bpWLPassword" type="password" placeholder="Javascript disabled" disabled/><button id="bpWhitelist" type="button" disabled></button>
     </form>
   </div>
 </main>
