@@ -505,6 +505,14 @@ audit()
 	echo "${args[2]}" >> /etc/pihole/auditlog.list
 }
 
+SetBetaMode() {
+	if [[ "${args[2]}" == "true" ]]; then
+		change_setting "USE_BETA" "true"
+	else
+		change_setting "USE_BETA" "false"
+	fi
+}
+
 main() {
 	args=("$@")
 
@@ -534,6 +542,7 @@ main() {
 		"-t" | "teleporter" ) Teleporter;;
 		"adlist"            ) CustomizeAdLists;;
 		"audit"             ) audit;;
+		"beta"              ) SetBetaMode;;
 		*                   ) helpFunc;;
 	esac
 

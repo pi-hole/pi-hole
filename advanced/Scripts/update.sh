@@ -16,6 +16,9 @@ readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
+pihole updatechecker remote
+read -r -a GitHubPreRelease < "/etc/pihole/GitHubPreRelease"
+
 # shellcheck disable=SC2034
 PH_TEST=true
 
@@ -94,7 +97,7 @@ main() {
   local pihole_version_current
   local web_version_current
   local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
-  
+
   # shellcheck disable=1090,2154
   source "${setupVars}"
 
@@ -115,12 +118,26 @@ main() {
     echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
+  # Check if upstream version is a bet release and determine if user wants to
+  # update to beta releases
+  if ${core_update} && [[ "${GitHubPreRelease[0]}" == "true" && "${USE_BETA}" != "true" ]]; then
+    core_update=false
+    echo -e "  ${INFO} Pi-hole Core update is a beta release ${COL_YELLOW} Skipping update! ${COL_NC}"
+  fi
+
   if FTLcheckUpdate ; then
     FTL_update=true
-    echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
+    echo -e "  ${INFO} Pi-hole FTL:\\t${COL_YELLOW}update available${COL_NC}"
   else
     FTL_update=false
-    echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+    echo -e "  ${INFO} Pi-hole FTL:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+  fi
+
+  # Check if upstream version is a bet release and determine if user wants to
+  # update to beta releases
+  if ${FTL_update} && [[ "${GitHubPreRelease[2]}" == "true" && "${USE_BETA}" != "true" ]]; then
+    FTL_update=false
+    echo -e "  ${INFO} Pi-hole FTL update is a beta release ${COL_YELLOW} Skipping update! ${COL_NC}"
   fi
 
   # Logic: Don't update FTL when there is a core update available
@@ -146,6 +163,12 @@ main() {
     else
       web_update=false
       echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+    fi
+    # Check if upstream version is a bet release and determine if user wants to
+    # update to beta releases
+    if ${web_update} && [[ "${GitHubPreRelease[1]}" == "true" && "${USE_BETA}" != "true" ]]; then
+      web_update=false
+      echo -e "  ${INFO} Web interface update is a beta release ${COL_YELLOW} Skipping update! ${COL_NC}"
     fi
 
     # Logic
