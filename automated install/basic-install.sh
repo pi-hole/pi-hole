@@ -1758,7 +1758,7 @@ FTLinstall() {
   if file "$(which init)" | grep "systemd" &> /dev/null; then
     # Use systemd unit
     # Always replace pihole-FTL.service (systemd unit)
-    install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/systemd/system/pihole-FTL.service"
+    install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.systemd" "/etc/systemd/system/pihole-FTL.service"
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL-prestart.sh" "/opt/pihole/pihole-FTL-prestart.sh"
 
     # Remove old init.d script if present as it cannot coexist with the systemd unit we are installing here
