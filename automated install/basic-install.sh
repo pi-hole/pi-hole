@@ -1755,7 +1755,7 @@ FTLinstall() {
   pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
   # Determine if systemd is used on this system
-  if file $(which init) | grep "systemd" &> /dev/null; then
+  if file "$(which init)" | grep "systemd" &> /dev/null; then
     # Use systemd unit
     # Always replace pihole-FTL.service (systemd unit)
     install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/systemd/system/pihole-FTL.service"
