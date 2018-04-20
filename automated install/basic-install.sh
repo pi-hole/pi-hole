@@ -163,7 +163,7 @@ if command -v apt-get &> /dev/null; then
   # These programs are stored in an array so they can be looped through later
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
+  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -1589,7 +1589,7 @@ updatePihole() {
   # Install base files and web interface
   installScripts
   # Install config files
-  installConfigs  
+  installConfigs
   # If the user wants to install the dasboard,
   if [[ "${INSTALL_WEB}" == true ]]; then
     # do so
