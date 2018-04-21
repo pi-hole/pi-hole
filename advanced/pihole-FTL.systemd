@@ -13,14 +13,16 @@ Before=nss-lookup.target
 
 [Service]
 Restart=on-abnormal
-User=root
-Group=root
+User=pihole
+Group=pihole
+PermissionsStartOnly=true
 
 Type=forking
 PIDFile=/run/pihole-FTL.pid
 
 ExecStartPre=/bin/bash /opt/pihole/pihole-FTL-prestart.sh
-ExecStart=/bin/su -s /bin/sh -c "/usr/bin/pihole-FTL" "pihole"
+;ExecStartPre=/sbin/setcap cap_net_bind_service,cap_net_raw,cap_net_admin+eip /usr/bin/pihole-FTL
+ExecStart=/usr/bin/pihole-FTL
 ExecReload=/bin/kill -HUP $MAINPID
 
 ; Use graceful shutdown with a reasonable timeout
