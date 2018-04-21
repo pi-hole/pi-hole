@@ -974,15 +974,20 @@ setAdminFlag() {
     WebChooseOptions=("On (Recommended)" "" on
         Off "" off)
     WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
-      # Depending on their choice
-      case ${WebChoices} in
-        Off)
-          echo -e "  ${INFO} Web Server Off"
-          # or false
-		  INSTALL_WEB_SERVER=false
-          ;;
-      esac
-	fi
+    # Depending on their choice
+    case ${WebChoices} in
+      "On (Recommended)")
+        echo -e "  ${INFO} Web Server On"
+        # set it to true, as clearly seen below.
+		INSTALL_WEB_SERVER=true
+        ;;
+      Off)
+        echo -e "  ${INFO} Web Server Off"
+        # or false
+		INSTALL_WEB_SERVER=false
+        ;;
+    esac
+  fi
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
