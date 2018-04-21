@@ -535,11 +535,10 @@ gravity_ParseUserDomains() {
   if [[ ! -f "${blacklistFile}" ]]; then
     return 0
   fi
-
-  mv "${blacklistFile}" "${blackList}.tmp"
+  
   # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
-  mv "${blackList}.tmp" "${blackList}" 2> /dev/null || \
-    echo -e "\\n  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
+  cp "${blacklistFile}" "${blackList}" 2> /dev/null || \
+    echo -e "\\n  ${CROSS} Unable to move ${blacklistFile##*/} to ${piholeDir}"
 }
 
 # Trap Ctrl-C
