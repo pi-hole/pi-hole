@@ -515,11 +515,9 @@ gravity_ParseBlacklistDomains() {
 
   if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
     mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
-    grep -c "^" "${piholeDir}/${whitelistMatter}" > "${piholeDir}/numBlocked" 2> /dev/null
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
     mv "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
-    grep -c "^" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/numBlocked" 2> /dev/null
   fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
