@@ -512,13 +512,13 @@ gravity_ParseBlacklistDomains() {
 
   # Empty $accretionDisc if it already exists, otherwise, create it
   : > "${piholeDir}/${accretionDisc}"
-  
+
   if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
-    gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+    mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
     grep -c "^" "${piholeDir}/${whitelistMatter}" > "${piholeDir}/numBlocked" 2> /dev/null
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    gravity_ParseDomainsIntoHosts "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    mv "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
     grep -c "^" "${piholeDir}/${preEventHorizon}" > "${piholeDir}/numBlocked" 2> /dev/null
   fi
 
@@ -538,7 +538,7 @@ gravity_ParseUserDomains() {
     return 0
   fi
 
-  gravity_ParseDomainsIntoHosts "${blacklistFile}" "${blackList}.tmp"
+  mv "${blacklistFile}" "${blackList}.tmp"
   # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
   mv "${blackList}.tmp" "${blackList}" 2> /dev/null || \
     echo -e "\\n  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
