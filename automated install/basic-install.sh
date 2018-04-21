@@ -979,12 +979,12 @@ setAdminFlag() {
       "On (Recommended)")
         echo -e "  ${INFO} Web Server On"
         # set it to true, as clearly seen below.
-		INSTALL_WEB_SERVER=true
+        INSTALL_WEB_SERVER=true
         ;;
       Off)
         echo -e "  ${INFO} Web Server Off"
         # or false
-		INSTALL_WEB_SERVER=false
+        INSTALL_WEB_SERVER=false
         ;;
     esac
   fi
