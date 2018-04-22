@@ -133,7 +133,7 @@ checkout() {
   Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
     exit 1;
   fi
-  if [[ "${INSTALL_WEB}" == "true" ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
     if ! is_repo "${webInterfaceDir}" ; then
      echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
   Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"

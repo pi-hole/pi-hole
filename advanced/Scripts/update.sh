@@ -113,7 +113,25 @@ main() {
     echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if FTLcheckUpdate ; then
+    FTL_update=true
+    echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
+  else
+    FTL_update=false
+    echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+  fi
+
+  # Logic: Don't update FTL when there is a core update available
+  # since the core update will run the installer which will itself
+  # re-install (i.e. update) FTL
+  if ${FTL_update} && ! ${core_update}; then
+    echo ""
+    echo -e "  ${INFO} FTL out of date"
+    FTLdetect
+    echo ""
+  fi
+
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
       echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
   Please re-run install script from https://pi-hole.net${COL_NC}"
