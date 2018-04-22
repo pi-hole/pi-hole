@@ -80,7 +80,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = 'Configuring FirewallD for httpd and dnsmasq'
+    expected_stdout = 'Configuring FirewallD for httpd and pihole-FTL'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
     assert 'firewall-cmd --state' in firewall_calls

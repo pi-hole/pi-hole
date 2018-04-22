@@ -13,6 +13,7 @@
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
+readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
@@ -35,7 +36,7 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage"
+  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)"
 	exit 0
 }
 
@@ -50,6 +51,19 @@ delete_setting() {
 change_setting() {
 	delete_setting "${1}"
 	add_setting "${1}" "${2}"
+}
+
+addFTLsetting() {
+	echo "${1}=${2}" >> "${FTLconf}"
+}
+
+deleteFTLsetting() {
+	sed -i "/${1}/d" "${FTLconf}"
+}
+
+changeFTLsetting() {
+	deleteFTLsetting "${1}"
+	addFTLsetting "${1}" "${2}"
 }
 
 add_dnsmasq_setting() {
@@ -134,6 +148,10 @@ ProcessDNSSettings() {
 		add_dnsmasq_setting "server" "${!var}"
 		let COUNTER=COUNTER+1
 	done
+
+  if [ ! -z "${LOCAL_DNS_PORT}" ]; then
+    add_dnsmasq_setting "server" "127.0.0.1#${LOCAL_DNS_PORT}"
+  fi
 
 	delete_dnsmasq_setting "domain-needed"
 
@@ -505,36 +523,55 @@ audit()
 	echo "${args[2]}" >> /etc/pihole/auditlog.list
 }
 
+SetPrivacyLevel() {
+	# Set privacy level. Minimum is 0, maximum is 3
+	if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
+		changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
+	fi
+}
+SetLocalDNSport() {
+  # Ensure port is a natural number { 0, 1, 2, 3, ... }
+  if [[ "${1}" == "0" ]]; then
+    delete_setting "LOCAL_DNS_PORT"
+    ProcessDNSSettings
+  elif [[ "${1}" =~ ^[0-9]+$ ]]; then
+    change_setting "LOCAL_DNS_PORT" "${1}"
+    ProcessDNSSettings
+  fi
+}
+
 main() {
 	args=("$@")
 
 	case "${args[1]}" in
-		"-p" | "password"   ) SetWebPassword;;
-		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
-		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
-		"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
-		"setdns"            ) SetDNSServers;;
-		"setexcludedomains" ) SetExcludeDomains;;
-		"setexcludeclients" ) SetExcludeClients;;
-		"poweroff"          ) Poweroff;;
-		"reboot"            ) Reboot;;
-		"restartdns"        ) RestartDNS;;
-		"setquerylog"       ) SetQueryLogOptions;;
-		"enabledhcp"        ) EnableDHCP;;
-		"disabledhcp"       ) DisableDHCP;;
-		"layout"            ) SetWebUILayout;;
-		"-h" | "--help"     ) helpFunc;;
-		"privacymode"       ) SetPrivacyMode;;
-		"resolve"           ) ResolutionSettings;;
-		"addstaticdhcp"     ) AddDHCPStaticAddress;;
-		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
-		"-r" | "hostrecord" ) SetHostRecord "$3";;
-		"-e" | "email"      ) SetAdminEmail "$3";;
-		"-i" | "interface"  ) SetListeningMode "$@";;
-		"-t" | "teleporter" ) Teleporter;;
-		"adlist"            ) CustomizeAdLists;;
-		"audit"             ) audit;;
-		*                   ) helpFunc;;
+		"-p" | "password"     ) SetWebPassword;;
+		"-c" | "celsius"      ) unit="C"; SetTemperatureUnit;;
+		"-f" | "fahrenheit"   ) unit="F"; SetTemperatureUnit;;
+		"-k" | "kelvin"       ) unit="K"; SetTemperatureUnit;;
+		"setdns"              ) SetDNSServers;;
+		"setexcludedomains"   ) SetExcludeDomains;;
+		"setexcludeclients"   ) SetExcludeClients;;
+		"poweroff"            ) Poweroff;;
+		"reboot"              ) Reboot;;
+		"restartdns"          ) RestartDNS;;
+		"setquerylog"         ) SetQueryLogOptions;;
+		"enabledhcp"          ) EnableDHCP;;
+		"disabledhcp"         ) DisableDHCP;;
+		"layout"              ) SetWebUILayout;;
+		"-h" | "--help"       ) helpFunc;;
+		"privacymode"         ) SetPrivacyMode;;
+		"resolve"             ) ResolutionSettings;;
+		"addstaticdhcp"       ) AddDHCPStaticAddress;;
+		"removestaticdhcp"    ) RemoveDHCPStaticAddress;;
+		"-r" | "hostrecord"   ) SetHostRecord "$3";;
+		"-e" | "email"        ) SetAdminEmail "$3";;
+		"-i" | "interface"    ) SetListeningMode "$@";;
+		"-t" | "teleporter"   ) Teleporter;;
+		"adlist"              ) CustomizeAdLists;;
+		"audit"               ) audit;;
+		"-l" | "privacylevel" ) SetPrivacyLevel;;
+		"localdnsport"        ) SetLocalDNSport "$3";;
+		*                     ) helpFunc;;
 	esac
 
 	shift
