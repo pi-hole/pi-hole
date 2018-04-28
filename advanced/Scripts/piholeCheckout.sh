@@ -157,7 +157,7 @@ checkout() {
     echo ""
     echo -e "  ${INFO} Pi-hole Core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
-    if [[ "${INSTALL_WEB}" == "true" ]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
       echo ""
       echo -e "  ${INFO} Web interface"
       fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
@@ -173,7 +173,7 @@ checkout() {
     echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
     echo -e "  ${INFO} Pi-hole core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
-    if [[ ${INSTALL_WEB} == "true" ]]; then
+    if [[ ${INSTALL_WEB_INTERFACE} == "true" ]]; then
       echo -e "  ${INFO} Web interface"
       fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
     fi
@@ -209,7 +209,7 @@ checkout() {
       exit 1
     fi
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
-  elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB}" == "true" ]] ; then
+  elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB_INTERFACE}" == "true" ]] ; then
     str="Fetching branches from ${webInterfaceGitUrl}"
     echo -ne "  ${INFO} $str"
     if ! fully_fetch_repo "${webInterfaceDir}" ; then
