@@ -113,7 +113,7 @@ main() {
     echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
       echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
   Please re-run install script from https://pi-hole.net${COL_NC}"
