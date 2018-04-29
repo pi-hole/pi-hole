@@ -699,7 +699,7 @@ setStaticIPv4() {
     IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
     IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
     # check if the desired IP is already set
-    if grep -q "${IPADDR}" "${IFCFG_FILE}"; then
+    if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
       echo -e "  ${INFO} Static IP already configured"
     # Otherwise,
     else
