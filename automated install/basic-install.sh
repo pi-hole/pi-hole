@@ -49,6 +49,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
+adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=""
@@ -987,6 +988,41 @@ setAdminFlag() {
   fi
 }
 
+# A function to display a list of example blocklists for users to select
+chooseBlocklists() {
+  # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
+  if [[ -f "${adlistFile}" ]]; then
+    mv "${adlistFile}" "${adlistFile}.old"
+  fi
+  # Let user select (or not) blocklists via a checklist
+  cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 7)
+  # In an array, show the options available (all off by default):
+  options=(StevenBlack "StevenBlack's Unified Hosts List" on
+  MalwareDom "MalwareDomains" on
+  Cameleon "Cameleon" on
+  ZeusTracker "ZeusTracker" on
+  DisconTrack "Disconnect.me Tracking" on
+  DisconAd "Disconnect.me Ads" on
+  HostsFile "Hosts-file.net Ads" on)
+
+  # In a variable, show the choices available; exit if Cancel is selected
+  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; rm "${adlistFile}" ;exit 1; }
+  # For each choice available,
+  for choice in ${choices}
+  do
+    # Set the values to true
+    case ${choice} in
+    StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
+    MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
+    Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+    ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
+    DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
+    DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
+    HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
+    esac
+  done
+}
+
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
 version_check_dnsmasq() {
   # Local, named variables
@@ -1721,7 +1757,7 @@ update_dialogs() {
     strAdd="You will be updated to the latest version."
   fi
   opt2a="Reconfigure"
-  opt2b="This will allow you to enter new settings"
+  opt2b="This will reset your Pi-hole and allow you to enter new settings."
 
   # Display the information to the user
   UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\\n\\nWe have detected an existing install.\\n\\nPlease choose from the following options: \\n($strAdd)" ${r} ${c} 2 \
@@ -2119,6 +2155,8 @@ main() {
     chooseInterface
     # Decide what upstream DNS Servers to use
     setDNS
+    # Give the user a choice of blocklists to include in their install. Or not.
+    chooseBlocklists
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
     use4andor6
     # Let the user decide if they want the web interface to be installed automatically
