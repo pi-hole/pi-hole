@@ -2113,23 +2113,6 @@ main() {
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-
-    #Do we need to stop pihole-FTL or dnsmasq(if coming from an old install)?
-    if [[ $(which pihole-FTL 2>/dev/null) ]]; then
-      if pihole-FTL --resolver > /dev/null; then
-        stop_service pihole-FTL
-      else
-        stop_service dnsmasq
-      fi
-    else
-      if [[ $(which dnsmasq 2>/dev/null) ]]; then
-        stop_service dnsmasq
-      fi
-    fi
-
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-      stop_service lighttpd
-    fi
     # Determine available interfaces
     get_available_interfaces
     # Find interfaces and let the user choose one
