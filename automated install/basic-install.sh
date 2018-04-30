@@ -1971,6 +1971,11 @@ FTLcheckUpdate()
   local remoteSha1
   local localSha1
 
+   # if dnsmasq is running at this point, force reinstall of FTL Binary
+  if check_service_active "dnsmasq";then
+    return 1
+  fi
+
   if [[ ! "${ftlBranch}" == "master" ]]; then
     if [[ ${ftlLoc} ]]; then
       # We already have a pihole-FTL binary downloaded.
@@ -2021,11 +2026,6 @@ FTLcheckUpdate()
 FTLdetect() {
   echo ""
   echo -e "  ${INFO} FTL Checks..."
-
-  # if dnsmasq is running at this point, force reinstall of FTL Binary
-  if check_service_active "dnsmasq";then
-    FTLinstall "${binary}" || return 1
-  fi
 
   if FTLcheckUpdate ; then
     FTLinstall "${binary}" || return 1
