@@ -1853,23 +1853,20 @@ FTLinstall() {
       popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
       echo -e "${OVER}  ${TICK} ${str}"
-      # If the --resolver flag returns True (exit code 0), then we can safely stop & disable dnsmasq
-      if pihole-FTL --resolver > /dev/null; then
-        if which dnsmasq > /dev/null; then
-          if check_service_active "dnsmasq";then
-            echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
-            stop_service dnsmasq
-            disable_service dnsmasq
-          fi
-        fi
-
-        #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
-        confdir="conf-dir=/etc/dnsmasq.d"
-        conffile="/etc/dnsmasq.conf"
-        if ! grep -q "$confdir" "$conffile"; then
-            echo "$confdir" >> "$conffile"
-        fi
+      # dnsmasq can now be stopped and disabled
+      if check_service_active "dnsmasq";then
+        echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
+        stop_service dnsmasq
+        disable_service dnsmasq
       fi
+
+      #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
+      confdir="conf-dir=/etc/dnsmasq.d"
+      conffile="/etc/dnsmasq.conf"
+      if ! grep -q "$confdir" "$conffile"; then
+          echo "$confdir" >> "$conffile"
+      fi
+
       return 0
     # Otherwise,
     else
@@ -2024,6 +2021,11 @@ FTLcheckUpdate()
 FTLdetect() {
   echo ""
   echo -e "  ${INFO} FTL Checks..."
+
+  # if dnsmasq is running at this point, force reinstall of FTL Binary
+  if check_service_active "dnsmasq";then
+    FTLinstall "${binary}" || return 1
+  fi
 
   if FTLcheckUpdate ; then
     FTLinstall "${binary}" || return 1
@@ -2197,11 +2199,6 @@ main() {
 
   echo -e "  ${INFO} Restarting services..."
   # Start services
-  # Only start and enable dnsmasq if FTL does not have the --resolver switch
-  if ! pihole-FTL --resolver > /dev/null; then
-    start_service dnsmasq
-    enable_service dnsmasq
-  fi
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
