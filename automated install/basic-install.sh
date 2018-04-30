@@ -1973,7 +1973,7 @@ FTLcheckUpdate()
 
    # if dnsmasq is running at this point, force reinstall of FTL Binary
   if check_service_active "dnsmasq";then
-    return 1
+    return 0
   fi
 
   if [[ ! "${ftlBranch}" == "master" ]]; then
