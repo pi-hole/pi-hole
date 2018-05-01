@@ -17,91 +17,13 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
 # setupVars set in basic-install.sh
+# check_download_exists sourced from basic-install.sh
+# fully_fetch_repo sourced from basic-install.sh
+# get_available_branches sourced from basic-install.sh
+# fetch_checkout_pull_branch sourced from basic-install.sh
+# checkout_pull_branch sourced from basic-install.sh
 
 source "${setupVars}"
-
-coltable="/opt/pihole/COL_TABLE"
-source ${coltable}
-
-check_download_exists() {
-  status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
-  if grep -q "404" <<< "$status"; then
-    return 1
-  else
-    return 0
-  fi
-}
-
-fully_fetch_repo() {
-  # Add upstream branches to shallow clone
-  local directory="${1}"
-
-  cd "${directory}" || return 1
-  if is_repo "${directory}"; then
-    git remote set-branches origin '*' || return 1
-    git fetch --quiet || return 1
-  else
-    return 1
-  fi
-  return 0
-}
-
-get_available_branches() {
-  # Return available branches
-  local directory
-  directory="${1}"
-  local output
-
-  cd "${directory}" || return 1
-  # Get reachable remote branches, but store STDERR as STDOUT variable
-  output=$( { git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'; } 2>&1 )
-  echo "$output"
-  return
-}
-
-fetch_checkout_pull_branch() {
-  # Check out specified branch
-  local directory
-  directory="${1}"
-  local branch
-  branch="${2}"
-
-  # Set the reference for the requested branch, fetch, check it put and pull it
-  cd "${directory}" || return 1
-  git remote set-branches origin "${branch}" || return 1
-  git stash --all --quiet &> /dev/null || true
-  git clean --quiet --force -d || true
-  git fetch --quiet || return 1
-  checkout_pull_branch "${directory}" "${branch}" || return 1
-}
-
-checkout_pull_branch() {
-  # Check out specified branch
-  local directory
-  directory="${1}"
-  local branch
-  branch="${2}"
-  local oldbranch
-
-  cd "${directory}" || return 1
-
-  oldbranch="$(git symbolic-ref HEAD)"
-
-  str="Switching to branch: '${branch}' from '${oldbranch}'"
-  echo -ne "  ${INFO} $str"
-  git checkout "${branch}" --quiet || return 1
-  echo -e "${OVER}  ${TICK} $str"
-
-  git_pull=$(git pull || return 1)
-
-  if [[ "$git_pull" == *"up-to-date"* ]]; then
-    echo -e "  ${INFO} ${git_pull}"
-  else
-    echo -e "$git_pull\\n"
-  fi
-
-  return 0
-}
 
 warning1() {
   echo "  Please note that changing branches severely alters your Pi-hole subsystems"
