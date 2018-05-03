@@ -133,8 +133,17 @@ main() {
     FTL_update=true
     echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
   else
+    case $? in
+    1)
+      echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+      ;;
+    2)
+      echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_LIGHT_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
+      ;;
+    *)
+      echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, contact support${COL_NC}"
+    esac
     FTL_update=false
-    echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
   fi
 
   if [[ "${core_update}" == false && "${web_update}" == false && "${FTL_update}" == false ]]; then
