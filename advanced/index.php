@@ -103,8 +103,9 @@ $bpAskAdmin = !empty($svEmail) ? '<a href="mailto:'.$svEmail.'?subject=Site Bloc
 
 // Determine if at least one block list has been generated
 $blocklistglob = glob("/etc/pihole/list.0.*.domains");
-if ($blocklistglob = "")
+if ($blocklistglob = "") {
     die("[ERROR] There are no domain lists generated lists within <code>/etc/pihole/</code>! Please update gravity by running <code>pihole -g</code>, or repair Pi-hole using <code>pihole -r</code>.");
+}
 
 // Set location of adlists file
 if (is_file("/etc/pihole/adlists.list")) {
