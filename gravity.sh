@@ -20,11 +20,9 @@ basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
 piholeDir="/etc/${basename}"
-piholeRepo="/etc/.${basename}"
 
 adListFile="${piholeDir}/adlists.list"
 adListDefault="${piholeDir}/adlists.default"
-adListRepoDefault="${piholeRepo}/adlists.default"
 
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
@@ -45,6 +43,8 @@ preEventHorizon="list.preEventHorizon"
 skipDownload="false"
 
 resolver="pihole-FTL"
+
+haveSourceUrls=true
 
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
@@ -131,19 +131,11 @@ gravity_CheckDNSResolutionAvailable() {
 gravity_GetBlocklistUrls() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
-  # Determine if adlists file needs handling
-  if [[ ! -f "${adListFile}" ]]; then
-    # Create "adlists.list" by copying "adlists.default" from internal core repo
-    cp "${adListRepoDefault}" "${adListFile}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to copy ${adListFile##*/} from ${piholeRepo}"
-  elif [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
+  if [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
     # Remove superceded $adListDefault file
     rm "${adListDefault}" 2> /dev/null || \
       echo -e "  ${CROSS} Unable to remove ${adListDefault}"
   fi
-
-  local str="Pulling blocklist source list into range"
-  echo -ne "  ${INFO} ${str}..."
 
   # Retrieve source URLs from $adListFile
   # Logic: Remove comments and empty lines
@@ -160,11 +152,15 @@ gravity_GetBlocklistUrls() {
     }' <<< "$(printf '%s\n' "${sources[@]}")" 2> /dev/null
   )"
 
+  local str="Pulling blocklist source list into range"
+
   if [[ -n "${sources[*]}" ]] && [[ -n "${sourceDomains[*]}" ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   else
     echo -e "${OVER}  ${CROSS} ${str}"
-    gravity_Cleanup "error"
+    echo -e "  ${INFO} No source list found, or it is empty"
+    echo ""
+    haveSourceUrls=false
   fi
 }
 
@@ -378,7 +374,9 @@ gravity_ConsolidateDownloadedBlocklists() {
   local str lastLine
 
   str="Consolidating blocklists"
-  echo -ne "  ${INFO} ${str}..."
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -ne "  ${INFO} ${str}..."
+  fi
 
   # Empty $matterAndLight if it already exists, otherwise, create it
   : > "${piholeDir}/${matterAndLight}"
@@ -397,8 +395,9 @@ gravity_ConsolidateDownloadedBlocklists() {
       fi
     fi
   done
-
-  echo -e "${OVER}  ${TICK} ${str}"
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
 }
 
 # Parse consolidated list into (filtered, unique) domains-only format
@@ -406,24 +405,33 @@ gravity_SortAndFilterConsolidatedList() {
   local str num
 
   str="Extracting domains from blocklists"
-  echo -ne "  ${INFO} ${str}..."
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -ne "  ${INFO} ${str}..."
+  fi
 
   # Parse into hosts file
   gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
 
   # Format $parsedMatter line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
-  echo -e "${OVER}  ${TICK} ${str}
-  ${INFO} Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
+  echo -e "  ${INFO} Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
 
   str="Removing duplicate domains"
-  echo -ne "  ${INFO} ${str}..."
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
-  echo -e "${OVER}  ${TICK} ${str}"
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -ne "  ${INFO} ${str}..."
+  fi
 
-  # Format $preEventHorizon line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
+  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+    # Format $preEventHorizon line total as currency
+    num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
+    echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
+  fi
 }
 
 # Whitelist user-defined domains
@@ -535,7 +543,6 @@ gravity_ParseUserDomains() {
   if [[ ! -f "${blacklistFile}" ]]; then
     return 0
   fi
-  
   # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
   cp "${blacklistFile}" "${blackList}" 2> /dev/null || \
     echo -e "\\n  ${CROSS} Unable to move ${blacklistFile##*/} to ${piholeDir}"
@@ -622,7 +629,9 @@ if [[ "${skipDownload}" == false ]]; then
   # Gravity needs to download blocklists
   gravity_CheckDNSResolutionAvailable
   gravity_GetBlocklistUrls
-  gravity_SetDownloadOptions
+  if [[ "${haveSourceUrls}" == true ]]; then
+    gravity_SetDownloadOptions
+  fi
   gravity_ConsolidateDownloadedBlocklists
   gravity_SortAndFilterConsolidatedList
 else

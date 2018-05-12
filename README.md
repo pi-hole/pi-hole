@@ -3,7 +3,7 @@
 <b>Network-wide ad blocking via your own Linux hardware</b><br/>
 </p>
 
-The Pi-hole is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) that protects your devices from unwanted content, without installing any client-side software.
+The Pi-hole[®](https://pi-hole.net/trademark-rules-and-brand-guidelines/) is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) that protects your devices from unwanted content, without installing any client-side software.
 
 - **Easy-to-install**: our versatile installer walks you through the process, and [takes less than ten minutes](https://www.youtube.com/watch?v=vKWjx1AQYgs)
 - **Resolute**: content is blocked in _non-browser locations_, such as ad-laden mobile apps and smart TVs
@@ -27,7 +27,7 @@ Those who want to get started quickly and conveniently, may install Pi-hole usin
 #### `curl -sSL https://install.pi-hole.net | bash`
 
 ## Alternative Install Methods
-[Piping to `bash` is controversial](https://pi-hole.net/2016/07/25/curling-and-piping-to-bash), as it prevents you from [reading code that is about to run](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) on your system. Therefore, we provide these alternative installation methods which allow code review before installation: 
+[Piping to `bash` is controversial](https://pi-hole.net/2016/07/25/curling-and-piping-to-bash), as it prevents you from [reading code that is about to run](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) on your system. Therefore, we provide these alternative installation methods which allow code review before installation:
 
 ### Method 1: Clone our repository and run
 ```
@@ -60,16 +60,22 @@ Make no mistake: **your support is absolutely vital to help keep us innovating!*
 ### Donations
 Sending a donation using our links below is **extremely helpful** in offsetting a portion of our monthly expenses:
 
-&nbsp;<img src="https://pi-hole.github.io/graphics/Badges/paypal-badge-black.svg" width="24" height="24" alt="PP"/> <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY">Donate via PayPal</a><br/>
-&nbsp;<img src="https://pi-hole.github.io/graphics/Badges/bitcoin-badge-black.svg" width="24" height="24" alt="BTC"/> Bitcoin Address: <code>1GKnevUnVaQM2pQieMyeHkpr8DXfkpfAtL</code>
+- <img src="https://pi-hole.github.io/graphics/Badges/paypal-badge-black.svg" width="24" height="24" alt="PP"/> <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3J2L3Z4DHW9UY">Donate via PayPal</a><br/>
+- <img src="https://pi-hole.github.io/graphics/Badges/bitcoin-badge-black.svg" width="24" height="24" alt="BTC"/> [Bitcoin](https://commerce.coinbase.com/checkout/fb7facaf-bebd-46be-bb77-b358f4546763): <code>
+3MDPzjXu2hjw5sGLJvKUi1uXbvQPzVrbpF</code></br>
+- <img src="https://pi-hole.github.io/graphics/Badges/bitcoin-badge-black.svg" width="24" height="24" alt="BTC"/> [Bitcoin Cash](https://commerce.coinbase.com/checkout/fb7facaf-bebd-46be-bb77-b358f4546763): <code>qzqsz4aju2eecc6uhs7tus4vlwhhela24sdruf4qp5</code></br>
+- <img src="https://pi-hole.github.io/graphics/Badges/ethereum-badge-black.svg" width="24" height="24" alt="BTC"/> [Ethereum](https://commerce.coinbase.com/checkout/fb7facaf-bebd-46be-bb77-b358f4546763): <code>0x79d4e90A4a0C732819526c93e21A3F1356A2FAe1</code>
 
 ### Alternative support
-If you'd rather not donate (_which is okay!_), there are other ways you can help support us:
+If you'd rather not [donate](https://pi-hole.net/donate/) (_which is okay!_), there are other ways you can help support us:
 
-- [Digital Ocean](http://www.digitalocean.com/?refcode=344d234950e1) affiliate link
-- [Vultr](http://www.vultr.com/?ref=7190426) affiliate link
-- [UNIXstickers.com](http://unixstickers.refr.cc/jacobs) affiliate link
-- [Pi-hole Swag Store](https://pi-hole.net/shop/)
+- [Digital Ocean](http://www.digitalocean.com/?refcode=344d234950e1) _affiliate link_
+- [UNIXstickers.com](http://unixstickers.refr.cc/jacobs) _save $5 when you spend $9 using our affiliate link_
+- [Pi-hole Swag Store](https://pi-hole.net/shop/) _affiliate link_
+- [Amazon](http://www.amazon.com/exec/obidos/redirect-home/pihole09-20) _affiliate link_
+- [Ho-ost](https://clients.ho-ost.com/aff.php?aff=19) _save 50% with our affiliate link_
+- [DNS Made Easy](https://cp.dnsmadeeasy.com/u/133706) _affiliate link_
+- [Vultr](http://www.vultr.com/?ref=7190426) _affiliate link_
 - Spreading the word about our software, and how you have benefited from it
 
 ### Contributing via GitHub
@@ -127,7 +133,7 @@ You can read our [Core Feature Breakdown](https://github.com/pi-hole/pi-hole/wik
 ### The Web Interface Dashboard
 This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
 
-<a href="https://pi-hole.github.io/graphics/Screenshots/dashboard.png"><img src="https://pi-hole.github.io/graphics/Screenshots/dashboard.png" width="888" height="522" alt="Pi-hole Dashboard"/></a>
+<img src="https://pi-hole.github.io/graphics/Screenshots/pihole-dashboard.png"  alt="Pi-hole Dashboard"/></a>
 
 Some notable features include:
 * Mobile friendly interface
@@ -142,11 +148,11 @@ Some notable features include:
 There are several ways to [access the dashboard](https://discourse.pi-hole.net/t/how-do-i-access-pi-holes-dashboard-admin-interface/3168):
 
 1. `http://<IP_ADDPRESS_OF_YOUR_PI_HOLE>/admin/`
-2. `http:/pi.hole/admin/` (when using Pi-hole as your DNS server)
+2. `http://pi.hole/admin/` (when using Pi-hole as your DNS server)
 3. `http://pi.hole/` (when using Pi-hole as your DNS server)
 
-## The Faster-Than-Light Engine
-The [FTL Engine](https://github.com/pi-hole/FTL) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTL does this all *very quickly*!
+## Faster-than-light Engine
+FTLDNS[™](https://pi-hole.net/trademark-rules-and-brand-guidelines/) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
 
 Some of the statistics you can integrate include:
 * Total number of domains being blocked
@@ -194,6 +200,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [Magic Mirror with DNS Filtering](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
 - [Pi-hole Droid: Android client](https://github.com/friimaind/pi-hole-droid)
 - [Windows DNS Swapper](https://github.com/roots84/DNS-Swapper), see [#1400](https://github.com/pi-hole/pi-hole/issues/1400)
+- [Pi-hole Visualizer](https://www.reddit.com/r/pihole/comments/82ikgb/pihole_visualizer_update/)
 -----
 
 ## Coverage

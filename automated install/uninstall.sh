@@ -46,13 +46,10 @@ source "${setupVars}"
 distro_check
 
 # Install packages used by the Pi-hole
-if [[ "${INSTALL_WEB}" == true ]]; then
+DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
+if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
   # Install the Web dependencies
-  DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
-# Otherwise,
-else
-  # just install the Core dependencies
-  DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
+  DEPS+=("${PIHOLE_WEB_DEPS[@]}")
 fi
 
 # Compatability

@@ -49,13 +49,14 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
+adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=""
 IPV6_ADDRESS=""
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
-INSTALL_WEB=true
+INSTALL_WEB_INTERFACE=true
 
 
 # Find the rows and columns will default to 80x24 if it can not be detected
@@ -76,6 +77,16 @@ c=$(( c < 70 ? 70 : c ))
 skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
+INSTALL_WEB_SERVER=true
+# Check arguments for the undocumented flags
+for var in "$@"; do
+  case "$var" in
+  "--reconfigure" ) reconfigure=true;;
+  "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
+  "--unattended" ) runUnattended=true;;
+  "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
+  esac
+done
 
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
@@ -159,11 +170,11 @@ if command -v apt-get &> /dev/null; then
   else
     phpSqlite="sqlite"
   fi
-  # Since our install script is so large, we need several other programs to successfuly get a machine provisioned
+  # Since our install script is so large, we need several other programs to successfully get a machine provisioned
   # These programs are stored in an array so they can be looped through later
   INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
+  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -226,7 +237,7 @@ fi
 
 # A function for checking if a folder is a git repository
 is_repo() {
-  # Use a named, local variable instead of the vague $1, which is the first arguement passed to this function
+  # Use a named, local variable instead of the vague $1, which is the first argument passed to this function
   # These local variables should always be lowercase
   local directory="${1}"
   # A local variable for the current directory
@@ -302,7 +313,7 @@ update_repo() {
   git pull --quiet &> /dev/null || return $?
   # Show a completion message
   echo -e "${OVER}  ${TICK} ${str}"
-  # Move back into the oiginal directory
+  # Move back into the original directory
   cd "${curdir}" &> /dev/null || return 1
   return 0
 }
@@ -314,7 +325,7 @@ getGitFiles() {
   local directory="${1}"
   # as well as the repo URL
   local remoteRepo="${2}"
-  # A local varible containing the message to be displayed
+  # A local variable containing the message to be displayed
   local str="Check for existing repository in ${1}"
   # Show the message
   echo -ne "  ${INFO} ${str}..."
@@ -328,7 +339,7 @@ getGitFiles() {
   else
     # Show an error
     echo -e "${OVER}  ${CROSS} ${str}"
-    # Attempt to make the repository, showing an error on falure
+    # Attempt to make the repository, showing an error on failure
     make_repo "${directory}" "${remoteRepo}" || { echo -e "\\n  ${COL_LIGHT_RED}Error: Could not update local repository. Contact support.${COL_NC}"; exit 1; }
   fi
   # echo a blank line
@@ -339,11 +350,11 @@ getGitFiles() {
 
 # Reset a repo to get rid of any local changed
 resetRepo() {
-  # Use named varibles for arguments
+  # Use named variables for arguments
   local directory="${1}"
   # Move into the directory
   cd "${directory}" &> /dev/null || return 1
-  # Store the message in a varible
+  # Store the message in a variable
   str="Resetting repository within ${1}..."
   # Show the message
   echo -ne "  ${INFO} ${str}"
@@ -381,7 +392,7 @@ get_available_interfaces() {
 
 # A function for displaying the dialogs the user sees when first running the installer
 welcomeDialogs() {
-  # Display the welcome dialog using an approriately sized window via the calculation conducted earlier in the script
+  # Display the welcome dialog using an appropriately sized window via the calculation conducted earlier in the script
   whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "\\n\\nThis installer will transform your device into a network-wide ad blocker!" ${r} ${c}
 
   # Request that users donate if they enjoy the software since we all work on it in our free time
@@ -399,7 +410,7 @@ verifyFreeDiskSpace() {
   # 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
   # - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
   local str="Disk space check"
-  # Reqired space in KB
+  # Required space in KB
   local required_free_kilobytes=51200
   # Calculate existing free space on this machine
   local existing_free_kilobytes
@@ -481,7 +492,7 @@ chooseInterface() {
       chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" ${r} ${c} ${interfaceCount})
       # Now run the command using the interfaces saved into the array
       chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
-      # If the user chooses Canel, exit
+      # If the user chooses Cancel, exit
       { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
       # For each interface
       for desiredInterface in ${chooseInterfaceOptions}; do
@@ -689,7 +700,7 @@ setStaticIPv4() {
     IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
     IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
     # check if the desired IP is already set
-    if grep -q "${IPADDR}" "${IFCFG_FILE}"; then
+    if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
       echo -e "  ${INFO} Static IP already configured"
     # Otherwise,
     else
@@ -737,7 +748,7 @@ valid_ip() {
 
   # If the IP matches the format xxx.xxx.xxx.xxx,
   if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-    # Save the old Interfal Field Separator in a variable
+    # Save the old Internal Field Separator in a variable
     OIFS=$IFS
     # and set the new one to a dot (period)
     IFS='.'
@@ -853,7 +864,7 @@ setDNS() {
       fi
 
       # Dialog for the user to enter custom upstream servers
-      piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), seperated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
+      piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
       { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
       #
       PIHOLE_DNS_1=$(echo "${piholeDNS}" | sed 's/[, \t]\+/,/g' | awk -F, '{print$1}')
@@ -880,11 +891,11 @@ setDNS() {
         fi
         # Since the settings will not work, stay in the loop
         DNSSettingsCorrect=False
-      # Othwerise,
+      # Otherwise,
       else
         # Show the settings
         if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}); then
-        # and break from the loop since the servers are vaid
+        # and break from the loop since the servers are valid
         DNSSettingsCorrect=True
       # Otherwise,
       else
@@ -918,7 +929,7 @@ setLogging() {
         # Set the GLOBAL variable to true so we know what they selected
         QUERY_LOGGING=true
         ;;
-      # Othwerise, it's off,
+      # Otherwise, it's off,
       Off)
         echo -e "  ${INFO} Logging Off."
         # So set it to false
@@ -945,14 +956,71 @@ setAdminFlag() {
       "On (Recommended)")
         echo -e "  ${INFO} Web Interface On"
         # Set it to true
-        INSTALL_WEB=true
+        INSTALL_WEB_INTERFACE=true
         ;;
       Off)
         echo -e "  ${INFO} Web Interface Off"
         # or false
-        INSTALL_WEB=false
+        INSTALL_WEB_INTERFACE=false
         ;;
     esac
+
+  # Request user to install web server, if --disable-install-webserver has not been used (INSTALL_WEB_SERVER=true is default).
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+    WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd)?\\n\\nNB: If you disable this, and, do not have an existing webserver installed, the web interface will not function." "${r}" "${c}" 6)
+    # with the default being enabled
+    WebChooseOptions=("On (Recommended)" "" on
+        Off "" off)
+    WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
+    # Depending on their choice
+    case ${WebChoices} in
+      "On (Recommended)")
+        echo -e "  ${INFO} Web Server On"
+        # set it to true, as clearly seen below.
+        INSTALL_WEB_SERVER=true
+        ;;
+      Off)
+        echo -e "  ${INFO} Web Server Off"
+        # or false
+        INSTALL_WEB_SERVER=false
+        ;;
+    esac
+  fi
+}
+
+# A function to display a list of example blocklists for users to select
+chooseBlocklists() {
+  # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
+  if [[ -f "${adlistFile}" ]]; then
+    mv "${adlistFile}" "${adlistFile}.old"
+  fi
+  # Let user select (or not) blocklists via a checklist
+  cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 7)
+  # In an array, show the options available (all off by default):
+  options=(StevenBlack "StevenBlack's Unified Hosts List" on
+  MalwareDom "MalwareDomains" on
+  Cameleon "Cameleon" on
+  ZeusTracker "ZeusTracker" on
+  DisconTrack "Disconnect.me Tracking" on
+  DisconAd "Disconnect.me Ads" on
+  HostsFile "Hosts-file.net Ads" on)
+
+  # In a variable, show the choices available; exit if Cancel is selected
+  choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; rm "${adlistFile}" ;exit 1; }
+  # For each choice available,
+  for choice in ${choices}
+  do
+    # Set the values to true
+    case ${choice} in
+    StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
+    MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
+    Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+    ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
+    DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
+    DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
+    HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
+    esac
+  done
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1064,7 +1132,7 @@ installScripts() {
     cd "${PI_HOLE_LOCAL_REPO}"
     # Install the scripts by:
     #  -o setting the owner to the user
-    #  -Dm755 create all leading components of destiantion except the last, then copy the source to the destiantion and setting the permissions to 755
+    #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
     #
     # This first one is the directory
     install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
@@ -1093,7 +1161,7 @@ installConfigs() {
   version_check_dnsmasq
 
   # If the user chose to install the dashboard,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     # and if the Web server conf directory does not exist,
     if [[ ! -d "/etc/lighttpd" ]]; then
       # make it
@@ -1370,7 +1438,7 @@ installPiholeWeb() {
   # If the Web server user is lighttpd,
   if [[ "$LIGHTTPD_USER" == "lighttpd" ]]; then
     # Allow executing pihole via sudo with Fedora
-    # Usually /usr/local/bin is not permitted as directory for sudoable programms
+    # Usually /usr/local/bin is not permitted as directory for sudoable programs
     echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin" >> /etc/sudoers.d/pihole
   fi
   # Set the strict permissions on the file
@@ -1424,11 +1492,11 @@ configureFirewall() {
   echo ""
   # If a firewall is running,
   if firewall-cmd --state &> /dev/null; then
-    # ask if the user wants to install Pi-hole's default firwall rules
+    # ask if the user wants to install Pi-hole's default firewall rules
     whiptail --title "Firewall in use" --yesno "We have detected a running firewall\\n\\nPi-hole currently requires HTTP and DNS port access.\\n\\n\\n\\nInstall Pi-hole default firewall rules?" ${r} ${c} || \
     { echo -e "  ${INFO} Not installing firewall rulesets."; return 0; }
     echo -e "  ${TICK} Configuring FirewallD for httpd and pihole-FTL"
-    # Allow HTTP and DNS traffice
+    # Allow HTTP and DNS traffic
     firewall-cmd --permanent --add-service=http --add-service=dns
     # Reload the firewall to apply these changes
     firewall-cmd --reload
@@ -1461,7 +1529,7 @@ configureFirewall() {
 #
 finalExports() {
   # If the Web interface is not set to be installed,
-  if [[ "${INSTALL_WEB}" == false ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
     # and if there is not an IPv4 address,
     if [[ "${IPV4_ADDRESS}" ]]; then
       # there is no block page, so set IPv4 to 0.0.0.0 (all IP addresses)
@@ -1476,7 +1544,7 @@ finalExports() {
   # If the setup variable file exists,
   if [[ -e "${setupVars}" ]]; then
     # update the variables in the file
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
+    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
   fi
   # echo the information to the user
     {
@@ -1486,7 +1554,8 @@ finalExports() {
   echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
   echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
   echo "QUERY_LOGGING=${QUERY_LOGGING}"
-  echo "INSTALL_WEB=${INSTALL_WEB}"
+  echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
+  echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
   echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
 
@@ -1524,54 +1593,6 @@ installLogrotate() {
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
-# Install base files and web interface
-installPihole() {
-  # Create the pihole user
-  create_pihole_user
-
-  # If the user wants to install the Web interface,
-  if [[ "${INSTALL_WEB}" == true ]]; then
-    if [[ ! -d "/var/www/html" ]]; then
-      # make the Web directory if necessary
-      mkdir -p /var/www/html
-    fi
-    # Set the owner and permissions
-    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-    chmod 775 /var/www/html
-    # Give pihole access to the Web server group
-    usermod -a -G ${LIGHTTPD_GROUP} pihole
-    # If the lighttpd command is executable,
-    if [[ -x "$(command -v lighty-enable-mod)" ]]; then
-      # enable fastcgi and fastcgi-php
-      lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-    else
-      # Othweise, show info about installing them
-      echo -e  "  ${INFO} Warning: 'lighty-enable-mod' utility not found
-      Please ensure fastcgi is enabled if you experience issues\\n"
-    fi
-  fi
-  # Install scripts,
-  installScripts
-  # configs,
-  installConfigs
-  # If the user wants to install the dashboard,
-  if [[ "${INSTALL_WEB}" == true ]]; then
-    # do so
-    installPiholeWeb
-  fi
-  # Install the cron file
-  installCron
-  # Install the logrotate file
-  installLogrotate
-  # Check if FTL is installed
-  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed"
-  # Configure the firewall
-  configureFirewall
-
-  #update setupvars.conf with any variables that may or may not have been changed during the install
-  finalExports
-}
-
 # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
 # Refactoring of install script has changed the name of a couple of variables. Sort them out here.
 accountForRefactor() {
@@ -1582,31 +1603,73 @@ accountForRefactor() {
   sed -i 's/piholeIPv6/IPV6_ADDRESS/g' ${setupVars}
   sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}
   sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}
+  sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' ${setupVars}
+  # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
+  if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
+    local webserver_installed=false
+    if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
+      webserver_installed=true
+    fi
+    echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> ${setupVars}
+  fi
 }
 
-updatePihole() {
-  accountForRefactor
+# Install base files and web interface
+installPihole() {
+  # Create the pihole user
+  create_pihole_user
+
+  # If the user wants to install the Web interface,
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+    if [[ ! -d "/var/www/html" ]]; then
+      # make the Web directory if necessary
+      mkdir -p /var/www/html
+    fi
+
+    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+      # Set the owner and permissions
+      chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
+      chmod 775 /var/www/html
+      # Give pihole access to the Web server group
+      usermod -a -G ${LIGHTTPD_GROUP} pihole
+      # If the lighttpd command is executable,
+      if [[ -x "$(command -v lighty-enable-mod)" ]]; then
+        # enable fastcgi and fastcgi-php
+        lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
+      else
+        # Otherwise, show info about installing them
+        echo -e  "  ${INFO} Warning: 'lighty-enable-mod' utility not found
+        Please ensure fastcgi is enabled if you experience issues\\n"
+      fi
+    fi
+  fi
+  # For updates and unattended install.
+  if [[ "${useUpdateVars}" == true ]]; then
+    accountForRefactor
+  fi
   # Install base files and web interface
   installScripts
   # Install config files
-  installConfigs  
-  # If the user wants to install the dasboard,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  installConfigs
+  # If the user wants to install the dashboard,
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # do so
     installPiholeWeb
   fi
   # Install the cron file
   installCron
-  # Install logrotate
+  # Install the logrotate file
   installLogrotate
-  # Detect if FTL is installed
-  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed."
+  # Check if FTL is installed
+  FTLdetect || echo -e "  ${CROSS} FTL Engine not installed"
+  # Configure the firewall
+  if [[ "${useUpdateVars}" == false ]]; then
+    configureFirewall
+  fi
 
-  #update setupvars.conf with any variables that may or may not have been changed during the install
+  # Update setupvars.conf with any variables that may or may not have been changed during the install
   finalExports
-
 }
-
 
 # SELinux
 checkSelinux() {
@@ -1641,7 +1704,7 @@ displayFinalMessage() {
     pwstring="NOT SET"
   fi
    # If the user wants to install the dashboard,
-   if [[ "${INSTALL_WEB}" == true ]]; then
+   if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
        # Store a message in a variable and display it
        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
@@ -1668,7 +1731,7 @@ update_dialogs() {
     opt1a="Repair"
     opt1b="This will retain existing settings"
     strAdd="You will remain on the same version"
-  # Othweise,
+  # Otherwise,
   else
     # set some variables with different values
     opt1a="Update"
@@ -1676,7 +1739,7 @@ update_dialogs() {
     strAdd="You will be updated to the latest version."
   fi
   opt2a="Reconfigure"
-  opt2b="This will allow you to enter new settings"
+  opt2b="This will reset your Pi-hole and allow you to enter new settings."
 
   # Display the information to the user
   UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\\n\\nWe have detected an existing install.\\n\\nPlease choose from the following options: \\n($strAdd)" ${r} ${c} 2 \
@@ -1699,6 +1762,86 @@ update_dialogs() {
     esac
 }
 
+check_download_exists() {
+  status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
+  if grep -q "404" <<< "$status"; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+fully_fetch_repo() {
+  # Add upstream branches to shallow clone
+  local directory="${1}"
+
+  cd "${directory}" || return 1
+  if is_repo "${directory}"; then
+    git remote set-branches origin '*' || return 1
+    git fetch --quiet || return 1
+  else
+    return 1
+  fi
+  return 0
+}
+
+get_available_branches() {
+  # Return available branches
+  local directory
+  directory="${1}"
+  local output
+
+  cd "${directory}" || return 1
+  # Get reachable remote branches, but store STDERR as STDOUT variable
+  output=$( { git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'; } 2>&1 )
+  echo "$output"
+  return
+}
+
+fetch_checkout_pull_branch() {
+  # Check out specified branch
+  local directory
+  directory="${1}"
+  local branch
+  branch="${2}"
+
+  # Set the reference for the requested branch, fetch, check it put and pull it
+  cd "${directory}" || return 1
+  git remote set-branches origin "${branch}" || return 1
+  git stash --all --quiet &> /dev/null || true
+  git clean --quiet --force -d || true
+  git fetch --quiet || return 1
+  checkout_pull_branch "${directory}" "${branch}" || return 1
+}
+
+checkout_pull_branch() {
+  # Check out specified branch
+  local directory
+  directory="${1}"
+  local branch
+  branch="${2}"
+  local oldbranch
+
+  cd "${directory}" || return 1
+
+  oldbranch="$(git symbolic-ref HEAD)"
+
+  str="Switching to branch: '${branch}' from '${oldbranch}'"
+  echo -ne "  ${INFO} $str"
+  git checkout "${branch}" --quiet || return 1
+  echo -e "${OVER}  ${TICK} $str"
+
+  git_pull=$(git pull || return 1)
+
+  if [[ "$git_pull" == *"up-to-date"* ]]; then
+    echo -e "  ${INFO} ${git_pull}"
+  else
+    echo -e "$git_pull\\n"
+  fi
+
+  return 0
+}
+
 clone_or_update_repos() {
   # If the user wants to reconfigure,
   if [[ "${reconfigure}" == true ]]; then
@@ -1709,7 +1852,7 @@ clone_or_update_repos() {
         exit 1; \
       }
     # If the Web interface was installed,
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
       # reset it's repo
       resetRepo ${webInterfaceDir} || \
         { echo -e "  ${COL_LIGHT_RED}Unable to reset ${webInterfaceDir}, exiting installer${COL_NC}"; \
@@ -1724,7 +1867,7 @@ clone_or_update_repos() {
         exit 1; \
       }
       # If the Web interface was installed,
-      if [[ "${INSTALL_WEB}" == true ]]; then
+      if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # get the Web git files
         getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
         { echo -e "  ${COL_LIGHT_RED}Unable to clone ${webInterfaceGitUrl} into ${webInterfaceDir}, exiting installer${COL_NC}"; \
@@ -1790,25 +1933,24 @@ FTLinstall() {
       popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
       echo -e "${OVER}  ${TICK} ${str}"
-      # If the --resolver flag returns True (exit code 0), then we can safely stop & disable dnsmasq
-      if pihole-FTL --resolver > /dev/null; then
-        if which dnsmasq > /dev/null; then
-          if check_service_active "dnsmasq";then
-            echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
-            stop_service dnsmasq
-            disable_service dnsmasq
-          fi
-        fi
-
-        #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
-        confdir="conf-dir=/etc/dnsmasq.d"
-        conffile="/etc/dnsmasq.conf"
-        if ! grep -q "$confdir" "$conffile"; then
-            echo "$confdir" >> "$conffile"
+      # dnsmasq can now be stopped and disabled if it exists
+      if which dnsmasq > /dev/null; then
+        if check_service_active "dnsmasq";then
+          echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
+          stop_service dnsmasq
+          disable_service dnsmasq
         fi
       fi
+
+      #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
+      confdir="conf-dir=/etc/dnsmasq.d"
+      conffile="/etc/dnsmasq.conf"
+      if ! grep -q "$confdir" "$conffile"; then
+          echo "$confdir" >> "$conffile"
+      fi
+
       return 0
-    # Otherise,
+    # Otherwise,
     else
       # the download failed, so just go back to the original directory
       popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
@@ -1911,7 +2053,23 @@ FTLcheckUpdate()
   local remoteSha1
   local localSha1
 
+   # if dnsmasq exists and is running at this point, force reinstall of FTL Binary
+  if which dnsmasq > /dev/null; then
+    if check_service_active "dnsmasq";then
+      return 0
+    fi
+  fi
+
   if [[ ! "${ftlBranch}" == "master" ]]; then
+    #Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
+    local path
+    path="${ftlBranch}/${binary}"
+    # shellcheck disable=SC1090
+    if ! check_download_exists "$path"; then
+      echo -e "  ${INFO} Branch \"${ftlBranch}\" is not available.\\n  ${INFO} Use ${COL_LIGHT_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
+      return 2
+    fi
+
     if [[ ${ftlLoc} ]]; then
       # We already have a pihole-FTL binary downloaded.
       # Alt branches don't have a tagged version against them, so just confirm the checksum of the local vs remote to decide whether we download or not
@@ -2029,15 +2187,6 @@ main() {
   # Check for supported distribution
   distro_check
 
-  # Check arguments for the undocumented flags
-  for var in "$@"; do
-    case "$var" in
-      "--reconfigure" ) reconfigure=true;;
-      "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
-      "--unattended" ) runUnattended=true;;
-    esac
-  done
-
   # If the setup variable file exists,
   if [[ -f "${setupVars}" ]]; then
     # if it's running unattended,
@@ -2077,98 +2226,58 @@ main() {
     welcomeDialogs
     # Create directory for Pi-hole storage
     mkdir -p /etc/pihole/
-
-    #Do we need to stop pihole-FTL or dnsmasq(if coming from an old install)?
-    if [[ $(which pihole-FTL 2>/dev/null) ]]; then
-      if pihole-FTL --resolver > /dev/null; then
-        stop_service pihole-FTL
-      else
-        stop_service dnsmasq
-      fi
-    else
-      if [[ $(which dnsmasq 2>/dev/null) ]]; then
-        stop_service dnsmasq
-      fi
-    fi
-
-    if [[ "${INSTALL_WEB}" == true ]]; then
-      stop_service lighttpd
-    fi
     # Determine available interfaces
     get_available_interfaces
     # Find interfaces and let the user choose one
     chooseInterface
     # Decide what upstream DNS Servers to use
     setDNS
+    # Give the user a choice of blocklists to include in their install. Or not.
+    chooseBlocklists
     # Let the user decide if they want to block ads over IPv4 and/or IPv6
     use4andor6
     # Let the user decide if they want the web interface to be installed automatically
     setAdminFlag
     # Let the user decide if they want query logging enabled...
     setLogging
-    # Clone/Update the repos
-    clone_or_update_repos
-
-    # Install packages used by the Pi-hole
-    if [[ "${INSTALL_WEB}" == true ]]; then
-      # Install the Web dependencies
-      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
-    # Otherwise,
-    else
-      # just install the Core dependencies
-      DEPS=("${PIHOLE_DEPS[@]}")
-    fi
-
-    install_dependent_packages DEPS[@]
-
-    # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
-    # has chosen to install the web interface, else the `LIGHTTPD_ENABLED` check will fail
-    if [[ "${INSTALL_WEB}" == true ]]; then
-      enable_service lighttpd
-    fi
-
-    if [[ -x "$(command -v systemctl)" ]]; then
-      # Value will either be 1, if true, or 0
-      LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
-    else
-      # Value will either be 1, if true, or 0
-      LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
-    fi
-
-    # Install and log everything to a file
-    installPihole | tee -a /proc/$$/fd/3
   else
     # Source ${setupVars} to use predefined user variables in the functions
     source ${setupVars}
-
-    # Clone/Update the repos
-    clone_or_update_repos
-
-    # Install packages used by the Pi-hole
-    if [[ "${INSTALL_WEB}" == true ]]; then
-      # Install the Web dependencies
-      DEPS=("${PIHOLE_DEPS[@]}" "${PIHOLE_WEB_DEPS[@]}")
-    # Otherwise,
-    else
-      # just install the Core dependencies
-      DEPS=("${PIHOLE_DEPS[@]}")
-    fi
-    install_dependent_packages DEPS[@]
-
-    if [[ -x "$(command -v systemctl)" ]]; then
-      # Value will either be 1, if true, or 0
-      LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
-    else
-      # Value will either be 1, if true, or 0
-      LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
-    fi
-    updatePihole | tee -a /proc/$$/fd/3
   fi
+  # Clone/Update the repos
+  clone_or_update_repos
+
+  # Install the Core dependencies
+  local dep_install_list=("${PIHOLE_DEPS[@]}")
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+    # Install the Web dependencies
+    dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
+  fi
+
+  install_dependent_packages dep_install_list[@]
+  unset dep_install_list
+
+  # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
+  # has chosen to install the web interface, else the `LIGHTTPD_ENABLED` check will fail
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+    enable_service lighttpd
+  fi
+
+  if [[ -x "$(command -v systemctl)" ]]; then
+    # Value will either be 1, if true, or 0
+    LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
+  else
+    # Value will either be 1, if true, or 0
+    LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+  fi
+
+  # Install and log everything to a file
+  installPihole | tee -a /proc/$$/fd/3
 
   # Copy the temp log file into final log location for storage
   copy_to_install_log
 
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # Add password to web UI if there is none
     pw=""
     # If no password is set,
@@ -2183,14 +2292,9 @@ main() {
 
   echo -e "  ${INFO} Restarting services..."
   # Start services
-  # Only start and enable dnsmasq if FTL does not have the --resolver switch
-  if ! pihole-FTL --resolver > /dev/null; then
-    start_service dnsmasq
-    enable_service dnsmasq
-  fi
 
   # If the Web server was installed,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 
     if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
       start_service lighttpd
@@ -2217,7 +2321,7 @@ main() {
   fi
 
   # If the Web interface was installed,
-  if [[ "${INSTALL_WEB}" == true ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # If there is a password,
     if (( ${#pw} > 0 )) ; then
       # display the password
@@ -2229,7 +2333,7 @@ main() {
   #
   if [[ "${useUpdateVars}" == false ]]; then
     # If the Web interface was installed,
-    if [[ "${INSTALL_WEB}" == true ]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
       echo -e "  View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
       echo ""
     fi
