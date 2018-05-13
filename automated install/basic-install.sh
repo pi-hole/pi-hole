@@ -1764,6 +1764,7 @@ FTLinstall() {
     # Remove old init.d script if present as it cannot coexist with the systemd unit we are installing here
     if [ -e "/etc/init.d/pihole-FTL" ]; then
       rm "/etc/init.d/pihole-FTL"
+      update-rc.d pihole-FTL remove
     fi
 
     # Enable service script (we have to do this after replacing the service unit)

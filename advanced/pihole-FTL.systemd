@@ -4,7 +4,6 @@ Description=Pi-hole FTLDNS
 ; very weakly defined what that is supposed to mean, with one exception: at shutdown, a unit
 ; that is ordered after network.target will be stopped before the network
 After=network.target
-Requires=network.target
 ; A target that should be used as synchronization point for all host/network name service lookups.
 ; All services for which the availability of full host/network name resolution is essential should
 ; be ordered after this target, but not pull it in.
@@ -20,13 +19,19 @@ PermissionsStartOnly=true
 Type=forking
 PIDFile=/run/pihole-FTL.pid
 
-ExecStartPre=/bin/bash /opt/pihole/pihole-FTL-prestart.sh
-;ExecStartPre=/sbin/setcap cap_net_bind_service,cap_net_raw,cap_net_admin+eip /usr/bin/pihole-FTL
+ExecStartPre=/bin/touch /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
+ExecStartPre=/bin/mkdir -p /var/run/pihole /var/log/pihole
+ExecStartPre=/bin/chown pihole:pihole /var/run/pihole /var/log/pihole
+ExecStartPre=-/bin/rm /var/run/pihole/FTL.sock
+ExecStartPre=/bin/chown pihole:pihole /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /etc/pihole /etc/pihole/dhcp.leases /var/log/pihole.log
+ExecStartPre=/bin/chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
+ExecStartPre=/bin/echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL
+
 ExecStart=/usr/bin/pihole-FTL
+RestartSec=30s
 ExecReload=/bin/kill -HUP $MAINPID
 
 ; Use graceful shutdown with a reasonable timeout
-KillMode=mixed
 TimeoutStopSec=10s
 
 ; Make /usr, /boot, /etc and possibly some more folders read-only...
