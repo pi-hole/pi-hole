@@ -60,17 +60,17 @@ if [ -x "$(command -v apt-get)" ]; then
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
 	package_cleanup() {
-		${SUDO} ${PKG_MANAGER} -y autoremove
-		${SUDO} ${PKG_MANAGER} -y autoclean
+		"${SUDO} ${PKG_MANAGER}" -y autoremove
+		"${SUDO} ${PKG_MANAGER}" -y autoclean
 	}
 elif [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
 	PKG_REMOVE="${PKG_MANAGER} remove -y"
 	package_check() {
-		rpm -qa | grep ^$1- > /dev/null
+		rpm -qa | grep "^$1-" > /dev/null
 	}
 	package_cleanup() {
-		${SUDO} ${PKG_MANAGER} -y autoremove
+		"${SUDO} ${PKG_MANAGER}" -y autoremove
 	}
 else
   echo -e "  ${CROSS} OS distribution not supported"
