@@ -493,6 +493,13 @@ parse_setup_vars() {
   fi
 }
 
+parse_locale() {
+  local pihole_locale
+  echo_current_diagnostic "Locale"
+  pihole_locale="$(locale)"
+  parse_file "${pihole_locale}"
+}
+
 does_ip_match_setup_vars() {
   # Check for IPv4 or 6
   local protocol="${1}"
@@ -879,8 +886,11 @@ parse_file() {
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
-  IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
-
+  if [[ -f "$filename" ]]; then
+    IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
+  else
+    read -a file_info <<< $filename
+  fi
   # Set a named variable for better readability
   local file_lines
   # For each line in the file,
@@ -1193,6 +1203,7 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_content_of_pihole_files
+parse_locale
 analyze_pihole_log
 copy_to_debug_log
 upload_to_tricorder
