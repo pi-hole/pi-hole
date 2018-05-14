@@ -2304,6 +2304,25 @@ main() {
     fi
   fi
 
+  # resolved and dnsmasq can't share port 53. 
+  # resolved needs to remain in place for installer to download needed files
+  # so this change needs to be made after installation is complete, but before resarting dnsmasq/ftl
+
+  # Check if running ubuntu 18.04 bionic beaver, which ships with resolved active on port 53
+  # (This check may need to be broadened for other systems running resolved?)
+  if ( lsb_release -a | grep 'Ubuntu 18.04' &> /dev/null ); then
+    # Running ubuntu 18.04, so check if resolved is running,
+    if (systemctl is-enabled systemd-resolved | grep -c 'enabled' || true); then
+      # if resolveconf is running unbind it from port 53
+      # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
+      echo -e "Unbinding resolved from port 53"
+      # Make a backup of the original /etc/systemd/resolveconf.d
+      # (This will need to be restored on uninstallation)
+      sed -i.orig 's/#DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+      systemctl restart systemd-resolved
+    fi
+  fi
+
   # Enable FTL
   start_service pihole-FTL
   enable_service pihole-FTL
