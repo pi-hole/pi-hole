@@ -168,7 +168,7 @@ removeNoPurge() {
   # Restore resolved 
   if [[ -e /etc/systemd/resolved.conf.orig ]]; then
     systemctl disable systemd-resolved
-    cp /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
+    ${SUDO} cp /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
     systemctl enable systemd-resolved
   fi
 
