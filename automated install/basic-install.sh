@@ -690,13 +690,13 @@ setStaticIPv4() {
   elif [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
     # If it exists,
     IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
+    IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
     # check if the desired IP is already set
-    if grep -q "${IPV4_ADDRESS}" "${IFCFG_FILE}"; then
+    if grep -q "${IPADDR}" "${IFCFG_FILE}"; then
       echo -e "  ${INFO} Static IP already configured"
     # Otherwise,
     else
       # Put the IP in variables without the CIDR notation
-      IPADDR=$(echo "${IPV4_ADDRESS}" | cut -f1 -d/)
       CIDR=$(echo "${IPV4_ADDRESS}" | cut -f2 -d/)
       # Backup existing interface configuration:
       cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
@@ -772,6 +772,7 @@ setDNS() {
       DNSWatch ""
       Quad9 ""
       FamilyShield ""
+      Cloudflare ""
       Custom "")
   # In a whiptail dialog, show the options
   DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
@@ -822,6 +823,11 @@ setDNS() {
       echo "FamilyShield servers"
       PIHOLE_DNS_1="208.67.222.123"
       PIHOLE_DNS_2="208.67.220.123"
+      ;;
+    Cloudflare)
+      echo "Cloudflare servers"
+      PIHOLE_DNS_1="1.1.1.1"
+      PIHOLE_DNS_2="1.0.0.1"
       ;;
     Custom)
       # Until the DNS settings are selected,

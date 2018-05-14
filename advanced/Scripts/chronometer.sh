@@ -179,6 +179,7 @@ get_init_stats() {
       90009[2-3]|920093) sys_model=" Zero";; # 512MB
       9000c1) sys_model=" Zero W";; # 512MB
       a02082|a[2-3]2082) sys_model=" 3, Model B";; # 1GB
+      a020d3) sys_model=" 3, Model B+";; # 1GB
       *) sys_model="";;
     esac
     sys_type="Raspberry Pi$sys_model"
