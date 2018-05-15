@@ -167,9 +167,8 @@ removeNoPurge() {
 
   # Restore resolved 
   if [[ -e /etc/systemd/resolved.conf.orig ]]; then
-    systemctl disable systemd-resolved
     ${SUDO} cp /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
-    systemctl enable systemd-resolved
+    systemctl reload-or-restart systemd-resolved
   fi
 
   # Remove FTL
