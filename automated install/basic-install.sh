@@ -2315,7 +2315,7 @@ main() {
     if (systemctl is-enabled systemd-resolved | grep -c 'enabled' || true); then
       # if resolveconf is running unbind it from port 53
       # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
-      echo -e "Unbinding resolved from port 53"
+      echo -e "Disabling systemd-resolved DNSStubListener"
       # Make a backup of the original /etc/systemd/resolveconf.d
       # (This will need to be restored on uninstallation)
       sed -i.orig 's/#DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
