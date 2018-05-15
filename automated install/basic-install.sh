@@ -1279,7 +1279,7 @@ disable_resolved_stublistener() {
       # Make a backup of the original /etc/systemd/resolved.conf
       # (This will need to be restored on uninstallation)
       sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-      systemctl restart systemd-resolved
+      systemctl reload-or-restart systemd-resolved
     fi
   fi
 }
