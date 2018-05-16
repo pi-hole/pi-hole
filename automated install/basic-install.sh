@@ -1266,21 +1266,28 @@ check_service_active() {
 }
 
 # Systemd-resolved's DNSStubListener and dnsmasq can't share port 53. 
-# Resolved needs to remain in place for installer to download needed files
+# Resolved needs to remain in place for installer to download needed files,
 # so this change needs to be made after installation is complete, but before resarting dnsmasq/ftl
 disable_resolved_stublistener() {
+  echo -en "  ${INFO} Testing if systemd-resolved is enabled"
   # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
   if check_service_active "systemd-resolved"; then
     # Check if DNSStubListener is enabled
+    echo -en "  ${OVER}  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
     if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
       # Disable the DNSStubListener to unbind it from port 53
       # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
-      echo -e "Disabling systemd-resolved DNSStubListener"
+      echo -en "${OVER}  ${TICK} Disabling systemd-resolved DNSStubListener"
       # Make a backup of the original /etc/systemd/resolved.conf
       # (This will need to be restored on uninstallation)
       sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+      echo -e " and restarting systemd-resolved"
       systemctl reload-or-restart systemd-resolved
+    else
+      echo -e "${OVER}  ${INFO} Systemd-resolved does not need to be restarted"
     fi
+  else
+    echo -e "${OVER}  ${INFO} Systemd-resolved is not enabled"
   fi
 }
 
