@@ -1266,8 +1266,6 @@ check_service_active() {
 }
 
 # Systemd-resolved's DNSStubListener and dnsmasq can't share port 53. 
-# Resolved needs to remain in place for installer to download needed files,
-# so this change needs to be made after installation is complete, but before resarting dnsmasq/ftl
 disable_resolved_stublistener() {
   echo -en "  ${INFO} Testing if systemd-resolved is enabled"
   # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
@@ -2316,8 +2314,11 @@ main() {
     fi
   fi
 
-  echo -e "  ${INFO} Restarting services..."
-  # Start services
+  # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
+  # DNSStubListener needs to remain in place for installer to download needed files,
+  # so this change needs to be made after installation is complete,
+  # but before starting or resarting the dnsmasq or ftl services
+  disable_resolved_stublistener
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
@@ -2330,8 +2331,8 @@ main() {
     fi
   fi
 
-  # Check for and if necessary disable systemd-resolved-DNSStubListener
-  disable_resolved_stublistener
+  echo -e "  ${INFO} Restarting services..."
+  # Start services
 
   # Enable FTL
   start_service pihole-FTL
