@@ -69,6 +69,14 @@ stop() {
   echo
 }
 
+status() {
+  if is_running; then
+    echo "pihole-FTL is running"
+  else
+    echo "pihole-FTL is NOT running"
+  fi
+}
+
 ### main logic ###
 case "$1" in
   stop)
