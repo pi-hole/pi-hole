@@ -66,7 +66,7 @@ IPV6_ADDRESS=""
 
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
-INSTALL_WEB=true
+INSTALL_WEB_INTERFACE=true
 
 
 #------- Undocumented Flags
@@ -409,7 +409,7 @@ find_IPv4_information() {
   # Get just the IP address.
   local ipv4bare=$(awk '{print $7}' <<< "${route}")
   # Append the CIDR notation to the IP address.
-  IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
+  IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${ipv4bare}" |  awk '{print $4}' | awk 'END {print}')
   # Get the default gateway (the way to reach the Internet).
   IPV4_GATEWAY=$(awk '{print $3}' <<< "${route}")
 }
@@ -1356,11 +1356,11 @@ update_package_cache() {
 
   # If the updating command from distro_check succeeds, show a completion message.
   if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
-    echo -e "${OVER}  ${TICK} ${str}"
+    echo -e "${OVER}  ${TICK} ${msg}"
 
   # Otherwise, show an error and exit.
   else
-    echo -e "${OVER}  ${CROSS} ${str}"
+    echo -e "${OVER}  ${CROSS} ${msg}"
     echo -ne "  ${COL_LIGHT_RED}Error: Unable to update package cache. Please try \"${UPDATE_PKG_CACHE}\"${COL_NC}"
     return 1
   fi
@@ -1381,19 +1381,19 @@ notify_package_updates_available() {
 
     # If there are no updates to be installed, show it.
     if [[ "${updatesToInstall}" -eq 0 ]]; then
-      echo -e "${OVER}  ${TICK} ${str}... up to date!"
+      echo -e "${OVER}  ${TICK} ${msg}... up to date!"
       echo ""
 
     # Otherwise, advise the user to update after the installation has finished.
     else
-      echo -e "${OVER}  ${TICK} ${str}... ${updatesToInstall} updates available"
+      echo -e "${OVER}  ${TICK} ${msg}... ${updatesToInstall} updates available"
       echo -e "  ${INFO} ${COL_LIGHT_GREEN}It is recommended to update your OS after installing the Pi-hole! ${COL_NC}"
       echo ""
     fi
 
   # Otherwise, display a warning that the installation may fail and instruct the user to reboot and try again.
   else
-    echo -e "${OVER}  ${CROSS} ${str}
+    echo -e "${OVER}  ${CROSS} ${msg}
       Kernel update detected. If the install fails, please reboot and try again\\n"
   fi
 }
@@ -1876,7 +1876,7 @@ update_dialogs() {
     "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3) || cancel
 
   # Set the USE_UPDATE_VARS variable according to the user's choice.
-  case "${updateCmd}" in
+  case "${updateChoice}" in
     # repair/update
     "${opt1a}" )
       echo -e "  ${INFO} ${opt1a} option selected"
@@ -1895,7 +1895,7 @@ update_dialogs() {
 check_download_exists() {
   local download="${1}"
 
-  local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
+  local status=$(curl --head --silent "https://ftl.pi-hole.net/${download}" | head -n 1)
   if grep -q "404" <<< "$status"; then
     return 1
   else
@@ -1954,17 +1954,17 @@ fetch_checkout_pull_branch() {
 #  $2: the remote branch's name
 checkout_pull_branch() {
   local directory="${1}"
-  local branchh="${2}"
-  local oldbranch
+  local branch="${2}"
+  
+  # Try moving to the given directory or return an error if it does not work.
+  cd "${directory}" || return 1
+
+  # Determine the current branch the repository is on.
+  local oldbranch="$(git symbolic-ref HEAD)"
 
   # Create a message to tell the user what is currently happening and display it.
   local msg="Switching to branch: '${branch}' from '${oldbranch}'"
   echo -ne "  ${INFO} ${msg}..."
-
-  # Try moving to the given directory or return an error if it does not work.
-  cd "${directory}" || return 1
-
-  local oldbranch="$(git symbolic-ref HEAD)"
 
   git checkout "${branch}" --quiet || return 1
   echo -e "${OVER}  ${TICK} $msg"
@@ -2183,7 +2183,7 @@ get_ftl_binary_name() {
 
     # If the architecture is not x86_32, try using the x86_32 binary, but show a warning.
     if [[ ! "${architecture}" == "i686" ]]; then
-      echo -e "${OVER}  ${CROSS} ${str}...
+      echo -e "${OVER}  ${CROSS} ${msg}...
       ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${architecture}), trying 32bit executable${COL_NC}
       Contact Pi-hole Support if you experience issues (e.g: FTL not running)"
 
@@ -2354,7 +2354,7 @@ main() {
   if [[ "${EUID}" -ne 0 ]]; then
 
    # They do not have enough privileges, so let the user know.
-    echo -e "  ${CROSS} ${str}
+    echo -e "  ${CROSS} ${msg}
       ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
       The Pi-hole requires elevated privileges to install and run
       Please check the installer for any concerns regarding this requirement
@@ -2380,7 +2380,7 @@ main() {
   fi
 
   # Otherwise, continue.
-  echo -e "  ${TICK} ${str}"
+  echo -e "  ${TICK} ${msg}"
 
   # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
   show_ascii_berry
