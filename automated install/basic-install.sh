@@ -46,13 +46,13 @@ WEB_INTERFACE_DIR="/var/www/html/admin"
 
 # Git repository of Pi-hole and the location for its local clone.
 PIHOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
-PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PIHOLE_LOCAL_REPO="/etc/.pihole"
 
 # List of all Pi-hole files, which is used for removing old versions during installations and updates.
-PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
+PIHOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 
 # This folder is where the Pi-hole scripts will be installed.
-PI_HOLE_INSTALL_DIR="/opt/pihole"
+PIHOLE_INSTALL_DIR="/opt/pihole"
 
 # Used to keep track of whether the script is used for a repair/update or reconfiguration.
 USE_UPDATE_VARS=false
@@ -158,7 +158,7 @@ distro_check() {
   UPDATE_PKG_CACHE=""
   # the command used for installing new packages
   PKG_INSTALL=""
-  # ?
+  # the command used for determining the number of available packages
   PKG_COUNT=""
 
   # dependencies for the installer, Pi-hole and the web dashboard
@@ -215,18 +215,15 @@ distro_check() {
 
     # Waits until the dpkg lock is free and packages can be installed/configured.
     test_dpkg_lock() {
-        # Keep track of iterations. TODO: Why?
-        local i=0
-        # fuser shows which processes use the named files, sockets, or filesystems.
-        # So while the dpkg lock is true, keep waiting.
-        while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-          sleep 0.5
-          ((i=i+1))
-        done
+      # fuser shows which processes use the named files, sockets, or filesystems.
+      # So while the dpkg lock is true, keep waiting.
+      while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+        sleep 0.5
+      done
 
-        # Always return success, since we only return if there is no lock (anymore).
-        return 0
-      }
+      # Always return success, since we only return if there is no lock (anymore).
+      return 0
+    }
 
   # Fedora (Fedora, Redhat, CentOS)
   # If rpm is installed, then we know it's part of the Fedora family.
@@ -522,14 +519,10 @@ choose_interface() {
       # The whiptail command that will be run, stored in a variable.
       local chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to select)" "${R}" "${C}" "${interfaceCount}")
       # Now run the command using the interfaces saved into the array.
-      local chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || cancel
+      local chooseInterfaceChoice=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || cancel
 
-      # Loop through the user's choices and set them as the interface to use. TODO: Why a loop? Shouldn't this be only one value?
-      for desiredInterface in ${chooseInterfaceOptions}; do
-        PIHOLE_INTERFACE="${desiredInterface}"
-        # Show this information to the user.
-        echo -e "  ${INFO} Using interface: $PIHOLE_INTERFACE"
-      done
+      # Store the user's choice in a globally accessible variable.
+      PIHOLE_INTERFACE="${chooseInterfaceChoice}"
   fi
 }
 
@@ -1063,8 +1056,8 @@ version_check_dnsmasq() {
   local dnsmasqConf="/etc/dnsmasq.conf"
   local dnsmasqConfOrig="/etc/dnsmasq.conf.orig"
   local dnsmasqPiholeIdString="addn-hosts=/etc/pihole/gravity.list"
-  local dnsmasqOriginalConfig="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
-  local dnsmasqPihole01Snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
+  local dnsmasqOriginalConfig="${PIHOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
+  local dnsmasqPihole01Snippet="${PIHOLE_LOCAL_REPO}/advanced/01-pihole.conf"
   local dnsmasqPihole01Location="/etc/dnsmasq.d/01-pihole.conf"
 
   # If the dnsmasq config file exists, either update it or leave it be.
@@ -1145,6 +1138,7 @@ version_check_dnsmasq() {
 
 # Cleans an existing Pi-hole installation in a given directory to prepare for an upgrade or reinstallation.
 #  $1: the directory containing the Pi-hole installation to be cleaned.
+#  $2..: a list of names of scripts to be deleted from the given directory
 clean_existing() {
   local cleanDirectory="${1}"
 
@@ -1159,34 +1153,34 @@ clean_existing() {
   done
 }
 
-# Installs the scripts from the local Pi-hole git repository at PI_HOLE_LOCAL_REPO to their various locations.
+# Installs the scripts from the local Pi-hole git repository at PIHOLE_LOCAL_REPO to their various locations.
 install_scripts() {
 
   # Create a message to tell the user what is currently happening and display it.
-  local msg="Installing scripts from ${PI_HOLE_LOCAL_REPO}"
+  local msg="Installing scripts from ${PIHOLE_LOCAL_REPO}"
   echo -ne "  ${INFO} ${msg}..."
 
   # Clear out script files from Pi-hole scripts directory.
-  clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES[@]}"
+  clean_existing "${PIHOLE_INSTALL_DIR}" "${PIHOLE_FILES[@]}"
 
   # Install files from local core repository.
-  if is_repo "${PI_HOLE_LOCAL_REPO}"; then
+  if is_repo "${PIHOLE_LOCAL_REPO}"; then
 
     # Move into the directory.
-    cd "${PI_HOLE_LOCAL_REPO}"
+    cd "${PIHOLE_LOCAL_REPO}"
 
     # Install the scripts by:
     #  -o setting the owner to the user
     #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
 
     # This first one is the directory.
-    install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+    install -o "${USER}" -Dm755 -d "${PIHOLE_INSTALL_DIR}"
 
     # The rest are the scripts Pi-hole needs.
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
+    install -o "${USER}" -Dm755 -t "${PIHOLE_INSTALL_DIR}" gravity.sh
+    install -o "${USER}" -Dm755 -t "${PIHOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
+    install -o "${USER}" -Dm755 -t "${PIHOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
+    install -o "${USER}" -Dm755 -t "${PIHOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
     install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
     install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
 
@@ -1195,16 +1189,16 @@ install_scripts() {
   # If the repository does not exist, something went wrong. Show an error and exit.
   else
     echo -e "${OVER}  ${CROSS} ${msg}
-  ${COL_LIGHT_RED}Error: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting installer${COL_NC}"
+  ${COL_LIGHT_RED}Error: Local repo ${PIHOLE_LOCAL_REPO} not found, exiting installer${COL_NC}"
     exit 1
   fi
 }
 
-# Installs the configs from the local Pi-hole git repository at PI_HOLE_LOCAL_REPO to their various locations.
+# Installs the configs from the local Pi-hole git repository at PIHOLE_LOCAL_REPO to their various locations.
 install_configs() {
 
   # Display a message to tell the user what is currently happening.
-  echo -e "  ${INFO} Installing configs from ${PI_HOLE_LOCAL_REPO}..."
+  echo -e "  ${INFO} Installing configs from ${PIHOLE_LOCAL_REPO}..."
 
   # Make sure Pi-hole's config files for dnsmasq are in place.
   version_check_dnsmasq
@@ -1225,7 +1219,7 @@ install_configs() {
     fi
 
     # Copy in the most recent version.
-    cp "${PI_HOLE_LOCAL_REPO}"/advanced/"${LIGHTTPD_CFG}" "${LIGHTTPD_CONFIG}"
+    cp "${PIHOLE_LOCAL_REPO}"/advanced/"${LIGHTTPD_CFG}" "${LIGHTTPD_CONFIG}"
 
     # If there is a custom block page in the html/pihole directory, replace the 404 handler in lighttpd config.
     if [[ -f "/var/www/html/pihole/custom.php" ]]; then
@@ -1487,7 +1481,7 @@ install_pihole_web() {
 
   # Install the directory and the blockpage
   install -d /var/www/html/pihole
-  install -D "${PI_HOLE_LOCAL_REPO}"/advanced/{index,blockingpage}.* /var/www/html/pihole/
+  install -D "${PIHOLE_LOCAL_REPO}"/advanced/{index,blockingpage}.* /var/www/html/pihole/
 
   # Remove superseded file
   if [[ -e "/var/www/html/pihole/index.js" ]]; then
@@ -1517,7 +1511,7 @@ install_pihole_web() {
 
   # Make the sudoers.d directory if it doesn't exist and copy in the Pi-hole suoders file.
   mkdir -p /etc/sudoers.d/
-  cp "${PI_HOLE_LOCAL_REPO}"/advanced/pihole.sudo /etc/sudoers.d/pihole
+  cp "${PIHOLE_LOCAL_REPO}"/advanced/pihole.sudo /etc/sudoers.d/pihole
 
   # Add the lighttpd user (OS dependent) to the sudoers file.
   echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
@@ -1543,7 +1537,7 @@ install_cron() {
   echo -ne "  ${INFO} ${msg}..."
 
   # Copy the cron file over from the local repo.
-  cp "${PI_HOLE_LOCAL_REPO}"/advanced/pihole.cron /etc/cron.d/pihole
+  cp "${PIHOLE_LOCAL_REPO}"/advanced/pihole.cron /etc/cron.d/pihole
 
   # Randomize gravity update time
   sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
@@ -1668,7 +1662,7 @@ final_exports() {
 
   # Bring in the current settings and the functions to manipulate them.
   source "${SETUP_VARS}"
-  source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
+  source "${PIHOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
   # Look for DNS server settings which would have to be reapplied
   ProcessDNSSettings
@@ -1686,7 +1680,7 @@ install_logrotate() {
   echo -ne "  ${INFO} ${msg}..."
 
   # Copy the file over from the local repo.
-  cp "${PI_HOLE_LOCAL_REPO}"/advanced/logrotate /etc/pihole/logrotate
+  cp "${PIHOLE_LOCAL_REPO}"/advanced/logrotate /etc/pihole/logrotate
 
   # Different operating systems have different user / group settings for logrotate.
   # This makes it impossible to create a static logrotate file that will work with e.g.
@@ -1812,7 +1806,7 @@ check_selinux() {
   fi
 }
 
-# Displays the final ddialog to the user and displays the server's addresses as well as the web interface password, if the web interface has been installed.
+# Displays the final dialog to the user and displays the server's addresses as well as the web interface password, if the web interface has been installed.
 display_final_message() {
 
   # If a password as been provided as parameter, use it.
@@ -1980,7 +1974,7 @@ checkout_pull_branch() {
   return 0
 }
 
-# Either resets the local git repository ${PI_HOLE_LOCAL_REPO} if a reconfiguration is in process (${RECONFIGURE} is true)
+# Either resets the local git repository ${PIHOLE_LOCAL_REPO} if a reconfiguration is in process (${RECONFIGURE} is true)
 # or clones/updates the repository otherwise.
 clone_or_update_repos() {
 
@@ -1989,8 +1983,8 @@ clone_or_update_repos() {
     echo "  ${INFO} Performing reconfiguration, skipping download of local repos"
 
     # Reset the core repository to get rid of all local changes.
-    reset_repo "${PI_HOLE_LOCAL_REPO}" || \
-      { echo -e "  ${COL_LIGHT_RED}Unable to reset ${PI_HOLE_LOCAL_REPO}, exiting installer${COL_NC}"; \
+    reset_repo "${PIHOLE_LOCAL_REPO}" || \
+      { echo -e "  ${COL_LIGHT_RED}Unable to reset ${PIHOLE_LOCAL_REPO}, exiting installer${COL_NC}"; \
         exit 1; \
       }
 
@@ -2006,8 +2000,8 @@ clone_or_update_repos() {
   else
 
     # Clone the core repository, deleting the old local repository in the process.
-    get_git_files "${PI_HOLE_LOCAL_REPO}" "${PIHOLE_GIT_URL}" || \
-      { echo -e "  ${COL_LIGHT_RED}Unable to clone ${PIHOLE_GIT_URL} into ${PI_HOLE_LOCAL_REPO}, unable to continue${COL_NC}"; \
+    get_git_files "${PIHOLE_LOCAL_REPO}" "${PIHOLE_GIT_URL}" || \
+      { echo -e "  ${COL_LIGHT_RED}Unable to clone ${PIHOLE_GIT_URL} into ${PIHOLE_LOCAL_REPO}, unable to continue${COL_NC}"; \
         exit 1; \
       }
 
@@ -2043,7 +2037,7 @@ install_ftl() {
   pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
   # Always replace pihole-FTL.service.
-  install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+  install -T -m 0755 "${PIHOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
   # Determine which git branch to copy.
   local ftlBranch
@@ -2519,7 +2513,7 @@ main() {
   . /opt/pihole/updatecheck.sh
   . /opt/pihole/updatecheck.sh x remote
 
-  #
+  # If this is a fresh installation or reconfiguration, display the final message.
   if [[ "${USE_UPDATE_VARS}" == false ]]; then
       display_final_message "${pw}"
   fi
@@ -2534,7 +2528,7 @@ main() {
     fi
   fi
 
-  #
+  # If this is a fresh installation or reconfiguration, show final information in the console. 
   if [[ "${USE_UPDATE_VARS}" == false ]]; then
     # If the Web interface was installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
@@ -2546,14 +2540,13 @@ main() {
     [[ -n "${IPV4_ADDRESS%/*}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv4): ${IPV4_ADDRESS%/*}"
     [[ -n "${IPV6_ADDRESS}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv6): ${IPV6_ADDRESS}"
     echo -e "  If you set a new IP address, please restart the server running the Pi-hole"
-    #
+    
     INSTALL_TYPE="Installation"
   else
-    #
     INSTALL_TYPE="Update"
   fi
 
-  # Display where the log file is
+  # Display where the log file is.
   echo -e "\\n  ${INFO} The install log is located at: ${INSTALL_LOG_LOC}
   ${COL_LIGHT_GREEN}${INSTALL_TYPE} Complete! ${COL_NC}"
 
@@ -2563,7 +2556,7 @@ main() {
   fi
 }
 
-#
+# Unless this script is being run for testing, execute the installer.
 if [[ "${PH_TEST}" != true ]] ; then
   main "$@"
 fi
