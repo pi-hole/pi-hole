@@ -14,8 +14,8 @@ while true; do
   read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " yn
   case ${yn} in
     [Yy]* ) break;;
-    [Nn]* ) echo -e "\n  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
-    * ) echo -e "\n  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
+    [Nn]* ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
+    * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
   esac
 done
 
