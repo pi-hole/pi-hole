@@ -25,6 +25,7 @@ adListFile="${piholeDir}/adlists.list"
 adListDefault="${piholeDir}/adlists.default"
 
 whitelistFile="${piholeDir}/whitelist.txt"
+whitelistWild="${piholeDir}/whitelist_wild.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 wildcardFile="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 
@@ -446,6 +447,14 @@ gravity_Whitelist() {
   num=$(wc -l < "${whitelistFile}")
   str="Number of whitelisted domains: ${num}"
   echo -ne "  ${INFO} ${str}..."
+
+  if [[ -f "${whitelistWild}" ]]; then
+    while read p
+      do
+      echo -e "${OVER}  ${INFO} wildcard whitelisting ${p}"
+      sed -i "/${p}/d" ${piholeDir}/${preEventHorizon}
+    done < ${whitelistWild}
+  fi
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
   comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
