@@ -59,18 +59,11 @@ if [ -x "$(command -v apt-get)" ]; then
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
 	}
-	package_cleanup() {
-		"${SUDO} ${PKG_MANAGER}" -y autoremove
-		"${SUDO} ${PKG_MANAGER}" -y autoclean
-	}
 elif [ -x "$(command -v rpm)" ]; then
 	# Fedora Family
 	PKG_REMOVE="${PKG_MANAGER} remove -y"
 	package_check() {
 		rpm -qa | grep "^$1-" > /dev/null
-	}
-	package_cleanup() {
-		"${SUDO} ${PKG_MANAGER}" -y autoremove
 	}
 else
   echo -e "  ${CROSS} OS distribution not supported"
@@ -100,13 +93,8 @@ removeAndPurge() {
 	done
 
 	# Remove dnsmasq config files
-	${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+	${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/*-pihole*.conf &> /dev/null
   echo -e "  ${TICK} Removing dnsmasq config files"
-
-	# Take care of any additional package cleaning
-	echo -ne "  ${INFO} Removing & cleaning remaining dependencies..."
-	package_cleanup &> /dev/null
-  echo -e "${OVER}  ${TICK} Removed & cleaned up remaining dependencies"
 
 	# Call removeNoPurge to remove Pi-hole specific files
 	removeNoPurge

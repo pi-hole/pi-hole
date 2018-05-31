@@ -232,7 +232,7 @@ Options:
 
   # Handle notices
   if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
-    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} found within block lists"
+    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the block lists"
     exit 0
   elif [[ -z "${results[*]}" ]]; then
     # Result found in WL/BL/Wildcards

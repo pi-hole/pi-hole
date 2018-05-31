@@ -1933,11 +1933,13 @@ FTLinstall() {
       popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
       echo -e "${OVER}  ${TICK} ${str}"
-      # dnsmasq can now be stopped and disabled
-      if check_service_active "dnsmasq";then
-        echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
-        stop_service dnsmasq
-        disable_service dnsmasq
+      # dnsmasq can now be stopped and disabled if it exists
+      if which dnsmasq > /dev/null; then
+        if check_service_active "dnsmasq";then
+          echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
+          stop_service dnsmasq
+          disable_service dnsmasq
+        fi
       fi
 
       #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
@@ -2051,9 +2053,11 @@ FTLcheckUpdate()
   local remoteSha1
   local localSha1
 
-   # if dnsmasq is running at this point, force reinstall of FTL Binary
-  if check_service_active "dnsmasq";then
-    return 0
+   # if dnsmasq exists and is running at this point, force reinstall of FTL Binary
+  if which dnsmasq > /dev/null; then
+    if check_service_active "dnsmasq";then
+      return 0
+    fi
   fi
 
   if [[ ! "${ftlBranch}" == "master" ]]; then
