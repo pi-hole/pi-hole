@@ -153,6 +153,12 @@ removeNoPurge() {
 	${SUDO} rm -f /etc/sudoers.d/pihole &> /dev/null
   echo -e "  ${TICK} Removed config files"
 
+  # Restore resolved 
+  if [[ -e /etc/systemd/resolved.conf.orig ]]; then
+    ${SUDO} cp /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
+    systemctl reload-or-restart systemd-resolved
+  fi
+
   # Remove FTL
   if command -v pihole-FTL &> /dev/null; then
     echo -ne "  ${INFO} Removing pihole-FTL..."

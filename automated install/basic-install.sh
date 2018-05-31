@@ -1265,6 +1265,30 @@ check_service_active() {
   fi
 }
 
+# Systemd-resolved's DNSStubListener and dnsmasq can't share port 53. 
+disable_resolved_stublistener() {
+  echo -en "  ${INFO} Testing if systemd-resolved is enabled"
+  # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
+  if check_service_active "systemd-resolved"; then
+    # Check if DNSStubListener is enabled
+    echo -en "  ${OVER}  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
+    if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
+      # Disable the DNSStubListener to unbind it from port 53
+      # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
+      echo -en "${OVER}  ${TICK} Disabling systemd-resolved DNSStubListener"
+      # Make a backup of the original /etc/systemd/resolved.conf
+      # (This will need to be restored on uninstallation)
+      sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+      echo -e " and restarting systemd-resolved"
+      systemctl reload-or-restart systemd-resolved
+    else
+      echo -e "${OVER}  ${INFO} Systemd-resolved does not need to be restarted"
+    fi
+  else
+    echo -e "${OVER}  ${INFO} Systemd-resolved is not enabled"
+  fi
+}
+
 update_package_cache() {
   # Running apt-get update/upgrade with minimal output can cause some issues with
   # requiring user input (e.g password for phpmyadmin see #218)
@@ -2290,8 +2314,11 @@ main() {
     fi
   fi
 
-  echo -e "  ${INFO} Restarting services..."
-  # Start services
+  # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
+  # DNSStubListener needs to remain in place for installer to download needed files,
+  # so this change needs to be made after installation is complete,
+  # but before starting or resarting the dnsmasq or ftl services
+  disable_resolved_stublistener
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
@@ -2303,6 +2330,9 @@ main() {
       echo -e "  ${INFO} Lighttpd is disabled, skipping service restart"
     fi
   fi
+
+  echo -e "  ${INFO} Restarting services..."
+  # Start services
 
   # Enable FTL
   start_service pihole-FTL
