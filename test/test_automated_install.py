@@ -61,7 +61,7 @@ def test_setupVars_saved_to_file(Pihole):
     {}
     mkdir -p /etc/dnsmasq.d
     version_check_dnsmasq
-    finalExports
+    final_exports
     cat /etc/pihole/setupVars.conf
     '''.format(set_setup_vars))
 
@@ -78,7 +78,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     mock_command('whiptail', {'*':('', 0)}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    configureFirewall
+    configure_firewall
     ''')
     expected_stdout = 'Configuring FirewallD for httpd and pihole-FTL'
     assert expected_stdout in configureFirewall.stdout
@@ -93,7 +93,7 @@ def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
     mock_command('firewall-cmd', {'*':('not running', '1')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    configureFirewall
+    configure_firewall
     ''')
     expected_stdout = 'No active firewall detected.. skipping firewall configuration'
     assert expected_stdout in configureFirewall.stdout
@@ -106,7 +106,7 @@ def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
     mock_command('whiptail', {'*':('', 1)}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    configureFirewall
+    configure_firewall
     ''')
     expected_stdout = 'Not installing firewall rulesets.'
     assert expected_stdout in configureFirewall.stdout
@@ -115,7 +115,7 @@ def test_configureFirewall_no_firewall(Pihole):
     ''' confirms firewall skipped no daemon is running '''
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    configureFirewall
+    configure_firewall
     ''')
     expected_stdout = 'No active firewall detected'
     assert expected_stdout in configureFirewall.stdout
@@ -130,7 +130,7 @@ def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
     mock_command('whiptail', {'*':('', '1')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    configureFirewall
+    configure_firewall
     ''')
     expected_stdout = 'Not installing firewall rulesets.'
     assert expected_stdout in configureFirewall.stdout
@@ -145,7 +145,7 @@ def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     mock_command('whiptail', {'*':('', '0')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    configureFirewall
+    configure_firewall
     ''')
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
@@ -164,7 +164,7 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     mock_command('whiptail', {'*':('', '0')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    configureFirewall
+    configure_firewall
     ''')
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
@@ -177,7 +177,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     ''' confirms all web page assets from Core repo are installed on a fresh build '''
     installWeb = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    installPiholeWeb
+    install_pihole_web
     ''')
     assert info_box + ' Installing blocking page...' in installWeb.stdout
     assert tick_box + ' Creating directory for blocking page, and copying files' in installWeb.stdout
@@ -217,7 +217,7 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls':('/lib/ld-linux-aarch64.so.1', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    detect_ftl
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -234,7 +234,7 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    detect_ftl
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -251,7 +251,7 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    detect_ftl
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -264,7 +264,7 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     ''' confirms only x86_64 package is downloaded for FTL engine '''
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    detect_ftl
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -279,7 +279,7 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     mock_command('uname', {'-m':('mips', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    detect_ftl
     ''')
     expected_stdout = 'Not able to detect architecture (unknown: mips)'
     assert expected_stdout in detectPlatform.stdout
@@ -289,7 +289,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     # mock uname to return generic platform
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLinstall pihole-FTL-aarch64-linux-gnu
+    install_ftl pihole-FTL-aarch64-linux-gnu
     ''')
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
@@ -303,7 +303,7 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     # mock uname to return generic platform
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLinstall pihole-FTL-mips
+    install_ftl pihole-FTL-mips
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
@@ -314,7 +314,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     ''' confirms FTL binary is copied and functional in installed location '''
     installed_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    detect_ftl
     pihole-FTL version
     ''')
     expected_stdout = 'v'
@@ -340,7 +340,7 @@ def test_IPv6_only_link_local(Pihole):
     mock_command_2('ip', {'-6 address':('inet6 fe80::d210:52fa:fe00:7ad7/64 scope link', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    use_ipv6_dialog
     ''')
     expected_stdout = 'Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled'
     assert expected_stdout in detectPlatform.stdout
@@ -351,7 +351,7 @@ def test_IPv6_only_ULA(Pihole):
     mock_command_2('ip', {'-6 address':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    use_ipv6_dialog
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
@@ -362,7 +362,7 @@ def test_IPv6_only_GUA(Pihole):
     mock_command_2('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    use_ipv6_dialog
     ''')
     expected_stdout = 'Found IPv6 GUA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
@@ -373,7 +373,7 @@ def test_IPv6_GUA_ULA_test(Pihole):
     mock_command_2('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global\ninet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    use_ipv6_dialog
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
@@ -384,7 +384,7 @@ def test_IPv6_ULA_GUA_test(Pihole):
     mock_command_2('ip', {'-6 address':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global\ninet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    use_ipv6_dialog
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
