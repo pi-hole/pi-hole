@@ -87,7 +87,7 @@ removeAndPurge() {
                 case ${yn} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null;
+                        ${SUDO} "${PKG_REMOVE} ${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
@@ -179,15 +179,14 @@ removeNoPurge() {
 
     # If the pihole user exists, then remove
     if id "pihole" &> /dev/null; then
-        ${SUDO} userdel -r pihole 2> /dev/null
-        if [[ "$?" -eq 0 ]]; then
+        if ${SUDO} userdel -r pihole 2> /dev/null; then
             echo -e "  ${TICK} Removed 'pihole' user"
         else
             echo -e "  ${CROSS} Unable to remove 'pihole' user"
         fi
     fi
 
-    echo -e "\n   We're sorry to see you go, but thanks for checking out Pi-hole!
+    echo -e "\\n   We're sorry to see you go, but thanks for checking out Pi-hole!
        If you need help, reach out to us on Github, Discourse, Reddit or Twitter
        Reinstall at any time: ${COL_WHITE}curl -sSL https://install.pi-hole.net | bash${COL_NC}
 
