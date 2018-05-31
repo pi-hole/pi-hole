@@ -32,10 +32,51 @@ function get_local_branch() {
 }
 
 function get_local_version() {
-# Return active branch
-cd "${1}" 2> /dev/null || return 1
-git describe --long --dirty --tags || return 1
+  # Return active branch
+  cd "${1}" 2> /dev/null || return 1
+  git describe --long --dirty --tags || return 1
 }
+
+function extract_dnsmasq_version() {
+  # Return version of system-wide dnsmasq daemon
+  dnsmasq -v | awk '/Dnsmasq version/{print $3}'
+}
+
+# Compare versions
+function version_cmp() {
+  # Use bash string comparison
+  [[ "$1" = "$2" ]] && echo 0
+  [[ "$1" > "$2" ]] && echo 1
+  [[ "$1" < "$2" ]] && echo 2
+}
+
+function should_ignore_update() {
+  # We only save the upstream version if either
+  #  - the dnsmasq version is at least 2.73, or
+  #  - the upstream version of FTL is at least v4.0
+  [[ $dnsmasq_version_cmp == 1 && $FTL_version_cmp == 1 ]]
+}
+
+# Get the dnsmasq and FTL versions to check update edge case
+dnsmasq_version="$(extract_dnsmasq_version)"
+dnsmasq_version_cmp=$(version_cmp 2.73 "$dnsmasq_version")
+
+FTL_version="$(pihole-FTL version)"
+FTL_version_cmp=$(version_cmp v4.0 "$FTL_version")
+
+# Special section used to test the logic
+if [[ "$2" == "test" ]]; then
+  echo "raw dnsmasq output: \"$(dnsmasq -v)\""
+  echo "dnsmasq version: \"$dnsmasq_version\""
+  echo "FTL version: \"$FTL_version\""
+
+  if should_ignore_update; then
+    echo "No update"
+  else
+    echo "Update"
+  fi
+  exit 0
+fi
 
 if [[ "$2" == "remote" ]]; then
 
@@ -43,9 +84,16 @@ if [[ "$2" == "remote" ]]; then
     sleep 30
   fi
 
+    # Locally available dnsmasq version is too old, don't suggest updating
   GITHUB_CORE_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)")"
   GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
   GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -q 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
+
+  if should_ignore_update; then
+    GITHUB_CORE_VERSION="$(get_local_version /etc/.pihole)"
+    GITHUB_WEB_VERSION="$(get_local_version /var/www/html/admin)"
+    GITHUB_FTL_VERSION="$(pihole-FTL version)"
+  fi
 
   echo -n "${GITHUB_CORE_VERSION} ${GITHUB_WEB_VERSION} ${GITHUB_FTL_VERSION}" > "/etc/pihole/GitHubVersions"
 
