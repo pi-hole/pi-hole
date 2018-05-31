@@ -65,7 +65,6 @@ elif [ -x "$(command -v rpm)" ]; then
     package_check() {
         rpm -qa | grep "^$1-" > /dev/null
     }
-
 else
     echo -e "  ${CROSS} OS distribution not supported"
     exit 1
