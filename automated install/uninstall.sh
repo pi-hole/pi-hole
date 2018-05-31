@@ -53,24 +53,17 @@ if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 fi
 
 # Compatability
-if [ -x "$(command -v rpm)" ]; then
-    # Fedora Family
-    PKG_REMOVE="${PKG_MANAGER} remove -y"
-    package_check() {
-        rpm -qa | grep "^$1-" > /dev/null
-    }
-    package_cleanup() {
-        "${SUDO}" "${PKG_MANAGER}" -y autoremove
-    }
-elif [ -x "$(command -v apt-get)" ]; then
+if [ -x "$(command -v apt-get)" ]; then
     # Debian Family
     PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
     package_check() {
         dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
     }
-    package_cleanup() {
-        "${SUDO}" "${PKG_MANAGER}" -y autoremove
-        "${SUDO}" "${PKG_MANAGER}" -y autoclean
+elif [ -x "$(command -v rpm)" ]; then
+    # Fedora Family
+    PKG_REMOVE="${PKG_MANAGER} remove -y"
+    package_check() {
+        rpm -qa | grep "^$1-" > /dev/null
     }
 else
     echo -e "  ${CROSS} OS distribution not supported"
@@ -81,13 +74,14 @@ removeAndPurge() {
     # Purge dependencies
     echo ""
     for i in "${DEPS[@]}"; do
-        if package_check "${i}" > /dev/null; then
+        package_check ${i} > /dev/null
+        if [[ "$?" -eq 0 ]]; then
             while true; do
                 read -rp "  ${QST} Do you wish to remove ${COL_WHITE}${i}${COL_NC} from your system? [Y/N] " yn
                 case ${yn} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} "${PKG_REMOVE} ${i}" &> /dev/null;
+                        ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
@@ -95,17 +89,12 @@ removeAndPurge() {
             done
         else
             echo -e "  ${INFO} Package ${i} not installed"
-        fi
+	    fi
     done
 
     # Remove dnsmasq config files
-    ${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+    ${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/*-pihole*.conf &> /dev/null
     echo -e "  ${TICK} Removing dnsmasq config files"
-
-    # Take care of any additional package cleaning
-    echo -ne "  ${INFO} Removing & cleaning remaining dependencies..."
-    package_cleanup &> /dev/null
-    echo -e "${OVER}  ${TICK} Removed & cleaned up remaining dependencies"
 
     # Call removeNoPurge to remove Pi-hole specific files
     removeNoPurge
