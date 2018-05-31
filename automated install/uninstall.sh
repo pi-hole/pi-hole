@@ -74,14 +74,13 @@ removeAndPurge() {
     # Purge dependencies
     echo ""
     for i in "${DEPS[@]}"; do
-        package_check ${i} > /dev/null
-        if [[ "$?" -eq 0 ]]; then
+        if package_check "${i}" > /dev/null; then
             while true; do
                 read -rp "  ${QST} Do you wish to remove ${COL_WHITE}${i}${COL_NC} from your system? [Y/N] " yn
                 case ${yn} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null;
+                        ${SUDO} "${PKG_REMOVE} ${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
