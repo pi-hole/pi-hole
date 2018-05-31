@@ -53,17 +53,17 @@ if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 fi
 
 # Compatability
-if [ -x "$(command -v rpm)" ]; then
-	# Fedora Family
-	PKG_REMOVE="${PKG_MANAGER} remove -y"
-	package_check() {
-		rpm -qa | grep ^$1- > /dev/null
-	}
-elif [ -x "$(command -v apt-get)" ]; then
+if [ -x "$(command -v apt-get)" ]; then
 	# Debian Family
 	PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
 	package_check() {
 		dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
+	}
+elif [ -x "$(command -v rpm)" ]; then
+	# Fedora Family
+	PKG_REMOVE="${PKG_MANAGER} remove -y"
+	package_check() {
+		rpm -qa | grep "^$1-" > /dev/null
 	}
 else
   echo -e "  ${CROSS} OS distribution not supported"
