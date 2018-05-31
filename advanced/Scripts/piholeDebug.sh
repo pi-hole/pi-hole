@@ -493,6 +493,13 @@ parse_setup_vars() {
   fi
 }
 
+parse_locale() {
+  local pihole_locale
+  echo_current_diagnostic "Locale"
+  pihole_locale="$(locale)"
+  parse_file "${pihole_locale}"
+}
+
 does_ip_match_setup_vars() {
   # Check for IPv4 or 6
   local protocol="${1}"
@@ -652,15 +659,22 @@ check_required_ports() {
   # Sort the addresses and remove duplicates
   while IFS= read -r line; do
       ports_in_use+=( "$line" )
-  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $9, $1}' | sort -n | uniq | cut -d':' -f2 )
+  done < <( lsof -iTCP -sTCP:LISTEN -P -n +c 10 )
 
   # Now that we have the values stored,
   for i in "${!ports_in_use[@]}"; do
     # loop through them and assign some local variables
-    local port_number
-    port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
     local service_name
-    service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
+    service_name=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
+    local protocol_type
+    protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $5}')
+    local port_number
+    port_number="$(echo "${ports_in_use[$i]}" | awk '{print $9}')"
+
+    # Skip the line if it's the titles of the columns the lsof command produces
+    if [[ "${service_name}" == COMMAND ]]; then
+      continue
+    fi
     # Use a case statement to determine if the right services are using the right ports
     case "${port_number}" in
       53) compare_port_to_service_assigned  "${resolver}"
@@ -670,7 +684,7 @@ check_required_ports() {
       4711) compare_port_to_service_assigned  "${ftl}"
           ;;
       # If it's not a default port that Pi-hole needs, just print it out for the user to see
-      *) log_write "[${port_number}] is in use by ${service_name}";
+      *) log_write "${port_number} ${service_name} (${protocol_type})";
     esac
   done
 }
@@ -879,8 +893,11 @@ parse_file() {
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
-  IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
-
+  if [[ -f "$filename" ]]; then
+    IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
+  else
+    read -a file_info <<< $filename
+  fi
   # Set a named variable for better readability
   local file_lines
   # For each line in the file,
@@ -1193,6 +1210,7 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_content_of_pihole_files
+parse_locale
 analyze_pihole_log
 copy_to_debug_log
 upload_to_tricorder
