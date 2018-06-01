@@ -58,6 +58,10 @@ IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
 
+if [ -z "${USER}" ]; then
+  USER="$(id -un)"
+fi
+
 
 # Find the rows and columns will default to 80x24 if it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
