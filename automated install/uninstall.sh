@@ -171,6 +171,13 @@ removeNoPurge() {
         echo -e "${OVER}  ${TICK} Removed pihole-FTL"
     fi
 
+    # If the pihole manpage exists, then delete and rebuild man-db
+    if [[ -f /usr/local/share/man/man8/pihole.8 ]]; then
+        ${SUDO} rm -f /usr/local/share/man/man8/pihole.8
+        ${SUDO} mandb -q &>/dev/null
+        echo -e "  ${TICK} Removed pihole man page"
+    fi
+
     # If the pihole user exists, then remove
     if id "pihole" &> /dev/null; then
         if ${SUDO} userdel -r pihole 2> /dev/null; then
