@@ -2296,7 +2296,7 @@ main() {
     else
       LIGHTTPD_ENABLED=false
   fi
-  
+
   # Install and log everything to a file
   installPihole | tee -a /proc/$$/fd/3
 
