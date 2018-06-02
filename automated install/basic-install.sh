@@ -1220,7 +1220,7 @@ install_manpage() {
     # Something is wrong with the system's man installation, clean up 
     # our file, (leave everything how we found it).
     rm /usr/local/share/man/man8/pihole.8
-    echo -e "${OVER}  ${INFO} man page db not updated, man page not installed"
+    echo -e "${OVER}  ${CROSS} man page db not updated, man page not installed"
   fi
 }
 
