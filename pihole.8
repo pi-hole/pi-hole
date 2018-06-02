@@ -230,7 +230,7 @@ Available commands and options:
     Enable Pi-hole subsystems
 .br
 
-\fBdisable\fR	[time]
+\fBdisable\fR [time]
 .br
     Disable Pi-hole subsystems, optionally for a set duration
 .br
@@ -248,7 +248,7 @@ Available commands and options:
     Restart Pi-hole subsystems
 .br
 
-\fBcheckout\fR [repo][branch]	
+\fBcheckout\fR [repo] [branch]	
 .br
     Switch Pi-hole subsystems to a different Github branch
 .br
@@ -281,7 +281,7 @@ Some usage examples
 .br
     \fBpihole -b -d noads.example.com\fR  Remove "noads.example.com" from blacklist 
 .br
-    \fBpihole -wild example\fR            Add "example" as wildcard - would block ads.example.net, example.com etc.
+    \fBpihole -wild example.com\fR            Add "example.com" as wildcard - would block ads.example.com, www.example.com etc.
 .br
 
     Changing the web ui password
