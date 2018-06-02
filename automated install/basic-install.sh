@@ -2290,15 +2290,13 @@ main() {
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     enable_service lighttpd
   fi
-
-  if [[ -x "$(command -v systemctl)" ]]; then
-    # Value will either be 1, if true, or 0
-    LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
-  else
-    # Value will either be 1, if true, or 0
-    LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+  # Determin if lighttpd is correctly enabled
+  if check_service_active "lighttpd"; then
+      LIGHTTPD_ENABLED=true;
+    else
+      LIGHTTPD_ENABLED=false;
   fi
-
+  
   # Install and log everything to a file
   installPihole | tee -a /proc/$$/fd/3
 
@@ -2327,7 +2325,7 @@ main() {
   # If the Web server was installed,
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 
-    if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
+    if [[ "${LIGHTTPD_ENABLED}" == true ]]; then
       start_service lighttpd
       enable_service lighttpd
     else
