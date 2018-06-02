@@ -1198,7 +1198,7 @@ install_manpage() {
   # Default location for man files for /usr/local/bin is /usr/local/share/man
   # on lightweight systems may not be present, so check before copying.
   echo -en "  ${INFO} Testing man page installation"
-  if ! command -v mandb; then
+  if ! command -v mandb &>/dev/null; then
     # if mandb is not present, no manpage support
     echo -e "${OVER}  ${INFO} man not installed"
     return
