@@ -1206,7 +1206,7 @@ install_manpage() {
     # appropriate directory for Pi-hole's man page is not present
     echo -e "${OVER}  ${INFO} man page not installed"
     return
-  elif [[ ! -d "/usr/local/share/man/man8"]]; then
+  elif [[ ! -d "/usr/local/share/man/man8" ]]; then
     # if not present, create man8 directory
     mkdir /usr/local/share/man/man8
   fi
