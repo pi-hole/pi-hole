@@ -2290,11 +2290,11 @@ main() {
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     enable_service lighttpd
   fi
-  # Determin if lighttpd is correctly enabled
+  # Determine if lighttpd is correctly enabled
   if check_service_active "lighttpd"; then
-      LIGHTTPD_ENABLED=true;
+      LIGHTTPD_ENABLED=true
     else
-      LIGHTTPD_ENABLED=false;
+      LIGHTTPD_ENABLED=false
   fi
   
   # Install and log everything to a file
