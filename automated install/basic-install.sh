@@ -1193,6 +1193,37 @@ installConfigs() {
   fi
 }
 
+install_manpage() {
+  # Copy Pi-hole man page and call mandb to update man page database
+  # Default location for man files for /usr/local/bin is /usr/local/share/man
+  # on lightweight systems may not be present, so check before copying.
+  echo -en "  ${INFO} Testing man page installation"
+  if ! command -v mandb &>/dev/null; then
+    # if mandb is not present, no manpage support
+    echo -e "${OVER}  ${INFO} man not installed"
+    return
+  elif [[ ! -d "/usr/local/share/man" ]]; then
+    # appropriate directory for Pi-hole's man page is not present
+    echo -e "${OVER}  ${INFO} man page not installed"
+    return
+  elif [[ ! -d "/usr/local/share/man/man8" ]]; then
+    # if not present, create man8 directory
+    mkdir /usr/local/share/man/man8
+  fi
+  # Testing complete, copy the file & update the man db
+  cp ${PI_HOLE_LOCAL_REPO}/pihole.8 /usr/local/share/man/man8/pihole.8
+  if mandb -q &>/dev/null; then
+    # Updated successfully
+    echo -e "${OVER}  ${TICK} man page installed and database updated"
+    return
+  else
+    # Something is wrong with the system's man installation, clean up 
+    # our file, (leave everything how we found it).
+    rm /usr/local/share/man/man8/pihole.8
+    echo -e "${OVER}  ${CROSS} man page db not updated, man page not installed"
+  fi
+}
+
 stop_service() {
   # Stop service passed in as argument.
   # Can softfail, as process may not be installed when this is called
@@ -1694,6 +1725,9 @@ installPihole() {
   if [[ "${useUpdateVars}" == false ]]; then
     configureFirewall
   fi
+
+  # install a man page entry for pihole
+  install_manpage
 
   # Update setupvars.conf with any variables that may or may not have been changed during the install
   finalExports
@@ -2290,13 +2324,11 @@ main() {
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     enable_service lighttpd
   fi
-
-  if [[ -x "$(command -v systemctl)" ]]; then
-    # Value will either be 1, if true, or 0
-    LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
-  else
-    # Value will either be 1, if true, or 0
-    LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+  # Determine if lighttpd is correctly enabled
+  if check_service_active "lighttpd"; then
+      LIGHTTPD_ENABLED=true
+    else
+      LIGHTTPD_ENABLED=false
   fi
 
   # Install and log everything to a file
@@ -2327,7 +2359,7 @@ main() {
   # If the Web server was installed,
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 
-    if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
+    if [[ "${LIGHTTPD_ENABLED}" == true ]]; then
       start_service lighttpd
       enable_service lighttpd
     else
