@@ -219,16 +219,73 @@ elif command -v rpm &> /dev/null; then
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
+  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng which)
   PIHOLE_DEPS=(bc bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc)
-  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
-  # EPEL (https://fedoraproject.org/wiki/EPEL) is required for lighttpd on CentOS
-  if grep -qi 'centos' /etc/redhat-release; then
-    INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
+  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
+  LIGHTTPD_USER="lighttpd"
+  LIGHTTPD_GROUP="lighttpd"
+  LIGHTTPD_CFG="lighttpd.conf.fedora"
+  # If the host OS is Fedora,
+  if grep -qi 'fedora' /etc/redhat-release; then
+    # all required packages should be available by default with the latest fedora release
+    : # continue
+  # or if host OS is CentOS,
+  elif grep -qi 'centos' /etc/redhat-release; then
+    # Pi-Hole currently supports CentOS 7+ with PHP7+
+    SUPPORTED_CENTOS_VERSION=7
+    SUPPORTED_CENTOS_PHP_VERSION=7
+    # Check current CentOS major release version
+    CURRENT_CENTOS_VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release)
+    # Check if CentOS version is supported
+    if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
+      echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not suported."
+      echo -e "      Please update to CentOS release $SUPPORTED_CENTOS_VERSION or later"
+      # exit the installer
+      exit
+    fi
+    # on CentOS we need to add the EPEL repository to gain access to Fedora packages
+    EPEL_PKG="epel-release"
+    rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
+    if [[ $rc -ne 0 ]]; then
+      echo -e "  ${INFO} Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)"
+      "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+      echo -e "  ${TICK} Installed ${EPEL_PKG}"
+    fi
+
+    # The default php on CentOS 7.x is 5.4 which is EOL
+    # Check if the version of PHP available via installed repositories is >= to PHP 7
+    AVAILABLE_PHP_VERSION=$(${PKG_MANAGER} info php | grep -i version | grep -o '[0-9]\+' | head -1)
+    if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
+      # Since PHP 7 is available by default, install via default PHP package names
+      : # do nothing as PHP is current
+    else
+      REMI_PKG="remi-release"
+      REMI_REPO="remi-php72"
+      rpm -q ${REMI_PKG} &> /dev/null || rc=$?
+      if [[ $rc -ne 0 ]]; then
+        # The PHP version available via default repositories is older than version 7
+        if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" ${r} ${c}; then
+          # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+          echo -e "  ${INFO} User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use."
+          : # continue with unsupported php version
+        else
+          echo -e "  ${INFO} Enabling Remi's RPM repository (https://rpms.remirepo.net)"
+          "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+          # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+          "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+          yum-config-manager --enable ${REMI_REPO} &> /dev/null
+          echo -e "  ${TICK} Remi's RPM repository has been enabled for PHP7"
+
+        fi
+      fi
+    fi
+  else
+    # If not a supported version of Fedora or CentOS,
+    echo -e "  ${CROSS} Unsupported RPM based distribution"
+    # exit the installer
+    exit
   fi
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
+
 
 # If neither apt-get or rmp/dnf are found
 else
