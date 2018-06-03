@@ -18,7 +18,11 @@ pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
 .br
 \fBpihole-FTL -f\fR
 .br
+\fBpihole-FTL -h\fR
+.br
 \fBpihole-FTL dnsmasq-test\fR
+.br
+\fBpihole-FTL --\fR (\fBoptions\fR)
 .br
 
 .SH "DESCRIPTION"
@@ -28,7 +32,7 @@ Pi-hole : The Faster-Than-Light (FTL) Engine is a lightweight, purpose-built dae
 Usage
 .br
 
-\fB\fBservi\fRce pihole-FTL start\fR
+\fBservice pihole-FTL start\fR
 .br
     Start the pihole-FTL daemon
 .br
@@ -80,6 +84,16 @@ Command line arguments
 .br
     Don't start FTL, show help
 .br
+
+\fBdnsmasq-test\fR
+.br
+    Test resolver config file syntax
+.br
+
+\fB--\fR  (options)
+.br
+    Pass options to internal resolver
+.br
 .SH "EXAMPLE"
 Command line arguments can be arbitrarily combined, e.g:
 .br
@@ -91,4 +105,8 @@ Start ftl in foreground with more verbose logging, process everything and shutdo
 .br
 .SH "SEE ALSO"
 \fBpihole\fR(8), \fBpihole-FTL.conf\fR(5)
+.br
+.SH "COLOPHON"
+
+Get sucked into the latest news and community activity by entering Pi-hole's orbit. Information about Pi-hole, and the latest version of the software can be found at https://pi-hole.net
 .br
