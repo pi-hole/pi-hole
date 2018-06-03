@@ -166,6 +166,9 @@ checkout() {
     if check_download_exists "$path"; then
         echo "  ${TICK} Branch ${2} exists"
         echo "${2}" > /etc/pihole/ftlbranch
+        FTLinstall "${binary}"
+        start_service pihole-FTL
+        enable_service pihole-FTL
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
         ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
@@ -180,7 +183,7 @@ checkout() {
   fi
 
   # Force updating everything
-  if [[  ! "${1}" == "web"  ]]; then
+  if [[  ! "${1}" == "web" && ! "${1}" == "ftl" ]]; then
     echo -e "  ${INFO} Running installer to upgrade your installation"
     if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
       exit 0
