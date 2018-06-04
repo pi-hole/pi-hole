@@ -153,7 +153,7 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
     if [ "$who53" = "pihole-FTL" ]; then
     # proceed with install
       echo -e "${OVER}  ${EXCL} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
-    elif [ "$who53" = "systemd-resolved" ]; then 
+    elif [ "$who53" = "systemd-resolve" ]; then 
     disable_resolved_stublistener
     else
     # port 53 is used by something else, stop install
