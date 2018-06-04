@@ -58,6 +58,10 @@ IPV6_ADDRESS=""
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
 
+if [ -z "${USER}" ]; then
+  USER="$(id -un)"
+fi
+
 
 # Find the rows and columns will default to 80x24 if it can not be detected
 screen_size=$(stty size 2>/dev/null || echo 24 80)
@@ -98,8 +102,11 @@ else
   COL_NC='\e[0m' # No Color
   COL_LIGHT_GREEN='\e[1;32m'
   COL_LIGHT_RED='\e[1;31m'
+  COL_LIGHT_YELLOW='\e[1;33m'
+  COL_LIGHT_CYAN='\e[1;96m'
   TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
   CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+  EXCL="[${COL_LIGHT_YELLOW}!${COL_NC}]"
   INFO="[i]"
   # shellcheck disable=SC2034
   DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
@@ -134,6 +141,34 @@ show_ascii_berry() {
 }
 
 # Compatibility
+
+53check(){
+# Print info regarding probing for open port 53
+echo -e "${OVER}  ${INFO} Testing for port 53 availability...${COL_NC}"
+# Probe localhost via 127.0.0.1 for open port 53 and if true, display warning and exit installer.
+if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
+  # what process is using 53?
+  who53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
+  # check running process and see if it's pihole-FTL
+    if [ "$who53" = "pihole-FTL" ]; then
+    # proceed with install
+      echo -e "${OVER}  ${EXCL} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
+    elif [ "$who53" = "systemd-resolved" ]; then 
+    disable_resolved_stublistener
+    else
+    # port 53 is used by something else, stop install
+    echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+      Since this will interfere with the functionality of FTLDNS, the installer cannot continue.
+      Please visit ${COL_LIGHT_CYAN}https://discourse.pi-hole.net/t/ftldns-pi-holes-own-dns-dhcp-server/${COL_NC}
+      in order to get help related to this issue.
+      ${COL_LIGHT_RED}Installer will now exit.${COL_NC}"
+    exit 0
+    fi
+ # If port 53 is available, proceed with install.
+  else
+    echo -e "${OVER}  ${TICK} ${COL_LIGHT_GREEN}Port 53 is not in use, proceeding with install${COL_NC}"
+  fi
+}
 distro_check() {
 # If apt-get is installed, then we know it's part of the Debian family
 if command -v apt-get &> /dev/null; then
@@ -215,16 +250,73 @@ elif command -v rpm &> /dev/null; then
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng)
+  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng which)
   PIHOLE_DEPS=(bc bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc)
-  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php php-common php-cli php-pdo)
-  # EPEL (https://fedoraproject.org/wiki/EPEL) is required for lighttpd on CentOS
-  if grep -qi 'centos' /etc/redhat-release; then
-    INSTALLER_DEPS=("${INSTALLER_DEPS[@]}" "epel-release");
+  PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
+  LIGHTTPD_USER="lighttpd"
+  LIGHTTPD_GROUP="lighttpd"
+  LIGHTTPD_CFG="lighttpd.conf.fedora"
+  # If the host OS is Fedora,
+  if grep -qi 'fedora' /etc/redhat-release; then
+    # all required packages should be available by default with the latest fedora release
+    : # continue
+  # or if host OS is CentOS,
+  elif grep -qi 'centos' /etc/redhat-release; then
+    # Pi-Hole currently supports CentOS 7+ with PHP7+
+    SUPPORTED_CENTOS_VERSION=7
+    SUPPORTED_CENTOS_PHP_VERSION=7
+    # Check current CentOS major release version
+    CURRENT_CENTOS_VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release)
+    # Check if CentOS version is supported
+    if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
+      echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not suported."
+      echo -e "      Please update to CentOS release $SUPPORTED_CENTOS_VERSION or later"
+      # exit the installer
+      exit
+    fi
+    # on CentOS we need to add the EPEL repository to gain access to Fedora packages
+    EPEL_PKG="epel-release"
+    rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
+    if [[ $rc -ne 0 ]]; then
+      echo -e "  ${INFO} Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)"
+      "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+      echo -e "  ${TICK} Installed ${EPEL_PKG}"
+    fi
+
+    # The default php on CentOS 7.x is 5.4 which is EOL
+    # Check if the version of PHP available via installed repositories is >= to PHP 7
+    AVAILABLE_PHP_VERSION=$(${PKG_MANAGER} info php | grep -i version | grep -o '[0-9]\+' | head -1)
+    if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
+      # Since PHP 7 is available by default, install via default PHP package names
+      : # do nothing as PHP is current
+    else
+      REMI_PKG="remi-release"
+      REMI_REPO="remi-php72"
+      rpm -q ${REMI_PKG} &> /dev/null || rc=$?
+      if [[ $rc -ne 0 ]]; then
+        # The PHP version available via default repositories is older than version 7
+        if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" ${r} ${c}; then
+          # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+          echo -e "  ${INFO} User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use."
+          : # continue with unsupported php version
+        else
+          echo -e "  ${INFO} Enabling Remi's RPM repository (https://rpms.remirepo.net)"
+          "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+          # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+          "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+          yum-config-manager --enable ${REMI_REPO} &> /dev/null
+          echo -e "  ${TICK} Remi's RPM repository has been enabled for PHP7"
+
+        fi
+      fi
+    fi
+  else
+    # If not a supported version of Fedora or CentOS,
+    echo -e "  ${CROSS} Unsupported RPM based distribution"
+    # exit the installer
+    exit
   fi
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
+
 
 # If neither apt-get or rmp/dnf are found
 else
@@ -1189,6 +1281,37 @@ installConfigs() {
   fi
 }
 
+install_manpage() {
+  # Copy Pi-hole man page and call mandb to update man page database
+  # Default location for man files for /usr/local/bin is /usr/local/share/man
+  # on lightweight systems may not be present, so check before copying.
+  echo -en "  ${INFO} Testing man page installation"
+  if ! command -v mandb &>/dev/null; then
+    # if mandb is not present, no manpage support
+    echo -e "${OVER}  ${INFO} man not installed"
+    return
+  elif [[ ! -d "/usr/local/share/man" ]]; then
+    # appropriate directory for Pi-hole's man page is not present
+    echo -e "${OVER}  ${INFO} man page not installed"
+    return
+  elif [[ ! -d "/usr/local/share/man/man8" ]]; then
+    # if not present, create man8 directory
+    mkdir /usr/local/share/man/man8
+  fi
+  # Testing complete, copy the file & update the man db
+  cp ${PI_HOLE_LOCAL_REPO}/pihole.8 /usr/local/share/man/man8/pihole.8
+  if mandb -q &>/dev/null; then
+    # Updated successfully
+    echo -e "${OVER}  ${TICK} man page installed and database updated"
+    return
+  else
+    # Something is wrong with the system's man installation, clean up 
+    # our file, (leave everything how we found it).
+    rm /usr/local/share/man/man8/pihole.8
+    echo -e "${OVER}  ${CROSS} man page db not updated, man page not installed"
+  fi
+}
+
 stop_service() {
   # Stop service passed in as argument.
   # Can softfail, as process may not be installed when this is called
@@ -1262,6 +1385,30 @@ check_service_active() {
   else
     # fall back to service command
     service "${1}" status > /dev/null
+  fi
+}
+
+# Systemd-resolved's DNSStubListener and dnsmasq can't share port 53. 
+disable_resolved_stublistener() {
+  echo -en "  ${INFO} Testing if systemd-resolved is enabled"
+  # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
+  if check_service_active "systemd-resolved"; then
+    # Check if DNSStubListener is enabled
+    echo -en "  ${OVER}  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
+    if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
+      # Disable the DNSStubListener to unbind it from port 53
+      # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
+      echo -en "${OVER}  ${TICK} Disabling systemd-resolved DNSStubListener"
+      # Make a backup of the original /etc/systemd/resolved.conf
+      # (This will need to be restored on uninstallation)
+      sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+      echo -e " and restarting systemd-resolved"
+      systemctl reload-or-restart systemd-resolved
+    else
+      echo -e "${OVER}  ${INFO} Systemd-resolved does not need to be restarted"
+    fi
+  else
+    echo -e "${OVER}  ${INFO} Systemd-resolved is not enabled"
   fi
 }
 
@@ -1666,6 +1813,9 @@ installPihole() {
   if [[ "${useUpdateVars}" == false ]]; then
     configureFirewall
   fi
+
+  # install a man page entry for pihole
+  install_manpage
 
   # Update setupvars.conf with any variables that may or may not have been changed during the install
   finalExports
@@ -2157,6 +2307,8 @@ main() {
     echo -e "  ${TICK} ${str}"
     # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
     show_ascii_berry
+    # Check for port 53 availability
+    53check
     make_temporary_log
   # Otherwise,
   else
@@ -2262,13 +2414,11 @@ main() {
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     enable_service lighttpd
   fi
-
-  if [[ -x "$(command -v systemctl)" ]]; then
-    # Value will either be 1, if true, or 0
-    LIGHTTPD_ENABLED=$(systemctl is-enabled lighttpd | grep -c 'enabled' || true)
-  else
-    # Value will either be 1, if true, or 0
-    LIGHTTPD_ENABLED=$(service lighttpd status | awk '/Loaded:/ {print $0}' | grep -c 'enabled' || true)
+  # Determine if lighttpd is correctly enabled
+  if check_service_active "lighttpd"; then
+      LIGHTTPD_ENABLED=true
+    else
+      LIGHTTPD_ENABLED=false
   fi
 
   # Install and log everything to a file
@@ -2290,19 +2440,25 @@ main() {
     fi
   fi
 
-  echo -e "  ${INFO} Restarting services..."
-  # Start services
+  # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
+  # DNSStubListener needs to remain in place for installer to download needed files,
+  # so this change needs to be made after installation is complete,
+  # but before starting or resarting the dnsmasq or ftl services
+  disable_resolved_stublistener
 
   # If the Web server was installed,
   if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 
-    if [[ "${LIGHTTPD_ENABLED}" == "1" ]]; then
+    if [[ "${LIGHTTPD_ENABLED}" == true ]]; then
       start_service lighttpd
       enable_service lighttpd
     else
       echo -e "  ${INFO} Lighttpd is disabled, skipping service restart"
     fi
   fi
+
+  echo -e "  ${INFO} Restarting services..."
+  # Start services
 
   # Enable FTL
   start_service pihole-FTL
