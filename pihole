@@ -541,12 +541,13 @@ Switch Pi-hole subsystems to a different Github branch
 
 Repositories:
   core [branch]       Change the branch of Pi-hole's core subsystem
-  web [branch]        Change the branch of Admin Console subsystem
+  web [branch]        Change the branch of Web Interface subsystem
   ftl [branch]        Change the branch of Pi-hole's FTL subsystem
 
 Branches:
   master              Update subsystems to the latest stable release
-  dev                 Update subsystems to the latest development release"
+  dev                 Update subsystems to the latest development release
+  branchname          Update subsystems to the specified branchname"
     exit 0
   fi
 
@@ -610,8 +611,8 @@ Debugging Options:
   -t, tail            View the live output of the Pi-hole log
 
 Options:
-  -a, admin           Admin Console options
-                        Add '-h' for more info on admin console usage
+  -a, admin           Web interface options
+                        Add '-h' for more info on Web Interface usage
   -c, chronometer     Calculates stats and displays to an LCD
                         Add '-h' for more info on chronometer usage
   -g, updateGravity   Update the list of ad-serving domains
@@ -622,7 +623,7 @@ Options:
                         Add '-h' for more info on query usage
   -up, updatePihole   Update Pi-hole subsystems
                         Add '--check-only' to exit script before update is performed.
-  -v, version         Show installed versions of Pi-hole, Admin Console & FTL
+  -v, version         Show installed versions of Pi-hole, Web Interface & FTL
                         Add '-h' for more info on version usage
   uninstall           Uninstall Pi-hole from your system
   status              Display the running status of Pi-hole subsystems
