@@ -102,8 +102,11 @@ else
   COL_NC='\e[0m' # No Color
   COL_LIGHT_GREEN='\e[1;32m'
   COL_LIGHT_RED='\e[1;31m'
+  COL_LIGHT_YELLOW='\e[1;33m'
+  COL_LIGHT_CYAN='\e[1;96m'
   TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
   CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+  EXCL="[${COL_LIGHT_YELLOW}!${COL_NC}]"
   INFO="[i]"
   # shellcheck disable=SC2034
   DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
@@ -138,6 +141,34 @@ show_ascii_berry() {
 }
 
 # Compatibility
+
+53check(){
+# Print info regarding probing for open port 53
+echo -e "${OVER}  ${INFO} Testing for port 53 availability...${COL_NC}"
+# Probe localhost via 127.0.0.1 for open port 53 and if true, display warning and exit installer.
+if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
+  # what process is using 53?
+  who53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
+  # check running process and see if it's pihole-FTL
+    if [ "$who53" = "pihole-FTL" ]; then
+    # proceed with install
+      echo -e "${OVER}  ${EXCL} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
+    elif [ "$who53" = "systemd-resolved" ]; then 
+    disable_resolved_stublistener
+    else
+    # port 53 is used by something else, stop install
+    echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+      Since this will interfere with the functionality of FTLDNS, the installer cannot continue.
+      Please visit ${COL_LIGHT_CYAN}https://discourse.pi-hole.net/t/ftldns-pi-holes-own-dns-dhcp-server/${COL_NC}
+      in order to get help related to this issue.
+      ${COL_LIGHT_RED}Installer will now exit.${COL_NC}"
+    exit 0
+    fi
+ # If port 53 is available, proceed with install.
+  else
+    echo -e "${OVER}  ${TICK} ${COL_LIGHT_GREEN}Port 53 is not in use, proceeding with install${COL_NC}"
+  fi
+}
 distro_check() {
 # If apt-get is installed, then we know it's part of the Debian family
 if command -v apt-get &> /dev/null; then
@@ -2276,6 +2307,8 @@ main() {
     echo -e "  ${TICK} ${str}"
     # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
     show_ascii_berry
+    # Check for port 53 availability
+    53check
     make_temporary_log
   # Otherwise,
   else
