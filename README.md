@@ -178,32 +178,13 @@ Pi-hole being a **advertising-aware DNS/Web server**, makes use of the following
 * [AdminLTE Dashboard](https://github.com/almasaeed2010/AdminLTE) - premium admin control panel based on Bootstrap 3.x
 
 While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how Pi-hole was originally setup and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
-
------
-
-## Pi-hole Projects
-- [The Big Blocklist Collection](https://wally3k.github.io)
-- [Docker Pi-hole container (x86 and ARM)](https://hub.docker.com/r/diginc/pi-hole/)
-- [Pi-Hole in the cloud](http://blog.codybunch.com/2015/07/28/Pi-Hole-in-the-cloud/)
-- [Pie in the Sky-Hole [A Pi-Hole in the cloud for ad-blocking via DNS]](https://dlaa.me/blog/post/skyhole)
-- [Pi-hole Enable/Disable Button](http://thetimmy.silvernight.org/pages/endisbutton/)
-- [Minibian Pi-hole](https://munkjensen.net/wiki/index.php/See_my_Pi-Hole#Minibian_Pi-hole)
-- [CHiP-hole: Network-wide Ad-blocker](https://www.hackster.io/jacobsalmela/chip-hole-network-wide-ad-blocker-98e037)
-- [Chrome Extension: Pi-Hole List Editor](https://chrome.google.com/webstore/detail/pi-hole-list-editor/hlnoeoejkllgkjbnnnhfolapllcnaglh) ([Source Code](https://github.com/packtloss/pihole-extension))
-- [Splunk: Pi-hole Visualiser](https://splunkbase.splunk.com/app/3023/)
-- [Adblocking with Pi-hole and Ubuntu 14.04 on VirtualBox](https://hbalagtas.blogspot.com.au/2016/02/adblocking-with-pi-hole-and-ubuntu-1404.html)
-- [Pi-hole stats in your Mac's menu bar](https://getbitbar.com/plugins/Network/pi-hole.1m.py)
-- [Pi-hole unRAID Template](https://forums.lime-technology.com/topic/36810-support-spants-nodered-mqtt-dashing-couchdb/)
-- [Copernicus: Windows Tray Application](https://github.com/goldbattle/copernicus)
-- [Let your blink1 device blink when Pi-hole filters ads](https://gist.github.com/elpatron68/ec0b4c582e5abf604885ac1e068d233f)
-- [Pi-hole metrics](https://github.com/nlamirault/pihole_exporter) exporter for [Prometheus](https://prometheus.io/)
-- [Magic Mirror with DNS Filtering](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
-- [Pi-hole Droid: Android client](https://github.com/friimaind/pi-hole-droid)
-- [Windows DNS Swapper](https://github.com/roots84/DNS-Swapper), see [#1400](https://github.com/pi-hole/pi-hole/issues/1400)
-- [Pi-hole Visualizer](https://www.reddit.com/r/pihole/comments/82ikgb/pihole_visualizer_update/)
 -----
 
 ## Coverage
+- [Software Engineering Daily: Interview with the creator of Pi-hole](https://softwareengineeringdaily.com/2018/05/29/pi-hole-ad-blocker-hardware-with-jacob-salmela/)
+- [Bloomberg Business Week: Brotherhood of the Ad blockers](https://www.bloomberg.com/news/features/2018-05-10/inside-the-brotherhood-of-pi-hole-ad-blockers)
+- [Securing DNS across all of my devices with Pi-Hole + DNS-over-HTTPS + 1.1.1.1](https://scotthelme.co.uk/securing-dns-across-all-of-my-devices-with-pihole-dns-over-https-1-1-1-1/)
+- [Adafruit: installing Pi-hole on a Pi Zero W](https://learn.adafruit.com/pi-hole-ad-blocker-with-pi-zero-w/install-pi-hole)
 - [Lifehacker: Turn A Raspberry Pi Into An Ad Blocker With A Single Command](https://www.lifehacker.com.au/2015/02/turn-a-raspberry-pi-into-an-ad-blocker-with-a-single-command/)
 - [MakeUseOf: Adblock Everywhere: The Raspberry Pi-Hole Way](http://www.makeuseof.com/tag/adblock-everywhere-raspberry-pi-hole-way/)
 - [Catchpoint: Ad-Blocking on Apple iOS9: Valuing the End User Experience](http://blog.catchpoint.com/2015/09/14/ad-blocking-apple/)
@@ -222,3 +203,12 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [CryptoAUSTRALIA: How We Tried 5 Privacy Focused Raspberry Pi Projects](https://blog.cryptoaustralia.org.au/2017/10/05/5-privacy-focused-raspberry-pi-projects/)
 - [CryptoAUSTRALIA: Pi-hole Workshop](https://blog.cryptoaustralia.org.au/2017/11/02/pi-hole-network-wide-ad-blocker/)
 - [Know How 355: Killing ads with a Raspberry Pi-Hole!](https://www.twit.tv/shows/know-how/episodes/355)
+
+-----
+
+## Pi-hole Projects
+- [The Big Blocklist Collection](https://wally3k.github.io)
+- [Pie in the Sky-Hole](https://dlaa.me/blog/post/skyhole)
+- [Copernicus: Windows Tray Application](https://github.com/goldbattle/copernicus)
+- [Magic Mirror with DNS Filtering](https://zonksec.com/blog/magic-mirror-dns-filtering/#dnssoftware)
+- [Windows DNS Swapper](https://github.com/roots84/DNS-Swapper)
