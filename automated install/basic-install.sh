@@ -180,8 +180,6 @@ if command -v apt-get &> /dev/null; then
     phpInsMinor="$(echo $phpInsVer | cut -d\. -f2)"
     phpVer="php$phpInsMajor.phpInsMinor"
   fi
-  
-  fi
   # We also need the correct version for `php-sqlite` (which differs across distros)
   if ${PKG_MANAGER} install --dry-run ${phpVer}-sqlite3 > /dev/null 2>&1; then
     phpSqlite="sqlite3"
