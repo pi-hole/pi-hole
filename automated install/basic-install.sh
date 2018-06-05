@@ -160,13 +160,19 @@ if command -v apt-get &> /dev/null; then
     # use iproute
     iproute_pkg="iproute"
   fi
-  # Check for and determine version number, major and minor of current php install
+  # Check for and determine version number (major and minor) of current php install
   if command -v php &> /dev/null; then
-    phpInsVersion="$(php -v | head -n1 | grep -Po '(?<PHP )[^ ]+')"
+    phpInsVersion="$(php -v | head -n1 | grep -Po '(?<=PHP )[^ ]+')"
     echo -e "  ${INFO} Existing PHP installation detected : PHP version $phpInsVersion"
+    phpInsMajor="$(echo "$phpInsVersion" | cut -d\. -f1)"
+    phpInsMinor="$(echo "$phpInsVersion" | cut -d\. -f2)"
+    # Is installed php version supported? (php 5.4 is EOL)
+    if [ "$(echo "$phpInsMajor.$phpInsMinor < 5.5" | bc )" == 0 ]; then
+      phpInsSupported=true
+    fi
   fi
-  # Check if installed php is supported version (5.4 is EOL)
-  if [[ "$phpInsVersion" < "5.5" ]]; then
+  # Check if installed php is unsupported version (5.4 is EOL)
+  if [[ "$phpInsSupported" != true ]]; then
     # Prefer the php metapackage if it's there
     if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
       phpVer="php"
@@ -176,8 +182,6 @@ if command -v apt-get &> /dev/null; then
     fi
   else
     # Supported php is installed, its common, cgi & sqlite counterparts are deps
-    phpInsMajor="$(echo "$phpInsVersion" | cut -d\. -f1)"
-    phpInsMinor="$(echo "$phpInsVersion" | cut -d\. -f2)"
     phpVer="php$phpInsMajor.$phpInsMinor"
   fi
   # We also need the correct version for `php-sqlite` (which differs across distros)
