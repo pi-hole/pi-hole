@@ -160,13 +160,27 @@ if command -v apt-get &> /dev/null; then
     # use iproute
     iproute_pkg="iproute"
   fi
-  # We prefer the php metapackage if it's there
-  if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
-    phpVer="php"
-  # If not,
-  else
+  # Check for and determine version number, major and minor of current php install
+  if command -v php &> /dev/null; then
+    phpInsVersion="$(php -v | head -n1 | grep -Po '(?<PHP )[^ ]+')"
+    echo -e "  ${INFO} Existing PHP installation detected : PHP version $phpInsVersion"
+  fi
+  # Check if installed php is supported version (5.4 is EOL)
+  if [[ $phpInsVersion < "5.5" ]]; then
+    # Prefer the php metapackage if it's there
+    if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
+      phpVer="php"
     # fall back on the php5 packages
-    phpVer="php5"
+    else 
+      phpVer="php5"
+    fi
+  else
+    # Supported php is installed, its common, cgi & sqlite counterparts are deps
+    phpInsMajor="$(echo $phpInsVer | cut -d\. -f1)"
+    phpInsMinor="$(echo $phpInsVer | cut -d\. -f2)"
+    phpVer="php$phpInsMajor.phpInsMinor"
+  fi
+  
   fi
   # We also need the correct version for `php-sqlite` (which differs across distros)
   if ${PKG_MANAGER} install --dry-run ${phpVer}-sqlite3 > /dev/null 2>&1; then
