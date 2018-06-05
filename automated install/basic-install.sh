@@ -166,7 +166,7 @@ if command -v apt-get &> /dev/null; then
     echo -e "  ${INFO} Existing PHP installation detected : PHP version $phpInsVersion"
   fi
   # Check if installed php is supported version (5.4 is EOL)
-  if [[ $phpInsVersion < "5.5" ]]; then
+  if [[ "$phpInsVersion" < "5.5" ]]; then
     # Prefer the php metapackage if it's there
     if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
       phpVer="php"
