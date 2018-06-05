@@ -977,7 +977,7 @@ setLogging() {
   local LogChoices
 
   # Ask if the user wants to log queries
-  LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?\\n (Disabling will render graphs on the Admin page useless):" ${r} ${c} 6)
+  LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?" ${r} ${c} 6)
   # The default selection is on
   LogChooseOptions=("On (Recommended)" "" on
       Off "" off)
