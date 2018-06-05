@@ -178,7 +178,7 @@ if command -v apt-get &> /dev/null; then
     # Supported php is installed, its common, cgi & sqlite counterparts are deps
     phpInsMajor="$(echo "$phpInsVersion" | cut -d\. -f1)"
     phpInsMinor="$(echo "$phpInsVersion" | cut -d\. -f2)"
-    phpVer="php$phpInsMajor.phpInsMinor"
+    phpVer="php$phpInsMajor.$phpInsMinor"
   fi
   # We also need the correct version for `php-sqlite` (which differs across distros)
   if ${PKG_MANAGER} install --dry-run ${phpVer}-sqlite3 > /dev/null 2>&1; then
