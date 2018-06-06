@@ -1442,7 +1442,7 @@ disable_dnsmasq () {
       # Make a backup of the original /etc/NetworkManager/NetworkManager.conf
       # (This will need to be restored on uninstallation)
       ${SUDO} sed -r -i.orig 's/#?dns=dnsmasq/#dns=disabled_dnsmasq/g' /etc/NetworkManager/NetworkManager.conf
-      echo -e " and restarting Network Manager"
+      echo -en "${OVER}  ${TICK} Restarting Network manager"
       ${SUDO} systemctl reload-or-restart NetworkManager
     else
       # Disabling dnsmasq via sytemctl
@@ -1453,9 +1453,8 @@ disable_dnsmasq () {
       if [ "$who53" = "dnsmasq" ]; then
       # Killing dnsmasq as a last resort. Displaying a notification about a possible situation
       # where dnsmasq might restart due to the non convetional start method (user script or other)
-
-      echo -e "${OVER}  ${EXCL} dnsmasq still active, this is most likely due to the fact that
-      ${COL_LIGHT_RED}dnsmasq was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
+      echo -e "${OVER}  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq 
+      was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
       ${SUDO} pkill dnsmasq
       echo -e "${OVER}  ${TICK} dnsmasq process killed"
       fi
