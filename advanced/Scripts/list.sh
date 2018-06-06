@@ -13,7 +13,7 @@ basename=pihole
 piholeDir=/etc/"${basename}"
 whitelist="${piholeDir}"/whitelist.txt
 blacklist="${piholeDir}"/blacklist.txt
-readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+readonly regexlist="/etc/pihole/regex.list"
 reload=false
 addmode=true
 verbose=true
@@ -31,7 +31,7 @@ helpFunc() {
   if [[ "${listMain}" == "${whitelist}" ]]; then
     param="w"
     type="white"
-  elif [[ "${listMain}" == "${wildcardlist}" ]]; then
+  elif [[ "${listMain}" == "${regexlist}" ]]; then
     param="wild"
     type="wildcard black"
   else
@@ -57,7 +57,8 @@ Options:
 EscapeRegexp() {
   # This way we may safely insert an arbitrary
   # string in our regular expressions
-  # Also remove leading "." if present
+  # This sed is intentionally executed in three steps to ease maintainability
+  # The first sed removes any amount of leading dots
   echo $* | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
 }
 
@@ -94,9 +95,6 @@ PoplistFile() {
     if ${addmode}; then
       AddDomain "${dom}" "${listMain}"
       RemoveDomain "${dom}" "${listAlt}"
-      if [[ "${listMain}" == "${whitelist}" || "${listMain}" == "${blacklist}" ]]; then
-        RemoveDomain "${dom}" "${wildcardlist}"
-      fi
     else
       RemoveDomain "${dom}" "${listMain}"
     fi
@@ -109,7 +107,6 @@ AddDomain() {
 
   [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
   [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
-  [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
 
   if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
     [[ "${list}" == "${whitelist}" && -z "${type}" ]] && type="--whitelist-only"
@@ -121,7 +118,7 @@ AddDomain() {
     if [[ "${bool}" == false ]]; then
       # Domain not found in the whitelist file, add it!
       if [[ "${verbose}" == true ]]; then
-      echo -e "  ${INFO} Adding $1 to $listname..."
+      echo -e "  ${INFO} Adding ${1} to ${listname}..."
       fi
       reload=true
       # Add it to the list we want to add it to
@@ -131,28 +128,22 @@ AddDomain() {
         echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
       fi
     fi
-  elif [[ "${list}" == "${wildcardlist}" ]]; then
-    source "${piholeDir}/setupVars.conf"
-    # Remove the /* from the end of the IP addresses
-    IPV4_ADDRESS=${IPV4_ADDRESS%/*}
-    IPV6_ADDRESS=${IPV6_ADDRESS%/*}
+  elif [[ "${list}" == "${regexlist}" ]]; then
     [[ -z "${type}" ]] && type="--wildcard-only"
     bool=true
     # Is the domain in the list?
-    grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
+    # Search only for exactly matching lines
+    grep -E "^${domain}$" "${regexlist}" > /dev/null 2>&1 || bool=false
 
     if [[ "${bool}" == false ]]; then
       if [[ "${verbose}" == true ]]; then
-      echo -e "  ${INFO} Adding $1 to wildcard blacklist..."
+      echo -e "  ${INFO} Adding ${1} to regex list..."
       fi
       reload="restart"
-      echo "address=/$1/${IPV4_ADDRESS}" >> "${wildcardlist}"
-      if [[ "${#IPV6_ADDRESS}" > 0 ]]; then
-        echo "address=/$1/${IPV6_ADDRESS}" >> "${wildcardlist}"
-      fi
+      echo "$1" >> "${regexlist}"
     else
       if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} ${1} already exists in wildcard blacklist, no need to add!"
+        echo -e "  ${INFO} ${1} already exists in regex list, no need to add!"
       fi
     fi
   fi
@@ -164,7 +155,6 @@ RemoveDomain() {
 
   [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
   [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
-  [[ "${list}" == "${wildcardlist}" ]] && listname="wildcard blacklist"
 
   if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
     bool=true
@@ -174,7 +164,7 @@ RemoveDomain() {
     grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
-      echo -e "  ${INFO} Removing $1 from $listname..."
+      echo -e "  ${INFO} Removing $1 from ${listname}..."
       # /I flag: search case-insensitive
       sed -i "/${domain}/Id" "${list}"
       reload=true
@@ -183,20 +173,20 @@ RemoveDomain() {
         echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
       fi
     fi
-  elif [[ "${list}" == "${wildcardlist}" ]]; then
+  elif [[ "${list}" == "${regexlist}" ]]; then
     [[ -z "${type}" ]] && type="--wildcard-only"
     bool=true
     # Is it in the list?
-    grep -e "address=\/${domain}\/" "${wildcardlist}" > /dev/null 2>&1 || bool=false
+    grep -E "^${domain}$" "${regexlist}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
-      echo -e "  ${INFO} Removing $1 from $listname..."
+      echo -e "  ${INFO} Removing $1 from regex list..."
       # /I flag: search case-insensitive
-      sed -i "/address=\/${domain}/Id" "${list}"
+      sed -i "/${domain}/Id" "${list}"
       reload=true
     else
       if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
+        echo -e "  ${INFO} ${1} does not exist in regex list, no need to remove!"
       fi
     fi
   fi
@@ -241,7 +231,7 @@ for var in "$@"; do
   case "${var}" in
     "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
     "-b" | "blacklist"   ) listMain="${blacklist}"; listAlt="${whitelist}";;
-    "-wild" | "wildcard" ) listMain="${wildcardlist}";;
+    "-wild" | "wildcard" ) listMain="${regexlist}";;
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-q" | "--quiet"     ) verbose=false;;
