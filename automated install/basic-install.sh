@@ -161,16 +161,16 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
       # If dnsmasq is present, set the dnsmas-flag to 1 for future reference
       # (after packages and dependencies are installed).
       # dnsmasq will be disabled at end of install, prior to FTLDNS start.
-      echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_YELLOW}$who53${COL_NC}. 
-      The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependencies and packages
+      echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
+      The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       dnsmasq_flag=$((dnsmasq_flag + 1))
     elif [ "$who53" = "systemd-resolve" ]; then
       # If systemd-resolved is present, set the systemd-resolved-flag to 1 for future reference
       # (after packages and dependencies are installed).
       # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
-      echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_YELLOW}$who53${COL_NC}.
-      The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependencies and packages
+      echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+      The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       systemd_resolved_flag=$((systemd_resolved_flag + 1))
     else
@@ -1352,7 +1352,6 @@ start_service() {
   if command -v systemctl &> /dev/null; then
     # use that to restart the service
     systemctl restart "${1}" &> /dev/null
-  # Otherwise,
   else
     # fall back to the service command
     service "${1}" restart &> /dev/null
@@ -2492,13 +2491,17 @@ main() {
     fi
   fi
 
-  # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
+  # Check for systemd-resolved flag and disable systemd-resolved-DNSStubListener before reloading resolved
   # DNSStubListener needs to remain in place for installer to download needed files,
   # so this change needs to be made after installation is complete,
-  # but before starting or resarting the dnsmasq or ftl services
+  # but before starting or resarting the FTLDNS service
   if [[ "$systemd_resolved_flag" -gt 0 ]]; then 
     disable_resolved_stublistener
   fi
+  # Check for dnsmasq flag and disable dnsmasq before starting FTLDNS
+  # dnsmasq needs to remain in place for installer to download needed files,
+  # so this change needs to be made after installation is complete,
+  # but before starting or resarting the FTLDNS service
   if [[ "$dnsmasq_flag" -gt 0 ]]; then
     disable_dnsmasq
   fi
