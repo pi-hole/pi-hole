@@ -159,18 +159,18 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
       echo -e "${OVER}  ${EXCL} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
     elif [ "$who53" = "dnsmasq" ]; then
       # If dnsmasq is present, set the dnsmas-flag to 1 for future reference
-      # (after packages and dependecines are installed).
+      # (after packages and dependencies are installed).
       # dnsmasq will be disabled at end of install, prior to FTLDNS start.
       echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_YELLOW}$who53${COL_NC}. 
-      The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependecines and packages
+      The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       dnsmasq_flag=$((dnsmasq_flag + 1))
     elif [ "$who53" = "systemd-resolve" ]; then
       # If systemd-resolved is present, set the systemd-resolved-flag to 1 for future reference
-      # (after packages and dependecines are installed).
+      # (after packages and dependencies are installed).
       # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
       echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_YELLOW}$who53${COL_NC}.
-      The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependecines and packages
+      The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       systemd_resolved_flag=$((systemd_resolved_flag + 1))
     else
