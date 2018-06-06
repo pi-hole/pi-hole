@@ -2028,7 +2028,6 @@ FTLinstall() {
 
   local ftlBranch
   local url
-  local ftlBranch
 
   if [[ -f "/etc/pihole/ftlbranch" ]];then
     ftlBranch=$(</etc/pihole/ftlbranch)
