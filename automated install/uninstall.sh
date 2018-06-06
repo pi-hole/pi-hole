@@ -173,7 +173,7 @@ removeNoPurge() {
 
     # If the pihole manpage exists, then delete and rebuild man-db
     if [[ -f /usr/local/share/man/man8/pihole.8 ]]; then
-        ${SUDO} rm -f /usr/local/share/man/man8/pihole.8
+        ${SUDO} rm -f /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5
         ${SUDO} mandb -q &>/dev/null
         echo -e "  ${TICK} Removed pihole man page"
     fi

@@ -977,7 +977,7 @@ setLogging() {
   local LogChoices
 
   # Ask if the user wants to log queries
-  LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?\\n (Disabling will render graphs on the Admin page useless):" ${r} ${c} 6)
+  LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?" "${r}" "${c}" 6)
   # The default selection is on
   LogChooseOptions=("On (Recommended)" "" on
       Off "" off)
@@ -1251,7 +1251,7 @@ installConfigs() {
 }
 
 install_manpage() {
-  # Copy Pi-hole man page and call mandb to update man page database
+  # Copy Pi-hole man pages and call mandb to update man page database
   # Default location for man files for /usr/local/bin is /usr/local/share/man
   # on lightweight systems may not be present, so check before copying.
   echo -en "  ${INFO} Testing man page installation"
@@ -1261,23 +1261,30 @@ install_manpage() {
     return
   elif [[ ! -d "/usr/local/share/man" ]]; then
     # appropriate directory for Pi-hole's man page is not present
-    echo -e "${OVER}  ${INFO} man page not installed"
+    echo -e "${OVER}  ${INFO} man pages not installed"
     return
-  elif [[ ! -d "/usr/local/share/man/man8" ]]; then
+  fi
+  if [[ ! -d "/usr/local/share/man/man8" ]]; then
     # if not present, create man8 directory
     mkdir /usr/local/share/man/man8
   fi
-  # Testing complete, copy the file & update the man db
-  cp ${PI_HOLE_LOCAL_REPO}/pihole.8 /usr/local/share/man/man8/pihole.8
+  if [[ ! -d "/usr/local/share/man/man5" ]]; then
+    # if not present, create man8 directory
+    mkdir /usr/local/share/man/man5
+  fi
+  # Testing complete, copy the files & update the man db
+  cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+  cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
+  cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
   if mandb -q &>/dev/null; then
     # Updated successfully
-    echo -e "${OVER}  ${TICK} man page installed and database updated"
+    echo -e "${OVER}  ${TICK} man pages installed and database updated"
     return
   else
     # Something is wrong with the system's man installation, clean up 
-    # our file, (leave everything how we found it).
-    rm /usr/local/share/man/man8/pihole.8
-    echo -e "${OVER}  ${CROSS} man page db not updated, man page not installed"
+    # our files, (leave everything how we found it).
+    rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5
+    echo -e "${OVER}  ${CROSS} man page db not updated, man pages not installed"
   fi
 }
 

@@ -21,13 +21,13 @@ Pi-hole : A black-hole for internet advertisements
 .br
 \fBpihole -c\fR [-j|-r|-e]
 .br
-\fBpihole\fR \fB-d\fR [-a] 
+\fBpihole\fR \fB-d\fR [-a]
 .br
 \fBpihole -f
 .br
 pihole -r
 .br
-pihole -t 
+pihole -t
 .br
 pihole -g\fR
 .br
@@ -84,9 +84,9 @@ Available commands and options:
       --nuke            Removes all entries in a list
 .br
 
-\fB-d, debug\fR [-a]	
+\fB-d, debug\fR [-a]
 .br
-    Start a debugging session 
+    Start a debugging session
 .br
 
       -a                Enable automated debugging
@@ -96,8 +96,7 @@ Available commands and options:
 .br
     Flush the Pi-hole log
 .br
-		
-.br
+
 \fB-r, reconfigure\fR
 .br
     Reconfigure or Repair Pi-hole subsystems
@@ -129,11 +128,10 @@ Available commands and options:
 .br
       -l, privacylevel  <level> Set privacy level (0 = lowest, 3 = highest)
 .br
-		
-.br
+
 \fB-c, chronometer\fR	[options]
 .br
-    Calculates stats and displays to an LCD 
+    Calculates stats and displays to an LCD
 .br
 
     (Chronometer Options):
@@ -145,12 +143,12 @@ Available commands and options:
       -e, --exit        Output stats and exit witout refreshing
 .br
 
-\fB-g, updateGravity\fR	
+\fB-g, updateGravity\fR
 .br
     Update the list of ad-serving domains
 .br
 
-\fB-q, query\fR [option]	
+\fB-q, query\fR [option]
 .br
     Query the adlists for a specified domain
 .br
@@ -164,7 +162,7 @@ Available commands and options:
       -all              Return all query matches within a block list
 .br
 
-\fB-h, --help, help\fR	
+\fB-h, --help, help\fR
 .br
     Show a help dialog
 .br
@@ -178,21 +176,20 @@ Available commands and options:
 .br
       on                Enable the Pi-hole log at /var/log/pihole.log
 .br
-      off 		        Disable and flush the Pi-hole log at /var/log/pihole.log
+      off               Disable and flush the Pi-hole log at /var/log/pihole.log
 .br
       off noflush       Disable the Pi-hole log at /var/log/pihole.log
 .br
-	
+
+\fB-up, updatePihole\fR [--check-only]
 .br
-\fB-up, updat\fBe\fR\fR\fBPihole\fR [--check-only]	
-.br
-    Update Pi-hole subsystems 
+    Update Pi-hole subsystems
 .br
 
       --check-only      Exit script before update is performed.
 .br
 
-\fB-v, version\fR [repo] [options]	
+\fB-v, version\fR [repo] [options]
 .br
     Show installed versions of Pi-hole, Web Interface &amp; FTL
 .br
@@ -234,8 +231,7 @@ Available commands and options:
 .br
     Disable Pi-hole subsystems, optionally for a set duration
 .br
-		
-.br
+
     (time options):	
 .br
       #s                Disable Pi-hole functionality for # second(s)
@@ -248,7 +244,7 @@ Available commands and options:
     Restart Pi-hole subsystems
 .br
 
-\fBcheckout\fR [repo] [branch]	
+\fBcheckout\fR [repo] [branch]
 .br
     Switch Pi-hole subsystems to a different Github branch
 .br
@@ -281,50 +277,43 @@ Some usage examples
 .br
     \fBpihole -b -d noads.example.com\fR  Remove "noads.example.com" from blacklist 
 .br
-    \fBpihole -wild example.com\fR            Add "example.com" as wildcard - would block ads.example.com, www.example.com etc.
+    \fBpihole -wild example.com\fR        Add "example.com" as wildcard - would block ads.example.com, www.example.com etc.
 .br
 
-    Changing the web ui password
+    Changing the Web Interface password
 .br
-	
-.br
+
     \fBpihole -a -p ExamplePassword\fR    Change the password to "ExamplePassword"
 .br
 
     Updating lists from internet sources
 .br
-	
-.br
+
     \fBpihole -g\fR                       Update the list of ad-serving domains
 .br
 
     Displaying version information
 .br
-	
-.br
+
     \fBpihole -v -a -c\fR                 Display the current version of AdminLTE
 .br
-	
-.br
+
     Temporarily disabling Pi-hole
 .br
-	
-.br
+
     \fBpihole disable 5m\fR               Disable Pi-hole functionality for five minutes
 .br
-	
-.br
+
     Switching Pi-hole subsystem branches
 .br
-	
-.br
+
     \fBpihole checkout master\fR          Switch to master branch
 .br
     \fBpihole checkout core dev\fR        Switch to core development branch
 .br
 .SH "SEE ALSO"
 
-dnsmasq(8), lighttpd(8)
+\fBlighttpd\fR(8), \fBpihole-FTL\fR(8)
 .br
 .SH "COLOPHON"
 
