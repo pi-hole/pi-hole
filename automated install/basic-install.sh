@@ -2497,10 +2497,10 @@ main() {
   # DNSStubListener needs to remain in place for installer to download needed files,
   # so this change needs to be made after installation is complete,
   # but before starting or resarting the dnsmasq or ftl services
-  if [[ "$systemd_resolved_flag" > 0 ]]; then 
+  if [[ "$systemd_resolved_flag" -gt 0 ]]; then 
     disable_resolved_stublistener
   fi
-  if [[ "$dnsmasq_flag" > 0 ]]; then
+  if [[ "$dnsmasq_flag" -gt 0 ]]; then
     disable_dnsmasq
   fi
 
