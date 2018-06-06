@@ -1,0 +1,112 @@
+.TH "Pihole-FTL" "8" "pihole-FTL" "Pi-hole" "June 2018"
+.SH "NAME"
+pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
+.br
+.SH "SYNOPSIS"
+\fBservice pihole-FTL \fR(\fBstart\fR|\fBstop\fR|\fBrestart\fR)
+.br
+
+\fBpihole-FTL debug\fR
+.br
+\fBpihole-FTL test\fR
+.br
+\fBpihole-FTL -v\fR
+.br
+\fBpihole-FTL -t\fR
+.br
+\fBpihole-FTL -b\fR
+.br
+\fBpihole-FTL -f\fR
+.br
+\fBpihole-FTL -h\fR
+.br
+\fBpihole-FTL dnsmasq-test\fR
+.br
+\fBpihole-FTL --\fR (\fBoptions\fR)
+.br
+
+.SH "DESCRIPTION"
+Pi-hole : The Faster-Than-Light (FTL) Engine is a lightweight, purpose-built daemon used to provide statistics needed for the Pi-hole Web Interface, and its API can be easily integrated into your own projects. Although it is an optional component of the Pi-hole ecosystem, it will be installed by default to provide statistics. As the name implies, FTL does its work \fIvery\fR \fIquickly\fR!
+.br
+
+Usage
+.br
+
+\fBservice pihole-FTL start\fR
+.br
+    Start the pihole-FTL daemon
+.br
+
+\fBservice pihole-FTL stop\fR
+.br
+    Stop the pihole-FTL daemon
+.br
+
+\fBservice pihole-FTL restart\fR
+.br
+    If the pihole-FTP daemon is running, stop and then start, otherwise start.
+.br
+
+Command line arguments
+.br
+
+\fBdebug\fR
+.br
+    Don't go into daemon mode (stay in foreground) + more verbose logging
+.br
+
+\fBtest\fR
+.br
+    Start FTL and process everything, but shut down immediately afterwards
+.br
+
+\fB-v, version\fR
+.br
+    Don't start FTL, show only version
+.br
+
+\fB-t, tag\fR
+.br
+    Don't start FTL, show only git tag
+.br
+
+\fB-b, branch\fR
+.br
+    Don't start FTL, show only git branch FTL was compiled from
+.br
+
+\fB-f, no-daemon\fR
+.br
+    Don't go into background (daemon mode)
+.br
+
+\fB-h, help\fR
+.br
+    Don't start FTL, show help
+.br
+
+\fBdnsmasq-test\fR
+.br
+    Test resolver config file syntax
+.br
+
+\fB--\fR  (options)
+.br
+    Pass options to internal dnsmasq resolver
+.br
+.SH "EXAMPLE"
+Command line arguments can be arbitrarily combined, e.g:
+.br
+
+\fBpihole-FTL debug test\fR
+.br
+
+Start ftl in foreground with more verbose logging, process everything and shutdown immediately
+.br
+.SH "SEE ALSO"
+\fBpihole\fR(8), \fBpihole-FTL.conf\fR(5)
+.br
+.SH "COLOPHON"
+
+Get sucked into the latest news and community activity by entering Pi-hole's orbit. Information about Pi-hole, and the latest version of the software can be found at https://pi-hole.net
+.br
