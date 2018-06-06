@@ -1352,6 +1352,7 @@ start_service() {
   if command -v systemctl &> /dev/null; then
     # use that to restart the service
     systemctl restart "${1}" &> /dev/null
+    # Otherwise,
   else
     # fall back to the service command
     service "${1}" restart &> /dev/null
