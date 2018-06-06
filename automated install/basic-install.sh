@@ -163,7 +163,7 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
       # dnsmasq will be disabled at end of install, prior to FTLDNS start.
       echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_YELLOW}$who53${COL_NC}. 
       The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependecines and packages
-      have been downloaded, and replace the sytem DNS resolver with FTLDNS."
+      have been downloaded, and replace the system DNS resolver with FTLDNS."
       dnsmasq_flag=$((dnsmasq_flag + 1))
     elif [ "$who53" = "systemd-resolve" ]; then
       # If systemd-resolved is present, set the systemd-resolved-flag to 1 for future reference
@@ -171,7 +171,7 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
       # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
       echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_YELLOW}$who53${COL_NC}.
       The installer will disable ${COL_LIGHT_YELLOW}$who53${COL_NC} after dependecines and packages
-      have been downloaded, and replace the sytem DNS resolver with FTLDNS."
+      have been downloaded, and replace the system DNS resolver with FTLDNS."
       systemd_resolved_flag=$((systemd_resolved_flag + 1))
     else
     # port 53 is used by something else, stop install
@@ -1445,7 +1445,7 @@ disable_dnsmasq () {
       echo -en "${OVER}  ${TICK} Restarting Network manager"
       ${SUDO} systemctl reload-or-restart NetworkManager
     else
-      # Disabling dnsmasq via sytemctl
+      # Disabling dnsmasq via systemctl
       echo -e "${OVER}  ${INFO} Disabling dnsmasq via systemct"
       ${SUDO} systemctl disable dnsmasq &> /dev/null
       # Running an aditional check (if dnsmasq was loaded via non convetional method)
