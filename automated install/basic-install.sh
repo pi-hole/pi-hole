@@ -2094,9 +2094,8 @@ FTLinstall() {
 }
 
 get_binary_name() {
-# Local, named variables
+  # This gives the machine architecture which may be different from the OS architecture...
   local machine
-  # Store architecture in a variable
   machine=$(uname -m)
 
   local str="Detecting architecture"
@@ -2139,10 +2138,21 @@ get_binary_name() {
     # set the binary to be used
     binary="pihole-FTL-powerpc-linux-gnu"
   elif [[ "${machine}" == "x86_64" ]]; then
-    # 64bit
-    echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
-    # set the binary to be used
-    binary="pihole-FTL-linux-x86_64"
+    # This gives the architecture of packages dpkg installs (for example, "i386")
+    local dpkgarch
+    dpkgarch=$(dpkg --print-architecture 2> /dev/null)
+
+    # Special case: This is a 32 bit OS, installed on a 64 bit machine
+    # -> change machine architecture to download the 32 bit executable
+    if [[ "${dpkgarch}" == "i386" ]]; then
+      echo -e "${OVER}  ${TICK} Detected 32bit (i686) architecture"
+      binary="pihole-FTL-linux-x86_32"
+    else
+      # 64bit
+      echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
+      # set the binary to be used
+      binary="pihole-FTL-linux-x86_64"
+    fi
   else
     # Something else - we try to use 32bit executable and warn the user
     if [[ ! "${machine}" == "i686" ]]; then
