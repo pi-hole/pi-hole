@@ -166,13 +166,13 @@ if command -v apt-get &> /dev/null; then
     echo -e "  ${INFO} Existing PHP installation detected : PHP version $phpInsVersion"
     phpInsMajor="$(echo "$phpInsVersion" | cut -d\. -f1)"
     phpInsMinor="$(echo "$phpInsVersion" | cut -d\. -f2)"
-    # Is installed php version supported? (php 5.4 is EOL)
-    if [ "$(echo "$phpInsMajor.$phpInsMinor < 5.5" | bc )" == 0 ]; then
-      phpInsSupported=true
+    # Is installed php version newer than php5?
+    if [ "$(echo "$phpInsMajor.$phpInsMinor < 7.0" | bc )" == 0 ]; then
+      phpInsNewer=true
     fi
   fi
   # Check if installed php is unsupported version (5.4 is EOL)
-  if [[ "$phpInsSupported" != true ]]; then
+  if [[ "$phpInsNewer" != true ]]; then
     # Prefer the php metapackage if it's there
     if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
       phpVer="php"
@@ -181,7 +181,7 @@ if command -v apt-get &> /dev/null; then
       phpVer="php5"
     fi
   else
-    # Supported php is installed, its common, cgi & sqlite counterparts are deps
+    # Newer php is installed, its common, cgi & sqlite counterparts are deps
     phpVer="php$phpInsMajor.$phpInsMinor"
   fi
   # We also need the correct version for `php-sqlite` (which differs across distros)
