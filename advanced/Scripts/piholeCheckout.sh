@@ -17,191 +17,13 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
 # setupVars set in basic-install.sh
+# check_download_exists sourced from basic-install.sh
+# fully_fetch_repo sourced from basic-install.sh
+# get_available_branches sourced from basic-install.sh
+# fetch_checkout_pull_branch sourced from basic-install.sh
+# checkout_pull_branch sourced from basic-install.sh
 
 source "${setupVars}"
-update="false"
-
-coltable="/opt/pihole/COL_TABLE"
-source ${coltable}
-
-check_download_exists() {
-  status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
-  if grep -q "404" <<< "$status"; then
-    return 1
-  else
-    return 0
-  fi
-}
-
-FTLinstall() {
-  # Download and install FTL binary
-  local binary
-  binary="${1}"
-  local path
-  path="${2}"
-  local str
-  str="Installing FTL"
-  echo -ne "  ${INFO} ${str}..."
-
-  if curl -sSL --fail "https://ftl.pi-hole.net/${path}" -o "/tmp/${binary}"; then
-    # Get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "https://ftl.pi-hole.net/${path}.sha1" -o "/tmp/${binary}.sha1"
-    # Check if we just downloaded text, or a binary file.
-    cd /tmp || return 1
-    if sha1sum --status --quiet -c "${binary}".sha1; then
-      echo -n "transferred... "
-      stop_service pihole-FTL &> /dev/null
-      install -T -m 0755 "/tmp/${binary}" "/usr/bin/pihole-FTL"
-      rm "/tmp/${binary}" "/tmp/${binary}.sha1"
-      start_service pihole-FTL &> /dev/null
-      echo -e "${OVER}  ${TICK} ${str}"
-      return 0
-    else
-      echo -e "${OVER}  ${CROSS} ${str}"
-      echo -e "  ${COL_LIGHT_RED}Error: Download of binary from ftl.pi-hole.net failed${COL_NC}"
-      return 1
-    fi
-  else
-    echo -e "${OVER}  ${CROSS} ${str}"
-    echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
-  fi
-}
-
-get_binary_name() {
-  # This gives the machine architecture which may be different from the OS architecture...
-  local machine
-  machine=$(uname -m)
-
-  # This gives the architecture of packages dpkg installs (for example, "i386")
-  local dpkgarch
-  dpkgarch=$(dpkg --print-architecture 2> /dev/null)
-
-  # Special case: This is a 32 bit OS, installed on a 64 bit machine
-  # -> change machine architecture to download the 32 bit executable
-  if [[ "${machine}" == "x86_64" && "${dpkgarch}" == "i386" ]]; then
-    machine="i686"
-  fi
-
-  local str
-  str="Detecting architecture"
-  echo -ne "  ${INFO} ${str}..."
-  if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
-    # ARM
-    local rev
-    rev=$(uname -m | sed "s/[^0-9]//g;")
-    local lib
-    lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
-    if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
-      echo -e "${OVER}  ${TICK} Detected ARM-aarch64 architecture"
-      binary="pihole-FTL-aarch64-linux-gnu"
-    elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
-      if [[ "$rev" -gt "6" ]]; then
-        echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv7+)"
-        binary="pihole-FTL-arm-linux-gnueabihf"
-      else
-        echo -e "${OVER}  ${TICK} Detected ARM-hf architecture (armv6 or lower) Using ARM binary"
-        binary="pihole-FTL-arm-linux-gnueabi"
-      fi
-    else
-      echo -e "${OVER}  ${TICK} Detected ARM architecture"
-      binary="pihole-FTL-arm-linux-gnueabi"
-    fi
-  elif [[ "${machine}" == "ppc" ]]; then
-    # PowerPC
-    echo -e "${OVER}  ${TICK} Detected PowerPC architecture"
-    binary="pihole-FTL-powerpc-linux-gnu"
-  elif [[ "${machine}" == "x86_64" ]]; then
-    # 64bit
-    echo -e "${OVER}  ${TICK} Detected x86_64 architecture"
-    binary="pihole-FTL-linux-x86_64"
-  else
-    # Something else - we try to use 32bit executable and warn the user
-    if [[ ! "${machine}" == "i686" ]]; then
-      echo -e "${OVER}  ${CROSS} ${str}...
-      ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable
-      Contact support if you experience issues (e.g: FTL not running)${COL_NC}"
-    else
-      echo -e "${OVER}  ${TICK} Detected 32bit (i686) architecture"
-    fi
-    binary="pihole-FTL-linux-x86_32"
-  fi
-}
-
-fully_fetch_repo() {
-  # Add upstream branches to shallow clone
-  local directory="${1}"
-
-  cd "${directory}" || return 1
-  if is_repo "${directory}"; then
-    git remote set-branches origin '*' || return 1
-    git fetch --quiet || return 1
-  else
-    return 1
-  fi
-  return 0
-}
-
-get_available_branches() {
-  # Return available branches
-  local directory
-  directory="${1}"
-  local output
-
-  cd "${directory}" || return 1
-  # Get reachable remote branches, but store STDERR as STDOUT variable
-  output=$( { git remote show origin | grep 'tracked' | sed 's/tracked//;s/ //g'; } 2>&1 )
-  echo "$output"
-  return
-}
-
-fetch_checkout_pull_branch() {
-  # Check out specified branch
-  local directory
-  directory="${1}"
-  local branch
-  branch="${2}"
-
-  # Set the reference for the requested branch, fetch, check it put and pull it
-  cd "${directory}" || return 1
-  git remote set-branches origin "${branch}" || return 1
-  git stash --all --quiet &> /dev/null || true
-  git clean --quiet --force -d || true
-  git fetch --quiet || return 1
-  checkout_pull_branch "${directory}" "${branch}" || return 1
-}
-
-checkout_pull_branch() {
-  # Check out specified branch
-  local directory
-  directory="${1}"
-  local branch
-  branch="${2}"
-  local oldbranch
-
-  cd "${directory}" || return 1
-
-  oldbranch="$(git symbolic-ref HEAD)"
-
-  str="Switching to branch: '${branch}' from '${oldbranch}'"
-  echo -ne "  ${INFO} $str"
-  git checkout "${branch}" --quiet || return 1
-  echo -e "${OVER}  ${TICK} $str"
-
-
-  if [[ "$(git diff "${oldbranch}" | grep -c "^")" -gt "0" ]]; then
-    update="true"
-  fi
-
-  git_pull=$(git pull || return 1)
-
-  if [[ "$git_pull" == *"up-to-date"* ]]; then
-    echo -e "  ${INFO} ${git_pull}"
-  else
-    echo -e "$git_pull\\n"
-  fi
-
-  return 0
-}
 
 warning1() {
   echo "  Please note that changing branches severely alters your Pi-hole subsystems"
@@ -233,7 +55,7 @@ checkout() {
   Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
     exit 1;
   fi
-  if [[ "${INSTALL_WEB}" == "true" ]]; then
+  if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
     if ! is_repo "${webInterfaceDir}" ; then
      echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!
   Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
@@ -257,7 +79,7 @@ checkout() {
     echo ""
     echo -e "  ${INFO} Pi-hole Core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
-    if [[ "${INSTALL_WEB}" == "true" ]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
       echo ""
       echo -e "  ${INFO} Web interface"
       fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
@@ -267,13 +89,13 @@ checkout() {
     get_binary_name
     local path
     path="development/${binary}"
-    FTLinstall "${binary}" "${path}"
+    echo "development" > /etc/pihole/ftlbranch
   elif [[ "${1}" == "master" ]] ; then
     # Shortcut to check out master branches
     echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
     echo -e "  ${INFO} Pi-hole core"
     fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
-    if [[ ${INSTALL_WEB} == "true" ]]; then
+    if [[ ${INSTALL_WEB_INTERFACE} == "true" ]]; then
       echo -e "  ${INFO} Web interface"
       fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
     fi
@@ -281,7 +103,7 @@ checkout() {
     get_binary_name
     local path
     path="master/${binary}"
-    FTLinstall "${binary}" "${path}"
+    echo "master" > /etc/pihole/ftlbranch
   elif [[ "${1}" == "core" ]] ; then
     str="Fetching branches from ${piholeGitUrl}"
     echo -ne "  ${INFO} $str"
@@ -309,7 +131,7 @@ checkout() {
       exit 1
     fi
     checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
-  elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB}" == "true" ]] ; then
+  elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB_INTERFACE}" == "true" ]] ; then
     str="Fetching branches from ${webInterfaceGitUrl}"
     echo -ne "  ${INFO} $str"
     if ! fully_fetch_repo "${webInterfaceDir}" ; then
@@ -343,7 +165,10 @@ checkout() {
 
     if check_download_exists "$path"; then
         echo "  ${TICK} Branch ${2} exists"
-        FTLinstall "${binary}" "${path}"
+        echo "${2}" > /etc/pihole/ftlbranch
+        FTLinstall "${binary}"
+        start_service pihole-FTL
+        enable_service pihole-FTL
     else
         echo "  ${CROSS} Requested branch \"${2}\" is not available"
         ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
@@ -358,7 +183,7 @@ checkout() {
   fi
 
   # Force updating everything
-  if [[ ( ! "${1}" == "web" && ! "${1}" == "ftl" ) && "${update}" == "true" ]]; then
+  if [[  ! "${1}" == "web" && ! "${1}" == "ftl" ]]; then
     echo -e "  ${INFO} Running installer to upgrade your installation"
     if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
       exit 0

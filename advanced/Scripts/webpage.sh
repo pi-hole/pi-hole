@@ -13,6 +13,7 @@
 readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
+readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
@@ -35,7 +36,7 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage"
+  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)"
 	exit 0
 }
 
@@ -50,6 +51,19 @@ delete_setting() {
 change_setting() {
 	delete_setting "${1}"
 	add_setting "${1}" "${2}"
+}
+
+addFTLsetting() {
+	echo "${1}=${2}" >> "${FTLconf}"
+}
+
+deleteFTLsetting() {
+	sed -i "/${1}/d" "${FTLconf}"
+}
+
+changeFTLsetting() {
+	deleteFTLsetting "${1}"
+	addFTLsetting "${1}" "${2}"
 }
 
 add_dnsmasq_setting() {
@@ -135,6 +149,14 @@ ProcessDNSSettings() {
 		let COUNTER=COUNTER+1
 	done
 
+	# The option LOCAL_DNS_PORT is deprecated
+	# We apply it once more, and then convert it into the current format
+	if [ ! -z "${LOCAL_DNS_PORT}" ]; then
+		add_dnsmasq_setting "server" "127.0.0.1#${LOCAL_DNS_PORT}"
+		add_setting "PIHOLE_DNS_${COUNTER}" "127.0.0.1#${LOCAL_DNS_PORT}"
+		delete_setting "LOCAL_DNS_PORT"
+	fi
+
 	delete_dnsmasq_setting "domain-needed"
 
 	if [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
@@ -182,10 +204,6 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
-	if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
-		add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
-		add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
-	fi
 
 }
 
@@ -214,17 +232,6 @@ SetDNSServers() {
 		change_setting "DNSSEC" "true"
 	else
 		change_setting "DNSSEC" "false"
-	fi
-	if [[ "${args[6]}" == "conditional_forwarding" ]]; then
-		change_setting "CONDITIONAL_FORWARDING" "true"
-		change_setting "CONDITIONAL_FORWARDING_IP" "${args[7]}"
-		change_setting "CONDITIONAL_FORWARDING_DOMAIN" "${args[8]}"
-		change_setting "CONDITIONAL_FORWARDING_REVERSE" "${args[9]}"
-	else
-		change_setting "CONDITIONAL_FORWARDING" "false"
-		delete_setting "CONDITIONAL_FORWARDING_IP"
-		delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
-		delete_setting "CONDITIONAL_FORWARDING_REVERSE"
 	fi
 
 	ProcessDNSSettings
@@ -361,7 +368,9 @@ CustomizeAdLists() {
 	elif [[ "${args[2]}" == "disable" ]]; then
 		sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
 	elif [[ "${args[2]}" == "add" ]]; then
-		echo "${args[3]}" >> ${list}
+		if [[ $(grep -c "^${args[3]}$" "${list}") -eq 0 ]] ; then
+			echo "${args[3]}" >> ${list}
+		fi
 	elif [[ "${args[2]}" == "del" ]]; then
 	  var=$(echo "${args[3]}" | sed 's/\//\\\//g')
 	  sed -i "/${var}/Id" "${list}"
@@ -505,36 +514,44 @@ audit()
 	echo "${args[2]}" >> /etc/pihole/auditlog.list
 }
 
+SetPrivacyLevel() {
+	# Set privacy level. Minimum is 0, maximum is 3
+	if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
+		changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
+	fi
+}
+
 main() {
 	args=("$@")
 
 	case "${args[1]}" in
-		"-p" | "password"   ) SetWebPassword;;
-		"-c" | "celsius"    ) unit="C"; SetTemperatureUnit;;
-		"-f" | "fahrenheit" ) unit="F"; SetTemperatureUnit;;
-		"-k" | "kelvin"     ) unit="K"; SetTemperatureUnit;;
-		"setdns"            ) SetDNSServers;;
-		"setexcludedomains" ) SetExcludeDomains;;
-		"setexcludeclients" ) SetExcludeClients;;
-		"poweroff"          ) Poweroff;;
-		"reboot"            ) Reboot;;
-		"restartdns"        ) RestartDNS;;
-		"setquerylog"       ) SetQueryLogOptions;;
-		"enabledhcp"        ) EnableDHCP;;
-		"disabledhcp"       ) DisableDHCP;;
-		"layout"            ) SetWebUILayout;;
-		"-h" | "--help"     ) helpFunc;;
-		"privacymode"       ) SetPrivacyMode;;
-		"resolve"           ) ResolutionSettings;;
-		"addstaticdhcp"     ) AddDHCPStaticAddress;;
-		"removestaticdhcp"  ) RemoveDHCPStaticAddress;;
-		"-r" | "hostrecord" ) SetHostRecord "$3";;
-		"-e" | "email"      ) SetAdminEmail "$3";;
-		"-i" | "interface"  ) SetListeningMode "$@";;
-		"-t" | "teleporter" ) Teleporter;;
-		"adlist"            ) CustomizeAdLists;;
-		"audit"             ) audit;;
-		*                   ) helpFunc;;
+		"-p" | "password"     ) SetWebPassword;;
+		"-c" | "celsius"      ) unit="C"; SetTemperatureUnit;;
+		"-f" | "fahrenheit"   ) unit="F"; SetTemperatureUnit;;
+		"-k" | "kelvin"       ) unit="K"; SetTemperatureUnit;;
+		"setdns"              ) SetDNSServers;;
+		"setexcludedomains"   ) SetExcludeDomains;;
+		"setexcludeclients"   ) SetExcludeClients;;
+		"poweroff"            ) Poweroff;;
+		"reboot"              ) Reboot;;
+		"restartdns"          ) RestartDNS;;
+		"setquerylog"         ) SetQueryLogOptions;;
+		"enabledhcp"          ) EnableDHCP;;
+		"disabledhcp"         ) DisableDHCP;;
+		"layout"              ) SetWebUILayout;;
+		"-h" | "--help"       ) helpFunc;;
+		"privacymode"         ) SetPrivacyMode;;
+		"resolve"             ) ResolutionSettings;;
+		"addstaticdhcp"       ) AddDHCPStaticAddress;;
+		"removestaticdhcp"    ) RemoveDHCPStaticAddress;;
+		"-r" | "hostrecord"   ) SetHostRecord "$3";;
+		"-e" | "email"        ) SetAdminEmail "$3";;
+		"-i" | "interface"    ) SetListeningMode "$@";;
+		"-t" | "teleporter"   ) Teleporter;;
+		"adlist"              ) CustomizeAdLists;;
+		"audit"               ) audit;;
+		"-l" | "privacylevel" ) SetPrivacyLevel;;
+		*                     ) helpFunc;;
 	esac
 
 	shift

@@ -465,15 +465,15 @@ processor_check() {
   else
     # Check if the architecture is currently supported for FTL
     case "${PROCESSOR}" in
-      "amd64") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
+      "amd64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "armv6l") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
+      "armv6l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "armv6") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
+      "armv6") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "armv7l") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
+      "armv7l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
-      "aarch64") "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
+      "aarch64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
       ;;
     # Otherwise, show the processor type
     *) log_write "${INFO} ${PROCESSOR}";
@@ -491,6 +491,13 @@ parse_setup_vars() {
     # If not, show an error
     log_write "${CROSS} ${COL_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
   fi
+}
+
+parse_locale() {
+  local pihole_locale
+  echo_current_diagnostic "Locale"
+  pihole_locale="$(locale)"
+  parse_file "${pihole_locale}"
 }
 
 does_ip_match_setup_vars() {
@@ -592,7 +599,7 @@ ping_gateway() {
     # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
     # on the pihole interface, and tail the last three lines of the output
     # If pinging the gateway is not successful,
-    if ! ${cmd} -c 3 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
+    if ! ${cmd} -c 1 -W 2 -n ${gateway} -I ${PIHOLE_INTERFACE} >/dev/null; then
       # let the user know
       log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\n"
       # and return an error code
@@ -613,7 +620,7 @@ ping_internet() {
   ping_ipv4_or_ipv6 "${protocol}"
   log_write "* Checking Internet connectivity via IPv${protocol}..."
   # Try to ping the address 3 times
-  if ! ${cmd} -W 2 -c 3 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
+  if ! ${cmd} -c 1 -W 2 -n ${public_address} -I ${PIHOLE_INTERFACE} >/dev/null; then
     # if it's unsuccessful, show an error
     log_write "${CROSS} ${COL_RED}Cannot reach the Internet.${COL_NC}\n"
     return 1
@@ -652,15 +659,22 @@ check_required_ports() {
   # Sort the addresses and remove duplicates
   while IFS= read -r line; do
       ports_in_use+=( "$line" )
-  done < <( lsof -i -P -n | awk -F' ' '/LISTEN/ {print $9, $1}' | sort -n | uniq | cut -d':' -f2 )
+  done < <( lsof -iTCP -sTCP:LISTEN -P -n +c 10 )
 
   # Now that we have the values stored,
   for i in "${!ports_in_use[@]}"; do
     # loop through them and assign some local variables
-    local port_number
-    port_number="$(echo "${ports_in_use[$i]}" | awk '{print $1}')"
     local service_name
-    service_name=$(echo "${ports_in_use[$i]}" | awk '{print $2}')
+    service_name=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
+    local protocol_type
+    protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $5}')
+    local port_number
+    port_number="$(echo "${ports_in_use[$i]}" | awk '{print $9}')"
+
+    # Skip the line if it's the titles of the columns the lsof command produces
+    if [[ "${service_name}" == COMMAND ]]; then
+      continue
+    fi
     # Use a case statement to determine if the right services are using the right ports
     case "${port_number}" in
       53) compare_port_to_service_assigned  "${resolver}"
@@ -670,7 +684,7 @@ check_required_ports() {
       4711) compare_port_to_service_assigned  "${ftl}"
           ;;
       # If it's not a default port that Pi-hole needs, just print it out for the user to see
-      *) log_write "[${port_number}] is in use by ${service_name}";
+      *) log_write "${port_number} ${service_name} (${protocol_type})";
     esac
   done
 }
@@ -712,20 +726,20 @@ check_x_headers() {
   # If the X-header found by curl matches what is should be,
   if [[ $block_page == "$block_page_working" ]]; then
     # display a success message
-    log_write "$TICK ${COL_GREEN}${block_page}${COL_NC}"
+    log_write "$TICK Block page X-Header: ${COL_GREEN}${block_page}${COL_NC}"
   else
     # Otherwise, show an error
-    log_write "$CROSS ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "$CROSS Block page X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
     log_write "${COL_RED}${full_curl_output_block_page}${COL_NC}"
   fi
 
   # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
   if [[ $dashboard == "$dashboard_working" ]]; then
     # then we can show a success
-    log_write "$TICK ${COL_GREEN}${dashboard}${COL_NC}"
+    log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
   else
     # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
-    log_write "$CROSS ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+    log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
     log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
   fi
 }
@@ -879,8 +893,11 @@ parse_file() {
   # Put the current Internal Field Separator into another variable so it can be restored later
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
-  IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
-
+  if [[ -f "$filename" ]]; then
+    IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
+  else
+    read -a file_info <<< $filename
+  fi
   # Set a named variable for better readability
   local file_lines
   # For each line in the file,
@@ -958,7 +975,7 @@ list_files_in_dir() {
             "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") make_array_from_file "${dir_to_parse}/${each_file}" 25
             ;;
             # Same for the FTL log
-            "${PIHOLE_FTL_LOG}") make_array_from_file "${dir_to_parse}/${each_file}" 25
+            "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
             ;;
             # parse the file into an array in case we ever need to analyze it line-by-line
             *) make_array_from_file "${dir_to_parse}/${each_file}";
@@ -989,6 +1006,34 @@ show_content_of_pihole_files() {
   show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
   show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
   show_content_of_files_in_dir "${LOG_DIRECTORY}"
+}
+
+head_tail_log() {
+  # The file being processed
+  local filename="${1}"
+  # The number of lines to use for head and tail
+  local qty="${2}"
+  local head_line
+  local tail_line
+  # Put the current Internal Field Separator into another variable so it can be restored later
+  OLD_IFS="$IFS"
+  # Get the lines that are in the file(s) and store them in an array for parsing later
+  IFS=$'\r\n'
+  local log_head=()
+  log_head=( $(head -n ${qty} ${filename}) )
+  log_write "   ${COL_CYAN}-----head of $(basename ${filename})------${COL_NC}"
+  for head_line in "${log_head[@]}"; do
+    log_write "   ${head_line}"
+  done
+  log_write ""
+  local log_tail=()
+  log_tail=( $(tail -n ${qty} ${filename}) )
+  log_write "   ${COL_CYAN}-----tail of $(basename ${filename})------${COL_NC}"
+  for tail_line in "${log_tail[@]}"; do
+    log_write "   ${tail_line}"
+  done
+  # Set the IFS back to what it was
+  IFS="$OLD_IFS"
 }
 
 analyze_gravity_list() {
@@ -1165,6 +1210,7 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_content_of_pihole_files
+parse_locale
 analyze_pihole_log
 copy_to_debug_log
 upload_to_tricorder
