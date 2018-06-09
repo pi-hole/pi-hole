@@ -166,12 +166,12 @@ if command -v apt-get &> /dev/null; then
     echo -e "  ${INFO} Existing PHP installation detected : PHP version $phpInsVersion"
     phpInsMajor="$(echo "$phpInsVersion" | cut -d\. -f1)"
     phpInsMinor="$(echo "$phpInsVersion" | cut -d\. -f2)"
-    # Is installed php version newer than php5?
+    # Is installed php version 7.0 or greater
     if [ "$(echo "$phpInsMajor.$phpInsMinor < 7.0" | bc )" == 0 ]; then
       phpInsNewer=true
     fi
   fi
-  # Check if installed php is unsupported version (5.4 is EOL)
+  # Check if installed php is v 7.0, or newer to determine packages to install
   if [[ "$phpInsNewer" != true ]]; then
     # Prefer the php metapackage if it's there
     if ${PKG_MANAGER} install --dry-run php > /dev/null 2>&1; then
