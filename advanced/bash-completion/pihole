@@ -23,7 +23,7 @@ _pihole() {
 			COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
 		;;
 		"chronometer")
-			opts_chronometer="\--exit \--jason \--refresh"
+			opts_chronometer="\--exit \--json \--refresh"
 			COMPREPLY=( $(compgen -W "${opts_chronometer}" -- ${cur}) )
 		;;
 		"debug")
