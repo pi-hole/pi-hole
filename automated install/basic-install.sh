@@ -1823,9 +1823,11 @@ checkSelinux() {
 
     # If it's enforcing,
     if [[ "${enforceMode}" == "Enforcing" ]]; then
-      # Explain Pi-hole does not support it yet
-      whiptail --defaultno --title "SELinux Enforcing Detected" --yesno "SELinux is being ENFORCED on your system! \\n\\nPi-hole currently does not support SELinux, but you may still continue with the installation.\\n\\nNote: Web Admin will not be fully functional unless you set your policies correctly\\n\\nContinue installing Pi-hole?" ${r} ${c} || \
-        { echo -e "\\n  ${COL_LIGHT_RED}SELinux Enforcing detected, exiting installer${COL_NC}"; exit 1; }
+      # Explain Pi-hole does not support it yet, except on unattended installs where no dialog are run
+      if [[ "${runUnattended}" == false ]]; then
+        whiptail --defaultno --title "SELinux Enforcing Detected" --yesno "SELinux is being ENFORCED on your system! \\n\\nPi-hole currently does not support SELinux, but you may still continue with the installation.\\n\\nNote: Web Admin will not be fully functional unless you set your policies correctly\\n\\nContinue installing Pi-hole?" ${r} ${c} || \
+          { echo -e "\\n  ${COL_LIGHT_RED}SELinux Enforcing detected, exiting installer${COL_NC}"; exit 1; }
+      fi
       echo -e "  ${INFO} Continuing installation with SELinux Enforcing
   ${INFO} Please refer to official SELinux documentation to create a custom policy"
     fi
