@@ -38,9 +38,9 @@ lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
 # Defining a numeric variable for tracking presence of dnsmasq
-dnsmasq_flag=0
+dnsmasq_flag=false
 # Defining a numeric variable for tracking presence of systemd-resolved
-systemd_resolved_flag=0
+systemd_resolved_flag=false
 
 # We store several other folders and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
@@ -164,7 +164,7 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
       echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
       The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
-      dnsmasq_flag=$((dnsmasq_flag + 1))
+      dnsmasq_flag=true
     elif [ "$who53" = "systemd-resolve" ]; then
       # If systemd-resolved is present, set the systemd-resolved-flag to 1 for future reference
       # (after packages and dependencies are installed).
@@ -172,7 +172,7 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
       echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
       The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
-      systemd_resolved_flag=$((systemd_resolved_flag + 1))
+      systemd_resolved_flag=true
     else
     # port 53 is used by something else, stop install
     echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
@@ -1408,12 +1408,12 @@ check_service_active() {
 
 # Systemd-resolved's DNSStubListener and dnsmasq can't share port 53.
 disable_resolved_stublistener() {
-#  echo -en "  ${INFO} Testing if systemd-resolved is enabled"
+  echo -en "  ${INFO} Testing if systemd-resolved is enabled"
   # Check if Systemd-resolved's DNSStubListener flag is present
-  if [[ "$systemd_resolved_flag" -gt 0 ]]; then
+  if [[ $systemd_resolved_flag = "true" ]]; then
     if check_service_active "systemd-resolved"; then
       # Check if DNSStubListener is enabled
-      echo -en "  ${OVER}  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
+      echo -en "  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
       if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
         # Disable the DNSStubListener to unbind it from port 53
         # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
@@ -1421,7 +1421,7 @@ disable_resolved_stublistener() {
         # Make a backup of the original /etc/systemd/resolved.conf
         # (This will need to be restored on uninstallation)
         ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-        echo -e " and restarting systemd-resolved"
+        echo -en "${TICK} Restarting systemd-resolved DNSStubListener"
         ${SUDO} systemctl reload-or-restart systemd-resolved
       else
         echo -e "${OVER}  ${INFO} Systemd-resolved does not need to be restarted"
@@ -1434,19 +1434,19 @@ disable_resolved_stublistener() {
 
 disable_dnsmasq () {
   # Check if dnsmasq flag is present.
-  if [[ "$dnsmasq_flag" -gt 0 ]]; then
+  if [[ $dnsmasq_flag = "true" ]]; then
     if ( grep -E '#?dns=dnsmasq' /etc/NetworkManager/NetworkManager.conf &> /dev/null ); then
       # Disable dnsmasq from restarting when Network Manager restarts
       # Note that this breaks dns functionality on host until FTLDNS is up and running
-      echo -en "${OVER}  ${TICK} Disabling dnsmasq from restarting when Network manager starts/restarts"
+      echo -en "${TICK} Disabling dnsmasq from restarting when Network manager starts/restarts"
       # Make a backup of the original /etc/NetworkManager/NetworkManager.conf
       # (This will need to be restored on uninstallation)
-      ${SUDO} sed -r -i.orig 's/#?dns=dnsmasq/#dns=disabled_dnsmasq/g' /etc/NetworkManager/NetworkManager.conf
+      ${SUDO} sed -r -i.orig '/#?dns=dnsmasq/d' /etc/NetworkManager/NetworkManager.conf
       echo -en "${OVER}  ${TICK} Restarting Network manager"
       ${SUDO} systemctl reload-or-restart NetworkManager
     else
       # Disabling dnsmasq via systemctl
-      echo -e "${OVER}  ${INFO} Disabling dnsmasq via systemct"
+      echo -e "  ${INFO} Disabling dnsmasq via systemctl"
       ${SUDO} systemctl disable dnsmasq &> /dev/null
       # Running an aditional check (if dnsmasq was loaded via non convetional method)
       echo -e "${OVER}  ${INFO} Checking if dnsmasq is still running"
@@ -1460,7 +1460,7 @@ disable_dnsmasq () {
       fi
     fi
   else
-    echo -e "${OVER}  ${INFO} dnsmasq is not enabled"
+    echo -e "${INFO} dnsmasq is not enabled"
   fi
 }
 
@@ -2496,14 +2496,14 @@ main() {
   # DNSStubListener needs to remain in place for installer to download needed files,
   # so this change needs to be made after installation is complete,
   # but before starting or resarting the FTLDNS service
-  if [[ "$systemd_resolved_flag" -gt 0 ]]; then 
+  if [[ $systemd_resolved_flag = "true" ]]; then 
     disable_resolved_stublistener
   fi
   # Check for dnsmasq flag and disable dnsmasq before starting FTLDNS
   # dnsmasq needs to remain in place for installer to download needed files,
   # so this change needs to be made after installation is complete,
   # but before starting or resarting the FTLDNS service
-  if [[ "$dnsmasq_flag" -gt 0 ]]; then
+  if [[ $dnsmasq_flag = "true" ]]; then
     disable_dnsmasq
   fi
 
