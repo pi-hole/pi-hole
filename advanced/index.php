@@ -329,6 +329,7 @@ setHeader();
           setTimeout(function(){window.location.reload(1);}, 10000);
           $("#bpOutput").removeClass("add");
           $("#bpOutput").addClass("success");
+          $("#bpOutput").html("");
         } else {
           $("#bpOutput").removeClass("add");
           $("#bpOutput").addClass("error");
@@ -338,6 +339,7 @@ setHeader();
       error: function(jqXHR, exception) {
         $("#bpOutput").removeClass("add");
         $("#bpOutput").addClass("exception");
+        $("#bpOutput").html("");
       }
     });
   }
