@@ -149,10 +149,13 @@ gravity_GetBlocklistUrls() {
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
-    # Logic: Split by folder/port
-    awk -F '[/:]' '{
+    awk '{
       # Remove URL protocol & optional username:password@
       gsub(/(.*:\/\/|.*:.*@)/, "", $0)
+
+      # remove non-alphanums but keep the path as a future breadcrumb
+      gsub(/[^[:alnum:]]/, "_", $0)
+
       if(length($1)>0){print $1}
       else {print "local"}
     }' <<< "$(printf '%s\n' "${sources[@]}")" 2> /dev/null
