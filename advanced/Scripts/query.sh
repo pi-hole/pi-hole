@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2018 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
