@@ -86,26 +86,6 @@ updateGravityFunc() {
   exit 0
 }
 
-# Scan an array of files for matching strings
-scanList(){
-  # Escape full stops
-  local domain="${1//./\\.}" lists="${2}" type="${3:-}"
-
-  # Prevent grep from printing file path
-  cd "/etc/pihole" || exit 1
-
-  # Prevent grep -i matching slowly: http://bit.ly/2xFXtUX
-  export LC_CTYPE=C
-
-  # /dev/null forces filename to be printed when only one list has been generated
-  # shellcheck disable=SC2086
-  case "${type}" in
-    "exact" ) grep -i -E -l "(^|\\s)${domain}($|\\s|#)" ${lists} /dev/null;;
-    "wc"    ) grep -i -o -m 1 "/${domain}/" ${lists};;
-    *       ) grep -i "${domain}" ${lists} /dev/null;;
-  esac
-}
-
 # Print each subdomain
 # e.g: foo.bar.baz.com = "foo.bar.baz.com bar.baz.com baz.com com"
 processWildcards() {
