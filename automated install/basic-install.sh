@@ -201,11 +201,6 @@ if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
       # (after packages and dependencies are installed).
       # dnsmasq will be disabled at end of install, prior to FTLDNS start.
       dnsmasq_flag=true
-#    elif [ "$silentwho53" = "systemd-resolve" ]; then
-      # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
-      # (after packages and dependencies are installed).
-      # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
-#      systemd_resolved_flag=true
     else
     # port 53 is used by something else, stop install
     echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$silentwho53${COL_NC}.
