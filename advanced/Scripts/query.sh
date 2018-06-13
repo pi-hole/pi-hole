@@ -20,7 +20,7 @@ blockpage=""
 matchType="match"
 
 colfile="/opt/pihole/COL_TABLE"
-source "$colfile"
+source "${colfile}"
 
 # Scan an array of files for matching strings
 scanList(){
