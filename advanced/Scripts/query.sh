@@ -57,7 +57,7 @@ Options:
 fi
 
 if [[ ! -e "$adListsList" ]]; then
-  echo -e "${COL_LIGHT_RED}The file "$adListsList" was not found${COL_NC}"
+  echo -e "${COL_LIGHT_RED}The file $adListsList was not found${COL_NC}"
   exit 1
 fi
 
