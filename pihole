@@ -312,6 +312,13 @@ statusFunc() {
 }
 
 tailFunc() {
+  # Warn user if Pi-hole's logging is disabled
+  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
+  if [[ "${logging_enabled}" == "0" ]]; then
+    # No "log-queries" lines are found.
+    # Commented out lines (such as "#log-queries") are ignored
+    echo "  ${CROSS} Warning: Query logging is disabled"
+  fi
   echo -e "  ${INFO} Press Ctrl-C to exit"
 
   # Retrieve IPv4/6 addresses
