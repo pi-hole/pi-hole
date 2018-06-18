@@ -146,70 +146,62 @@ show_ascii_berry() {
 
 # Compatibility
 
-53check(){
-# Print info regarding probing for open port 53
-echo -e "${OVER}  ${INFO} Testing for port 53 availability...${COL_NC}"
-# Probe localhost via 127.0.0.1 for open port 53 and if true, display warning and exit installer.
+53probe (){
+# Probe localhost via 127.0.0.1 for open port 53 and store process name if port 53 is occupied
 if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
   # what process is using 53?
   who53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
-  # check running process and see if it's pihole-FTL
-    if [ "$who53" = "pihole-FTL" ]; then
-    # proceed with install
-      echo -e "${OVER}  ${EXCL} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
-    elif [ "$who53" = "dnsmasq" ]; then
-      # If dnsmasq is present, set the dnsmas-flag to true for future reference
-      # (after packages and dependencies are installed).
-      # dnsmasq will be disabled at end of install, prior to FTLDNS start.
-      echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
-      The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
-      have been downloaded, and replace the system DNS resolver with FTLDNS."
-      dnsmasq_flag=true
-    elif [ "$who53" = "systemd-resolve" ]; then
-      # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
-      # (after packages and dependencies are installed).
-      # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
-      echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+fi
+}
+
+53check(){
+# Print info regarding probing for open port 53
+echo -e "${OVER}  ${INFO} Testing for port 53 availability...${COL_NC}"
+53probe
+# check running process and see if it's blank
+if [ -z "$who53" ]; then
+  echo -e "  ${TICK} ${COL_LIGHT_GREEN}Port 53 is available.${COL_NC}"
+# check running process and see if it's pihole-FTL
+elif [ "$who53" = "pihole-FTL" ]; then
+# proceed with install
+  echo -e "${OVER}  ${EXCL} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
+elif [ "$who53" = "dnsmasq" ]; then
+  # If dnsmasq is present, set the dnsmas-flag to true for future reference
+  # (after packages and dependencies are installed).
+  # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+  echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
+    The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
+    have been downloaded, and replace the system DNS resolver with FTLDNS."
+    dnsmasq_flag=true
+elif [ "$who53" = "systemd-resolve" ]; then
+  # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
+  # (after packages and dependencies are installed).
+  # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
+  echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
       The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       systemd_resolved_flag=true
-    else
-    # port 53 is used by something else, stop install
-    echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+else
+# port 53 is used by something else, stop install
+  echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
       Since this will interfere with the functionality of FTLDNS, the installer cannot continue.
       Please visit ${COL_LIGHT_CYAN}https://discourse.pi-hole.net/t/ftldns-pi-holes-own-dns-dhcp-server/${COL_NC}
       in order to get help related to this issue.
       ${COL_LIGHT_RED}Installer will now exit.${COL_NC}"
-    exit 0
-    fi
- # If port 53 is available, proceed with install.
-  else
-    echo -e "${OVER}  ${TICK} ${COL_LIGHT_GREEN}Port 53 is not in use, proceeding with install${COL_NC}"
-  fi
+exit 0
+fi
 }
 
 #creating silent port 53 check
 silent53check(){
-# Print info regarding probing for open port 53
-# Probe localhost via 127.0.0.1 for open port 53 and sent flags
-if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
-  # what process is using 53?
-  silentwho53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
+# Probe localhost via 127.0.0.1 for open port 53 availability
+53probe
   # check running process and see if it's pihole-FTL
-    if [ "$silentwho53" = "dnsmasq" ]; then
-      # If dnsmasq is present, set the dnsmas-flag to true for future reference
-      # (after packages and dependencies are installed).
-      # dnsmasq will be disabled at end of install, prior to FTLDNS start.
-      dnsmasq_flag=true
-    else
-    # port 53 is used by something else, stop install
-    echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$silentwho53${COL_NC}.
-      Since this will interfere with the functionality of FTLDNS, the installer cannot continue.
-      Please visit ${COL_LIGHT_CYAN}https://discourse.pi-hole.net/t/ftldns-pi-holes-own-dns-dhcp-server/${COL_NC}
-      in order to get help related to this issue.
-      ${COL_LIGHT_RED}Installer will now exit.${COL_NC}"
-    exit 0
-    fi
+if [ "$who53" = "dnsmasq" ]; then
+  # If dnsmasq is present, set the dnsmas-flag to true for future reference
+  # (after packages and dependencies are installed).
+  # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+  dnsmasq_flag=true
 fi
 }
 
