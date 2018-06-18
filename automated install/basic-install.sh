@@ -196,7 +196,7 @@ fi
 silent53check(){
 # Probe localhost via 127.0.0.1 for open port 53 availability
 53probe
-  # check running process and see if it's pihole-FTL
+  # check running process and see if it's dnsmasq
 if [ "$who53" = "dnsmasq" ]; then
   # If dnsmasq is present, set the dnsmas-flag to true for future reference
   # (after packages and dependencies are installed).
@@ -1435,18 +1435,18 @@ disable_resolved_stublistener() {
       if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
         # Disable the DNSStubListener to unbind it from port 53
         # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
-        echo -e "${OVER}  ${TICK} Disabling systemd-resolved DNSStubListener"
+        echo -e "  ${TICK} Disabling systemd-resolved DNSStubListener"
         # Make a backup of the original /etc/systemd/resolved.conf
         # (This will need to be restored on uninstallation)
         ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-        echo -e "${TICK} Restarting systemd-resolved DNSStubListener"
+        echo -e "${TICK}  Restarting systemd-resolved DNSStubListener"
         ${SUDO} systemctl reload-or-restart systemd-resolved
       else
-        echo -e "${OVER}  ${INFO} Systemd-resolved does not need to be restarted"
+        echo -e "  ${INFO} Systemd-resolved does not need to be restarted"
       fi
     fi
   else
-    echo -e "${OVER}  ${INFO} Systemd-resolved is not enabled"
+    echo -e "  ${INFO} Systemd-resolved is not enabled"
   fi
 }
 
@@ -1467,10 +1467,7 @@ disable_dnsmasq () {
       echo -e "${OVER}  ${INFO} Checking if dnsmasq is still running"
       silent53check
         if [[ $dnsmasq_flag = "true" ]]; then
-          echo -e "${OVER}  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq
-      was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
-          ${SUDO} pkill dnsmasq
-          echo -e "${OVER}  ${TICK} dnsmasq process killed"
+          kill_dnsmasq
         fi
     else
       # Disabling dnsmasq via systemctl
@@ -1482,10 +1479,7 @@ disable_dnsmasq () {
       echo -e "${OVER}  ${INFO} Checking if dnsmasq is still running"
       silent53check
         if [[ $dnsmasq_flag = "true" ]]; then
-          echo -e "${OVER}  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq
-      was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
-          ${SUDO} pkill dnsmasq
-          echo -e "${OVER}  ${TICK} dnsmasq process killed"
+          kill_dnsmasq
         fi
       fi
   else
@@ -1493,6 +1487,13 @@ disable_dnsmasq () {
   fi
 }
 
+kill_dnsmasq(){
+echo -e "${OVER}  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq
+      was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
+${SUDO} pkill dnsmasq
+echo -e "${OVER}  ${TICK} dnsmasq process killed"
+
+}
 update_package_cache() {
   # Running apt-get update/upgrade with minimal output can cause some issues with
   # requiring user input (e.g password for phpmyadmin see #218)
