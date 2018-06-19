@@ -148,65 +148,65 @@ show_ascii_berry() {
 
 53probe (){
 # Probe localhost via 127.0.0.1 for open port 53 and store process name if port 53 is occupied
-if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
-  # what process is using 53?
-  who53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
-fi
+  if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
+    # what process is using 53?
+    who53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
+  fi
 }
 
 53check(){
-# Print info regarding probing for open port 53
-echo -e "${OVER}  ${INFO} Testing for port 53 availability...${COL_NC}"
-53probe
-# check running process and see if it's blank
-if [ -z "$who53" ]; then
-  echo -e "  ${TICK} ${COL_LIGHT_GREEN}Port 53 is available.${COL_NC}"
-# check running process and see if it's pihole-FTL
-elif [ "$who53" = "pihole-FTL" ]; then
-# proceed with install
-  echo -e "${OVER}  ${EXCL} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
-elif [ "$who53" = "dnsmasq" ]; then
-  # If dnsmasq is present, set the dnsmas-flag to true for future reference
-  # (after packages and dependencies are installed).
-  # dnsmasq will be disabled at end of install, prior to FTLDNS start.
-  echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
+  # Print info regarding probing for open port 53
+  echo -e "${OVER}  ${INFO} Testing for port 53 availability...${COL_NC}"
+  53probe
+  # check running process and see if it's blank
+  if [ -z "$who53" ]; then
+    echo -e "  ${TICK} ${COL_LIGHT_GREEN}Port 53 is available.${COL_NC}"
+    # check running process and see if it's pihole-FTL
+  elif [ "$who53" = "pihole-FTL" ]; then
+    # proceed with install
+    echo -e "${OVER}  ${TICK} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
+  elif [ "$who53" = "dnsmasq" ]; then
+    # If dnsmasq is present, set the dnsmasq-flag to true for future reference
+    # (after packages and dependencies are installed).
+    # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+    echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
     The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
     have been downloaded, and replace the system DNS resolver with FTLDNS."
     dnsmasq_flag=true
-elif [ "$who53" = "systemd-resolve" ]; then
-  # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
-  # (after packages and dependencies are installed).
-  # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
-  echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+  elif [ "$who53" = "systemd-resolve" ]; then
+    # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
+    # (after packages and dependencies are installed).
+    # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
+    echo -e "${OVER}  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
       The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       systemd_resolved_flag=true
-else
-# port 53 is used by something else, stop install
-  echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+  else
+    # port 53 is used by something else, stop install
+    echo -e "${OVER}  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
       Since this will interfere with the functionality of FTLDNS, the installer cannot continue.
       Please visit ${COL_LIGHT_CYAN}https://discourse.pi-hole.net/t/ftldns-pi-holes-own-dns-dhcp-server/${COL_NC}
       in order to get help related to this issue.
       ${COL_LIGHT_RED}Installer will now exit.${COL_NC}"
-exit 0
-fi
+  exit 0
+  fi
 }
 
-#creating silent port 53 check
+  #creating silent port 53 check
 silent53check(){
 # Probe localhost via 127.0.0.1 for open port 53 availability
-53probe
-  # check running process and see if it's dnsmasq
-if [ "$who53" = "dnsmasq" ]; then
-  # If dnsmasq is present, set the dnsmas-flag to true for future reference
-  # (after packages and dependencies are installed).
-  # dnsmasq will be disabled at end of install, prior to FTLDNS start.
-  dnsmasq_flag=true
-fi
+  53probe
+    # check running process and see if it's dnsmasq
+  if [ "$who53" = "dnsmasq" ]; then
+    # If dnsmasq is present, set the dnsmasq-flag to true for future reference
+    # (after packages and dependencies are installed).
+    # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+    dnsmasq_flag=true
+  fi
 }
 
 distro_check() {
-# If apt-get is installed, then we know it's part of the Debian family
+  # If apt-get is installed, then we know it's part of the Debian family
 if command -v apt-get &> /dev/null; then
   # Set some global variables here
   # We don't set them earlier since the family might be Red Hat, so these values would be different
@@ -1462,38 +1462,26 @@ disable_dnsmasq () {
       ${SUDO} sed -r -i.orig '/#?dns=dnsmasq/d' /etc/NetworkManager/NetworkManager.conf
       echo -e "  ${TICK} Restarting Network manager"
       ${SUDO} systemctl reload-or-restart NetworkManager
-      #setting dnsmasq_flag to false in oorder for the next check to vaidate or not
-      dnsmasq_flag=false
-      echo -e "${OVER}  ${INFO} Checking if dnsmasq is still running"
-      silent53check
-        if [[ $dnsmasq_flag = "true" ]]; then
-          kill_dnsmasq
-        fi
     else
       # Disabling dnsmasq via systemctl
       echo -e "  ${INFO} Disabling dnsmasq via systemctl"
       ${SUDO} systemctl disable dnsmasq &> /dev/null
-      #setting dnsmasq_flag to false in oorder for the next check to vaidate or not
-      dnsmasq_flag=false
-      # Running an aditional check (if dnsmasq was loaded via non convetional method)
-      echo -e "${OVER}  ${INFO} Checking if dnsmasq is still running"
-      silent53check
-        if [[ $dnsmasq_flag = "true" ]]; then
-          kill_dnsmasq
-        fi
-      fi
+    fi
+    #setting dnsmasq_flag to false in order for the next check to validate or not
+    dnsmasq_flag=false
+    echo -e "${OVER}  ${INFO} Checking if dnsmasq is still running"
+    silent53check
+    if [[ $dnsmasq_flag = "true" ]]; then
+      echo -e "${OVER}  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq
+      was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
+      ${SUDO} pkill dnsmasq
+      echo -e "${OVER}  ${TICK} dnsmasq process killed"
+    fi
   else
     echo -e "${INFO} dnsmasq is not enabled"
   fi
 }
 
-kill_dnsmasq(){
-echo -e "${OVER}  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq
-      was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
-${SUDO} pkill dnsmasq
-echo -e "${OVER}  ${TICK} dnsmasq process killed"
-
-}
 update_package_cache() {
   # Running apt-get update/upgrade with minimal output can cause some issues with
   # requiring user input (e.g password for phpmyadmin see #218)
