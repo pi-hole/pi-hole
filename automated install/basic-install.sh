@@ -1441,7 +1441,7 @@ disable_resolved_stublistener() {
       echo -e "  ${TICK} Restarting systemd-resolved DNSStubListener"
       ${SUDO} systemctl reload-or-restart systemd-resolved
     else
-      echo -e "  ${INFO} Systemd-resolved is not enabled"
+      echo -e "  ${INFO} Systemd-resolved does not need to be restarted"
       echo -e "  ${INFO} DNSStubListener is not enabled"
     fi
   else
