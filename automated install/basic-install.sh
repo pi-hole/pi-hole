@@ -1429,22 +1429,20 @@ disable_resolved_stublistener() {
   echo -e "  ${INFO} Testing if systemd-resolved is enabled"
   # Check if Systemd-resolved's DNSStubListener flag is present
   if [[ $systemd_resolved_flag = "true" ]]; then
-    if check_service_active "systemd-resolved"; then
-      # Check if DNSStubListener is enabled
-      echo -e "  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
-      if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
-        # Disable the DNSStubListener to unbind it from port 53
-        # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
-        echo -e "  ${TICK} Disabling systemd-resolved DNSStubListener"
-        # Make a backup of the original /etc/systemd/resolved.conf
-        # (This will need to be restored on uninstallation)
-        ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-        echo -e "  ${TICK} Restarting systemd-resolved DNSStubListener"
-        ${SUDO} systemctl reload-or-restart systemd-resolved
-      else
-        echo -e "  ${INFO} Systemd-resolved does not need to be restarted"
-        echo -e "  ${INFO} Systemd-resolved is not enabled"
-      fi
+    # Check if DNSStubListener is enabled
+    echo -e "  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
+    if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
+      # Disable the DNSStubListener to unbind it from port 53
+      # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
+      echo -e "  ${TICK} Disabling systemd-resolved DNSStubListener"
+      # Make a backup of the original /etc/systemd/resolved.conf
+      # (This will need to be restored on uninstallation)
+      ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+      echo -e "  ${TICK} Restarting systemd-resolved DNSStubListener"
+      ${SUDO} systemctl reload-or-restart systemd-resolved
+    else
+      echo -e "  ${INFO} Systemd-resolved is not enabled"
+      echo -e "  ${INFO} DNSStubListener is not enabled"
     fi
   else
     echo -e "  ${INFO} Systemd-resolved is not enabled"
