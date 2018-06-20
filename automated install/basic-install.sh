@@ -1452,6 +1452,7 @@ disable_resolved_stublistener() {
 
 disable_dnsmasq () {
   # Check if dnsmasq flag is present.
+  echo -e "  ${INFO} Checking if dnsmasq is enabled"
   if [[ $dnsmasq_flag = "true" ]]; then
     if ( grep -E '#?dns=dnsmasq' /etc/NetworkManager/NetworkManager.conf &> /dev/null ); then
       # Disable dnsmasq from restarting when Network Manager restarts
