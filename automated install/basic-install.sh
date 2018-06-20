@@ -1426,7 +1426,7 @@ check_service_active() {
 
 # Systemd-resolved's DNSStubListener and dnsmasq can't share port 53.
 disable_resolved_stublistener() {
-  echo -en "  ${INFO} Testing if systemd-resolved is enabled"
+  echo -e "  ${INFO} Testing if systemd-resolved is enabled"
   # Check if Systemd-resolved's DNSStubListener flag is present
   if [[ $systemd_resolved_flag = "true" ]]; then
     if check_service_active "systemd-resolved"; then
@@ -1439,7 +1439,7 @@ disable_resolved_stublistener() {
         # Make a backup of the original /etc/systemd/resolved.conf
         # (This will need to be restored on uninstallation)
         ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-        echo -e "${TICK}  Restarting systemd-resolved DNSStubListener"
+        echo -e "$  {TICK} Restarting systemd-resolved DNSStubListener"
         ${SUDO} systemctl reload-or-restart systemd-resolved
       else
         echo -e "  ${INFO} Systemd-resolved does not need to be restarted"
@@ -1478,7 +1478,7 @@ disable_dnsmasq () {
       echo -e "${OVER}  ${TICK} dnsmasq process killed"
     fi
   else
-    echo -e "${INFO} dnsmasq is not enabled"
+    echo -e "$  {INFO} dnsmasq is not enabled"
   fi
 }
 
@@ -2513,14 +2513,14 @@ main() {
   # Check for systemd-resolved flag and disable systemd-resolved-DNSStubListener before reloading resolved
   # DNSStubListener needs to remain in place for installer to download needed files,
   # so this change needs to be made after installation is complete,
-  # but before starting or resarting the FTLDNS service
+  # but before starting or restarting the FTLDNS service
   if [[ $systemd_resolved_flag = "true" ]]; then 
     disable_resolved_stublistener
   fi
   # Check for dnsmasq flag and disable dnsmasq before starting FTLDNS
   # dnsmasq needs to remain in place for installer to download needed files,
   # so this change needs to be made after installation is complete,
-  # but before starting or resarting the FTLDNS service
+  # but before starting or restarting the FTLDNS service
   if [[ $dnsmasq_flag = "true" ]]; then
     disable_dnsmasq
   fi
