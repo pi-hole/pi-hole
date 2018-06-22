@@ -142,13 +142,11 @@ show_ascii_berry() {
 setcap_check(){
   # print info regarding probing file capabilities
   echo -e "  ${INFO} Testing for setting file capability in /usr/bin/"
-  # check for setcap error
   # create test file
   ${SUDO} touch /usr/bin/pihole.setcap.test
   # set the file with the correct capabilities and awk possible failure
   setcap_status="$(${SUDO} setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip /usr/bin/pihole.setcap.test 2>&1 | awk 'FNR == 1 {print $1}')"
-  # check status of test file
-  # if returned response is empty, the command succeded.
+  # check status of test file if returned response is empty, the command succeded.
   if [ -z "$setcap_status" ]; then
     echo -e "  ${TICK} Setting capabilities in /usr/bin/ is supported by your system."
     # removing test file
