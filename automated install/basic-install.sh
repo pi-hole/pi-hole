@@ -155,9 +155,10 @@ setcap_check(){
     ${SUDO} rm -rf /usr/bin/pihole.setcap.test
   # if command has returned Failed, display error message and exit
   elif [ "$setcap_status" = "Failed" ]; then
-    echo -e "  ${CROSS} ${COL_LIGHT_RED}Your system doesn't support setting capabilities in /usr/bin/${COL_NC}
+    echo -e "  ${CROSS} ${COL_LIGHT_RED}Your system does not support setting capabilities in /usr/bin/${COL_NC}
       Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
       in order to get help related to this issue."
+    echo -e "  ${INFO} Installation aborted."
     # removing test file
     ${SUDO} rm -rf /usr/bin/pihole.setcap.test
   # exit the installer
