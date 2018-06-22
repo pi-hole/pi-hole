@@ -144,7 +144,7 @@ setcap_check(){
   echo -e "  ${INFO} Testing for setting file capability in /usr/bin/"
   # check for setcap error
   # create test file
-  ${SUDO} touch /usr/bin/pihole.setcap.tes
+  ${SUDO} touch /usr/bin/pihole.setcap.test
   # set the file with the correct capabilities and awk possible failure
   setcap_status="$(${SUDO} setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip /usr/bin/pihole.setcap.test 2>&1 | awk 'FNR == 1 {print $1}')"
   # check status of test file
