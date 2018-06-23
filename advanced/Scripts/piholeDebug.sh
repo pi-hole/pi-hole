@@ -780,7 +780,8 @@ dig_at() {
   # Find a random blocked url that has not been whitelisted.
   # This helps emulate queries to different domains that a user might query
   # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
-  local random_url=$(shuf -n 1 "${PIHOLE_BLOCKLIST_FILE}" | awk -F ' ' '{ print $2 }')
+  local random_url
+  random_url=$(shuf -n 1 "${PIHOLE_BLOCKLIST_FILE}")
 
   # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
   if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
