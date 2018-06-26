@@ -138,30 +138,29 @@ show_ascii_berry() {
 }
 
 # Compatibility
-
 setcap_check(){
-# print info regarding probing file capabilities
-echo -e "  ${INFO} Testing for setting file capability in /usr/bin/"
-# create test file
-${SUDO} touch /usr/bin/pihole.setcap.test
-# set the file with the correct capabilities and awk possible failure
-setcap_status="$(${SUDO} setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip /usr/bin/pihole.setcap.test 2>&1 | awk 'FNR == 1 {print $1}')"
-# check status of test file if returned response is empty, the command succeded.
-if [ -z "$setcap_status" ]; then
-  echo -e "  ${TICK} Setting capabilities in /usr/bin/ is supported by your system."
-  # removing test file
-  ${SUDO} rm -rf /usr/bin/pihole.setcap.test
-# if command has returned Failed, display error message and exit
-elif [ "$setcap_status" = "Failed" ]; then
-  echo -e "  ${CROSS} ${COL_LIGHT_RED}Your system does not support setting capabilities in /usr/bin/${COL_NC}
+  # print info regarding probing file capabilities
+  echo -e "  ${INFO} Testing for setting file capability in /usr/bin/"
+  # create test file
+  ${SUDO} touch /usr/bin/pihole.setcap.test
+  # set the file with the correct capabilities and awk possible failure
+  setcap_status="$(${SUDO} setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip /usr/bin/pihole.setcap.test 2>&1 | awk 'FNR == 1 {print $1}')"
+  # check status of test file if returned response is empty, the command succeded.
+  if [ -z "$setcap_status" ]; then
+    echo -e "  ${TICK} Setting capabilities in /usr/bin/ is supported by your system."
+    # removing test file
+    ${SUDO} rm -rf /usr/bin/pihole.setcap.test
+  # if command has returned Failed, display error message and exit
+  elif [ "$setcap_status" = "Failed" ]; then
+    echo -e "  ${CROSS} ${COL_LIGHT_RED}Your system does not support setting capabilities in /usr/bin/${COL_NC}
       Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
       in order to get help related to this issue."
-  echo -e "  ${INFO} Installation aborted."
-  # removing test file
-  ${SUDO} rm -rf /usr/bin/pihole.setcap.test
-  # exit the installer
-  exit 0
-fi
+    echo -e "  ${INFO} Installation aborted."
+    # removing test file
+    ${SUDO} rm -rf /usr/bin/pihole.setcap.test
+    # exit the installer
+    exit 0
+  fi
 }
 
 distro_check() {
