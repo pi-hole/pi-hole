@@ -3,6 +3,7 @@
 *.swp
 __pycache__
 .cache
+.pytest_cache
 
 # Created by https://www.gitignore.io/api/jetbrains+iml
 

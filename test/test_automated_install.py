@@ -173,6 +173,56 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' in firewall_calls
     assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' in firewall_calls
 
+def test_selinux_enforcing_default_exit(Pihole):
+    ''' confirms installer prompts to exit when SELinux is Enforcing by default '''
+    # getenforce returns the running state of SELinux
+    mock_command('getenforce', {'*':('Enforcing', '0')}, Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*':('', '1')}, Pihole)
+    check_selinux = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    checkSelinux
+    ''')
+    assert info_box + ' SELinux mode detected: Enforcing' in check_selinux.stdout
+    assert 'SELinux Enforcing detected, exiting installer' in check_selinux.stdout
+    assert check_selinux.rc == 1
+
+def test_selinux_enforcing_continue(Pihole):
+    ''' confirms installer prompts to continue with custom policy warning '''
+    # getenforce returns the running state of SELinux
+    mock_command('getenforce', {'*':('Enforcing', '0')}, Pihole)
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*':('', '0')}, Pihole)
+    check_selinux = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    checkSelinux
+    ''')
+    assert info_box + ' SELinux mode detected: Enforcing' in check_selinux.stdout
+    assert info_box + ' Continuing installation with SELinux Enforcing' in check_selinux.stdout
+    assert info_box + ' Please refer to official SELinux documentation to create a custom policy' in check_selinux.stdout
+    assert check_selinux.rc == 0
+
+def test_selinux_permissive(Pihole):
+    ''' confirms installer continues when SELinux is Permissive '''
+    # getenforce returns the running state of SELinux
+    mock_command('getenforce', {'*':('Permissive', '0')}, Pihole)
+    check_selinux = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    checkSelinux
+    ''')
+    assert info_box + ' SELinux mode detected: Permissive' in check_selinux.stdout
+    assert check_selinux.rc == 0
+
+def test_selinux_disabled(Pihole):
+    ''' confirms installer continues when SELinux is Disabled '''
+    mock_command('getenforce', {'*':('Disabled', '0')}, Pihole)
+    check_selinux = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    checkSelinux
+    ''')
+    assert info_box + ' SELinux mode detected: Disabled' in check_selinux.stdout
+    assert check_selinux.rc == 0
+
 def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     ''' confirms all web page assets from Core repo are installed on a fresh build '''
     installWeb = Pihole.run('''
