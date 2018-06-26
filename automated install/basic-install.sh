@@ -147,9 +147,9 @@ show_ascii_berry() {
 # Compatibility
 
 53probe (){
-# Probe localhost via 127.0.0.1 for open port 53 and store process name if port 53 is occupied
+  # Probe localhost via 127.0.0.1 for open port 53 and store process name if port 53 is occupied
   if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
-    # what process is using 53?
+    # What process is using 53?
     who53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
   fi
 }
@@ -158,12 +158,12 @@ show_ascii_berry() {
   # Print info regarding probing for open port 53
   echo -e "  ${INFO} Testing for port 53 availability...${COL_NC}"
   53probe
-  # check running process and see if it's blank
+  # Check running process and see if it's blank
   if [ -z "$who53" ]; then
     echo -e "  ${TICK} ${COL_LIGHT_GREEN}Port 53 is available.${COL_NC}"
-    # check running process and see if it's pihole-FTL
+    # Check running process and see if it's pihole-FTL
   elif [ "$who53" = "pihole-FTL" ]; then
-    # proceed with install
+    # Proceed with install
     echo -e "  ${TICK} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
   elif [ "$who53" = "dnsmasq" ]; then
     # If dnsmasq is present, set the dnsmasq-flag to true for future reference
@@ -182,7 +182,7 @@ show_ascii_berry() {
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       systemd_resolved_flag=true
   else
-    # port 53 is used by something else, stop install
+    # Port 53 is used by something else, stop install
     echo -e "  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
       Since this will interfere with the functionality of FTLDNS, the installer cannot continue.
       Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
@@ -192,11 +192,11 @@ show_ascii_berry() {
   fi
 }
 
-# creating silent port 53 check
+# Creating silent port 53 check
 silent53check(){
   # Probe localhost via 127.0.0.1 for open port 53 availability
   53probe
-  # check running process and see if it's dnsmasq
+  # Check running process and see if it's dnsmasq
   if [ "$who53" = "dnsmasq" ]; then
     # If dnsmasq is present, set the dnsmasq-flag to true for future reference
     # (after packages and dependencies are installed).
