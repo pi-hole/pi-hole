@@ -188,15 +188,15 @@ show_ascii_berry() {
       Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
       in order to get help related to this issue.
       ${COL_LIGHT_RED}Installer will now exit.${COL_NC}"
-  exit 0
+    exit 0
   fi
 }
 
-  #creating silent port 53 check
+# creating silent port 53 check
 silent53check(){
-# Probe localhost via 127.0.0.1 for open port 53 availability
+  # Probe localhost via 127.0.0.1 for open port 53 availability
   53probe
-    # check running process and see if it's dnsmasq
+  # check running process and see if it's dnsmasq
   if [ "$who53" = "dnsmasq" ]; then
     # If dnsmasq is present, set the dnsmasq-flag to true for future reference
     # (after packages and dependencies are installed).
