@@ -160,6 +160,13 @@ setcap_check(){
     ${SUDO} rm -f /usr/bin/pihole.setcap.test
     # exit the installer
     exit 0
+  else
+    echo -e "  ${CROSS} ${COL_LIGHT_RED}An error occured while trying to set capabilities in /usr/bin/${COL_NC}
+      Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
+      in order to get help related to this issue."
+    echo -e "  ${INFO} Installation aborted."
+    # exit the installer
+    exit 0
   fi
 }
 
