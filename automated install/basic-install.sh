@@ -154,7 +154,7 @@ setcap_check(){
   elif [[ $setcap_status = *"Failed"* ]]; then
     echo -e "  ${CROSS} ${COL_LIGHT_RED}Your system does not support setting capabilities in /usr/bin/${COL_NC}
       Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
-      in order to get help related to this issue and reference the following message:
+      in order to get help related to this issue, and reference the following message:
       ${COL_LIGHT_RED}
       $setcap_status
       ${COL_NC} failed"
@@ -166,7 +166,7 @@ setcap_check(){
   else
     echo -e "  ${CROSS} ${COL_LIGHT_RED}An error occured while trying to set capabilities in /usr/bin/${COL_NC}
       Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
-      in order to get help related to this issue and reference the following message:
+      in order to get help related to this issue, and reference the following message:
       ${COL_LIGHT_RED}
       $setcap_status
       ${COL_NC} error"
