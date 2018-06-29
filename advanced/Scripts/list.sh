@@ -66,10 +66,14 @@ HandleOther() {
   # Convert to lowercase
   domain="${1,,}"
 
-  # Check validity of domain
+  # Check validity of domain (don't check for regex entries)
   if [[ "${#domain}" -le 253 ]]; then
-    validDomain=$(grep -P "^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$" <<< "${domain}") # Valid chars check
-    validDomain=$(grep -P "^[^\.]{1,63}(\.[^\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+    if [[ "${listMain}" == "${regexlist}" ]]; then
+      validDomain=""
+    else
+      validDomain=$(grep -P "^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$" <<< "${domain}") # Valid chars check
+      validDomain=$(grep -P "^[^\.]{1,63}(\.[^\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+    fi
   fi
 
   if [[ -n "${validDomain}" ]]; then
