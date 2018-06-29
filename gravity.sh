@@ -644,6 +644,11 @@ if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "whitelist" ]]; then
   gravity_Whitelist
 fi
 
+# Set proper permissions on the regex file
+touch "${regexFile}"
+chown pihole:www-data "${regexFile}"
+chmod 664 "${regexFile}"
+
 convert_wildcard_to_regex
 gravity_ShowBlockCount
 
