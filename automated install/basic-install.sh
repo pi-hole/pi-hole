@@ -214,9 +214,9 @@ if command -v apt-get &> /dev/null; then
   fi
   # Since our install script is so large, we need several other programs to successfully get a machine provisioned
   # These programs are stored in an array so they can be looped through later
-  INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 libcap2-bin git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
+  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 dns-root-data resolvconf)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -2314,7 +2314,6 @@ main() {
     echo -e "  ${TICK} ${str}"
     # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
     show_ascii_berry
-    setcap_check
     make_temporary_log
   # Otherwise,
   else
@@ -2375,6 +2374,9 @@ main() {
 
   # Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
+
+  # Check for setcap ability
+  setcap_check
 
    # Check if SELinux is Enforcing
   checkSelinux
