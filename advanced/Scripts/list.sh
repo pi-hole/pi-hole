@@ -133,7 +133,7 @@ AddDomain() {
     bool=true
     # Is the domain in the list?
     # Search only for exactly matching lines
-    grep -E "^${domain}$" "${regexlist}" > /dev/null 2>&1 || bool=false
+    grep -Fx "${domain}" "${regexlist}" > /dev/null 2>&1 || bool=false
 
     if [[ "${bool}" == false ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -177,7 +177,7 @@ RemoveDomain() {
     [[ -z "${type}" ]] && type="--wildcard-only"
     bool=true
     # Is it in the list?
-    grep -E "^${domain}$" "${regexlist}" > /dev/null 2>&1 || bool=false
+    grep -Fx "${domain}" "${regexlist}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
       echo -e "  ${INFO} Removing $1 from regex list..."
