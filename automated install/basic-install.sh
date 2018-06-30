@@ -157,7 +157,7 @@ setcap_check(){
       in order to get help related to this issue, and reference the following message:
       ${COL_LIGHT_RED}
       $setcap_status
-      ${COL_NC} failed"
+      ${COL_NC}"
     echo -e "  ${INFO} Installation aborted."
     # Removing test file
     ${SUDO} rm -f /usr/bin/pihole.setcap.test
@@ -170,7 +170,7 @@ setcap_check(){
       in order to get help related to this issue, and reference the following message:
       ${COL_LIGHT_RED}
       $setcap_status
-      ${COL_NC} error"
+      ${COL_NC}"
     echo -e "  ${INFO} Installation aborted."
     # Exit the installer
     exit 0
