@@ -1,0 +1,102 @@
+.TH "pihole-FTL.conf" "5" "pihole-FTL.conf" "pihole-FTL.conf" "June 2018"
+.SH "NAME"
+
+pihole-FTL.conf - FTL's config file
+.br
+.SH "DESCRIPTION"
+
+/etc/pihole/pihole-FTL.conf will be read by \fBpihole-FTL(8)\fR on startup.
+.br
+
+\fBSOCKET_LISTENING=localonly|all\fR
+.br
+    Listen only for local socket connections or permit all connections
+.br
+
+\fBQUERY_DISPLAY=yes|no\fR
+.br
+    Display all queries? Set to no to hide query display
+.br
+
+\fBAAAA_QUERY_ANALYSIS=yes|no\fR
+.br
+    Allow FTL to analyze AAAA queries from pihole.log?
+.br
+
+\fBRESOLVE_IPV6=yes|no\fR
+.br
+    Should FTL try to resolve IPv6 addresses to host names?
+.br
+
+\fBRESOLVE_IPV4=yes|no\fR
+.br
+    Should FTL try to resolve IPv4 addresses to host names?
+.br
+
+\fBMAXDBDAYS=365\fR
+.br
+    How long should queries be stored in the database?
+.br
+    Setting this to 0 disables the database
+.br
+
+\fBDBINTERVAL=1.0\fR
+.br
+    How often do we store queries in FTL's database [minutes]?
+.br
+
+\fBDBFILE=/etc/pihole/pihole-FTL.db\fR
+.br
+    Specify path and filename of FTL's SQLite long-term database.
+.br
+    Setting this to DBFILE= disables the database altogether
+.br
+
+\fBMAXLOGAGE=24.0\fR
+.br
+    Up to how many hours of queries should be imported from the database and logs?
+.br
+    Maximum is 744 (31 days)
+.br
+
+\fBFTLPORT=4711\fR
+.br
+    On which port should FTL be listening?
+.br
+
+\fBPRIVACYLEVEL=0|1|2|3\fR
+.br
+    Which privacy level is used?
+.br
+    0 - show everything
+.br
+    1 - hide domains
+.br
+    2 - hide domains and clients
+.br
+    3 - paranoia mode (hide everything)
+.br
+
+\fBIGNORE_LOCALHOST=no|yes\fR
+.br
+    Should FTL ignore queries coming from the local machine?
+.br
+
+\fBBLOCKINGMODE=IP|IP-AAAA-NODATA|NXDOMAIN|NULL\fR
+.br
+    How should FTL reply to blocked queries?
+.br
+
+For each setting, the option shown first is the default.
+.br
+.SH "SEE ALSO"
+
+\fBpihole\fR(8), \fBpihole-FTL\fR(8)
+.br
+.SH "COLOPHON"
+
+Pi-hole : The Faster-Than-Light (FTL) Engine is a lightweight, purpose-built daemon used to provide statistics needed for the Pi-hole Web Interface, and its API can be easily integrated into your own projects. Although it is an optional component of the Pi-hole ecosystem, it will be installed by default to provide statistics. As the name implies, FTL does its work \fIvery quickly\fR!
+.br
+
+Get sucked into the latest news and community activity by entering Pi-hole's orbit. Information about Pi-hole, and the latest version of the software can be found at https://pi-hole.net
+.br

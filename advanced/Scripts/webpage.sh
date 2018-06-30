@@ -204,10 +204,6 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 
 		add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
 	fi
-	if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
-		add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
-		add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
-	fi
 
 }
 
@@ -236,17 +232,6 @@ SetDNSServers() {
 		change_setting "DNSSEC" "true"
 	else
 		change_setting "DNSSEC" "false"
-	fi
-	if [[ "${args[6]}" == "conditional_forwarding" ]]; then
-		change_setting "CONDITIONAL_FORWARDING" "true"
-		change_setting "CONDITIONAL_FORWARDING_IP" "${args[7]}"
-		change_setting "CONDITIONAL_FORWARDING_DOMAIN" "${args[8]}"
-		change_setting "CONDITIONAL_FORWARDING_REVERSE" "${args[9]}"
-	else
-		change_setting "CONDITIONAL_FORWARDING" "false"
-		delete_setting "CONDITIONAL_FORWARDING_IP"
-		delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
-		delete_setting "CONDITIONAL_FORWARDING_REVERSE"
 	fi
 
 	ProcessDNSSettings
@@ -383,7 +368,9 @@ CustomizeAdLists() {
 	elif [[ "${args[2]}" == "disable" ]]; then
 		sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
 	elif [[ "${args[2]}" == "add" ]]; then
-		echo "${args[3]}" >> ${list}
+		if [[ $(grep -c "^${args[3]}$" "${list}") -eq 0 ]] ; then
+			echo "${args[3]}" >> ${list}
+		fi
 	elif [[ "${args[2]}" == "del" ]]; then
 	  var=$(echo "${args[3]}" | sed 's/\//\\\//g')
 	  sed -i "/${var}/Id" "${list}"

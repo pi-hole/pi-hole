@@ -69,13 +69,25 @@ stop() {
   echo
 }
 
+# Indicate the service status
+status() {
+  if is_running; then
+    echo "[ ok ] pihole-FTL is running"
+    exit 0
+  else
+    echo "[    ] pihole-FTL is not running"
+    exit 1
+  fi
+}  
+
+
 ### main logic ###
 case "$1" in
   stop)
         stop
         ;;
   status)
-        status pihole-FTL
+        status
         ;;
   start|restart|reload|condrestart)
         stop
