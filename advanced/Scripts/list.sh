@@ -71,8 +71,8 @@ HandleOther() {
     if [[ "${listMain}" == "${regexlist}" ]]; then
       validDomain="${domain}"
     else
-      validDomain=$(grep -P "^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$" <<< "${domain}") # Valid chars check
-      validDomain=$(grep -P "^[^\.]{1,63}(\.[^\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+      validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
+      validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
     fi
   fi
 
