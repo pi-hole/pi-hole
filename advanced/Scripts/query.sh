@@ -169,7 +169,7 @@ fi
 
 # Get adlist file content as array
 if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-  for adlistUrl in $(< "adListsList"); do
+  for adlistUrl in $(< "${adListsList}"); do
     if [[ "${adlistUrl:0:4}" =~ (http|www.) ]]; then
       adlists+=("${adlistUrl}")
     fi
