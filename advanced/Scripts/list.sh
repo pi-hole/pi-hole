@@ -33,7 +33,7 @@ helpFunc() {
     type="white"
   elif [[ "${listMain}" == "${regexlist}" ]]; then
     param="wild"
-    type="wildcard black"
+    type="regex black"
   else
     param="b"
     type="black"

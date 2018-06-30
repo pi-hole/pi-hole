@@ -599,7 +599,7 @@ Add '-h' after specific commands for more information on usage
 Whitelist/Blacklist Options:
   -w, whitelist       Whitelist domain(s)
   -b, blacklist       Blacklist domain(s)
-  -wild, wildcard     Blacklist domain(s), and all its subdomains
+  -wild, wildcard     Regex blacklist domain(s)
                         Add '-h' for more info on whitelist/blacklist usage
 
 Debugging Options:
