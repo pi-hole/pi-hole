@@ -69,7 +69,7 @@ HandleOther() {
   # Check validity of domain (don't check for regex entries)
   if [[ "${#domain}" -le 253 ]]; then
     if [[ "${listMain}" == "${regexlist}" ]]; then
-      validDomain=""
+      validDomain="${domain}"
     else
       validDomain=$(grep -P "^((-|_)*[a-z\d]((-|_)*[a-z\d])*(-|_)*)(\.(-|_)*([a-z\d]((-|_)*[a-z\d])*))*$" <<< "${domain}") # Valid chars check
       validDomain=$(grep -P "^[^\.]{1,63}(\.[^\.]{1,63})*$" <<< "${validDomain}") # Length of each label
@@ -185,8 +185,9 @@ RemoveDomain() {
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
       echo -e "  ${INFO} Removing $1 from regex list..."
-      # /I flag: search case-insensitive
-      sed -i "/${domain}/Id" "${list}"
+      local lineNumber
+      lineNumber=$(grep -Fnx "$1" "${list}" | cut -f1 -d:)
+      sed -i "${lineNumber}d" "${list}"
       reload=true
     else
       if [[ "${verbose}" == true ]]; then
