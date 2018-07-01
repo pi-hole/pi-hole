@@ -86,23 +86,6 @@ updateGravityFunc() {
   exit 0
 }
 
-# Print each subdomain
-# e.g: foo.bar.baz.com = "foo.bar.baz.com bar.baz.com baz.com com"
-processWildcards() {
-  IFS="." read -r -a array <<< "${1}"
-  for (( i=${#array[@]}-1; i>=0; i-- )); do
-    ar=""
-    for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
-      if [[ $j == $((${#array[@]}-1)) ]]; then
-        ar="${array[$j]}"
-      else
-        ar="${array[$j]}.${ar}"
-      fi
-    done
-    echo "${ar}"
-  done
-}
-
 queryFunc() {
   shift
   "${PI_HOLE_SCRIPT_DIR}"/query.sh "$@"
