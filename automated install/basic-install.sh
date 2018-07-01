@@ -138,6 +138,45 @@ show_ascii_berry() {
 }
 
 # Compatibility
+setcap_check(){
+  # Print info regarding probing file capabilities
+  echo -e "  ${INFO} Testing for setting file capability in /usr/bin/"
+  # Create test file
+  ${SUDO} touch /usr/bin/pihole.setcap.test
+  # Set the file with the correct capabilities and awk possible failure
+  setcap_status="$(${SUDO} setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip /usr/bin/pihole.setcap.test 2>&1 | awk 'FNR == 1')"
+  # Check status of test file if returned response is empty, the command succeded.
+  if [ -z "$setcap_status" ]; then
+    echo -e "  ${TICK} Setting capabilities in /usr/bin/ is supported by your system."
+    # Removing test file
+    ${SUDO} rm -f /usr/bin/pihole.setcap.test
+  # If command has returned Failed, display error message and exit
+  elif [[ $setcap_status = *"Failed"* ]]; then
+    echo -e "  ${CROSS} ${COL_LIGHT_RED}Your system does not support setting capabilities in /usr/bin/${COL_NC}
+      Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
+      in order to get help related to this issue, and reference the following message:
+      ${COL_LIGHT_RED}
+      $setcap_status
+      ${COL_NC}"
+    echo -e "  ${INFO} Installation aborted."
+    # Removing test file
+    ${SUDO} rm -f /usr/bin/pihole.setcap.test
+    # Exit the installer
+    exit 0
+  else
+    # For any other setcap error, display info and error message, then exit.
+    echo -e "  ${CROSS} ${COL_LIGHT_RED}An error occured while trying to set capabilities in /usr/bin/${COL_NC}
+      Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}
+      in order to get help related to this issue, and reference the following message:
+      ${COL_LIGHT_RED}
+      $setcap_status
+      ${COL_NC}"
+    echo -e "  ${INFO} Installation aborted."
+    # Exit the installer
+    exit 0
+  fi
+}
+
 distro_check() {
 # If apt-get is installed, then we know it's part of the Debian family
 if command -v apt-get &> /dev/null; then
@@ -192,9 +231,9 @@ if command -v apt-get &> /dev/null; then
   fi
   # Since our install script is so large, we need several other programs to successfully get a machine provisioned
   # These programs are stored in an array so they can be looped through later
-  INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
+  INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 libcap2-bin git ${iproute_pkg} whiptail)
   # Pi-hole itself has several dependencies that also need to be installed
-  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
+  PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 dns-root-data resolvconf)
   # The Web dashboard has some that also need to be installed
   # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -235,7 +274,7 @@ elif command -v rpm &> /dev/null; then
   UPDATE_PKG_CACHE=":"
   PKG_INSTALL=(${PKG_MANAGER} install -y)
   PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng which)
+  INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng which libcap)
   PIHOLE_DEPS=(bc bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc)
   PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
   LIGHTTPD_USER="lighttpd"
@@ -2368,6 +2407,9 @@ main() {
 
   # Install packages used by this installation script
   install_dependent_packages INSTALLER_DEPS[@]
+
+  # Check for setcap ability
+  setcap_check
 
    # Check if SELinux is Enforcing
   checkSelinux
