@@ -76,9 +76,9 @@ def test_setupVars_saved_to_file(Pihole):
 def test_configureFirewall_firewalld_running_no_errors(Pihole):
     ''' confirms firewalld rules are applied when firewallD is running '''
     # firewallD returns 'running' as status
-    mock_command('firewall-cmd', {'*':('running', 0)}, Pihole)
+    mock_command('firewall-cmd', {'*': ('running', 0)}, Pihole)
     # Whiptail dialog returns Ok for user prompt
-    mock_command('whiptail', {'*':('', 0)}, Pihole)
+    mock_command('whiptail', {'*': ('', 0)}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
@@ -94,7 +94,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
 def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
     ''' confirms firewalld rules are not applied when firewallD is not running '''
     # firewallD returns non-running status
-    mock_command('firewall-cmd', {'*':('not running', '1')}, Pihole)
+    mock_command('firewall-cmd', {'*': ('not running', '1')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
@@ -106,9 +106,9 @@ def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
 def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
     ''' confirms firewalld rules are not applied when firewallD is running, user declines ruleset '''
     # firewallD returns running status
-    mock_command('firewall-cmd', {'*':('running', 0)}, Pihole)
+    mock_command('firewall-cmd', {'*': ('running', 0)}, Pihole)
     # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*':('', 1)}, Pihole)
+    mock_command('whiptail', {'*': ('', 1)}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
@@ -130,11 +130,11 @@ def test_configureFirewall_no_firewall(Pihole):
 def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
     ''' confirms IPTables rules are not applied when IPTables is running, user declines ruleset '''
     # iptables command exists
-    mock_command('iptables', {'*':('', '0')}, Pihole)
+    mock_command('iptables', {'*': ('', '0')}, Pihole)
     # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*':('', '0')}, Pihole)
+    mock_command('modinfo', {'*': ('', '0')}, Pihole)
     # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*':('', '1')}, Pihole)
+    mock_command('whiptail', {'*': ('', '1')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
@@ -146,11 +146,11 @@ def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
 def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     ''' confirms IPTables rules are not applied when IPTables is running and rules exist '''
     # iptables command exists and returns 0 on calls (should return 0 on iptables -C)
-    mock_command('iptables', {'-S':('-P INPUT DENY', '0')}, Pihole)
+    mock_command('iptables', {'-S': ('-P INPUT DENY', '0')}, Pihole)
     # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*':('', '0')}, Pihole)
+    mock_command('modinfo', {'*': ('', '0')}, Pihole)
     # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*':('', '0')}, Pihole)
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
@@ -166,11 +166,11 @@ def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
 def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     ''' confirms IPTables rules are applied when IPTables is running and rules do not exist '''
     # iptables command and returns 0 on calls (should return 1 on iptables -C)
-    mock_command('iptables', {'-S':('-P INPUT DENY', '0'), '-C':('', 1), '-I':('', 0)}, Pihole)
+    mock_command('iptables', {'-S': ('-P INPUT DENY', '0'), '-C': ('', 1), '-I': ('', 0)}, Pihole)
     # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*':('', '0')}, Pihole)
+    mock_command('modinfo', {'*': ('', '0')}, Pihole)
     # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*':('', '0')}, Pihole)
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
     configureFirewall = Pihole.run('''
     source /opt/pihole/basic-install.sh
     configureFirewall
@@ -186,9 +186,9 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
 def test_selinux_enforcing_default_exit(Pihole):
     ''' confirms installer prompts to exit when SELinux is Enforcing by default '''
     # getenforce returns the running state of SELinux
-    mock_command('getenforce', {'*':('Enforcing', '0')}, Pihole)
+    mock_command('getenforce', {'*': ('Enforcing', '0')}, Pihole)
     # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*':('', '1')}, Pihole)
+    mock_command('whiptail', {'*': ('', '1')}, Pihole)
     check_selinux = Pihole.run('''
     source /opt/pihole/basic-install.sh
     checkSelinux
@@ -201,9 +201,9 @@ def test_selinux_enforcing_default_exit(Pihole):
 def test_selinux_enforcing_continue(Pihole):
     ''' confirms installer prompts to continue with custom policy warning '''
     # getenforce returns the running state of SELinux
-    mock_command('getenforce', {'*':('Enforcing', '0')}, Pihole)
+    mock_command('getenforce', {'*': ('Enforcing', '0')}, Pihole)
     # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*':('', '0')}, Pihole)
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
     check_selinux = Pihole.run('''
     source /opt/pihole/basic-install.sh
     checkSelinux
@@ -217,7 +217,7 @@ def test_selinux_enforcing_continue(Pihole):
 def test_selinux_permissive(Pihole):
     ''' confirms installer continues when SELinux is Permissive '''
     # getenforce returns the running state of SELinux
-    mock_command('getenforce', {'*':('Permissive', '0')}, Pihole)
+    mock_command('getenforce', {'*': ('Permissive', '0')}, Pihole)
     check_selinux = Pihole.run('''
     source /opt/pihole/basic-install.sh
     checkSelinux
@@ -228,7 +228,7 @@ def test_selinux_permissive(Pihole):
 
 def test_selinux_disabled(Pihole):
     ''' confirms installer continues when SELinux is Disabled '''
-    mock_command('getenforce', {'*':('Disabled', '0')}, Pihole)
+    mock_command('getenforce', {'*': ('Disabled', '0')}, Pihole)
     check_selinux = Pihole.run('''
     source /opt/pihole/basic-install.sh
     checkSelinux
@@ -266,7 +266,7 @@ def test_update_package_cache_success_no_errors(Pihole):
 
 def test_update_package_cache_failure_no_errors(Pihole):
     ''' confirms package cache was not updated'''
-    mock_command('apt-get', {'update':('', '1')}, Pihole)
+    mock_command('apt-get', {'update': ('', '1')}, Pihole)
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
     distro_check
@@ -279,9 +279,9 @@ def test_update_package_cache_failure_no_errors(Pihole):
 def test_FTL_detect_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
     # mock uname to return aarch64 platform
-    mock_command('uname', {'-m':('aarch64', '0')}, Pihole)
+    mock_command('uname', {'-m': ('aarch64', '0')}, Pihole)
     # mock ldd to respond with aarch64 shared library
-    mock_command('ldd', {'/bin/ls':('/lib/ld-linux-aarch64.so.1', '0')}, Pihole)
+    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-aarch64.so.1', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdetect
@@ -297,9 +297,9 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
 def test_FTL_detect_armv6l_no_errors(Pihole):
     ''' confirms only armv6l package is downloaded for FTL engine '''
     # mock uname to return armv6l platform
-    mock_command('uname', {'-m':('armv6l', '0')}, Pihole)
+    mock_command('uname', {'-m': ('armv6l', '0')}, Pihole)
     # mock ldd to respond with aarch64 shared library
-    mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
+    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdetect
@@ -315,9 +315,9 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
 def test_FTL_detect_armv7l_no_errors(Pihole):
     ''' confirms only armv7l package is downloaded for FTL engine '''
     # mock uname to return armv7l platform
-    mock_command('uname', {'-m':('armv7l', '0')}, Pihole)
+    mock_command('uname', {'-m': ('armv7l', '0')}, Pihole)
     # mock ldd to respond with aarch64 shared library
-    mock_command('ldd', {'/bin/ls':('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
+    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdetect
@@ -347,7 +347,7 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
 def test_FTL_detect_unknown_no_errors(Pihole):
     ''' confirms only generic package is downloaded for FTL engine '''
     # mock uname to return generic platform
-    mock_command('uname', {'-m':('mips', '0')}, Pihole)
+    mock_command('uname', {'-m': ('mips', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     FTLdetect
@@ -413,7 +413,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 def test_IPv6_only_link_local(Pihole):
     ''' confirms IPv6 blocking is disabled for Link-local address '''
     # mock ip -6 address to return Link-local address
-    mock_command_2('ip', {'-6 address':('inet6 fe80::d210:52fa:fe00:7ad7/64 scope link', '0')}, Pihole)
+    mock_command_2('ip', {'-6 address': ('inet6 fe80::d210:52fa:fe00:7ad7/64 scope link', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -425,7 +425,7 @@ def test_IPv6_only_link_local(Pihole):
 def test_IPv6_only_ULA(Pihole):
     ''' confirms IPv6 blocking is enabled for ULA addresses '''
     # mock ip -6 address to return ULA address
-    mock_command_2('ip', {'-6 address':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command_2('ip', {'-6 address': ('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -437,7 +437,7 @@ def test_IPv6_only_ULA(Pihole):
 def test_IPv6_only_GUA(Pihole):
     ''' confirms IPv6 blocking is enabled for GUA addresses '''
     # mock ip -6 address to return GUA address
-    mock_command_2('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command_2('ip', {'-6 address': ('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -449,7 +449,7 @@ def test_IPv6_only_GUA(Pihole):
 def test_IPv6_GUA_ULA_test(Pihole):
     ''' confirms IPv6 blocking is enabled for GUA and ULA addresses '''
     # mock ip -6 address to return GUA and ULA addresses
-    mock_command_2('ip', {'-6 address':('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global\ninet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command_2('ip', {'-6 address': ('inet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global\ninet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
@@ -461,7 +461,7 @@ def test_IPv6_GUA_ULA_test(Pihole):
 def test_IPv6_ULA_GUA_test(Pihole):
     ''' confirms IPv6 blocking is enabled for GUA and ULA addresses '''
     # mock ip -6 address to return ULA and GUA addresses
-    mock_command_2('ip', {'-6 address':('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global\ninet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
+    mock_command_2('ip', {'-6 address': ('inet6 fda2:2001:5555:0:d210:52fa:fe00:7ad7/64 scope global\ninet6 2003:12:1e43:301:d210:52fa:fe00:7ad7/64 scope global', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
     useIPv6dialog
