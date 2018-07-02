@@ -86,6 +86,8 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 INSTALL_WEB_SERVER=true
+clobber=false
+
 # Check arguments for the undocumented flags
 for var in "$@"; do
   case "$var" in
@@ -93,6 +95,7 @@ for var in "$@"; do
   "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
   "--unattended" ) runUnattended=true;;
   "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
+  "--clobber" ) clobber=true;;
   esac
 done
 
@@ -165,22 +168,40 @@ show_ascii_berry() {
   elif [ "$who53" = "pihole-FTL" ]; then
     # Proceed with install
     echo -e "  ${TICK} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
-  elif [ "$who53" = "dnsmasq" ]; then
+  elif [ "$who53" = "dnsmasq" ] && [[ $clobber = "true" ]]; then
     # If dnsmasq is present, set the dnsmasq-flag to true for future reference
     # (after packages and dependencies are installed).
     # dnsmasq will be disabled at end of install, prior to FTLDNS start.
     echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
-    The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
+    --clobber flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages
     have been downloaded, and replace dnsmasq with FTLDNS."
     dnsmasq_flag=true
-  elif [ "$who53" = "systemd-resolve" ]; then
+  elif [ "$who53" = "dnsmasq" ] && [[ $clobber = "false" ]]; then
+    # If dnsmasq is present, set the dnsmasq-flag to true for future reference
+    # (after packages and dependencies are installed).
+    # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+    echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+    In order for the installer to proceed, ${COL_LIGHT_RED}$who53${COL_NC} needs to be disabled.
+    Please re-run the installer with the following command: 
+    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --clobber${COL_NC}."
+    exit 0
+  elif [ "$who53" = "systemd-resolve" ] && [[ $clobber = "true" ]]; then
     # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
     # (after packages and dependencies are installed).
     # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
     echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
-      The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
+      --clobber flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages
       have been downloaded, and replace the system DNS resolver with FTLDNS."
       systemd_resolved_flag=true
+  elif [ "$who53" = "systemd-resolve" ] && [[ $clobber = "false" ]]; then
+    # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
+    # (after packages and dependencies are installed).
+    # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
+    echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}.
+    In order for the installer to proceed, ${COL_LIGHT_RED}$who53${COL_NC} needs to be disabled.
+    Please re-run the installer with the following command:
+    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --clobber${COL_NC}."
+    exit 0
   else
     # Port 53 is used by something else, stop install
     echo -e "  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}.
@@ -2599,3 +2620,8 @@ main() {
 if [[ "${PH_TEST}" != true ]] ; then
   main "$@"
 fi
+
+# Handle redirecting to specific functions based on arguments
+case "${1}" in
+  "--clobber" | "clobberDNS"            ) clobberFunc "$@";;
+esac
