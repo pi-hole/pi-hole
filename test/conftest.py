@@ -5,6 +5,7 @@ check_output = testinfra.get_backend(
     "local://"
 ).get_module("Command").check_output
 
+
 @pytest.fixture
 def Pihole(Docker):
     ''' used to contain some script stubbing, now pretty much an alias.
@@ -25,6 +26,7 @@ def Pihole(Docker):
     Docker.run = funcType(run_bash, Docker, testinfra.backend.docker.DockerBackend)
     return Docker
 
+
 @pytest.fixture
 def Docker(request, args, image, cmd):
     ''' combine our fixtures into a docker run command and setup finalizer to cleanup '''
@@ -40,20 +42,24 @@ def Docker(request, args, image, cmd):
     docker_container.id = docker_id
     return docker_container
 
+
 @pytest.fixture
 def args(request):
     ''' -t became required when tput began being used '''
     return '-t -d'
+
 
 @pytest.fixture(params=['debian', 'centos'])
 def tag(request):
     ''' consumed by image to make the test matrix '''
     return request.param
 
+
 @pytest.fixture()
 def image(request, tag):
     ''' built by test_000_build_containers.py '''
     return 'pytest_pihole:{}'.format(tag)
+
 
 @pytest.fixture()
 def cmd(request):

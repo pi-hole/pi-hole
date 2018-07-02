@@ -13,6 +13,7 @@ tick_box="[\x1b[1;32m\xe2\x9c\x93\x1b[0m]".decode("utf-8")
 cross_box="[\x1b[1;31m\xe2\x9c\x97\x1b[0m]".decode("utf-8")
 info_box="[i]".decode("utf-8")
 
+
 def test_setupVars_are_sourced_to_global_scope(Pihole):
     ''' currently update_dialogs sources setupVars with a dot,
     then various other functions use the variables.
@@ -46,6 +47,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
 
+
 def test_setupVars_saved_to_file(Pihole):
     ''' confirm saved settings are written to a file for future updates to re-use '''
     set_setup_vars = '\n'  # dedent works better with this and padding matching script below
@@ -70,6 +72,7 @@ def test_setupVars_saved_to_file(Pihole):
     for k,v in SETUPVARS.iteritems():
         assert "{}={}".format(k, v) in output
 
+
 def test_configureFirewall_firewalld_running_no_errors(Pihole):
     ''' confirms firewalld rules are applied when firewallD is running '''
     # firewallD returns 'running' as status
@@ -87,6 +90,7 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     assert 'firewall-cmd --permanent --add-service=http --add-service=dns' in firewall_calls
     assert 'firewall-cmd --reload' in firewall_calls
 
+
 def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
     ''' confirms firewalld rules are not applied when firewallD is not running '''
     # firewallD returns non-running status
@@ -97,6 +101,7 @@ def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
     ''')
     expected_stdout = 'No active firewall detected.. skipping firewall configuration'
     assert expected_stdout in configureFirewall.stdout
+
 
 def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
     ''' confirms firewalld rules are not applied when firewallD is running, user declines ruleset '''
@@ -111,6 +116,7 @@ def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
     expected_stdout = 'Not installing firewall rulesets.'
     assert expected_stdout in configureFirewall.stdout
 
+
 def test_configureFirewall_no_firewall(Pihole):
     ''' confirms firewall skipped no daemon is running '''
     configureFirewall = Pihole.run('''
@@ -119,6 +125,7 @@ def test_configureFirewall_no_firewall(Pihole):
     ''')
     expected_stdout = 'No active firewall detected'
     assert expected_stdout in configureFirewall.stdout
+
 
 def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
     ''' confirms IPTables rules are not applied when IPTables is running, user declines ruleset '''
@@ -134,6 +141,7 @@ def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
     ''')
     expected_stdout = 'Not installing firewall rulesets.'
     assert expected_stdout in configureFirewall.stdout
+
 
 def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     ''' confirms IPTables rules are not applied when IPTables is running and rules exist '''
@@ -154,6 +162,7 @@ def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' not in firewall_calls
     assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' not in firewall_calls
 
+
 def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     ''' confirms IPTables rules are applied when IPTables is running and rules do not exist '''
     # iptables command and returns 0 on calls (should return 1 on iptables -C)
@@ -173,6 +182,7 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     assert 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT' in firewall_calls
     assert 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT' in firewall_calls
 
+
 def test_selinux_enforcing_default_exit(Pihole):
     ''' confirms installer prompts to exit when SELinux is Enforcing by default '''
     # getenforce returns the running state of SELinux
@@ -186,6 +196,7 @@ def test_selinux_enforcing_default_exit(Pihole):
     assert info_box + ' SELinux mode detected: Enforcing' in check_selinux.stdout
     assert 'SELinux Enforcing detected, exiting installer' in check_selinux.stdout
     assert check_selinux.rc == 1
+
 
 def test_selinux_enforcing_continue(Pihole):
     ''' confirms installer prompts to continue with custom policy warning '''
@@ -202,6 +213,7 @@ def test_selinux_enforcing_continue(Pihole):
     assert info_box + ' Please refer to official SELinux documentation to create a custom policy' in check_selinux.stdout
     assert check_selinux.rc == 0
 
+
 def test_selinux_permissive(Pihole):
     ''' confirms installer continues when SELinux is Permissive '''
     # getenforce returns the running state of SELinux
@@ -213,6 +225,7 @@ def test_selinux_permissive(Pihole):
     assert info_box + ' SELinux mode detected: Permissive' in check_selinux.stdout
     assert check_selinux.rc == 0
 
+
 def test_selinux_disabled(Pihole):
     ''' confirms installer continues when SELinux is Disabled '''
     mock_command('getenforce', {'*':('Disabled', '0')}, Pihole)
@@ -222,6 +235,7 @@ def test_selinux_disabled(Pihole):
     ''')
     assert info_box + ' SELinux mode detected: Disabled' in check_selinux.stdout
     assert check_selinux.rc == 0
+
 
 def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     ''' confirms all web page assets from Core repo are installed on a fresh build '''
@@ -238,6 +252,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     assert 'index.php' in web_directory
     assert 'blockingpage.css' in web_directory
 
+
 def test_update_package_cache_success_no_errors(Pihole):
     ''' confirms package cache was updated without any errors'''
     updateCache = Pihole.run('''
@@ -247,6 +262,7 @@ def test_update_package_cache_success_no_errors(Pihole):
     ''')
     assert tick_box + ' Update local cache of available packages' in updateCache.stdout
     assert 'Error: Unable to update package cache.' not in updateCache.stdout
+
 
 def test_update_package_cache_failure_no_errors(Pihole):
     ''' confirms package cache was not updated'''
@@ -258,6 +274,7 @@ def test_update_package_cache_failure_no_errors(Pihole):
     ''')
     assert cross_box + ' Update local cache of available packages' in updateCache.stdout
     assert 'Error: Unable to update package cache.' in updateCache.stdout
+
 
 def test_FTL_detect_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
@@ -276,6 +293,7 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
+
 def test_FTL_detect_armv6l_no_errors(Pihole):
     ''' confirms only armv6l package is downloaded for FTL engine '''
     # mock uname to return armv6l platform
@@ -292,6 +310,7 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
+
 
 def test_FTL_detect_armv7l_no_errors(Pihole):
     ''' confirms only armv7l package is downloaded for FTL engine '''
@@ -310,6 +329,7 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
+
 def test_FTL_detect_x86_64_no_errors(Pihole):
     ''' confirms only x86_64 package is downloaded for FTL engine '''
     detectPlatform = Pihole.run('''
@@ -323,6 +343,7 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
 
+
 def test_FTL_detect_unknown_no_errors(Pihole):
     ''' confirms only generic package is downloaded for FTL engine '''
     # mock uname to return generic platform
@@ -333,6 +354,7 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     ''')
     expected_stdout = 'Not able to detect architecture (unknown: mips)'
     assert expected_stdout in detectPlatform.stdout
+
 
 def test_FTL_download_aarch64_no_errors(Pihole):
     ''' confirms only aarch64 package is downloaded for FTL engine '''
@@ -348,6 +370,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     error = 'Error: URL not found'
     assert error not in download_binary.stdout
 
+
 def test_FTL_download_unknown_fails_no_errors(Pihole):
     ''' confirms unknown binary is not downloaded for FTL engine '''
     # mock uname to return generic platform
@@ -360,6 +383,7 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     error = 'Error: URL not found'
     assert error in download_binary.stdout
 
+
 def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     ''' confirms FTL binary is copied and functional in installed location '''
     installed_binary = Pihole.run('''
@@ -369,6 +393,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     ''')
     expected_stdout = 'v'
     assert expected_stdout in installed_binary.stdout
+
 
 # def test_FTL_support_files_installed(Pihole):
 #     ''' confirms FTL support files are installed '''
@@ -384,6 +409,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
 #     assert '644 /run/pihole-FTL.pid' in support_files.stdout
 #     assert '644 /var/log/pihole-FTL.log' in support_files.stdout
 
+
 def test_IPv6_only_link_local(Pihole):
     ''' confirms IPv6 blocking is disabled for Link-local address '''
     # mock ip -6 address to return Link-local address
@@ -394,6 +420,7 @@ def test_IPv6_only_link_local(Pihole):
     ''')
     expected_stdout = 'Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled'
     assert expected_stdout in detectPlatform.stdout
+
 
 def test_IPv6_only_ULA(Pihole):
     ''' confirms IPv6 blocking is enabled for ULA addresses '''
@@ -406,6 +433,7 @@ def test_IPv6_only_ULA(Pihole):
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
 
+
 def test_IPv6_only_GUA(Pihole):
     ''' confirms IPv6 blocking is enabled for GUA addresses '''
     # mock ip -6 address to return GUA address
@@ -416,6 +444,7 @@ def test_IPv6_only_GUA(Pihole):
     ''')
     expected_stdout = 'Found IPv6 GUA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
+
 
 def test_IPv6_GUA_ULA_test(Pihole):
     ''' confirms IPv6 blocking is enabled for GUA and ULA addresses '''
@@ -428,6 +457,7 @@ def test_IPv6_GUA_ULA_test(Pihole):
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
 
+
 def test_IPv6_ULA_GUA_test(Pihole):
     ''' confirms IPv6 blocking is enabled for GUA and ULA addresses '''
     # mock ip -6 address to return ULA and GUA addresses
@@ -438,6 +468,7 @@ def test_IPv6_ULA_GUA_test(Pihole):
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
+
 
 # Helper functions
 def mock_command(script, args, container):
@@ -461,6 +492,7 @@ def mock_command(script, args, container):
     chmod +x {script}
     rm -f /var/log/{scriptlog}'''.format(script=full_script_path, content=mock_script, scriptlog=script))
 
+
 def mock_command_2(script, args, container):
     ''' Allows for setup of commands we don't really want to have to run for real in unit tests '''
     full_script_path = '/usr/local/bin/{}'.format(script)
@@ -481,6 +513,7 @@ def mock_command_2(script, args, container):
     cat <<EOF> {script}\n{content}\nEOF
     chmod +x {script}
     rm -f /var/log/{scriptlog}'''.format(script=full_script_path, content=mock_script, scriptlog=script))
+
 
 def run_script(Pihole, script):
     result = Pihole.run(script)
