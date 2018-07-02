@@ -2620,8 +2620,3 @@ main() {
 if [[ "${PH_TEST}" != true ]] ; then
   main "$@"
 fi
-
-# Handle redirecting to specific functions based on arguments
-case "${1}" in
-  "--clobber" | "clobberDNS"            ) clobberFunc "$@";;
-esac
