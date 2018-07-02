@@ -171,7 +171,7 @@ show_ascii_berry() {
     # dnsmasq will be disabled at end of install, prior to FTLDNS start.
     echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}. 
     The installer will disable ${COL_LIGHT_RED}$who53${COL_NC} after dependencies and packages
-    have been downloaded, and replace the system DNS resolver with FTLDNS."
+    have been downloaded, and replace dnsmasq with FTLDNS."
     dnsmasq_flag=true
   elif [ "$who53" = "systemd-resolve" ]; then
     # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
