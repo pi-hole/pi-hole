@@ -218,8 +218,15 @@ gravity_DownloadBlocklistFromUrl() {
   httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
   case $url in
+    # Did we "download" a local file?
+    "file"*)
+        if [[ -s "${patternBuffer}" ]]; then
+          echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
+        else
+          echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
+        fi;;
     # Did we "download" a remote file?
-    "http"*)
+    *)
       # Determine "Status:" output based on HTTP response
       case "${httpCode}" in
         "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true;;
@@ -233,16 +240,8 @@ gravity_DownloadBlocklistFromUrl() {
         "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)";;
         "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)";;
         "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)";;
-        *    ) echo -e "${OVER}  ${CROSS} ${str} ${httpCode}";;
+        *    ) echo -e "${OVER}  ${CROSS} ${str} ${url} (${httpCode})";;
       esac;;
-    # Did we "download" a local file?
-    "file"*)
-        if [[ -s "${patternBuffer}" ]]; then
-          echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
-        else
-          echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
-        fi;;
-    *) echo -e "${OVER}  ${CROSS} ${str} ${url} ${httpCode}";;
   esac
 
   # Determine if the blocklist was downloaded and saved correctly
