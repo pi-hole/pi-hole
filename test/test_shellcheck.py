@@ -1,4 +1,3 @@
-import pytest
 import testinfra
 
 run_local = testinfra.get_backend(
