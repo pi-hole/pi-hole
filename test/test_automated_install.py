@@ -2,11 +2,11 @@ import pytest
 from textwrap import dedent
 
 SETUPVARS = {
-    'PIHOLE_INTERFACE' : 'eth99',
-    'IPV4_ADDRESS' : '1.1.1.1',
-    'IPV6_ADDRESS' : 'FE80::240:D0FF:FE48:4672',
-    'PIHOLE_DNS_1' : '4.2.2.1',
-    'PIHOLE_DNS_2' : '4.2.2.2'
+    'PIHOLE_INTERFACE': 'eth99',
+    'IPV4_ADDRESS': '1.1.1.1',
+    'IPV6_ADDRESS': 'FE80::240:D0FF:FE48:4672',
+    'PIHOLE_DNS_1': '4.2.2.1',
+    'PIHOLE_DNS_2': '4.2.2.2'
 }
 
 tick_box="[\x1b[1;32m\xe2\x9c\x93\x1b[0m]".decode("utf-8")
