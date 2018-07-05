@@ -19,7 +19,8 @@
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # We do not want users to end up with a partially working install, so we exit the script
 # instead of continuing the installation with something broken
-set -e
+# -e is now turned off. All important commands should be invoked using run_command.
+#set -e
 
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
@@ -100,8 +101,10 @@ if [[ -f "${coltable}" ]]; then
 else
   # Set these values so the installer can still run in color
   COL_NC='\e[0m' # No Color
+  COL_BOLD='\e[1m'
   COL_LIGHT_GREEN='\e[1;32m'
   COL_LIGHT_RED='\e[1;31m'
+  COL_GRAY='\e[1;90m'
   TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
   CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
   INFO="[i]"
@@ -135,6 +138,89 @@ show_ascii_berry() {
                 .',,,,,,'.
                   ..'''.${COL_NC}
 "
+}
+
+# A function to run a command and check its exit status
+run_command() {
+  # Check parameters for --nzx (Non-Zero-eXit) and --tee
+  local nonZeroExit=false
+  local teeSw=false
+  while [ "${1:0:2}" == '--' ]; do
+    # Handle '--nzx' (Non-Zero-eXit) parameter
+    if [ "$1" == '--nzx' ]; then
+      nonZeroExit=true
+      shift
+    fi
+  
+    # Handle '--tee' parameter
+    if [ "$1" == '--tee' ]; then
+      teeSw=true
+      shift
+    fi
+  done
+
+  # Create a file to contain the output from the command. Open one file descriptor
+  # for writing and two for reading, then delete the file to prevent das
+  # rubbernecken sightseeren from gefingerpocken into it. Ordinarily we would use
+  # "/proc/$$/fd/10" for reading, but that breaks when the caller process is
+  # invoked as "installPihole | tee -a /proc/$$/fd/3" because '$$' in *this*
+  # process is no longer current enough to find the descriptors using /proc.
+  local filename=$(mktemp /tmp/pihole_out_XXXX)
+  exec 10>$filename
+  exec 11<$filename
+  exec 12<$filename
+  rm -f $filename
+
+  # Create a file to contain the exit code from the command. The file name is
+  # exported because the command runs in a subshell.
+  local exitCodeFile=$(mktemp /tmp/pihole_exitcode_XXXX)
+  export exitCodeFile
+
+  # Run the requested command and send its output to the output file descriptor
+  # (the command runs in the background so we can 'tail' the output if needed)
+  eval "($1; echo \$? >$exitCodeFile) >&10 2>&1" &
+  local childPID=$!
+  # If '--tee' was passed, run 'tail' to read from the output file descriptor
+  if $teeSw; then
+    tail -f <&11 --pid=$childPID
+  fi
+  # Wait for the command to finish
+  wait $childPID
+
+  # Get the command's exit code from the exit code file
+  local rc=$(< $exitCodeFile)
+  rm -f $exitCodeFile
+
+  # Display information if the command failed
+  if [ $rc != 0 ]; then
+    local _critical
+    $nonZeroExit && _critical="critical "
+    echo -e "\n  ${COL_LIGHT_RED}Error: a ${_critical}command failed${COL_NC}"
+    echo -e "\n  The command was:"
+    echo -e "    ${COL_BOLD}$1${COL_NC}"
+    echo -e "\n  Output from the command was:${COL_GRAY}"
+    sed 's/^/  | /' <&12
+    echo -e "${COL_NC}"
+    echo "  Call stack:"
+    for ((i=1; i < ${#FUNCNAME[*]}; i++)); do
+      if [ $i == 1 ];
+      then
+        echo -n "    The failed command was called in"
+      else
+        echo -n "    Called from"
+      fi
+      echo " function '${FUNCNAME[$i]}' at line ${BASH_LINENO[$((i-1))]}"
+      echo
+    done
+    $nonZeroExit && exit $rc
+  fi
+
+  # Close the file descriptors
+  exec 10>&-
+  exec 11<&-
+  exec 12<&-
+  # Return the exit value from the command
+  return $rc
 }
 
 # Compatibility
@@ -196,7 +282,7 @@ if command -v apt-get &> /dev/null; then
   # Pi-hole itself has several dependencies that also need to be installed
   PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
   # The Web dashboard has some that also need to be installed
-  # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
+  # It's useful to separate the two since our repos are also set up as "Core" code and "Web" code
   PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
   # The Web server user,
   LIGHTTPD_USER="www-data"
@@ -264,7 +350,7 @@ elif command -v rpm &> /dev/null; then
     rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
     if [[ $rc -ne 0 ]]; then
       echo -e "  ${INFO} Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)"
-      "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+      run_command --nzx "${PKG_INSTALL[*]} ${EPEL_PKG}"
       echo -e "  ${TICK} Installed ${EPEL_PKG}"
     fi
 
@@ -286,12 +372,11 @@ elif command -v rpm &> /dev/null; then
           : # continue with unsupported php version
         else
           echo -e "  ${INFO} Enabling Remi's RPM repository (https://rpms.remirepo.net)"
-          "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+          run_command --nzx "${PKG_INSTALL[*]} 'https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm'"
           # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-          "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-          yum-config-manager --enable ${REMI_REPO} &> /dev/null
+          run_command --nzx "${PKG_INSTALL[*]} yum-utils"
+          run_command --nzx "yum-config-manager --enable ${REMI_REPO}"
           echo -e "  ${TICK} Remi's RPM repository has been enabled for PHP7"
-
         fi
       fi
     fi
@@ -329,7 +414,7 @@ is_repo() {
     cd "${directory}"
     # Use git to check if the folder is a repo
     # git -C is not used here to support git versions older than 1.8.4
-    git status --short &> /dev/null || rc=$?
+    run_command 'git status --short' || rc=$?
   # If the command was not successful,
   else
     # Set a non-zero return code if directory does not exist
@@ -356,8 +441,8 @@ make_repo() {
     rm -rf "${directory}"
   fi
   # Clone the repo and return the return code from this command
-  git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
-  # Show a colored message showing it's status
+  run_command "git clone -q --depth 1 '${remoteRepo}' '${directory}'" || return $?
+  # Show a colored message showing its status
   echo -e "${OVER}  ${TICK} ${str}"
   # Always return 0? Not sure this is correct
   return 0
@@ -387,7 +472,7 @@ update_repo() {
   git stash --all --quiet &> /dev/null || true # Okay for stash failure
   git clean --quiet --force -d || true # Okay for already clean directory
   # Pull the latest commits
-  git pull --quiet &> /dev/null || return $?
+  run_command 'git pull' || return $?
   # Show a completion message
   echo -e "${OVER}  ${TICK} ${str}"
   # Move back into the original directory
@@ -397,7 +482,7 @@ update_repo() {
 
 # A function that combines the functions previously made
 getGitFiles() {
-  # Setup named variables for the git repos
+  # Set up named variables for the git repos
   # We need the directory
   local directory="${1}"
   # as well as the repo URL
@@ -436,14 +521,14 @@ resetRepo() {
   # Show the message
   echo -ne "  ${INFO} ${str}"
   # Use git to remove the local changes
-  git reset --hard &> /dev/null || return $?
+  run_command 'git reset --hard' || return $?
   # And show the status
   echo -e "${OVER}  ${TICK} ${str}"
   # Returning success anyway?
   return 0
 }
 
-# We need to know the IPv4 information so we can effectively setup the DNS server
+# We need to know the IPv4 information so we can effectively set up the DNS server
 # Without this information, we won't know where to Pi-hole will be found
 find_IPv4_information() {
   # Named, local variables
@@ -458,7 +543,6 @@ find_IPv4_information() {
   IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
   # Get the default gateway (the way to reach the Internet)
   IPv4gw=$(awk '{print $3}' <<< "${route}")
-
 }
 
 # Get available interfaces that are UP
@@ -783,8 +867,8 @@ setStaticIPv4() {
     else
       # Put the IP in variables without the CIDR notation
       CIDR=$(echo "${IPV4_ADDRESS}" | cut -f2 -d/)
-      # Backup existing interface configuration:
-      cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
+      # Back up existing interface configuration:
+      run_command --nzx "cp '${IFCFG_FILE}' '${IFCFG_FILE}.pihole.orig'"
       # Build Interface configuration file using the GLOBAL variables we have
       {
         echo "# Configured via Pi-hole installer"
@@ -799,11 +883,11 @@ setStaticIPv4() {
         echo "USERCTL=no"
       }> "${IFCFG_FILE}"
       # Use ip to immediately set the new address
-      ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+      run_command --nzx "ip addr replace dev '${PIHOLE_INTERFACE}' '${IPV4_ADDRESS}'"
       # If NetworkMangler command line interface exists and ready to mangle,
       if command -v nmcli &> /dev/null && nmcli general status &> /dev/null; then
         # Tell NetworkManagler to read our new sysconfig file
-        nmcli con load "${IFCFG_FILE}" > /dev/null
+        run_command --nzx "nmcli con load '${IFCFG_FILE}'"
       fi
       # Show a warning that the user may need to restart
       echo -e "  ${TICK} Set IP address to ${IPV4_ADDRESS%/*}
@@ -1117,12 +1201,12 @@ version_check_dnsmasq() {
     if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
       echo " it is from a previous Pi-hole install."
       echo -ne "  ${INFO} Backing up dnsmasq.conf to dnsmasq.conf.orig..."
-      # so backup the original file
+      #  so back up the original file
       mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
       echo -e "${OVER}  ${TICK} Backing up dnsmasq.conf to dnsmasq.conf.orig..."
       echo -ne "  ${INFO} Restoring default dnsmasq.conf..."
       # and replace it with the default
-      cp ${dnsmasq_original_config} ${dnsmasq_conf}
+      run_command --nzx "cp -a ${dnsmasq_original_config} ${dnsmasq_conf}"
       echo -e "${OVER}  ${TICK} Restoring default dnsmasq.conf..."
     # Otherwise,
     else
@@ -1133,48 +1217,46 @@ version_check_dnsmasq() {
     # If a file cannot be found,
     echo -ne "  ${INFO} No dnsmasq.conf found... restoring default dnsmasq.conf..."
     # restore the default one
-    cp ${dnsmasq_original_config} ${dnsmasq_conf}
+    run_command --nzx "cp -a '${dnsmasq_original_config}' '${dnsmasq_conf}'"
     echo -e "${OVER}  ${TICK} No dnsmasq.conf found... restoring default dnsmasq.conf..."
   fi
 
   echo -en "  ${INFO} Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..."
   # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
   if [[ ! -d "/etc/dnsmasq.d"  ]];then
-    mkdir "/etc/dnsmasq.d"
+    run_command --nzx "mkdir /etc/dnsmasq.d"
   fi
   # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-  cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
+  run_command --nzx "cp -a '${dnsmasq_pihole_01_snippet}' '${dnsmasq_pihole_01_location}'"
   echo -e "${OVER}  ${TICK} Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf"
   # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
   # First, swap in the interface to listen on
-  sed -i "s/@INT@/$PIHOLE_INTERFACE/" ${dnsmasq_pihole_01_location}
+  run_command --nzx "sed -i 's/@INT@/$PIHOLE_INTERFACE/' '${dnsmasq_pihole_01_location}'"
   if [[ "${PIHOLE_DNS_1}" != "" ]]; then
     # Then swap in the primary DNS server
-    sed -i "s/@DNS1@/$PIHOLE_DNS_1/" ${dnsmasq_pihole_01_location}
+    run_command --nzx "sed -i 's/@DNS1@/$PIHOLE_DNS_1/' '${dnsmasq_pihole_01_location}'"
   else
     #
-    sed -i '/^server=@DNS1@/d' ${dnsmasq_pihole_01_location}
+    run_command --nzx "sed -i '/^server=@DNS1@/d' '${dnsmasq_pihole_01_location}'"
   fi
   if [[ "${PIHOLE_DNS_2}" != "" ]]; then
     # Then swap in the primary DNS server
-    sed -i "s/@DNS2@/$PIHOLE_DNS_2/" ${dnsmasq_pihole_01_location}
+    run_command --nzx "sed -i 's/@DNS2@/$PIHOLE_DNS_2/' '${dnsmasq_pihole_01_location}'"
   else
     #
-    sed -i '/^server=@DNS2@/d' ${dnsmasq_pihole_01_location}
+    run_command --nzx "sed -i '/^server=@DNS2@/d' '${dnsmasq_pihole_01_location}'"
   fi
 
-  #
-  sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
+  run_command --nzx "sed -i 's:^#\\(conf-dir=/etc/dnsmasq.d\\)$:\\1:' ${dnsmasq_conf}"
 
   # If the user does not want to enable logging,
   if [[ "${QUERY_LOGGING}" == false ]] ; then
-        # Disable it by commenting out the directive in the DNS config file
-        sed -i 's/^log-queries/#log-queries/' ${dnsmasq_pihole_01_location}
-    # Otherwise,
-    else
-        # enable it by uncommenting the directive in the DNS config file
-        sed -i 's/^#log-queries/log-queries/' ${dnsmasq_pihole_01_location}
-    fi
+    # Disable it by commenting out the directive in the DNS config file
+    run_command --nzx "sed -i 's/^log-queries/#log-queries/' '${dnsmasq_pihole_01_location}'"
+  else
+    # Otherwise, enable it by uncommenting the directive in the DNS config file
+    run_command --nzx "sed -i 's/^#log-queries/log-queries/' '${dnsmasq_pihole_01_location}'"
+  fi
 }
 
 # Clean an existing installation to prepare for upgrade/reinstall
@@ -1212,14 +1294,14 @@ installScripts() {
     #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
     #
     # This first one is the directory
-    install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+    run_command --nzx "install -o '${USER}' -Dm755 -d '${PI_HOLE_INSTALL_DIR}'"
     # The rest are the scripts Pi-hole needs
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-    install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
-    install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
-    install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
+    run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' gravity.sh"
+    run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' ./advanced/Scripts/*.sh"
+    run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' ./automated\ install/uninstall.sh"
+    run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' ./advanced/Scripts/COL_TABLE"
+    run_command --nzx "install -o '${USER}' -Dm755 -t /usr/local/bin/ pihole"
+    run_command --nzx "install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole"
     echo -e "${OVER}  ${TICK} ${str}"
  # Otherwise,
   else
@@ -1242,27 +1324,27 @@ installConfigs() {
     # and if the Web server conf directory does not exist,
     if [[ ! -d "/etc/lighttpd" ]]; then
       # make it
-      mkdir /etc/lighttpd
+      run_command --nzx 'mkdir /etc/lighttpd'
       # and set the owners
-      chown "${USER}":root /etc/lighttpd
+      run_command --nzx "chown '${USER}':root /etc/lighttpd"
     # Otherwise, if the config file already exists
     elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
       # back up the original
-      mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+      run_command --nzx 'mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig'
     fi
     # and copy in the config file Pi-hole needs
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    run_command --nzx "cp -a ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf"
     # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
     if [[ -f "/var/www/html/pihole/custom.php" ]]; then
-      sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
+      run_command --nzx "sed -i 's/^\\(server\\.error-handler-404\\s*=\\s*\\).*$/\\1\"pihole\\/custom\\.php\"/' /etc/lighttpd/lighttpd.conf"
     fi
     # Make the directories if they do not exist and set the owners
-    mkdir -p /var/run/lighttpd
-    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
-    mkdir -p /var/cache/lighttpd/compress
-    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
-    mkdir -p /var/cache/lighttpd/uploads
-    chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
+    run_command --nzx "mkdir -p /var/run/lighttpd"
+    run_command --nzx "chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd"
+    run_command --nzx "mkdir -p /var/cache/lighttpd/compress"
+    run_command --nzx "chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress"
+    run_command --nzx "mkdir -p /var/cache/lighttpd/uploads"
+    run_command --nzx "chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads"
   fi
 }
 
@@ -1289,17 +1371,25 @@ install_manpage() {
     mkdir /usr/local/share/man/man5
   fi
   # Testing complete, copy the files & update the man db
-  cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
-  cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
-  cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
-  if mandb -q &>/dev/null; then
+  local rc
+  run_command "cp -a ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8"
+  if [ $? != 0 ]; then rc=1; fi
+  run_command "cp -a ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8"
+  if [ $? != 0 ]; then rc=1; fi
+  run_command "cp -a ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5"
+  if [ $? != 0 ]; then rc=1; fi
+  if [ $rc == 0 ]; then
+    run_command 'mandb'
+    if [ $? != 0 ]; then rc=1; fi
+  fi
+  if [ $rc == 0 ]; then
     # Updated successfully
     echo -e "${OVER}  ${TICK} man pages installed and database updated"
     return
   else
     # Something is wrong with the system's man installation, clean up 
     # our files, (leave everything how we found it).
-    rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5
+    run_command "rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5"
     echo -e "${OVER}  ${CROSS} man page db not updated, man pages not installed"
   fi
 }
@@ -1325,11 +1415,12 @@ start_service() {
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to restart the service
-    systemctl restart "${1}" &> /dev/null
+    run_command --nzx "systemctl daemon-reload"
+    run_command --nzx "systemctl restart '${1}'"
   # Otherwise,
   else
     # fall back to the service command
-    service "${1}" restart &> /dev/null
+    run_command --nzx "service '${1}' restart"
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -1342,11 +1433,11 @@ enable_service() {
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to enable the service
-    systemctl enable "${1}" &> /dev/null
+    run_command --nzx "systemctl enable '${1}'"
   # Otherwise,
   else
     # use update-rc.d to accomplish this
-    update-rc.d "${1}" defaults &> /dev/null
+    run_command --nzx "update-rc.d '${1}' defaults"
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -1359,24 +1450,24 @@ disable_service() {
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to disable the service
-    systemctl disable "${1}" &> /dev/null
+    run_command --nzx "systemctl disable '${1}'"
   # Otherwise,
   else
     # use update-rc.d to accomplish this
-    update-rc.d "${1}" disable &> /dev/null
+    run_command --nzx "update-rc.d '${1}' disable"
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
 check_service_active() {
-    # If systemctl exists,
+  # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to check the status of the service
-    systemctl is-enabled "${1}" > /dev/null
+    systemctl is-enabled '${1}' &> /dev/null
   # Otherwise,
   else
     # fall back to service command
-    service "${1}" status > /dev/null
+    service "${1}" status &> /dev/null
   fi
 }
 
@@ -1393,9 +1484,9 @@ disable_resolved_stublistener() {
       echo -en "${OVER}  ${TICK} Disabling systemd-resolved DNSStubListener"
       # Make a backup of the original /etc/systemd/resolved.conf
       # (This will need to be restored on uninstallation)
-      sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+      run_command --nzx "sed -r -i.orig 's/#?\\(DNSStubListene\\)r=yes/\\1=no/g' /etc/systemd/resolved.conf"
       echo -e " and restarting systemd-resolved"
-      systemctl reload-or-restart systemd-resolved
+      run_command --nzx 'systemctl reload-or-restart systemd-resolved'
     else
       echo -e "${OVER}  ${INFO} Systemd-resolved does not need to be restarted"
     fi
@@ -1455,13 +1546,14 @@ notify_package_updates_available() {
 }
 
 # What's this doing outside of a function in the middle of nowhere?
+# A. It's global because install_dependent_packages is called twice
 counter=0
 
 install_dependent_packages() {
   # Local, named variables should be used here, especially for an iterator
   # Add one to the counter
   counter=$((counter+1))
-  # If it equals 1,
+  # 1=Installer Dependency checks; 2=Main Dependency checks
   if [[ "${counter}" == 1 ]]; then
     #
     echo -e "  ${INFO} Installer Dependency checks..."
@@ -1500,7 +1592,19 @@ install_dependent_packages() {
       #
       test_dpkg_lock
       #
-      debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
+      local logfile="$(mktemp pihole_log_XXXX)"
+      run_command --tee "debconf-apt-progress --logfile $logfile -- ${PKG_INSTALL[*]} ${installArray[*]}"
+      if [ $? != 0 ]
+      then
+        if [ -s $logfile ]; then
+          echo -en "$COL_GRAY"
+          sed 's/\o033[\[(]?\?[0-9;]*[A-Za-z]//g;/^|[[:space:]]*$/d' $logfile
+          echo -e "$COL_NC"
+        fi
+        echo -e "\n${COL_LIGHT_RED}Error: apt failed; cancelling install${COL_NC}"
+        exit 1
+      fi
+      rm -f $logfile
       return
     fi
       echo ""
@@ -1523,7 +1627,7 @@ install_dependent_packages() {
   #
   if [[ "${#installArray[@]}" -gt 0 ]]; then
     #
-    "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
+    run_command --nzx "${PKG_INSTALL[*]} ${installArray[*]}"
     return
   fi
   echo ""
@@ -1538,9 +1642,9 @@ installPiholeWeb() {
   local str="Creating directory for blocking page, and copying files"
   echo -ne "  ${INFO} ${str}..."
   # Install the directory
-  install -d /var/www/html/pihole
+  run_command --nzx 'install -d /var/www/html/pihole'
   # and the blockpage
-  install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+  run_command --nzx "install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/"
 
   # Remove superseded file
   if [[ -e "/var/www/html/pihole/index.js" ]]; then
@@ -1554,7 +1658,7 @@ installPiholeWeb() {
   # If the default index file exists,
   if [[ -f "/var/www/html/index.lighttpd.html" ]]; then
     # back it up
-    mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+    run_command --nzx 'mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig'
     echo -e "${OVER}  ${TICK} ${str}"
   # Otherwise,
   else
@@ -1568,9 +1672,9 @@ installPiholeWeb() {
   local str="Installing sudoer file"
   echo -ne "  ${INFO} ${str}..."
   # Make the .d directory if it doesn't exist
-  mkdir -p /etc/sudoers.d/
+  run_command --nzx 'mkdir -p /etc/sudoers.d/'
   # and copy in the pihole sudoers file
-  cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole
+  run_command --nzx "cp -a ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole"
   # Add lighttpd user (OS dependent) to sudoers file
   echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -1581,7 +1685,7 @@ installPiholeWeb() {
     echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin" >> /etc/sudoers.d/pihole
   fi
   # Set the strict permissions on the file
-  chmod 0440 /etc/sudoers.d/pihole
+  run_command --nzx 'chmod 0440 /etc/sudoers.d/pihole'
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -1621,7 +1725,7 @@ create_pihole_user() {
     local str="Creating user 'pihole'"
     echo -ne "  ${INFO} ${str}..."
     # create her with the useradd command
-    useradd -r -s /usr/sbin/nologin pihole
+    run_command --nzx 'useradd -r -s /usr/sbin/nologin pihole'
     echo -ne "${OVER}  ${TICK} ${str}"
   fi
 }
@@ -1636,9 +1740,9 @@ configureFirewall() {
     { echo -e "  ${INFO} Not installing firewall rulesets."; return 0; }
     echo -e "  ${TICK} Configuring FirewallD for httpd and pihole-FTL"
     # Allow HTTP and DNS traffic
-    firewall-cmd --permanent --add-service=http --add-service=dns
+    run_command --nzx 'firewall-cmd --permanent --add-service=http --add-service=dns'
     # Reload the firewall to apply these changes
-    firewall-cmd --reload
+    run_command --nzx 'firewall-cmd --reload'
     return 0
   # Check for proper kernel modules to prevent failure
   elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
@@ -1683,7 +1787,7 @@ finalExports() {
   # If the setup variable file exists,
   if [[ -e "${setupVars}" ]]; then
     # update the variables in the file
-    sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
+    run_command --nzx "sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' '${setupVars}'"
   fi
   # echo the information to the user
     {
@@ -1727,7 +1831,7 @@ installLogrotate() {
   # If the variable has a value,
   if [[ ! -z "${logusergroup}" ]]; then
     #
-    sed -i "s/# su #/su ${logusergroup}/g;" /etc/pihole/logrotate
+    run_command --nzx "sed -i 's/# su #/su ${logusergroup}/g;' /etc/pihole/logrotate"
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -1735,14 +1839,14 @@ installLogrotate() {
 # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
 # Refactoring of install script has changed the name of a couple of variables. Sort them out here.
 accountForRefactor() {
-  sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' ${setupVars}
-  sed -i 's/IPv4_address/IPV4_ADDRESS/g' ${setupVars}
-  sed -i 's/IPv4addr/IPV4_ADDRESS/g' ${setupVars}
-  sed -i 's/IPv6_address/IPV6_ADDRESS/g' ${setupVars}
-  sed -i 's/piholeIPv6/IPV6_ADDRESS/g' ${setupVars}
-  sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}
-  sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}
-  sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' ${setupVars}
+  run_command --nzx "sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' ${setupVars}"
+  run_command --nzx "sed -i 's/IPv4_address/IPV4_ADDRESS/g' ${setupVars}"
+  run_command --nzx "sed -i 's/IPv4addr/IPV4_ADDRESS/g' ${setupVars}"
+  run_command --nzx "sed -i 's/IPv6_address/IPV6_ADDRESS/g' ${setupVars}"
+  run_command --nzx "sed -i 's/piholeIPv6/IPV6_ADDRESS/g' ${setupVars}"
+  run_command --nzx "sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' ${setupVars}"
+  run_command --nzx "sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' ${setupVars}"
+  run_command --nzx "sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' ${setupVars}"
   # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
   if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
     local webserver_installed=false
@@ -1762,15 +1866,15 @@ installPihole() {
   if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     if [[ ! -d "/var/www/html" ]]; then
       # make the Web directory if necessary
-      mkdir -p /var/www/html
+      run_command --nzx 'mkdir -p /var/www/html'
     fi
 
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
       # Set the owner and permissions
-      chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-      chmod 775 /var/www/html
+      run_command --nzx "chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html"
+      run_command --nzx 'chmod 775 /var/www/html'
       # Give pihole access to the Web server group
-      usermod -a -G ${LIGHTTPD_GROUP} pihole
+      run_command --nzx "usermod -a -G ${LIGHTTPD_GROUP} pihole"
       # If the lighttpd command is executable,
       if [[ -x "$(command -v lighty-enable-mod)" ]]; then
         # enable fastcgi and fastcgi-php
@@ -1919,8 +2023,8 @@ fully_fetch_repo() {
 
   cd "${directory}" || return 1
   if is_repo "${directory}"; then
-    git remote set-branches origin '*' || return 1
-    git fetch --quiet || return 1
+    run_command "git remote set-branches origin '*'" || return 1
+    run_command 'git fetch' || return 1
   else
     return 1
   fi
@@ -1949,10 +2053,10 @@ fetch_checkout_pull_branch() {
 
   # Set the reference for the requested branch, fetch, check it put and pull it
   cd "${directory}" || return 1
-  git remote set-branches origin "${branch}" || return 1
+  run_command "git remote set-branches origin '${branch}'" || return 1
   git stash --all --quiet &> /dev/null || true
   git clean --quiet --force -d || true
-  git fetch --quiet || return 1
+  run_command 'git fetch' || return 1
   checkout_pull_branch "${directory}" "${branch}" || return 1
 }
 
@@ -1970,7 +2074,7 @@ checkout_pull_branch() {
 
   str="Switching to branch: '${branch}' from '${oldbranch}'"
   echo -ne "  ${INFO} $str"
-  git checkout "${branch}" --quiet || return 1
+  run_command 'git checkout "${branch}"' || return 1
   echo -e "${OVER}  ${TICK} $str"
 
   git_pull=$(git pull || return 1)
@@ -1995,7 +2099,7 @@ clone_or_update_repos() {
       }
     # If the Web interface was installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-      # reset it's repo
+      # reset its repo
       resetRepo ${webInterfaceDir} || \
         { echo -e "  ${COL_LIGHT_RED}Unable to reset ${webInterfaceDir}, exiting installer${COL_NC}"; \
           exit 1; \
@@ -2040,56 +2144,25 @@ FTLinstall() {
   pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
   # Always replace pihole-FTL.service
-  install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
-
-  local ftlBranch
-  local url
-
-  if [[ -f "/etc/pihole/ftlbranch" ]];then
-    ftlBranch=$(</etc/pihole/ftlbranch)
-  else
-    ftlBranch="master"
-  fi
-
-  # Determine which version of FTL to download
-  if [[ "${ftlBranch}" == "master" ]];then
-    url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
-  else
-    url="https://ftl.pi-hole.net/${ftlBranch}"
-  fi
+  run_command --nzx "install -T -m 0755 '${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service' '/etc/init.d/pihole-FTL'"
 
   # If the download worked,
-  if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
+  local githubURL="https://github.com/pi-hole/FTL/releases/download"
+  if run_command "curl -sSL '$githubURL/${latesttag%$'\r'}/${binary}' -o '${binary}'"; then
     # get sha1 of the binary we just downloaded for verification.
-    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
+    run_command "curl -sSL '$githubURL/${latesttag%$'\r'}/${binary}.sha1' -o '${binary}.sha1'"
 
     # If we downloaded binary file (as opposed to text),
-    if sha1sum --status --quiet -c "${binary}".sha1; then
+    if run_command "sha1sum --status -c '${binary}'.sha1"; then
       echo -n "transferred... "
       # Stop FTL
-      stop_service pihole-FTL &> /dev/null
+      stop_service pihole-FTL &>/dev/null
       # Install the new version with the correct permissions
-      install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
+      run_command --nzx "install -T -m 0755 '${binary}' /usr/bin/pihole-FTL"
       # Move back into the original directory the user was in
       popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
       # Install the FTL service
       echo -e "${OVER}  ${TICK} ${str}"
-      # dnsmasq can now be stopped and disabled if it exists
-      if which dnsmasq > /dev/null; then
-        if check_service_active "dnsmasq";then
-          echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
-          stop_service dnsmasq
-          disable_service dnsmasq
-        fi
-      fi
-
-      #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
-      confdir="conf-dir=/etc/dnsmasq.d"
-      conffile="/etc/dnsmasq.conf"
-      if ! grep -q "$confdir" "$conffile"; then
-          echo "$confdir" >> "$conffile"
-      fi
-
       return 0
     # Otherwise,
     else
@@ -2293,7 +2366,7 @@ make_temporary_log() {
 copy_to_install_log() {
   # Copy the contents of file descriptor 3 into the install log
   # Since we use color codes such as '\e[1;33m', they should be removed
-  sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
+  sed 's/\[[0-9;]\{1,5\}m//g;s/\[K//g;s/\r/\n/' < /proc/$$/fd/3 > "${installLogLoc}"
 }
 
 main() {
@@ -2420,11 +2493,24 @@ main() {
       LIGHTTPD_ENABLED=false
   fi
 
+  # Set 'pipefail' to capture the return code from installPihile instead of tee
+  set -o pipefail
+
   # Install and log everything to a file
   installPihole | tee -a /proc/$$/fd/3
+  local installRC=$?
+
+  # Reset pipfail or later pipelines can fail unexpectedly
+  set +o pipefail
 
   # Copy the temp log file into final log location for storage
   copy_to_install_log
+
+  # Cancel the install if installPiHole failed
+  if [ $installRC != 0 ]; then
+    echo "${COL_LIGHT_RED}Error: Pi-hole installation failed${COL_NC}"
+    exit 1
+  fi
 
   if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     # Add password to web UI if there is none
