@@ -165,15 +165,17 @@ run_command() {
   # "/proc/$$/fd/10" for reading, but that breaks when the caller process is
   # invoked as "installPihole | tee -a /proc/$$/fd/3" because '$$' in *this*
   # process is no longer current enough to find the descriptors using /proc.
-  local filename=$(mktemp /tmp/pihole_out_XXXX)
-  exec 10>$filename
-  exec 11<$filename
-  exec 12<$filename
-  rm -f $filename
+  local stdOutErrFile
+  stdOutErrFile=$(mktemp /tmp/pihole_out_XXXX)
+  exec 10>"$stdOutErrFile"
+  exec 11<"$stdOutErrFile"
+  exec 12<"$stdOutErrFile"
+  rm -f "$stdOutErrFile"
 
   # Create a file to contain the exit code from the command. The file name is
   # exported because the command runs in a subshell.
-  local exitCodeFile=$(mktemp /tmp/pihole_exitcode_XXXX)
+  local exitCodeFile
+  exitCodeFile="$(mktemp /tmp/pihole_exitcode_XXXX)"
   export exitCodeFile
 
   # Run the requested command and send its output to the output file descriptor
@@ -188,11 +190,12 @@ run_command() {
   wait $childPID
 
   # Get the command's exit code from the exit code file
-  local rc=$(< $exitCodeFile)
-  rm -f $exitCodeFile
+  local rc
+  rc=$(< "$exitCodeFile")
+  rm -f "$exitCodeFile"
 
   # Display information if the command failed
-  if [ $rc != 0 ]; then
+  if [ "$rc" != 0 ]; then
     local _critical
     $nonZeroExit && _critical="critical "
     echo -e "\n  ${COL_LIGHT_RED}Error: a ${_critical}command failed${COL_NC}"
@@ -1298,7 +1301,7 @@ installScripts() {
     # The rest are the scripts Pi-hole needs
     run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' gravity.sh"
     run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' ./advanced/Scripts/*.sh"
-    run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' ./automated\ install/uninstall.sh"
+    run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' ./automated\\ install/uninstall.sh"
     run_command --nzx "install -o '${USER}' -Dm755 -t '${PI_HOLE_INSTALL_DIR}' ./advanced/Scripts/COL_TABLE"
     run_command --nzx "install -o '${USER}' -Dm755 -t /usr/local/bin/ pihole"
     run_command --nzx "install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole"
@@ -1371,16 +1374,15 @@ install_manpage() {
     mkdir /usr/local/share/man/man5
   fi
   # Testing complete, copy the files & update the man db
-  local rc
-  run_command "cp -a ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8"
-  if [ $? != 0 ]; then rc=1; fi
-  run_command "cp -a ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8"
-  if [ $? != 0 ]; then rc=1; fi
-  run_command "cp -a ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5"
-  if [ $? != 0 ]; then rc=1; fi
+  # (srcMan and tgtMan are used to keep the line lengths down to a reasonable size)
+  local srcMan="${PI_HOLE_LOCAL_REPO}/manpages"
+  local tgtMan="/usr/local/share/man"
+  local rc=0
+  if ! run_command "cp -a $srcMan/pihole.8 $tgtMan/man8/pihole.8"; then rc=1; fi
+  if ! run_command "cp -a $srcMan/pihole-FTL.8 $tgtMan/man8/pihole-FTL.8"; then rc=1; fi
+  if ! run_command "cp -a $srcMan/pihole-FTL.conf.5 $tgtMan/man5/pihole-FTL.conf.5"; then rc=1; fi
   if [ $rc == 0 ]; then
-    run_command 'mandb'
-    if [ $? != 0 ]; then rc=1; fi
+    if ! run_command 'mandb'; then rc=1; fi
   fi
   if [ $rc == 0 ]; then
     # Updated successfully
@@ -1389,7 +1391,7 @@ install_manpage() {
   else
     # Something is wrong with the system's man installation, clean up 
     # our files, (leave everything how we found it).
-    run_command "rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5"
+    run_command "rm $tgtMan/man8/pihole.8 $tgtMan/man8/pihole-FTL.8 $tgtMan/man5/pihole-FTL.conf.5"
     echo -e "${OVER}  ${CROSS} man page db not updated, man pages not installed"
   fi
 }
@@ -1463,7 +1465,7 @@ check_service_active() {
   # If systemctl exists,
   if command -v systemctl &> /dev/null; then
     # use that to check the status of the service
-    systemctl is-enabled '${1}' &> /dev/null
+    systemctl is-enabled "${1}" &> /dev/null
   # Otherwise,
   else
     # fall back to service command
@@ -1592,13 +1594,15 @@ install_dependent_packages() {
       #
       test_dpkg_lock
       #
-      local logfile="$(mktemp pihole_log_XXXX)"
-      run_command --tee "debconf-apt-progress --logfile $logfile -- ${PKG_INSTALL[*]} ${installArray[*]}"
-      if [ $? != 0 ]
+      local logfile
+      logfile="$(mktemp pihole_log_XXXX)"
+      # Run debconf-apt-progress and check its return code
+      if ! run_command --tee "debconf-apt-progress --logfile '$logfile' -- ${PKG_INSTALL[*]} ${installArray[*]}"
       then
-        if [ -s $logfile ]; then
+        # If debconf-apt-progress failed, display any output 'apt-get' may have produced
+        if [ -s "$logfile" ]; then
           echo -en "$COL_GRAY"
-          sed 's/\o033[\[(]?\?[0-9;]*[A-Za-z]//g;/^|[[:space:]]*$/d' $logfile
+          sed 's/\o033[\[(]?\?[0-9;]*[A-Za-z]//g;/^|[[:space:]]*$/d' "$logfile"
           echo -e "$COL_NC"
         fi
         echo -e "\n${COL_LIGHT_RED}Error: apt failed; cancelling install${COL_NC}"
@@ -2074,7 +2078,7 @@ checkout_pull_branch() {
 
   str="Switching to branch: '${branch}' from '${oldbranch}'"
   echo -ne "  ${INFO} $str"
-  run_command 'git checkout "${branch}"' || return 1
+  run_command "git checkout '${branch}'" || return 1
   echo -e "${OVER}  ${TICK} $str"
 
   git_pull=$(git pull || return 1)
