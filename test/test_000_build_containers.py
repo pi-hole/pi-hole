@@ -10,6 +10,7 @@ run_local = testinfra.get_backend(
 @pytest.mark.parametrize("image,tag", [
     ('test/debian.Dockerfile', 'pytest_pihole:debian'),
     ('test/centos.Dockerfile', 'pytest_pihole:centos'),
+    ('test/fedora.Dockerfile', 'pytest_pihole:fedora'),
 ])
 def test_build_pihole_image(image, tag):
     build_cmd = run_local('docker build -f {} -t {} .'.format(image, tag))
