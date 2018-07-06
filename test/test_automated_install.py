@@ -10,6 +10,22 @@ from conftest import (
 )
 
 
+def test_supported_operating_system(Pihole):
+    '''
+    confirm installer exists on unsupported distribution
+    '''
+    # break supported package managers to emulate an unsupported distribution
+    Pihole.run('rm -rf /usr/bin/apt-get')
+    Pihole.run('rm -rf /usr/bin/rpm')
+    distro_check = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    ''')
+    expected_stdout = cross_box + ' OS distribution not supported'
+    assert expected_stdout in distro_check.stdout
+    # assert distro_check.rc == 1
+
+
 def test_setupVars_are_sourced_to_global_scope(Pihole):
     '''
     currently update_dialogs sources setupVars with a dot,
