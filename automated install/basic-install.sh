@@ -1608,7 +1608,7 @@ install_dependent_packages() {
         echo -e "\\n${COL_LIGHT_RED}Error: apt failed; cancelling install${COL_NC}"
         exit 1
       fi
-      rm -f $logfile
+      rm -f "$logfile"
       return
     fi
       echo ""
