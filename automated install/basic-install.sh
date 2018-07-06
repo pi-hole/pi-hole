@@ -198,10 +198,10 @@ run_command() {
   if [ "$rc" != 0 ]; then
     local _critical
     $nonZeroExit && _critical="critical "
-    echo -e "\n  ${COL_LIGHT_RED}Error: a ${_critical}command failed${COL_NC}"
-    echo -e "\n  The command was:"
+    echo -e "\\n  ${COL_LIGHT_RED}Error: a ${_critical}command failed${COL_NC}"
+    echo -e "\\n  The command was:"
     echo -e "    ${COL_BOLD}$1${COL_NC}"
-    echo -e "\n  Output from the command was:${COL_GRAY}"
+    echo -e "\\n  Output from the command was:${COL_GRAY}"
     sed 's/^/  | /' <&12
     echo -e "${COL_NC}"
     echo "  Call stack:"
@@ -1605,7 +1605,7 @@ install_dependent_packages() {
           sed 's/\o033[\[(]?\?[0-9;]*[A-Za-z]//g;/^|[[:space:]]*$/d' "$logfile"
           echo -e "$COL_NC"
         fi
-        echo -e "\n${COL_LIGHT_RED}Error: apt failed; cancelling install${COL_NC}"
+        echo -e "\\n${COL_LIGHT_RED}Error: apt failed; cancelling install${COL_NC}"
         exit 1
       fi
       rm -f $logfile
