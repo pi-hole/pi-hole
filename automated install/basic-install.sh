@@ -492,27 +492,27 @@ verifyFreeDiskSpace() {
     # If the existing space is not an integer,
     if ! [[ "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
         # show an error that we can't determine the free space
-        echo -e "  ${CROSS} ${str}
-        Unknown free disk space!
-        We were unable to determine available free disk space on this system.
-        You may override this check, however, it is not recommended
-        The option '${COL_LIGHT_RED}--i_do_not_follow_recommendations${COL_NC}' can override this
-        e.g: curl -L https://install.pi-hole.net | bash /dev/stdin ${COL_LIGHT_RED}<option>${COL_NC}"
+        echo -e "  ${CROSS} ${str}"
+        echo -e "  ${INFO} Unknown free disk space!"
+        echo -e "  ${INFO} We were unable to determine available free disk space on this system."
+        echo -e "  ${INFO} You may override this check, however, it is not recommended"
+        echo -e "  ${INFO} The option '${COL_LIGHT_RED}--i_do_not_follow_recommendations${COL_NC}' can override this"
+        echo -e "  ${INFO} e.g: curl -L https://install.pi-hole.net | bash /dev/stdin ${COL_LIGHT_RED}<option>${COL_NC}"
         # exit with an error code
         exit 1
     # If there is insufficient free disk space,
     elif [[ "${existing_free_kilobytes}" -lt "${required_free_kilobytes}" ]]; then
         # show an error message
-        echo -e "  ${CROSS} ${str}
-        Your system disk appears to only have ${existing_free_kilobytes} KB free
-        It is recommended to have a minimum of ${required_free_kilobytes} KB to run the Pi-hole"
+        echo -e "  ${CROSS} ${str}"
+        echo -e "  ${INFO} Your system disk appears to only have ${existing_free_kilobytes} KB free"
+        echo -e "  ${INFO} It is recommended to have a minimum of ${required_free_kilobytes} KB to run the Pi-hole"
         # if the vcgencmd command exists,
         if command -v vcgencmd &> /dev/null; then
             # it's probably a Raspbian install, so show a message about expanding the filesystem
-            echo "      If this is a new install you may need to expand your disk
-            Run 'sudo raspi-config', and choose the 'expand file system' option
-            After rebooting, run this installation again
-            e.g: curl -L https://install.pi-hole.net | bash"
+            echo -e "  ${INFO} If this is a new install you may need to expand your disk"
+            echo -e "  ${INFO} Run 'sudo raspi-config', and choose the 'expand file system' option"
+            echo -e "  ${INFO} After rebooting, run this installation again"
+            echo -e "  ${INFO} e.g: curl -L https://install.pi-hole.net | bash"
         fi
         # Show there is not enough free space
         echo -e "\\n      ${COL_LIGHT_RED}Insufficient free space, exiting...${COL_NC}"
@@ -2168,9 +2168,9 @@ get_binary_name() {
     else
         # Something else - we try to use 32bit executable and warn the user
         if [[ ! "${machine}" == "i686" ]]; then
-            echo -e "${OVER}  ${CROSS} ${str}...
-            ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable${COL_NC}
-            Contact Pi-hole Support if you experience issues (e.g: FTL not running)"
+            echo -e "${OVER}  ${CROSS} ${str}..."
+            echo -e "  ${INFO} ${COL_LIGHT_RED}Not able to detect architecture (unknown: ${machine}), trying 32bit executable${COL_NC}"
+            echo -e "  ${INFO} Contact Pi-hole Support if you experience issues (e.g: FTL not running)"
         else
             echo -e "${OVER}  ${TICK} Detected 32bit (i686) architecture"
         fi
@@ -2307,11 +2307,11 @@ main() {
     # Otherwise,
     else
         # They do not have enough privileges, so let the user know
-        echo -e "  ${CROSS} ${str}
-        ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
-        The Pi-hole requires elevated privileges to install and run
-        Please check the installer for any concerns regarding this requirement
-        Make sure to download this script from a trusted source\\n"
+        echo -e "  ${CROSS} ${str}"
+        echo -e "  ${INFO} ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}"
+        echo -e "  ${INFO} The Pi-hole requires elevated privileges to install and run"
+        echo -e "  ${INFO} Please check the installer for any concerns regarding this requirement"
+        echo -e "  ${INFO} Make sure to download this script from a trusted source\\n"
         echo -ne "  ${INFO} Sudo utility check"
 
         # If the sudo command exists,
@@ -2323,9 +2323,9 @@ main() {
         # Otherwise,
         else
             # Let them know they need to run it as root
-            echo -e "${OVER}  ${CROSS} Sudo utility check
-            Sudo is needed for the Web Interface to run pihole commands\\n
-            ${COL_LIGHT_RED}Please re-run this installer as root${COL_NC}"
+            echo -e "${OVER}  ${CROSS} Sudo utility check"
+            echo -e "  ${INFO} Sudo is needed for the Web Interface to run pihole commands\\n"
+            echo -e "  ${INFO} ${COL_LIGHT_RED}Please re-run this installer as root${COL_NC}"
             exit 1
         fi
     fi
@@ -2475,8 +2475,8 @@ main() {
         # If there is a password,
         if (( ${#pw} > 0 )) ; then
             # display the password
-            echo -e "  ${INFO} Web Interface password: ${COL_LIGHT_GREEN}${pw}${COL_NC}
-            This can be changed using 'pihole -a -p'\\n"
+            echo -e "  ${INFO} Web Interface password: ${COL_LIGHT_GREEN}${pw}${COL_NC}"
+            echo -e "  ${INFO} This can be changed using 'pihole -a -p'\\n"
         fi
     fi
 
@@ -2484,14 +2484,14 @@ main() {
     if [[ "${useUpdateVars}" == false ]]; then
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            echo -e "  View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
+            echo -e "  ${INFO} View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin"
             echo ""
         fi
         # Explain to the user how to use Pi-hole as their DNS server
-        echo "  You may now configure your devices to use the Pi-hole as their DNS server"
+        echo -e "  ${INFO} You may now configure your devices to use the Pi-hole as their DNS server"
         [[ -n "${IPV4_ADDRESS%/*}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv4): ${IPV4_ADDRESS%/*}"
         [[ -n "${IPV6_ADDRESS}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv6): ${IPV6_ADDRESS}"
-        echo -e "  If you set a new IP address, please restart the server running the Pi-hole"
+        echo -e "  ${INFO} If you set a new IP address, please restart the server running the Pi-hole"
         #
         INSTALL_TYPE="Installation"
     else
