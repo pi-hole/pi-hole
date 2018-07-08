@@ -222,7 +222,7 @@ Displaylist() {
     verbose=false
     echo -e "Displaying $string:\n"
     count=1
-    while IFS= read -r RD; do
+    while IFS= read -r RD || [ -n "${RD}" ]; do
       echo "  ${count}: ${RD}"
       count=$((count+1))
     done < "${listMain}"
