@@ -138,7 +138,7 @@ AddDomain() {
     bool=true
     domain="${1}"
 
-    [[ "${wildcard}" == true ]] && domain="((^)|(\\.))$(echo "${domain}" | sed "s/\./\\\./g")$"
+    [[ "${wildcard}" == true ]] && domain="((^)|(\\.))${domain//\\./\\\.}$"
 
     # Is the domain in the list?
     # Search only for exactly matching lines
@@ -186,7 +186,7 @@ RemoveDomain() {
     [[ -z "${type}" ]] && type="--wildcard-only"
     domain="${1}"
 
-    [[ "${wildcard}" == true ]] && domain="((^)|(\\.))$(echo "${domain}" | sed "s/\./\\\./g")$"
+    [[ "${wildcard}" == true ]] && domain="((^)|(\\.))${domain//\\./\\\.}$"
 
     bool=true
     # Is it in the list?
