@@ -17,6 +17,7 @@ readonly regexlist="/etc/pihole/regex.list"
 reload=false
 addmode=true
 verbose=true
+wildcard=false
 
 domList=()
 
@@ -68,7 +69,7 @@ HandleOther() {
 
   # Check validity of domain (don't check for regex entries)
   if [[ "${#domain}" -le 253 ]]; then
-    if [[ "${listMain}" == "${regexlist}" ]]; then
+    if [[ "${listMain}" == "${regexlist}" && "${wildcard}" == false ]]; then
       validDomain="${domain}"
     else
       validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
@@ -135,6 +136,9 @@ AddDomain() {
   elif [[ "${list}" == "${regexlist}" ]]; then
     [[ -z "${type}" ]] && type="--wildcard-only"
     bool=true
+
+    [[ "${wildcard}" == true ]] && domain="((^)|(\\.))${domain}$"
+
     # Is the domain in the list?
     # Search only for exactly matching lines
     grep -Fx "${domain}" "${regexlist}" > /dev/null 2>&1 || bool=false
@@ -179,6 +183,8 @@ RemoveDomain() {
     fi
   elif [[ "${list}" == "${regexlist}" ]]; then
     [[ -z "${type}" ]] && type="--wildcard-only"
+    [[ "${wildcard}" == true ]] && domain="((^)|(\\.))${domain}$"
+
     bool=true
     # Is it in the list?
     grep -Fx "${domain}" "${regexlist}" > /dev/null 2>&1 || bool=false
@@ -236,7 +242,8 @@ for var in "$@"; do
   case "${var}" in
     "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
     "-b" | "blacklist"   ) listMain="${blacklist}"; listAlt="${whitelist}";;
-    "-wild" | "wildcard" ) listMain="${regexlist}";;
+    "-wild" | "wildcard" ) listMain="${regexlist}"; wildcard=true;;
+    "-regex" | "regex"   ) listMain="${regexlist}";;
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-q" | "--quiet"     ) verbose=false;;
