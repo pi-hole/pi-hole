@@ -136,6 +136,7 @@ AddDomain() {
   elif [[ "${list}" == "${regexlist}" ]]; then
     [[ -z "${type}" ]] && type="--wildcard-only"
     bool=true
+    domain="${1}"
 
     [[ "${wildcard}" == true ]] && domain="((^)|(\\.))${domain}$"
 
@@ -145,13 +146,13 @@ AddDomain() {
 
     if [[ "${bool}" == false ]]; then
       if [[ "${verbose}" == true ]]; then
-      echo -e "  ${INFO} Adding ${1} to regex list..."
+      echo -e "  ${INFO} Adding ${domain} to regex list..."
       fi
       reload="restart"
-      echo "$1" >> "${regexlist}"
+      echo "$domain" >> "${regexlist}"
     else
       if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} ${1} already exists in regex list, no need to add!"
+        echo -e "  ${INFO} ${domain} already exists in regex list, no need to add!"
       fi
     fi
   fi
@@ -183,6 +184,8 @@ RemoveDomain() {
     fi
   elif [[ "${list}" == "${regexlist}" ]]; then
     [[ -z "${type}" ]] && type="--wildcard-only"
+    domain="${1}"
+
     [[ "${wildcard}" == true ]] && domain="((^)|(\\.))${domain}$"
 
     bool=true
@@ -190,14 +193,14 @@ RemoveDomain() {
     grep -Fx "${domain}" "${regexlist}" > /dev/null 2>&1 || bool=false
     if [[ "${bool}" == true ]]; then
       # Remove it from the other one
-      echo -e "  ${INFO} Removing $1 from regex list..."
+      echo -e "  ${INFO} Removing $domain from regex list..."
       local lineNumber
-      lineNumber=$(grep -Fnx "$1" "${list}" | cut -f1 -d:)
+      lineNumber=$(grep -Fnx "$domain" "${list}" | cut -f1 -d:)
       sed -i "${lineNumber}d" "${list}"
       reload=true
     else
       if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} ${1} does not exist in regex list, no need to remove!"
+        echo -e "  ${INFO} ${domain} does not exist in regex list, no need to remove!"
       fi
     fi
   fi
