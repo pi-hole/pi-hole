@@ -269,7 +269,7 @@ def test_selinux_enforcing_continue(Pihole):
     '''
     # getenforce returns the running state of SELinux
     mock_command('getenforce', {'*': ('Enforcing', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
+    # Whiptail dialog returns Continue for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
     check_selinux = Pihole.run('''
     source /opt/pihole/basic-install.sh

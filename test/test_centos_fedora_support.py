@@ -11,7 +11,8 @@ from conftest import (
 @pytest.mark.parametrize("tag", [('fedora'), ])
 def test_epel_and_remi_not_installed_fedora(Pihole):
     '''
-    confirms installer does not attempt to install EPEL repository on Fedora
+    confirms installer does not attempt to install EPEL/REMI repositories
+    on Fedora
     '''
     distro_check = Pihole.run('''
     source /opt/pihole/basic-install.sh
@@ -27,6 +28,8 @@ def test_epel_and_remi_not_installed_fedora(Pihole):
     assert expected_stdout not in distro_check.stdout
     epel_package = Pihole.package('epel-release')
     assert not epel_package.is_installed
+    remi_package = Pihole.package('remi-release')
+    assert not remi_package.is_installed
 
 
 @pytest.mark.parametrize("tag", [('centos'), ])
@@ -51,7 +54,6 @@ def test_release_supported_version_check_centos(Pihole):
     assert expected_stdout in distro_check.stdout
     expected_stdout = 'Please update to CentOS release 7 or later'
     assert expected_stdout in distro_check.stdout
-    # assert distro_check.rc == 1  # currently only exits.. should exit 1?
 
 
 @pytest.mark.parametrize("tag", [('centos'), ])
@@ -113,7 +115,7 @@ def test_php_upgrade_user_optin_centos(Pihole):
     confirms installer behavior when user opt-in to installing PHP7 from REMI
     (php not currently installed)
     '''
-    # Whiptail dialog returns Cancel for user prompt
+    # Whiptail dialog returns Continue for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
     distro_check = Pihole.run('''
     source /opt/pihole/basic-install.sh
@@ -192,7 +194,7 @@ def test_php_version_lt_7_detected_upgrade_user_optin_centos(Pihole):
     default_centos_php_version = php_package.version.split('.')[0]
     if int(default_centos_php_version) >= 7:  # PHP7 is supported/recommended
         pytest.skip("Test deprecated . Detected default PHP version >= 7")
-    # Whiptail dialog returns Cancel for user prompt
+    # Whiptail dialog returns Continue for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
     distro_check = Pihole.run('''
     source /opt/pihole/basic-install.sh
