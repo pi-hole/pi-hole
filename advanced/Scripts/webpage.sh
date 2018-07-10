@@ -103,25 +103,38 @@ SetWebPassword() {
 		exit 1
 	fi
 
-  if (( ${#args[2]} > 0 )) ; then
-    readonly PASSWORD="${args[2]}"
-    readonly CONFIRM="${PASSWORD}"
-  else
-    # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
-    # So we reset the terminal via stty if the user does press Ctrl+C
-    trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
-    read -s -p "Enter New Password (Blank for no password): " PASSWORD
-    echo ""
-
-    if [ "${PASSWORD}" == "" ]; then
-      change_setting "WEBPASSWORD" ""
-      echo -e "  ${TICK} Password Removed"
-      exit 0
-    fi
-
-    read -s -p "Confirm Password: " CONFIRM
-    echo ""
-  fi
+	if (( ${#args[2]} > 0 )) ; then
+		readonly PASSWORD="${args[2]}"
+		readonly CONFIRM="${PASSWORD}"
+	else
+	# Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
+	# So we reset the terminal via stty if the user does press Ctrl+C
+	trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
+		
+	# Added the logic for password validation using standard password requirements to strengthen the password - issue#1781
+	# Password should be minimum 8 characters long and contain atleast 1 uppercase alphabet and 1 digit 
+	# And, i have added -r when password or confirm password is read, because read without -r will mangle backslashes
+	echo "Note: Password should be minimum 8 characters long and contain atleast 1 uppercase alphabet and 1 digit."
+	read -sr -p "Enter New Password (Blank for no password): " PASSWORD
+	echo ""
+		if [ "${PASSWORD}" == "" ]; then
+			echo "Password Removed"
+			exit 0
+		fi
+		if [[ ${#PASSWORD} -le 7 ]]; then
+			echo "Password should be atleast 8 characters long ! "
+			exit 1;
+		elif [[ "${PASSWORD}" != *[[:upper:]]* ]]; then
+			echo "Password should contain atleast 1 uppercase alphabet ! "
+			exit 1;
+		elif [[ "${PASSWORD}" != *[0-9]* ]]; then
+			echo "Password should contain atleast 1 digit ! "
+			exit 1;
+		fi  
+		read -sr -p "Confirm Password: " CONFIRM
+	# End of change for - issue1781
+		echo ""
+	fi
 
 	if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
 		hash=$(HashPassword "${PASSWORD}")
