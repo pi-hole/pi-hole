@@ -3,6 +3,9 @@ FROM centos:7
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
 
+RUN yum install -y git && \
+    yum clean all
+
 RUN mkdir -p $GITDIR $SCRIPTDIR /etc/pihole
 ADD . $GITDIR
 RUN cp $GITDIR/advanced/Scripts/*.sh $GITDIR/gravity.sh $GITDIR/pihole $GITDIR/automated\ install/*.sh $SCRIPTDIR/
