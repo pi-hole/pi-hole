@@ -14,7 +14,7 @@ piholeDir="/etc/pihole"
 adListsList="$piholeDir/adlists.list"
 wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 options="$*"
-adlist=""
+adlist="true"
 all=""
 exact=""
 blockpage=""
@@ -186,8 +186,8 @@ fi
 
 # Get adlist file content as array
 if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-  for adlistUrl in $(< "${adListsList}"); do
-    if [[ "${adlistUrl:0:4}" =~ (http|www.) ]]; then
+  IFS=$'\n'; for adlistUrl in $(< "${adListsList}"); do
+    if [[ "${adlistUrl:0:1}" != "#" ]]; then
       adlists+=("${adlistUrl}")
     fi
   done
