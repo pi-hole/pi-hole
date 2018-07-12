@@ -8,6 +8,5 @@ install:
   - pip install -r requirements.txt
 
 script:
-  # run tasks marked as 'build_stage' first (ensure docker images are built)
-  # run the remaining tasks in the test suite
+  # tox.ini handles setup, ordering of docker build first, and then run tests
   - tox
