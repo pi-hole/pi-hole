@@ -4,6 +4,10 @@
 __pycache__
 .cache
 .pytest_cache
+.tox
+.eggs
+*.egg-info
+
 
 # Created by https://www.gitignore.io/api/jetbrains+iml
 

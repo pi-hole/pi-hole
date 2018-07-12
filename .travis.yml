@@ -9,6 +9,5 @@ install:
 
 script:
   # run tasks marked as 'build_stage' first (ensure docker images are built)
-  - py.test -vv -n auto -m "build_stage"
   # run the remaining tasks in the test suite
-  - py.test -vv -n auto -m "not build_stage"
+  - tox
