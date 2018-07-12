@@ -1,5 +1,4 @@
 import pytest
-import re
 from conftest import (
     tick_box,
     info_box,

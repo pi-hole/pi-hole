@@ -1,4 +1,5 @@
 from textwrap import dedent
+import re
 from conftest import (
     SETUPVARS,
     tick_box,
@@ -193,12 +194,16 @@ def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    iptables_line = 'iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT'
-    assert iptables_line not in firewall_calls
-    iptables_line = 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT'
-    assert iptables_line not in firewall_calls
-    iptables_line = 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT'
-    assert iptables_line not in firewall_calls
+    # General call type occurances
+    assert len(re.findall(r'iptables -S', firewall_calls)) == 1
+    assert len(re.findall(r'iptables -C', firewall_calls)) == 4
+    assert len(re.findall(r'iptables -I', firewall_calls)) == 0
+
+    # Specific port call occurances
+    assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 1
+    assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 1
+    assert len(re.findall(r'udp --dport 53', firewall_calls)) == 1
+    assert len(re.findall(r'tcp --dport 4711:4720', firewall_calls)) == 1
 
 
 def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
@@ -236,12 +241,16 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    iptables_line = 'iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT'
-    assert iptables_line in firewall_calls
-    iptables_line = 'iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT'
-    assert iptables_line in firewall_calls
-    iptables_line = 'iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT'
-    assert iptables_line in firewall_calls
+    # General call type occurances
+    assert len(re.findall(r'iptables -S', firewall_calls)) == 1
+    assert len(re.findall(r'iptables -C', firewall_calls)) == 4
+    assert len(re.findall(r'iptables -I', firewall_calls)) == 4
+
+    # Specific port call occurances
+    assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 2
+    assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 2
+    assert len(re.findall(r'udp --dport 53', firewall_calls)) == 2
+    assert len(re.findall(r'tcp --dport 4711:4720', firewall_calls)) == 2
 
 
 def test_selinux_enforcing_default_exit(Pihole):
@@ -351,7 +360,7 @@ def test_update_package_cache_success_no_errors(Pihole):
     ''')
     expected_stdout = tick_box + ' Update local cache of available packages'
     assert expected_stdout in updateCache.stdout
-    assert 'Error: Unable to update package cache.' not in updateCache.stdout
+    assert 'error' not in updateCache.stdout.lower()
 
 
 def test_update_package_cache_failure_no_errors(Pihole):
@@ -478,10 +487,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     ''')
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
-    error = 'Error: Download of binary from Github failed'
-    assert error not in download_binary.stdout
-    error = 'Error: URL not found'
-    assert error not in download_binary.stdout
+    assert 'error' not in download_binary.stdout.lower()
 
 
 def test_FTL_download_unknown_fails_no_errors(Pihole):
