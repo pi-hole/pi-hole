@@ -1,4 +1,5 @@
 import pytest
+import re
 from conftest import (
     tick_box,
     info_box,
@@ -18,14 +19,8 @@ def test_epel_and_remi_not_installed_fedora(Pihole):
     source /opt/pihole/basic-install.sh
     distro_check
     ''')
-    expected_stdout = info_box + (' Enabling EPEL package repository '
-                                  '(https://fedoraproject.org/wiki/EPEL)')
-    assert expected_stdout not in distro_check.stdout
-    expected_stdout = tick_box + ' Installed epel-release'
-    assert expected_stdout not in distro_check.stdout
-    expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
-                                  'Deprecated PHP may be in use.')
-    assert expected_stdout not in distro_check.stdout
+    assert distro_check.stdout == ''
+
     epel_package = Pihole.package('epel-release')
     assert not epel_package.is_installed
     remi_package = Pihole.package('remi-release')
@@ -121,9 +116,7 @@ def test_php_upgrade_user_optin_centos(Pihole):
     source /opt/pihole/basic-install.sh
     distro_check
     ''')
-    expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
-                                  'Deprecated PHP may be in use.')
-    assert expected_stdout not in distro_check.stdout
+    assert 'opt-out' not in distro_check.stdout
     expected_stdout = info_box + (' Enabling Remi\'s RPM repository '
                                   '(https://rpms.remirepo.net)')
     assert expected_stdout in distro_check.stdout

@@ -10,4 +10,3 @@ From command line all you need to do is:
 # How do I debug python?
 
 Highly recommended: Setup PyCharm on a **Docker enabled** machine.  Having a python debugger like PyCharm changes your life if you've never used it :)
-
