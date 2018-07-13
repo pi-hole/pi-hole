@@ -282,8 +282,8 @@ Some usage examples
 .br
     \fBpihole -b -d noads.example.com\fR       Remove "noads.example.com" from blacklist
 .br
-    \fBpihole -wild "^example.*$"\fR           Add "^example.*$" as a regex pattern - would
-    block all domains starting with "example"
+    \fBpihole -wild example.com\fR             Add example.com as a wildcard - would
+    block all subdomains of example.com, including example.com itself.
 .br
     \fBpihole -regex "ad.*\.example\.com$"\fR  Add "ad.*\.example\.com$" to the regex
     blacklist - would block all subdomains of example.com which start with "ad"
