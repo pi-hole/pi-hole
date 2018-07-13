@@ -245,8 +245,8 @@ for var in "$@"; do
   case "${var}" in
     "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
     "-b" | "blacklist"   ) listMain="${blacklist}"; listAlt="${whitelist}";;
-    "-wild" | "wildcard" ) listMain="${regexlist}"; wildcard=true;;
-    "-regex" | "regex"   ) listMain="${regexlist}";;
+    "--wild" | "wildcard" ) listMain="${regexlist}"; wildcard=true;;
+    "--regex" | "regex"   ) listMain="${regexlist}";;
     "-nr"| "--noreload"  ) reload=false;;
     "-d" | "--delmode"   ) addmode=false;;
     "-q" | "--quiet"     ) verbose=false;;

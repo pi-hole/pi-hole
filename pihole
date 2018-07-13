@@ -393,8 +393,8 @@ Add '-h' after specific commands for more information on usage
 Whitelist/Blacklist Options:
   -w, whitelist       Whitelist domain(s)
   -b, blacklist       Blacklist domain(s)
-  -wild, wildcard     Wildcard blacklist domain(s)
-  -regex, regex       Regex blacklist domains(s)
+  --wild, wildcard     Wildcard blacklist domain(s)
+  --regex, regex       Regex blacklist domains(s)
                         Add '-h' for more info on whitelist/blacklist usage
 
 Debugging Options:
@@ -438,8 +438,8 @@ fi
 case "${1}" in
   "-w" | "whitelist"            ) listFunc "$@";;
   "-b" | "blacklist"            ) listFunc "$@";;
-  "-wild" | "wildcard"          ) listFunc "$@";;
-  "-regex" | "regex"            ) listFunc "$@";;
+  "--wild" | "wildcard"          ) listFunc "$@";;
+  "--regex" | "regex"            ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;

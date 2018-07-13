@@ -5,7 +5,7 @@ Pi-hole : A black-hole for internet advertisements
 .br
 .SH "SYNOPSIS"
 
-\fBpihole\fR (\fB-w\fR|\fB-b\fR|\fB-wild\fR|\fB-regex\fR) [options] domain(s)
+\fBpihole\fR (\fB-w\fR|\fB-b\fR|\fB--wild\fR|\fB--regex\fR) [options] domain(s)
 .br
 \fBpihole -a\fR \fB-p\fR password
 .br
@@ -66,12 +66,12 @@ Available commands and options:
     Adds or removes specified domain or domains to the blacklist
 .br
 
-\fB-wild, wildcard\fR [options] [<domain1> <domain2 ...>]
+\fB--wild, wildcard\fR [options] [<domain1> <domain2 ...>]
 .br
     Add or removes specified domain to the wildcard blacklist
 .br
 
-\fB-regex, regex\fR [options] [<regex1> <regex2 ...>]
+\fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
 .br
     Add or removes specified regex filter to the regex blacklist
 .br
@@ -282,10 +282,10 @@ Some usage examples
 .br
     \fBpihole -b -d noads.example.com\fR       Remove "noads.example.com" from blacklist
 .br
-    \fBpihole -wild example.com\fR             Add example.com as a wildcard - would
+    \fBpihole --wild example.com\fR             Add example.com as a wildcard - would
     block all subdomains of example.com, including example.com itself.
 .br
-    \fBpihole -regex "ad.*\.example\.com$"\fR  Add "ad.*\.example\.com$" to the regex
+    \fBpihole --regex "ad.*\.example\.com$"\fR  Add "ad.*\.example\.com$" to the regex
     blacklist - would block all subdomains of example.com which start with "ad"
 .br
 
