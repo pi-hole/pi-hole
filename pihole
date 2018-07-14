@@ -33,17 +33,7 @@ webpageFunc() {
   exit 0
 }
 
-whitelistFunc() {
- "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
-  exit 0
-}
-
-blacklistFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
-  exit 0
-}
-
-wildcardFunc() {
+listFunc() {
   "${PI_HOLE_SCRIPT_DIR}"/list.sh "$@"
   exit 0
 }
@@ -386,7 +376,8 @@ Add '-h' after specific commands for more information on usage
 Whitelist/Blacklist Options:
   -w, whitelist       Whitelist domain(s)
   -b, blacklist       Blacklist domain(s)
-  -wild, wildcard     Blacklist domain(s), and all its subdomains
+  --wild, wildcard     Wildcard blacklist domain(s)
+  --regex, regex       Regex blacklist domains(s)
                         Add '-h' for more info on whitelist/blacklist usage
 
 Debugging Options:
@@ -428,9 +419,10 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-  "-w" | "whitelist"            ) whitelistFunc "$@";;
-  "-b" | "blacklist"            ) blacklistFunc "$@";;
-  "-wild" | "wildcard"          ) wildcardFunc "$@";;
+  "-w" | "whitelist"            ) listFunc "$@";;
+  "-b" | "blacklist"            ) listFunc "$@";;
+  "--wild" | "wildcard"          ) listFunc "$@";;
+  "--regex" | "regex"            ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;

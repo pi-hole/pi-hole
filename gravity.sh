@@ -15,6 +15,8 @@ export LC_ALL=C
 
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
+regexconverter="/opt/pihole/wildcard_regex_converter.sh"
+source "${regexconverter}"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
@@ -26,7 +28,7 @@ adListDefault="${piholeDir}/adlists.default"
 
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
-wildcardFile="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+regexFile="${piholeDir}/regex.list"
 
 adList="${piholeDir}/gravity.list"
 blackList="${piholeDir}/black.list"
@@ -452,7 +454,7 @@ gravity_Whitelist() {
   echo -e "${OVER}  ${INFO} ${str}"
 }
 
-# Output count of blacklisted domains and wildcards
+# Output count of blacklisted domains and regex filters
 gravity_ShowBlockCount() {
   local num
 
@@ -461,13 +463,9 @@ gravity_ShowBlockCount() {
     echo -e "  ${INFO} Number of blacklisted domains: ${num}"
   fi
 
-  if [[ -f "${wildcardFile}" ]]; then
-    num=$(grep -c "^" "${wildcardFile}")
-    # If IPv4 and IPv6 is used, divide total wildcard count by 2
-    if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
-      num=$(( num/2 ))
-    fi
-    echo -e "  ${INFO} Number of wildcard blocked domains: ${num}"
+  if [[ -f "${regexFile}" ]]; then
+    num=$(grep -c "^(?!#)" "${regexFile}")
+    echo -e "  ${INFO} Number of regex filters: ${num}"
   fi
 }
 
@@ -645,6 +643,12 @@ if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "whitelist" ]]; then
   gravity_Whitelist
 fi
 
+# Set proper permissions on the regex file
+touch "${regexFile}"
+chown pihole:www-data "${regexFile}"
+chmod 664 "${regexFile}"
+
+convert_wildcard_to_regex
 gravity_ShowBlockCount
 
 # Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)

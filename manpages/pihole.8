@@ -5,7 +5,7 @@ Pi-hole : A black-hole for internet advertisements
 .br
 .SH "SYNOPSIS"
 
-\fBpihole\fR (\fB-w\fR|\fB-b\fR|\fB-wild\fR) [options] domain(s)
+\fBpihole\fR (\fB-w\fR|\fB-b\fR|\fB--wild\fR|\fB--regex\fR) [options] domain(s)
 .br
 \fBpihole -a\fR \fB-p\fR password
 .br
@@ -66,9 +66,14 @@ Available commands and options:
     Adds or removes specified domain or domains to the blacklist
 .br
 
-\fB-wild, wildcard\fR [options] [<domain1> <domain2 ...>]
+\fB--wild, wildcard\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified domain, and all subdomains to the blacklist
+    Add or removes specified domain to the wildcard blacklist
+.br
+
+\fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
+.br
+    Add or removes specified regex filter to the regex blacklist
 .br
 
     (Whitelist/Blacklist manipulation options):
@@ -167,9 +172,9 @@ Available commands and options:
     Show a help dialog
 .br
 
-\fB-l, logging\fR [on|off|off noflush]	
+\fB-l, logging\fR [on|off|off noflush]
 .br
-    Specify whether the Pi-hole log should be used 
+    Specify whether the Pi-hole log should be used
 .br
 
 	(Logging options):
@@ -193,7 +198,7 @@ Available commands and options:
 .br
     Show installed versions of Pi-hole, Web Interface &amp; FTL
 .br
- 
+
 .br
     (repo options):
 .br
@@ -232,7 +237,7 @@ Available commands and options:
     Disable Pi-hole subsystems, optionally for a set duration
 .br
 
-    (time options):	
+    (time options):
 .br
       #s                Disable Pi-hole functionality for # second(s)
 .br
@@ -273,11 +278,15 @@ Some usage examples
     Whitelist/blacklist manipulation
 .br
 
-    \fBpihole -w iloveads.example.com\fR  Add "iloveads.example.com" to whitelist
+    \fBpihole -w iloveads.example.com\fR       Add "iloveads.example.com" to whitelist
 .br
-    \fBpihole -b -d noads.example.com\fR  Remove "noads.example.com" from blacklist 
+    \fBpihole -b -d noads.example.com\fR       Remove "noads.example.com" from blacklist
 .br
-    \fBpihole -wild example.com\fR        Add "example.com" as wildcard - would block ads.example.com, www.example.com etc.
+    \fBpihole --wild example.com\fR             Add example.com as a wildcard - would
+    block all subdomains of example.com, including example.com itself.
+.br
+    \fBpihole --regex "ad.*\.example\.com$"\fR  Add "ad.*\.example\.com$" to the regex
+    blacklist - would block all subdomains of example.com which start with "ad"
 .br
 
     Changing the Web Interface password
