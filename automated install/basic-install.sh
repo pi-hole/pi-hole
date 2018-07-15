@@ -291,6 +291,13 @@ elif command -v rpm &> /dev/null; then
                 "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
                 yum-config-manager --enable ${REMI_REPO} &> /dev/null
                 echo -e "  ${TICK} Remi's RPM repository has been enabled for PHP7"
+                # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+                if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                    echo -e "  ${TICK} PHP7 installed/updated via Remi's RPM repository"
+                else
+                    echo -e "  ${CROSS} There was a problem updating to PHP7 via Remi's RPM repository"
+                    exit 1
+                fi
             fi
         fi
     fi
