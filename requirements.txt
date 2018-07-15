@@ -3,3 +3,4 @@ pytest
 pytest-xdist
 pytest-cov
 testinfra
+tox
