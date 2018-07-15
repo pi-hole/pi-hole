@@ -244,7 +244,8 @@ elif command -v rpm &> /dev/null; then
     # If the host OS is Fedora,
     if grep -qi 'fedora' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
-        : # continue
+        # ensure 'php-json' is installed on Fedora (installed as dependency on CentOS7 + Remi repository)
+        PIHOLE_WEB_DEPS+=('php-json')
     # or if host OS is CentOS,
     elif grep -qi 'centos' /etc/redhat-release; then
         # Pi-Hole currently supports CentOS 7+ with PHP7+
