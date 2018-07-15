@@ -1632,7 +1632,7 @@ configureFirewall() {
         { echo -e "  ${INFO} Not installing firewall rulesets."; return 0; }
         echo -e "  ${TICK} Configuring FirewallD for httpd and pihole-FTL"
         # Allow HTTP and DNS traffic
-        firewall-cmd --permanent --add-service=http --add-service=dns
+        firewall-cmd --permanent --add-service=http --add-service=dns --add-service=dhcp --add-service=dhcpv6
         # Reload the firewall to apply these changes
         firewall-cmd --reload
         return 0
@@ -1649,6 +1649,8 @@ configureFirewall() {
             iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
             iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
             iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
+            iptables -C INPUT -p udp -m udp --sport 67:68 --dport 67:68 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --sport 67:68 --dport 67:68 -j ACCEPT
+            ip6tables -C INPUT -p udp -m udp --sport 546:547 --dport 546:547 -j ACCEPT &> /dev/null || ip6tables -I INPUT -p udp -m udp --sport 546:547 --dport 546:547 -j ACCEPT &> /dev/null
             return 0
         fi
     # Otherwise,
