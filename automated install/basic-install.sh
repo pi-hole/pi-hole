@@ -37,6 +37,10 @@ setupVars=/etc/pihole/setupVars.conf
 lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
+# Defining a numeric variable for tracking presence of dnsmasq
+dnsmasq_flag=false
+# Defining a numeric variable for tracking presence of systemd-resolved
+systemd_resolved_flag=false
 
 # We store several other folders and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
@@ -82,13 +86,16 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 INSTALL_WEB_SERVER=true
+forceFTLDNS=false
+
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
-        "--reconfigure" ) reconfigure=true;;
+        "--reconfigure" ) reconfigure=true forceFTLDNS=true;;
         "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
         "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
+        "--forceFTLDNS" ) forceFTLDNS=true;;
     esac
 done
 
@@ -102,8 +109,11 @@ else
     COL_NC='\e[0m' # No Color
     COL_LIGHT_GREEN='\e[1;32m'
     COL_LIGHT_RED='\e[1;31m'
+    COL_LIGHT_YELLOW='\e[1;33m'
+    COL_LIGHT_CYAN='\e[1;96m'
     TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
     CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+    EXCL="[${COL_LIGHT_YELLOW}!${COL_NC}]"
     INFO="[i]"
     # shellcheck disable=SC2034
     DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
@@ -138,6 +148,84 @@ show_ascii_berry() {
 }
 
 # Compatibility
+
+port_53_probe(){
+    # Probe localhost via 127.0.0.1 for open port 53 and store process name if port 53 is occupied
+    if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
+        # What process is using 53?
+        who53="$(${SUDO} lsof -i :53 +c 0 | awk 'FNR==2{ print $1 }')"
+    fi
+}
+
+port_53_check(){
+    # Print info regarding probing for open port 53
+    echo -e "  ${INFO} Testing for port 53 availability...${COL_NC}"
+    port_53_probe
+    # Check running process and see if it's blank
+    if [ -z "$who53" ]; then
+        echo -e "  ${TICK} ${COL_LIGHT_GREEN}Port 53 is available.${COL_NC}"
+        # Check running process and see if it's pihole-FTL
+    elif [ "$who53" = "pihole-FTL" ]; then
+        # Proceed with install
+        echo -e "  ${TICK} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
+    elif [ "$who53" = "dnsmasq" ] && [[ $forceFTLDNS = "true" ]]; then
+        # If dnsmasq is present, set the dnsmasq-flag to true for future reference
+        # (after packages and dependencies are installed).
+        # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+        echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
+        echo -e "  --forceFTLDNS flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
+        echo -e "  have been downloaded, and replace dnsmasq with FTLDNS."
+        dnsmasq_flag=true
+    elif [ "$who53" = "dnsmasq" ] && [[ $forceFTLDNS = "false" ]]; then
+        # If dnsmasq is present, set the dnsmasq-flag to true for future reference
+        # (after packages and dependencies are installed).
+        # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+        echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
+        echo -e "    In order for the installer to proceed, ${COL_LIGHT_RED}$who53${COL_NC} needs to be disabled."
+        echo -e "    Please re-run the installer with the following command:"
+        echo -e "    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --forceFTLDNS${COL_NC}"
+        exit 0
+    elif [ "$who53" = "systemd-resolve" ] && [[ $forceFTLDNS = "true" ]]; then
+        # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
+        # (after packages and dependencies are installed).
+        # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
+        echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
+        echo -e "    --forceFTLDNS flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
+        echo -e "    have been downloaded, and replace the system DNS resolver with FTLDNS."
+        systemd_resolved_flag=true
+    elif [ "$who53" = "systemd-resolve" ] && [[ $forceFTLDNS = "false" ]]; then
+        # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
+        # (after packages and dependencies are installed).
+        # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
+        echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
+        echo -e "    In order for the installer to proceed, ${COL_LIGHT_RED}$who53${COL_NC} needs to be disabled."
+        echo -e "    Please re-run the installer with the following command:"
+        echo -e "    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --forceFTLDNS${COL_NC}"
+        exit 0
+    else
+        # Port 53 is used by something else, stop install
+        echo -e "  ${EXCL} ${COL_LIGHT_YELLOW}WARNING: Port 53 (mandatory for FTLDNS) is already in use by ${COL_LIGHT_RED}$who53${COL_NC}."
+        echo -e "    Since this will interfere with the functionality of FTLDNS, the installer cannot continue."
+        echo -e "    Please visit our discourse forum at ${COL_LIGHT_CYAN}https://discourse.pi-hole.net${COL_NC}"
+        echo -e "    in order to get help related to this issue."
+        echo -e "    ${COL_LIGHT_RED}Installer will now exit.${COL_NC}"
+        exit 0
+    fi
+}
+
+# Creating silent port 53 check
+silent_port_53_check(){
+    # Probe localhost via 127.0.0.1 for open port 53 availability
+    port_53_probe
+    # Check running process and see if it's dnsmasq
+    if [ "$who53" = "dnsmasq" ]; then
+        # If dnsmasq is present, set the dnsmasq-flag to true for future reference
+        # (after packages and dependencies are installed).
+        # dnsmasq will be disabled at end of install, prior to FTLDNS start.
+        dnsmasq_flag=true
+    fi
+}
+
 distro_check() {
 # If apt-get is installed, then we know it's part of the Debian family
 if command -v apt-get &> /dev/null; then
@@ -1378,26 +1466,60 @@ check_service_active() {
 
 # Systemd-resolved's DNSStubListener and dnsmasq can't share port 53.
 disable_resolved_stublistener() {
-    echo -en "  ${INFO} Testing if systemd-resolved is enabled"
-    # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
-    if check_service_active "systemd-resolved"; then
+    echo -e "  ${INFO} Testing if systemd-resolved is enabled"
+    # Check if Systemd-resolved's DNSStubListener flag is present
+    if [[ $systemd_resolved_flag = "true" ]]; then
         # Check if DNSStubListener is enabled
-        echo -en "  ${OVER}  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
+        echo -e "  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
         if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
-            # Disable the DNSStubListener to unbind it from port 53
-            # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
-            echo -en "${OVER}  ${TICK} Disabling systemd-resolved DNSStubListener"
-            # Make a backup of the original /etc/systemd/resolved.conf
-            # (This will need to be restored on uninstallation)
-            sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-            echo -e " and restarting systemd-resolved"
-            systemctl reload-or-restart systemd-resolved
+          # Disable the DNSStubListener to unbind it from port 53
+          # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
+          echo -e "  ${TICK} Disabling systemd-resolved DNSStubListener"
+          # Make a backup of the original /etc/systemd/resolved.conf
+          # (This will need to be restored on uninstallation)
+          ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+          echo -e "  ${TICK} Restarting systemd-resolved DNSStubListener"
+          ${SUDO} systemctl reload-or-restart systemd-resolved
         else
-            echo -e "${OVER}  ${INFO} Systemd-resolved does not need to be restarted"
+          echo -e "  ${INFO} Systemd-resolved does not need to be restarted"
+          echo -e "  ${INFO} DNSStubListener is not enabled"
         fi
     else
-        echo -e "${OVER}  ${INFO} Systemd-resolved is not enabled"
+        echo -e "  ${INFO} Systemd-resolved is not enabled"
     fi
+}
+
+disable_dnsmasq() {
+    # Check if dnsmasq flag is present.
+    echo -e "  ${INFO} Checking if dnsmasq is enabled"
+    if [[ $dnsmasq_flag = "true" ]]; then
+        if ( grep -E '#?dns=dnsmasq' /etc/NetworkManager/NetworkManager.conf &> /dev/null ); then
+            # Disable dnsmasq from restarting when Network Manager restarts
+            # Note that this breaks dns functionality on host until FTLDNS is up and running
+            echo -e "  ${TICK} Disabling dnsmasq from restarting when Network manager starts/restarts"
+            # Make a backup of the original /etc/NetworkManager/NetworkManager.conf
+            # (This will need to be restored on uninstallation)
+            ${SUDO} sed -r -i.orig '/#?dns=dnsmasq/d' /etc/NetworkManager/NetworkManager.conf
+            echo -e "  ${TICK} Restarting Network manager"
+            ${SUDO} systemctl reload-or-restart NetworkManager
+    else
+        # Disabling dnsmasq via systemctl
+        echo -e "  ${INFO} Disabling dnsmasq via systemctl"
+        ${SUDO} systemctl disable dnsmasq &> /dev/null
+    fi
+#setting dnsmasq_flag to false in order for the next check to validate or not
+dnsmasq_flag=false
+echo -e "  ${INFO} Checking if dnsmasq is still running"
+silent_port_53_check
+if [[ $dnsmasq_flag = "true" ]]; then
+    echo -e "  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq"
+    echo -e "    was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
+    ${SUDO} pkill dnsmasq
+    echo -e "  ${TICK} dnsmasq process killed"
+fi
+else
+    echo -e "  ${INFO} dnsmasq is not enabled"
+fi
 }
 
 update_package_cache() {
@@ -1891,6 +2013,7 @@ update_dialogs() {
         ${opt1a})
             echo -e "  ${INFO} ${opt1a} option selected"
             useUpdateVars=true
+            forceFTLDNS=true
             ;;
         # reconfigure,
         ${opt2a})
@@ -2303,6 +2426,8 @@ main() {
         echo -e "  ${TICK} ${str}"
         # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
         show_ascii_berry
+        # Check for port 53 availability
+        port_53_check
         make_temporary_log
     # Otherwise,
     else
@@ -2434,11 +2559,20 @@ main() {
         fi
     fi
 
-    # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
+    # Check for systemd-resolved flag and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
-    # but before starting or resarting the dnsmasq or ftl services
-    disable_resolved_stublistener
+    # but before starting or restarting the FTLDNS service
+    if [[ $systemd_resolved_flag = "true" ]]; then 
+        disable_resolved_stublistener
+    fi
+    # Check for dnsmasq flag and disable dnsmasq before starting FTLDNS
+    # dnsmasq needs to remain in place for installer to download needed files,
+    # so this change needs to be made after installation is complete,
+    # but before starting or restarting the FTLDNS service
+    if [[ $dnsmasq_flag = "true" ]]; then
+        disable_dnsmasq
+    fi
 
     # If the Web server was installed,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
@@ -2453,7 +2587,6 @@ main() {
 
     echo -e "  ${INFO} Restarting services..."
     # Start services
-
     # Enable FTL
     start_service pihole-FTL
     enable_service pihole-FTL
