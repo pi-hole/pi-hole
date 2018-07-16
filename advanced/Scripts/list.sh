@@ -32,8 +32,11 @@ helpFunc() {
   if [[ "${listMain}" == "${whitelist}" ]]; then
     param="w"
     type="white"
+  elif [[ "${listMain}" == "${regexlist}" && "${wildcard}" == true ]]; then
+    param="-wild"
+    type="wildcard black"
   elif [[ "${listMain}" == "${regexlist}" ]]; then
-    param="wild"
+    param="-regex"
     type="regex black"
   else
     param="b"
