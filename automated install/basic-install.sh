@@ -37,9 +37,9 @@ setupVars=/etc/pihole/setupVars.conf
 lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
-# Defining a numeric variable for tracking presence of dnsmasq
+# Defining a boolean variable for tracking presence of dnsmasq
 dnsmasq_flag=false
-# Defining a numeric variable for tracking presence of systemd-resolved
+# Defining a boolean variable for tracking presence of systemd-resolved
 systemd_resolved_flag=false
 
 # We store several other folders and
@@ -1472,17 +1472,17 @@ disable_resolved_stublistener() {
         # Check if DNSStubListener is enabled
         echo -e "  ${INFO} Testing if systemd-resolved DNSStub-Listener is active"
         if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
-          # Disable the DNSStubListener to unbind it from port 53
-          # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
-          echo -e "  ${TICK} Disabling systemd-resolved DNSStubListener"
-          # Make a backup of the original /etc/systemd/resolved.conf
-          # (This will need to be restored on uninstallation)
-          ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-          echo -e "  ${TICK} Restarting systemd-resolved DNSStubListener"
-          ${SUDO} systemctl reload-or-restart systemd-resolved
+            # Disable the DNSStubListener to unbind it from port 53
+            # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
+            echo -e "  ${TICK} Disabling systemd-resolved DNSStubListener"
+            # Make a backup of the original /etc/systemd/resolved.conf
+            # (This will need to be restored on uninstallation)
+            ${SUDO} sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
+            echo -e "  ${TICK} Restarting systemd-resolved DNSStubListener"
+            ${SUDO} systemctl reload-or-restart systemd-resolved
         else
-          echo -e "  ${INFO} Systemd-resolved does not need to be restarted"
-          echo -e "  ${INFO} DNSStubListener is not enabled"
+            echo -e "  ${INFO} Systemd-resolved does not need to be restarted"
+            echo -e "  ${INFO} DNSStubListener is not enabled"
         fi
     else
         echo -e "  ${INFO} Systemd-resolved is not enabled"
@@ -1507,19 +1507,19 @@ disable_dnsmasq() {
         echo -e "  ${INFO} Disabling dnsmasq via systemctl"
         ${SUDO} systemctl disable dnsmasq &> /dev/null
     fi
-#setting dnsmasq_flag to false in order for the next check to validate or not
-dnsmasq_flag=false
-echo -e "  ${INFO} Checking if dnsmasq is still running"
-silent_port_53_check
-if [[ $dnsmasq_flag = "true" ]]; then
-    echo -e "  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq"
-    echo -e "    was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
-    ${SUDO} pkill dnsmasq
-    echo -e "  ${TICK} dnsmasq process killed"
-fi
-else
-    echo -e "  ${INFO} dnsmasq is not enabled"
-fi
+    #setting dnsmasq_flag to false in order for the next check to validate or not
+    dnsmasq_flag=false
+    echo -e "  ${INFO} Checking if dnsmasq is still running"
+    silent_port_53_check
+    if [[ $dnsmasq_flag = "true" ]]; then
+        echo -e "  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq"
+        echo -e "    was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
+        ${SUDO} pkill dnsmasq
+        echo -e "  ${TICK} dnsmasq process killed"
+    fi
+    else
+        echo -e "  ${INFO} dnsmasq is not enabled"
+    fi
 }
 
 update_package_cache() {
