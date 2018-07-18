@@ -244,7 +244,8 @@ elif command -v rpm &> /dev/null; then
     # If the host OS is Fedora,
     if grep -qi 'fedora' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
-        : # continue
+        # ensure 'php-json' is installed on Fedora (installed as dependency on CentOS7 + Remi repository)
+        PIHOLE_WEB_DEPS+=('php-json')
     # or if host OS is CentOS,
     elif grep -qi 'centos' /etc/redhat-release; then
         # Pi-Hole currently supports CentOS 7+ with PHP7+
@@ -291,6 +292,13 @@ elif command -v rpm &> /dev/null; then
                 "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
                 yum-config-manager --enable ${REMI_REPO} &> /dev/null
                 echo -e "  ${TICK} Remi's RPM repository has been enabled for PHP7"
+                # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+                if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                    echo -e "  ${TICK} PHP7 installed/updated via Remi's RPM repository"
+                else
+                    echo -e "  ${CROSS} There was a problem updating to PHP7 via Remi's RPM repository"
+                    exit 1
+                fi
             fi
         fi
     fi
