@@ -1502,21 +1502,21 @@ disable_dnsmasq() {
             ${SUDO} sed -r -i.orig '/#?dns=dnsmasq/d' /etc/NetworkManager/NetworkManager.conf
             echo -e "  ${TICK} Restarting Network manager"
             ${SUDO} systemctl reload-or-restart NetworkManager
-    else
-        # Disabling dnsmasq via systemctl
-        echo -e "  ${INFO} Disabling dnsmasq via systemctl"
-        ${SUDO} systemctl disable dnsmasq &> /dev/null
-    fi
-    #setting dnsmasq_flag to false in order for the next check to validate or not
-    dnsmasq_flag=false
-    echo -e "  ${INFO} Checking if dnsmasq is still running"
-    silent_port_53_check
-    if [[ $dnsmasq_flag = "true" ]]; then
-        echo -e "  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq"
-        echo -e "    was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
-        ${SUDO} pkill dnsmasq
-        echo -e "  ${TICK} dnsmasq process killed"
-    fi
+        else
+            # Disabling dnsmasq via systemctl
+            echo -e "  ${INFO} Disabling dnsmasq via systemctl"
+            ${SUDO} systemctl disable dnsmasq &> /dev/null
+        fi
+        #setting dnsmasq_flag to false in order for the next check to validate or not
+        dnsmasq_flag=false
+        echo -e "  ${INFO} Checking if dnsmasq is still running"
+        silent_port_53_check
+        if [[ $dnsmasq_flag = "true" ]]; then
+            echo -e "  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq"
+            echo -e "    was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
+            ${SUDO} pkill dnsmasq
+            echo -e "  ${TICK} dnsmasq process killed"
+        fi
     else
         echo -e "  ${INFO} dnsmasq is not enabled"
     fi
