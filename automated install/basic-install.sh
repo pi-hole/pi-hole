@@ -168,7 +168,7 @@ port_53_check(){
     elif [ "$who53" = "pihole-FTL" ]; then
         # Proceed with install
         echo -e "  ${TICK} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
-    elif [ "$who53" = "dnsmasq" ] && [[ $forceFTLDNS = "true" ]]; then
+    elif [ "$who53" = "dnsmasq" ] && [[ $skipDNSPortCheck= "true" ]]; then
         # If dnsmasq is present, set the dnsmasq-flag to true for future reference
         # (after packages and dependencies are installed).
         # dnsmasq will be disabled at end of install, prior to FTLDNS start.
@@ -176,7 +176,7 @@ port_53_check(){
         echo -e "  --skip-DNS-port-check flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
         echo -e "  have been downloaded, and replace dnsmasq with FTLDNS."
         dnsmasq_flag=true
-    elif [ "$who53" = "dnsmasq" ] && [[ $forceFTLDNS = "false" ]]; then
+    elif [ "$who53" = "dnsmasq" ] && [[ $skipDNSPortCheck= "false" ]]; then
         # If dnsmasq is present, set the dnsmasq-flag to true for future reference
         # (after packages and dependencies are installed).
         # dnsmasq will be disabled at end of install, prior to FTLDNS start.
@@ -185,7 +185,7 @@ port_53_check(){
         echo -e "    Please re-run the installer with the following command:"
         echo -e "    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --skip-DNS-port-check${COL_NC}"
         exit 0
-    elif [ "$who53" = "systemd-resolve" ] && [[ $forceFTLDNS = "true" ]]; then
+    elif [ "$who53" = "systemd-resolve" ] && [[ $skipDNSPortCheck= "true" ]]; then
         # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
         # (after packages and dependencies are installed).
         # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
@@ -193,7 +193,7 @@ port_53_check(){
         echo -e "    --skip-DNS-port-check flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
         echo -e "    have been downloaded, and replace the system DNS resolver with FTLDNS."
         systemd_resolved_flag=true
-    elif [ "$who53" = "systemd-resolve" ] && [[ $forceFTLDNS = "false" ]]; then
+    elif [ "$who53" = "systemd-resolve" ] && [[ $skipDNSPortCheck= "false" ]]; then
         # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
         # (after packages and dependencies are installed).
         # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
