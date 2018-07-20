@@ -1015,20 +1015,14 @@ setDNS() {
                 if [[ ! "${PIHOLE_DNS_1}" ]]; then
                     # and second upstream servers do not exist
                     if [[ ! "${PIHOLE_DNS_2}" ]]; then
-                        #
                         prePopulate=""
                     # Otherwise,
                     else
-                        #
                         prePopulate=", ${PIHOLE_DNS_2}"
                     fi
-                #
                 elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
-                    #
                     prePopulate="${PIHOLE_DNS_1}"
-                #
                 elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
-                    #
                     prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
                 fi
 
@@ -1563,13 +1557,10 @@ notify_package_updates_available() {
     updatesToInstall=$(eval "${PKG_COUNT}")
 
     if [[ -d "/lib/modules/$(uname -r)" ]]; then
-        #
         if [[ "${updatesToInstall}" -eq 0 ]]; then
-            #
             echo -e "${OVER}  ${TICK} ${str}... up to date!"
             echo ""
         else
-            #
             echo -e "${OVER}  ${TICK} ${str}... ${updatesToInstall} updates available"
             echo -e "  ${INFO} ${COL_LIGHT_GREEN}It is recommended to update your OS after installing the Pi-hole! ${COL_NC}"
             echo ""
@@ -1610,45 +1601,33 @@ install_dependent_packages() {
         # For each package,
         for i in "${argArray1[@]}"; do
             echo -ne "  ${INFO} Checking for $i..."
-            #
             if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
-                #
                 echo -e "${OVER}  ${TICK} Checking for $i"
             else
-                #
                 echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
-                #
                 installArray+=("${i}")
             fi
         done
-        #
         if [[ "${#installArray[@]}" -gt 0 ]]; then
-            #
             test_dpkg_lock
-            #
             debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
             return
         fi
         echo ""
-        #
         return 0
     fi
 
     # Install Fedora/CentOS packages
     for i in "${argArray1[@]}"; do
         echo -ne "  ${INFO} Checking for $i..."
-        #
         if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
             echo -e "${OVER}  ${TICK} Checking for $i"
         else
             echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
-            #
             installArray+=("${i}")
         fi
     done
-    #
     if [[ "${#installArray[@]}" -gt 0 ]]; then
-        #
         "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
         return
     fi
@@ -2571,7 +2550,7 @@ main() {
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
     # but before starting or restarting the FTLDNS service
-    if [[ $systemd_resolved_flag = "true" ]]; then 
+    if [[ $systemd_resolved_flag = "true" ]]; then
         disable_resolved_stublistener
     fi
     # Check for dnsmasq flag and disable dnsmasq before starting FTLDNS
@@ -2606,7 +2585,6 @@ main() {
     /opt/pihole/updatecheck.sh
     /opt/pihole/updatecheck.sh x remote
 
-    #
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
     fi
@@ -2621,7 +2599,6 @@ main() {
         fi
     fi
 
-    #
     if [[ "${useUpdateVars}" == false ]]; then
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
@@ -2633,10 +2610,8 @@ main() {
         [[ -n "${IPV4_ADDRESS%/*}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv4): ${IPV4_ADDRESS%/*}"
         [[ -n "${IPV6_ADDRESS}" ]] && echo -e "  ${INFO} Pi-hole DNS (IPv6): ${IPV6_ADDRESS}"
         echo -e "  ${INFO} If you set a new IP address, please restart the server running the Pi-hole"
-        #
         INSTALL_TYPE="Installation"
     else
-        #
         INSTALL_TYPE="Update"
     fi
 
@@ -2650,7 +2625,6 @@ main() {
     fi
 }
 
-#
 if [[ "${PH_TEST}" != true ]] ; then
     main "$@"
 fi
