@@ -1391,7 +1391,7 @@ install_manpage() {
     tag_output; cp -a $fromDir/pihole-FTL.8 $toManDir/man8/pihole-FTL.8 >&4 2>&1; rc2=$?
     tag_output; cp -a $fromDir/pihole-FTL.conf.5 $toManDir/man5/pihole-FTL.conf.5 >&4 2>&1; rc3=$?
     set -e
-    if [ $rc1 == 0 -a $rc1 == 0 -a $rc2 == 0 ]; then
+    if [ $rc1 == 0 ] && [ $rc2 == 0 ] && [ $rc3 == 0 ]; then
         tag_output; mandb -q >&4 2>&1
         # Updated successfully
         echo -e "${OVER}  ${TICK} man pages installed and database updated"
