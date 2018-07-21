@@ -1617,14 +1617,14 @@ install_dependent_packages() {
             # Tell debconf-apt-progress to log output from apt-get to a file, otherwise
             # we lose apt-get's output and can't report it to the caller
             apt_get_logfile=$(mktemp /tmp/pihole__apt_get_logfile_XXXXXX)
-            debconf-apt-progress --logfile $apt_get_logfile -- "${PKG_INSTALL[@]}" "${installArray[@]}" || rc=1
+            debconf-apt-progress --logfile "$apt_get_logfile" -- "${PKG_INSTALL[@]}" "${installArray[@]}" || rc=1
             if [ $rc != 0 ]; then
-                tag_output; cat $apt_get_logfile >&4
+                tag_output; cat "$apt_get_logfile" >&4
                 err_trap "${PKG_INSTALL[*]} ${installArray[*]}"
-                tag_output; rm -f $apt_get_logfile >&4 2>&1
+                tag_output; rm -f "$apt_get_logfile" >&4 2>&1
                 exit 1
             fi
-            tag_output; rm -f $apt_get_logfile >&4 2>&1
+            tag_output; rm -f "$apt_get_logfile" >&4 2>&1
             return
         fi
         echo ""
@@ -2086,7 +2086,7 @@ fetch_checkout_pull_branch() {
     git clean --quiet --force -d || true
     cmd='git fetch'
     tag_output; eval "$cmd" >&4 2>&1 || err_trap "$cmd" || return 1
-    checkout_pull_branch
+    checkout_pull_branch "${directory}" "${branch}" || return 1
 }
 
 checkout_pull_branch() {
@@ -2576,8 +2576,9 @@ main() {
     copy_to_install_log
 
     # Inform the user if the installPihole step failed
-    if [ -f $INSTALL_PIHOLE_SEM_FILE ]; then
+    if [ -f "$INSTALL_PIHOLE_SEM_FILE" ]; then
       echo -e "  ${COL_LIGHT_RED}Pi-hole installation failed.${COL_NC}"
+      rm -f "$INSTALL_PIHOLE_SEM_FILE"
       exit 1
     fi
   
