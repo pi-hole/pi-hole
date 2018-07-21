@@ -187,7 +187,6 @@ else
     COL_BOLD='\e[1m' # Bright
     COL_LIGHT_GREEN='\e[1;32m'
     COL_LIGHT_RED='\e[1;31m'
-    COL_LIGHT_BOLD='\e[1;31m'
     COL_GRAY='\e[1;90m'
     TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
     CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
