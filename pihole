@@ -309,6 +309,17 @@ tailFunc() {
   exit 0
 }
 
+tailDomainsFunc() {
+  echo -e "Press Ctrl-C to exit"
+
+  # Filter out non-blocking messages
+  # Remove everthing in front of the domain
+  # Remove everthing after the domain
+  tail -f /var/log/pihole.log | grep --line-buffered -E 'gravity.list|black.list' | sed -u -E \
+    -e "s,.*(gravity.list |black.list ),," \
+    -e "s, .*,,"
+}
+
 piholeCheckoutFunc() {
   if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
     echo "Usage: pihole checkout [repo] [branch]
@@ -386,6 +397,7 @@ Debugging Options:
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
   -t, tail            View the live output of the Pi-hole log
+  -td, tailDomains    View blocked domains live from the Pi-hole log
 
 Options:
   -a, admin           Web interface options
@@ -440,6 +452,7 @@ case "${1}" in
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "-t" | "tail"                 ) tailFunc;;
+  "-td" | "tailDomains"         ) tailDomainsFunc;;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
