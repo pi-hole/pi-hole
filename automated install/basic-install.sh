@@ -86,16 +86,16 @@ skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 INSTALL_WEB_SERVER=true
-skipDNSPortCheck=false
+forceDNSPortCheck=false
 
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
-        "--reconfigure" ) reconfigure=true skipDNSPortCheck=true;;
+        "--reconfigure" ) reconfigure=true forceDNSPortCheck=true;;
         "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
         "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
-        "--skip-DNS-port-check" ) skipDNSPortCheck=true;;
+        "--force-DNS-port-check" ) forceDNSPortCheck=true;;
     esac
 done
 
@@ -168,39 +168,39 @@ port_53_check(){
     elif [ "$who53" = "pihole-FTL" ]; then
         # Proceed with install
         echo -e "  ${TICK} Port 53 is in use by our resolver ${COL_LIGHT_GREEN}($who53)${COL_NC}, proceeding with setup"
-    elif [ "$who53" = "dnsmasq" ] && [[ $skipDNSPortCheck = "true" ]]; then
+    elif [ "$who53" = "dnsmasq" ] && [[ $forceDNSPortCheck = "true" ]]; then
         # If dnsmasq is present, set the dnsmasq-flag to true for future reference
         # (after packages and dependencies are installed).
         # dnsmasq will be disabled at end of install, prior to FTLDNS start.
         echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
-        echo -e "  --skip-DNS-port-check flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
+        echo -e "  --force-DNS-port-check flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
         echo -e "  have been downloaded, and replace dnsmasq with FTLDNS."
         dnsmasq_flag=true
-    elif [ "$who53" = "dnsmasq" ] && [[ $skipDNSPortCheck = "false" ]]; then
+    elif [ "$who53" = "dnsmasq" ] && [[ $forceDNSPortCheck = "false" ]]; then
         # If dnsmasq is present, set the dnsmasq-flag to true for future reference
         # (after packages and dependencies are installed).
         # dnsmasq will be disabled at end of install, prior to FTLDNS start.
         echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
         echo -e "    In order for the installer to proceed, ${COL_LIGHT_RED}$who53${COL_NC} needs to be disabled."
         echo -e "    Please re-run the installer with the following command:"
-        echo -e "    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --skip-DNS-port-check${COL_NC}"
+        echo -e "    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --force-DNS-port-check${COL_NC}"
         exit 0
-    elif [ "$who53" = "systemd-resolve" ] && [[ $skipDNSPortCheck = "true" ]]; then
+    elif [ "$who53" = "systemd-resolve" ] && [[ $forceDNSPortCheck = "true" ]]; then
         # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
         # (after packages and dependencies are installed).
         # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
         echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
-        echo -e "    --skip-DNS-port-check flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
+        echo -e "    --force-DNS-port-check flag was used. The installer ${COL_LIGHT_RED}will disable $who53${COL_NC} after dependencies and packages"
         echo -e "    have been downloaded, and replace the system DNS resolver with FTLDNS."
         systemd_resolved_flag=true
-    elif [ "$who53" = "systemd-resolve" ] && [[ $skipDNSPortCheck = "false" ]]; then
+    elif [ "$who53" = "systemd-resolve" ] && [[ $forceDNSPortCheck = "false" ]]; then
         # If systemd-resolved is present, set the systemd-resolved-flag to true for future reference
         # (after packages and dependencies are installed).
         # systemd-resolved will be disabled at end of install, prior to FTLDNS start.
         echo -e "  ${EXCL} Port 53 is in use by ${COL_LIGHT_RED}$who53${COL_NC}."
         echo -e "    In order for the installer to proceed, ${COL_LIGHT_RED}$who53${COL_NC} needs to be disabled."
         echo -e "    Please re-run the installer with the following command:"
-        echo -e "    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --skip-DNS-port-check${COL_NC}"
+        echo -e "    ${COL_LIGHT_CYAN}curl -sSL https://install.pi-hole.net | bash -s -- --force-DNS-port-check${COL_NC}"
         exit 0
     else
         # Port 53 is used by something else, stop install
@@ -2000,7 +2000,7 @@ update_dialogs() {
         ${opt1a})
             echo -e "  ${INFO} ${opt1a} option selected"
             useUpdateVars=true
-            skipDNSPortCheck=true
+            forceDNSPortCheck=true
             ;;
         # reconfigure,
         ${opt2a})
