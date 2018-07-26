@@ -2424,22 +2424,8 @@ main() {
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
-<<<<<<< HEAD
-    # but before starting or restarting the FTLDNS service
-    if [[ $systemd_resolved_flag = "true" ]]; then
-        disable_resolved_stublistener
-    fi
-    # Check for dnsmasq flag and disable dnsmasq before starting FTLDNS
-    # dnsmasq needs to remain in place for installer to download needed files,
-    # so this change needs to be made after installation is complete,
-    # but before starting or restarting the FTLDNS service
-    if [[ $dnsmasq_flag = "true" ]]; then
-        disable_dnsmasq
-    fi
-=======
     # but before starting or resarting the dnsmasq or ftl services
     disable_resolved_stublistener
->>>>>>> parent of 9cd674b... Merge pull request #2282 from RamSet/tweak/Port53
 
     # If the Web server was installed,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
