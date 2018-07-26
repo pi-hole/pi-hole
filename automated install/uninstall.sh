@@ -158,12 +158,6 @@ removeNoPurge() {
         systemctl reload-or-restart systemd-resolved
     fi
 
-    # Restore dnsmasq via Network Manager
-    if [[ -e /etc/NetworkManager/NetworkManager.conf.orig ]]; then
-        ${SUDO} cp /etc/NetworkManager/NetworkManager.conf.orig /etc/NetworkManager/NetworkManager.conf
-        systemctl reload-or-restart NetworkManager
-    fi
-
     # Remove FTL
     if command -v pihole-FTL &> /dev/null; then
         echo -ne "  ${INFO} Removing pihole-FTL..."
