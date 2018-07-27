@@ -38,14 +38,14 @@ lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
 
-# We store several other folders and
+# We store several other directories and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # These are the names of pi-holes files, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
-# This folder is where the Pi-hole scripts will be installed
+# This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
@@ -318,7 +318,7 @@ else
 fi
 }
 
-# A function for checking if a folder is a git repository
+# A function for checking if a directory is a git repository
 is_repo() {
     # Use a named, local variable instead of the vague $1, which is the first argument passed to this function
     # These local variables should always be lowercase
@@ -333,7 +333,7 @@ is_repo() {
     if [[ -d "${directory}" ]]; then
         # move into the directory
         cd "${directory}"
-        # Use git to check if the folder is a repo
+        # Use git to check if the directory is a repo
         # git -C is not used here to support git versions older than 1.8.4
         git status --short &> /dev/null || rc=$?
     # If the command was not successful,
