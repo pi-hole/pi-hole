@@ -2026,8 +2026,8 @@ FTLinstall() {
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
     # Install template if it does not exist
-    if [[ ! -f /etc/pihole/pihole-FTL.conf ]]; then
-        install -o "${USER}" -Dm644 -t "${PI_HOLE_INSTALL_DIR}/advanced/Templates/pihole-FTL.conf" "/etc/pihole/pihole-FTL.conf"
+    if [[ ! -f "/etc/pihole/pihole-FTL.conf" ]]; then
+        install -o "${USER}" -Dm644 "${PI_HOLE_INSTALL_DIR}/advanced/Templates/pihole-FTL.conf" "/etc/pihole/pihole-FTL.conf"
     fi
 
     local ftlBranch
