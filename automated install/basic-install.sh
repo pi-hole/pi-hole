@@ -1518,10 +1518,10 @@ disable_dnsmasq() {
             echo -e "  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq"
             echo -e "    was loaded via an init.d service.${COL_NC}"
             # Stopping dnsmasq
-            echo -e "  ${TICK} Stopping dnsmasq via service command"
+            echo -e "  ${INFO} Stopping dnsmasq via service command"
             ${SUDO} service dnsmasq stop > /dev/null 2>&1
             # Disabling dnsmasq
-            echo -e "  ${TICK} Disabling dnsmasq via update-rc.d command"
+            echo -e "  ${INFO} Disabling dnsmasq via update-rc.d command"
             ${SUDO} update-rc.d dnsmasq disable > /dev/null 2>&1
         fi
     else
