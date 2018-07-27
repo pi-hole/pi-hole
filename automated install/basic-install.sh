@@ -1516,9 +1516,13 @@ disable_dnsmasq() {
         silent_port_53_check
         if [[ $dnsmasq_flag = "true" ]]; then
             echo -e "  ${EXCL} dnsmasq still active, this is most likely due to the fact that ${COL_LIGHT_RED}dnsmasq"
-            echo -e "    was loaded via a non convetional method. This might cause future conflicts with FTLDNS${COL_NC}"
-            ${SUDO} pkill dnsmasq
-            echo -e "  ${TICK} dnsmasq process killed"
+            echo -e "    was loaded via an init.d service.${COL_NC}"
+            # Stopping dnsmasq
+            echo -e "  ${TICK} Stopping dnsmasq via service command"
+            ${SUDO} service dnsmasq stop
+            # Disabling dnsmasq
+            echo -e "  ${TICK} Disabling dnsmasq via update-rc.d command"
+            ${SUDO} update-rc.d dnsmasq disable
         fi
     else
         echo -e "  ${INFO} dnsmasq is not enabled"
