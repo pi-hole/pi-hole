@@ -1918,7 +1918,7 @@ get_available_branches() {
 
     cd "${directory}" || return 1
     # Get reachable remote branches, but store STDERR as STDOUT variable
-    output=$( { git ls-remote --head --quiet | cut -d'/' -f3- -; } 2>&1 )
+    output=$( { git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1 )
     echo "$output"
     return
 }
