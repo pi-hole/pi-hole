@@ -1370,11 +1370,11 @@ check_service_active() {
     # If systemctl exists,
     if command -v systemctl &> /dev/null; then
         # use that to check the status of the service
-        systemctl is-enabled "${1}" > /dev/null
+        systemctl is-enabled "${1}" &> /dev/null
     # Otherwise,
     else
         # fall back to service command
-        service "${1}" status > /dev/null
+        service "${1}" status &> /dev/null
     fi
 }
 
@@ -2058,7 +2058,7 @@ FTLinstall() {
             # Install the FTL service
             echo -e "${OVER}  ${TICK} ${str}"
             # dnsmasq can now be stopped and disabled if it exists
-            if which dnsmasq > /dev/null; then
+            if which dnsmasq &> /dev/null; then
                 if check_service_active "dnsmasq";then
                     echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
                     stop_service dnsmasq
@@ -2187,7 +2187,7 @@ FTLcheckUpdate() {
     local localSha1
 
     # if dnsmasq exists and is running at this point, force reinstall of FTL Binary
-    if which dnsmasq > /dev/null; then
+    if which dnsmasq &> /dev/null; then
         if check_service_active "dnsmasq";then
             return 0
         fi
