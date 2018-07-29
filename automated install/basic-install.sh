@@ -1239,7 +1239,7 @@ installConfigs() {
     # Install an empty regex file
     if [[ ! -f "${regexFile}" ]]; then
         # Let PHP edit the regex file, if installed
-        install -o pihole -g "${LIGHTTPD_GROUP:-pihole}" -m 644 /dev/null "${regexFile}"
+        install -o pihole -g "${LIGHTTPD_GROUP:-pihole}" -m 664 /dev/null "${regexFile}"
     fi
 
     # If the user chose to install the dashboard,
