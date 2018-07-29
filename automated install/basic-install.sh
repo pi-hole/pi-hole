@@ -1237,7 +1237,9 @@ installConfigs() {
     version_check_dnsmasq
 
     # Install an empty regex file
-    touch "${regexFile}"
+    if [[ ! -f "${regexFile}" ]]; then
+        touch "${regexFile}"
+    fi
     chown pihole:pihole "${regexFile}"
     chmod 664 "${regexFile}"
 
