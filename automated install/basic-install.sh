@@ -1370,11 +1370,11 @@ check_service_active() {
     # If systemctl exists,
     if command -v systemctl &> /dev/null; then
         # use that to check the status of the service
-        systemctl is-enabled "${1}" > /dev/null
+        systemctl is-enabled "${1}" &> /dev/null
     # Otherwise,
     else
         # fall back to service command
-        service "${1}" status > /dev/null
+        service "${1}" status &> /dev/null
     fi
 }
 
