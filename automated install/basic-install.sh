@@ -1553,7 +1553,7 @@ installPiholeWeb() {
     # Make the .d directory if it doesn't exist
     mkdir -p /etc/sudoers.d/
     # and copy in the pihole sudoers file
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
     echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -1575,7 +1575,7 @@ installCron() {
     echo ""
     echo -ne "  ${INFO} ${str}..."
     # Copy the cron file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1699,7 +1699,7 @@ installLogrotate() {
     echo ""
     echo -ne "  ${INFO} ${str}..."
     # Copy the file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/logrotate /etc/pihole/logrotate
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -2023,7 +2023,12 @@ FTLinstall() {
     pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
     # Always replace pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+
+    # Install template if it does not exist
+    if [[ ! -f "/etc/pihole/pihole-FTL.conf" ]]; then
+        install -o "${USER}" -Dm644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "/etc/pihole/pihole-FTL.conf"
+    fi
 
     local ftlBranch
     local url
