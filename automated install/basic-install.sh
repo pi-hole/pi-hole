@@ -1219,12 +1219,19 @@ installScripts() {
         install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
         install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
         echo -e "${OVER}  ${TICK} ${str}"
+        # Install template if it does not exist
+        if [[ ! -f "/etc/pihole/pihole-FTL.conf" ]]; then
+            if ! sudo -u ${USER} touch "${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf" 2&>1 /dev/null; then
+                echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file /etc/pihole/pihole-FTL.conf"
+                return 1
+            fi
+        fi
     # Otherwise,
     else
         # Show an error and exit
         echo -e "${OVER}  ${CROSS} ${str}
         ${COL_LIGHT_RED}Error: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting installer${COL_NC}"
-        exit 1
+        return 1
     fi
 }
 
@@ -1770,7 +1777,10 @@ installPihole() {
         accountForRefactor
     fi
     # Install base files and web interface
-    installScripts
+    if ! installScripts; then
+        echo -e "  {CROSS} Failure in dependent script copy function."
+        exit 1
+    fi
     # Install config files
     installConfigs
     # If the user wants to install the dashboard,
@@ -2024,14 +2034,6 @@ FTLinstall() {
 
     # Always replace pihole-FTL.service
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
-
-    # Install template if it does not exist
-    if [[ ! -f "/etc/pihole/pihole-FTL.conf" ]]; then
-        if ! sudo -u ${USER} touch "/etc/pihole/pihole-FTL.conf" 2&>1 /dev/null; then
-            echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file /etc/pihole/pihole-FTL.conf"
-            return 1
-        fi
-    fi
 
     local ftlBranch
     local url
