@@ -1238,10 +1238,9 @@ installConfigs() {
 
     # Install an empty regex file
     if [[ ! -f "${regexFile}" ]]; then
-        touch "${regexFile}"
+        # Let PHP edit the regex file, if installed
+        install -o pihole -g "${LIGHTTPD_GROUP:-pihole}" -m 644 /dev/null "${regexFile}"
     fi
-    chown pihole:pihole "${regexFile}"
-    chmod 664 "${regexFile}"
 
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
@@ -1269,9 +1268,6 @@ installConfigs() {
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
         mkdir -p /var/cache/lighttpd/uploads
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
-
-        # Let PHP edit the regex file
-        chown pihole:${LIGHTTPD_GROUP} "${regexFile}"
     fi
 }
 
