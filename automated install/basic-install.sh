@@ -2027,7 +2027,10 @@ FTLinstall() {
 
     # Install template if it does not exist
     if [[ ! -f "/etc/pihole/pihole-FTL.conf" ]]; then
-        install -o "${USER}" -Dm644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "/etc/pihole/pihole-FTL.conf"
+        if ! sudo -u ${USER} touch "/etc/pihole/pihole-FTL.conf" 2&>1 /dev/null; then
+            echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file /etc/pihole/pihole-FTL.conf"
+            return 1
+        fi
     fi
 
     local ftlBranch
