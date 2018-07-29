@@ -50,6 +50,7 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
+regexFile="/etc/pihole/regex.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=""
@@ -1235,6 +1236,11 @@ installConfigs() {
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
 
+    # Install an empty regex file
+    touch "${regexFile}"
+    chown pihole:pihole "${regexFile}"
+    chmod 664 "${regexFile}"
+
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1261,6 +1267,9 @@ installConfigs() {
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
         mkdir -p /var/cache/lighttpd/uploads
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
+
+        # Let PHP edit the regex file
+        chown pihole:${LIGHTTPD_GROUP} "${regexFile}"
     fi
 }
 
