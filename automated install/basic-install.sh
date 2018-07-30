@@ -47,6 +47,7 @@ PI_HOLE_LOCAL_REPO="/etc/.pihole"
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This folder is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
@@ -1236,9 +1237,9 @@ installConfigs() {
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
     # Install template if it does not exist
-    if [[ ! -f "${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf" ]]; then
-        if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf" &>/dev/nul; then
-            echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file ${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf"
+    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
+        if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/nul; then
+            echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file ${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
             return 1
         fi
     fi
