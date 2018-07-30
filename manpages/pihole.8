@@ -125,13 +125,16 @@ Available commands and options:
 .br
       -k, kelvin        Set Kelvin as preferred temperature unit
 .br
-      -r, hostrecord    Add a name to the DNS associated to an IPv4/IPv6 address
+      -r, hostrecord    Add a name to the DNS associated to an
+                        IPv4/IPv6 address
 .br
-      -e, email         Set an administrative contact address for the Block Page
+      -e, email         Set an administrative contact address for the
+                        Block Page
 .br
       -i, interface     Specify dnsmasq's interface listening behavior
 .br
-      -l, privacylevel  <level> Set privacy level (0 = lowest, 3 = highest)
+      -l, privacylevel  <level> Set privacy level
+                        (0 = lowest, 3 = highest)
 .br
 
 \fB-c, chronometer\fR	[options]
@@ -181,7 +184,8 @@ Available commands and options:
 .br
       on                Enable the Pi-hole log at /var/log/pihole.log
 .br
-      off               Disable and flush the Pi-hole log at /var/log/pihole.log
+      off               Disable and flush the Pi-hole log at
+                        /var/log/pihole.log
 .br
       off noflush       Disable the Pi-hole log at /var/log/pihole.log
 .br
@@ -204,7 +208,8 @@ Available commands and options:
 .br
       -p, --pihole      Only retrieve info regarding Pi-hole repository
 .br
-      -a, --admin       Only retrieve info regarding AdminLTE repository
+      -a, --admin       Only retrieve info regarding AdminLTE
+                        repository
 .br
       -f, --ftl         Only retrieve info regarding FTL repository
 .br
@@ -214,7 +219,8 @@ Available commands and options:
 .br
       -l, --latest      Return the latest version
 .br
-      --hash            Return the Github hash from your local repositories
+      --hash            Return the Github hash from your local
+                        repositories
 .br
 
 \fBuninstall\fR
@@ -266,7 +272,8 @@ Available commands and options:
 .br
       master            Update subsystems to the latest stable release
 .br
-      dev               Update subsystems to the latest development release
+      dev               Update subsystems to the latest development
+                        release
 .br
       branchname        Update subsystems to the specified branchname
 .br
@@ -275,50 +282,74 @@ Available commands and options:
 Some usage examples
 .br
 
-    Whitelist/blacklist manipulation
+Whitelist/blacklist manipulation
 .br
 
-    \fBpihole -w iloveads.example.com\fR       Add "iloveads.example.com" to whitelist
+\fBpihole -w iloveads.example.com\fR
 .br
-    \fBpihole -b -d noads.example.com\fR       Remove "noads.example.com" from blacklist
-.br
-    \fBpihole --wild example.com\fR             Add example.com as a wildcard - would
-    block all subdomains of example.com, including example.com itself.
-.br
-    \fBpihole --regex "ad.*\.example\.com$"\fR  Add "ad.*\.example\.com$" to the regex
-    blacklist - would block all subdomains of example.com which start with "ad"
+    Adds "iloveads.example.com" to whitelist
 .br
 
-    Changing the Web Interface password
+\fBpihole -b -d noads.example.com\fR
+.br
+    Removes "noads.example.com" from blacklist
 .br
 
-    \fBpihole -a -p ExamplePassword\fR    Change the password to "ExamplePassword"
+\fBpihole --wild example.com\fR
+.br
+    Adds example.com as a wildcard - would block all subdomains of
+    example.com, including example.com itself.
 .br
 
-    Updating lists from internet sources
+\fBpihole --regex "ad.*\\.example\\.com$"\fR
+.br
+    Adds "ad.*\\.example\\.com$" to the regex blacklist.
+    Would block all subdomains of example.com which start with "ad"
 .br
 
-    \fBpihole -g\fR                       Update the list of ad-serving domains
+Changing the Web Interface password
 .br
 
-    Displaying version information
+\fBpihole -a -p ExamplePassword\fR
+.br
+    Change the password to "ExamplePassword"
 .br
 
-    \fBpihole -v -a -c\fR                 Display the current version of AdminLTE
+Updating lists from internet sources
 .br
 
-    Temporarily disabling Pi-hole
+\fBpihole -g\fR
+.br
+    Update the list of ad-serving domains
 .br
 
-    \fBpihole disable 5m\fR               Disable Pi-hole functionality for five minutes
+Displaying version information
 .br
 
-    Switching Pi-hole subsystem branches
+\fBpihole -v -a -c\fR
+.br
+    Display the current version of AdminLTE
 .br
 
-    \fBpihole checkout master\fR          Switch to master branch
+Temporarily disabling Pi-hole
 .br
-    \fBpihole checkout core dev\fR        Switch to core development branch
+
+\fBpihole disable 5m\fR
+.br
+    Disable Pi-hole functionality for five minutes
+.br
+
+Switching Pi-hole subsystem branches
+.br
+
+\fBpihole checkout master\fR
+.br
+    Switch to master branch
+.br
+
+\fBpihole checkout core dev\fR
+.br
+    Switch to core development branch
 .br
 .SH "SEE ALSO"
 
