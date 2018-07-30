@@ -1219,13 +1219,7 @@ installScripts() {
         install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
         install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
         echo -e "${OVER}  ${TICK} ${str}"
-        # Install template if it does not exist
-        if [[ ! -f "/etc/pihole/pihole-FTL.conf" ]]; then
-            if ! sudo -u ${USER} touch "${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf" 2&>1 /dev/null; then
-                echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file /etc/pihole/pihole-FTL.conf"
-                return 1
-            fi
-        fi
+
     # Otherwise,
     else
         # Show an error and exit
@@ -1241,7 +1235,13 @@ installConfigs() {
     echo -e "  ${INFO} Installing configs from ${PI_HOLE_LOCAL_REPO}..."
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
-
+    # Install template if it does not exist
+    if [[ ! -f "${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf" ]]; then
+        if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf" &>/dev/nul; then
+            echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file ${PI_HOLE_INSTALL_DIR}/pihole-FTL.conf"
+            return 1
+        fi
+    fi
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1782,7 +1782,10 @@ installPihole() {
         exit 1
     fi
     # Install config files
-    installConfigs
+    if ! installConfigs; then
+        echo -e "  {CROSS} Failure in dependent config copy function."
+        exit 1
+    fi
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # do so
