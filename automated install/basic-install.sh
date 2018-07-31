@@ -47,6 +47,7 @@ PI_HOLE_LOCAL_REPO="/etc/.pihole"
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This folder is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
@@ -1220,12 +1221,13 @@ installScripts() {
         install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
         install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
         echo -e "${OVER}  ${TICK} ${str}"
+
     # Otherwise,
     else
         # Show an error and exit
         echo -e "${OVER}  ${CROSS} ${str}
         ${COL_LIGHT_RED}Error: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting installer${COL_NC}"
-        exit 1
+        return 1
     fi
 }
 
@@ -1235,13 +1237,18 @@ installConfigs() {
     echo -e "  ${INFO} Installing configs from ${PI_HOLE_LOCAL_REPO}..."
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
-
+    # Install empty file if it does not exist
+    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
+        if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/nul; then
+            echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file ${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+            return 1
+        fi
+    fi
     # Install an empty regex file
     if [[ ! -f "${regexFile}" ]]; then
         # Let PHP edit the regex file, if installed
         install -o pihole -g "${LIGHTTPD_GROUP:-pihole}" -m 664 /dev/null "${regexFile}"
     fi
-
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1777,9 +1784,15 @@ installPihole() {
         accountForRefactor
     fi
     # Install base files and web interface
-    installScripts
+    if ! installScripts; then
+        echo -e "  {CROSS} Failure in dependent script copy function."
+        exit 1
+    fi
     # Install config files
-    installConfigs
+    if ! installConfigs; then
+        echo -e "  {CROSS} Failure in dependent config copy function."
+        exit 1
+    fi
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # do so
@@ -2031,11 +2044,6 @@ FTLinstall() {
 
     # Always replace pihole-FTL.service
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
-
-    # Install template if it does not exist
-    if [[ ! -f "/etc/pihole/pihole-FTL.conf" ]]; then
-        install -o "${USER}" -Dm644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "/etc/pihole/pihole-FTL.conf"
-    fi
 
     local ftlBranch
     local url
