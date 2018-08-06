@@ -47,9 +47,11 @@ PI_HOLE_LOCAL_REPO="/etc/.pihole"
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
+regexFile="/etc/pihole/regex.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=""
@@ -1219,12 +1221,13 @@ installScripts() {
         install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
         install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
         echo -e "${OVER}  ${TICK} ${str}"
+
     # Otherwise,
     else
         # Show an error and exit
         echo -e "${OVER}  ${CROSS} ${str}
         ${COL_LIGHT_RED}Error: Local repo ${PI_HOLE_LOCAL_REPO} not found, exiting installer${COL_NC}"
-        exit 1
+        return 1
     fi
 }
 
@@ -1234,7 +1237,18 @@ installConfigs() {
     echo -e "  ${INFO} Installing configs from ${PI_HOLE_LOCAL_REPO}..."
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
-
+    # Install empty file if it does not exist
+    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
+        if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/nul; then
+            echo -e "  ${COL_LIGHT_RED}Error: Unable to initialize configuration file ${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+            return 1
+        fi
+    fi
+    # Install an empty regex file
+    if [[ ! -f "${regexFile}" ]]; then
+        # Let PHP edit the regex file, if installed
+        install -o pihole -g "${LIGHTTPD_GROUP:-pihole}" -m 664 /dev/null "${regexFile}"
+    fi
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1370,11 +1384,11 @@ check_service_active() {
     # If systemctl exists,
     if command -v systemctl &> /dev/null; then
         # use that to check the status of the service
-        systemctl is-enabled "${1}" > /dev/null
+        systemctl is-enabled "${1}" &> /dev/null
     # Otherwise,
     else
         # fall back to service command
-        service "${1}" status > /dev/null
+        service "${1}" status &> /dev/null
     fi
 }
 
@@ -1553,7 +1567,7 @@ installPiholeWeb() {
     # Make the .d directory if it doesn't exist
     mkdir -p /etc/sudoers.d/
     # and copy in the pihole sudoers file
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.sudo /etc/sudoers.d/pihole
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
     echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -1575,7 +1589,7 @@ installCron() {
     echo ""
     echo -ne "  ${INFO} ${str}..."
     # Copy the cron file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/pihole.cron /etc/cron.d/pihole
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1699,7 +1713,7 @@ installLogrotate() {
     echo ""
     echo -ne "  ${INFO} ${str}..."
     # Copy the file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/logrotate /etc/pihole/logrotate
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1770,9 +1784,15 @@ installPihole() {
         accountForRefactor
     fi
     # Install base files and web interface
-    installScripts
+    if ! installScripts; then
+        echo -e "  {CROSS} Failure in dependent script copy function."
+        exit 1
+    fi
     # Install config files
-    installConfigs
+    if ! installConfigs; then
+        echo -e "  {CROSS} Failure in dependent config copy function."
+        exit 1
+    fi
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # do so
@@ -1918,7 +1938,7 @@ get_available_branches() {
 
     cd "${directory}" || return 1
     # Get reachable remote branches, but store STDERR as STDOUT variable
-    output=$( { git ls-remote --head --quiet | cut -d'/' -f3- -; } 2>&1 )
+    output=$( { git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1 )
     echo "$output"
     return
 }
@@ -2023,7 +2043,7 @@ FTLinstall() {
     pushd "$(mktemp -d)" > /dev/null || { echo "Unable to make temporary directory for FTL binary download"; return 1; }
 
     # Always replace pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
     local ftlBranch
     local url
@@ -2058,7 +2078,7 @@ FTLinstall() {
             # Install the FTL service
             echo -e "${OVER}  ${TICK} ${str}"
             # dnsmasq can now be stopped and disabled if it exists
-            if which dnsmasq > /dev/null; then
+            if which dnsmasq &> /dev/null; then
                 if check_service_active "dnsmasq";then
                     echo "  ${INFO} FTL can now resolve DNS Queries without dnsmasq running separately"
                     stop_service dnsmasq
@@ -2187,7 +2207,7 @@ FTLcheckUpdate() {
     local localSha1
 
     # if dnsmasq exists and is running at this point, force reinstall of FTL Binary
-    if which dnsmasq > /dev/null; then
+    if which dnsmasq &> /dev/null; then
         if check_service_active "dnsmasq";then
             return 0
         fi
