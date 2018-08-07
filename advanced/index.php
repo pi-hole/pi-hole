@@ -64,7 +64,7 @@ if ($serverName === "pi.hole") {
     <html><head>
         $viewPort
         <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
-    </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements</body></html>
+    </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements<br><a href='/admin'>Did you mean to go to the admin panel?</a></body></html>
     ";
 
     // Set splash/landing page based off presence of $landPage
@@ -102,8 +102,10 @@ if ($serverName === "pi.hole") {
 $bpAskAdmin = !empty($svEmail) ? '<a href="mailto:'.$svEmail.'?subject=Site Blocked: '.$serverName.'"></a>' : "<span/>";
 
 // Determine if at least one block list has been generated
-if (empty(glob("/etc/pihole/list.0.*.domains")))
+$blocklistglob = glob("/etc/pihole/list.0.*.domains");
+if ($blocklistglob === array()) {
     die("[ERROR] There are no domain lists generated lists within <code>/etc/pihole/</code>! Please update gravity by running <code>pihole -g</code>, or repair Pi-hole using <code>pihole -r</code>.");
+}
 
 // Set location of adlists file
 if (is_file("/etc/pihole/adlists.list")) {
@@ -327,6 +329,7 @@ setHeader();
           setTimeout(function(){window.location.reload(1);}, 10000);
           $("#bpOutput").removeClass("add");
           $("#bpOutput").addClass("success");
+          $("#bpOutput").html("");
         } else {
           $("#bpOutput").removeClass("add");
           $("#bpOutput").addClass("error");
@@ -336,6 +339,7 @@ setHeader();
       error: function(jqXHR, exception) {
         $("#bpOutput").removeClass("add");
         $("#bpOutput").addClass("exception");
+        $("#bpOutput").html("");
       }
     });
   }

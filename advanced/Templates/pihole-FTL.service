@@ -20,6 +20,7 @@ is_running() {
     ps "$(get_pid)" > /dev/null 2>&1
 }
 
+
 # Start the service
 start() {
   if is_running; then
@@ -29,9 +30,12 @@ start() {
     mkdir -p /var/run/pihole
     mkdir -p /var/log/pihole
     chown pihole:pihole /var/run/pihole /var/log/pihole
-    rm /var/run/pihole/FTL.sock
-    chown pihole:pihole /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /etc/pihole
+    rm /var/run/pihole/FTL.sock 2> /dev/null
+    chown pihole:pihole /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port
+    chown pihole:pihole /etc/pihole /etc/pihole/dhcp.leases /var/log/pihole.log
     chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
+    setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip "$(which pihole-FTL)"
+    echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL
     su -s /bin/sh -c "/usr/bin/pihole-FTL" "$FTLUSER"
     echo
   fi
@@ -40,6 +44,7 @@ start() {
 # Stop the service
 stop() {
   if is_running; then
+    /sbin/resolvconf -d lo.piholeFTL
     kill "$(get_pid)"
     for i in {1..5}; do
       if ! is_running; then
@@ -64,13 +69,25 @@ stop() {
   echo
 }
 
+# Indicate the service status
+status() {
+  if is_running; then
+    echo "[ ok ] pihole-FTL is running"
+    exit 0
+  else
+    echo "[    ] pihole-FTL is not running"
+    exit 1
+  fi
+}  
+
+
 ### main logic ###
 case "$1" in
   stop)
         stop
         ;;
   status)
-        status pihole-FTL
+        status
         ;;
   start|restart|reload|condrestart)
         stop

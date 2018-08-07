@@ -15,20 +15,20 @@ export LC_ALL=C
 
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
+regexconverter="/opt/pihole/wildcard_regex_converter.sh"
+source "${regexconverter}"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
 piholeDir="/etc/${basename}"
-piholeRepo="/etc/.${basename}"
 
 adListFile="${piholeDir}/adlists.list"
 adListDefault="${piholeDir}/adlists.default"
-adListRepoDefault="${piholeRepo}/adlists.default"
 
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
-wildcardFile="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+regexFile="${piholeDir}/regex.list"
 
 adList="${piholeDir}/gravity.list"
 blackList="${piholeDir}/black.list"
@@ -43,6 +43,10 @@ accretionDisc="${basename}.3.accretionDisc.txt"
 preEventHorizon="list.preEventHorizon"
 
 skipDownload="false"
+
+resolver="pihole-FTL"
+
+haveSourceUrls=true
 
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
@@ -104,7 +108,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine error output message
-  if pidof dnsmasq &> /dev/null; then
+  if pidof ${resolver} &> /dev/null; then
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   else
     echo -e "  ${CROSS} DNS service is not running"
@@ -129,19 +133,11 @@ gravity_CheckDNSResolutionAvailable() {
 gravity_GetBlocklistUrls() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
-  # Determine if adlists file needs handling
-  if [[ ! -f "${adListFile}" ]]; then
-    # Create "adlists.list" by copying "adlists.default" from internal core repo
-    cp "${adListRepoDefault}" "${adListFile}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to copy ${adListFile##*/} from ${piholeRepo}"
-  elif [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
+  if [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
     # Remove superceded $adListDefault file
     rm "${adListDefault}" 2> /dev/null || \
       echo -e "  ${CROSS} Unable to remove ${adListDefault}"
   fi
-
-  local str="Pulling blocklist source list into range"
-  echo -ne "  ${INFO} ${str}..."
 
   # Retrieve source URLs from $adListFile
   # Logic: Remove comments and empty lines
@@ -158,11 +154,15 @@ gravity_GetBlocklistUrls() {
     }' <<< "$(printf '%s\n' "${sources[@]}")" 2> /dev/null
   )"
 
+  local str="Pulling blocklist source list into range"
+
   if [[ -n "${sources[*]}" ]] && [[ -n "${sourceDomains[*]}" ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   else
     echo -e "${OVER}  ${CROSS} ${str}"
-    gravity_Cleanup "error"
+    echo -e "  ${INFO} No source list found, or it is empty"
+    echo ""
+    haveSourceUrls=false
   fi
 }
 
@@ -220,8 +220,15 @@ gravity_DownloadBlocklistFromUrl() {
   httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
   case $url in
+    # Did we "download" a local file?
+    "file"*)
+        if [[ -s "${patternBuffer}" ]]; then
+          echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
+        else
+          echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
+        fi;;
     # Did we "download" a remote file?
-    "http"*)
+    *)
       # Determine "Status:" output based on HTTP response
       case "${httpCode}" in
         "200") echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true;;
@@ -235,16 +242,8 @@ gravity_DownloadBlocklistFromUrl() {
         "504") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Gateway)";;
         "521") echo -e "${OVER}  ${CROSS} ${str} Web Server Is Down (Cloudflare)";;
         "522") echo -e "${OVER}  ${CROSS} ${str} Connection Timed Out (Cloudflare)";;
-        *    ) echo -e "${OVER}  ${CROSS} ${str} ${httpCode}";;
+        *    ) echo -e "${OVER}  ${CROSS} ${str} ${url} (${httpCode})";;
       esac;;
-    # Did we "download" a local file?
-    "file"*)
-        if [[ -s "${patternBuffer}" ]]; then
-          echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
-        else
-          echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
-        fi;;
-    *) echo -e "${OVER}  ${CROSS} ${str} ${url} ${httpCode}";;
   esac
 
   # Determine if the blocklist was downloaded and saved correctly
@@ -279,9 +278,9 @@ gravity_ParseFileIntoDomains() {
     # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
-    #Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
-    #Last awk command takes non-commented lines and if they have 2 fields, take the left field (the domain) and leave
-    #+ the right (IP address), otherwise grab the single field.
+    # Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
+    # Last awk command takes non-commented lines and if they have 2 fields, take the right field (the domain) and leave
+    # the left (IP address), otherwise grab the single field.
 
     < ${source} awk -F '#' '{print $1}' | \
     awk -F '/' '{print $1}' | \
@@ -345,13 +344,18 @@ gravity_ParseFileIntoDomains() {
     # Scanning for "^IPv4$" is too slow with large (1M) lists on low-end hardware
     echo -ne "  ${INFO} Format: URL"
 
-    awk '{
-      # Remove URL protocol, optional "username:password@", and ":?/;"
-      if ($0 ~ /[:?\/;]/) { gsub(/(^.*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
-      # Remove lines which are only IPv4 addresses
-      if ($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
-      if ($0) { print $0 }
-    }' "${source}" 2> /dev/null > "${destination}"
+    awk '
+      # Remove URL scheme, optional "username:password@", and ":?/;"
+      # The scheme must be matched carefully to avoid blocking the wrong URL
+      # in cases like:
+      #   http://www.evil.com?http://www.good.com
+      # See RFC 3986 section 3.1 for details.
+      /[:?\/;]/ { gsub(/(^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
+      # Skip lines which are only IPv4 addresses
+      /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { next }
+      # Print if nonempty
+      length { print }
+    ' "${source}" 2> /dev/null > "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
   else
@@ -371,7 +375,9 @@ gravity_ConsolidateDownloadedBlocklists() {
   local str lastLine
 
   str="Consolidating blocklists"
-  echo -ne "  ${INFO} ${str}..."
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -ne "  ${INFO} ${str}..."
+  fi
 
   # Empty $matterAndLight if it already exists, otherwise, create it
   : > "${piholeDir}/${matterAndLight}"
@@ -390,8 +396,9 @@ gravity_ConsolidateDownloadedBlocklists() {
       fi
     fi
   done
-
-  echo -e "${OVER}  ${TICK} ${str}"
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
 }
 
 # Parse consolidated list into (filtered, unique) domains-only format
@@ -399,24 +406,33 @@ gravity_SortAndFilterConsolidatedList() {
   local str num
 
   str="Extracting domains from blocklists"
-  echo -ne "  ${INFO} ${str}..."
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -ne "  ${INFO} ${str}..."
+  fi
 
   # Parse into hosts file
   gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
 
   # Format $parsedMatter line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
-  echo -e "${OVER}  ${TICK} ${str}
-  ${INFO} Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
+  echo -e "  ${INFO} Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
 
   str="Removing duplicate domains"
-  echo -ne "  ${INFO} ${str}..."
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
-  echo -e "${OVER}  ${TICK} ${str}"
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -ne "  ${INFO} ${str}..."
+  fi
 
-  # Format $preEventHorizon line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
+  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+
+  if [[ "${haveSourceUrls}" == true ]]; then
+    echo -e "${OVER}  ${TICK} ${str}"
+    # Format $preEventHorizon line total as currency
+    num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
+    echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
+  fi
 }
 
 # Whitelist user-defined domains
@@ -438,7 +454,7 @@ gravity_Whitelist() {
   echo -e "${OVER}  ${INFO} ${str}"
 }
 
-# Output count of blacklisted domains and wildcards
+# Output count of blacklisted domains and regex filters
 gravity_ShowBlockCount() {
   local num
 
@@ -447,13 +463,9 @@ gravity_ShowBlockCount() {
     echo -e "  ${INFO} Number of blacklisted domains: ${num}"
   fi
 
-  if [[ -f "${wildcardFile}" ]]; then
-    num=$(grep -c "^" "${wildcardFile}")
-    # If IPv4 and IPv6 is used, divide total wildcard count by 2
-    if [[ -n "${IPV4_ADDRESS}" ]] && [[ -n "${IPV6_ADDRESS}" ]];then
-      num=$(( num/2 ))
-    fi
-    echo -e "  ${INFO} Number of wildcard blocked domains: ${num}"
+  if [[ -f "${regexFile}" ]]; then
+    num=$(grep -c "^(?!#)" "${regexFile}")
+    echo -e "  ${INFO} Number of regex filters: ${num}"
   fi
 }
 
@@ -505,12 +517,12 @@ gravity_ParseBlacklistDomains() {
 
   # Empty $accretionDisc if it already exists, otherwise, create it
   : > "${piholeDir}/${accretionDisc}"
-  
+
   if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
-    gravity_ParseDomainsIntoHosts "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
+    mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    gravity_ParseDomainsIntoHosts "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    mv "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
   fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
@@ -528,11 +540,9 @@ gravity_ParseUserDomains() {
   if [[ ! -f "${blacklistFile}" ]]; then
     return 0
   fi
-
-  gravity_ParseDomainsIntoHosts "${blacklistFile}" "${blackList}.tmp"
   # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
-  mv "${blackList}.tmp" "${blackList}" 2> /dev/null || \
-    echo -e "\\n  ${CROSS} Unable to move ${blackList##*/}.tmp to ${piholeDir}"
+  cp "${blacklistFile}" "${blackList}" 2> /dev/null || \
+    echo -e "\\n  ${CROSS} Unable to move ${blacklistFile##*/} to ${piholeDir}"
 }
 
 # Trap Ctrl-C
@@ -567,7 +577,7 @@ gravity_Cleanup() {
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Only restart DNS service if offline
-  if ! pidof dnsmasq &> /dev/null; then
+  if ! pidof ${resolver} &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
     dnsWasOffline=true
   fi
@@ -616,7 +626,9 @@ if [[ "${skipDownload}" == false ]]; then
   # Gravity needs to download blocklists
   gravity_CheckDNSResolutionAvailable
   gravity_GetBlocklistUrls
-  gravity_SetDownloadOptions
+  if [[ "${haveSourceUrls}" == true ]]; then
+    gravity_SetDownloadOptions
+  fi
   gravity_ConsolidateDownloadedBlocklists
   gravity_SortAndFilterConsolidatedList
 else
@@ -631,6 +643,7 @@ if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "whitelist" ]]; then
   gravity_Whitelist
 fi
 
+convert_wildcard_to_regex
 gravity_ShowBlockCount
 
 # Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)
