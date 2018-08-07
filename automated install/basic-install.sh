@@ -482,16 +482,11 @@ welcomeDialogs() {
     # Request that users donate if they enjoy the software since we all work on it in our free time
     whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\\n\\nThe Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" ${r} ${c}
 
-<<<<<<< HEAD
   #Display speedtest mod dialog
   whiptail --msgbox --backtitle "Speedtest Mod" --title "Speedtest Mod Included" "\n\nSpeedtestMod faq @ https://goo.gl/7FSZ43" ${r} ${c}
   
   # Explain the need for a static address
   whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
-=======
-    # Explain the need for a static address
-    whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
->>>>>>> ddbdb51d209fa9eea2451a1bebfaeaef23a9b77b
 
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." ${r} ${c}
 }
@@ -2307,36 +2302,6 @@ copy_to_install_log() {
 }
 
 main() {
-<<<<<<< HEAD
-  ######## FIRST CHECK ########
-  # Must be root to install
-  local str="Root user check"
-  echo ""
-
-  # If the user's id is zero,
-  if [[ "${EUID}" -eq 0 ]]; then
-    # they are root and all is good
-    echo -e "  ${TICK} ${str}"
-    # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
-    show_ascii_berry
-    make_temporary_log
-  # Otherwise,
-  else
-    # They do not have enough privileges, so let the user know
-    echo -e "  ${CROSS} ${str}
-      ${COL_LIGHT_RED}Script called with non-root privileges${COL_NC}
-      The Pi-hole requires elevated privileges to install and run
-      Please check the installer for any concerns regarding this requirement
-      Make sure to download this script from a trusted source\\n"
-    echo -ne "  ${INFO} Sudo utility check"
-
-    # If the sudo command exists,
-    if command -v sudo &> /dev/null; then
-      echo -e "${OVER}  ${TICK} Sudo utility check"
-      # Download the install script and run it with admin rights
-      exec curl -sSL https://raw.githubusercontent.com/arevindh/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
-      exit $?
-=======
     ######## FIRST CHECK ########
     # Must be root to install
     local str="Root user check"
@@ -2349,7 +2314,6 @@ main() {
         # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
         show_ascii_berry
         make_temporary_log
->>>>>>> ddbdb51d209fa9eea2451a1bebfaeaef23a9b77b
     # Otherwise,
     else
         # They do not have enough privileges, so let the user know
@@ -2364,7 +2328,7 @@ main() {
         if command -v sudo &> /dev/null; then
             echo -e "${OVER}  ${TICK} Sudo utility check"
             # Download the install script and run it with admin rights
-            exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
+            exec curl -sSL https://raw.githubusercontent.com/arevindh/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
             exit $?
         # Otherwise,
         else
