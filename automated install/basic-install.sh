@@ -2151,11 +2151,6 @@ get_binary_name() {
             # set the binary to be used
             binary="pihole-FTL-arm-linux-gnueabi"
         fi
-    elif [[ "${machine}" == "ppc" ]]; then
-        # PowerPC
-        echo -e "${OVER}  ${TICK} Detected PowerPC architecture"
-        # set the binary to be used
-        binary="pihole-FTL-powerpc-linux-gnu"
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the architecture of packages dpkg installs (for example, "i386")
         local dpkgarch
