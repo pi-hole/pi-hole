@@ -464,7 +464,7 @@ gravity_ShowBlockCount() {
   fi
 
   if [[ -f "${regexFile}" ]]; then
-    num=$(grep -c "^[^#]" "${regexFile}")
+    num=$(grep -cv "^#" "${regexFile}")
     echo -e "  ${INFO} Number of regex filters: ${num}"
   fi
 }
