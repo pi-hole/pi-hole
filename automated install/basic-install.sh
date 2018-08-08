@@ -2342,6 +2342,8 @@ main() {
             echo -e "  ${INFO} Performing unattended setup, no whiptail dialogs will be displayed"
             # Use the setup variables
             useUpdateVars=true
+            # also disable debconf-apt-progress dialogs
+            export DEBIAN_FRONTEND="noninteractive"
         # Otherwise,
         else
             # show the available options (repair/reconfigure)
