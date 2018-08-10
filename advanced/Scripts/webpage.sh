@@ -525,9 +525,19 @@ Teleporter() {
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
-audit()
+addAudit()
 {
-    echo "${args[2]}" >> /etc/pihole/auditlog.list
+    shift # skip "-a"
+    shift # skip "audit"
+    for var in "$@"
+    do
+        echo "${var}" >> /etc/pihole/auditlog.list
+    done
+}
+
+clearAudit()
+{
+    echo -n "" > /etc/pihole/auditlog.list
 }
 
 SetPrivacyLevel() {
@@ -565,7 +575,8 @@ main() {
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;
         "adlist"              ) CustomizeAdLists;;
-        "audit"               ) audit;;
+        "audit"               ) addAudit "$@";;
+        "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
         *                     ) helpFunc;;
     esac
