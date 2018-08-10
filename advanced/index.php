@@ -58,7 +58,7 @@ function setHeader($type = "x") {
 if ($serverName === "pi.hole") {
     // Redirect to Web Interface
     exit(header("Location: /admin"));
-} elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
+} elseif (filter_var($serverName) || in_array($serverName, $authorizedHosts)) {
     // Set Splash Page output
     $splashPage = "
     <html><head>
@@ -132,7 +132,7 @@ ini_set("default_socket_timeout", 3);
 function queryAds($serverName) {
     // Determine the time it takes while querying adlists
     $preQueryTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
-    $queryAds = file("http://127.0.0.1/admin/scripts/pi-hole/php/queryads.php?domain=$serverName&bp", FILE_IGNORE_NEW_LINES);
+    $queryAds = file("http://$serverName/admin/scripts/pi-hole/php/queryads.php?domain=$serverName&bp", FILE_IGNORE_NEW_LINES);
     $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAds)));
     $queryTime = sprintf("%.0f", (microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"]) - $preQueryTime);
 
@@ -227,10 +227,10 @@ setHeader();
   <?=$viewPort ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="<?=$proto ?>://pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="<?=$proto ?>://pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="shortcut icon" href="/admin/img/favicon.png" type="image/x-icon"/>
+  <link rel="stylesheet" href="/pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
-  <script src="<?=$proto ?>://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php
