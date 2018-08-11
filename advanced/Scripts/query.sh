@@ -116,7 +116,7 @@ fi
 
 # Scan Wildcards
 if [[ -e "${wildcardlist}" ]]; then
-    mapfile -t results <<< "$(scanList "${match}" "${wildcardlist}" "wc")"
+    mapfile -t results <<< "$(scanList "${domainQuery}" "${wildcardlist}" "wc")"
     if [[ -n "${results[*]}" ]]; then
         if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
             wcMatch=true
