@@ -230,15 +230,15 @@ gravity_DownloadBlocklistFromUrl() {
   blocked=false
   case $BLOCKINGMODE in
     "IP-NODATA-AAAA"|"IP")
-        if [ $(dig "${domain}" +short | grep "${IPV4_ADDRESS}" -c) -ge 1 ]; then
+        if [[ $(dig "${domain}" +short | grep "${IPV4_ADDRESS}" -c) -ge 1 ]]; then
           blocked=true
         fi;;
     "NXDOMAIN")
-        if [ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]; then
+        if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
           blocked=true
         fi;;
     "NULL"|"Default (NULL)"|*)
-        if [ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]; then
+        if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
           blocked=true
         fi;;
    esac
