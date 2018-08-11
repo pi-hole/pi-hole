@@ -68,6 +68,17 @@ else
   exit 1
 fi
 
+# Source pihole-FTL from install script
+pihole_FTL="${piholeDir}/pihole-FTL.conf"
+if [[ -f "${pihole_FTL}" ]]; then
+  source "${pihole_FTL}"
+  if [[ -z "${BLOCKINGMODE}" ]] ; then
+    BLOCKINGMODE="Default (NULL)"
+  fi
+else
+    BLOCKINGMODE="Default (NULL)"
+fi
+
 # Determine if superseded pihole.conf exists
 if [[ -r "${piholeDir}/pihole.conf" ]]; then
   echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
@@ -216,20 +227,31 @@ gravity_DownloadBlocklistFromUrl() {
 
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
-  # Determine if the domain is blocked by Pi-hole
-  if [ `dig $domain +short | grep 0.0.0.0 -c` -ge 1 ]; then
-    # If the domain is blocked by Pi-hole, use an alternate dns server to lookup the ip adres
-    ip=`dig @1.1.1.1 +short $domain`
-    # Determine the port to be used by curl. If "https://" is not present, port 80 is asumed
-    if [ `echo $url | awk -F '://' '{print $1}'` = "https" ]; then
+  blocked=false
+  case $BLOCKINGMODE in
+    "IP-NODATA-AAAA"|"IP")
+        if [[ $(dig "${domain}" +short | grep "${IPV4_ADDRESS}" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+    "NXDOMAIN")
+        if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+    "NULL"|"Default (NULL)"|*)
+        if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+   esac
+
+  if [[ "${blocked}" = true  ]]; then
+    ip=$(dig "@${CONDITIONAL_FORWARDING_IP}" +short "${domain}")
+    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
       port=443;
-    else
-      port=80
+    else port=80
     fi
-    # Print some extra info
-    echo -e "${OVER}  ${CROSS} ${str} ${domain} is currently blocked by pi-hole. Circumventing pi-hole and trying again";
+    bad_list=$(pihole -q -adlist hosts-file.net | head -n1 | awk -F 'Match found in ' '{print $2}')
+    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:} on Pi-hole. Using DNS on ${CONDITIONAL_FORWARDING_IP} to download ${url}";
     echo -ne "  ${INFO} ${str} Pending..."
-    # Add extra options to $cmd_ext
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
   fi
   # shellcheck disable=SC2086
