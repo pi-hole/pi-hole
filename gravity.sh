@@ -217,6 +217,17 @@ gravity_DownloadBlocklistFromUrl() {
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
   # shellcheck disable=SC2086
+  if [ `dig $domain +short | grep 0.0.0.0 -c` -ge 1 ]; then
+    ip=`dig @1.1.1.1 +short $domain`
+    if [ `echo $url | awk -F '://' '{print $1}'` = "https" ]; then
+      port=443;
+    else
+      port=80
+    fi
+    echo -e "${OVER}  ${CROSS} ${str} ${domain} is currently blocked by pi-hole. Circumventing pi-hole and trying again";
+    echo -ne "  ${INFO} ${str} Pending..."
+    cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
+  fi
   httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
   case $url in
