@@ -12,7 +12,7 @@
 # Globals
 piholeDir="/etc/pihole"
 adListsList="$piholeDir/adlists.list"
-wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+wildcardlist="/etc/pihole/regex.list"
 options="$*"
 adlist=""
 all=""
@@ -22,23 +22,6 @@ matchType="match"
 
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
-
-# Print each subdomain
-# e.g: foo.bar.baz.com = "foo.bar.baz.com bar.baz.com baz.com com"
-processWildcards() {
-    IFS="." read -r -a array <<< "${1}"
-    for (( i=${#array[@]}-1; i>=0; i-- )); do
-        ar=""
-        for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
-            if [[ $j == $((${#array[@]}-1)) ]]; then
-                ar="${array[$j]}"
-            else
-                ar="${array[$j]}.${ar}"
-            fi
-        done
-        echo "${ar}"
-    done
-}
 
 # Scan an array of files for matching strings
 scanList(){
@@ -55,7 +38,7 @@ scanList(){
     # shellcheck disable=SC2086
     case "${type}" in
         "exact" ) grep -i -E -l "(^|\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        "wc"    ) grep -i -o -m 1 "/${domain}/" ${lists} 2>/dev/null;;
+        "wc"    ) grep -i -E -o -f $wildcardlist <<< "${domainQuery}" 2>/dev/null;;
         *       ) grep -i "${domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
@@ -133,22 +116,17 @@ fi
 
 # Scan Wildcards
 if [[ -e "${wildcardlist}" ]]; then
-    # Determine all subdomains, domain and TLDs
-    mapfile -t wildcards <<< "$(processWildcards "${domainQuery}")"
-    for match in "${wildcards[@]}"; do
-        # Search wildcard list for matches
-        mapfile -t results <<< "$(scanList "${match}" "${wildcardlist}" "wc")"
-        if [[ -n "${results[*]}" ]]; then
-            if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
-                wcMatch=true
-                echo " ${matchType^} found in ${COL_BOLD}Wildcards${COL_NC}:"
-            fi
-            case "${blockpage}" in
-                true ) echo "π ${wildcardlist##*/}"; exit 0;;
-                *    ) echo "   *.${match}";;
-            esac
+    mapfile -t results <<< "$(scanList "${match}" "${wildcardlist}" "wc")"
+    if [[ -n "${results[*]}" ]]; then
+        if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
+            wcMatch=true
+            echo " ${matchType^} found in ${COL_BOLD}Wildcards${COL_NC}:"
         fi
-    done
+        case "${blockpage}" in
+            true ) echo "π ${wildcardlist##*/}"; exit 0;;
+            *    ) echo "   ${results[0]}";;
+        esac
+    fi
 fi
 
 # Get version sorted *.domains filenames (without dir path)
