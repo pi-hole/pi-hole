@@ -199,7 +199,7 @@ Time:
     fi
   fi
 
-  restartDNS
+  restartDNS reload
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
