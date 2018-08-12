@@ -243,9 +243,9 @@ gravity_DownloadBlocklistFromUrl() {
         fi;;
    esac
 
-  if [ "${blocked}" = true  ]; then
+  if [[ "${blocked}" = true  ]]; then
     ip=$(dig "@${CONDITIONAL_FORWARDING_IP}" +short "${domain}")
-    if [ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]; then
+    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
       port=443;
     else port=80
     fi
