@@ -1087,17 +1087,40 @@ chooseBlocklists() {
     # For each choice available,
     for choice in ${choices}
     do
-        # Set the values to true
-        case ${choice} in
-            StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
-            MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-            Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
-            ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
-            DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
-            DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
-            HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
-        esac
+        appendToListsFile choice
     done
+}
+
+# Accept a string parameter, it must be one of the default lists
+# This function allow to not duplicate code in chooseBlocklists and 
+# in installDefaultBlocklists
+appendToListsFile() {
+    case $1 in
+        StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
+        MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
+        Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+        ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
+        DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
+        DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
+        HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
+    esac
+}
+
+# Used only in unattended setup
+# If there is already the adListFile, we keep it, else we create it using all default lists
+installDefaultBlocklists() {
+    # In unattended setup, could be usefull to use userdefined blocklist.
+    # If this file exists, we avoid to override it.
+    if [[ -f "${adlistFile}" ]]; then
+        return;
+    fi  
+    appendToListsFile StevenBlack
+    appendToListsFile MalwareDom
+    appendToListsFile Cameleon
+    appendToListsFile ZeusTracker
+    appendToListsFile DisconTrack
+    appendToListsFile DisconAd
+    appendToListsFile HostsFile
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -2391,6 +2414,8 @@ main() {
         # Let the user decide if they want query logging enabled...
         setLogging
     else
+        # Setup adlist file if not exists
+        installDefaultBlocklists
         # Source ${setupVars} to use predefined user variables in the functions
         source ${setupVars}
     fi
