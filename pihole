@@ -10,7 +10,8 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-readonly wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+readonly gravitylist="/etc/pihole/gravity.list"
+readonly blacklist="/etc/pihole/black.list"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
@@ -146,10 +147,13 @@ Time:
 
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
-    sed -i 's/^addn-hosts=\/etc\/pihole\/gravity.list/#addn-hosts=\/etc\/pihole\/gravity.list/' /etc/dnsmasq.d/01-pihole.conf
-    sed -i 's/^addn-hosts=\/etc\/pihole\/black.list/#addn-hosts=\/etc\/pihole\/black.list/' /etc/dnsmasq.d/01-pihole.conf
-    if [[ -e "$wildcardlist" ]]; then
-      mv "$wildcardlist" "/etc/pihole/wildcard.list"
+    if [[ -e "${gravitylist}" ]]; then
+      mv "${gravitylist}" "${gravitylist}.bck"
+      echo "" > "${gravitylist}"
+    fi
+    if [[ -e "${blacklist}" ]]; then
+      mv "${blacklist}" "${blacklist}.bck"
+      echo "" > "${blacklist}"
     fi
     if [[ $# > 1 ]]; then
       local error=false
@@ -193,9 +197,11 @@ Time:
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    sed -i 's/^#addn-hosts/addn-hosts/' /etc/dnsmasq.d/01-pihole.conf
-    if [[ -e "/etc/pihole/wildcard.list" ]]; then
-      mv "/etc/pihole/wildcard.list" "$wildcardlist"
+    if [[ -e "${gravitylist}.bck" ]]; then
+      mv "${gravitylist}.bck" "${gravitylist}"
+    fi
+    if [[ -e "${blacklist}" ]]; then
+      mv "${blacklist}.bck" "${blacklist}"
     fi
   fi
 
