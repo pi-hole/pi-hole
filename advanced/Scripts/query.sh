@@ -12,7 +12,7 @@
 # Globals
 piholeDir="/etc/pihole"
 adListsList="$piholeDir/adlists.list"
-wildcardlist="/etc/pihole/regex.list"
+regexlist="/etc/pihole/regex.list"
 options="$*"
 adlist=""
 all=""
@@ -38,7 +38,7 @@ scanList(){
     # shellcheck disable=SC2086
     case "${type}" in
         "exact" ) grep -i -E -l "(^|\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        "wc"    ) grep -i -E -o -f $wildcardlist <<< "${domainQuery}" 2>/dev/null;;
+        "rx"    ) grep -i -E -o -f "${regexlist}" <<< "${domainQuery}" 2>/dev/null;;
         *       ) grep -i "${domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
@@ -114,17 +114,24 @@ if [[ -n "${results[*]}" ]]; then
     done
 fi
 
-# Scan Wildcards
-if [[ -e "${wildcardlist}" ]]; then
-    mapfile -t results <<< "$(scanList "${domainQuery}" "${wildcardlist}" "wc")"
+# Scan Regex
+if [[ -e "${regexlist}" ]]; then
+    mapfile -t results <<< "$(scanList "${domainQuery}" "${regexlist}" "rx")"
     if [[ -n "${results[*]}" ]]; then
         if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
             wcMatch=true
-            echo " ${matchType^} found in ${COL_BOLD}Wildcards${COL_NC}:"
+            echo " ${matchType^} found in ${COL_BOLD}Regex list${COL_NC}:"
         fi
+
+        # Remove first full stop if it exists (e.g: ".foo.bar" > "foo.bar")
+        [[ "${results[0]::1}" == "." ]] && results[0]="${results[0]:1}"
+
+        # Return matching regex.list line (Full stops escaped to check against wildcards)
+        result=( "$(grep -i "${results[0]//./\\\\.}" "${regexlist}")" "$(grep -i "${results[0]}" "${regexlist}")" )
+
         case "${blockpage}" in
-            true ) echo "π ${wildcardlist##*/}"; exit 0;;
-            *    ) echo "   ${results[0]}";;
+            true ) echo "π ${regexlist##*/}"; exit 0;;
+            *    ) echo "   ${result[*]}";;
         esac
     fi
 fi
@@ -140,7 +147,7 @@ if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]
     echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the block lists"
     exit 0
 elif [[ -z "${results[*]}" ]]; then
-    # Result found in WL/BL/Wildcards
+    # Result found in WL/BL/Regex
     exit 0
 elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
     echo -e "  ${INFO} Over 100 ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC}
