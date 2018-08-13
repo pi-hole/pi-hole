@@ -118,17 +118,14 @@ fi
 if [[ -e "${regexlist}" ]]; then
     mapfile -t results <<< "$(scanList "${domainQuery}" "${regexlist}" "rx")"
     if [[ -n "${results[*]}" ]]; then
-        if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
+        if [[ -z "${blockpage}" ]]; then
             wcMatch=true
             echo " ${matchType^} found in ${COL_BOLD}Regex list${COL_NC}:"
         fi
 
-        # Join results with | (for grep search)
+        # Join matches with | (for grep), remove leading full stops (e.g: ".foo.bar" > "foo.bar") & escape full stops
         join() { local IFS="${1}"; shift; echo "${*}"; }
-        result="$(join "|" "${results[@]}")"
-
-        # Escape full stops, and remove any leading full stop (e.g: ".foo.bar" > "foo.bar")
-        result="$(sed -E "s/(^|\\|)\\\\\\\\\\./\\|/g" <<< "${result//./\\\\.}")"
+        result="$(join "|" "${results[@]}" | sed -E -e "s/^\\.//g" -e "s/\\|\\./\\|/g" -e "s/\\./\\\\\\\\./g")"
         result="$(grep -E "(${result})" "${regexlist}")"
 
         case "${blockpage}" in
