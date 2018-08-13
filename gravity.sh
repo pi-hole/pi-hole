@@ -78,11 +78,12 @@ fi
 #  gravity.list.bck and black.list.bck instead of
 #  gravity.list and black.list
 detect_pihole_blocking_status() {
-  if [[ -e "${adList}.bck" ]]; then
+  if [[ "${BLOCKING}" == false ]]; then
+    echo -e "  ${INFO} Pi-hole blocking is disabled"
     adList="${adList}.bck"
-  fi
-  if [[ -e "${blackList}.bck" ]]; then
     blackList="${blackList}.bck"
+  else
+    echo -e "  ${INFO} Pi-hole blocking is enabled"
   fi
 }
 

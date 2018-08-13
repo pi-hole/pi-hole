@@ -12,6 +12,7 @@
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly gravitylist="/etc/pihole/gravity.list"
 readonly blacklist="/etc/pihole/black.list"
+readonly setupVars="/etc/pihole/setupVars.conf"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
@@ -192,7 +193,7 @@ Time:
 
       local str="Pi-hole Disabled"
       sed -i "/BLOCKING=/d" "${setupVars}"
-      echo "BLOCKING=true" >> "${setupVars}"
+      echo "BLOCKING=false" >> "${setupVars}"
     fi
   else
     # Enable Pi-hole
@@ -206,7 +207,7 @@ Time:
       mv "${blacklist}.bck" "${blacklist}"
     fi
     sed -i "/BLOCKING=/d" "${setupVars}"
-    echo "BLOCKING=false" >> "${setupVars}"
+    echo "BLOCKING=true" >> "${setupVars}"
   fi
 
   restartDNS reload
