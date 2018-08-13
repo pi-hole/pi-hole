@@ -73,6 +73,19 @@ if [[ -r "${piholeDir}/pihole.conf" ]]; then
   echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
 fi
 
+# Determine if Pi-hole blocking is disabled
+# If this is the case, we want to update
+#  gravity.list.bck and black.list.bck instead of
+#  gravity.list and black.list
+detect_pihole_blocking_status() {
+  if [[ -e "${adList}.bck" ]]; then
+    adList="${adList}.bck"
+  fi
+  if [[ -e "${blackList}.bck" ]]; then
+    blackList="${blackList}.bck"
+  fi
+}
+
 # Determine if DNS resolution is available before proceeding
 gravity_CheckDNSResolutionAvailable() {
   local lookupDomain="pi.hole"
@@ -620,6 +633,8 @@ if [[ "${forceDelete:-}" == true ]]; then
   rm /etc/pihole/list.* 2> /dev/null || true
   echo -e "${OVER}  ${TICK} ${str}"
 fi
+
+detect_pihole_blocking_status
 
 # Determine which functions to run
 if [[ "${skipDownload}" == false ]]; then
