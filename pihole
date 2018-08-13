@@ -191,6 +191,8 @@ Time:
       fi
 
       local str="Pi-hole Disabled"
+      sed -i "/BLOCKING=/d" "${setupVars}"
+      echo "BLOCKING=true" >> "${setupVars}"
     fi
   else
     # Enable Pi-hole
@@ -203,6 +205,8 @@ Time:
     if [[ -e "${blacklist}" ]]; then
       mv "${blacklist}.bck" "${blacklist}"
     fi
+    sed -i "/BLOCKING=/d" "${setupVars}"
+    echo "BLOCKING=false" >> "${setupVars}"
   fi
 
   restartDNS reload
