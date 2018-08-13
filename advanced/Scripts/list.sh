@@ -13,9 +13,6 @@ basename=pihole
 piholeDir=/etc/"${basename}"
 whitelist="${piholeDir}"/whitelist.txt
 blacklist="${piholeDir}"/blacklist.txt
-if [[ "${BLOCKING_ENABLED}" == false ]]; then
-  blacklist="${blacklist}.bck"
-fi
 
 readonly regexlist="/etc/pihole/regex.list"
 reload=false
