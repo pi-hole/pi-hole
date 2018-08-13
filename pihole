@@ -268,16 +268,17 @@ statusFunc() {
     return 0
   fi
 
-  # Determine if Pi-hole's addn-hosts configs are commented out
-  addnConfigs=$(grep -i "addn-hosts=/" /etc/dnsmasq.d/01-pihole.conf)
+  # Determine if Pi-hole's blocking is enabled
 
-  if [[ "${addnConfigs}" =~ "#" ]]; then
+  addnConfigs=$?
+
+  if grep -q "BLOCKING=false" /etc/pihole/setupVars.conf; then
     # A config is commented out
     case "${1}" in
       "web") echo 0;;
       *) echo -e "  ${CROSS} Pi-hole blocking is Disabled";;
     esac
-  elif [[ -n "${addnConfigs}" ]]; then
+  elif grep -q "BLOCKING=true" /etc/pihole/setupVars.conf;  then
     # Configs are set
     case "${1}" in
       "web") echo 1;;
@@ -289,9 +290,8 @@ statusFunc() {
       "web") echo 99;;
       *) echo -e "  ${INFO} No hosts file linked to dnsmasq, adding it in enabled state";;
     esac
-    # Add addn-host= to dnsmasq
-    echo "addn-hosts=/etc/pihole/gravity.list" >> /etc/dnsmasq.d/01-pihole.conf
-    restartDNS
+    # Enable blocking
+    pihole enable
   fi
 }
 
