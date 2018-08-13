@@ -192,8 +192,8 @@ Time:
       fi
 
       local str="Pi-hole Disabled"
-      sed -i "/BLOCKING=/d" "${setupVars}"
-      echo "BLOCKING=false" >> "${setupVars}"
+      sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
+      echo "BLOCKING_ENABLED=false" >> "${setupVars}"
     fi
   else
     # Enable Pi-hole
@@ -206,8 +206,8 @@ Time:
     if [[ -e "${blacklist}" ]]; then
       mv "${blacklist}.bck" "${blacklist}"
     fi
-    sed -i "/BLOCKING=/d" "${setupVars}"
-    echo "BLOCKING=true" >> "${setupVars}"
+    sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
+    echo "BLOCKING_ENABLED=true" >> "${setupVars}"
   fi
 
   restartDNS reload
@@ -272,13 +272,13 @@ statusFunc() {
 
   addnConfigs=$?
 
-  if grep -q "BLOCKING=false" /etc/pihole/setupVars.conf; then
+  if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
     # A config is commented out
     case "${1}" in
       "web") echo 0;;
       *) echo -e "  ${CROSS} Pi-hole blocking is Disabled";;
     esac
-  elif grep -q "BLOCKING=true" /etc/pihole/setupVars.conf;  then
+  elif grep -q "BLOCKING_ENABLED=true" /etc/pihole/setupVars.conf;  then
     # Configs are set
     case "${1}" in
       "web") echo 1;;
