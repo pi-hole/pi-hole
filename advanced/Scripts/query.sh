@@ -131,7 +131,7 @@ if [[ -e "${regexlist}" ]]; then
 
         case "${blockpage}" in
             true ) echo "π ${regexlist##*/}"; exit 0;;
-            *    ) echo "   ${result[*]}";;
+            *    ) awk '{print "   "$0}' <<< "${result[*]}";;
         esac
     fi
 fi
