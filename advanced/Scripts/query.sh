@@ -123,15 +123,17 @@ if [[ -e "${regexlist}" ]]; then
             echo " ${matchType^} found in ${COL_BOLD}Regex list${COL_NC}:"
         fi
 
-        # Remove first full stop if it exists (e.g: ".foo.bar" > "foo.bar")
-        [[ "${results[0]::1}" == "." ]] && results[0]="${results[0]:1}"
+        # Join results with | (for grep search)
+        join() { local IFS="${1}"; shift; echo "${*}"; }
+        result="$(join "|" "${results[@]}")"
 
-        # Return matching regex.list line (Full stops escaped to check against wildcards)
-        result=( "$(grep -i "${results[0]//./\\\\.}" "${regexlist}")" "$(grep -i "${results[0]}" "${regexlist}")" )
+        # Escape full stops, and remove any leading full stop (e.g: ".foo.bar" > "foo.bar")
+        result="$(sed -E "s/(^|\\|)\\\\\\\\\\./\\|/g" <<< "${result//./\\\\.}")"
+        result="$(grep -E "(${result})" "${regexlist}")"
 
         case "${blockpage}" in
             true ) echo "π ${regexlist##*/}"; exit 0;;
-            *    ) awk '{print "   "$0}' <<< "${result[*]}";;
+            *    ) awk '{print "   "$0}' <<< "${result}";;
         esac
     fi
 fi
