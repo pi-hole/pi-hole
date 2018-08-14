@@ -1109,8 +1109,8 @@ appendToListsFile() {
 # Used only in unattended setup
 # If there is already the adListFile, we keep it, else we create it using all default lists
 installDefaultBlocklists() {
-    # In unattended setup, could be usefull to use userdefined blocklist.
-    # If this file exists, we avoid to override it.
+    # In unattended setup, could be useful to use userdefined blocklist.
+    # If this file exists, we avoid overriding it.
     if [[ -f "${adlistFile}" ]]; then
         return;
     fi  
