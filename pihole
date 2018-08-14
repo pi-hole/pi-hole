@@ -203,7 +203,7 @@ Time:
     if [[ -e "${gravitylist}.bck" ]]; then
       mv "${gravitylist}.bck" "${gravitylist}"
     fi
-    if [[ -e "${blacklist}" ]]; then
+    if [[ -e "${blacklist}.bck" ]]; then
       mv "${blacklist}.bck" "${blacklist}"
     fi
     sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
@@ -253,8 +253,6 @@ Options:
 }
 
 statusFunc() {
-  local addnConfigs
-
   # Determine if service is running on port 53 (Cr: https://superuser.com/a/806331)
   if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
     if [[ "${1}" != "web" ]]; then
@@ -269,9 +267,6 @@ statusFunc() {
   fi
 
   # Determine if Pi-hole's blocking is enabled
-
-  addnConfigs=$?
-
   if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
     # A config is commented out
     case "${1}" in
