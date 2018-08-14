@@ -2099,7 +2099,7 @@ FTLinstall() {
             # the download failed, so just go back to the original directory
             popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
             echo -e "${OVER}  ${CROSS} ${str}"
-            echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
+            echo -e "  ${COL_LIGHT_RED}Error: Download of ${url}/${binary} failed (checksum error)${COL_NC}"
             return 1
         fi
     # Otherwise,
@@ -2107,7 +2107,7 @@ FTLinstall() {
         popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
         echo -e "${OVER}  ${CROSS} ${str}"
         # The URL could not be found
-        echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
+        echo -e "  ${COL_LIGHT_RED}Error: URL ${url}/${binary} not found${COL_NC}"
         return 1
     fi
 }
