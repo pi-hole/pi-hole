@@ -2483,9 +2483,12 @@ main() {
     echo -e "  ${INFO} Restarting services..."
     # Start services
 
-    # Enable FTL
-    start_service pihole-FTL
+    # Enable FTL 
+    # Ensure the service is enabled before trying to start it
+    # Fixes a problem reported on Ubuntu 18.04 where trying to start
+    # the service before enabling causes installer to exit
     enable_service pihole-FTL
+    start_service pihole-FTL
 
     # Download and compile the aggregated block list
     runGravity
