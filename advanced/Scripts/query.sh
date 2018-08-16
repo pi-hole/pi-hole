@@ -116,17 +116,30 @@ fi
 
 # Scan Regex
 if [[ -e "${regexlist}" ]]; then
+    # Return portion(s) of string that is found in the regex list
     mapfile -t results <<< "$(scanList "${domainQuery}" "${regexlist}" "rx")"
-    if [[ -n "${results[*]}" ]]; then
-        if [[ -z "${blockpage}" ]]; then
-            wcMatch=true
-            echo " ${matchType^} found in ${COL_BOLD}Regex list${COL_NC}:"
-        fi
 
-        # Join matches with | (for grep), remove leading full stops (e.g: ".foo.bar" > "foo.bar") & escape full stops
+    # TODO: Find a way to return the matching regex pattern, rather than the matching portion of the query
+    if [[ -n "${results[*]}" ]]; then
+        # Join all results with grep delimiter, remove wildcard leading full stops (e.g: ".foo.bar" > "foo.bar") & escape full stops
         join() { local IFS="${1}"; shift; echo "${*}"; }
         result="$(join "|" "${results[@]}" | sed -E -e "s/^\\.//g" -e "s/\\|\\./\\|/g" -e "s/\\./\\\\\\\\./g")"
-        result="$(grep -E "(${result})" "${regexlist}")"
+        result="$(grep -E --color=always "(${result})" "${regexlist}")"
+
+        if [[ -z "${result:-}" ]]; then
+            # A result is found, but (due to regex "deformation"), can't be matched against a line
+            str="Phrase ${matchType}ed within"
+            result="${COL_BOLD}${results[*]}${COL_NC}"
+        elif [[ -z "${blockpage}" ]]; then
+            # Print output of matching line(s) in regex list
+            [[ $(wc -l <<< "${result}") -gt 1 ]] && plu="es"
+            str="Potential ${matchType}${plu:-} found in"
+        fi
+
+        if [[ -z "${blockpage}" ]]; then
+            wcMatch=true
+            echo " $str ${COL_BOLD}Regex list${COL_NC}:"
+        fi
 
         case "${blockpage}" in
             true ) echo "π ${regexlist##*/}"; exit 0;;
