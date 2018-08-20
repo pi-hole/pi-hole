@@ -1020,39 +1020,20 @@ setLogging() {
 setPrivacyLevel() {
     local LevelCommand
     local LevelOptions
-    local LevelChoice
 
     LevelCommand=(whiptail --separate-output --radiolist "Select a privacy mode for FTL." "${r}" "${c}" 6)
 
     # The default selection is level 0
     LevelOptions=(
-        "0 - Show everything" on
-        "1 - Hide domains" off
-        "2 - Hide domains and clients" off
-        "3 - Anonymous mode" off
-        "4 - Disabled statistics" off
+        "0" "Show everything" on
+        "1" "Hide domains" off
+        "2" "Hide domains and clients" off
+        "3" "Anonymous mode" off
+        "4" "Disabled statistics" off
     )
 
     # Get the user's choice
-    LevelChoice=$("${LevelCommand[@]}" "${LevelOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
-
-    case "${LevelChoice}" in
-        "0 - Show everything")
-            PRIVACY_LEVEL=0
-            ;;
-        "1 - Hide domains")
-            PRIVACY_LEVEL=1
-            ;;
-        "2 - Hide domains and clients")
-            PRIVACY_LEVEL=2
-            ;;
-        "3 - Anonymous mode")
-            PRIVACY_LEVEL=3
-            ;;
-        "4 - Disabled statistics")
-            PRIVACY_LEVEL=4
-            ;;
-    esac
+    PRIVACY_LEVEL=$("${LevelCommand[@]}" "${LevelOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
 
     echo -en "  ${INFO} Privacy level ${PRIVACY_LEVEL}"
 }
