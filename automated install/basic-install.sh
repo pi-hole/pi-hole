@@ -59,6 +59,7 @@ IPV6_ADDRESS=""
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
+PRIVACY_LEVEL=0
 
 if [ -z "${USER}" ]; then
   USER="$(id -un)"
@@ -1015,6 +1016,47 @@ setLogging() {
     esac
 }
 
+# Allow the user to set their FTL privacy level
+setPrivacyLevel() {
+    local LevelCommand
+    local LevelOptions
+    local LevelChoice
+
+    LevelCommand=(whiptail --separate-output --radiolist "Select a privacy mode for FTL." "${r}" "${c}" 6)
+
+    # The default selection is level 0
+    LevelOptions=(
+        "0 - Show everything" on
+        "1 - Hide domains" off
+        "2 - Hide domains and clients" off
+        "3 - Anonymous mode" off
+        "4 - Disabled statistics" off
+    )
+
+    # Get the user's choice
+    LevelChoice=$("${LevelCommand[@]}" "${LevelOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
+
+    case "${LevelChoice}" in
+        "0 - Show everything")
+            PRIVACY_LEVEL=0
+            ;;
+        "1 - Hide domains")
+            PRIVACY_LEVEL=1
+            ;;
+        "2 - Hide domains and clients")
+            PRIVACY_LEVEL=2
+            ;;
+        "3 - Anonymous mode")
+            PRIVACY_LEVEL=3
+            ;;
+        "4 - Disabled statistics")
+            PRIVACY_LEVEL=4
+            ;;
+    esac
+
+    echo -en "  ${INFO} Privacy level ${PRIVACY_LEVEL}"
+}
+
 # Function to ask the user if they want to install the dashboard
 setAdminFlag() {
     # Local, named variables
@@ -1718,6 +1760,10 @@ finalExports() {
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
 
+    # Set the privacy level
+    sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
@@ -2413,11 +2459,22 @@ main() {
         setAdminFlag
         # Let the user decide if they want query logging enabled...
         setLogging
+        # Let the user decide the FTL privacy level
+        setPrivacyLevel
     else
         # Setup adlist file if not exists
         installDefaultBlocklists
+
         # Source ${setupVars} to use predefined user variables in the functions
         source ${setupVars}
+
+        # Get the privacy level if it exists (default is 0)
+        if [[ -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
+            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf")
+
+            # If no setting was found, default to 0
+            PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
+        fi
     fi
     # Clone/Update the repos
     clone_or_update_repos
