@@ -2113,6 +2113,7 @@ FTLinstall() {
             # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
             local conffile="/etc/dnsmasq.conf"
             if [[ -f "${conffile}" ]]; then
+                echo "  ${INFO} Backing up ${conffile} to ${conffile}.old"
                 mv "${conffile}" "${conffile}.old"
             fi
             # Create /etc/dnsmasq.conf
