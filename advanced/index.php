@@ -8,7 +8,7 @@
 
 // Sanitise HTTP_HOST output
 $serverName = htmlspecialchars($_SERVER["HTTP_HOST"]);
-// Remove external ipv6 brackets if any 
+// Remove external ipv6 brackets if any
 $serverName = preg_replace('/^\[(.*)\]$/', '${1}', $serverName);
 
 if (!is_file("/etc/pihole/setupVars.conf"))

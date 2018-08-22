@@ -525,14 +525,24 @@ Teleporter() {
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
-audit()
+addAudit()
 {
-    echo "${args[2]}" >> /etc/pihole/auditlog.list
+    shift # skip "-a"
+    shift # skip "audit"
+    for var in "$@"
+    do
+        echo "${var}" >> /etc/pihole/auditlog.list
+    done
+}
+
+clearAudit()
+{
+    echo -n "" > /etc/pihole/auditlog.list
 }
 
 SetPrivacyLevel() {
-    # Set privacy level. Minimum is 0, maximum is 3
-    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
+    # Set privacy level. Minimum is 0, maximum is 4
+    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 4 ]; then
         changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
     fi
 }
@@ -565,7 +575,8 @@ main() {
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;
         "adlist"              ) CustomizeAdLists;;
-        "audit"               ) audit;;
+        "audit"               ) addAudit "$@";;
+        "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
         *                     ) helpFunc;;
     esac
