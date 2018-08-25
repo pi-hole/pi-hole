@@ -1092,7 +1092,7 @@ chooseBlocklists() {
 }
 
 # Accept a string parameter, it must be one of the default lists
-# This function allow to not duplicate code in chooseBlocklists and 
+# This function allow to not duplicate code in chooseBlocklists and
 # in installDefaultBlocklists
 appendToListsFile() {
     case $1 in
@@ -1113,7 +1113,7 @@ installDefaultBlocklists() {
     # If this file exists, we avoid overriding it.
     if [[ -f "${adlistFile}" ]]; then
         return;
-    fi  
+    fi
     appendToListsFile StevenBlack
     appendToListsFile MalwareDom
     appendToListsFile Cameleon
@@ -2109,12 +2109,15 @@ FTLinstall() {
                 fi
             fi
 
-            #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
-            confdir="conf-dir=/etc/dnsmasq.d"
-            conffile="/etc/dnsmasq.conf"
-            if ! grep -q "$confdir" "$conffile"; then
-                echo "$confdir" >> "$conffile"
+            # Backup existing /etc/dnsmasq.conf if present and ensure that
+            # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
+            local conffile="/etc/dnsmasq.conf"
+            if [[ -f "${conffile}" ]]; then
+                echo "  ${INFO} Backing up ${conffile} to ${conffile}.old"
+                mv "${conffile}" "${conffile}.old"
             fi
+            # Create /etc/dnsmasq.conf
+            echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
 
             return 0
         # Otherwise,
@@ -2483,7 +2486,7 @@ main() {
     echo -e "  ${INFO} Restarting services..."
     # Start services
 
-    # Enable FTL 
+    # Enable FTL
     # Ensure the service is enabled before trying to start it
     # Fixes a problem reported on Ubuntu 18.04 where trying to start
     # the service before enabling causes installer to exit
