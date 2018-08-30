@@ -283,7 +283,7 @@ statusFunc() {
     # No configs were found
     case "${1}" in
       "web") echo 99;;
-      *) echo -e "  ${INFO} No hosts file linked to dnsmasq, adding it in enabled state";;
+      *) echo -e "  ${INFO} Pi-hole blocking will be enabled";;
     esac
     # Enable blocking
     pihole enable
