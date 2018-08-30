@@ -1087,17 +1087,40 @@ chooseBlocklists() {
     # For each choice available,
     for choice in ${choices}
     do
-        # Set the values to true
-        case ${choice} in
-            StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
-            MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-            Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
-            ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
-            DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
-            DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
-            HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
-        esac
+        appendToListsFile choice
     done
+}
+
+# Accept a string parameter, it must be one of the default lists
+# This function allow to not duplicate code in chooseBlocklists and
+# in installDefaultBlocklists
+appendToListsFile() {
+    case $1 in
+        StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
+        MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
+        Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+        ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
+        DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
+        DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
+        HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
+    esac
+}
+
+# Used only in unattended setup
+# If there is already the adListFile, we keep it, else we create it using all default lists
+installDefaultBlocklists() {
+    # In unattended setup, could be useful to use userdefined blocklist.
+    # If this file exists, we avoid overriding it.
+    if [[ -f "${adlistFile}" ]]; then
+        return;
+    fi
+    appendToListsFile StevenBlack
+    appendToListsFile MalwareDom
+    appendToListsFile Cameleon
+    appendToListsFile ZeusTracker
+    appendToListsFile DisconTrack
+    appendToListsFile DisconAd
+    appendToListsFile HostsFile
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -2086,12 +2109,15 @@ FTLinstall() {
                 fi
             fi
 
-            #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
-            confdir="conf-dir=/etc/dnsmasq.d"
-            conffile="/etc/dnsmasq.conf"
-            if ! grep -q "$confdir" "$conffile"; then
-                echo "$confdir" >> "$conffile"
+            # Backup existing /etc/dnsmasq.conf if present and ensure that
+            # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
+            local conffile="/etc/dnsmasq.conf"
+            if [[ -f "${conffile}" ]]; then
+                echo "  ${INFO} Backing up ${conffile} to ${conffile}.old"
+                mv "${conffile}" "${conffile}.old"
             fi
+            # Create /etc/dnsmasq.conf
+            echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
 
             return 0
         # Otherwise,
@@ -2099,7 +2125,7 @@ FTLinstall() {
             # the download failed, so just go back to the original directory
             popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
             echo -e "${OVER}  ${CROSS} ${str}"
-            echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
+            echo -e "  ${COL_LIGHT_RED}Error: Download of ${url}/${binary} failed (checksum error)${COL_NC}"
             return 1
         fi
     # Otherwise,
@@ -2107,7 +2133,7 @@ FTLinstall() {
         popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
         echo -e "${OVER}  ${CROSS} ${str}"
         # The URL could not be found
-        echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
+        echo -e "  ${COL_LIGHT_RED}Error: URL ${url}/${binary} not found${COL_NC}"
         return 1
     fi
 }
@@ -2391,6 +2417,8 @@ main() {
         # Let the user decide if they want query logging enabled...
         setLogging
     else
+        # Setup adlist file if not exists
+        installDefaultBlocklists
         # Source ${setupVars} to use predefined user variables in the functions
         source ${setupVars}
     fi
@@ -2459,8 +2487,11 @@ main() {
     # Start services
 
     # Enable FTL
-    start_service pihole-FTL
+    # Ensure the service is enabled before trying to start it
+    # Fixes a problem reported on Ubuntu 18.04 where trying to start
+    # the service before enabling causes installer to exit
     enable_service pihole-FTL
+    start_service pihole-FTL
 
     # Download and compile the aggregated block list
     runGravity

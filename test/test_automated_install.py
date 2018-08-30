@@ -501,8 +501,10 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
-    error = 'Error: URL not found'
-    assert error in download_binary.stdout
+    error1 = 'Error: URL https://github.com/pi-hole/FTL/releases/download/'
+    assert error1 in download_binary.stdout
+    error2 = 'not found'
+    assert error2 in download_binary.stdout
 
 
 def test_FTL_binary_installed_and_responsive_no_errors(Pihole):

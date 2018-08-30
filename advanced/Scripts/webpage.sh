@@ -541,8 +541,8 @@ clearAudit()
 }
 
 SetPrivacyLevel() {
-    # Set privacy level. Minimum is 0, maximum is 3
-    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
+    # Set privacy level. Minimum is 0, maximum is 4
+    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 4 ]; then
         changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
     fi
 }

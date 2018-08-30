@@ -58,6 +58,8 @@ else
     # Delete most recent 24 hours from FTL's database, leave even older data intact (don't wipe out all history)
     deleted=$(sqlite3 "${DBFILE}" "DELETE FROM queries WHERE timestamp >= strftime('%s','now')-86400; select changes() from queries limit 1")
 
+    # Restart pihole-FTL to force reloading history
+    sudo pihole restartdns
 fi
 
 if [[ "$@" != *"quiet"* ]]; then
