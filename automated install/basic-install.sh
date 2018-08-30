@@ -257,7 +257,7 @@ elif command -v rpm &> /dev/null; then
         CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.)' /etc/redhat-release)
         # Check if CentOS version is supported
         if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-            echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not suported."
+            echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not supported."
             echo -e "      Please update to CentOS release $SUPPORTED_CENTOS_VERSION or later"
             # exit the installer
             exit
