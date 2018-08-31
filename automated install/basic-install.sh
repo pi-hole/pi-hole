@@ -244,20 +244,20 @@ elif command -v rpm &> /dev/null; then
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     # If the host OS is Fedora,
-    if grep -qi 'fedora' /etc/redhat-release; then
+    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
         # ensure 'php-json' is installed on Fedora (installed as dependency on CentOS7 + Remi repository)
         PIHOLE_WEB_DEPS+=('php-json')
     # or if host OS is CentOS,
-    elif grep -qi 'centos' /etc/redhat-release; then
+    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
         # Pi-Hole currently supports CentOS 7+ with PHP7+
         SUPPORTED_CENTOS_VERSION=7
         SUPPORTED_CENTOS_PHP_VERSION=7
         # Check current CentOS major release version
-        CURRENT_CENTOS_VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release)
+        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.)' /etc/redhat-release)
         # Check if CentOS version is supported
         if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-            echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not suported."
+            echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not supported."
             echo -e "      Please update to CentOS release $SUPPORTED_CENTOS_VERSION or later"
             # exit the installer
             exit
@@ -305,13 +305,16 @@ elif command -v rpm &> /dev/null; then
         fi
     fi
     else
-        # If not a supported version of Fedora or CentOS,
-        echo -e "  ${CROSS} Unsupported RPM based distribution"
-        # exit the installer
-        exit
+        # Warn user of unsupported version of Fedora or CentOS
+        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" ${r} ${c}; then
+            echo -e "  ${CROSS} Aborting installation due to unsupported RPM based distribution"
+            exit # exit the installer
+        else
+            echo -e "  ${INFO} Continuing installation with unsupported RPM based distribution"
+        fi
     fi
 
-# If neither apt-get or rmp/dnf are found
+# If neither apt-get or yum/dnf package managers were found
 else
     # it's not an OS we can support,
     echo -e "  ${CROSS} OS distribution not supported"
