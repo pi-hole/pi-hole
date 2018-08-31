@@ -307,13 +307,14 @@ elif command -v rpm &> /dev/null; then
     else
         # Warn user of unsupported version of Fedora or CentOS
         if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" ${r} ${c}; then
+            echo -e "  ${CROSS} Aborting installation due to unsupported RPM based distribution"
             exit # exit the installer
         else
-            : # continue with unsupported RPM distribution
+            echo -e "  ${INFO} Continuing installation with unsupported RPM based distribution"
         fi
     fi
 
-# If neither apt-get or yum/dnf are found
+# If neither apt-get or yum/dnf package managers were found
 else
     # it's not an OS we can support,
     echo -e "  ${CROSS} OS distribution not supported"
