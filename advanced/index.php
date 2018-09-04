@@ -58,7 +58,7 @@ function setHeader($type = "x") {
 if ($serverName === "pi.hole") {
     // Redirect to Web Interface
     exit(header("Location: /admin"));
-} elseif (filter_var($serverName) || in_array($serverName, $authorizedHosts)) {
+} elseif (filter_var($serverName, FILTER_SANITIZE_URL, FILTER_VALIDATE_URL) || in_array($serverName, $authorizedHosts)) {
     // Set Splash Page output
     $splashPage = "
     <html><head>
