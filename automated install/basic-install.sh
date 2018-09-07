@@ -1290,6 +1290,8 @@ installConfigs() {
         fi
         # and copy in the config file Pi-hole needs
         cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+        # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
+        touch /etc/lighttpd/external.conf
         # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "/var/www/html/pihole/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
