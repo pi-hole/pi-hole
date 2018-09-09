@@ -243,7 +243,7 @@ get_sys_stats() {
         disk_total="${disk_raw[1]}"
         disk_perc="${disk_raw[2]}"
 
-        net_gateway=$(ip route | grep default | cut -d ' ' -f 3)
+        net_gateway=$(ip route | grep default | cut -d ' ' -f 3 | head -n 1)
 
         # Get DHCP stats, if feature is enabled
         if [[ "$DHCP_ACTIVE" == "true" ]]; then
