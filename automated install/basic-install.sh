@@ -858,7 +858,6 @@ setDNS() {
     DNSChooseOptions=(Google ""
         OpenDNS ""
         Level3 ""
-        Norton ""
         Comodo ""
         DNSWatch ""
         Quad9 ""
@@ -889,11 +888,6 @@ setDNS() {
             echo "Level3 servers"
             PIHOLE_DNS_1="4.2.2.1"
             PIHOLE_DNS_2="4.2.2.2"
-            ;;
-        Norton)
-            echo "Norton ConnectSafe servers"
-            PIHOLE_DNS_1="199.85.126.10"
-            PIHOLE_DNS_2="199.85.127.10"
             ;;
         Comodo)
             echo "Comodo Secure servers"
