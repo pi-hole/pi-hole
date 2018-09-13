@@ -1505,10 +1505,10 @@ disable_dnsmasq() {
             echo -e "  ${TICK} Restarting Network manager"
             ${SUDO} systemctl reload-or-restart NetworkManager
         else
-            # Disabling dnsmasq
-            disable_service dnsmasq
             # Stopping dnsmasq
             stop_service dnsmasq
+            # Disabling dnsmasq
+            disable_service dnsmasq
         fi
         #setting dnsmasq_flag to false in order for the next check to validate or not
         dnsmasq_flag=false
