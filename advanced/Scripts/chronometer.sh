@@ -234,6 +234,9 @@ get_sys_stats() {
         fi
 
         sys_name=$(hostname)
+        sys_kernel=$(uname -r)
+        kernel_arch=$(arch)
+        sys_arch="Architecture: $kernel_arch"
 
         [[ -n "$TEMPERATUREUNIT" ]] && temp_unit="$TEMPERATUREUNIT" || temp_unit="c"
 
@@ -482,6 +485,7 @@ chronoFunc() {
         fi
 
         printFunc "  Hostname: " "$sys_name" "$host_info"
+        printFunc "    Kernel: " "$sys_kernel" "$sys_arch"
         printFunc "    Uptime: " "$sys_uptime" "$sys_info"
         printFunc " Task Load: " "$sys_loadavg" "$sys_info2"
         printFunc " CPU usage: " "$cpu_perc%" "$cpu_info"
