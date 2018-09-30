@@ -38,6 +38,7 @@ function get_local_version() {
 }
 
 # Source the setupvars config file
+# shellcheck disable=SC1091
 . /etc/pihole/setupVars.conf
 
 if [[ "$2" == "remote" ]]; then
