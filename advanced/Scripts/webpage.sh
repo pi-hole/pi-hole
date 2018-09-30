@@ -110,7 +110,7 @@ SetWebPassword() {
         # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
         # So we reset the terminal via stty if the user does press Ctrl+C
         trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
-        read -s -p -r "Enter New Password (Blank for no password): " PASSWORD
+        read -s -p "Enter New Password (Blank for no password): " PASSWORD
         echo ""
 
     if [ "${PASSWORD}" == "" ]; then
@@ -119,7 +119,7 @@ SetWebPassword() {
         exit 0
     fi
 
-    read -s -p -r "Confirm Password: " CONFIRM
+    read -s -p "Confirm Password: " CONFIRM
     echo ""
     fi
 
