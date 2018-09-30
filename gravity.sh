@@ -72,11 +72,10 @@ fi
 pihole_FTL="${piholeDir}/pihole-FTL.conf"
 if [[ -f "${pihole_FTL}" ]]; then
   source "${pihole_FTL}"
-  if [[ -z "${BLOCKINGMODE}" ]] ; then
-    BLOCKINGMODE="Default (NULL)"
-  fi
-else
-    BLOCKINGMODE="Default (NULL)"
+fi
+
+if [[ -z "${BLOCKINGMODE}" ]] ; then
+  BLOCKINGMODE="NULL"
 fi
 
 # Determine if superseded pihole.conf exists
@@ -237,20 +236,20 @@ gravity_DownloadBlocklistFromUrl() {
         if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
           blocked=true
         fi;;
-    "NULL"|"Default (NULL)"|*)
+    "NULL"|*)
         if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
           blocked=true
         fi;;
    esac
 
-  if [[ "${blocked}" == true  ]]; then
-    ip=$(dig "@${CONDITIONAL_FORWARDING_IP}" +short "${domain}")
+  if [[ "${blocked}" == true ]]; then
+    ip=$(dig "@${PIHOLE_DNS_1}" +short "${domain}")
     if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
       port=443;
     else port=80
     fi
     bad_list=$(pihole -q -adlist hosts-file.net | head -n1 | awk -F 'Match found in ' '{print $2}')
-    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:} on Pi-hole. Using DNS on ${CONDITIONAL_FORWARDING_IP} to download ${url}";
+    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
   fi
