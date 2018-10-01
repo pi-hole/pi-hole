@@ -8,6 +8,7 @@
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
+LC_ALL=C
 LC_NUMERIC=C
 
 # Retrieve stats from FTL engine
@@ -243,7 +244,7 @@ get_sys_stats() {
         disk_total="${disk_raw[1]}"
         disk_perc="${disk_raw[2]}"
 
-        net_gateway=$(route -n | awk '$4 == "UG" {print $2;exit}')
+        net_gateway=$(ip route | grep default | cut -d ' ' -f 3 | head -n 1)
 
         # Get DHCP stats, if feature is enabled
         if [[ "$DHCP_ACTIVE" == "true" ]]; then
@@ -478,7 +479,7 @@ chronoFunc() {
             ${COL_LIGHT_RED}Press Ctrl-C to exit${COL_NC}
             ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
         else
-        echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc_ver_str[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\\/ [0;1;36;96m_ [0;1;34;94m\\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_ver_str[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m| [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_ver_str ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
+        echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc_ver_str\\n[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\\/ [0;1;36;96m_ [0;1;34;94m\\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_ver_str\\n[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m| [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_ver_str\\n ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
         fi
 
         printFunc "  Hostname: " "$sys_name" "$host_info"

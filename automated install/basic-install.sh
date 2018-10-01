@@ -38,14 +38,14 @@ lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
 
-# We store several other folders and
+# We store several other directories and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="/var/www/html/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # These are the names of pi-holes files, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
-# This folder is where the Pi-hole scripts will be installed
+# This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 useUpdateVars=false
@@ -237,27 +237,27 @@ elif command -v rpm &> /dev/null; then
     UPDATE_PKG_CACHE=":"
     PKG_INSTALL=(${PKG_MANAGER} install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    INSTALLER_DEPS=(dialog git iproute net-tools newt procps-ng which)
+    INSTALLER_DEPS=(dialog git iproute newt procps-ng which)
     PIHOLE_DEPS=(bc bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     # If the host OS is Fedora,
-    if grep -qi 'fedora' /etc/redhat-release; then
+    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
         # ensure 'php-json' is installed on Fedora (installed as dependency on CentOS7 + Remi repository)
         PIHOLE_WEB_DEPS+=('php-json')
     # or if host OS is CentOS,
-    elif grep -qi 'centos' /etc/redhat-release; then
+    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
         # Pi-Hole currently supports CentOS 7+ with PHP7+
         SUPPORTED_CENTOS_VERSION=7
         SUPPORTED_CENTOS_PHP_VERSION=7
         # Check current CentOS major release version
-        CURRENT_CENTOS_VERSION=$(rpm -q --queryformat '%{VERSION}' centos-release)
+        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.)' /etc/redhat-release)
         # Check if CentOS version is supported
         if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-            echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not suported."
+            echo -e "  ${CROSS} CentOS $CURRENT_CENTOS_VERSION is not supported."
             echo -e "      Please update to CentOS release $SUPPORTED_CENTOS_VERSION or later"
             # exit the installer
             exit
@@ -305,13 +305,16 @@ elif command -v rpm &> /dev/null; then
         fi
     fi
     else
-        # If not a supported version of Fedora or CentOS,
-        echo -e "  ${CROSS} Unsupported RPM based distribution"
-        # exit the installer
-        exit
+        # Warn user of unsupported version of Fedora or CentOS
+        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" ${r} ${c}; then
+            echo -e "  ${CROSS} Aborting installation due to unsupported RPM based distribution"
+            exit # exit the installer
+        else
+            echo -e "  ${INFO} Continuing installation with unsupported RPM based distribution"
+        fi
     fi
 
-# If neither apt-get or rmp/dnf are found
+# If neither apt-get or yum/dnf package managers were found
 else
     # it's not an OS we can support,
     echo -e "  ${CROSS} OS distribution not supported"
@@ -320,7 +323,7 @@ else
 fi
 }
 
-# A function for checking if a folder is a git repository
+# A function for checking if a directory is a git repository
 is_repo() {
     # Use a named, local variable instead of the vague $1, which is the first argument passed to this function
     # These local variables should always be lowercase
@@ -335,7 +338,7 @@ is_repo() {
     if [[ -d "${directory}" ]]; then
         # move into the directory
         cd "${directory}"
-        # Use git to check if the folder is a repo
+        # Use git to check if the directory is a repo
         # git -C is not used here to support git versions older than 1.8.4
         git status --short &> /dev/null || rc=$?
     # If the command was not successful,
@@ -858,7 +861,6 @@ setDNS() {
     DNSChooseOptions=(Google ""
         OpenDNS ""
         Level3 ""
-        Norton ""
         Comodo ""
         DNSWatch ""
         Quad9 ""
@@ -889,11 +891,6 @@ setDNS() {
             echo "Level3 servers"
             PIHOLE_DNS_1="4.2.2.1"
             PIHOLE_DNS_2="4.2.2.2"
-            ;;
-        Norton)
-            echo "Norton ConnectSafe servers"
-            PIHOLE_DNS_1="199.85.126.10"
-            PIHOLE_DNS_2="199.85.127.10"
             ;;
         Comodo)
             echo "Comodo Secure servers"
@@ -1087,17 +1084,40 @@ chooseBlocklists() {
     # For each choice available,
     for choice in ${choices}
     do
-        # Set the values to true
-        case ${choice} in
-            StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
-            MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-            Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
-            ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
-            DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
-            DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
-            HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
-        esac
+        appendToListsFile choice
     done
+}
+
+# Accept a string parameter, it must be one of the default lists
+# This function allow to not duplicate code in chooseBlocklists and
+# in installDefaultBlocklists
+appendToListsFile() {
+    case $1 in
+        StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
+        MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
+        Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+        ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
+        DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
+        DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
+        HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
+    esac
+}
+
+# Used only in unattended setup
+# If there is already the adListFile, we keep it, else we create it using all default lists
+installDefaultBlocklists() {
+    # In unattended setup, could be useful to use userdefined blocklist.
+    # If this file exists, we avoid overriding it.
+    if [[ -f "${adlistFile}" ]]; then
+        return;
+    fi
+    appendToListsFile StevenBlack
+    appendToListsFile MalwareDom
+    appendToListsFile Cameleon
+    appendToListsFile ZeusTracker
+    appendToListsFile DisconTrack
+    appendToListsFile DisconAd
+    appendToListsFile HostsFile
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1264,6 +1284,8 @@ installConfigs() {
         fi
         # and copy in the config file Pi-hole needs
         cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+        # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
+        touch /etc/lighttpd/external.conf
         # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "/var/www/html/pihole/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
@@ -2086,12 +2108,15 @@ FTLinstall() {
                 fi
             fi
 
-            #ensure /etc/dnsmasq.conf contains `conf-dir=/etc/dnsmasq.d`
-            confdir="conf-dir=/etc/dnsmasq.d"
-            conffile="/etc/dnsmasq.conf"
-            if ! grep -q "$confdir" "$conffile"; then
-                echo "$confdir" >> "$conffile"
+            # Backup existing /etc/dnsmasq.conf if present and ensure that
+            # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
+            local conffile="/etc/dnsmasq.conf"
+            if [[ -f "${conffile}" ]]; then
+                echo "  ${INFO} Backing up ${conffile} to ${conffile}.old"
+                mv "${conffile}" "${conffile}.old"
             fi
+            # Create /etc/dnsmasq.conf
+            echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
 
             return 0
         # Otherwise,
@@ -2099,7 +2124,7 @@ FTLinstall() {
             # the download failed, so just go back to the original directory
             popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
             echo -e "${OVER}  ${CROSS} ${str}"
-            echo -e "  ${COL_LIGHT_RED}Error: Download of binary from Github failed${COL_NC}"
+            echo -e "  ${COL_LIGHT_RED}Error: Download of ${url}/${binary} failed (checksum error)${COL_NC}"
             return 1
         fi
     # Otherwise,
@@ -2107,7 +2132,7 @@ FTLinstall() {
         popd > /dev/null || { echo "Unable to return to original directory after FTL binary download."; return 1; }
         echo -e "${OVER}  ${CROSS} ${str}"
         # The URL could not be found
-        echo -e "  ${COL_LIGHT_RED}Error: URL not found${COL_NC}"
+        echo -e "  ${COL_LIGHT_RED}Error: URL ${url}/${binary} not found${COL_NC}"
         return 1
     fi
 }
@@ -2151,11 +2176,6 @@ get_binary_name() {
             # set the binary to be used
             binary="pihole-FTL-arm-linux-gnueabi"
         fi
-    elif [[ "${machine}" == "ppc" ]]; then
-        # PowerPC
-        echo -e "${OVER}  ${TICK} Detected PowerPC architecture"
-        # set the binary to be used
-        binary="pihole-FTL-powerpc-linux-gnu"
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the architecture of packages dpkg installs (for example, "i386")
         local dpkgarch
@@ -2347,6 +2367,8 @@ main() {
             echo -e "  ${INFO} Performing unattended setup, no whiptail dialogs will be displayed"
             # Use the setup variables
             useUpdateVars=true
+            # also disable debconf-apt-progress dialogs
+            export DEBIAN_FRONTEND="noninteractive"
         # Otherwise,
         else
             # show the available options (repair/reconfigure)
@@ -2394,6 +2416,8 @@ main() {
         # Let the user decide if they want query logging enabled...
         setLogging
     else
+        # Setup adlist file if not exists
+        installDefaultBlocklists
         # Source ${setupVars} to use predefined user variables in the functions
         source ${setupVars}
     fi
@@ -2462,8 +2486,11 @@ main() {
     # Start services
 
     # Enable FTL
-    start_service pihole-FTL
+    # Ensure the service is enabled before trying to start it
+    # Fixes a problem reported on Ubuntu 18.04 where trying to start
+    # the service before enabling causes installer to exit
     enable_service pihole-FTL
+    start_service pihole-FTL
 
     # Download and compile the aggregated block list
     runGravity
