@@ -68,6 +68,16 @@ else
   exit 1
 fi
 
+# Source pihole-FTL from install script
+pihole_FTL="${piholeDir}/pihole-FTL.conf"
+if [[ -f "${pihole_FTL}" ]]; then
+  source "${pihole_FTL}"
+fi
+
+if [[ -z "${BLOCKINGMODE}" ]] ; then
+  BLOCKINGMODE="NULL"
+fi
+
 # Determine if superseded pihole.conf exists
 if [[ -r "${piholeDir}/pihole.conf" ]]; then
   echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
@@ -230,6 +240,33 @@ gravity_DownloadBlocklistFromUrl() {
 
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
+  blocked=false
+  case $BLOCKINGMODE in
+    "IP-NODATA-AAAA"|"IP")
+        if [[ $(dig "${domain}" +short | grep "${IPV4_ADDRESS}" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+    "NXDOMAIN")
+        if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+    "NULL"|*)
+        if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+   esac
+
+  if [[ "${blocked}" == true ]]; then
+    ip=$(dig "@${PIHOLE_DNS_1}" +short "${domain}")
+    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
+      port=443;
+    else port=80
+    fi
+    bad_list=$(pihole -q -adlist hosts-file.net | head -n1 | awk -F 'Match found in ' '{print $2}')
+    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
+    echo -ne "  ${INFO} ${str} Pending..."
+    cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
+  fi
   # shellcheck disable=SC2086
   httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
