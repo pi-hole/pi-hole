@@ -12,7 +12,12 @@
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly gravitylist="/etc/pihole/gravity.list"
 readonly blacklist="/etc/pihole/black.list"
-readonly setupVars="/etc/pihole/setupVars.conf"
+
+# setupVars is not readonly here because in some funcitons (checkout),
+# it might get set again when the installer is sourced. This causes an
+# error due to modifying a readonly variable.
+setupVars="/etc/pihole/setupVars.conf"
+
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
