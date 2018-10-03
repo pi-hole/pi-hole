@@ -22,7 +22,7 @@ The Pi-hole[®](https://pi-hole.net/trademark-rules-and-brand-guidelines/) is a 
 <a href="https://www.bountysource.com/trackers/3011939-pi-hole-pi-hole?utm_source=3011939&utm_medium=shield&utm_campaign=TRACKER_BADGE"><img src="https://www.bountysource.com/badge/tracker?tracker_id=3011939" alt="BountySource"/></a>
 
 ## One-Step Automated Install
-Those who want to get started quickly and conveniently, may install Pi-hole using the following command:
+Those who want to get started quickly and conveniently may install Pi-hole using the following command:
 
 #### `curl -sSL https://install.pi-hole.net | bash`
 
@@ -46,14 +46,14 @@ sudo bash basic-install.sh
 
 Once the installer has been run, you will need to [configure your router to have **DHCP clients use Pi-hole as their DNS server**](https://discourse.pi-hole.net/t/how-do-i-configure-my-devices-to-use-pi-hole-as-their-dns-server/245) which ensures that all devices connecting to your network will have content blocked without any further intervention.
 
-If your router does not support setting the DNS server, you can [use Pi-hole's built in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026); just be sure to disable DHCP on your router first (if it has that feature available).
+If your router does not support setting the DNS server, you can [use Pi-hole's built-in DHCP server](https://discourse.pi-hole.net/t/how-do-i-use-pi-holes-built-in-dhcp-server-and-why-would-i-want-to/3026); just be sure to disable DHCP on your router first (if it has that feature available).
 
 As a last resort, you can always manually set each device to use Pi-hole as their DNS server.
 
 -----
 
 ## Pi-hole is free, but powered by your support
-There are many reoccurring costs involved with maintaining free, open source, and privacy respecting software; expenses which [our volunteer developers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software, as well as the importance of keeping it maintained.
+There are many reoccurring costs involved with maintaining free, open source, and privacy-respecting software; expenses which [our volunteer developers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software, as well as the importance of keeping it maintained.
 
 Make no mistake: **your support is absolutely vital to help keep us innovating!**
 
@@ -82,7 +82,7 @@ We welcome _everyone_ to contribute to issue reports, suggest new features, and 
 
 If you have something to add - anything from a typo through to a whole new feature, we're happy to check it out! Just make sure to fill out our template when submitting your request; the questions that it asks will help the volunteers quickly understand what you're aiming to achieve.
 
-You'll find that the [install script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) and the [debug script](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/piholeDebug.sh) have an abundance of comments, which will help you better understand how Pi-hole works. They're also a valuable resource to those who want to learn how to write scripts or code a program! We encourage anyone who likes to tinker to read through it, and submit a pull request for us to review.
+You'll find that the [install script](https://github.com/pi-hole/pi-hole/blob/master/automated%20install/basic-install.sh) and the [debug script](https://github.com/pi-hole/pi-hole/blob/master/advanced/Scripts/piholeDebug.sh) have an abundance of comments, which will help you better understand how Pi-hole works. They're also a valuable resource to those who want to learn how to write scripts or code a program! We encourage anyone who likes to tinker to read through it and submit a pull request for us to review.
 
 ### Presentations about Pi-hole
 Word-of-mouth continues to help our project grow immensely, and so we are helping make this easier for people.
@@ -110,7 +110,7 @@ While we are primarily reachable on our <a href="https://discourse.pi-hole.net/"
 
 ## Breakdown of Features
 ### The Command Line Interface
-The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole, without the need of the Web Interface. It's fast, user-friendly, and auditable by anyone with understanding of `bash`.
+The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole, without the need of the Web Interface. It's fast, user-friendly, and auditable by anyone with an understanding of `bash`.
 
 <a href="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif"><img src="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif" alt="Pi-hole Blacklist Demo"/></a>
 
@@ -137,7 +137,7 @@ Some notable features include:
 * Detailed graphs and doughnut charts
 * Top lists of domains and clients
 * A filterable and sortable query log
-* Long Term Statistics to view data over user defined time ranges
+* Long Term Statistics to view data over user-defined time ranges
 * The ability to easily manage and configure Pi-hole features
 * ... and all the main features of the Command Line Interface!
 
@@ -165,15 +165,15 @@ The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web 
 -----
 
 ## The Origin Of Pi-hole
-Pi-hole being a **advertising-aware DNS/Web server**, makes use of the following technologies:
+Pi-hole being an **advertising-aware DNS/Web server**, makes use of the following technologies:
 
 * [`dnsmasq`](http://www.thekelleys.org.uk/dnsmasq/doc.html) - a lightweight DNS and DHCP server
 * [`curl`](https://curl.haxx.se) - A command line tool for transferring data with URL syntax
-* [`lighttpd`](https://www.lighttpd.net) - webserver designed and optimized for high performance
+* [`lighttpd`](https://www.lighttpd.net) - web server designed and optimized for high performance
 * [`php`](https://secure.php.net) - a popular general-purpose web scripting language
 * [AdminLTE Dashboard](https://github.com/almasaeed2010/AdminLTE) - premium admin control panel based on Bootstrap 3.x
 
-While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how Pi-hole was originally setup and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
+While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how Pi-hole was originally set up and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
 -----
 
 ## Coverage
