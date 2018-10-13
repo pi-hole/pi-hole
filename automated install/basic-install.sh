@@ -1633,15 +1633,18 @@ create_pihole_user() {
     # If the user pihole exists,
     if id -u pihole &> /dev/null; then
         # just show a success
-        echo -ne "${OVER}  ${TICK} ${str}"
+        echo -e "${OVER}  ${TICK} ${str}"
     # Otherwise,
     else
         echo -ne "${OVER}  ${CROSS} ${str}"
         local str="Creating user 'pihole'"
-        echo -ne "  ${INFO} ${str}..."
+        echo -ne "${OVER}  ${INFO} ${str}..."
         # create her with the useradd command
-        useradd -r -s /usr/sbin/nologin pihole
-        echo -ne "${OVER}  ${TICK} ${str}"
+        if useradd -r -s /usr/sbin/nologin pihole; then
+          echo -e "${OVER}  ${TICK} ${str}"
+        else
+          echo -e "${OVER}  ${CROSS} ${str}"
+        fi
     fi
 }
 
