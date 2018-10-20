@@ -64,12 +64,13 @@ $HTTP["url"] =~ "^/admin/" {
         # Allow Block Page access to local fonts
         setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }
-}
 
-# Block . files from being served, such as .git, .github, .gitignore
-$HTTP["url"] =~ "^/admin/\.(.*)" {
-     url.access-deny = ("")
+    # Block . files from being served, such as .git, .github, .gitignore
+    $HTTP["url"] =~ "^/admin/\." {
+         url.access-deny = ("")
+    }
 }
 
 # Add user chosen options held in external file
-include_shell "cat external.conf 2>/dev/null"
+# (use file glob for optional file)
+include "external*.conf"
