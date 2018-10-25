@@ -70,7 +70,7 @@ Sending a donation using our links below is **extremely helpful** in offsetting 
 If you'd rather not [donate](https://pi-hole.net/donate/) (_which is okay!_), there are other ways you can help support us:
 - [Patreon](https://patreon.com/pihole) _Become a patron for rewards_
 - [Digital Ocean](http://www.digitalocean.com/?refcode=344d234950e1) _affiliate link_
-- [UNIXstickers.com](http://unixstickers.refr.cc/jacobs) _save $5 when you spend $9 using our affiliate link_
+- [Stickermule](https://www.stickermule.com/unlock?ref_id=6055890701&utm_medium=link&utm_source=invite) _earn a $10 credit after your first purchase_
 - [Pi-hole Swag Store](https://pi-hole.net/shop/) _affiliate link_
 - [Amazon](http://www.amazon.com/exec/obidos/redirect-home/pihole09-20) _affiliate link_
 - [DNS Made Easy](https://cp.dnsmadeeasy.com/u/133706) _affiliate link_
@@ -148,7 +148,7 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 3. `http://pi.hole/` (when using Pi-hole as your DNS server)
 
 ## Faster-than-light Engine
-FTLDNS[™](https://pi-hole.net/trademark-rules-and-brand-guidelines/) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
+FTLDNS is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
 
 Some of the statistics you can integrate include:
 * Total number of domains being blocked
@@ -174,6 +174,7 @@ Pi-hole being an **advertising-aware DNS/Web server**, makes use of the followin
 * [AdminLTE Dashboard](https://github.com/almasaeed2010/AdminLTE) - premium admin control panel based on Bootstrap 3.x
 
 While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how Pi-hole was originally set up and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
+
 -----
 
 ## Coverage
@@ -202,6 +203,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [Software Engineering Daily: Interview with the creator of Pi-hole](https://softwareengineeringdaily.com/2018/05/29/pi-hole-ad-blocker-hardware-with-jacob-salmela/) (May, 2018)
 - [Raspberry Pi: Block ads at home using Pi-hole and a Raspberry Pi](https://www.raspberrypi.org/blog/pi-hole-raspberry-pi/) (July, 2018)
 - [Troy Hunt: Mmm... Pi-hole...](https://www.troyhunt.com/mmm-pi-hole/) (September, 2018)
+- [PEBKAK Podcast: Interview With Jacob Salmela](https://www.jerseystudios.net/2018/10/11/150-pi-hole/) (October, 2018)
 
 -----
 
