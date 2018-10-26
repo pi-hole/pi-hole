@@ -111,7 +111,7 @@ SetWebPassword() {
         # So we reset the terminal via stty if the user does press Ctrl+C
         trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
         # shellcheck disable=SC2162
-        read -s -p "Enter New Password (Blank for no password): " PASSWORD
+        read -s -r -p "Enter New Password (Blank for no password): " PASSWORD
         echo ""
 
     if [ "${PASSWORD}" == "" ]; then
@@ -121,7 +121,7 @@ SetWebPassword() {
     fi
 
     # shellcheck disable=SC2162
-    read -s -p "Confirm Password: " CONFIRM
+    read -s -r -p "Confirm Password: " CONFIRM
     echo ""
     fi
 
