@@ -788,14 +788,14 @@ setStaticIPv4() {
     elif [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
         # If it exists,
         IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
-        printf -v IPADDR "${IPV4_ADDRESS%%/*}"
+        printf -v IPADDR "%s" "${IPV4_ADDRESS%%/*}"
         # check if the desired IP is already set
         if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
             printf "  %b Static IP already configured\\n" "${INFO}"
         # Otherwise,
         else
             # Put the IP in variables without the CIDR notation
-            printf -v CIDR "${IPV4_ADDRESS##*/}"
+            printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
             # Backup existing interface configuration:
             cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
             # Build Interface configuration file using the GLOBAL variables we have
@@ -946,8 +946,8 @@ setDNS() {
                 # Clean user input and replace whitespace with comma.
                 piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
 
-                printf -v PIHOLE_DNS_1 "${piholeDNS%%,*}"
-                printf -v PIHOLE_DNS_2 "${piholeDNS##*,}"
+                printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
+                printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
 
                 # If the IP is valid,
                 if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
@@ -1252,7 +1252,7 @@ installScripts() {
     else
         # Show an error and exit
         printf "%b  %b %s\\n" "${OVER}"  "${CROSS}" "${str}"
-        printf "\t\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
         return 1
     fi
 }
@@ -1734,7 +1734,7 @@ finalExports() {
 installLogrotate() {
 
     local str="Installing latest logrotate script"
-    printf "\\n  %b %s..." "${INFO} ${str}"
+    printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the file over from the local repo
     cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
     # Different operating systems have different user / group
