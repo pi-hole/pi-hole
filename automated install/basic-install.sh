@@ -166,10 +166,9 @@ if command -v apt-get &> /dev/null; then
     fi
     # Check for and determine version number (major and minor) of current php install
     if command -v php &> /dev/null; then
-        phpInsVersion="$(php -v | head -n1 | grep -Po '(?<=PHP )[^ ]+')"
-        printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "${phpInsVersion}"
-        printf -v phpInsMajor "%d" "${phpInsVersion%%.*}"
-        printf -v phpInsMinor "%d" "${phpInsVersion##*.}"
+        printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
+        printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
+        printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
         # Is installed php version 7.0 or greater
         if [ "${phpInsMajor}" -ge 7 ]; then
             phpInsNewer=true
