@@ -1035,7 +1035,7 @@ setPrivacyLevel() {
     # Get the user's choice
     PRIVACY_LEVEL=$("${LevelCommand[@]}" "${LevelOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
 
-    echo -e "  ${INFO} Privacy level ${PRIVACY_LEVEL}"
+    printf "  %b Privacy level %d" "${INFO}" "${PRIVACY_LEVEL}"
 }
 
 # Function to ask the user if they want to install the dashboard
