@@ -197,6 +197,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [CryptoAUSTRALIA: How We Tried 5 Privacy Focused Raspberry Pi Projects](https://blog.cryptoaustralia.org.au/2017/10/05/5-privacy-focused-raspberry-pi-projects/) (October, 2017)
 - [CryptoAUSTRALIA: Pi-hole Workshop](https://blog.cryptoaustralia.org.au/2017/11/02/pi-hole-network-wide-ad-blocker/) (November, 2017)
 - [Know How 355: Killing ads with a Raspberry Pi-Hole!](https://www.twit.tv/shows/know-how/episodes/355) (November, 2017)
+- [Hobohouse: Block Advertising on your Network with Pi-hole and Raspberry Pi](https://hobo.house/2018/02/27/block-advertising-with-pi-hole-and-raspberry-pi/) (March, 2018)
 - [Scott Helme: Securing DNS across all of my devices with Pi-Hole + DNS-over-HTTPS + 1.1.1.1](https://scotthelme.co.uk/securing-dns-across-all-of-my-devices-with-pihole-dns-over-https-1-1-1-1/) (April, 2018)
 - [Scott Helme: Catching and dealing with naughty devices on my home network](https://scotthelme.co.uk/catching-naughty-devices-on-my-home-network/) (April, 2018)
 - [Bloomberg Business Week: Brotherhood of the Ad blockers](https://www.bloomberg.com/news/features/2018-05-10/inside-the-brotherhood-of-pi-hole-ad-blockers) (May, 2018)
