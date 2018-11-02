@@ -907,7 +907,7 @@ parse_file() {
         #shellcheck disable=SC2016
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
-        read -a file_info <<< $filename
+        read -a -r file_info <<< "$filename"
     fi
     # Set a named variable for better readability
     local file_lines
