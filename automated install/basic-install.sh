@@ -142,10 +142,19 @@ show_ascii_berry() {
 "
 }
 
+is_command() {
+    # Checks for existence of string passed in as only function argument.
+    # Exit value of 0 when exists, 1 if not exists. Value is the result
+    # of the `command` shell built-in call.
+    local check_command="$1"
+
+    command -v "${check_command}" >/dev/null 2>&1
+}
+
 # Compatibility
 distro_check() {
 # If apt-get is installed, then we know it's part of the Debian family
-if command -v apt-get &> /dev/null; then
+if is_command apt-get ; then
     # Set some global variables here
     # We don't set them earlier since the family might be Red Hat, so these values would be different
     PKG_MANAGER="apt-get"
@@ -166,7 +175,7 @@ if command -v apt-get &> /dev/null; then
         iproute_pkg="iproute"
     fi
     # Check for and determine version number (major and minor) of current php install
-    if command -v php &> /dev/null; then
+    if is_command php ; then
         printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
         printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
         printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
@@ -227,9 +236,9 @@ if command -v apt-get &> /dev/null; then
     }
 
 # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
-elif command -v rpm &> /dev/null; then
+elif is_command rpm ; then
     # Then check if dnf or yum is the package manager
-    if command -v dnf &> /dev/null; then
+    if is_command dnf ; then
         PKG_MANAGER="dnf"
     else
         PKG_MANAGER="yum"
@@ -522,7 +531,7 @@ verifyFreeDiskSpace() {
         printf "  %b Your system disk appears to only have %s KB free\\n" "${INFO}" "${existing_free_kilobytes}"
         printf "      It is recommended to have a minimum of %s KB to run the Pi-hole\\n" "${required_free_kilobytes}"
         # if the vcgencmd command exists,
-        if command -v vcgencmd &> /dev/null; then
+        if is_command vcgencmd ; then
             # it's probably a Raspbian install, so show a message about expanding the filesystem
             printf "      If this is a new install you may need to expand your disk\\n"
             printf "      Run 'sudo raspi-config', and choose the 'expand file system' option\\n"
@@ -814,7 +823,7 @@ setStaticIPv4() {
             # Use ip to immediately set the new address
             ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
             # If NetworkMangler command line interface exists and ready to mangle,
-            if command -v nmcli &> /dev/null && nmcli general status &> /dev/null; then
+            if is_command nmcli && nmcli general status &> /dev/null; then
                 # Tell NetworkManagler to read our new sysconfig file
                 nmcli con load "${IFCFG_FILE}" > /dev/null
             fi
@@ -1332,7 +1341,7 @@ install_manpage() {
     # Default location for man files for /usr/local/bin is /usr/local/share/man
     # on lightweight systems may not be present, so check before copying.
     printf "  %b Testing man page installation" "${INFO}"
-    if ! command -v mandb &>/dev/null; then
+    if ! is_command mandb ; then
         # if mandb is not present, no manpage support
         printf "%b  %b man not installed\\n" "${OVER}" "${INFO}"
         return
@@ -1370,7 +1379,7 @@ stop_service() {
     # Can softfail, as process may not be installed when this is called
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    if command -v systemctl &> /dev/null; then
+    if is_command systemctl ; then
         systemctl stop "${1}" &> /dev/null || true
     else
         service "${1}" stop &> /dev/null || true
@@ -1384,7 +1393,7 @@ start_service() {
     local str="Starting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
-    if command -v systemctl &> /dev/null; then
+    if is_command systemctl ; then
         # use that to restart the service
         systemctl restart "${1}" &> /dev/null
     # Otherwise,
@@ -1401,7 +1410,7 @@ enable_service() {
     local str="Enabling ${1} service to start on reboot"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
-    if command -v systemctl &> /dev/null; then
+    if is_command systemctl ; then
         # use that to enable the service
         systemctl enable "${1}" &> /dev/null
     # Otherwise,
@@ -1418,7 +1427,7 @@ disable_service() {
     local str="Disabling ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
-    if command -v systemctl &> /dev/null; then
+    if is_command systemctl ; then
         # use that to disable the service
         systemctl disable "${1}" &> /dev/null
     # Otherwise,
@@ -1431,7 +1440,7 @@ disable_service() {
 
 check_service_active() {
     # If systemctl exists,
-    if command -v systemctl &> /dev/null; then
+    if is_command systemctl ; then
         # use that to check the status of the service
         systemctl is-enabled "${1}" &> /dev/null
     # Otherwise,
@@ -1535,7 +1544,7 @@ install_dependent_packages() {
     # amount of download traffic.
     # NOTE: We may be able to use this installArray in the future to create a list of package that were
     # installed by us, and remove only the installed packages, and not the entire list.
-    if command -v debconf-apt-progress &> /dev/null; then
+    if is_command debconf-apt-progress ; then
         # For each package,
         for i in "${argArray1[@]}"; do
             printf "  %b Checking for %s..." "${INFO}" "${i}"
@@ -1684,7 +1693,7 @@ configureFirewall() {
         firewall-cmd --reload
         return 0
         # Check for proper kernel modules to prevent failure
-    elif modinfo ip_tables &> /dev/null && command -v iptables &> /dev/null; then
+    elif modinfo ip_tables &> /dev/null && is_command iptables ; then
     # If chain Policy is not ACCEPT or last Rule is not ACCEPT
     # then check and insert our Rules above the DROP/REJECT Rule.
         if iptables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
@@ -1818,7 +1827,7 @@ installPihole() {
             # Give pihole access to the Web server group
             usermod -a -G ${LIGHTTPD_GROUP} pihole
             # If the lighttpd command is executable,
-            if [[ -x "$(command -v lighty-enable-mod)" ]]; then
+            if is_command lighty-enable-mod ; then
                 # enable fastcgi and fastcgi-php
                 lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
             else
@@ -1868,7 +1877,7 @@ installPihole() {
 # SELinux
 checkSelinux() {
     # If the getenforce command exists,
-    if command -v getenforce &> /dev/null; then
+    if is_command getenforce ; then
         # Store the current mode in a variable
         enforceMode=$(getenforce)
         printf "\\n  %b SELinux mode detected: %s\\n" "${INFO}" "${enforceMode}"
@@ -2368,7 +2377,7 @@ main() {
         printf "  %b Sudo utility check" "${INFO}"
 
         # If the sudo command exists,
-        if command -v sudo &> /dev/null; then
+        if is_command sudo ; then
             printf "%b  %b Sudo utility check\\n" "${OVER}"  "${TICK}"
             # Download the install script and run it with admin rights
             exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
