@@ -465,21 +465,30 @@ resetRepo() {
     return 0
 }
 
-# We need to know the IPv4 information so we can effectively setup the DNS server
-# Without this information, we won't know where to Pi-hole will be found
 find_IPv4_information() {
+    # Detects IPv4 address used for communication to WAN addresses.
+    # Accepts no arguments, returns no values.
+
     # Named, local variables
     local route
+    local IPv4bare
+
     # Find IP used to route to outside world by checking the the route to Google's public DNS server
     route=$(ip route get 8.8.8.8)
-    # Use awk to strip out just the interface device as it is used in future commands
-    IPv4dev=$(awk '{for (i=1; i<=NF; i++) if ($i~/dev/) print $(i+1)}' <<< "${route}")
-    # Get just the IP address
-    IPv4bare=$(awk '{print $7}' <<< "${route}")
-    # Append the CIDR notation to the IP address
-    IPV4_ADDRESS=$(ip -o -f inet addr show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
-    # Get the default gateway (the way to reach the Internet)
-    IPv4gw=$(awk '{print $3}' <<< "${route}")
+
+    # Get just the interface IPv4 address
+    # shellcheck disable=SC2059
+    printf -v IPv4bare "$(printf ${route#*src })"
+    # Get the default gateway IPv4 address (the way to reach the Internet)
+    # shellcheck disable=SC2059
+    printf -v IPv4gw "$(printf ${route#*via })"
+
+    if ! valid_ip "${IPv4bare}" ; then
+        IPv4bare="127.0.0.1"
+    fi
+
+    # Append the CIDR notation to the IP address, if valid_ip fails this should return 127.0.0.1/8
+    IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
 }
 
 # Get available interfaces that are UP
