@@ -477,10 +477,12 @@ find_IPv4_information() {
     route=$(ip route get 8.8.8.8)
 
     # Get just the interface IPv4 address
-    # shellcheck disable=SC2059
+    # shellcheck disable=SC2059,SC2086
+    # disabled as we intentionally want to split on whitespace and have printf populate
+    # the variable with just the first field.
     printf -v IPv4bare "$(printf ${route#*src })"
     # Get the default gateway IPv4 address (the way to reach the Internet)
-    # shellcheck disable=SC2059
+    # shellcheck disable=SC2059,SC2086
     printf -v IPv4gw "$(printf ${route#*via })"
 
     if ! valid_ip "${IPv4bare}" ; then
