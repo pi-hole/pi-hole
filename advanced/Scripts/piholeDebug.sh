@@ -836,9 +836,13 @@ process_status(){
             local status_of_process
             status_of_process=$(systemctl is-active "${i}")
         else
-            # Otherwise, use the service command
+            # Otherwise, use the service command and mock the output of `systemctl is-active`
             local status_of_process
-            status_of_process=$(service "${i}" status | awk '/Active:/ {print $2}') &> /dev/null
+            if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
+                status_of_process="active"
+            else
+                status_of_process="inactive"
+            fi
         fi
         # and print it out to the user
         if [[ "${status_of_process}" == "active" ]]; then
