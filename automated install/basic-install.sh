@@ -617,7 +617,7 @@ chooseInterface() {
 # See https://github.com/pi-hole/pi-hole/issues/1473#issuecomment-301745953
 testIPv6() {
     # first will contain fda2 (ULA)
-    printf -v first "%d" "${1%%:*}"
+    printf -v first "%s" "${1%%:*}"
     # value1 will contain 253 which is the decimal value corresponding to 0xfd
     value1=$(( (0x$first)/256 ))
     # will contain 162 which is the decimal value corresponding to 0xa2
