@@ -1132,7 +1132,7 @@ chooseBlocklists() {
     # For each choice available,
     for choice in ${choices}
     do
-        appendToListsFile choice
+        appendToListsFile "${choice}"
     done
 }
 
