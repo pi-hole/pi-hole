@@ -257,7 +257,13 @@ gravity_DownloadBlocklistFromUrl() {
    esac
 
   if [[ "${blocked}" == true ]]; then
-    ip=$(dig "@${PIHOLE_DNS_1}" +short "${domain}")
+    printf -v ip_addr "%s" "${PIHOLE_DNS_1%#*}"
+    if [[ ${PIHOLE_DNS_1} != *"#"* ]]; then
+        port=53
+    else
+        printf -v port "%s" "${PIHOLE_DNS_1#*#}"
+    fi
+    ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}")
     if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
       port=443;
     else port=80
