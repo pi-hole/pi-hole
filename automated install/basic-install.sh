@@ -2114,6 +2114,7 @@ FTLinstall() {
 
     # Always replace pihole-FTL.service
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" "/etc/systemd/system/pihole-FTL.service"
 
     local ftlBranch
     local url
@@ -2143,6 +2144,8 @@ FTLinstall() {
             stop_service pihole-FTL &> /dev/null
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
+            # Set net admin permissions so that FTL can serve DNS, DHCP and IMAP (for DHCPv6)
+            setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip "/usr/bin/pihole-FTL"
             # Move back into the original directory the user was in
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
             # Install the FTL service
