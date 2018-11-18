@@ -165,6 +165,20 @@ if is_command apt-get ; then
     # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
     # Some distros vary slightly so these fixes for dependencies may apply
+    # on Ubuntu 18.04.1 LTS we need to add the universe repository to gain access to dialog and dhcpcd5
+    APT_SOURCES="/etc/apt/sources.list"
+    if awk 'BEGIN{a=1;b=0}/bionic main/{a=0}/bionic.*universe/{b=1}END{exit a + b}' ${APT_SOURCES}; then
+        if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5\\n- dialog" ${r} ${c}; then
+            printf "  %b Aborting installation: dependencies could not be installed.\\n" "${CROSS}"
+            exit # exit the installer
+        else
+            printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
+            cp ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
+            printf "  %b Backed up current configuration to %s\\n" "${TICK}" "${APT_SOURCES}.backup"
+            add-apt-repository universe
+            printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
+        fi
+    fi
     # Debian 7 doesn't have iproute2 so if the dry run install is successful,
     if ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1; then
         # we can install it
