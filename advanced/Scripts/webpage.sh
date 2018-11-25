@@ -327,6 +327,10 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
     fi
 
+    if [[ "${DHCP_rapid_commit}" == "true" ]]; then
+        echo "dhcp-rapid-commit" >> "${dhcpconfig}"
+    fi
+
     if [[ "${DHCP_IPv6}" == "true" ]]; then
         echo "#quiet-dhcp6
 #enable-ra
@@ -351,6 +355,7 @@ EnableDHCP() {
     change_setting "DHCP_LEASETIME" "${args[5]}"
     change_setting "PIHOLE_DOMAIN" "${args[6]}"
     change_setting "DHCP_IPv6" "${args[7]}"
+    change_setting "DHCP_rapid_commit" "${args[8]}"
 
     # Remove possible old setting from file
     delete_dnsmasq_setting "dhcp-"
