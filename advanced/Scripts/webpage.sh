@@ -327,6 +327,8 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
     fi
 
+    # Sourced from setupVars
+    # shellcheck disable=SC2154
     if [[ "${DHCP_rapid_commit}" == "true" ]]; then
         echo "dhcp-rapid-commit" >> "${dhcpconfig}"
     fi
