@@ -134,9 +134,11 @@ restartDNS() {
 
   if [[ "${status}" -eq 0 ]]; then
     [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
+    return 0
   else
     [[ ! -t 1 ]] && local OVER=""
     echo -e "${OVER}  ${CROSS} ${output}"
+    return 1
   fi
 }
 
