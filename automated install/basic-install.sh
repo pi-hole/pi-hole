@@ -857,7 +857,7 @@ setStaticIPv4() {
     fi
     # if an ifcfg config does not exists for the interface name, try the connection name via network manager
     if is_command nmcli && nmcli general status &> /dev/null; then
-        CONNECTION_NAME=$(nmcli dev show "${PIHOLE_INTERFACE}" | grep 'GENERAL.CONNECTION' | cut -d: -f2 | xargs | tr ' ' '_')
+        CONNECTION_NAME=$(nmcli dev show "${PIHOLE_INTERFACE}" | grep 'GENERAL.CONNECTION' | cut -d: -f2 | sed 's/^System//' | xargs | tr ' ' '_')
         if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}" ]];then
             # If it exists,
             IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
