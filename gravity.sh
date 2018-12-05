@@ -579,7 +579,7 @@ gravity_ParseBlacklistDomains() {
     mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    mv "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
   fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
