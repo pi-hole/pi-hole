@@ -776,77 +776,98 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
     fi
 }
 
-# dhcpcd is very annoying,
+# configure networking via dhcpcd
 setDHCPCD() {
-    # but we can append these lines to dhcpcd.conf to enable a static IP
-    echo "interface ${PIHOLE_INTERFACE}
-    static ip_address=${IPV4_ADDRESS}
-    static routers=${IPv4gw}
-    static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
+    # check if the IP is already in the file
+    if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
+        printf "  %b Static IP already configured\\n" "${INFO}"
+    # If it's not,
+    else
+        # we can append these lines to dhcpcd.conf to enable a static IP
+        echo "interface ${PIHOLE_INTERFACE}
+        static ip_address=${IPV4_ADDRESS}
+        static routers=${IPv4gw}
+        static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
+        # Then use the ip command to immediately set the new address
+        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+        # Also give a warning that the user may need to reboot their system
+        printf "  %b Set IP address to %s \\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
+    fi
+}
+
+# configure networking ifcfg-xxxx file found at /etc/sysconfig/network-scripts/
+# this function requires the full path of an ifcfg file passed as an argument
+setIFCFG() {
+    # Local, named variables
+    local IFCFG_FILE
+    local IPADDR
+    local CIDR
+    IFCFG_FILE=$1
+    printf -v IPADDR "%s" "${IPV4_ADDRESS%%/*}"
+    # check if the desired IP is already set
+    if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
+        printf "  %b Static IP already configured\\n" "${INFO}"
+    # Otherwise,
+    else
+        # Put the IP in variables without the CIDR notation
+        printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
+        # Backup existing interface configuration:
+        cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
+        # Build Interface configuration file using the GLOBAL variables we have
+        {
+        echo "# Configured via Pi-hole installer"
+        echo "DEVICE=$PIHOLE_INTERFACE"
+        echo "BOOTPROTO=none"
+        echo "ONBOOT=yes"
+        echo "IPADDR=$IPADDR"
+        echo "PREFIX=$CIDR"
+        echo "GATEWAY=$IPv4gw"
+        echo "DNS1=$PIHOLE_DNS_1"
+        echo "DNS2=$PIHOLE_DNS_2"
+        echo "USERCTL=no"
+        }> "${IFCFG_FILE}"
+        # Use ip to immediately set the new address
+        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+        # If NetworkMangler command line interface exists and ready to mangle,
+        if is_command nmcli && nmcli general status &> /dev/null; then
+            # Tell NetworkManagler to read our new sysconfig file
+            nmcli con load "${IFCFG_FILE}" > /dev/null
+        fi
+        # Show a warning that the user may need to restart
+        printf "  %b Set IP address to %s\\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%%/*}"
+    fi
 }
 
 setStaticIPv4() {
     # Local, named variables
     local IFCFG_FILE
-    local IPADDR
-    local CIDR
+    local CONNECTION_NAME
     # For the Debian family, if dhcpcd.conf exists,
     if [[ -f "/etc/dhcpcd.conf" ]]; then
-        # check if the IP is already in the file
-        if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
-            printf "  %b Static IP already configured\\n" "${INFO}"
-        # If it's not,
-        else
-            # set it using our function
-            setDHCPCD
-            # Then use the ip command to immediately set the new address
-            ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-            # Also give a warning that the user may need to reboot their system
-            printf "  %b Set IP address to %s \\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
-        fi
-    # If it's not Debian, check if it's the Fedora family by checking for the file below
-    elif [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
+        # configure networking via dhcpcd
+        setDHCPCD
+        return 0
+    fi
+    # If a DHCPCD config file was not found, check for an ifcfg config file based on interface name
+    if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
         # If it exists,
         IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
-        printf -v IPADDR "%s" "${IPV4_ADDRESS%%/*}"
-        # check if the desired IP is already set
-        if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
-            printf "  %b Static IP already configured\\n" "${INFO}"
-        # Otherwise,
-        else
-            # Put the IP in variables without the CIDR notation
-            printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
-            # Backup existing interface configuration:
-            cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
-            # Build Interface configuration file using the GLOBAL variables we have
-            {
-            echo "# Configured via Pi-hole installer"
-            echo "DEVICE=$PIHOLE_INTERFACE"
-            echo "BOOTPROTO=none"
-            echo "ONBOOT=yes"
-            echo "IPADDR=$IPADDR"
-            echo "PREFIX=$CIDR"
-            echo "GATEWAY=$IPv4gw"
-            echo "DNS1=$PIHOLE_DNS_1"
-            echo "DNS2=$PIHOLE_DNS_2"
-            echo "USERCTL=no"
-            }> "${IFCFG_FILE}"
-            # Use ip to immediately set the new address
-            ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-            # If NetworkMangler command line interface exists and ready to mangle,
-            if is_command nmcli && nmcli general status &> /dev/null; then
-                # Tell NetworkManagler to read our new sysconfig file
-                nmcli con load "${IFCFG_FILE}" > /dev/null
-            fi
-            # Show a warning that the user may need to restart
-            printf "  %b Set IP address to %s\\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%%/*}"
-        fi
-    # If all that fails,
-    else
-        # show an error and exit
-        printf "  %b Warning: Unable to locate configuration file to set static IPv4 address\\n" "${INFO}"
-        exit 1
+        setIFCFG "${IFCFG_FILE}"
+        return 0
     fi
+    # if an ifcfg config does not exists for the interface name, try the connection name via network manager
+    if is_command nmcli && nmcli general status &> /dev/null; then
+        CONNECTION_NAME=$(nmcli dev show "${PIHOLE_INTERFACE}" | grep 'GENERAL.CONNECTION' | cut -d: -f2 | sed 's/^System//' | xargs | tr ' ' '_')
+        if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}" ]];then
+            # If it exists,
+            IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
+            setIFCFG "${IFCFG_FILE}"
+            return 0
+        fi
+    fi
+    # If previous conditions failed, show an error and exit
+    printf "  %b Warning: Unable to locate configuration file to set static IPv4 address\\n" "${INFO}"
+    exit 1
 }
 
 # Check an IP address to see if it is a valid one
