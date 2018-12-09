@@ -110,7 +110,7 @@ SetWebPassword() {
         # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
         # So we reset the terminal via stty if the user does press Ctrl+C
         trap '{ echo -e "\nNo password will be set" ; stty sane ; exit 1; }' INT
-        read -s -p "Enter New Password (Blank for no password): " PASSWORD
+        read -s -r -p "Enter New Password (Blank for no password): " PASSWORD
         echo ""
 
     if [ "${PASSWORD}" == "" ]; then
@@ -119,12 +119,13 @@ SetWebPassword() {
         exit 0
     fi
 
-    read -s -p "Confirm Password: " CONFIRM
+    read -s -r -p "Confirm Password: " CONFIRM
     echo ""
     fi
 
     if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
-        hash=$(HashPassword "${PASSWORD}")
+        # We do not wrap this in brackets, otherwise BASH will expand any appropriate syntax
+        hash=$(HashPassword "$PASSWORD")
         # Save hash to file
         change_setting "WEBPASSWORD" "${hash}"
         echo -e "  ${TICK} New password set"
@@ -525,14 +526,24 @@ Teleporter() {
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
 }
 
-audit()
+addAudit()
 {
-    echo "${args[2]}" >> /etc/pihole/auditlog.list
+    shift # skip "-a"
+    shift # skip "audit"
+    for var in "$@"
+    do
+        echo "${var}" >> /etc/pihole/auditlog.list
+    done
+}
+
+clearAudit()
+{
+    echo -n "" > /etc/pihole/auditlog.list
 }
 
 SetPrivacyLevel() {
-    # Set privacy level. Minimum is 0, maximum is 3
-    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
+    # Set privacy level. Minimum is 0, maximum is 4
+    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 4 ]; then
         changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
     fi
 }
@@ -565,7 +576,8 @@ main() {
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;
         "adlist"              ) CustomizeAdLists;;
-        "audit"               ) audit;;
+        "audit"               ) addAudit "$@";;
+        "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
         *                     ) helpFunc;;
     esac

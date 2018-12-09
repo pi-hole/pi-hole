@@ -119,7 +119,7 @@ PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 #SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
 # Store Pi-hole's processes in an array for easy use and parsing
-PIHOLE_PROCESSES=( "dnsmasq" "lighttpd" "pihole-FTL" )
+PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
 #REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
@@ -337,8 +337,6 @@ get_program_version() {
     case "${program_name}" in
         "lighttpd") program_version="$(${program_name} -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
                     ;;
-        "dnsmasq") program_version="$(${program_name} -v |& head -n1 | awk '{print $3}')"
-                    ;;
         "php") program_version="$(${program_name} -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
                 ;;
         # If a match is not found, show an error
@@ -358,7 +356,6 @@ get_program_version() {
 # and their versions, using the functions above.
 check_critical_program_versions() {
     # Use the function created earlier and bundle them into one function that checks all the version numbers
-    get_program_version "dnsmasq"
     get_program_version "lighttpd"
     get_program_version "php"
 }
@@ -640,11 +637,12 @@ ping_internet() {
 compare_port_to_service_assigned() {
     local service_name="${1}"
     # The programs we use may change at some point, so they are in a varible here
-    local resolver="dnsmasq"
+    local resolver="pihole-FTL"
     local web_server="lighttpd"
     local ftl="pihole-FTL"
+
+    # If the service is a Pi-hole service, highlight it in green
     if [[ "${service_name}" == "${resolver}" ]] || [[ "${service_name}" == "${web_server}" ]] || [[ "${service_name}" == "${ftl}" ]]; then
-        # if port 53 is dnsmasq, show it in green as it's standard
         log_write "[${COL_GREEN}${port_number}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
     # Otherwise,
     else
@@ -657,7 +655,7 @@ check_required_ports() {
     echo_current_diagnostic "Ports in use"
     # Since Pi-hole needs 53, 80, and 4711, check what they are being used by
     # so we can detect any issues
-    local resolver="dnsmasq"
+    local resolver="pihole-FTL"
     local web_server="lighttpd"
     local ftl="pihole-FTL"
     # Create an array for these ports in use
@@ -682,7 +680,7 @@ check_required_ports() {
             continue
         fi
         # Use a case statement to determine if the right services are using the right ports
-        case "${port_number}" in
+        case "$(echo "$port_number" | rev | cut -d: -f1 | rev)" in
             53) compare_port_to_service_assigned  "${resolver}"
                 ;;
             80) compare_port_to_service_assigned  "${web_server}"
@@ -836,9 +834,13 @@ process_status(){
             local status_of_process
             status_of_process=$(systemctl is-active "${i}")
         else
-            # Otherwise, use the service command
+            # Otherwise, use the service command and mock the output of `systemctl is-active`
             local status_of_process
-            status_of_process=$(service "${i}" status | awk '/Active:/ {print $2}') &> /dev/null
+            if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
+                status_of_process="active"
+            else
+                status_of_process="inactive"
+            fi
         fi
         # and print it out to the user
         if [[ "${status_of_process}" == "active" ]]; then
@@ -907,7 +909,7 @@ parse_file() {
         #shellcheck disable=SC2016
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
-        read -a file_info <<< $filename
+        read -r -a file_info <<< "$filename"
     fi
     # Set a named variable for better readability
     local file_lines
