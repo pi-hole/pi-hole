@@ -31,20 +31,13 @@ def test_release_supported_version_check_centos(Pihole):
     '''
     confirms installer exits on unsupported releases of CentOS
     '''
-    # mock CentOS release < 7 (unsupported)
-    mock_command_2(
-        'rpm',
-        {"-q --queryformat '%{VERSION}' centos-release'": (
-            '5',
-            '0'
-        )},
-        Pihole
-    )
+    # modify /etc/redhat-release to mock an unsupported CentOS release
+    Pihole.run('echo "CentOS Linux release 6.9" > /etc/redhat-release')
     distro_check = Pihole.run('''
     source /opt/pihole/basic-install.sh
     distro_check
     ''')
-    expected_stdout = cross_box + (' CentOS  is not suported.')
+    expected_stdout = cross_box + (' CentOS 6 is not supported.')
     assert expected_stdout in distro_check.stdout
     expected_stdout = 'Please update to CentOS release 7 or later'
     assert expected_stdout in distro_check.stdout

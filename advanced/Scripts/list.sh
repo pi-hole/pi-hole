@@ -13,6 +13,7 @@ basename=pihole
 piholeDir=/etc/"${basename}"
 whitelist="${piholeDir}"/whitelist.txt
 blacklist="${piholeDir}"/blacklist.txt
+
 readonly regexlist="/etc/pihole/regex.list"
 reload=false
 addmode=true
