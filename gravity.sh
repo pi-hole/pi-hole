@@ -68,10 +68,34 @@ else
   exit 1
 fi
 
+# Source pihole-FTL from install script
+pihole_FTL="${piholeDir}/pihole-FTL.conf"
+if [[ -f "${pihole_FTL}" ]]; then
+  source "${pihole_FTL}"
+fi
+
+if [[ -z "${BLOCKINGMODE}" ]] ; then
+  BLOCKINGMODE="NULL"
+fi
+
 # Determine if superseded pihole.conf exists
 if [[ -r "${piholeDir}/pihole.conf" ]]; then
   echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
 fi
+
+# Determine if Pi-hole blocking is disabled
+# If this is the case, we want to update
+#  gravity.list.bck and black.list.bck instead of
+#  gravity.list and black.list
+detect_pihole_blocking_status() {
+  if [[ "${BLOCKING_ENABLED}" == false ]]; then
+    echo -e "  ${INFO} Pi-hole blocking is disabled"
+    adList="${adList}.bck"
+    blackList="${blackList}.bck"
+  else
+    echo -e "  ${INFO} Pi-hole blocking is enabled"
+  fi
+}
 
 # Determine if DNS resolution is available before proceeding
 gravity_CheckDNSResolutionAvailable() {
@@ -182,7 +206,7 @@ gravity_SetDownloadOptions() {
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
-    agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36"
+    agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
 
     # Provide special commands for blocklists which may need them
     case "${domain}" in
@@ -216,6 +240,39 @@ gravity_DownloadBlocklistFromUrl() {
 
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
+  blocked=false
+  case $BLOCKINGMODE in
+    "IP-NODATA-AAAA"|"IP")
+        if [[ $(dig "${domain}" +short | grep "${IPV4_ADDRESS}" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+    "NXDOMAIN")
+        if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+    "NULL"|*)
+        if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
+          blocked=true
+        fi;;
+   esac
+
+  if [[ "${blocked}" == true ]]; then
+    printf -v ip_addr "%s" "${PIHOLE_DNS_1%#*}"
+    if [[ ${PIHOLE_DNS_1} != *"#"* ]]; then
+        port=53
+    else
+        printf -v port "%s" "${PIHOLE_DNS_1#*#}"
+    fi
+    ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}")
+    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
+      port=443;
+    else port=80
+    fi
+    bad_list=$(pihole -q -adlist hosts-file.net | head -n1 | awk -F 'Match found in ' '{print $2}')
+    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
+    echo -ne "  ${INFO} ${str} Pending..."
+    cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
+  fi
   # shellcheck disable=SC2086
   httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
@@ -464,7 +521,7 @@ gravity_ShowBlockCount() {
   fi
 
   if [[ -f "${regexFile}" ]]; then
-    num=$(grep -c "^(?!#)" "${regexFile}")
+    num=$(grep -cv "^#" "${regexFile}")
     echo -e "  ${INFO} Number of regex filters: ${num}"
   fi
 }
@@ -522,7 +579,7 @@ gravity_ParseBlacklistDomains() {
     mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    mv "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
   fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
@@ -620,6 +677,8 @@ if [[ "${forceDelete:-}" == true ]]; then
   rm /etc/pihole/list.* 2> /dev/null || true
   echo -e "${OVER}  ${TICK} ${str}"
 fi
+
+detect_pihole_blocking_status
 
 # Determine which functions to run
 if [[ "${skipDownload}" == false ]]; then

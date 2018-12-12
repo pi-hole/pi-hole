@@ -90,4 +90,5 @@ $HTTP["url"] =~ "^/admin/\.(.*)" {
 }
 
 # Add user chosen options held in external file
+# This uses include_shell instead of an include wildcard for compatibility
 include_shell "cat external.conf 2>/dev/null"
