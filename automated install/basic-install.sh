@@ -2460,7 +2460,7 @@ main() {
     # Start the installer
     # Verify there is enough disk space for the install
     if [[ "${skipSpaceCheck}" == true ]]; then
-        printf"  %b Skipping free disk space verification\\n" "${INFO}"
+        printf "  %b Skipping free disk space verification\\n" "${INFO}"
     else
         verifyFreeDiskSpace
     fi
