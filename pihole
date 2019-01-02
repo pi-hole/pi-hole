@@ -19,7 +19,9 @@ readonly blacklist="/etc/pihole/black.list"
 setupVars="/etc/pihole/setupVars.conf"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
-source "${colfile}"
+if [[ -e "${colfile}" ]]; then
+  source "${colfile}"
+fi
 
 resolver="pihole-FTL"
 
