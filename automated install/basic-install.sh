@@ -28,6 +28,21 @@ set -e
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
+# List of supported DNS servers
+DNS_SERVERS=$(cat << EOM
+Google (ECS);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+OpenDNS (ECS);208.67.222.222;208.67.220.220;2620:0:ccc::2;2620:0:ccd::2
+Level3;4.2.2.1;4.2.2.2;;
+Norton;199.85.126.10;199.85.127.10;;
+Comodo;8.26.56.26;8.20.247.20;;
+DNS.WATCH;84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
+Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
+Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
+Quad9 (filtered + ECS);9.9.9.11;149.112.112.11;2620:fe::11;
+Cloudflare;1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+EOM
+)
+
 # Location for final installation log storage
 installLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
@@ -916,15 +931,26 @@ setDNS() {
     local DNSSettingsCorrect
 
     # In an array, list the available upstream providers
-    DNSChooseOptions=(Google ""
-        OpenDNS ""
-        Level3 ""
-        Comodo ""
-        DNSWatch ""
-        Quad9 ""
-        FamilyShield ""
-        Cloudflare ""
-        Custom "")
+    DNSChooseOptions=()
+    local DNSServerCount=0
+    # Save the old Internal Field Separator in a variable
+    OIFS=$IFS
+    # and set the new one to newline
+    IFS=$'\n'
+    # Put the DNS Servers into an array
+    for DNSServer in ${DNS_SERVERS}
+    do
+        DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
+        DNSChooseOptions[DNSServerCount]="${DNSName}"
+        (( DNSServerCount=DNSServerCount+1 ))
+        DNSChooseOptions[DNSServerCount]=""
+        (( DNSServerCount=DNSServerCount+1 ))
+    done
+    DNSChooseOptions[DNSServerCount]="Custom"
+    (( DNSServerCount=DNSServerCount+1 ))
+    DNSChooseOptions[DNSServerCount]=""
+    # Restore the IFS to what it was
+    IFS=${OIFS}
     # In a whiptail dialog, show the options
     DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
@@ -934,113 +960,90 @@ setDNS() {
     # Display the selection
     printf "  %b Using " "${INFO}"
     # Depending on the user's choice, set the GLOBAl variables to the IP of the respective provider
-    case ${DNSchoices} in
-        Google)
-            printf "Google DNS servers\\n"
-            PIHOLE_DNS_1="8.8.8.8"
-            PIHOLE_DNS_2="8.8.4.4"
-            ;;
-        OpenDNS)
-            printf "OpenDNS servers\\n"
-            PIHOLE_DNS_1="208.67.222.222"
-            PIHOLE_DNS_2="208.67.220.220"
-            ;;
-        Level3)
-            printf "Level3 servers\\n"
-            PIHOLE_DNS_1="4.2.2.1"
-            PIHOLE_DNS_2="4.2.2.2"
-            ;;
-        Comodo)
-            printf "Comodo Secure servers\\n"
-            PIHOLE_DNS_1="8.26.56.26"
-            PIHOLE_DNS_2="8.20.247.20"
-            ;;
-        DNSWatch)
-            printf "DNS.WATCH servers\\n"
-            PIHOLE_DNS_1="84.200.69.80"
-            PIHOLE_DNS_2="84.200.70.40"
-            ;;
-        Quad9)
-            printf "Quad9 servers\\n"
-            PIHOLE_DNS_1="9.9.9.9"
-            PIHOLE_DNS_2="149.112.112.112"
-            ;;
-        FamilyShield)
-            printf "FamilyShield servers\\n"
-            PIHOLE_DNS_1="208.67.222.123"
-            PIHOLE_DNS_2="208.67.220.123"
-            ;;
-        Cloudflare)
-            printf "Cloudflare servers\\n"
-            PIHOLE_DNS_1="1.1.1.1"
-            PIHOLE_DNS_2="1.0.0.1"
-            ;;
-        Custom)
-            # Until the DNS settings are selected,
-            until [[ "${DNSSettingsCorrect}" = True ]]; do
-                #
-                strInvalid="Invalid"
-                # If the first
-                if [[ ! "${PIHOLE_DNS_1}" ]]; then
-                    # and second upstream servers do not exist
-                    if [[ ! "${PIHOLE_DNS_2}" ]]; then
-                        prePopulate=""
-                    # Otherwise,
-                    else
-                        prePopulate=", ${PIHOLE_DNS_2}"
-                    fi
-                elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
-                    prePopulate="${PIHOLE_DNS_1}"
-                elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
-                    prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
-                fi
-
-                # Dialog for the user to enter custom upstream servers
-                piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
-                { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-                # Clean user input and replace whitespace with comma.
-                piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
-
-                printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
-                printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
-
-                # If the IP is valid,
-                if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
-                    # store it in the variable so we can use it
-                    PIHOLE_DNS_1=${strInvalid}
-                fi
-                # Do the same for the secondary server
-                if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
-                    PIHOLE_DNS_2=${strInvalid}
-                fi
-                # If either of the DNS servers are invalid,
-                if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
-                    # explain this to the user
-                    whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\\n\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
-                    # and set the variables back to nothing
-                    if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
-                        PIHOLE_DNS_1=""
-                    fi
-                    if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
-                        PIHOLE_DNS_2=""
-                    fi
-                # Since the settings will not work, stay in the loop
-                DNSSettingsCorrect=False
+    if [[ "${DNSchoices}" == "Custom" ]]
+    then
+        # Until the DNS settings are selected,
+        until [[ "${DNSSettingsCorrect}" = True ]]; do
+            #
+            strInvalid="Invalid"
+            # If the first
+            if [[ ! "${PIHOLE_DNS_1}" ]]; then
+                # and second upstream servers do not exist
+                if [[ ! "${PIHOLE_DNS_2}" ]]; then
+                    prePopulate=""
                 # Otherwise,
                 else
-                    # Show the settings
-                    if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}); then
-                    # and break from the loop since the servers are valid
-                    DNSSettingsCorrect=True
-                    # Otherwise,
-                    else
-                        # If the settings are wrong, the loop continues
-                        DNSSettingsCorrect=False
-                    fi
+                    prePopulate=", ${PIHOLE_DNS_2}"
                 fi
-            done
-            ;;
-    esac
+            elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
+                prePopulate="${PIHOLE_DNS_1}"
+            elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
+                prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
+            fi
+
+            # Dialog for the user to enter custom upstream servers
+            piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
+            { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+            # Clean user input and replace whitespace with comma.
+            piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
+
+            printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
+            printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
+
+            # If the IP is valid,
+            if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
+                # store it in the variable so we can use it
+                PIHOLE_DNS_1=${strInvalid}
+            fi
+            # Do the same for the secondary server
+            if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
+                PIHOLE_DNS_2=${strInvalid}
+            fi
+            # If either of the DNS servers are invalid,
+            if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
+                # explain this to the user
+                whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\\n\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
+                # and set the variables back to nothing
+                if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
+                    PIHOLE_DNS_1=""
+                fi
+                if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
+                    PIHOLE_DNS_2=""
+                fi
+            # Since the settings will not work, stay in the loop
+            DNSSettingsCorrect=False
+            # Otherwise,
+            else
+                # Show the settings
+                if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}); then
+                # and break from the loop since the servers are valid
+                DNSSettingsCorrect=True
+                # Otherwise,
+                else
+                    # If the settings are wrong, the loop continues
+                    DNSSettingsCorrect=False
+                fi
+            fi
+        done
+     else
+        # Save the old Internal Field Separator in a variable
+        OIFS=$IFS
+        # and set the new one to newline
+        IFS=$'\n'
+        for DNSServer in ${DNS_SERVERS}
+        do
+            DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
+            if [[ "${DNSchoices}" == "${DNSName}" ]]
+            then
+                printf "%s\\n" "${DNSName}"
+                PIHOLE_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
+                PIHOLE_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
+                break
+            fi
+        done
+        # Restore the IFS to what it was
+        IFS=${OIFS}
+    fi
 }
 
 # Allow the user to enable/disable logging
@@ -1339,6 +1342,12 @@ installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
+
+    # Install list of DNS servers
+    # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
+    # Some values may be empty (for example: DNS servers without IPv6 support)
+    echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
+
     # Install empty file if it does not exist
     if [[ ! -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
         if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
