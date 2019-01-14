@@ -16,6 +16,7 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
+readonly dnscnames="/etc/dnsmasq.d/05-pihole-cname.conf" # Also in cname.php
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
@@ -438,6 +439,38 @@ RemoveDHCPStaticAddress() {
     sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
 }
 
+AddCName() {
+    if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]] || [ "$#" -ne 4 ]; then
+        echo "Usage: pihole -a addcname <hostname> <aliases>
+Example: 'pihole -a addcname my.target.host my.alias,aother.alias'"
+        exit 0
+    fi
+
+    local host="${args[2]}"
+    local aliases="${args[3]}"
+    local scriptPath="$PI_HOLE_SCRIPT_DIR/cname.php"
+
+    php -f "$scriptPath" add "$host" "$aliases"
+    # Restart dnsmasq to load new configuration
+    RestartDNS
+}
+
+RemoveCName() {
+    if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]] || [ "$#" -ne 4 ]; then
+        echo "Usage: pihole -a removecname <hostname> <aliases>
+Example: 'pihole -a removecname my.target.host my.alias,aother.alias'"
+        exit 0
+    fi
+
+    local host="${args[2]}"
+    local aliases="${args[3]}"
+    local scriptPath="$PI_HOLE_SCRIPT_DIR/cname.php"
+
+    php -f "$scriptPath" remove "$host" "$aliases"
+    # Restart dnsmasq to load new configuration
+    RestartDNS
+}
+
 SetHostRecord() {
     if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
         echo "Usage: pihole -a hostrecord <domain> [IPv4-address],[IPv6-address]
@@ -571,6 +604,8 @@ main() {
         "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
+        "addcname"            ) AddCName "$@";;
+        "removecname"         ) RemoveCName "$@";;
         "-r" | "hostrecord"   ) SetHostRecord "$3";;
         "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
