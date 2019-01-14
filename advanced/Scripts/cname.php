@@ -67,7 +67,6 @@ switch ($action) {
     default:
         echo "Unsupported Action.\n";
         exit(1);
-        break;
 }
 exit(0);
 
@@ -79,8 +78,7 @@ function readCNameFile()
         return $result;
     }
 
-    try
-    {
+    try {
         $cnames = @fopen($CNAMEFILE, 'r');
     } catch (Exception $e) {
         echo "Warning: Failed to read " . $CNAMEFILE . ", this is not an error";
@@ -196,8 +194,7 @@ function writeCNAMEFile($cnames)
     global $CNAMEFILE;
 
     $outFile = null;
-    try
-    {
+    try {
         $outFile = @fopen($CNAMEFILE, 'w');
         foreach ($cnames as $hostAliases) {
             $aliases = $hostAliases["aliases"];
@@ -217,7 +214,6 @@ function writeCNAMEFile($cnames)
         if (is_resource($outFile)) {
             fclose($outFile);
         }
-
     }
 }
 
