@@ -85,8 +85,7 @@ function readCNameFile()
         return false;
     }
 
-    try
-    {
+    try {
         if (!is_resource($cnames)) {
             return false;
         }
