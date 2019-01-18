@@ -338,11 +338,11 @@ gravity_ParseFileIntoDomains() {
     # Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
     # Last awk command takes non-commented lines and if they have 2 fields, take the right field (the domain) and leave
     # the left (IP address), otherwise grab the single field.
-
-    < ${source} awk -F '#' '{print $1}' | \
-    awk -F '/' '{print $1}' | \
-    awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
-    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${destination}
+    < ${source} tr -d '\r' | \
+    tr '[:upper:]' '[:lower:]' | \
+    sed -r '/(\/|#).*$/d' | \
+    sed -r 's/^.*\s+//g' | \
+    sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  ${destination}
     return 0
   fi
 
