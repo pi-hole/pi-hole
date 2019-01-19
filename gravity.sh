@@ -335,14 +335,16 @@ gravity_ParseFileIntoDomains() {
     # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
-    # Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
-    # Last awk command takes non-commented lines and if they have 2 fields, take the right field (the domain) and leave
-    # the left (IP address), otherwise grab the single field.
-    < ${source} tr -d '\r' | \
-    tr '[:upper:]' '[:lower:]' | \
-    sed -r '/(\/|#).*$/d' | \
-    sed -r 's/^.*\s+//g' | \
-    sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  ${destination}
+    # 1) Remove carriage returns
+    # 2) Convert all characters to lowercase
+    # 3) Remove lines containing "#" or "/"
+    # 4) Remove leading tabs, spaces, etc.
+    # 5) Delete lines not matching domain names
+    < ${source} tr -d "\r" | \
+    tr "[:upper:]" "[:lower:]" | \
+    sed -r "/(\/|#).*$/d" | \
+    sed -r "s/^.*\s+//g" | \
+    sed -r "/([^\.]+\.)+[^\.]{2,}/!d" >  ${destination}
     return 0
   fi
 
