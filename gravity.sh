@@ -340,11 +340,11 @@ gravity_ParseFileIntoDomains() {
     # 3) Remove lines containing "#" or "/"
     # 4) Remove leading tabs, spaces, etc.
     # 5) Delete lines not matching domain names
-    < ${source} tr -d "\r" | \
-    tr "[:upper:]" "[:lower:]" | \
-    sed -r "/(\/|#).*$/d" | \
-    sed -r "s/^.*\s+//g" | \
-    sed -r "/([^\.]+\.)+[^\.]{2,}/!d" >  ${destination}
+    < ${source} tr -d '\r' | \
+    tr '[:upper:]' '[:lower:]' | \
+    sed -r '/(\/|#).*$/d' | \
+    sed -r 's/^.*\s+//g' | \
+    sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  ${destination}
     return 0
   fi
 
