@@ -1437,7 +1437,7 @@ stop_service() {
 }
 
 # Start/Restart service passed in as argument
-start_service() {
+restart_service() {
     # Local, named variables
     local str="Starting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
@@ -2572,7 +2572,7 @@ main() {
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 
         if [[ "${LIGHTTPD_ENABLED}" == true ]]; then
-            start_service lighttpd
+            restart_service lighttpd
             enable_service lighttpd
         else
             printf "  %b Lighttpd is disabled, skipping service restart\\n" "${INFO}"
@@ -2587,7 +2587,7 @@ main() {
     # Fixes a problem reported on Ubuntu 18.04 where trying to start
     # the service before enabling causes installer to exit
     enable_service pihole-FTL
-    start_service pihole-FTL
+    restart_service pihole-FTL
 
     # Download and compile the aggregated block list
     runGravity
