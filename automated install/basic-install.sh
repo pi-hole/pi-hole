@@ -2184,25 +2184,6 @@ FTLinstall() {
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
             # Install the FTL service
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-            # dnsmasq can now be stopped and disabled if it exists
-            if which dnsmasq &> /dev/null; then
-                if check_service_active "dnsmasq";then
-                    printf "  %b FTL can now resolve DNS Queries without dnsmasq running separately\\n" "${INFO}"
-                    stop_service dnsmasq
-                    disable_service dnsmasq
-                fi
-            fi
-
-            # Backup existing /etc/dnsmasq.conf if present and ensure that
-            # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
-            local conffile="/etc/dnsmasq.conf"
-            if [[ -f "${conffile}" ]]; then
-                printf "  %b Backing up %s to %s.old\\n" "${INFO}" "${conffile}" "${conffile}"
-                mv "${conffile}" "${conffile}.old"
-            fi
-            # Create /etc/dnsmasq.conf
-            echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
-
             return 0
         # Otherwise,
         else
@@ -2220,6 +2201,27 @@ FTLinstall() {
         printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
         return 1
     fi
+}
+
+disable_dnsmasq() {
+    # dnsmasq can now be stopped and disabled if it exists
+    if which dnsmasq &> /dev/null; then
+        if check_service_active "dnsmasq";then
+            printf "  %b FTL can now resolve DNS Queries without dnsmasq running separately\\n" "${INFO}"
+            stop_service dnsmasq
+            disable_service dnsmasq
+        fi
+    fi
+
+    # Backup existing /etc/dnsmasq.conf if present and ensure that
+    # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
+    local conffile="/etc/dnsmasq.conf"
+    if [[ -f "${conffile}" ]]; then
+        printf "  %b Backing up %s to %s.old\\n" "${INFO}" "${conffile}" "${conffile}"
+        mv "${conffile}" "${conffile}.old"
+    fi
+    # Create /etc/dnsmasq.conf
+    echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
 }
 
 get_binary_name() {
