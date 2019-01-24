@@ -115,6 +115,9 @@ else
     OVER="\\r\\033[K"
 fi
 
+# Define global binary variable
+binary="tbd"
+
 # A simple function that just echoes out our logo in ASCII format
 # This lets users know that it is a Pi-hole, LLC product
 show_ascii_berry() {
@@ -2130,7 +2133,6 @@ clone_or_update_repos() {
 # Download FTL binary to random temp directory and install FTL binary
 FTLinstall() {
     # Local, named variables
-    local binary="${1}"
     local latesttag
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
@@ -2377,7 +2379,7 @@ FTLdetect() {
     printf "\\n  %b FTL Checks...\\n\\n" "${INFO}"
 
     if FTLcheckUpdate ; then
-        FTLinstall "${binary}" || return 1
+        FTLinstall || return 1
     fi
 }
 
