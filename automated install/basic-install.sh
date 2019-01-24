@@ -1909,8 +1909,9 @@ installPihole() {
     installCron
     # Install the logrotate file
     installLogrotate
-    # Check if FTL is installed
-    FTLdetect || printf "  %b FTL Engine not installed\\n" "${CROSS}"
+    # Check if dnsmasq is present. If so, disable it and back up any possible
+    # config file
+    disable_dnsmasq
     # Configure the firewall
     if [[ "${useUpdateVars}" == false ]]; then
         configureFirewall
@@ -2539,6 +2540,8 @@ main() {
     else
         LIGHTTPD_ENABLED=false
     fi
+    # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
+    FTLdetect || printf "  %b FTL Engine not installed\\n" "${CROSS}"
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
