@@ -2176,8 +2176,6 @@ FTLinstall() {
         # If we downloaded binary file (as opposed to text),
         if sha1sum --status --quiet -c "${binary}".sha1; then
             printf "transferred... "
-            # Stop FTL
-            stop_service pihole-FTL &> /dev/null
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
             # Move back into the original directory the user was in
