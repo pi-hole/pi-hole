@@ -484,7 +484,8 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     # mock uname to return generic platform
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLinstall pihole-FTL-aarch64-linux-gnu
+    binary="pihole-FTL-aarch64-linux-gnu"
+    FTLinstall
     ''')
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
@@ -498,7 +499,8 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     # mock uname to return generic platform
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLinstall pihole-FTL-mips
+    binary="pihole-FTL-mips"
+    FTLinstall
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
