@@ -2176,7 +2176,7 @@ FTLinstall() {
             printf "transferred... "
 
             # Before stopping FTL, we download the macvendor database
-            curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db"
+            curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
             # Stop FTL
             stop_service pihole-FTL &> /dev/null
