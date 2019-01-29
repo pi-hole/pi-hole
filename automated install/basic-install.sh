@@ -2182,6 +2182,10 @@ FTLinstall() {
         # If we downloaded binary file (as opposed to text),
         if sha1sum --status --quiet -c "${binary}".sha1; then
             printf "transferred... "
+
+            # Before stopping FTL, we download the macvendor database
+            curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
+
             # Stop FTL
             stop_service pihole-FTL &> /dev/null
             # Install the new version with the correct permissions
