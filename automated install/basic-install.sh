@@ -2541,7 +2541,10 @@ main() {
         LIGHTTPD_ENABLED=false
     fi
     # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
-    FTLdetect || printf "  %b FTL Engine not installed\\n" "${CROSS}"
+    if ! FTLdetect; then
+        printf "  %b FTL Engine not installed\\n" "${CROSS}"
+        exit 1
+    fi
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
