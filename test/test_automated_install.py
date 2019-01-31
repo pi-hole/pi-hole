@@ -481,7 +481,6 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     '''
     confirms only aarch64 package is downloaded for FTL engine
     '''
-    # mock uname to return generic platform
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-aarch64-linux-gnu"
@@ -496,10 +495,25 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     '''
     confirms unknown binary is not downloaded for FTL engine
     '''
-    # mock uname to return generic platform
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-mips"
+    FTLinstall
+    ''')
+    expected_stdout = cross_box + ' Downloading and Installing FTL'
+    assert expected_stdout in download_binary.stdout
+    error1 = 'Error: URL https://github.com/pi-hole/FTL/releases/download/'
+    assert error1 in download_binary.stdout
+    error2 = 'not found'
+    assert error2 in download_binary.stdout
+
+
+def test_FTL_download_binary_unset_no_errors(Pihole):
+    '''
+    confirms unset binary variable does not download FTL engine
+    '''
+    download_binary = Pihole.run('''
+    source /opt/pihole/basic-install.sh
     FTLinstall
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
