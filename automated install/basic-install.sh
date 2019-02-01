@@ -2179,9 +2179,7 @@ FTLinstall() {
             printf "transferred... "
 
             # Stop pihole-FTL service if available
-            # Allow failing without tripping set -e as the
-            # service might not be available (e.g. on first install)
-            service pihole-FTL stop > /dev/null 2>&1 || true
+            stop_service pihole-FTL &> /dev/null
 
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
