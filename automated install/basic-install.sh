@@ -2177,11 +2177,24 @@ FTLinstall() {
         # If we downloaded binary file (as opposed to text),
         if sha1sum --status --quiet -c "${binary}".sha1; then
             printf "transferred... "
+
+            # Stop pihole-FTL service if available
+            # Allow failing without tripping set -e as the
+            # service might not be available (e.g. on first install)
+            service pihole-FTL stop > /dev/null 2>&1 || true
+
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
+
+            # Start pihole-FTL service if available
+            # Allow failing without tripping set -e as the
+            # service might not be available (e.g. on first install)
+            service pihole-FTL restart > /dev/null 2>&1 || true
+
             # Move back into the original directory the user was in
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
-            # Install the FTL service
+
+            # Installed the FTL service
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             return 0
         # Otherwise,
