@@ -36,7 +36,7 @@ start() {
     rm /var/run/pihole/FTL.sock 2> /dev/null
     # Ensure that permissions are set so that pihole-FTL can edit all necessary files
     chown pihole:pihole /run/pihole-FTL.pid /run/pihole-FTL.port
-    chown pihole:pihole /etc/pihole /etc/pihole/dhcp.leases
+    chown pihole:pihole /etc/pihole /etc/pihole/dhcp.leases 2> /dev/null
     chown pihole:pihole /var/log/pihole-FTL.log /var/log/pihole.log
     chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
     echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL

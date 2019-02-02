@@ -206,7 +206,7 @@ gravity_SetDownloadOptions() {
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
-    agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36"
+    agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
 
     # Provide special commands for blocklists which may need them
     case "${domain}" in
@@ -257,7 +257,13 @@ gravity_DownloadBlocklistFromUrl() {
    esac
 
   if [[ "${blocked}" == true ]]; then
-    ip=$(dig "@${PIHOLE_DNS_1}" +short "${domain}")
+    printf -v ip_addr "%s" "${PIHOLE_DNS_1%#*}"
+    if [[ ${PIHOLE_DNS_1} != *"#"* ]]; then
+        port=53
+    else
+        printf -v port "%s" "${PIHOLE_DNS_1#*#}"
+    fi
+    ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}")
     if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
       port=443;
     else port=80
@@ -573,7 +579,7 @@ gravity_ParseBlacklistDomains() {
     mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    mv "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
   fi
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
