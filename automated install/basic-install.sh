@@ -1439,7 +1439,7 @@ stop_service() {
 # Start/Restart service passed in as argument
 restart_service() {
     # Local, named variables
-    local str="Starting ${1} service"
+    local str="Restarting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
     if is_command systemctl ; then
