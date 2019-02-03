@@ -39,7 +39,7 @@ VPNList="/etc/openvpn/ipp.txt"
 piholeGitDir="/etc/.pihole"
 gravityDBfile="${piholeDir}/gravity.db"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.schema"
-optimize_database=true
+optimize_database=false
 
 domainsExtension="domains"
 matterAndLight="${basename}.0.matterandlight.txt"
@@ -724,11 +724,12 @@ Options:
 for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
+    "-o" | "--optimize" ) optimize_database=true;;
     "-h" | "--help" ) helpFunc;;
     "-sd" | "--skip-download" ) skipDownload=true;;
-    "-b" | "--blacklist-only" ) listType="blacklist"; optimize_database=false;;
-    "-w" | "--whitelist-only" ) listType="whitelist"; optimize_database=false;;
-    "-wild" | "--wildcard-only" ) listType="wildcard"; optimize_database=false; dnsRestartType="restart";;
+    "-b" | "--blacklist-only" ) listType="blacklist";;
+    "-w" | "--whitelist-only" ) listType="whitelist";;
+    "-wild" | "--wildcard-only" ) listType="wildcard"; dnsRestartType="restart";;
   esac
 done
 
