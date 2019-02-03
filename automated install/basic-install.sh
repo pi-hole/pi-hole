@@ -115,6 +115,9 @@ else
     OVER="\\r\\033[K"
 fi
 
+# Define global binary variable
+binary="tbd"
+
 # A simple function that just echoes out our logo in ASCII format
 # This lets users know that it is a Pi-hole, LLC product
 show_ascii_berry() {
@@ -165,6 +168,20 @@ if is_command apt-get ; then
     # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
     # Some distros vary slightly so these fixes for dependencies may apply
+    # on Ubuntu 18.04.1 LTS we need to add the universe repository to gain access to dialog and dhcpcd5
+    APT_SOURCES="/etc/apt/sources.list"
+    if awk 'BEGIN{a=1;b=0}/bionic main/{a=0}/bionic.*universe/{b=1}END{exit a + b}' ${APT_SOURCES}; then
+        if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5\\n- dialog" ${r} ${c}; then
+            printf "  %b Aborting installation: dependencies could not be installed.\\n" "${CROSS}"
+            exit # exit the installer
+        else
+            printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
+            cp ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
+            printf "  %b Backed up current configuration to %s\\n" "${TICK}" "${APT_SOURCES}.backup"
+            add-apt-repository universe
+            printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
+        fi
+    fi
     # Debian 7 doesn't have iproute2 so if the dry run install is successful,
     if ${PKG_MANAGER} install --dry-run iproute2 > /dev/null 2>&1; then
         # we can install it
@@ -207,7 +224,7 @@ if is_command apt-get ; then
     # These programs are stored in an array so they can be looped through later
     INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git ${iproute_pkg} whiptail)
     # Pi-hole itself has several dependencies that also need to be installed
-    PIHOLE_DEPS=(bc cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf)
+    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
     PIHOLE_WEB_DEPS=(lighttpd ${phpVer}-common ${phpVer}-cgi ${phpVer}-${phpSqlite})
@@ -249,7 +266,7 @@ elif is_command rpm ; then
     PKG_INSTALL=(${PKG_MANAGER} install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(dialog git iproute newt procps-ng which)
-    PIHOLE_DEPS=(bc bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite)
+    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite libcap)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
@@ -1420,9 +1437,9 @@ stop_service() {
 }
 
 # Start/Restart service passed in as argument
-start_service() {
+restart_service() {
     # Local, named variables
-    local str="Starting ${1} service"
+    local str="Restarting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
     if is_command systemctl ; then
@@ -1892,8 +1909,9 @@ installPihole() {
     installCron
     # Install the logrotate file
     installLogrotate
-    # Check if FTL is installed
-    FTLdetect || printf "  %b FTL Engine not installed\\n" "${CROSS}"
+    # Check if dnsmasq is present. If so, disable it and back up any possible
+    # config file
+    disable_dnsmasq
     # Configure the firewall
     if [[ "${useUpdateVars}" == false ]]; then
         configureFirewall
@@ -2116,7 +2134,6 @@ clone_or_update_repos() {
 # Download FTL binary to random temp directory and install FTL binary
 FTLinstall() {
     # Local, named variables
-    local binary="${1}"
     local latesttag
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
@@ -2160,33 +2177,18 @@ FTLinstall() {
         # If we downloaded binary file (as opposed to text),
         if sha1sum --status --quiet -c "${binary}".sha1; then
             printf "transferred... "
-            # Stop FTL
+
+            # Stop pihole-FTL service if available
             stop_service pihole-FTL &> /dev/null
+
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
+
             # Move back into the original directory the user was in
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
-            # Install the FTL service
+
+            # Installed the FTL service
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-            # dnsmasq can now be stopped and disabled if it exists
-            if which dnsmasq &> /dev/null; then
-                if check_service_active "dnsmasq";then
-                    printf "  %b FTL can now resolve DNS Queries without dnsmasq running separately\\n" "${INFO}"
-                    stop_service dnsmasq
-                    disable_service dnsmasq
-                fi
-            fi
-
-            # Backup existing /etc/dnsmasq.conf if present and ensure that
-            # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
-            local conffile="/etc/dnsmasq.conf"
-            if [[ -f "${conffile}" ]]; then
-                printf "  %b Backing up %s to %s.old\\n" "${INFO}" "${conffile}" "${conffile}"
-                mv "${conffile}" "${conffile}.old"
-            fi
-            # Create /etc/dnsmasq.conf
-            echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
-
             return 0
         # Otherwise,
         else
@@ -2204,6 +2206,27 @@ FTLinstall() {
         printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
         return 1
     fi
+}
+
+disable_dnsmasq() {
+    # dnsmasq can now be stopped and disabled if it exists
+    if which dnsmasq &> /dev/null; then
+        if check_service_active "dnsmasq";then
+            printf "  %b FTL can now resolve DNS Queries without dnsmasq running separately\\n" "${INFO}"
+            stop_service dnsmasq
+            disable_service dnsmasq
+        fi
+    fi
+
+    # Backup existing /etc/dnsmasq.conf if present and ensure that
+    # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
+    local conffile="/etc/dnsmasq.conf"
+    if [[ -f "${conffile}" ]]; then
+        printf "  %b Backing up %s to %s.old\\n" "${INFO}" "${conffile}" "${conffile}"
+        mv "${conffile}" "${conffile}.old"
+    fi
+    # Create /etc/dnsmasq.conf
+    echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
 }
 
 get_binary_name() {
@@ -2363,7 +2386,7 @@ FTLdetect() {
     printf "\\n  %b FTL Checks...\\n\\n" "${INFO}"
 
     if FTLcheckUpdate ; then
-        FTLinstall "${binary}" || return 1
+        FTLinstall || return 1
     fi
 }
 
@@ -2446,7 +2469,7 @@ main() {
     # Start the installer
     # Verify there is enough disk space for the install
     if [[ "${skipSpaceCheck}" == true ]]; then
-        printf"  %b Skipping free disk space verification\\n" "${INFO}"
+        printf "  %b Skipping free disk space verification\\n" "${INFO}"
     else
         verifyFreeDiskSpace
     fi
@@ -2523,6 +2546,11 @@ main() {
     else
         LIGHTTPD_ENABLED=false
     fi
+    # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
+    if ! FTLdetect; then
+        printf "  %b FTL Engine not installed\\n" "${CROSS}"
+        exit 1
+    fi
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
@@ -2553,7 +2581,7 @@ main() {
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
 
         if [[ "${LIGHTTPD_ENABLED}" == true ]]; then
-            start_service lighttpd
+            restart_service lighttpd
             enable_service lighttpd
         else
             printf "  %b Lighttpd is disabled, skipping service restart\\n" "${INFO}"
@@ -2568,7 +2596,7 @@ main() {
     # Fixes a problem reported on Ubuntu 18.04 where trying to start
     # the service before enabling causes installer to exit
     enable_service pihole-FTL
-    start_service pihole-FTL
+    restart_service pihole-FTL
 
     # Download and compile the aggregated block list
     runGravity

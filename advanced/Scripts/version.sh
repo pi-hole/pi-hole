@@ -136,8 +136,16 @@ errorOutput() {
 }
 
 defaultOutput() {
+    # Source the setupvars config file
+    # shellcheck disable=SC1091
+    source /etc/pihole/setupVars.conf
+
     versionOutput "pi-hole" "$@"
-    versionOutput "AdminLTE" "$@"
+
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+        versionOutput "AdminLTE" "$@"
+    fi
+
     versionOutput "FTL" "$@"
 }
 

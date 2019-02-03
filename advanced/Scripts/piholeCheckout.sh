@@ -167,7 +167,7 @@ checkout() {
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
             FTLinstall "${binary}"
-            start_service pihole-FTL
+            restart_service pihole-FTL
             enable_service pihole-FTL
         else
             echo "  ${CROSS} Requested branch \"${2}\" is not available"
