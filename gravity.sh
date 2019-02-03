@@ -124,7 +124,7 @@ gravity_store_in_database() {
     gravity_Cleanup "error"
   fi
 
-  if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ]; then
+  if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
     # Set disabled to false
     output=$( { sqlite3 "${gravityDBfile}" <<< "UPDATE ${table} SET disabled = 0 WHERE disabled IS NULL;"; } 2>&1 )
     status="$?"
@@ -135,13 +135,16 @@ gravity_store_in_database() {
     fi
   fi
 
-  # Empty $template if it already exists, otherwise, create it
-  output=$( { : > "${template}"; } 2>&1 )
-  status="$?"
+  # Only create template file if asked to
+  if [ "${template}" != "-" ]; then
+    # Empty $template if it already exists, otherwise, create it
+    output=$( { : > "${template}"; } 2>&1 )
+    status="$?"
 
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to create empty ${template}\\n  ${output}"
-    gravity_Cleanup "error"
+    if [[ "${status}" -ne 0 ]]; then
+      echo -e "\\n  ${CROSS} Unable to create empty ${template}\\n  ${output}"
+      gravity_Cleanup "error"
+    fi
   fi
 }
 
@@ -586,6 +589,9 @@ gravity_ShowBlockCount() {
     num=$(grep -cv "^#" "${regexFile}")
     echo -e "  ${INFO} Number of regex filters: ${num}"
   fi
+
+  # Store regex files in gravity database
+  gravity_store_in_database "regex" "${regexFile}" "-"
 }
 
 # Parse list of domains into hosts format
