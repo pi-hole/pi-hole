@@ -33,6 +33,7 @@ regexFile="${piholeDir}/regex.list"
 adList="${piholeDir}/gravity.list"
 blackList="${piholeDir}/black.list"
 localList="${piholeDir}/local.list"
+whiteList="${piholeDir}/white.list"
 VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
@@ -42,8 +43,6 @@ gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.schema"
 domainsExtension="domains"
 matterAndLight="${basename}.0.matterandlight.txt"
 parsedMatter="${basename}.1.parsedmatter.txt"
-whitelistMatter="${basename}.2.whitelistmatter.txt"
-accretionDisc="${basename}.3.accretionDisc.txt"
 preEventHorizon="list.preEventHorizon"
 
 skipDownload="false"
@@ -90,6 +89,49 @@ fi
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
   sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+}
+
+# Import domains from file and store them in the specified database table
+gravity_store_in_database() {
+  # Define locals
+  local table="${1}"
+  local source="${2}"
+  local template="${3}"
+
+  # Create database file if not present
+  if [ ! -e "${gravityDBfile}" ]; then
+    generate_gravity_database
+  fi
+
+  # Backup gravity database
+  cp "${gravityDBfile}" "${gravityDBfile}.bck"
+
+  # Empty domains
+  output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM ${table};"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to truncate ${table} database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+
+  # Store domains in gravity database
+  output=$( { sqlite3 "${gravityDBfile}" <<< ".import \"${source}\" ${table}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to create ${table} database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+
+  # Empty $adList if it already exists, otherwise, create it
+  output=$( { : > "${template}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to create empty ${template}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
 }
 
 # Determine if Pi-hole blocking is disabled
@@ -476,7 +518,7 @@ gravity_SortAndFilterConsolidatedList() {
     echo -ne "  ${INFO} ${str}..."
   fi
 
-  # Parse into hosts file
+  # Parse into file
   gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
 
   # Format $parsedMatter line total as currency
@@ -514,8 +556,8 @@ gravity_Whitelist() {
   str="Number of whitelisted domains: ${num}"
   echo -ne "  ${INFO} ${str}..."
 
-  # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-  comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
+  # Store whitelisted files in gravity database
+  gravity_store_in_database "whitelist" "${whitelistFile}" "${whiteList}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
@@ -581,50 +623,8 @@ gravity_ParseLocalDomains() {
 gravity_ParseBlacklistDomains() {
   local output status
 
-  # Empty $accretionDisc if it already exists, otherwise, create it
-  : > "${piholeDir}/${accretionDisc}"
-
-  if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
-    mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
-  else
-    # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
-  fi
-
-  # Create database file if not present
-  if [ ! -e "${gravityDBfile}" ]; then
-    generate_gravity_database
-  fi
-
-  # Backup gravity database
-  cp "${gravityDBfile}" "${gravityDBfile}.bck"
-
-  # Empty domains
-  output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM gravity;"; } 2>&1 )
-  status="$?"
-
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to truncate gravity database ${gravityDBfile}\\n  ${output}"
-    gravity_Cleanup "error"
-  fi
-
-  # Store domains in gravity database
-  output=$( { sqlite3 "${gravityDBfile}" <<< ".import ${piholeDir}/${accretionDisc} gravity"; } 2>&1 )
-  status="$?"
-
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to create gravity database ${gravityDBfile}\\n  ${output}"
-    gravity_Cleanup "error"
-  fi
-
-  # Empty $adList if it already exists, otherwise, create it
-  output=$( { : > "${adList}"; } 2>&1 )
-  status="$?"
-
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to create empty ${adList}\\n  ${output}"
-    gravity_Cleanup "error"
-  fi
+  # Store gravity domains in gravity database
+  gravity_store_in_database "gravity" "${piholeDir}/${preEventHorizon}" "${adList}"
 }
 
 # Create user-added blacklist entries
@@ -632,9 +632,9 @@ gravity_ParseUserDomains() {
   if [[ ! -f "${blacklistFile}" ]]; then
     return 0
   fi
-  # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
-  cp "${blacklistFile}" "${blackList}" 2> /dev/null || \
-    echo -e "\\n  ${CROSS} Unable to move ${blacklistFile##*/} to ${piholeDir}"
+
+  # Fill database table
+  gravity_store_in_database "blacklist" "${blacklistFile}" "${blackList}"
 }
 
 # Trap Ctrl-C
