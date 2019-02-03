@@ -104,9 +104,6 @@ gravity_store_in_database() {
     generate_gravity_database
   fi
 
-  # Backup gravity database
-  cp "${gravityDBfile}" "${gravityDBfile}.bck"
-
   # Empty domains
   output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM ${table};"; } 2>&1 )
   status="$?"
