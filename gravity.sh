@@ -115,16 +115,27 @@ gravity_store_in_database() {
     gravity_Cleanup "error"
   fi
 
-  # Store domains in gravity database
+  # Store domains in gravity database table ${table}
   output=$( { sqlite3 "${gravityDBfile}" <<< ".import \"${source}\" ${table}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to create ${table} database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to create ${table} in database ${gravityDBfile}\\n  ${output}"
     gravity_Cleanup "error"
   fi
 
-  # Empty $adList if it already exists, otherwise, create it
+  if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ]; then
+    # Set disabled to false
+    output=$( { sqlite3 "${gravityDBfile}" <<< "UPDATE ${table} SET disabled = 0 WHERE disabled IS NULL;"; } 2>&1 )
+    status="$?"
+
+    if [[ "${status}" -ne 0 ]]; then
+      echo -e "\\n  ${CROSS} Unable to set disabled states (${table}) in database ${gravityDBfile}\\n  ${output}"
+      gravity_Cleanup "error"
+    fi
+  fi
+
+  # Empty $template if it already exists, otherwise, create it
   output=$( { : > "${template}"; } 2>&1 )
   status="$?"
 

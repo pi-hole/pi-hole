@@ -1,7 +1,5 @@
-CREATE TABLE whitelist (domain TEXT UNIQUE NOT NULL, comment TEXT, disabled BOOLEAN DEFAULT 0, DateAdded DATETIME);
-
-CREATE TABLE blacklist (domain TEXT UNIQUE NOT NULL, comment TEXT, disabled BOOLEAN DEFAULT 0, DateAdded DATETIME);
-
+CREATE TABLE whitelist (domain TEXT UNIQUE NOT NULL, disabled BOOLEAN DEFAULT 0, comment TEXT, DateAdded DATETIME);
+CREATE TABLE blacklist (domain TEXT UNIQUE NOT NULL, disabled BOOLEAN DEFAULT 0, comment TEXT, DateAdded DATETIME);
 CREATE TABLE gravity   (domain TEXT UNIQUE NOT NULL);
 
 CREATE VIEW vw_gravity AS SELECT DISTINCT a.domain
@@ -12,3 +10,7 @@ CREATE VIEW vw_blacklist AS SELECT DISTINCT a.domain
 FROM blacklist a
 WHERE a.disabled != 1 AND
       a.domain NOT IN (SELECT domain from whitelist WHERE disabled != 1);
+
+CREATE VIEW vw_whitelist AS SELECT DISTINCT a.domain
+FROM whitelist a
+WHERE a.disabled != 1;
