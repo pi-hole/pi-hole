@@ -39,6 +39,7 @@ VPNList="/etc/openvpn/ipp.txt"
 piholeGitDir="/etc/.pihole"
 gravityDBfile="${piholeDir}/gravity.db"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.schema"
+optimize_database=true
 
 domainsExtension="domains"
 matterAndLight="${basename}.0.matterandlight.txt"
@@ -685,17 +686,19 @@ gravity_Cleanup() {
 
   echo -e "${OVER}  ${TICK} ${str}"
 
-  str="Optimizing domains database"
-  echo -ne "  ${INFO} ${str}..."
-  # Store
-  output=$( { sqlite3 "${gravityDBfile}" <<< "VACUUM;"; } 2>&1 )
-  status="$?"
+  if ${optimize_database} ; then
+    str="Optimizing domains database"
+    echo -ne "  ${INFO} ${str}..."
+    # Store
+    output=$( { sqlite3 "${gravityDBfile}" <<< "VACUUM;"; } 2>&1 )
+    status="$?"
 
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
-    gravity_Cleanup "error"
-  else
-    echo -e "${OVER}  ${TICK} ${str}"
+    if [[ "${status}" -ne 0 ]]; then
+      echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
+      gravity_Cleanup "error"
+    else
+      echo -e "${OVER}  ${TICK} ${str}"
+    fi
   fi
 
   # Only restart DNS service if offline
@@ -726,9 +729,9 @@ for var in "$@"; do
     "-f" | "--force" ) forceDelete=true;;
     "-h" | "--help" ) helpFunc;;
     "-sd" | "--skip-download" ) skipDownload=true;;
-    "-b" | "--blacklist-only" ) listType="blacklist";;
-    "-w" | "--whitelist-only" ) listType="whitelist";;
-    "-wild" | "--wildcard-only" ) listType="wildcard"; dnsRestartType="restart";;
+    "-b" | "--blacklist-only" ) listType="blacklist"; optimize_database=false;;
+    "-w" | "--whitelist-only" ) listType="whitelist"; optimize_database=false;;
+    "-wild" | "--wildcard-only" ) listType="wildcard"; optimize_database=false; dnsRestartType="restart";;
   esac
 done
 
