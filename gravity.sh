@@ -692,7 +692,7 @@ gravity_Cleanup() {
 
     if [[ "${status}" -ne 0 ]]; then
       echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
-      gravity_Cleanup "error"
+      error="error"
     else
       echo -e "${OVER}  ${TICK} ${str}"
     fi
