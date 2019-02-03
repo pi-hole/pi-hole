@@ -35,6 +35,10 @@ blackList="${piholeDir}/black.list"
 localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
+piholeGitDir="/etc/.pihole"
+gravityDBfile="${piholeDir}/gravity.db"
+gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.schema"
+
 domainsExtension="domains"
 matterAndLight="${basename}.0.matterandlight.txt"
 parsedMatter="${basename}.1.parsedmatter.txt"
@@ -82,6 +86,11 @@ fi
 if [[ -r "${piholeDir}/pihole.conf" ]]; then
   echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
 fi
+
+# Generate new sqlite3 file from schema template
+generate_gravity_database() {
+  sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+}
 
 # Determine if Pi-hole blocking is disabled
 # If this is the case, we want to update
@@ -582,12 +591,38 @@ gravity_ParseBlacklistDomains() {
     cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
   fi
 
-  # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
-  output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
+  # Create database file if not present
+  if [ ! -e "${gravityDBfile}" ]; then
+    generate_gravity_database
+  fi
+
+  # Backup gravity database
+  cp "${gravityDBfile}" "${gravityDBfile}.bck"
+
+  # Empty domains
+  output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM gravity;"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to truncate gravity database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+
+  # Store domains in gravity database
+  output=$( { sqlite3 "${gravityDBfile}" <<< ".import ${piholeDir}/${accretionDisc} gravity"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to create gravity database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+
+  # Empty $adList if it already exists, otherwise, create it
+  output=$( { : > "${adList}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to create empty ${adList}\\n  ${output}"
     gravity_Cleanup "error"
   fi
 }
@@ -632,6 +667,19 @@ gravity_Cleanup() {
   fi
 
   echo -e "${OVER}  ${TICK} ${str}"
+
+  str="Optimizing domains database"
+  echo -ne "  ${INFO} ${str}..."
+  # Store
+  output=$( { sqlite3 "${gravityDBfile}" <<< "VACUUM;"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
 
   # Only restart DNS service if offline
   if ! pidof ${resolver} &> /dev/null; then
@@ -707,7 +755,7 @@ gravity_ShowBlockCount
 
 # Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)
 if [[ "${skipDownload}" == false ]] || [[ "${listType}" == *"list" ]]; then
-  str="Parsing domains into hosts format"
+  str="Parsing domains"
   echo -ne "  ${INFO} ${str}..."
 
   gravity_ParseUserDomains

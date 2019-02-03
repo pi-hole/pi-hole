@@ -1,0 +1,13 @@
+CREATE TABLE whitelist (domain TEXT UNIQUE NOT NULL, comment TEXT, DateAdded DATETIME);
+
+CREATE TABLE blacklist (domain TEXT UNIQUE NOT NULL, comment TEXT, DateAdded DATETIME);
+
+CREATE TABLE gravity   (domain TEXT UNIQUE NOT NULL);
+
+CREATE VIEW vw_gravity AS SELECT DISTINCT a.domain
+FROM gravity a
+WHERE a.domain NOT IN (SELECT domain from whitelist);
+
+CREATE VIEW vw_blacklist AS SELECT DISTINCT a.domain
+FROM blacklist a
+WHERE a.domain NOT IN (SELECT domain from whitelist);
