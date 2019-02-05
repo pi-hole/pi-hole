@@ -1654,7 +1654,7 @@ installPiholeWeb() {
     local str="Creating directory for blocking page, and copying files"
     printf "  %b %s..." "${INFO}" "${str}"
     # Install the directory
-    install -d ${PI_HOLE_BLOCKPAGE_DIR}
+    install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
     # and the blockpage
     install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
 
