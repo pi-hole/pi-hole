@@ -1383,9 +1383,9 @@ installConfigs() {
             # and set the owners
             chown "${USER}":root /etc/lighttpd
         # Otherwise, if the config file already exists
-        elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
+        elif [[ -r "/etc/lighttpd/lighttpd.conf" && ! -f /etc/lighttpd/lighttpd.conf.bak-pihole ]]; then
             # back up the original
-            mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+            cp -a /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.bak-pihole
         fi
         # and copy in the config file Pi-hole needs
         if [[ -n "${LIGHTTPD_CFG}" && -r "${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG}" ]]; then
