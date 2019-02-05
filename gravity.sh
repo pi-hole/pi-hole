@@ -38,7 +38,7 @@ VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
 gravityDBfile="${piholeDir}/gravity.db"
-gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.schema"
+gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 optimize_database=false
 
 domainsExtension="domains"
@@ -123,12 +123,12 @@ gravity_store_in_database() {
   fi
 
   if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
-    # Set disabled to false
-    output=$( { sqlite3 "${gravityDBfile}" <<< "UPDATE ${table} SET disabled = 0 WHERE disabled IS NULL;"; } 2>&1 )
+    # Set enabled to true where it is unspecified
+    output=$( { sqlite3 "${gravityDBfile}" <<< "UPDATE ${table} SET enabled = 1 WHERE enabled IS NULL;"; } 2>&1 )
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to set disabled states (${table}) in database ${gravityDBfile}\\n  ${output}"
+      echo -e "\\n  ${CROSS} Unable to set enabled states (${table}) in database ${gravityDBfile}\\n  ${output}"
       gravity_Cleanup "error"
     fi
   fi
