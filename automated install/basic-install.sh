@@ -52,9 +52,12 @@ lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
 
+# Root of the web server
+webroot="/var/www/html"
+
 # We store several other directories and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
-webInterfaceDir="/var/www/html/admin"
+webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # These are the names of pi-holes files, stored in an array
@@ -62,7 +65,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 # This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
-PI_HOLE_BLOCKPAGE_DIR="/var/www/html/pihole"
+PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
@@ -1668,9 +1671,9 @@ installPiholeWeb() {
     local str="Backing up index.lighttpd.html"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the default index file exists,
-    if [[ -f "/var/www/html/index.lighttpd.html" ]]; then
+    if [[ -f "${webroot}/index.lighttpd.html" ]]; then
         # back it up
-        mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+        mv ${webroot}/index.lighttpd.html ${webroot}/index.lighttpd.orig
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Otherwise,
     else
@@ -1880,15 +1883,15 @@ installPihole() {
 
     # If the user wants to install the Web interface,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        if [[ ! -d "/var/www/html" ]]; then
+        if [[ ! -d "${webroot}" ]]; then
             # make the Web directory if necessary
-            mkdir -p /var/www/html
+            install -d -m 0755 ${webroot}
         fi
 
         if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
             # Set the owner and permissions
-            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-            chmod 775 /var/www/html
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
+            chmod 0775 ${webroot}
             # Give pihole access to the Web server group
             usermod -a -G ${LIGHTTPD_GROUP} pihole
             # If the lighttpd command is executable,
