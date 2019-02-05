@@ -873,6 +873,13 @@ setStaticIPv4() {
     # Local, named variables
     local IFCFG_FILE
     local CONNECTION_NAME
+
+    # If a static interface is already configured, we are done.
+    if [[ -r "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}" ]]; then
+        if grep -q '^BOOTPROTO=.static.' "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}"; then
+            return 0
+        fi
+    fi
     # For the Debian family, if dhcpcd.conf exists,
     if [[ -f "/etc/dhcpcd.conf" ]]; then
         # configure networking via dhcpcd
