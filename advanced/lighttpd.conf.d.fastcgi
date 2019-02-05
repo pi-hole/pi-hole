@@ -1,0 +1,20 @@
+#######################################################################
+##
+##  FastCGI Module
+## ---------------
+##
+## See https://redmine.lighttpd.net/projects/lighttpd/wiki/Docs_ModFastCGI
+##
+server.modules += ( "mod_fastcgi" )
+
+fastcgi.server = ( ".php" =>
+                   ( "localhost" =>
+                     (
+                       "socket" => socket_dir + "/php-fastcgi-1.socket",
+                       "bin-path" => "/usr/bin/php-cgi"
+                     )
+                   )
+                 )
+
+##
+#######################################################################

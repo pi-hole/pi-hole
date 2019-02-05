@@ -1,0 +1,1 @@
+server.error-handler-404    = "/pihole/index.php"

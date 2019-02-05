@@ -288,7 +288,6 @@ elif is_command rpm ; then
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
     # If the host OS is Fedora,
     if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
@@ -296,6 +295,7 @@ elif is_command rpm ; then
         PIHOLE_WEB_DEPS+=('php-json')
     # or if host OS is CentOS,
     elif grep -qiE 'centos|scientific' /etc/redhat-release; then
+        LIGHTTPD_CFG="lighttpd.conf.centos7"
         # Pi-Hole currently supports CentOS 7+ with PHP7+
         SUPPORTED_CENTOS_VERSION=7
         SUPPORTED_CENTOS_PHP_VERSION=7
@@ -1388,20 +1388,46 @@ installConfigs() {
             mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
         fi
         # and copy in the config file Pi-hole needs
-        cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
-        # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
-        touch /etc/lighttpd/external.conf
+        if [[ -n "${LIGHTTPD_CFG}" && -r "${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG}" ]]; then
+            install -m 0644  ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+            # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
+            touch /etc/lighttpd/external.conf
+
+            # Make the directories if they do not exist and set the owners
+            mkdir -p /var/run/lighttpd
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
+            mkdir -p /var/cache/lighttpd/compress
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+            mkdir -p /var/cache/lighttpd/uploads
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
+        else
+            # Install lighttpd config file for pihole
+            install -m 0644 ${PI_HOLE_LOCAL_REPO}/advanced/lighttpd.conf.d.pihole /etc/lighttpd/conf.d/pihole.conf
+            if grep '^include "conf.d\/pihole.conf"'; then
+                echo "pihole.conf already included in lighttpd"
+            else
+                sed -i 's/^.*include "conf.d\/config.conf"/#include "conf.d\/config.conf"\ninclude "conf.d\/pihole.conf"/' /etc/lighttpd/lighttpd.conf
+            fi
+
+            # Install a vhosts file for pihole
+            install -m 0644 ${PI_HOLE_LOCAL_REPO}/advanced/lighttpd.vhost.d.pihole /etc/lighttpd/vhosts.d/pihole.conf
+
+            # Overwrite the fastcgi.conf with our settings
+            install -m 0644 ${PI_HOLE_LOCAL_REPO}/advanced/lighttpd.conf.d.fastcgi /etc/lighttpd/conf.d/fastcgi.conf
+
+            # Enable additional modules
+            sed -i 's/#  "mod_auth",/  "mod_auth",/' /etc/lighttpd/modules.conf
+            sed -i 's/#  "mod_redirect",/  "mod_redirect",/' /etc/lighttpd/modules.conf
+            sed -i 's/#  "mod_rewrite",/  "mod_rewrite",/' /etc/lighttpd/modules.conf
+            sed -i 's/#  "mod_setenv",/  "mod_setenv",/' /etc/lighttpd/modules.conf
+
+            sed -i 's/#include "conf.d\/compress.conf"/include "conf.d\/compress.conf"/' /etc/lighttpd/modules.conf
+            sed -i 's/#include "conf.d\/expire.conf"/include "conf.d\/expire.conf"/' /etc/lighttpd/modules.conf
+        fi
         # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
         fi
-        # Make the directories if they do not exist and set the owners
-        mkdir -p /var/run/lighttpd
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
-        mkdir -p /var/cache/lighttpd/compress
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
-        mkdir -p /var/cache/lighttpd/uploads
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
     fi
 }
 
