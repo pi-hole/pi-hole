@@ -1,6 +1,6 @@
 CREATE TABLE whitelist (domain TEXT UNIQUE NOT NULL, enabled BOOLEAN DEFAULT 1, comment TEXT, dateadded DATETIME);
 CREATE TABLE blacklist (domain TEXT UNIQUE NOT NULL, enabled BOOLEAN DEFAULT 1, comment TEXT, dateadded DATETIME);
-CREATE TABLE regex     (domain TEXT UNIQUE NOT NULL, enabled BOOLEAN DEFAULT 1, comment TEXT, dateadded DATETIME);
+CREATE TABLE regex     (filter TEXT UNIQUE NOT NULL, enabled BOOLEAN DEFAULT 1, comment TEXT, dateadded DATETIME);
 CREATE TABLE gravity   (domain TEXT UNIQUE NOT NULL);
 
 CREATE VIEW vw_gravity AS SELECT DISTINCT a.domain
