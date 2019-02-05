@@ -16,6 +16,6 @@ CREATE VIEW vw_whitelist AS SELECT DISTINCT a.domain
 FROM whitelist a
 WHERE a.enabled == 1;
 
-CREATE VIEW vw_regex AS SELECT DISTINCT a.domain
+CREATE VIEW vw_regex AS SELECT DISTINCT a.filter
 FROM regex a
 WHERE a.enabled == 1;
