@@ -1689,7 +1689,7 @@ installPiholeWeb() {
     # Make the .d directory if it doesn't exist
     mkdir -p /etc/sudoers.d/
     # and copy in the pihole sudoers file
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
+    install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
     echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
