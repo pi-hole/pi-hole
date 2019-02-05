@@ -686,7 +686,7 @@ gravity_Cleanup() {
   if ${optimize_database} ; then
     str="Optimizing domains database"
     echo -ne "  ${INFO} ${str}..."
-    # Store
+    # Run VACUUM command on database to optimize it
     output=$( { sqlite3 "${gravityDBfile}" <<< "VACUUM;"; } 2>&1 )
     status="$?"
 
