@@ -1681,7 +1681,8 @@ installPiholeWeb() {
     # Make the .d directory if it doesn't exist
     mkdir -p /etc/sudoers.d/
     # and copy in the pihole sudoers file
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
+    # set the strict permissions on the file
+    install -m 0440 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
     echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -1691,8 +1692,6 @@ installPiholeWeb() {
         # Usually /usr/local/bin is not permitted as directory for sudoable programs
         echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin" >> /etc/sudoers.d/pihole
     fi
-    # Set the strict permissions on the file
-    chmod 0440 /etc/sudoers.d/pihole
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
