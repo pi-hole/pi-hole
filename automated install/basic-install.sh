@@ -1899,6 +1899,8 @@ installPihole() {
             if is_command lighty-enable-mod ; then
                 # enable fastcgi and fastcgi-php
                 lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
+            elif [[ -w "/etc/lighttpd/modules.conf" ]]; then
+                sed -i 's/^#include "conf.d\/fastcgi.conf"/include "conf.d\/fastcgi.conf"/' /etc/lighttpd/modules.conf
             else
                 # Otherwise, show info about installing them
                 printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
