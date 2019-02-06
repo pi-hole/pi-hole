@@ -133,7 +133,7 @@ gravity_store_in_database() {
   # Store domains in gravity database table ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  output=$( { printf ".mode csv\n.import \"%s\" ${table}\n" "${inputfile}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".mode csv\\n.import \"%s\" ${table}\\n" "${inputfile}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
