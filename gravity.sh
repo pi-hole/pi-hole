@@ -20,6 +20,8 @@ source "${regexconverter}"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
+PIHOLE_USER="pihole"
+PIHOLE_GROUP="pihole"
 
 piholeDir="/etc/${basename}"
 
@@ -90,6 +92,7 @@ fi
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
   sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+  chown $PIHOLE_USER:$PIHOLE_GROUP "${gravityDBfile}"
 }
 
 # Import domains from file and store them in the specified database table
@@ -113,25 +116,32 @@ gravity_store_in_database() {
     gravity_Cleanup "error"
   fi
 
+  local tmpFile=$(mktemp -p "/tmp" --suffix=".gravity")
+  if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
+    # Apply format for white-, blacklist, and regex tables, prevent globbing
+    set -f
+    for domain in $(cat < "${source}"); do
+      echo "\"${domain}\",1,$(date --utc +'%s')," >> "${tmpFile}"
+    done
+    set +f
+    inputfile="${tmpFile}"
+  else
+    # No need to modify the input data for the gravity table
+    inputfile="${source}"
+  fi
   # Store domains in gravity database table ${table}
-  output=$( { sqlite3 "${gravityDBfile}" <<< ".import \"${source}\" ${table}"; } 2>&1 )
+  # Use printf as .mode and .import need to be on separate lines
+  # see https://unix.stackexchange.com/a/445615/83260
+  output=$( { printf ".mode csv\n.import \"${inputfile}\" ${table}\n" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to create ${table} in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to fill table ${table} in database ${gravityDBfile}\\n  ${output}"
     gravity_Cleanup "error"
   fi
 
-  if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
-    # Set enabled to true where it is unspecified
-    output=$( { sqlite3 "${gravityDBfile}" <<< "UPDATE ${table} SET enabled = 1 WHERE enabled IS NULL;"; } 2>&1 )
-    status="$?"
-
-    if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to set enabled states (${table}) in database ${gravityDBfile}\\n  ${output}"
-      gravity_Cleanup "error"
-    fi
-  fi
+  # Delete tmpfile
+  #rm "$tmpFile" > /dev/null 2>&1 || true
 
   # Only create template file if asked to
   if [ "${template}" != "-" ]; then
