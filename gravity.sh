@@ -116,14 +116,15 @@ gravity_store_in_database() {
     gravity_Cleanup "error"
   fi
 
-  local tmpFile=$(mktemp -p "/tmp" --suffix=".gravity")
+  local tmpFile
+  tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
   if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
-    # Apply format for white-, blacklist, and regex tables, prevent globbing
-    set -f
-    for domain in $(cat < "${source}"); do
+    # Apply format for white-, blacklist, and regex tables
+    # Read file line by line
+    grep -v '^ *#' < "${source}" | while IFS= read -r domain
+    do
       echo "\"${domain}\",1,$(date --utc +'%s')," >> "${tmpFile}"
     done
-    set +f
     inputfile="${tmpFile}"
   else
     # No need to modify the input data for the gravity table
@@ -132,7 +133,7 @@ gravity_store_in_database() {
   # Store domains in gravity database table ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  output=$( { printf ".mode csv\n.import \"${inputfile}\" ${table}\n" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".mode csv\n.import \"%s\" ${table}\n" "${inputfile}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -412,10 +413,10 @@ gravity_ParseFileIntoDomains() {
     # Last awk command takes non-commented lines and if they have 2 fields, take the right field (the domain) and leave
     # the left (IP address), otherwise grab the single field.
 
-    < ${source} awk -F '#' '{print $1}' | \
+    < "${source}" awk -F '#' '{print $1}' | \
     awk -F '/' '{print $1}' | \
     awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
-    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${destination}
+    sed -nr -e 's/\.{2,}/./g' -e '/\./p' > "${destination}"
     return 0
   fi
 
