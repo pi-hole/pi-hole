@@ -33,7 +33,8 @@ start() {
     mkdir -p /var/run/pihole
     mkdir -p /var/log/pihole
     chown pihole:pihole /var/run/pihole /var/log/pihole
-    rm /var/run/pihole/FTL.sock 2> /dev/null
+    # Remove possible leftovers from previous pihole-FTL processes in /var/run/pihole
+    rm -f /var/run/pihole/* 2> /dev/null
     # Ensure that permissions are set so that pihole-FTL can edit all necessary files
     chown pihole:pihole /run/pihole-FTL.pid /run/pihole-FTL.port
     chown pihole:pihole /etc/pihole /etc/pihole/dhcp.leases 2> /dev/null
