@@ -52,9 +52,12 @@ lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
 
+# Root of the web server
+webroot="/var/www/html"
+
 # We store several other directories and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
-webInterfaceDir="/var/www/html/admin"
+webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # These are the names of pi-holes files, stored in an array
@@ -62,6 +65,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 # This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
@@ -873,6 +877,13 @@ setStaticIPv4() {
     # Local, named variables
     local IFCFG_FILE
     local CONNECTION_NAME
+
+    # If a static interface is already configured, we are done.
+    if [[ -r "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}" ]]; then
+        if grep -q '^BOOTPROTO=.static.' "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}"; then
+            return 0
+        fi
+    fi
     # For the Debian family, if dhcpcd.conf exists,
     if [[ -f "/etc/dhcpcd.conf" ]]; then
         # configure networking via dhcpcd
@@ -1351,8 +1362,9 @@ installConfigs() {
     echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
     # Install empty file if it does not exist
-    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
-        if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
+        install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
+        if ! install -o pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
             printf "  %bError: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
@@ -1380,7 +1392,7 @@ installConfigs() {
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
         # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-        if [[ -f "/var/www/html/pihole/custom.php" ]]; then
+        if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
         fi
         # Make the directories if they do not exist and set the owners
@@ -1646,13 +1658,13 @@ installPiholeWeb() {
     local str="Creating directory for blocking page, and copying files"
     printf "  %b %s..." "${INFO}" "${str}"
     # Install the directory
-    install -d /var/www/html/pihole
+    install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
     # and the blockpage
-    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
 
     # Remove superseded file
-    if [[ -e "/var/www/html/pihole/index.js" ]]; then
-        rm "/var/www/html/pihole/index.js"
+    if [[ -e "${PI_HOLE_BLOCKPAGE_DIR}/index.js" ]]; then
+        rm "${PI_HOLE_BLOCKPAGE_DIR}/index.js"
     fi
 
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -1660,9 +1672,9 @@ installPiholeWeb() {
     local str="Backing up index.lighttpd.html"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the default index file exists,
-    if [[ -f "/var/www/html/index.lighttpd.html" ]]; then
+    if [[ -f "${webroot}/index.lighttpd.html" ]]; then
         # back it up
-        mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+        mv ${webroot}/index.lighttpd.html ${webroot}/index.lighttpd.orig
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Otherwise,
     else
@@ -1677,7 +1689,7 @@ installPiholeWeb() {
     # Make the .d directory if it doesn't exist
     mkdir -p /etc/sudoers.d/
     # and copy in the pihole sudoers file
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
+    install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
     echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -1872,15 +1884,15 @@ installPihole() {
 
     # If the user wants to install the Web interface,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        if [[ ! -d "/var/www/html" ]]; then
+        if [[ ! -d "${webroot}" ]]; then
             # make the Web directory if necessary
-            mkdir -p /var/www/html
+            install -d -m 0755 ${webroot}
         fi
 
         if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
             # Set the owner and permissions
-            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-            chmod 775 /var/www/html
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
+            chmod 0775 ${webroot}
             # Give pihole access to the Web server group
             usermod -a -G ${LIGHTTPD_GROUP} pihole
             # If the lighttpd command is executable,
