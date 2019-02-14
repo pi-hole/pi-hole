@@ -23,17 +23,6 @@ source "${colfile}"
 
 resolver="pihole-FTL"
 
-# Must be root to use this tool
-if [[ ! $EUID -eq 0 ]];then
-  if [[ -x "$(command -v sudo)" ]]; then
-    exec sudo bash "$0" "$@"
-    exit $?
-  else
-    echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
-    exit 1
-  fi
-fi
-
 webpageFunc() {
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
   main "$@"
@@ -155,6 +144,10 @@ Time:
 
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
+    if grep -cq "BLOCKING_ENABLED=false" "${setupVars}"; then
+      echo -e "  ${INFO} Blocking already disabled, nothing to do"
+      exit 0
+    fi
     if [[ -e "${gravitylist}" ]]; then
       mv "${gravitylist}" "${gravitylist}.bck"
       echo "" > "${gravitylist}"
@@ -204,6 +197,10 @@ Time:
     fi
   else
     # Enable Pi-hole
+    if grep -cq "BLOCKING_ENABLED=true" "${setupVars}"; then
+      echo -e "  ${INFO} Blocking already enabled, nothing to do"
+      exit 0
+    fi
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
@@ -428,6 +425,21 @@ Options:
 
 if [[ $# = 0 ]]; then
   helpFunc
+fi
+
+case "${1}" in
+  "-h" | "help" | "--help"      ) helpFunc;;
+esac
+
+# Must be root to use this tool
+if [[ ! $EUID -eq 0 ]];then
+  if [[ -x "$(command -v sudo)" ]]; then
+    exec sudo bash "$0" "$@"
+    exit $?
+  else
+    echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+    exit 1
+  fi
 fi
 
 # Handle redirecting to specific functions based on arguments

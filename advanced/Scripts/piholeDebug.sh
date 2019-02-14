@@ -76,6 +76,7 @@ WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
 #BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
+SHM_DIRECTORY="/dev/shm"
 
 # Files required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
@@ -976,6 +977,9 @@ list_files_in_dir() {
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
             :
+        elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
+            # SHM file - we do not want to see the content, but we want to see the files and their sizes
+            log_write "$(ls -ld "${dir_to_parse}"/"${each_file}")"
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
@@ -1019,6 +1023,7 @@ show_content_of_pihole_files() {
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"
+    show_content_of_files_in_dir "${SHM_DIRECTORY}"
 }
 
 head_tail_log() {
