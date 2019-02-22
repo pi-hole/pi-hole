@@ -144,6 +144,10 @@ Time:
 
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
+    if grep -cq "BLOCKING_ENABLED=false" "${setupVars}"; then
+      echo -e "  ${INFO} Blocking already disabled, nothing to do"
+      exit 0
+    fi
     if [[ -e "${gravitylist}" ]]; then
       mv "${gravitylist}" "${gravitylist}.bck"
       echo "" > "${gravitylist}"
@@ -193,6 +197,10 @@ Time:
     fi
   else
     # Enable Pi-hole
+    if grep -cq "BLOCKING_ENABLED=true" "${setupVars}"; then
+      echo -e "  ${INFO} Blocking already enabled, nothing to do"
+      exit 0
+    fi
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 

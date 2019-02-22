@@ -76,7 +76,7 @@ WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
 #BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
-SHM_DIRECTORY="/var/run/shm"
+SHM_DIRECTORY="/dev/shm"
 
 # Files required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
@@ -269,6 +269,9 @@ compare_local_version_to_git_version() {
             # The commit they are on
             local remote_commit
             remote_commit=$(git describe --long --dirty --tags --always)
+            # Status of the repo
+            local local_status
+            local_status=$(git status -s)
             # echo this information out to the user in a nice format
             # If the current version matches what pihole -v produces, the user is up-to-date
             if [[ "${remote_version}" == "$(pihole -v | awk '/${search_term}/ {print $6}' | cut -d ')' -f1)" ]]; then
@@ -291,6 +294,16 @@ compare_local_version_to_git_version() {
             fi
             # echo the current commit
             log_write "${INFO} Commit: ${remote_commit}"
+            # if `local_status` is non-null, then the repo is not clean, display details here
+            if [[ ${local_status} ]]; then
+              #Replace new lines in the status with 12 spaces to make the output cleaner
+              log_write "${INFO} Status: ${local_status//$'\n'/'\n            '}"
+              local local_diff
+              local_diff=$(git diff)
+              if [[ ${local_diff} ]]; then
+                log_write "${INFO} Diff: ${local_diff//$'\n'/'\n          '}"
+              fi
+            fi
         # If git status failed,
         else
             # Return an error message
