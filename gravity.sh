@@ -120,6 +120,7 @@ gravity_store_in_database() {
   tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
   local timestamp
   timestamp="$(date --utc +'%s')"
+  local inputfile
   if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
     # Apply format for white-, blacklist, and regex tables
     # Read file line by line
@@ -135,7 +136,7 @@ gravity_store_in_database() {
   # Store domains in gravity database table ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  output=$( { printf ".mode csv\\n.import \"%s\" ${table}\\n" "${inputfile}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".mode csv\\n.import \"%s\" %s\\n" "${inputfile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -144,7 +145,7 @@ gravity_store_in_database() {
   fi
 
   # Delete tmpfile
-  #rm "$tmpFile" > /dev/null 2>&1 || true
+  rm "$tmpFile" > /dev/null 2>&1 || true
 
   # Only create template file if asked to
   if [ "${template}" != "-" ]; then
