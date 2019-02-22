@@ -118,12 +118,14 @@ gravity_store_in_database() {
 
   local tmpFile
   tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
+  local timestamp
+  timestamp="$(date --utc +'%s')"
   if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
     # Apply format for white-, blacklist, and regex tables
     # Read file line by line
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
-      echo "\"${domain}\",1,$(date --utc +'%s')," >> "${tmpFile}"
+      echo "\"${domain}\",1,${timestamp}" >> "${tmpFile}"
     done
     inputfile="${tmpFile}"
   else
