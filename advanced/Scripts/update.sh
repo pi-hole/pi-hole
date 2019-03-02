@@ -154,7 +154,7 @@ main() {
         ftlBranch="master"
     fi
 
-    if [[ ! "${ftlBranch}" == "master" ]]; then
+    if [[ ! "${ftlBranch}" == "master" && ! "${ftlBranch}" == "development" ]]; then
         # Notify user that they are on a custom branch which might mean they they are lost
         # behind if a branch was merged to development and got abandoned
         printf "  %b %bWarning:%b You are using FTL from a custom branch (%s) and might be missing future releases.\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}" "${ftlBranch}"
