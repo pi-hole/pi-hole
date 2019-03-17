@@ -46,7 +46,7 @@ compress.filetype           = ( "application/javascript", "text/css", "text/html
 
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
-include_shell "/usr/share/lighttpd/create-mime.assign.pl"
+include_shell "/usr/share/lighttpd/create-mime.conf.pl"
 
 # Prevent Lighttpd from enabling Let's Encrypt SSL for every blocked domain
 #include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
