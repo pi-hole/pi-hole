@@ -146,6 +146,20 @@ main() {
         FTL_update=false
     fi
 
+    # Determine FTL branch
+    local ftlBranch
+    if [[ -f "/etc/pihole/ftlbranch" ]]; then
+        ftlBranch=$(</etc/pihole/ftlbranch)
+    else
+        ftlBranch="master"
+    fi
+
+    if [[ ! "${ftlBranch}" == "master" && ! "${ftlBranch}" == "development" ]]; then
+        # Notify user that they are on a custom branch which might mean they they are lost
+        # behind if a branch was merged to development and got abandoned
+        printf "  %b %bWarning:%b You are using FTL from a custom branch (%s) and might be missing future releases.\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}" "${ftlBranch}"
+    fi
+
     if [[ "${core_update}" == false && "${web_update}" == false && "${FTL_update}" == false ]]; then
         echo ""
         echo -e "  ${TICK} Everything is up to date!"

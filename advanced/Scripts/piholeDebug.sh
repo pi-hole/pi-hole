@@ -109,7 +109,6 @@ FTL_PORT="${RUN_DIRECTORY}/pihole-FTL.port"
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
-PIHOLE_DEBUG_LOG_SANITIZED="${LOG_DIRECTORY}/pihole_debug-sanitized.log"
 PIHOLE_FTL_LOG="${LOG_DIRECTORY}/pihole-FTL.log"
 
 PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
@@ -209,11 +208,6 @@ log_write() {
 copy_to_debug_log() {
     # Copy the contents of file descriptor 3 into the debug log
     cat /proc/$$/fd/3 > "${PIHOLE_DEBUG_LOG}"
-    # Since we use color codes such as '\e[1;33m', they should be removed before being
-    # uploaded to our server, since it can't properly display in color
-    # This is accomplished by use sed to remove characters matching that patter
-    # The entire file is then copied over to a sanitized version of the log
-    sed 's/\[[0-9;]\{1,5\}m//g' > "${PIHOLE_DEBUG_LOG_SANITIZED}" <<< cat "${PIHOLE_DEBUG_LOG}"
 }
 
 initialize_debug() {
@@ -1147,20 +1141,20 @@ analyze_pihole_log() {
     IFS="$OLD_IFS"
 }
 
-tricorder_use_nc_or_ssl() {
-    # Users can submit their debug logs using nc (unencrypted) or openssl (enrypted) if available
-    # Check for openssl first since encryption is a good thing
-    if command -v openssl &> /dev/null; then
+tricorder_use_nc_or_curl() {
+    # Users can submit their debug logs using nc (unencrypted) or curl (encrypted) if available
+    # Check for curl first since encryption is a good thing
+    if command -v curl &> /dev/null; then
         # If the command exists,
-        log_write "    * Using ${COL_GREEN}openssl${COL_NC} for transmission."
-        # encrypt and transmit the log and store the token returned in a variable
-        tricorder_token=$(< ${PIHOLE_DEBUG_LOG_SANITIZED} openssl s_client -quiet -connect tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER} 2> /dev/null)
+        log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
+        # transmit he log via TLS and store the token returned in a variable
+        tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER})
     # Otherwise,
     else
         # use net cat
         log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
         # Save the token returned by our server in a variable
-        tricorder_token=$(< ${PIHOLE_DEBUG_LOG_SANITIZED} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+        tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
     fi
 }
 
@@ -1222,7 +1216,7 @@ upload_to_tricorder() {
         log_write "   * Please try again or contact the Pi-hole team for assistance."
     fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
-    log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG_SANITIZED}${COL_NC}\\n"
+    log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
 }
 
 # Run through all the functions we made
