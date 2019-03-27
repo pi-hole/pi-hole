@@ -29,9 +29,6 @@ Set options for the Admin Console
 
 Options:
   -p, password        Set Admin Console password
-  -c, celsius         Set Celsius as preferred temperature unit
-  -f, fahrenheit      Set Fahrenheit as preferred temperature unit
-  -k, kelvin          Set Kelvin as preferred temperature unit
   -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
@@ -76,11 +73,6 @@ add_dnsmasq_setting() {
 
 delete_dnsmasq_setting() {
     sed -i "/${1}/d" "${dnsmasqconfig}"
-}
-
-SetTemperatureUnit() {
-    change_setting "TEMPERATUREUNIT" "${unit}"
-    echo -e "  ${TICK} Set temperature unit to ${unit}"
 }
 
 HashPassword() {
@@ -547,9 +539,6 @@ main() {
 
     case "${args[1]}" in
         "-p" | "password"     ) SetWebPassword;;
-        "-c" | "celsius"      ) unit="C"; SetTemperatureUnit;;
-        "-f" | "fahrenheit"   ) unit="F"; SetTemperatureUnit;;
-        "-k" | "kelvin"       ) unit="K"; SetTemperatureUnit;;
         "setdns"              ) SetDNSServers;;
         "setexcludedomains"   ) SetExcludeDomains;;
         "setexcludeclients"   ) SetExcludeClients;;
