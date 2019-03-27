@@ -71,19 +71,23 @@ checkout() {
         echo -e "  ${INFO} Pi-hole Core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
 
-        get_binary_name
+        get_binary_name FTL
         local path
         path="development/${binary}"
         echo "development" > /etc/pihole/ftlbranch
+
+        echo "development" > /etc/pihole/apibranch
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
         echo -e "  ${INFO} Pi-hole core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
-        get_binary_name
+        get_binary_name FTL
         local path
         path="master/${binary}"
         echo "master" > /etc/pihole/ftlbranch
+
+        echo "master" > /etc/pihole/apibranch
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
@@ -112,7 +116,7 @@ checkout() {
         fi
         checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
     elif [[ "${1}" == "ftl" ]] ; then
-        get_binary_name
+        get_binary_name FTL
         local path
         path="${2}/${binary}"
 
