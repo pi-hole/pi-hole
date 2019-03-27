@@ -91,18 +91,6 @@ HashPassword() {
 }
 
 SetWebPassword() {
-    if [ "${SUDO_USER}" == "www-data" ]; then
-        echo "Security measure: user www-data is not allowed to change webUI password!"
-        echo "Exiting"
-        exit 1
-    fi
-
-    if [ "${SUDO_USER}" == "lighttpd" ]; then
-        echo "Security measure: user lighttpd is not allowed to change webUI password!"
-        echo "Exiting"
-        exit 1
-    fi
-
     if (( ${#args[2]} > 0 )) ; then
         readonly PASSWORD="${args[2]}"
         readonly CONFIRM="${PASSWORD}"
