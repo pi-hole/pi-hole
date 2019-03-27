@@ -517,8 +517,7 @@ Interfaces:
 }
 
 Teleporter() {
-    local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
-    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
+    echo "The teleporter has not been reimplemented in the API yet"
 }
 
 addAudit()
