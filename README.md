@@ -127,7 +127,7 @@ Some notable features include:
 You can read our [Core Feature Breakdown](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown), as well as read up on [example usage](https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738) for more information.
 
 ### The Web Interface Dashboard
-This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
+This [optional dashboard](https://github.com/pi-hole/web) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
 
 <img src="https://pi-hole.github.io/graphics/Screenshots/pihole-dashboard.png"  alt="Pi-hole Dashboard"/></a>
 
@@ -160,7 +160,7 @@ Some of the statistics you can integrate include:
 * Queries cached
 * Unique clients
 
-The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). You can out find [more details over here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
+The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL) and Command Line (`pihole -c -j`). You can out find [more details over here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
 
 -----
 
@@ -169,9 +169,6 @@ Pi-hole being an **advertising-aware DNS/Web server**, makes use of the followin
 
 * [`dnsmasq`](http://www.thekelleys.org.uk/dnsmasq/doc.html) - a lightweight DNS and DHCP server
 * [`curl`](https://curl.haxx.se) - A command line tool for transferring data with URL syntax
-* [`lighttpd`](https://www.lighttpd.net) - web server designed and optimized for high performance
-* [`php`](https://secure.php.net) - a popular general-purpose web scripting language
-* [AdminLTE Dashboard](https://github.com/almasaeed2010/AdminLTE) - premium admin control panel based on Bootstrap 3.x
 
 While quite outdated at this point, [this original blog post about Pi-hole](https://jacobsalmela.com/2015/06/16/block-millions-ads-network-wide-with-a-raspberry-pi-hole-2-0/) goes into **great detail** about how Pi-hole was originally set up and how it works. Syntactically, it's no longer accurate, but the same basic principles and logic still apply to Pi-hole's current state.
 
