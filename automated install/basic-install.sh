@@ -179,6 +179,8 @@ if is_command apt-get ; then
     UPDATE_PKG_CACHE="${PKG_MANAGER} update"
     # An array for something...
     PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
+    # Stores the command prefix used to install a local package
+    PKG_LOCAL_INSTALL=(${PKG_MANAGER} --yes --reinstall install)
     # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
     # Some distros vary slightly so these fixes for dependencies may apply
@@ -233,8 +235,10 @@ elif is_command rpm ; then
     # Then check if dnf or yum is the package manager
     if is_command dnf ; then
         PKG_MANAGER="dnf"
+        PKG_LOCAL_INSTALL=(${PKG_MANAGER} install -y)
     else
         PKG_MANAGER="yum"
+        PKG_LOCAL_INSTALL=(${PKG_MANAGER} localinstall -y)
     fi
 
     # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
@@ -2039,6 +2043,9 @@ disable_dnsmasq() {
 }
 
 get_binary_name() {
+    # Either FTL or API, this helps determine the file name to return
+    local program="$1"
+
     # This gives the machine architecture which may be different from the OS architecture...
     local machine
     machine=$(uname -m)
@@ -2057,25 +2064,55 @@ get_binary_name() {
         #
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected ARM-aarch64 architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used
-            binary="pihole-FTL-aarch64-linux-gnu"
+
+            if [[ "${program}" == "FTL" ]]; then
+                binary="pihole-FTL-aarch64-linux-gnu"
+            else
+                if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+                    binary="pihole-api_0.1.0-1_arm64.deb"
+                else
+                    binary="pihole-api-0.1.0-1.aarch64.rpm"
+                fi
+            fi
         #
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
             #
             if [[ "${rev}" -gt 6 ]]; then
                 printf "%b  %b Detected ARM-hf architecture (armv7+)\\n" "${OVER}" "${TICK}"
-                # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabihf"
+
+                if [[ "${program}" == "FTL" ]]; then
+                    binary="pihole-FTL-arm-linux-gnueabihf"
+                else
+                    if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+                        binary="pihole-api_0.1.0-1_armhf.deb"
+                    else
+                        binary="pihole-api-0.1.0-1.armhfp.rpm"
+                    fi
+                fi
             # Otherwise,
             else
                 printf "%b  %b Detected ARM-hf architecture (armv6 or lower) Using ARM binary\\n" "${OVER}" "${TICK}"
-                # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabi"
+
+                if [[ "${program}" == "FTL" ]]; then
+                    binary="pihole-FTL-arm-linux-gnueabi"
+                else
+                    if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+                        binary="pihole-api_0.1.0-1_arm.deb"
+                    else
+                        printf "  %b %bARMv6 and lower are not supported on RPM-based distributions%b" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+                        exit 1
+                    fi
+                fi
             fi
         else
             printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used
-            binary="pihole-FTL-arm-linux-gnueabi"
+
+            if [[ "${program}" == "FTL" ]]; then
+                binary="pihole-FTL-arm-linux-gnueabi"
+            else
+                printf "  %b %bARM (no hf) is not supported by the API%b" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+                exit 1
+            fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the architecture of packages dpkg installs (for example, "i386")
@@ -2088,12 +2125,26 @@ get_binary_name() {
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
-            binary="pihole-FTL-linux-x86_32"
+
+            if [[ "${program}" == "FTL" ]]; then
+                binary="pihole-FTL-linux-x86_32"
+            else
+                # This must be a DEB-based machine. See the comment above
+                binary="pihole-api_0.1.0-1_i386.deb"
+            fi
         else
             # 64bit
             printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used
-            binary="pihole-FTL-linux-x86_64"
+
+            if [[ "${program}" == "FTL" ]]; then
+                binary="pihole-FTL-linux-x86_64"
+            else
+                if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+                    binary="pihole-api_0.1.0-1_amd64.deb"
+                else
+                    binary="pihole-api-0.1.0-1.x86_64.rpm"
+                fi
+            fi
         fi
     else
         # Something else - we try to use 32bit executable and warn the user
@@ -2104,12 +2155,65 @@ get_binary_name() {
         else
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
         fi
-        binary="pihole-FTL-linux-x86_32"
+
+        if [[ "${program}" == "FTL" ]]; then
+            binary="pihole-FTL-linux-x86_32"
+        else
+            if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+                binary="pihole-api_0.1.0-1_i386.deb"
+            else
+                binary="pihole-api-0.1.0-1.i386.rpm"
+            fi
+        fi
+    fi
+}
+
+# Download API package to a random temp directory and install
+APIinstall() {
+    get_binary_name API
+
+    # Local, named variables
+    local latesttag
+    local str="Downloading and installing the API"
+    printf "  %b %s..." "${INFO}" "${str}"
+
+    # Move into the temp directory
+    pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for API download\\n"; return 1; }
+
+    local apiBranch
+
+    if [[ -f "/etc/pihole/apibranch" ]];then
+        apiBranch=$(</etc/pihole/apibranch)
+    else
+        apiBranch="master"
+    fi
+
+    local url="https://ftl.pi-hole.net/${apiBranch}"
+
+    # If the download worked,
+    if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
+        printf "transferred... "
+
+        # Install the new version
+        "${PKG_LOCAL_INSTALL[@]}" "./${binary}" > /dev/null || { printf "Unable to install the API\\n"; return 1; }
+
+        # Move back into the original directory the user was in
+        popd > /dev/null || { printf "Unable to return to original directory after API install.\\n"; return 1; }
+
+        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        return 0
+    # Otherwise,
+    else
+        popd > /dev/null || { printf "Unable to return to original directory after API download.\\n"; return 1; }
+        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+        # The URL could not be found
+        printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+        return 1
     fi
 }
 
 FTLcheckUpdate() {
-    get_binary_name
+    get_binary_name FTL
 
     #In the next section we check to see if FTL is already installed (in case of pihole -r).
     #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
@@ -2345,6 +2449,9 @@ main() {
         exit 1
     fi
 
+    # Install the API
+    APIinstall
+
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
 
@@ -2379,6 +2486,10 @@ main() {
     # the service before enabling causes installer to exit
     enable_service pihole-FTL
     restart_service pihole-FTL
+
+    # Start the API if it's not already running (it was already enabled during
+    # install, and may have started on Debian machines)
+    restart_service pihole-API
 
     # Download and compile the aggregated block list
     runGravity
