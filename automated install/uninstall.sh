@@ -45,12 +45,8 @@ source "${setupVars}"
 # distro_check() sourced from basic-install.sh
 distro_check
 
-# Install packages used by the Pi-hole
+# Get the packages used by Pi-hole
 DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
-if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-    # Install the Web dependencies
-    DEPS+=("${PIHOLE_WEB_DEPS[@]}")
-fi
 
 # Compatability
 if [ -x "$(command -v apt-get)" ]; then
@@ -100,20 +96,6 @@ removeAndPurge() {
 }
 
 removeNoPurge() {
-    # Only web directories/files that are created by Pi-hole should be removed
-    echo -ne "  ${INFO} Removing Web Interface..."
-    ${SUDO} rm -rf /var/www/html/admin &> /dev/null
-    ${SUDO} rm -rf /var/www/html/pihole &> /dev/null
-    ${SUDO} rm -f /var/www/html/index.lighttpd.orig &> /dev/null
-
-    # If the web directory is empty after removing these files, then the parent html directory can be removed.
-    if [ -d "/var/www/html" ]; then
-        if [[ ! "$(ls -A /var/www/html)" ]]; then
-            ${SUDO} rm -rf /var/www/html &> /dev/null
-        fi
-    fi
-    echo -e "${OVER}  ${TICK} Removed Web Interface"
- 
     # Attempt to preserve backwards compatibility with older versions
     # to guarantee no additional changes were made to /etc/crontab after
     # the installation of pihole, /etc/crontab.pihole should be permanently
@@ -129,15 +111,6 @@ removeNoPurge() {
     if [[ -f /etc/cron.d/pihole ]];then
         ${SUDO} rm -f /etc/cron.d/pihole &> /dev/null
         echo -e "  ${TICK} Removed /etc/cron.d/pihole"
-    fi
-
-    if package_check lighttpd > /dev/null; then
-        ${SUDO} rm -rf /etc/lighttpd/ &> /dev/null
-        echo -e "  ${TICK} Removed lighttpd"
-    else
-        if [ -f /etc/lighttpd/lighttpd.conf.orig ]; then
-            ${SUDO} mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
-        fi
     fi
 
     ${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
