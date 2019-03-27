@@ -71,22 +71,15 @@ checkout() {
         echo -e "  ${INFO} Pi-hole Core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
 
-        get_binary_name FTL
-        local path
-        path="development/${binary}"
         echo "development" > /etc/pihole/ftlbranch
-
         echo "development" > /etc/pihole/apibranch
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
         echo -e "  ${INFO} Pi-hole core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
-        get_binary_name FTL
-        local path
-        path="master/${binary}"
-        echo "master" > /etc/pihole/ftlbranch
 
+        echo "master" > /etc/pihole/ftlbranch
         echo "master" > /etc/pihole/apibranch
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${piholeGitUrl}"
@@ -133,7 +126,22 @@ checkout() {
             for e in "${ftlbranches[@]}"; do echo "      - $e"; done
             exit 1
         fi
+    elif [[ "${1}" == "api" ]] ; then
+        get_binary_name API
+        local path
+        path="${2}/${binary}"
 
+        if check_download_exists "$path"; then
+            echo "  ${TICK} Branch ${2} exists"
+            echo "${2}" > /etc/pihole/apibranch
+            APIinstall
+        else
+            echo "  ${CROSS} Requested branch \"${2}\" is not available"
+            apibranches=( $(git ls-remote https://github.com/pi-hole/api | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+            echo -e "  ${INFO} Available branches for API are:"
+            for e in "${apibranches[@]}"; do echo "      - $e"; done
+            exit 1
+        fi
     else
         echo -e "  ${INFO} Requested option \"${1}\" is not available"
         exit 1
