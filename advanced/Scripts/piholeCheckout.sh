@@ -20,6 +20,7 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # get_available_branches sourced from basic-install.sh
 # fetch_checkout_pull_branch sourced from basic-install.sh
 # checkout_pull_branch sourced from basic-install.sh
+# simple_distro_check sourced from basic-install.sh
 
 source "${setupVars}"
 
@@ -63,6 +64,10 @@ checkout() {
     if ! warning1 ; then
         exit 1
     fi
+
+    # Get the distro information so get_binary_name can correctly determine the
+    # file name to use
+    simple_distro_check
 
     if [[ "${1}" == "dev" ]] ; then
         # Shortcut to check out development branches

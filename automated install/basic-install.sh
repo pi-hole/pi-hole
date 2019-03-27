@@ -166,19 +166,39 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+# A simple, reusable check to get basic information about the distro (package
+# manager and a command to install local packages)
+simple_distro_check() {
+    if is_command apt-get; then
+        PKG_MANAGER="apt-get"
+
+        # Stores the command prefix used to install a local package
+        PKG_LOCAL_INSTALL=(${PKG_MANAGER} --yes --reinstall install)
+    # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
+    elif is_command rpm ; then
+        # Then check if dnf or yum is the package manager
+        if is_command dnf ; then
+            PKG_MANAGER="dnf"
+            PKG_LOCAL_INSTALL=(${PKG_MANAGER} install -y)
+        else
+            PKG_MANAGER="yum"
+            PKG_LOCAL_INSTALL=(${PKG_MANAGER} localinstall -y)
+        fi
+    fi
+}
+
 # Compatibility
 distro_check() {
+simple_distro_check
+
 # If apt-get is installed, then we know it's part of the Debian family
 if is_command apt-get ; then
     # Set some global variables here
     # We don't set them earlier since the family might be Red Hat, so these values would be different
-    PKG_MANAGER="apt-get"
     # A variable to store the command used to update the package cache
     UPDATE_PKG_CACHE="${PKG_MANAGER} update"
     # An array for something...
     PKG_INSTALL=(${PKG_MANAGER} --yes --no-install-recommends install)
-    # Stores the command prefix used to install a local package
-    PKG_LOCAL_INSTALL=(${PKG_MANAGER} --yes --reinstall install)
     # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
     # Some distros vary slightly so these fixes for dependencies may apply
@@ -230,15 +250,6 @@ if is_command apt-get ; then
 
 # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
 elif is_command rpm ; then
-    # Then check if dnf or yum is the package manager
-    if is_command dnf ; then
-        PKG_MANAGER="dnf"
-        PKG_LOCAL_INSTALL=(${PKG_MANAGER} install -y)
-    else
-        PKG_MANAGER="yum"
-        PKG_LOCAL_INSTALL=(${PKG_MANAGER} localinstall -y)
-    fi
-
     # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
     UPDATE_PKG_CACHE=":"
     PKG_INSTALL=(${PKG_MANAGER} install -y)
