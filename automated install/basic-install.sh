@@ -1656,6 +1656,10 @@ finalExports() {
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     }>> "${setupVars}"
 
+    # Update the setup vars permissions
+    chmod 644 "${setupVars}"
+    chown pihole:root "${setupVars}"
+
     # Set the privacy level
     sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
     echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
