@@ -71,11 +71,6 @@ PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
 RUN_DIRECTORY="/run"
 LOG_DIRECTORY="/var/log"
-WEB_SERVER_LOG_DIRECTORY="${LOG_DIRECTORY}/lighttpd"
-WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
-HTML_DIRECTORY="/var/www/html"
-WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
-#BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
 SHM_DIRECTORY="/dev/shm"
 
 # Files required by Pi-hole
@@ -86,7 +81,6 @@ PIHOLE_DNS_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/01-pihole.conf"
 PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
 PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 
-WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
 #WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
 PIHOLE_DEFAULT_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.default"
@@ -111,15 +105,12 @@ PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
 PIHOLE_FTL_LOG="${LOG_DIRECTORY}/pihole-FTL.log"
 
-PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
-PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
-
 # An array of operating system "pretty names" that we officialy support
 # We can loop through the array at any time to see if it matches a value
 #SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
 # Store Pi-hole's processes in an array for easy use and parsing
-PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
+PIHOLE_PROCESSES=( "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
 #REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
@@ -141,7 +132,6 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_DNS_CONFIG_FILE}"
 "${PIHOLE_DHCP_CONFIG_FILE}"
 "${PIHOLE_WILDCARD_CONFIG_FILE}"
-"${WEB_SERVER_CONFIG_FILE}"
 "${PIHOLE_DEFAULT_AD_LISTS}"
 "${PIHOLE_USER_DEFINED_AD_LISTS}"
 "${PIHOLE_BLACKLIST_FILE}"
@@ -159,9 +149,7 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_LOG}"
 "${PIHOLE_LOG_GZIPS}"
 "${PIHOLE_DEBUG_LOG}"
-"${PIHOLE_FTL_LOG}"
-"${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}"
-"${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}")
+"${PIHOLE_FTL_LOG}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
@@ -238,10 +226,6 @@ compare_local_version_to_git_version() {
     if [[ "${pihole_component}" == "Core" ]]; then
         # We need to search for "Pi-hole" when using pihole -v
         local search_term="Pi-hole"
-    elif [[ "${pihole_component}" == "Web" ]]; then
-        # We need to search for "AdminLTE" so store it in a variable as well
-        #shellcheck disable=2034
-        local search_term="AdminLTE"
     fi
     # Display what we are checking
     echo_current_diagnostic "${pihole_component} version"
@@ -327,46 +311,12 @@ check_ftl_version() {
 
 # Checks the core version of the Pi-hole codebase
 check_component_versions() {
-    # Check the Web version, branch, and commit
+    # Check the Core version, branch, and commit
     compare_local_version_to_git_version "${CORE_GIT_DIRECTORY}" "Core"
-    # Check the Web version, branch, and commit
-    compare_local_version_to_git_version "${WEB_GIT_DIRECTORY}" "Web"
     # Check the FTL version
     check_ftl_version
 }
 
-
-get_program_version() {
-    local program_name="${1}"
-    # Create a loval variable so this function can be safely reused
-    local program_version
-    echo_current_diagnostic "${program_name} version"
-    # Evalutate the program we are checking, if it is any of the ones below, show the version
-    case "${program_name}" in
-        "lighttpd") program_version="$(${program_name} -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
-                    ;;
-        "php") program_version="$(${program_name} -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
-                ;;
-        # If a match is not found, show an error
-        *) echo "Unrecognized program";
-    esac
-    # If the program does not have a version (the variable is empty)
-    if [[ -z "${program_version}" ]]; then
-        # Display and error
-        log_write "${CROSS} ${COL_RED}${program_name} version could not be detected.${COL_NC}"
-    else
-        # Otherwise, display the version
-        log_write "${INFO} ${program_version}"
-    fi
-}
-
-# These are the most critical dependencies of Pi-hole, so we check for them
-# and their versions, using the functions above.
-check_critical_program_versions() {
-    # Use the function created earlier and bundle them into one function that checks all the version numbers
-    get_program_version "lighttpd"
-    get_program_version "php"
-}
 
 is_os_supported() {
     local os_to_check="${1}"
@@ -646,7 +596,7 @@ compare_port_to_service_assigned() {
     local service_name="${1}"
     # The programs we use may change at some point, so they are in a varible here
     local resolver="pihole-FTL"
-    local web_server="lighttpd"
+    local web_server="pihole-API"
     local ftl="pihole-FTL"
 
     # If the service is a Pi-hole service, highlight it in green
@@ -664,7 +614,7 @@ check_required_ports() {
     # Since Pi-hole needs 53, 80, and 4711, check what they are being used by
     # so we can detect any issues
     local resolver="pihole-FTL"
-    local web_server="lighttpd"
+    local web_server="pihole-API"
     local ftl="pihole-FTL"
     # Create an array for these ports in use
     ports_in_use=()
@@ -710,50 +660,6 @@ check_networking() {
     ping_gateway "4"
     ping_gateway "6"
     check_required_ports
-}
-
-check_x_headers() {
-    # The X-Headers allow us to determine from the command line if the Web
-    # lighttpd.conf has a directive to show "X-Pi-hole: A black hole for Internet advertisements."
-    # in the header of any Pi-holed domain
-    # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
-    # when accessing the dashboard (i.e curl -I pi.hole/admin/)
-    # server is operating correctly
-    echo_current_diagnostic "Dashboard and block page"
-    # Use curl -I to get the header and parse out just the X-Pi-hole one
-    local block_page
-    block_page=$(curl -Is localhost | awk '/X-Pi-hole/' | tr -d '\r')
-    # Do it for the dashboard as well, as the header is different than above
-    local dashboard
-    dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
-    # Store what the X-Header shoud be in variables for comparision later
-    local block_page_working
-    block_page_working="X-Pi-hole: A black hole for Internet advertisements."
-    local dashboard_working
-    dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
-    local full_curl_output_block_page
-    full_curl_output_block_page="$(curl -Is localhost)"
-    local full_curl_output_dashboard
-    full_curl_output_dashboard="$(curl -Is localhost/admin/)"
-    # If the X-header found by curl matches what is should be,
-    if [[ $block_page == "$block_page_working" ]]; then
-        # display a success message
-        log_write "$TICK Block page X-Header: ${COL_GREEN}${block_page}${COL_NC}"
-    else
-        # Otherwise, show an error
-        log_write "$CROSS Block page X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-        log_write "${COL_RED}${full_curl_output_block_page}${COL_NC}"
-    fi
-
-    # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
-    if [[ $dashboard == "$dashboard_working" ]]; then
-        # then we can show a success
-        log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
-    else
-        # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
-        log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-        log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
-    fi
 }
 
 dig_at() {
@@ -981,7 +887,6 @@ list_files_in_dir() {
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_SETUP_VARS_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
             :
         elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
@@ -995,9 +900,6 @@ list_files_in_dir() {
                     log_write "\\n${COL_GREEN}$(ls -ld "${dir_to_parse}"/"${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
                     case "${dir_to_parse}/${each_file}" in
-                        # If it's Web server error log, just give the first 25 lines
-                        "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") make_array_from_file "${dir_to_parse}/${each_file}" 25
-                            ;;
                         # Same for the FTL log
                         "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
                             ;;
@@ -1026,9 +928,7 @@ show_content_of_pihole_files() {
     # Show the content of the files in each of Pi-hole's folders
     show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
-    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
-    show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"
     show_content_of_files_in_dir "${SHM_DIRECTORY}"
 }
@@ -1226,7 +1126,6 @@ initialize_debug
 # available to the other functions
 source_setup_variables
 check_component_versions
-check_critical_program_versions
 diagnose_operating_system
 check_selinux
 processor_check
@@ -1234,7 +1133,6 @@ check_networking
 check_name_resolution
 process_status
 parse_setup_vars
-check_x_headers
 analyze_gravity_list
 show_content_of_pihole_files
 parse_locale
