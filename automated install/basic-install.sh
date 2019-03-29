@@ -2528,6 +2528,7 @@ main() {
     if APIcheckUpdate; then
         APIinstall || return 1
     fi
+    printf "\\n"
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
