@@ -2183,8 +2183,6 @@ get_binary_name() {
 
 # Download API package to a random temp directory and install
 APIinstall() {
-    get_binary_name API
-
     # Local, named variables
     local latesttag
     local str="Downloading and installing the API"
@@ -2212,19 +2210,6 @@ APIinstall() {
         return 1
     fi
 
-    # Get the sha1 of the package we just downloaded for verification
-    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
-
-    # Check the sha1 against the package
-    if ! sha1sum --status --quiet -c "${binary}".sha1; then
-        # The sha1 didn't match
-        popd > /dev/null || { printf "Unable to return to original directory after API package download.\\n"; return 1; }
-        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
-        return 1
-    fi
-
-    # The sha1 matched, continue
     printf "transferred... "
 
     # Install the new version
