@@ -2203,25 +2203,101 @@ APIinstall() {
 
     local url="https://ftl.pi-hole.net/${apiBranch}"
 
-    # If the download worked,
-    if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
-        printf "transferred... "
-
-        # Install the new version
-        "${PKG_LOCAL_INSTALL[@]}" "./${binary}" > /dev/null || { printf "Unable to install the API\\n"; return 1; }
-
-        # Move back into the original directory the user was in
-        popd > /dev/null || { printf "Unable to return to original directory after API install.\\n"; return 1; }
-
-        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-        return 0
-    # Otherwise,
-    else
+    # Download the file
+    if ! curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
+        # The download failed
         popd > /dev/null || { printf "Unable to return to original directory after API download.\\n"; return 1; }
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        # The URL could not be found
-        printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+        printf "  %bError: Failed to download %s/%s%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
         return 1
+    fi
+
+    # Get the sha1 of the package we just downloaded for verification
+    curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
+
+    # Check the sha1 against the package
+    if ! sha1sum --status --quiet -c "${binary}".sha1; then
+        # The sha1 didn't match
+        popd > /dev/null || { printf "Unable to return to original directory after API package download.\\n"; return 1; }
+        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+        printf "  %bError: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+        return 1
+    fi
+
+    # The sha1 matched, continue
+    printf "transferred... "
+
+    # Install the new version
+    "${PKG_LOCAL_INSTALL[@]}" "./${binary}" > /dev/null || { printf "Unable to install the API\\n"; return 1; }
+
+    # Move back into the original directory the user was in
+    popd > /dev/null || { printf "Unable to return to original directory after API install.\\n"; return 1; }
+
+    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+    return 0
+}
+
+APIcheckUpdate() {
+    get_binary_name API
+
+    # In the next section we check to see if the API is already installed (in
+    # case of repair or upgrade). If the installed version matches the latest
+    # version, then check the installed sha1sum of the binary vs the remote
+    # sha1sum. If they do not match, then download
+    printf "  %b Checking for existing API...\\n" "${INFO}"
+
+    # Check if the API is installed
+    if ! which pihole-API &> /dev/null; then
+        printf "  %b No install found\\n" "${INFO}"
+        return 0
+    fi
+
+    # Get the branch to check
+    local apiBranch
+    if [[ -f "/etc/pihole/apibranch" ]];then
+        apiBranch=$(</etc/pihole/apibranch)
+    else
+        apiBranch="master"
+    fi
+
+    if [[ "${apiBranch}" == "master" ]]; then
+        local localVersion
+        local latestVersion
+        localVersion=$(/usr/bin/pihole-API version)
+        latestVersion=$(curl -sI https://github.com/pi-hole/API/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+
+        if [[ "${localVersion}" != "${latestVersion}" ]]; then
+            return 0
+        else
+            printf "  %b Latest API version already installed (%s). No need to download!\\n" "${INFO}" "${latestVersion}"
+            return 1
+        fi
+    else
+        # Check whether or not this branch actually exists.
+        # If not, then there is no update!
+        local path
+        path="${apiBranch}/${binary}"
+        # shellcheck disable=SC1090
+        if ! check_download_exists "$path"; then
+            printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${apiBranch}"
+            printf "  %b Use %bpihole checkout api [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            return 2
+        fi
+
+        # Alt branches don't have a tagged version against them, so just compare
+        # the hash of the local vs remote to decide whether we download or not
+        local localHash
+        local remoteHash
+        localHash=$(/usr/bin/pihole-API hash)
+        remoteHash=$(curl -sSL --fail "https://ftl.pi-hole.net/${apiBranch}/API_HASH" | cut -d ' ' -f 1)
+
+        if [[ "${remoteHash}" != "${localHash}" ]]; then
+            printf "  %b Hashes do not match, downloading from ftl.pi-hole.net.\\n" "${INFO}"
+            return 0
+        else
+            printf "  %b Hash of installed API matches remote. No need to download!\\n" "${INFO}"
+            return 1
+        fi
     fi
 }
 
@@ -2463,7 +2539,10 @@ main() {
     fi
 
     # Install the API
-    APIinstall
+    printf "\\n"
+    if APIcheckUpdate; then
+        APIinstall || return 1
+    fi
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
