@@ -82,6 +82,7 @@ def test_setupVars_saved_to_file(Pihole):
     mkdir -p /etc/dnsmasq.d
     version_check_dnsmasq
     echo "" > /etc/pihole/pihole-FTL.conf
+    create_pihole_user
     finalExports
     cat /etc/pihole/setupVars.conf
     '''.format(set_setup_vars))
