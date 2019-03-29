@@ -31,6 +31,7 @@ source "/opt/pihole/COL_TABLE"
 # getGitFiles() sourced from basic-install.sh
 # get_binary_name() sourced from basic-install.sh
 # FTLcheckUpdate() sourced from basic-install.sh
+# APIcheckUpdate() sourced from basic-install.sh
 # simple_distro_check sourced from basic-install.sh
 
 GitCheckUpdateAvail() {
@@ -82,13 +83,29 @@ GitCheckUpdateAvail() {
     fi
 }
 
+# Print a warning if the user is on a non-standard branch
+checkCustomBranch() {
+    local program
+    local branch
+    program="$1"
+    branch="$2"
+
+    if [[ ! "${branch}" == "master" && ! "${branch}" == "development" ]]; then
+        # Notify user that they are on a custom branch which might mean they they are lost
+        # behind if a branch was merged to development and got abandoned
+        printf "  %b %bWarning:%b You are using %s from a custom branch (%s) and might be missing future releases.\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}" "${program}" "${branch}"
+    fi
+}
+
 main() {
     local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
     local core_update
     local FTL_update
+    local API_update
 
     core_update=false
     FTL_update=false
+    API_update=false
 
     # shellcheck disable=1090,2154
     source "${setupVars}"
@@ -131,6 +148,23 @@ main() {
         FTL_update=false
     fi
 
+    if APIcheckUpdate > /dev/null; then
+        API_update=true
+        echo -e "  ${INFO} API:\\t\\t${COL_YELLOW}update available${COL_NC}"
+    else
+        case $? in
+            1)
+                echo -e "  ${INFO} API:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+                ;;
+            2)
+                echo -e "  ${INFO} API:\\t\\t${COL_LIGHT_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_LIGHT_GREEN}pihole checkout api [branchname]${COL_NC} to switch to a valid branch."
+                ;;
+            *)
+                echo -e "  ${INFO} API:\\t\\t${COL_LIGHT_RED}Something has gone wrong, contact support${COL_NC}"
+        esac
+        API_update=false
+    fi
+
     # Determine FTL branch
     local ftlBranch
     if [[ -f "/etc/pihole/ftlbranch" ]]; then
@@ -139,13 +173,18 @@ main() {
         ftlBranch="master"
     fi
 
-    if [[ ! "${ftlBranch}" == "master" && ! "${ftlBranch}" == "development" ]]; then
-        # Notify user that they are on a custom branch which might mean they they are lost
-        # behind if a branch was merged to development and got abandoned
-        printf "  %b %bWarning:%b You are using FTL from a custom branch (%s) and might be missing future releases.\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}" "${ftlBranch}"
+    # Determine API branch
+    local apiBranch
+    if [[ -f "/etc/pihole/apibranch" ]];then
+        apiBranch=$(</etc/pihole/apibranch)
+    else
+        apiBranch="master"
     fi
 
-    if [[ "${core_update}" == false && "${FTL_update}" == false ]]; then
+    checkCustomBranch FTL "${ftlBranch}"
+    checkCustomBranch API "${apiBranch}"
+
+    if [[ "${core_update}" == false && "${FTL_update}" == false && "${API_update}" == false ]]; then
         echo ""
         echo -e "  ${TICK} Everything is up to date!"
         exit 0
@@ -168,7 +207,12 @@ main() {
         echo -e "  ${INFO} FTL out of date, it will be updated by the installer."
     fi
 
-    if [[ "${FTL_update}" == true || "${core_update}" == true ]]; then
+    if [[ "${API_update}" == true ]]; then
+        echo ""
+        echo -e "  ${INFO} API out of date, it will be updated by the installer."
+    fi
+
+    if [[ "${core_update}" == true || "${FTL_update}" == true || "${API_update}" == true ]]; then
         ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
         echo -e "${basicError}" && exit 1
     fi
