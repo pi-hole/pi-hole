@@ -3,7 +3,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# Check Pi-hole core and admin pages versions and determine what
+# Check Pi-hole core and FTL versions and determine what
 # upgrade (if any) is required. Automatically updates and reinstalls
 # application if update is detected.
 #
@@ -11,8 +11,6 @@
 # Please see LICENSE file for your rights under this license.
 
 # Variables
-readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
-readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
@@ -33,6 +31,7 @@ source "/opt/pihole/COL_TABLE"
 # getGitFiles() sourced from basic-install.sh
 # get_binary_name() sourced from basic-install.sh
 # FTLcheckUpdate() sourced from basic-install.sh
+# simple_distro_check sourced from basic-install.sh
 
 GitCheckUpdateAvail() {
     local directory
@@ -86,15 +85,17 @@ GitCheckUpdateAvail() {
 main() {
     local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
     local core_update
-    local web_update
     local FTL_update
 
     core_update=false
-    web_update=false
     FTL_update=false
 
     # shellcheck disable=1090,2154
     source "${setupVars}"
+
+    # Get the distro information so get_binary_name can correctly determine the
+    # file name to use
+    simple_distro_check
 
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
@@ -111,22 +112,6 @@ main() {
     else
         core_update=false
         echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
-    fi
-
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
-            echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
-            echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
-            exit 1;
-        fi
-
-        if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
-            web_update=true
-            echo -e "  ${INFO} Web Interface:\\t${COL_YELLOW}update available${COL_NC}"
-        else
-            web_update=false
-            echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
-        fi
     fi
 
     if FTLcheckUpdate > /dev/null; then
@@ -160,7 +145,7 @@ main() {
         printf "  %b %bWarning:%b You are using FTL from a custom branch (%s) and might be missing future releases.\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}" "${ftlBranch}"
     fi
 
-    if [[ "${core_update}" == false && "${web_update}" == false && "${FTL_update}" == false ]]; then
+    if [[ "${core_update}" == false && "${FTL_update}" == false ]]; then
         echo ""
         echo -e "  ${TICK} Everything is up to date!"
         exit 0
@@ -176,13 +161,6 @@ main() {
         echo -e "  ${INFO} Pi-hole core files out of date, updating local repo."
         getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
         echo -e "  ${INFO} If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
-    fi
-
-    if [[ "${web_update}" == true ]]; then
-        echo ""
-        echo -e "  ${INFO} Pi-hole Web Admin files out of date, updating local repo."
-        getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
-        echo -e "  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
     fi
 
     if [[ "${FTL_update}" == true ]]; then
