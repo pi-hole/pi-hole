@@ -1133,7 +1133,7 @@ installDefaultBlocklists() {
 install_base_dnsmasq_config() {
     local dnsmasq_conf="/etc/dnsmasq.conf"
 
-    printf "  %b Setting up the base dnsmasq config" "${INFO}"
+    printf "  %b Setting up the base dnsmasq config\\n" "${INFO}"
 
     # Backup existing /etc/dnsmasq.conf if present and ensure that
     # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
