@@ -509,7 +509,8 @@ Interfaces:
 }
 
 Teleporter() {
-    echo "The teleporter has not been reimplemented in the API yet"
+    echo "The teleporter has not been reimplemented in the API yet" 1>&2
+    exit 1
 }
 
 addAudit()
