@@ -80,7 +80,7 @@ def test_setupVars_saved_to_file(Pihole):
     source /opt/pihole/basic-install.sh
     {}
     mkdir -p /etc/dnsmasq.d
-    version_check_dnsmasq
+    install_base_dnsmasq_config
     echo "" > /etc/pihole/pihole-FTL.conf
     create_pihole_user
     finalExports
