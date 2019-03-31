@@ -130,6 +130,13 @@ removeNoPurge() {
         systemctl reload-or-restart systemd-resolved
     fi
 
+    # Remove API
+    if package_check pihole_api &> /dev/null; then
+        printf "  %b Removing pihole-API..." "${INFO}"
+        ${SUDO} "${PKG_REMOVE} pihole_api" &> /dev/null;
+        printf "  %b Removed pihole-API" "${TICK}"
+    fi
+
     # Remove FTL
     if command -v pihole-FTL &> /dev/null; then
         echo -ne "  ${INFO} Removing pihole-FTL..."
