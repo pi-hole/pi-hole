@@ -1128,81 +1128,27 @@ installDefaultBlocklists() {
     appendToListsFile HostsFile
 }
 
-# Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
-version_check_dnsmasq() {
-    # Local, named variables
+# Install the base dnsmasq config at /etc/dnsmasq.conf if one does not already
+# exist, and ensure that it configures dnsmasq to look in /etc/dnsmasq.d
+install_base_dnsmasq_config() {
     local dnsmasq_conf="/etc/dnsmasq.conf"
-    local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
-    local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
-    local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
-    local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
-    local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
 
-    # If the dnsmasq config file exists
+    printf "  %b Setting up the base dnsmasq config" "${INFO}"
+
+    # Backup existing /etc/dnsmasq.conf if present and ensure that
+    # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
     if [[ -f "${dnsmasq_conf}" ]]; then
-        printf "  %b Existing dnsmasq.conf found..." "${INFO}"
-        # If gravity.list is found within this file, we presume it's from older versions on Pi-hole,
-        if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
-            printf " it is from a previous Pi-hole install.\\n"
-            printf "  %b Backing up dnsmasq.conf to dnsmasq.conf.orig..." "${INFO}"
-            # so backup the original file
-            mv -f ${dnsmasq_conf} ${dnsmasq_conf_orig}
-            printf "%b  %b Backing up dnsmasq.conf to dnsmasq.conf.orig...\\n" "${OVER}"  "${TICK}"
-            printf "  %b Restoring default dnsmasq.conf..." "${INFO}"
-            # and replace it with the default
-            cp ${dnsmasq_original_config} ${dnsmasq_conf}
-            printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
-        # Otherwise,
-        else
-        # Don't to anything
-        printf " it is not a Pi-hole file, leaving alone!\\n"
-        fi
-    else
-        # If a file cannot be found,
-        printf "  %b No dnsmasq.conf found... restoring default dnsmasq.conf..." "${INFO}"
-        # restore the default one
-        cp ${dnsmasq_original_config} ${dnsmasq_conf}
-        printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
+        printf "  %b Backing up %s to %s.old\\n" "${INFO}" "${dnsmasq_conf}" "${dnsmasq_conf}"
+        mv "${dnsmasq_conf}" "${dnsmasq_conf}.old"
     fi
+    # Create /etc/dnsmasq.conf
+    echo "conf-dir=/etc/dnsmasq.d" > "${dnsmasq_conf}"
 
-    printf "  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..." "${INFO}"
-    # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
-    if [[ ! -d "/etc/dnsmasq.d"  ]];then
-        mkdir "/etc/dnsmasq.d"
-    fi
-    # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
-    printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
-    # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
-    # First, swap in the interface to listen on
-    sed -i "s/@INT@/$PIHOLE_INTERFACE/" ${dnsmasq_pihole_01_location}
-    if [[ "${PIHOLE_DNS_1}" != "" ]]; then
-        # Then swap in the primary DNS server
-        sed -i "s/@DNS1@/$PIHOLE_DNS_1/" ${dnsmasq_pihole_01_location}
-    else
-        #
-        sed -i '/^server=@DNS1@/d' ${dnsmasq_pihole_01_location}
-    fi
-    if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-        # Then swap in the primary DNS server
-        sed -i "s/@DNS2@/$PIHOLE_DNS_2/" ${dnsmasq_pihole_01_location}
-    else
-        #
-        sed -i '/^server=@DNS2@/d' ${dnsmasq_pihole_01_location}
-    fi
+    # Ensure that the dnsmasq.d directory exists (it may not due to being a
+    # fresh install and dnsmasq no longer being a dependency)
+    mkdir -p /etc/dnsmasq.d
 
-    #
-    sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' ${dnsmasq_conf}
-
-    # If the user does not want to enable logging,
-    if [[ "${QUERY_LOGGING}" == false ]] ; then
-        # Disable it by commenting out the directive in the DNS config file
-        sed -i 's/^log-queries/#log-queries/' ${dnsmasq_pihole_01_location}
-    # Otherwise,
-    else
-        # enable it by uncommenting the directive in the DNS config file
-        sed -i 's/^#log-queries/log-queries/' ${dnsmasq_pihole_01_location}
-    fi
+    printf "  %b Finished setting up the base dnsmasq config\\n" "${TICK}"
 }
 
 # Clean an existing installation to prepare for upgrade/reinstall
@@ -1263,7 +1209,7 @@ installScripts() {
 installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
     # Make sure Pi-hole's config files are in place
-    version_check_dnsmasq
+    install_base_dnsmasq_config
 
     # Install list of DNS servers
     # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
@@ -1663,18 +1609,6 @@ finalExports() {
     # Set the privacy level
     sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
     echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
-
-    # Bring in the current settings and the functions to manipulate them
-    source "${setupVars}"
-
-    # TODO: Replace with call to API
-    source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
-
-    # Look for DNS server settings which would have to be reapplied
-    ProcessDNSSettings
-
-    # Look for DHCP server settings which would have to be reapplied
-    ProcessDHCPSettings
 }
 
 # Install the logrotate script
@@ -2043,16 +1977,6 @@ disable_dnsmasq() {
             disable_service dnsmasq
         fi
     fi
-
-    # Backup existing /etc/dnsmasq.conf if present and ensure that
-    # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
-    local conffile="/etc/dnsmasq.conf"
-    if [[ -f "${conffile}" ]]; then
-        printf "  %b Backing up %s to %s.old\\n" "${INFO}" "${conffile}" "${conffile}"
-        mv "${conffile}" "${conffile}.old"
-    fi
-    # Create /etc/dnsmasq.conf
-    echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
 }
 
 get_binary_name() {
@@ -2536,6 +2460,9 @@ main() {
     # Copy the temp log file into final log location for storage
     copy_to_install_log
 
+    # Provides HashPassword and GenerateDnsmasqConfig
+    source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
+
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Add password to web UI if there is none
         pw=""
@@ -2543,8 +2470,6 @@ main() {
         if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
             # generate a random password
             pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-            # shellcheck disable=SC1091
-            . /opt/pihole/webpage.sh
             echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
         fi
     fi
@@ -2568,6 +2493,9 @@ main() {
     # Start the API if it's not already running (it was already enabled during
     # install, and may have started on Debian machines)
     restart_service pihole-API
+
+    # Generate the dnsmasq configuration
+    GenerateDnsmasqConfig
 
     # Download and compile the aggregated block list
     runGravity

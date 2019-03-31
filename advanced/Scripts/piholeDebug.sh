@@ -77,7 +77,7 @@ SHM_DIRECTORY="/dev/shm"
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
 PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
 
-PIHOLE_DNS_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/01-pihole.conf"
+PIHOLE_DNS_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/pihole.conf"
 PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
 PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 

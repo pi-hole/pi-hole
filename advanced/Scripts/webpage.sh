@@ -11,8 +11,6 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly setupVars="/etc/pihole/setupVars.conf"
-readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
-readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
@@ -63,18 +61,6 @@ changeFTLsetting() {
     addFTLsetting "${1}" "${2}"
 }
 
-add_dnsmasq_setting() {
-    if [[ "${2}" != "" ]]; then
-        echo "${1}=${2}" >> "${dnsmasqconfig}"
-    else
-        echo "${1}" >> "${dnsmasqconfig}"
-    fi
-}
-
-delete_dnsmasq_setting() {
-    sed -i "/${1}/d" "${dnsmasqconfig}"
-}
-
 HashPassword() {
     # Compute password hash twice to avoid rainbow table vulnerability
     return=$(echo -n ${1} | sha256sum | sed 's/\s.*$//')
@@ -115,81 +101,9 @@ SetWebPassword() {
     fi
 }
 
-ProcessDNSSettings() {
-    source "${setupVars}"
-
-    delete_dnsmasq_setting "server"
-
-    COUNTER=1
-    while [[ 1 ]]; do
-        var=PIHOLE_DNS_${COUNTER}
-        if [ -z "${!var}" ]; then
-            break;
-        fi
-        add_dnsmasq_setting "server" "${!var}"
-        let COUNTER=COUNTER+1
-    done
-
-    # The option LOCAL_DNS_PORT is deprecated
-    # We apply it once more, and then convert it into the current format
-    if [ ! -z "${LOCAL_DNS_PORT}" ]; then
-        add_dnsmasq_setting "server" "127.0.0.1#${LOCAL_DNS_PORT}"
-        add_setting "PIHOLE_DNS_${COUNTER}" "127.0.0.1#${LOCAL_DNS_PORT}"
-        delete_setting "LOCAL_DNS_PORT"
-    fi
-
-    delete_dnsmasq_setting "domain-needed"
-
-    if [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
-        add_dnsmasq_setting "domain-needed"
-    fi
-
-    delete_dnsmasq_setting "bogus-priv"
-
-    if [[ "${DNS_BOGUS_PRIV}" == true ]]; then
-        add_dnsmasq_setting "bogus-priv"
-    fi
-
-    delete_dnsmasq_setting "dnssec"
-    delete_dnsmasq_setting "trust-anchor="
-
-    if [[ "${DNSSEC}" == true ]]; then
-        echo "dnssec
-trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
-trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D
-" >> "${dnsmasqconfig}"
-    fi
-
-    delete_dnsmasq_setting "host-record"
-
-    if [ ! -z "${HOSTRECORD}" ]; then
-        add_dnsmasq_setting "host-record" "${HOSTRECORD}"
-    fi
-
-    # Setup interface listening behavior of dnsmasq
-    delete_dnsmasq_setting "interface"
-    delete_dnsmasq_setting "local-service"
-
-    if [[ "${DNSMASQ_LISTENING}" == "all" ]]; then
-        # Listen on all interfaces, permit all origins
-        add_dnsmasq_setting "except-interface" "nonexisting"
-    elif [[ "${DNSMASQ_LISTENING}" == "local" ]]; then
-        # Listen only on all interfaces, but only local subnets
-        add_dnsmasq_setting "local-service"
-    else
-        # Listen only on one interface
-        # Use eth0 as fallback interface if interface is missing in setupVars.conf
-        if [ -z "${PIHOLE_INTERFACE}" ]; then
-            PIHOLE_INTERFACE="eth0"
-        fi
-
-        add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
-    fi
-
-    if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
-        add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
-        add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
-    fi
+# Regenerate the dnsmasq config and restart the DNS server to apply the changes
+GenerateDnsmasqConfig() {
+    pihole-API generate-dnsmasq 1>/dev/null
 }
 
 SetDNSServers() {
@@ -231,10 +145,7 @@ SetDNSServers() {
         delete_setting "CONDITIONAL_FORWARDING_REVERSE"
     fi
 
-    ProcessDNSSettings
-
-    # Restart dnsmasq to load new configuration
-    RestartDNS
+    GenerateDnsmasqConfig
 }
 
 SetExcludeDomains() {
@@ -261,74 +172,6 @@ SetQueryLogOptions() {
     change_setting "API_QUERY_LOG_SHOW" "${args[2]}"
 }
 
-ProcessDHCPSettings() {
-    source "${setupVars}"
-
-    if [[ "${DHCP_ACTIVE}" == "true" ]]; then
-    interface="${PIHOLE_INTERFACE}"
-
-    # Use eth0 as fallback interface
-    if [ -z ${interface} ]; then
-        interface="eth0"
-    fi
-
-    if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
-        PIHOLE_DOMAIN="lan"
-        change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
-    fi
-
-    if [[ "${DHCP_LEASETIME}" == "0" ]]; then
-        leasetime="infinite"
-    elif [[ "${DHCP_LEASETIME}" == "" ]]; then
-        leasetime="24"
-        change_setting "DHCP_LEASETIME" "${leasetime}"
-    elif [[ "${DHCP_LEASETIME}" == "24h" ]]; then
-        #Installation is affected by known bug, introduced in a previous version.
-        #This will automatically clean up setupVars.conf and remove the unnecessary "h"
-        leasetime="24"
-        change_setting "DHCP_LEASETIME" "${leasetime}"
-    else
-        leasetime="${DHCP_LEASETIME}h"
-    fi
-
-    # Write settings to file
-    echo "###############################################################################
-#  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
-#            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
-###############################################################################
-dhcp-authoritative
-dhcp-range=${DHCP_START},${DHCP_END},${leasetime}
-dhcp-option=option:router,${DHCP_ROUTER}
-dhcp-leasefile=/etc/pihole/dhcp.leases
-#quiet-dhcp
-" > "${dhcpconfig}"
-
-    if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
-        echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
-    fi
-
-    # Sourced from setupVars
-    # shellcheck disable=SC2154
-    if [[ "${DHCP_rapid_commit}" == "true" ]]; then
-        echo "dhcp-rapid-commit" >> "${dhcpconfig}"
-    fi
-
-    if [[ "${DHCP_IPv6}" == "true" ]]; then
-        echo "#quiet-dhcp6
-#enable-ra
-dhcp-option=option6:dns-server,[::]
-dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
-ra-param=*,0,0
-" >> "${dhcpconfig}"
-    fi
-
-    else
-        if [[ -f "${dhcpconfig}" ]]; then
-            rm "${dhcpconfig}" &> /dev/null
-        fi
-    fi
-}
-
 EnableDHCP() {
     change_setting "DHCP_ACTIVE" "true"
     change_setting "DHCP_START" "${args[2]}"
@@ -339,25 +182,13 @@ EnableDHCP() {
     change_setting "DHCP_IPv6" "${args[7]}"
     change_setting "DHCP_rapid_commit" "${args[8]}"
 
-    # Remove possible old setting from file
-    delete_dnsmasq_setting "dhcp-"
-    delete_dnsmasq_setting "quiet-dhcp"
-
-    ProcessDHCPSettings
-
-    RestartDNS
+    GenerateDnsmasqConfig
 }
 
 DisableDHCP() {
     change_setting "DHCP_ACTIVE" "false"
 
-    # Remove possible old setting from file
-    delete_dnsmasq_setting "dhcp-"
-    delete_dnsmasq_setting "quiet-dhcp"
-
-    ProcessDHCPSettings
-
-    RestartDNS
+    GenerateDnsmasqConfig
 }
 
 SetWebUILayout() {
@@ -445,10 +276,7 @@ Options:
         echo -e "  ${TICK} Removing host record"
     fi
 
-    ProcessDNSSettings
-
-    # Restart dnsmasq to load new configuration
-    RestartDNS
+    GenerateDnsmasqConfig
 }
 
 SetAdminEmail() {
@@ -502,9 +330,7 @@ Interfaces:
     # Don't restart DNS server yet because other settings
     # will be applied afterwards if "-web" is set
     if [[ "${args[3]}" != "-web" ]]; then
-        ProcessDNSSettings
-        # Restart dnsmasq to load new configuration
-        RestartDNS
+        GenerateDnsmasqConfig
     fi
 }
 

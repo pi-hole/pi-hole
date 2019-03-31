@@ -233,7 +233,6 @@ Options:
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
-    sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
@@ -243,7 +242,6 @@ Options:
     local str="Logging has been disabled!"
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
-    sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
     sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
@@ -252,7 +250,13 @@ Options:
   Try 'pihole logging --help' for more information."
     exit 1
   fi
-  restartDNS
+
+  # Load GenerateDnsmasqConfig
+  source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
+
+  # Apply the config changes
+  GenerateDnsmasqConfig
+
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -296,7 +300,7 @@ statusFunc() {
 
 tailFunc() {
   # Warn user if Pi-hole's logging is disabled
-  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
+  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/pihole.conf)
   if [[ "${logging_enabled}" == "0" ]]; then
     # No "log-queries" lines are found.
     # Commented out lines (such as "#log-queries") are ignored
