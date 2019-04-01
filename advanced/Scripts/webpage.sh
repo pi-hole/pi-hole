@@ -103,7 +103,9 @@ SetWebPassword() {
 
 # Regenerate the dnsmasq config and restart the DNS server to apply the changes
 GenerateDnsmasqConfig() {
-    pihole-API generate-dnsmasq 1>/dev/null
+    # Run the command under the pihole user so the API can manipulate the
+    # resulting dnsmasq config
+    sudo -u pihole pihole-API generate-dnsmasq 1>/dev/null
 }
 
 SetDNSServers() {
