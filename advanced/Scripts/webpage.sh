@@ -15,9 +15,10 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
-# Provides color table and restart_service
-# shellcheck disable=SC1090
-source "/etc/.pihole/automated install/basic-install.sh"
+coltable="/opt/pihole/COL_TABLE"
+if [[ -f ${coltable} ]]; then
+    source ${coltable}
+fi
 
 helpFunc() {
     echo "Usage: pihole -a [options]
@@ -93,6 +94,12 @@ SetWebPassword() {
         hash=$(HashPassword "$PASSWORD")
         # Save hash to file
         change_setting "WEBPASSWORD" "${hash}"
+
+        # Load restart_service if it's not already available (webpage.sh gets
+        # sourced and used in the installer)
+        if ! type restart_service &> /dev/null; then
+            source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+        fi
 
         # Restart the API so it uses the new password
         restart_service pihole-API
