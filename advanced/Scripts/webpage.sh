@@ -98,7 +98,8 @@ SetWebPassword() {
         # Load restart_service if it's not already available (webpage.sh gets
         # sourced and used in the installer)
         if ! type restart_service &> /dev/null; then
-            source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+            # shellcheck disable=SC1091
+            source "/etc/.pihole/automated install/basic-install.sh"
         fi
 
         # Restart the API so it uses the new password
