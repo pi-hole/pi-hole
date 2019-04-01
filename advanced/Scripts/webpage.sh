@@ -98,6 +98,8 @@ SetWebPassword() {
         # Load restart_service if it's not already available (webpage.sh gets
         # sourced and used in the installer)
         if ! type restart_service &> /dev/null; then
+            # shellcheck disable=SC2034
+            PH_TEST=true
             # shellcheck disable=SC1091
             source "/etc/.pihole/automated install/basic-install.sh"
         fi
