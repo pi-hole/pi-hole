@@ -1148,6 +1148,8 @@ install_base_dnsmasq_config() {
     # fresh install and dnsmasq no longer being a dependency)
     mkdir -p /etc/dnsmasq.d
 
+    chown pihole:pihole -R /etc/dnsmasq.d
+
     printf "  %b Finished setting up the base dnsmasq config\\n" "${TICK}"
 }
 
