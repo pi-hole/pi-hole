@@ -2462,7 +2462,7 @@ main() {
     # Copy the temp log file into final log location for storage
     copy_to_install_log
 
-    # Provides HashPassword and GenerateDnsmasqConfig
+    # Provides HashPassword and GenerateDnsConfig
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
@@ -2497,7 +2497,7 @@ main() {
     restart_service pihole-API
 
     # Generate the dnsmasq configuration
-    GenerateDnsmasqConfig
+    GenerateDnsConfig
 
     # Download and compile the aggregated block list
     runGravity

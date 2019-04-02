@@ -115,10 +115,10 @@ SetWebPassword() {
 }
 
 # Regenerate the dnsmasq config and restart the DNS server to apply the changes
-GenerateDnsmasqConfig() {
+GenerateDnsConfig() {
     # Run the command under the pihole user so the API can manipulate the
     # resulting dnsmasq config
-    sudo -u pihole pihole-API generate-dnsmasq 1>/dev/null
+    sudo -u pihole pihole-API generate-dns-config 1>/dev/null
 }
 
 SetDNSServers() {
@@ -160,7 +160,7 @@ SetDNSServers() {
         delete_setting "CONDITIONAL_FORWARDING_REVERSE"
     fi
 
-    GenerateDnsmasqConfig
+    GenerateDnsConfig
 }
 
 SetExcludeDomains() {
@@ -197,13 +197,13 @@ EnableDHCP() {
     change_setting "DHCP_IPv6" "${args[7]}"
     change_setting "DHCP_rapid_commit" "${args[8]}"
 
-    GenerateDnsmasqConfig
+    GenerateDnsConfig
 }
 
 DisableDHCP() {
     change_setting "DHCP_ACTIVE" "false"
 
-    GenerateDnsmasqConfig
+    GenerateDnsConfig
 }
 
 SetWebUILayout() {
@@ -291,7 +291,7 @@ Options:
         echo -e "  ${TICK} Removing host record"
     fi
 
-    GenerateDnsmasqConfig
+    GenerateDnsConfig
 }
 
 SetAdminEmail() {
@@ -345,7 +345,7 @@ Interfaces:
     # Don't restart DNS server yet because other settings
     # will be applied afterwards if "-web" is set
     if [[ "${args[3]}" != "-web" ]]; then
-        GenerateDnsmasqConfig
+        GenerateDnsConfig
     fi
 }
 

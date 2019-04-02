@@ -251,11 +251,11 @@ Options:
     exit 1
   fi
 
-  # Load GenerateDnsmasqConfig
+  # Load GenerateDnsConfig
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
 
   # Apply the config changes
-  GenerateDnsmasqConfig
+  GenerateDnsConfig
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
