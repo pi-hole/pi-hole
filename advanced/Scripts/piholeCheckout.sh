@@ -142,7 +142,7 @@ checkout() {
             APIinstall
         else
             echo "  ${CROSS} Requested branch \"${2}\" is not available"
-            apibranches=( $(git ls-remote https://github.com/pi-hole/api | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+            mapfile -t apibranches < <(git ls-remote https://github.com/pi-hole/api | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}')
             echo -e "  ${INFO} Available branches for API are:"
             for e in "${apibranches[@]}"; do echo "      - $e"; done
             exit 1

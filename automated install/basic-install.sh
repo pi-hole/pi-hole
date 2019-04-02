@@ -173,16 +173,16 @@ simple_distro_check() {
         PKG_MANAGER="apt-get"
 
         # Stores the command prefix used to install a local package
-        PKG_LOCAL_INSTALL=(${PKG_MANAGER} --yes --reinstall install)
+        PKG_LOCAL_INSTALL=("${PKG_MANAGER}" --yes --reinstall install)
     # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
     elif is_command rpm ; then
         # Then check if dnf or yum is the package manager
         if is_command dnf ; then
             PKG_MANAGER="dnf"
-            PKG_LOCAL_INSTALL=(${PKG_MANAGER} install -y)
+            PKG_LOCAL_INSTALL=("${PKG_MANAGER}" install -y)
         else
             PKG_MANAGER="yum"
-            PKG_LOCAL_INSTALL=(${PKG_MANAGER} localinstall -y)
+            PKG_LOCAL_INSTALL=("${PKG_MANAGER}" localinstall -y)
         fi
     fi
 }
@@ -1050,7 +1050,7 @@ setAdminFlag() {
     local WebChoices
 
     # Similar to the logging function, ask what the user wants
-    WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web interface?" ${r} ${c} 6)
+    WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web interface?" "${r}" "${c}" 6)
     # with the default being enabled
     WebChooseOptions=("On (Recommended)" "" on
         Off "" off)
