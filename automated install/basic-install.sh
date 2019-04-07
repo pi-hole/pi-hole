@@ -174,7 +174,7 @@ simple_distro_check() {
 
         # Stores the command prefix used to install a local package
         PKG_LOCAL_INSTALL=("${PKG_MANAGER}" --yes --reinstall install)
-        PKG_LOCAL_REINSTALL=("${PKG_LOCAL_INSTALL}")
+        PKG_LOCAL_REINSTALL=("${PKG_LOCAL_INSTALL[@]}")
     # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
     elif is_command rpm ; then
         # Then check if dnf or yum is the package manager
