@@ -174,16 +174,19 @@ simple_distro_check() {
 
         # Stores the command prefix used to install a local package
         PKG_LOCAL_INSTALL=("${PKG_MANAGER}" --yes --reinstall install)
+        PKG_LOCAL_REINSTALL=("${PKG_LOCAL_INSTALL}")
     # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
     elif is_command rpm ; then
         # Then check if dnf or yum is the package manager
         if is_command dnf ; then
             PKG_MANAGER="dnf"
-            PKG_LOCAL_INSTALL=("${PKG_MANAGER}" install -y)
         else
             PKG_MANAGER="yum"
-            PKG_LOCAL_INSTALL=("${PKG_MANAGER}" localinstall -y)
         fi
+
+        # Stores the command prefix used to install a local package
+        PKG_LOCAL_INSTALL=("${PKG_MANAGER}" install -y)
+        PKG_LOCAL_REINSTALL=("${PKG_MANAGER}" reinstall -y)
     fi
 }
 
@@ -2139,7 +2142,13 @@ APIinstall() {
     printf "transferred... "
 
     # Install the new version
-    "${PKG_LOCAL_INSTALL[@]}" "./${binary}" > /dev/null || { printf "Unable to install the API\\n"; return 1; }
+    if which pihole-API &> /dev/null; then
+        # Reinstall
+        "${PKG_LOCAL_REINSTALL[@]}" "./${binary}" > /dev/null || { printf "Unable to update the API\\n"; return 1; }
+    else
+        # Install
+        "${PKG_LOCAL_INSTALL[@]}" "./${binary}" > /dev/null || { printf "Unable to install the API\\n"; return 1; }
+    fi
 
     # Move back into the original directory the user was in
     popd > /dev/null || { printf "Unable to return to original directory after API install.\\n"; return 1; }
