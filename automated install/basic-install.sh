@@ -1094,7 +1094,7 @@ setPrivacyLevel() {
     local LevelCommand
     local LevelOptions
 
-    LevelCommand=(whiptail --separate-output --radiolist "Select a privacy mode for FTL." "${r}" "${c}" 6)
+    LevelCommand=(whiptail --separate-output --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" "${r}" "${c}" 6)
 
     # The default selection is level 0
     LevelOptions=(
