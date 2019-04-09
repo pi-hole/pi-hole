@@ -72,15 +72,18 @@ getLocalHash() {
 }
 
 getRemoteHash(){
+    local daemon="${1}"
+    local branch="${2}"
+
     # Remote FTL hash is not applicable
-    if [[ "$1" == "FTL" ]]; then
+    if [[ "$daemon" == "FTL" ]]; then
         echo "N/A"
         return 0
     fi
 
     # Remote API hash is available on the artifact server
-    if [[ "$1" == "API" ]]; then
-        hash=$(curl -sSL --fail "https://ftl.pi-hole.net/${apiBranch}/API_HASH")
+    if [[ "$daemon" == "API" ]]; then
+        hash=$(curl -sSL --fail "https://ftl.pi-hole.net/${branch}/API_HASH")
 
         if [[ -n "$hash" ]]; then
             echo "$hash"
@@ -91,9 +94,6 @@ getRemoteHash(){
 
         return 0
     fi
-
-    local daemon="${1}"
-    local branch="${2}"
 
     hash=$(git ls-remote --heads "https://github.com/pi-hole/${daemon}" | \
         awk -v bra="$branch" '$0~bra {print substr($0,0,8);exit}')
