@@ -124,15 +124,15 @@ getRemoteVersion(){
 }
 
 versionOutput() {
-    [[ "$1" == "pi-hole" ]] && GITDIR=$COREGITDIR
-    [[ "$1" == "API" ]] && GITDIR="API"
-    [[ "$1" == "FTL" ]] && GITDIR="FTL"
+    [[ "$1" == "pi-hole" ]] && GITDIR=$COREGITDIR branch="$(cd "$GITDIR" 2> /dev/null && git rev-parse --abbrev-ref HEAD)"
+    [[ "$1" == "API" ]] && GITDIR="API" branch="$(pihole-API branch)"
+    [[ "$1" == "FTL" ]] && GITDIR="FTL" branch="N/A"
 
     [[ "$2" == "-c" ]] || [[ "$2" == "--current" ]] || [[ -z "$2" ]] && current=$(getLocalVersion $GITDIR)
     [[ "$2" == "-l" ]] || [[ "$2" == "--latest" ]] || [[ -z "$2" ]] && latest=$(getRemoteVersion "$1")
     if [[ "$2" == "-h" ]] || [[ "$2" == "--hash" ]]; then
         [[ "$3" == "-c" ]] || [[ "$3" == "--current" ]] || [[ -z "$3" ]] && curHash=$(getLocalHash "$GITDIR")
-        [[ "$3" == "-l" ]] || [[ "$3" == "--latest" ]] || [[ -z "$3" ]] && latHash=$(getRemoteHash "$1" "$(cd "$GITDIR" 2> /dev/null && git rev-parse --abbrev-ref HEAD)")
+        [[ "$3" == "-l" ]] || [[ "$3" == "--latest" ]] || [[ -z "$3" ]] && latHash=$(getRemoteHash "$1" "$branch")
     fi
 
     if [[ -n "$current" ]] && [[ -n "$latest" ]]; then
