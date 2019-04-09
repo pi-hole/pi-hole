@@ -2209,7 +2209,7 @@ APIcheckUpdate() {
         local localHash
         local remoteHash
         localHash=$(/usr/bin/pihole-API hash)
-        remoteHash=$(curl -sSL --fail "https://ftl.pi-hole.net/${apiBranch}/API_HASH" | cut -d ' ' -f 1)
+        remoteHash=$(curl -sSL --fail "https://ftl.pi-hole.net/${apiBranch}/API_HASH")
 
         if [[ "${remoteHash}" != "${localHash}" ]]; then
             printf "  %b Hashes do not match, downloading from ftl.pi-hole.net.\\n" "${INFO}"

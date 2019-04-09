@@ -20,6 +20,12 @@ getLocalVersion() {
         return 0
     fi
 
+    # API also requires a different method
+    if [[ "$1" == "API" ]]; then
+        pihole-API version
+        return 0
+    fi
+
     # Get the tagged version of the local repository
     local directory="${1}"
     local version
@@ -44,6 +50,12 @@ getLocalHash() {
         return 0
     fi
 
+    # Hash is retrieved from pihole-API hash
+    if [[ "$1" == "API" ]]; then
+        pihole-API hash
+        return 0
+    fi
+
     # Get the short hash of the local repository
     local directory="${1}"
     local hash
@@ -63,6 +75,20 @@ getRemoteHash(){
     # Remote FTL hash is not applicable
     if [[ "$1" == "FTL" ]]; then
         echo "N/A"
+        return 0
+    fi
+
+    # Remote API hash is available on the artifact server
+    if [[ "$1" == "API" ]]; then
+        hash=$(curl -sSL --fail "https://ftl.pi-hole.net/${apiBranch}/API_HASH")
+
+        if [[ -n "$hash" ]]; then
+            echo "$hash"
+        else
+            echo "ERROR"
+            return 1
+        fi
+
         return 0
     fi
 
@@ -99,7 +125,7 @@ getRemoteVersion(){
 
 versionOutput() {
     [[ "$1" == "pi-hole" ]] && GITDIR=$COREGITDIR
-    [[ "$1" == "AdminLTE" ]] && GITDIR=$WEBGITDIR
+    [[ "$1" == "API" ]] && GITDIR="API"
     [[ "$1" == "FTL" ]] && GITDIR="FTL"
 
     [[ "$2" == "-c" ]] || [[ "$2" == "--current" ]] || [[ -z "$2" ]] && current=$(getLocalVersion $GITDIR)
@@ -143,7 +169,7 @@ defaultOutput() {
     versionOutput "pi-hole" "$@"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        versionOutput "AdminLTE" "$@"
+        versionOutput "API" "$@"
     fi
 
     versionOutput "FTL" "$@"
@@ -152,11 +178,11 @@ defaultOutput() {
 helpFunc() {
     echo "Usage: pihole -v [repo | option] [option]
 Example: 'pihole -v -p -l'
-Show Pi-hole, Admin Console & FTL versions
+Show Pi-hole, API, and FTL versions
 
 Repositories:
   -p, --pihole         Only retrieve info regarding Pi-hole repository
-  -a, --admin          Only retrieve info regarding AdminLTE repository
+  -a, --api            Only retrieve info regarding the API
   -f, --ftl            Only retrieve info regarding FTL repository
 
 Options:
@@ -169,7 +195,7 @@ Options:
 
 case "${1}" in
     "-p" | "--pihole"    ) shift; versionOutput "pi-hole" "$@";;
-    "-a" | "--admin"     ) shift; versionOutput "AdminLTE" "$@";;
+    "-a" | "--api"       ) shift; versionOutput "API" "$@";;
     "-f" | "--ftl"       ) shift; versionOutput "FTL" "$@";;
     "-h" | "--help"      ) helpFunc;;
     *                    ) defaultOutput "$@";;
