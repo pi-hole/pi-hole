@@ -463,8 +463,7 @@ chronoFunc() {
         # Get refresh number
         if [[ "$*" == *"-r"* ]]; then
             num="$*"
-            num="${num/*-r /}"
-            num="${num/ */}"
+            num="${num/*-r* /}"
             num_str="Refresh set for every $num seconds"
         else
             num_str=""
