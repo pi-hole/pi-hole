@@ -1172,7 +1172,6 @@ chooseBlocklists() {
     # In an array, show the options available (all off by default):
     options=(StevenBlack "StevenBlack's Unified Hosts List" on
         MalwareDom "MalwareDomains" on
-        Cameleon "Cameleon" on
         ZeusTracker "ZeusTracker" on
         DisconTrack "Disconnect.me Tracking" on
         DisconAd "Disconnect.me Ads" on
@@ -1194,7 +1193,6 @@ appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-        Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
         ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
@@ -1212,7 +1210,6 @@ installDefaultBlocklists() {
     fi
     appendToListsFile StevenBlack
     appendToListsFile MalwareDom
-    appendToListsFile Cameleon
     appendToListsFile ZeusTracker
     appendToListsFile DisconTrack
     appendToListsFile DisconAd
