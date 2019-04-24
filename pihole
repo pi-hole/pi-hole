@@ -313,7 +313,7 @@ tailFunc() {
   # Colour everything else as gray
   tail -f /var/log/pihole.log | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq[.*[0-9]]),,g" \
-    -e "s,(.*(gravity.list|black.list|regex.list| config ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(gravity |black |regex | config ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0
