@@ -40,13 +40,6 @@ $validExtTypes = array("asp", "htm", "html", "php", "rss", "xml", "");
 // Get extension of current URL
 $currentUrlExt = pathinfo($_SERVER["REQUEST_URI"], PATHINFO_EXTENSION);
 
-// Check if this is served over HTTP or HTTPS
-if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == "on") {
-    $proto = "https";
-} else {
-    $proto = "http";
-}
-
 // Set mobile friendly viewport
 $viewPort = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>';
 
@@ -229,10 +222,10 @@ setHeader();
   <?=$viewPort ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="<?=$proto ?>://pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="<?=$proto ?>://pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="shortcut icon" href="//pi.hole/admin/img/favicon.png" type="image/x-icon"/>
+  <link rel="stylesheet" href="//pi.hole/pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
-  <script src="<?=$proto ?>://pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="//pi.hole/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php

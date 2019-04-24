@@ -54,7 +54,7 @@ scanList(){
     # /dev/null forces filename to be printed when only one list has been generated
     # shellcheck disable=SC2086
     case "${type}" in
-        "exact" ) grep -i -E -l "(^|\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
+        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
         "wc"    ) grep -i -o -m 1 "/${domain}/" ${lists} 2>/dev/null;;
         *       ) grep -i "${domain}" ${lists} /dev/null 2>/dev/null;;
     esac
