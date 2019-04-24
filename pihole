@@ -10,10 +10,8 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-readonly gravitylist="/etc/pihole/gravity.list"
-readonly blacklist="/etc/pihole/black.list"
 
-# setupVars is not readonly here because in some funcitons (checkout),
+# setupVars is not readonly here because in some functions (checkout),
 # it might get set again when the installer is sourced. This causes an
 # error due to modifying a readonly variable.
 setupVars="/etc/pihole/setupVars.conf"
@@ -148,14 +146,6 @@ Time:
       echo -e "  ${INFO} Blocking already disabled, nothing to do"
       exit 0
     fi
-    if [[ -e "${gravitylist}" ]]; then
-      mv "${gravitylist}" "${gravitylist}.bck"
-      echo "" > "${gravitylist}"
-    fi
-    if [[ -e "${blacklist}" ]]; then
-      mv "${blacklist}" "${blacklist}.bck"
-      echo "" > "${blacklist}"
-    fi
     if [[ $# > 1 ]]; then
       local error=false
       if [[ "${2}" == *"s" ]]; then
@@ -204,12 +194,6 @@ Time:
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    if [[ -e "${gravitylist}.bck" ]]; then
-      mv "${gravitylist}.bck" "${gravitylist}"
-    fi
-    if [[ -e "${blacklist}.bck" ]]; then
-      mv "${blacklist}.bck" "${blacklist}"
-    fi
     sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
     echo "BLOCKING_ENABLED=true" >> "${setupVars}"
   fi
