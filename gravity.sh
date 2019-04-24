@@ -160,20 +160,6 @@ gravity_store_in_database() {
   fi
 }
 
-# Determine if Pi-hole blocking is disabled
-# If this is the case, we want to update
-#  gravity.list.bck and black.list.bck instead of
-#  gravity.list and black.list
-detect_pihole_blocking_status() {
-  if [[ "${BLOCKING_ENABLED}" == false ]]; then
-    echo -e "  ${INFO} Pi-hole blocking is disabled"
-    adList="${adList}.bck"
-    blackList="${blackList}.bck"
-  else
-    echo -e "  ${INFO} Pi-hole blocking is enabled"
-  fi
-}
-
 # Determine if DNS resolution is available before proceeding
 gravity_CheckDNSResolutionAvailable() {
   local lookupDomain="pi.hole"
@@ -235,7 +221,7 @@ gravity_GetBlocklistUrls() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
   if [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
-    # Remove superceded $adListDefault file
+    # Remove superseded $adListDefault file
     rm "${adListDefault}" 2> /dev/null || \
       echo -e "  ${CROSS} Unable to remove ${adListDefault}"
   fi
@@ -757,8 +743,6 @@ if [[ "${forceDelete:-}" == true ]]; then
   rm /etc/pihole/list.* 2> /dev/null || true
   echo -e "${OVER}  ${TICK} ${str}"
 fi
-
-detect_pihole_blocking_status
 
 # Determine which functions to run
 if [[ "${skipDownload}" == false ]]; then
