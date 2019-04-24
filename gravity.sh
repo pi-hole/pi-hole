@@ -25,12 +25,11 @@ PIHOLE_GROUP="pihole"
 
 piholeDir="/etc/${basename}"
 
-adListFile="${piholeDir}/adlists.list"
-adListDefault="${piholeDir}/adlists.default"
-
+# Legacy (pre v5.0) list file locations
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
+adListFile="${piholeDir}/adlists.list"
 
 localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
@@ -93,18 +92,20 @@ generate_gravity_database() {
 }
 
 # Import domains from file and store them in the specified database table
-gravity_store_in_database() {
+database_table_from_file() {
   # Define locals
   local table="${1}"
   local source="${2}"
-  local template="${3}"
 
   # Create database file if not present
   if [ ! -e "${gravityDBfile}" ]; then
+    echo -e "  ${INFO} Creating new gravity database"
     generate_gravity_database
   fi
 
-  # Empty domains
+  echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${source} into database"
+
+  # Truncate table
   output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM ${table};"; } 2>&1 )
   status="$?"
 
@@ -118,19 +119,19 @@ gravity_store_in_database() {
   local timestamp
   timestamp="$(date --utc +'%s')"
   local inputfile
-  if [ "$table" == "whitelist" ] || [ "$table" == "blacklist" ] || [ "$table" == "regex" ]; then
-    # Apply format for white-, blacklist, and regex tables
+  if [[ "${table}" == "gravity" ]]; then
+    # No need to modify the input data for the gravity table
+    inputfile="${source}"
+  else
+    # Apply format for white-, blacklist, regex, and adlists tables
     # Read file line by line
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
       echo "\"${domain}\",1,${timestamp}" >> "${tmpFile}"
     done
     inputfile="${tmpFile}"
-  else
-    # No need to modify the input data for the gravity table
-    inputfile="${source}"
   fi
-  # Store domains in gravity database table ${table}
+  # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
   output=$( { printf ".mode csv\\n.import \"%s\" %s\\n" "${inputfile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
@@ -143,6 +144,31 @@ gravity_store_in_database() {
 
   # Delete tmpfile
   rm "$tmpFile" > /dev/null 2>&1 || true
+}
+
+migrate_to_database() {
+ls -lh
+  # Migrate pre-v5.0 list files to database-based Pi-hole versions
+  if [[ -e "${whitelistFile}" ]]; then
+    # Store whitelisted domains in database
+    database_table_from_file "whitelist" "${whitelistFile}"
+    rm "${whitelistFile}"
+  fi
+  if [[ -e "${blacklistFile}" ]]; then
+    # Store blacklisted domains in database
+    database_table_from_file "blacklist" "${blacklistFile}"
+    rm "${blacklistFile}"
+  fi
+  if [[ -e "${regexFile}" ]]; then
+    # Store regex domains in database
+    database_table_from_file "regex" "${regexFile}"
+    rm "${regexFile}"
+  fi
+  if [[ -e "${adListFile}" ]]; then
+    # Store adlists domains in database
+    database_table_from_file "adlists" "${adListFile}"
+    rm "${adListFile}"
+  fi
 }
 
 # Determine if DNS resolution is available before proceeding
@@ -553,9 +579,6 @@ gravity_Whitelist() {
   str="Number of whitelisted domains: ${num}"
   echo -ne "  ${INFO} ${str}..."
 
-  # Store whitelisted files in gravity database
-  gravity_store_in_database "whitelist" "${whitelistFile}"
-
   echo -e "${OVER}  ${INFO} ${str}"
 }
 
@@ -574,7 +597,7 @@ gravity_ShowBlockCount() {
   fi
 
   # Store regex files in gravity database
-  gravity_store_in_database "regex" "${regexFile}"
+  database_table_from_file "regex" "${regexFile}"
 }
 
 # Parse list of domains into hosts format
@@ -624,7 +647,7 @@ gravity_ParseBlacklistDomains() {
   local output status
 
   # Store gravity domains in gravity database
-  gravity_store_in_database "gravity" "${piholeDir}/${preEventHorizon}"
+  database_table_from_file "gravity" "${piholeDir}/${preEventHorizon}"
 }
 
 # Create user-added blacklist entries
@@ -634,7 +657,7 @@ gravity_ParseUserDomains() {
   fi
 
   # Fill database table
-  gravity_store_in_database "blacklist" "${blacklistFile}"
+  database_table_from_file "blacklist" "${blacklistFile}"
 }
 
 # Trap Ctrl-C
@@ -720,6 +743,9 @@ done
 
 # Trap Ctrl-C
 gravity_Trap
+
+# Move possibly existing legacy files to the gravity database
+migrate_to_database
 
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
