@@ -32,10 +32,7 @@ whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
 
-adList="${piholeDir}/gravity.list"
-blackList="${piholeDir}/black.list"
 localList="${piholeDir}/local.list"
-whiteList="${piholeDir}/white.list"
 VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
@@ -146,18 +143,6 @@ gravity_store_in_database() {
 
   # Delete tmpfile
   rm "$tmpFile" > /dev/null 2>&1 || true
-
-  # Only create template file if asked to
-  if [ "${template}" != "-" ]; then
-    # Empty $template if it already exists, otherwise, create it
-    output=$( { : > "${template}"; } 2>&1 )
-    status="$?"
-
-    if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to create empty ${template}\\n  ${output}"
-      gravity_Cleanup "error"
-    fi
-  fi
 }
 
 # Determine if DNS resolution is available before proceeding
@@ -569,7 +554,7 @@ gravity_Whitelist() {
   echo -ne "  ${INFO} ${str}..."
 
   # Store whitelisted files in gravity database
-  gravity_store_in_database "whitelist" "${whitelistFile}" "${whiteList}"
+  gravity_store_in_database "whitelist" "${whitelistFile}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
@@ -589,7 +574,7 @@ gravity_ShowBlockCount() {
   fi
 
   # Store regex files in gravity database
-  gravity_store_in_database "regex" "${regexFile}" "-"
+  gravity_store_in_database "regex" "${regexFile}"
 }
 
 # Parse list of domains into hosts format
@@ -639,7 +624,7 @@ gravity_ParseBlacklistDomains() {
   local output status
 
   # Store gravity domains in gravity database
-  gravity_store_in_database "gravity" "${piholeDir}/${preEventHorizon}" "${adList}"
+  gravity_store_in_database "gravity" "${piholeDir}/${preEventHorizon}"
 }
 
 # Create user-added blacklist entries
@@ -649,7 +634,7 @@ gravity_ParseUserDomains() {
   fi
 
   # Fill database table
-  gravity_store_in_database "blacklist" "${blacklistFile}" "${blackList}"
+  gravity_store_in_database "blacklist" "${blacklistFile}"
 }
 
 # Trap Ctrl-C
