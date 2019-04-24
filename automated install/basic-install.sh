@@ -1224,7 +1224,7 @@ version_check_dnsmasq() {
     # Local, named variables
     local dnsmasq_conf="/etc/dnsmasq.conf"
     local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
-    local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
+    local dnsmasq_pihole_id_string="# Dnsmasq config for Pi-hole's FTLDNS"
     local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
     local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
     local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
@@ -1232,7 +1232,7 @@ version_check_dnsmasq() {
     # If the dnsmasq config file exists
     if [[ -f "${dnsmasq_conf}" ]]; then
         printf "  %b Existing dnsmasq.conf found..." "${INFO}"
-        # If gravity.list is found within this file, we presume it's from older versions on Pi-hole,
+        # If a specific string is found within this file, we presume it's from older versions on Pi-hole,
         if grep -q ${dnsmasq_pihole_id_string} ${dnsmasq_conf}; then
             printf " it is from a previous Pi-hole install.\\n"
             printf "  %b Backing up dnsmasq.conf to dnsmasq.conf.orig..." "${INFO}"
