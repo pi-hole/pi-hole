@@ -24,8 +24,8 @@ listType=""
 listname=""
 sqlitekey=""
 
-# shellcheck source=/opt/pihole/COL_TABLE
-source "/opt/pihole/COL_TABLE"
+colfile="/opt/pihole/COL_TABLE"
+source ${colfile}
 
 
 helpFunc() {
@@ -63,7 +63,7 @@ EscapeRegexp() {
     # string in our regular expressions
     # This sed is intentionally executed in three steps to ease maintainability
     # The first sed removes any amount of leading dots
-    echo "$@" | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
+    echo $* | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
 }
 
 HandleOther() {
@@ -190,8 +190,11 @@ Displaylist() {
             # pipe symbols as they are perfectly valid regex filter control characters
             num_pipes="$(grep -c "^" <<< "$(grep -o "|" <<< "${line}")")"
 
+            # Extract domain and enabled status based on the obtained number of pipe characters
             domain="$(cut -d'|' -f"-$((num_pipes-2))" <<< "${line}")"
-            enabled="$(cut -d'|' -f$((num_pipes-1)) <<< "${line}")"
+            enabled="$(cut -d'|' -f"$((num_pipes-1))" <<< "${line}")"
+
+            # Translate boolean status into human readable string
             if [[ "${enabled}" -eq 1 ]]; then
                 status="enabled"
             else
