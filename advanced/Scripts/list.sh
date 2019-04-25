@@ -161,7 +161,7 @@ RemoveDomain() {
         sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE ${sqlitekey} = \"${domain}\";"
     else
         if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
+            echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
         fi
     fi
 }
