@@ -44,8 +44,6 @@ matterAndLight="${basename}.0.matterandlight.txt"
 parsedMatter="${basename}.1.parsedmatter.txt"
 preEventHorizon="list.preEventHorizon"
 
-skipDownload="false"
-
 resolver="pihole-FTL"
 
 haveSourceUrls=true
@@ -103,8 +101,6 @@ database_table_from_file() {
     generate_gravity_database
   fi
 
-  echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${source} into database"
-
   # Truncate table
   output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM ${table};"; } 2>&1 )
   status="$?"
@@ -153,21 +149,25 @@ database_table_from_file() {
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
-  if [[ -e "${whitelistFile}" ]]; then
-    # Store whitelisted domains in database
-    database_table_from_file "whitelist" "${whitelistFile}"
+  if [[ -e "${adListFile}" ]]; then
+    # Store adlists domains in database
+    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${adListFile} into database"
+    database_table_from_file "adlists" "${adListFile}"
   fi
   if [[ -e "${blacklistFile}" ]]; then
     # Store blacklisted domains in database
+    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${blacklistFile} into database"
     database_table_from_file "blacklist" "${blacklistFile}"
+  fi
+  if [[ -e "${whitelistFile}" ]]; then
+    # Store whitelisted domains in database
+    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${whitelistFile} into database"
+    database_table_from_file "whitelist" "${whitelistFile}"
   fi
   if [[ -e "${regexFile}" ]]; then
     # Store regex domains in database
+    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${regexFile} into database"
     database_table_from_file "regex" "${regexFile}"
-  fi
-  if [[ -e "${adListFile}" ]]; then
-    # Store adlists domains in database
-    database_table_from_file "adlists" "${adListFile}"
   fi
 }
 
@@ -282,11 +282,9 @@ gravity_SetDownloadOptions() {
       *) cmd_ext="";;
     esac
 
-    if [[ "${skipDownload}" == false ]]; then
-      echo -e "  ${INFO} Target: ${domain} (${url##*/})"
-      gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}"
-      echo ""
-    fi
+    echo -e "  ${INFO} Target: ${domain} (${url##*/})"
+    gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}"
+    echo ""
   done
   gravity_Blackbody=true
 }
@@ -543,55 +541,35 @@ gravity_SortAndFilterConsolidatedList() {
   if [[ "${haveSourceUrls}" == true ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
   fi
-  echo -e "  ${INFO} Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
+  echo -e "  ${INFO} Gravity pulled in ${COL_BLUE}${num}${COL_NC} domains"
 
   str="Removing duplicate domains"
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -ne "  ${INFO} ${str}..."
-  fi
-
+  echo -ne "  ${INFO} ${str}..."
   sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  echo -e "${OVER}  ${TICK} ${str}"
 
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
-    # Format $preEventHorizon line total as currency
-    num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-    echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
-  fi
+  # Format $preEventHorizon line total as currency
+  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
+  str="Storing ${COL_BLUE}${num}${COL_NC} unique blocking domains in database"
+  echo -ne "  ${INFO} ${str}..."
+  database_table_from_file "gravity" "${piholeDir}/${preEventHorizon}"
+  echo -e "${OVER}  ${TICK} ${str}"
 }
 
-# Whitelist user-defined domains
-gravity_Whitelist() {
-  local num str
-
-  if [[ ! -f "${whitelistFile}" ]]; then
-    echo -e "  ${INFO} Nothing to whitelist!"
-    return 0
-  fi
-
-  num=$(wc -l < "${whitelistFile}")
-  str="Number of whitelisted domains: ${num}"
-  echo -ne "  ${INFO} ${str}..."
-
-  echo -e "${OVER}  ${INFO} ${str}"
+# Report number of entries in a table
+gravity_Table_Count() {
+  local table="${1}"
+  local str="${2}"
+  local num
+  num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${table} WHERE enabled = 1;")"
+  echo -e "  ${INFO} Number of ${str}: ${num}"
 }
 
 # Output count of blacklisted domains and regex filters
-gravity_ShowBlockCount() {
-  local num
-
-  if [[ -f "${blacklistFile}" ]]; then
-    num=$(printf "%'.0f" "$(wc -l < "${blacklistFile}")")
-    echo -e "  ${INFO} Number of blacklisted domains: ${num}"
-  fi
-
-  if [[ -f "${regexFile}" ]]; then
-    num=$(grep -cv "^#" "${regexFile}")
-    echo -e "  ${INFO} Number of regex filters: ${num}"
-  fi
-
-  # Store regex files in gravity database
-  database_table_from_file "regex" "${regexFile}"
+gravity_ShowCount() {
+  gravity_Table_Count "blacklist" "blacklisted domains"
+  gravity_Table_Count "whitelist" "whitelisted domains"
+  gravity_Table_Count "regex" "regex filters"
 }
 
 # Parse list of domains into hosts format
@@ -611,7 +589,7 @@ gravity_ParseDomainsIntoHosts() {
 }
 
 # Create "localhost" entries into hosts format
-gravity_ParseLocalDomains() {
+gravity_generateLocalList() {
   local hostname
 
   if [[ -s "/etc/hostname" ]]; then
@@ -634,24 +612,6 @@ gravity_ParseLocalDomains() {
   if [[ -f "${VPNList}" ]]; then
     awk -F, '{printf $2"\t"$1".vpn\n"}' "${VPNList}" >> "${localList}"
   fi
-}
-
-# Create primary blacklist entries
-gravity_ParseBlacklistDomains() {
-  local output status
-
-  # Store gravity domains in gravity database
-  database_table_from_file "gravity" "${piholeDir}/${preEventHorizon}"
-}
-
-# Create user-added blacklist entries
-gravity_ParseUserDomains() {
-  if [[ ! -f "${blacklistFile}" ]]; then
-    return 0
-  fi
-
-  # Fill database table
-  database_table_from_file "blacklist" "${blacklistFile}"
 }
 
 # Trap Ctrl-C
@@ -689,7 +649,7 @@ gravity_Cleanup() {
     str="Optimizing domains database"
     echo -ne "  ${INFO} ${str}..."
     # Run VACUUM command on database to optimize it
-    output=$( { sqlite3 "${gravityDBfile}" <<< "VACUUM;"; } 2>&1 )
+    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
@@ -728,10 +688,6 @@ for var in "$@"; do
     "-f" | "--force" ) forceDelete=true;;
     "-o" | "--optimize" ) optimize_database=true;;
     "-h" | "--help" ) helpFunc;;
-    "-sd" | "--skip-download" ) skipDownload=true;;
-    "-b" | "--blacklist-only" ) listType="blacklist";;
-    "-w" | "--whitelist-only" ) listType="whitelist";;
-    "-wild" | "--wildcard-only" ) listType="wildcard"; dnsRestartType="restart";;
   esac
 done
 
@@ -749,54 +705,25 @@ if [[ "${forceDelete:-}" == true ]]; then
   echo -e "${OVER}  ${TICK} ${str}"
 fi
 
-# Determine which functions to run
-if [[ "${skipDownload}" == false ]]; then
-  # Gravity needs to download blocklists
-  gravity_CheckDNSResolutionAvailable
-  gravity_GetBlocklistUrls
-  if [[ "${haveSourceUrls}" == true ]]; then
-    gravity_SetDownloadOptions
-  fi
-  gravity_ConsolidateDownloadedBlocklists
-  gravity_SortAndFilterConsolidatedList
-else
-  # Gravity needs to modify Blacklist/Whitelist/Wildcards
-  echo -e "  ${INFO} Using cached Event Horizon list..."
-  numberOf=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} ${COL_BLUE}${numberOf}${COL_NC} unique domains trapped in the Event Horizon"
+# Gravity downloads blocklists next
+gravity_CheckDNSResolutionAvailable
+gravity_GetBlocklistUrls
+if [[ "${haveSourceUrls}" == true ]]; then
+gravity_SetDownloadOptions
 fi
+# Build preEventHorizon
+gravity_ConsolidateDownloadedBlocklists
+gravity_SortAndFilterConsolidatedList
 
-# Perform when downloading blocklists, or modifying the whitelist
-if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "whitelist" ]]; then
-  gravity_Whitelist
-fi
+# Create local.list
+gravity_generateLocalList
+gravity_ShowCount
 
-convert_wildcard_to_regex
-gravity_ShowBlockCount
-
-# Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)
-if [[ "${skipDownload}" == false ]] || [[ "${listType}" == *"list" ]]; then
-  str="Parsing domains"
-  echo -ne "  ${INFO} ${str}..."
-
-  gravity_ParseUserDomains
-
-  # Perform when downloading blocklists
-  if [[ ! "${listType:-}" == "blacklist" ]]; then
-    gravity_ParseLocalDomains
-    gravity_ParseBlacklistDomains
-  fi
-
-  echo -e "${OVER}  ${TICK} ${str}"
-
-  gravity_Cleanup
-fi
-
+gravity_Cleanup
 echo ""
 
 # Determine if DNS has been restarted by this instance of gravity
 if [[ -z "${dnsWasOffline:-}" ]]; then
-  # Use "force-reload" when restarting dnsmasq for everything but Wildcards
-  "${PIHOLE_COMMAND}" restartdns "${dnsRestartType:-force-reload}"
+  "${PIHOLE_COMMAND}" restartdns reload
 fi
 "${PIHOLE_COMMAND}" status
