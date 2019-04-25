@@ -143,7 +143,12 @@ database_table_from_file() {
   fi
 
   # Delete tmpfile
-  rm "$tmpFile" > /dev/null 2>&1 || true
+  rm "${tmpFile}" > /dev/null 2>&1 || \
+      echo -e "  ${CROSS} Unable to remove ${tmpFile}"
+
+  # Delete source file
+  rm "${source}" 2> /dev/null || \
+      echo -e "  ${CROSS} Unable to remove ${source}"
 }
 
 migrate_to_database() {
@@ -152,22 +157,18 @@ ls -lh
   if [[ -e "${whitelistFile}" ]]; then
     # Store whitelisted domains in database
     database_table_from_file "whitelist" "${whitelistFile}"
-    rm "${whitelistFile}"
   fi
   if [[ -e "${blacklistFile}" ]]; then
     # Store blacklisted domains in database
     database_table_from_file "blacklist" "${blacklistFile}"
-    rm "${blacklistFile}"
   fi
   if [[ -e "${regexFile}" ]]; then
     # Store regex domains in database
     database_table_from_file "regex" "${regexFile}"
-    rm "${regexFile}"
   fi
   if [[ -e "${adListFile}" ]]; then
     # Store adlists domains in database
     database_table_from_file "adlists" "${adListFile}"
-    rm "${adListFile}"
   fi
 }
 
