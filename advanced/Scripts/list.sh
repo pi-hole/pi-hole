@@ -11,10 +11,8 @@
 # Globals
 basename=pihole
 piholeDir=/etc/"${basename}"
-whitelist="${piholeDir}"/whitelist.txt
-blacklist="${piholeDir}"/blacklist.txt
+gravityDBfile="${piholeDir}/gravity.db"
 
-readonly regexlist="/etc/pihole/regex.list"
 reload=false
 addmode=true
 verbose=true
@@ -22,35 +20,34 @@ wildcard=false
 
 domList=()
 
-listMain=""
-listAlt=""
+listType=""
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
 
 helpFunc() {
-    if [[ "${listMain}" == "${whitelist}" ]]; then
+    if [[ "${listType}" == "whitelist" ]]; then
         param="w"
-        type="white"
-    elif [[ "${listMain}" == "${regexlist}" && "${wildcard}" == true ]]; then
+        type="whitelist"
+    elif [[ "${listType}" == "regex" && "${wildcard}" == true ]]; then
         param="-wild"
-        type="wildcard black"
-    elif [[ "${listMain}" == "${regexlist}" ]]; then
+        type="wildcard blacklist"
+    elif [[ "${listType}" == "regex" ]]; then
         param="-regex"
-        type="regex black"
+        type="regex filter"
     else
         param="b"
-        type="black"
+        type="blacklist"
     fi
 
     echo "Usage: pihole -${param} [options] <domain> <domain2 ...>
 Example: 'pihole -${param} site.com', or 'pihole -${param} site1.com site2.com'
-${type^}list one or more domains
+${type^} one or more domains
 
 Options:
-  -d, --delmode       Remove domain(s) from the ${type}list
-  -nr, --noreload     Update ${type}list without refreshing dnsmasq
+  -d, --delmode       Remove domain(s) from the ${type}
+  -nr, --noreload     Update ${type} without reloading the DNS server
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
   -l, --list          Display all your ${type}listed domains
@@ -73,7 +70,7 @@ HandleOther() {
 
     # Check validity of domain (don't check for regex entries)
     if [[ "${#domain}" -le 253 ]]; then
-        if [[ "${listMain}" == "${regexlist}" && "${wildcard}" == false ]]; then
+        if [[ "${listType}" == "regex" && "${wildcard}" == false ]]; then
             validDomain="${domain}"
         else
             validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
@@ -88,169 +85,134 @@ HandleOther() {
     fi
 }
 
-PoplistFile() {
-    # Check whitelist file exists, and if not, create it
-    if [[ ! -f "${whitelist}" ]]; then
-        touch "${whitelist}"
-    fi
-
-    # Check blacklist file exists, and if not, create it
-    if [[ ! -f "${blacklist}" ]]; then
-        touch "${blacklist}"
-    fi
-
+ProcessDomainList() {
     for dom in "${domList[@]}"; do
         # Logic: If addmode then add to desired list and remove from the other; if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
-            AddDomain "${dom}" "${listMain}"
+            AddDomain "${dom}" "${listType}"
             RemoveDomain "${dom}" "${listAlt}"
         else
-            RemoveDomain "${dom}" "${listMain}"
+            RemoveDomain "${dom}" "${listType}"
         fi
   done
 }
 
 AddDomain() {
+    local domain list listname sqlitekey num
+    domain="$1"
     list="$2"
-    domain=$(EscapeRegexp "$1")
 
-    [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
-    [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
-
-    if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
-        [[ "${list}" == "${whitelist}" && -z "${type}" ]] && type="--whitelist-only"
-        [[ "${list}" == "${blacklist}" && -z "${type}" ]] && type="--blacklist-only"
-        bool=true
-        # Is the domain in the list we want to add it to?
-        grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
-
-        if [[ "${bool}" == false ]]; then
-            # Domain not found in the whitelist file, add it!
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} Adding ${1} to ${listname}..."
-            fi
-            reload=true
-            # Add it to the list we want to add it to
-            echo "$1" >> "${list}"
-        else
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
-            fi
+    if [[ "${list}" == "regex" ]]; then
+        listname="regex filters"
+        sqlitekey="filter"
+        if [[ "${wildcard}" == true ]]; then
+            domain="(^|\\.)${domain//\./\\.}$"
         fi
-    elif [[ "${list}" == "${regexlist}" ]]; then
-        [[ -z "${type}" ]] && type="--wildcard-only"
-        bool=true
-        domain="${1}"
+    else
+        # Whitelist / Blacklist
+        listname="${list}list"
+        sqlitekey="domain"
+    fi
 
-        [[ "${wildcard}" == true ]] && domain="(^|\\.)${domain//\./\\.}$"
+    # Is the domain in the list we want to add it to?
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
 
-        # Is the domain in the list?
-        # Search only for exactly matching lines
-        grep -Fx "${domain}" "${regexlist}" > /dev/null 2>&1 || bool=false
-
-        if [[ "${bool}" == false ]]; then
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} Adding ${domain} to regex list..."
-            fi
-            reload="restart"
-            echo "$domain" >> "${regexlist}"
-        else
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} ${domain} already exists in regex list, no need to add!"
-            fi
+    if [[ "${num}" -eq 0 ]]; then
+        # Domain not found in the file, add it!
+        if [[ "${verbose}" == true ]]; then
+            echo -e "  ${INFO} Adding ${1} to ${listname}..."
+        fi
+        reload=true
+        # Add it to the list we want to add it to
+        local timestamp
+        timestamp="$(date --utc +'%s')"
+        sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (${sqlitekey},enabled,date_added) VALUES (\"${domain}\",1,${timestamp});"
+    else
+        if [[ "${verbose}" == true ]]; then
+            echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
         fi
     fi
 }
 
 RemoveDomain() {
+    local domain list listname sqlitekey num
+    domain="$1"
     list="$2"
-    domain=$(EscapeRegexp "$1")
 
-    [[ "${list}" == "${whitelist}" ]] && listname="whitelist"
-    [[ "${list}" == "${blacklist}" ]] && listname="blacklist"
-
-    if [[ "${list}" == "${whitelist}" || "${list}" == "${blacklist}" ]]; then
-        bool=true
-        [[ "${list}" == "${whitelist}" && -z "${type}" ]] && type="--whitelist-only"
-        [[ "${list}" == "${blacklist}" && -z "${type}" ]] && type="--blacklist-only"
-        # Is it in the list? Logic follows that if its whitelisted it should not be blacklisted and vice versa
-        grep -Ex -q "${domain}" "${list}" > /dev/null 2>&1 || bool=false
-        if [[ "${bool}" == true ]]; then
-            # Remove it from the other one
-            echo -e "  ${INFO} Removing $1 from ${listname}..."
-            # /I flag: search case-insensitive
-            sed -i "/${domain}/Id" "${list}"
-            reload=true
-        else
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
-            fi
+    if [[ "${list}" == "regex" ]]; then
+        listname="regex filters"
+        sqlitekey="filter"
+        if [[ "${wildcard}" == true ]]; then
+            domain="(^|\\.)${domain//\./\\.}$"
         fi
-    elif [[ "${list}" == "${regexlist}" ]]; then
-        [[ -z "${type}" ]] && type="--wildcard-only"
-        domain="${1}"
+    else
+        # Whitelist / Blacklist
+        listname="${list}list"
+        sqlitekey="domain"
+    fi
 
-        [[ "${wildcard}" == true ]] && domain="(^|\\.)${domain//\./\\.}$"
+    # Is the domain in the list we want to remove it from?
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
 
-        bool=true
-        # Is it in the list?
-        grep -Fx "${domain}" "${regexlist}" > /dev/null 2>&1 || bool=false
-        if [[ "${bool}" == true ]]; then
-            # Remove it from the other one
-            echo -e "  ${INFO} Removing $domain from regex list..."
-            local lineNumber
-            lineNumber=$(grep -Fnx "$domain" "${list}" | cut -f1 -d:)
-            sed -i "${lineNumber}d" "${list}"
-            reload=true
-        else
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} ${domain} does not exist in regex list, no need to remove!"
-            fi
+    if [[ "${num}" -ne 0 ]]; then
+        # Domain found in the file, remove it!
+        if [[ "${verbose}" == true ]]; then
+            echo -e "  ${INFO} Removing ${1} from ${listname}..."
+        fi
+        reload=true
+        # Remove it from the current list
+        local timestamp
+        timestamp="$(date --utc +'%s')"
+        sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE ${sqlitekey} = \"${domain}\";"
+    else
+        if [[ "${verbose}" == true ]]; then
+            echo -e "  ${INFO} ${1} does not exist in ${listname}, no need to remove!"
         fi
     fi
-}
-
-# Update Gravity
-Reload() {
-    echo ""
-    pihole -g --skip-download "${type:-}"
 }
 
 Displaylist() {
-    if [[ -f ${listMain} ]]; then
-        if [[ "${listMain}" == "${whitelist}" ]]; then
-            string="gravity resistant domains"
-        else
-            string="domains caught in the sinkhole"
-        fi
-        verbose=false
-        echo -e "Displaying $string:\n"
-        count=1
-        while IFS= read -r RD || [ -n "${RD}" ]; do
-            echo "  ${count}: ${RD}"
-            count=$((count+1))
-        done < "${listMain}"
+    local domain list listname count status
+
+    if [[ "${listType}" == "regex" ]]; then
+        listname="regex filters list"
     else
-        echo -e "  ${COL_LIGHT_RED}${listMain} does not exist!${COL_NC}"
+        # Whitelist / Blacklist
+        listname="${listType}"
     fi
-    exit 0;
+    data="$(sqlite3 "${gravityDBfile}" "SELECT * FROM ${listType};" 2> /dev/null)"
+
+    if [[ -z $data ]]; then
+        echo -e "Not showing empty ${listname}"
+    else
+        echo -e "Displaying ${listname}:"
+        count=1
+        while IFS= read -r line
+        do
+            domain="$(cut -d'|' -f1 <<< "${line}")"
+            enabled="$(cut -d'|' -f2 <<< "${line}")"
+            if [[ "${enabled}" -eq 1 ]]; then
+                status="enabled"
+            else
+                status="disabled"
+            fi
+            echo "  ${count}: ${domain} (${status})"
+            count=$((count+1))
+        done <<< "${data}"
+        exit 0;
+    fi
 }
 
 NukeList() {
-    if [[ -f "${listMain}" ]]; then
-        # Back up original list
-        cp "${listMain}" "${listMain}.bck~"
-        # Empty out file
-        echo "" > "${listMain}"
-    fi
+    sqlite3 "${gravityDBfile}" "DELETE FROM ${listType};"
 }
 
 for var in "$@"; do
     case "${var}" in
-        "-w" | "whitelist"   ) listMain="${whitelist}"; listAlt="${blacklist}";;
-        "-b" | "blacklist"   ) listMain="${blacklist}"; listAlt="${whitelist}";;
-        "--wild" | "wildcard" ) listMain="${regexlist}"; wildcard=true;;
-        "--regex" | "regex"   ) listMain="${regexlist}";;
+        "-w" | "whitelist"   ) listType="whitelist"; listAlt="blacklist";;
+        "-b" | "blacklist"   ) listType="blacklist"; listAlt="whitelist";;
+        "--wild" | "wildcard" ) listType="regex"; wildcard=true;;
+        "--regex" | "regex"   ) listType="regex";;
         "-nr"| "--noreload"  ) reload=false;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
@@ -267,9 +229,8 @@ if [[ $# = 0 ]]; then
     helpFunc
 fi
 
-PoplistFile
+ProcessDomainList
 
 if [[ "${reload}" != false ]]; then
-    # Ensure that "restart" is used for Wildcard updates
-    Reload "${reload}"
+    pihole restartdns reload
 fi
