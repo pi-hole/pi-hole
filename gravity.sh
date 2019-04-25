@@ -151,9 +151,8 @@ database_table_from_file() {
       echo -e "  ${CROSS} Unable to remove ${source}"
 }
 
+# Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
-ls -lh
-  # Migrate pre-v5.0 list files to database-based Pi-hole versions
   if [[ -e "${whitelistFile}" ]]; then
     # Store whitelisted domains in database
     database_table_from_file "whitelist" "${whitelistFile}"
@@ -232,15 +231,9 @@ gravity_CheckDNSResolutionAvailable() {
 gravity_GetBlocklistUrls() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
-  if [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
-    # Remove superseded $adListDefault file
-    rm "${adListDefault}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to remove ${adListDefault}"
-  fi
-
-  # Retrieve source URLs from $adListFile
-  # Logic: Remove comments and empty lines
-  mapfile -t sources <<< "$(grep -v -E "^(#|$)" "${adListFile}" 2> /dev/null)"
+  # Retrieve source URLs from gravity database
+  # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
+  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM adlists WHERE enabled = 1;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
