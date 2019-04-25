@@ -17,6 +17,7 @@ reload=false
 addmode=true
 verbose=true
 wildcard=false
+web=false
 
 domList=()
 
@@ -224,6 +225,7 @@ for var in "$@"; do
         "-h" | "--help"      ) helpFunc;;
         "-l" | "--list"      ) Displaylist;;
         "--nuke"             ) NukeList;;
+        "--web"              ) web=true;;
         *                    ) HandleOther "${var}";;
     esac
 done
@@ -235,6 +237,11 @@ if [[ $# = 0 ]]; then
 fi
 
 ProcessDomainList
+
+# Used on web interface
+if $web; then
+echo "DONE"
+fi
 
 if [[ "${reload}" != false ]]; then
     pihole restartdns reload
