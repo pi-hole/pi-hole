@@ -21,9 +21,11 @@ wildcard=false
 domList=()
 
 listType=""
+listname=""
+sqlitekey=""
 
-colfile="/opt/pihole/COL_TABLE"
-source ${colfile}
+# shellcheck source=/opt/pihole/COL_TABLE
+source "/opt/pihole/COL_TABLE"
 
 
 helpFunc() {
@@ -61,7 +63,7 @@ EscapeRegexp() {
     # string in our regular expressions
     # This sed is intentionally executed in three steps to ease maintainability
     # The first sed removes any amount of leading dots
-    echo $* | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
+    echo "$@" | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
 }
 
 HandleOther() {
@@ -86,11 +88,28 @@ HandleOther() {
 }
 
 ProcessDomainList() {
+    if [[ "${listType}" == "regex" ]]; then
+        # Regex filter list
+        listname="regex filters"
+        sqlitekey="filter"
+    else
+        # Whitelist / Blacklist
+        listname="${listType}"
+        sqlitekey="domain"
+    fi
+
     for dom in "${domList[@]}"; do
-        # Logic: If addmode then add to desired list and remove from the other; if delmode then remove from desired list but do not add to the other
+        # Format domain into regex filter if requested
+        if [[ "${wildcard}" == true ]]; then
+            dom="(^|\\.)${dom//\./\\.}$"
+        fi
+
+        # Logic: If addmode then add to desired list and remove from the other; if delmode then remove from desired list but do not add to the othe
         if ${addmode}; then
             AddDomain "${dom}" "${listType}"
-            RemoveDomain "${dom}" "${listAlt}"
+            if [[ ! "${listType}" == "regex" ]]; then
+                RemoveDomain "${dom}" "${listAlt}"
+            fi
         else
             RemoveDomain "${dom}" "${listType}"
         fi
@@ -98,21 +117,9 @@ ProcessDomainList() {
 }
 
 AddDomain() {
-    local domain list listname sqlitekey num
+    local domain list num
     domain="$1"
     list="$2"
-
-    if [[ "${list}" == "regex" ]]; then
-        listname="regex filters"
-        sqlitekey="filter"
-        if [[ "${wildcard}" == true ]]; then
-            domain="(^|\\.)${domain//\./\\.}$"
-        fi
-    else
-        # Whitelist / Blacklist
-        listname="${list}list"
-        sqlitekey="domain"
-    fi
 
     # Is the domain in the list we want to add it to?
     num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
@@ -135,21 +142,9 @@ AddDomain() {
 }
 
 RemoveDomain() {
-    local domain list listname sqlitekey num
+    local domain list num
     domain="$1"
     list="$2"
-
-    if [[ "${list}" == "regex" ]]; then
-        listname="regex filters"
-        sqlitekey="filter"
-        if [[ "${wildcard}" == true ]]; then
-            domain="(^|\\.)${domain//\./\\.}$"
-        fi
-    else
-        # Whitelist / Blacklist
-        listname="${list}list"
-        sqlitekey="domain"
-    fi
 
     # Is the domain in the list we want to remove it from?
     num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
@@ -172,7 +167,7 @@ RemoveDomain() {
 }
 
 Displaylist() {
-    local domain list listname count status
+    local list listname count num_pipes domain enabled status
 
     if [[ "${listType}" == "regex" ]]; then
         listname="regex filters list"
@@ -189,13 +184,20 @@ Displaylist() {
         count=1
         while IFS= read -r line
         do
-            domain="$(cut -d'|' -f1 <<< "${line}")"
-            enabled="$(cut -d'|' -f2 <<< "${line}")"
+            # Count number of pipes seen in this line
+            # This is necessary because we can only detect the pipe separating the fields
+            # from the end backwards as the domain (which is the first field) may contain
+            # pipe symbols as they are perfectly valid regex filter control characters
+            num_pipes="$(grep -c "^" <<< "$(grep -o "|" <<< "${line}")")"
+
+            domain="$(cut -d'|' -f"-$((num_pipes-2))" <<< "${line}")"
+            enabled="$(cut -d'|' -f$((num_pipes-1)) <<< "${line}")"
             if [[ "${enabled}" -eq 1 ]]; then
                 status="enabled"
             else
                 status="disabled"
             fi
+
             echo "  ${count}: ${domain} (${status})"
             count=$((count+1))
         done <<< "${data}"
