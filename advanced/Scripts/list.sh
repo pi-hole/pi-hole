@@ -133,15 +133,12 @@ AddDomain() {
 
     # Domain not found in the table, add it!
     if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} Adding ${1} to ${listname}..."
+        echo -e "  ${INFO} Adding ${1} to the ${listname}..."
     fi
     reload=true
-    # Add it to the list we want to add it to
-    local timestamp
-    timestamp="$(date --utc +'%s')"
-    # Insert only domain and date_added here. The enabled fields will be filled
-    # with its default value is true.
-    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (domain,date_added) VALUES (\"${domain}\",${timestamp});"
+    # Insert only the domain here. The enabled and date_added fields will be filled
+    # with their default values (enabled = true, date_added = current timestamp)
+    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (domain) VALUES (\"${domain}\");"
 }
 
 RemoveDomain() {
@@ -162,12 +159,10 @@ RemoveDomain() {
 
     # Domain found in the table, remove it!
     if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} Removing ${1} from ${listname}..."
+        echo -e "  ${INFO} Removing ${1} from the ${listname}..."
     fi
     reload=true
     # Remove it from the current list
-    local timestamp
-    timestamp="$(date --utc +'%s')"
     sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE domain = \"${domain}\";"
 }
 
@@ -195,7 +190,6 @@ Displaylist() {
             enabled="$(cut -d'|' -f"$((num_pipes-1))" <<< "${line}")"
             dateadded="$(cut -d'|' -f"$((num_pipes))" <<< "${line}")"
 
-            echo "${dateadded}"
             # Translate boolean status into human readable string
             if [[ "${enabled}" -eq 1 ]]; then
                 status="enabled"
