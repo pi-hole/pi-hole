@@ -212,8 +212,8 @@ Displaylist() {
             echo "  ${count}: ${domain} (${status}, added ${nicedate})"
             count=$((count+1))
         done <<< "${data}"
-        exit 0;
     fi
+    exit 0;
 }
 
 NukeList() {
