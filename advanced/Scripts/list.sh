@@ -175,7 +175,7 @@ RemoveDomain() {
 }
 
 Displaylist() {
-    local list listname count num_pipes domain enabled status
+    local list listname count num_pipes domain enabled status nicedate
 
     listname="${listType}"
     data="$(sqlite3 "${gravityDBfile}" "SELECT * FROM ${listType};" 2> /dev/null)"
@@ -196,7 +196,9 @@ Displaylist() {
             # Extract domain and enabled status based on the obtained number of pipe characters
             domain="$(cut -d'|' -f"-$((num_pipes-2))" <<< "${line}")"
             enabled="$(cut -d'|' -f"$((num_pipes-1))" <<< "${line}")"
+            dateadded="$(cut -d'|' -f"$((num_pipes))" <<< "${line}")"
 
+            echo "${dateadded}"
             # Translate boolean status into human readable string
             if [[ "${enabled}" -eq 1 ]]; then
                 status="enabled"
@@ -204,7 +206,10 @@ Displaylist() {
                 status="disabled"
             fi
 
-            echo "  ${count}: ${domain} (${status})"
+            # Get nice representation of numerical date stored in database
+            nicedate=$(date --rfc-2822 -d "@${dateadded}")
+
+            echo "  ${count}: ${domain} (${status}, added ${nicedate})"
             count=$((count+1))
         done <<< "${data}"
         exit 0;
