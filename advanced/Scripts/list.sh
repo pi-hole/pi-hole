@@ -23,7 +23,6 @@ domList=()
 
 listType=""
 listname=""
-sqlitekey=""
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
@@ -92,11 +91,9 @@ ProcessDomainList() {
     if [[ "${listType}" == "regex" ]]; then
         # Regex filter list
         listname="regex filters"
-        sqlitekey="filter"
     else
         # Whitelist / Blacklist
         listname="${listType}"
-        sqlitekey="domain"
     fi
 
     for dom in "${domList[@]}"; do
@@ -125,7 +122,7 @@ AddDomain() {
     list="$2"
 
     # Is the domain in the list we want to add it to?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = \"${domain}\";")"
 
     if [[ "${num}" -ne 0 ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -144,7 +141,7 @@ AddDomain() {
     timestamp="$(date --utc +'%s')"
     # Insert only domain and date_added here. The enabled fields will be filled
     # with its default value is true.
-    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (${sqlitekey},date_added) VALUES (\"${domain}\",${timestamp});"
+    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (domain,date_added) VALUES (\"${domain}\",${timestamp});"
 }
 
 RemoveDomain() {
@@ -154,7 +151,7 @@ RemoveDomain() {
     list="$2"
 
     # Is the domain in the list we want to remove it from?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = \"${domain}\";")"
 
     if [[ "${num}" -eq 0 ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -171,7 +168,7 @@ RemoveDomain() {
     # Remove it from the current list
     local timestamp
     timestamp="$(date --utc +'%s')"
-    sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE ${sqlitekey} = \"${domain}\";"
+    sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE domain = \"${domain}\";"
 }
 
 Displaylist() {
