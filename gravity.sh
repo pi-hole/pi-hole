@@ -238,7 +238,7 @@ gravity_GetBlocklistUrls() {
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
-  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM adlists WHERE enabled = 1;" 2> /dev/null)"
+  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlists;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(

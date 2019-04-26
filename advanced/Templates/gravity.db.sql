@@ -20,6 +20,10 @@ CREATE VIEW vw_whitelist AS SELECT DISTINCT a.domain
 FROM whitelist a
 WHERE a.enabled == 1;
 
-CREATE VIEW vw_regex AS SELECT DISTINCT a.filter
+CREATE VIEW vw_regex AS SELECT DISTINCT a.domain
 FROM regex a
+WHERE a.enabled == 1;
+
+CREATE VIEW vw_adlists AS SELECT DISTINCT a.address
+FROM adlists a
 WHERE a.enabled == 1;
