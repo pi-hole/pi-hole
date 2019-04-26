@@ -47,8 +47,6 @@ preEventHorizon="list.preEventHorizon"
 
 resolver="pihole-FTL"
 
-haveSourceUrls=true
-
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
 if [[ -f "${setupVars}" ]];then
@@ -255,11 +253,12 @@ gravity_GetBlocklistUrls() {
 
   if [[ -n "${sources[*]}" ]] && [[ -n "${sourceDomains[*]}" ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
+    return 0
   else
     echo -e "${OVER}  ${CROSS} ${str}"
     echo -e "  ${INFO} No source list found, or it is empty"
     echo ""
-    haveSourceUrls=false
+    return 1
   fi
 }
 
@@ -503,9 +502,7 @@ gravity_ConsolidateDownloadedBlocklists() {
   local str lastLine
 
   str="Consolidating blocklists"
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -ne "  ${INFO} ${str}..."
-  fi
+  echo -ne "  ${INFO} ${str}..."
 
   # Empty $matterAndLight if it already exists, otherwise, create it
   : > "${piholeDir}/${matterAndLight}"
@@ -524,9 +521,8 @@ gravity_ConsolidateDownloadedBlocklists() {
       fi
     fi
   done
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
-  fi
+  echo -e "${OVER}  ${TICK} ${str}"
+
 }
 
 # Parse consolidated list into (filtered, unique) domains-only format
@@ -534,18 +530,15 @@ gravity_SortAndFilterConsolidatedList() {
   local str num
 
   str="Extracting domains from blocklists"
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -ne "  ${INFO} ${str}..."
-  fi
+  echo -ne "  ${INFO} ${str}..."
 
   # Parse into file
   gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
 
   # Format $parsedMatter line total as currency
   num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
-  fi
+
+  echo -e "${OVER}  ${TICK} ${str}"
   echo -e "  ${INFO} Gravity pulled in ${COL_BLUE}${num}${COL_NC} domains"
 
   str="Removing duplicate domains"
@@ -713,12 +706,12 @@ fi
 # Gravity downloads blocklists next
 gravity_CheckDNSResolutionAvailable
 gravity_GetBlocklistUrls
-if [[ "${haveSourceUrls}" == true ]]; then
-gravity_SetDownloadOptions
+if gravity_GetBlocklistUrls; then
+  gravity_SetDownloadOptions
+  # Build preEventHorizon
+  gravity_ConsolidateDownloadedBlocklists
+  gravity_SortAndFilterConsolidatedList
 fi
-# Build preEventHorizon
-gravity_ConsolidateDownloadedBlocklists
-gravity_SortAndFilterConsolidatedList
 
 # Create local.list
 gravity_generateLocalList
