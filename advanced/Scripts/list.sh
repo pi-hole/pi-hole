@@ -105,7 +105,8 @@ ProcessDomainList() {
             dom="(^|\\.)${dom//\./\\.}$"
         fi
 
-        # Logic: If addmode then add to desired list and remove from the other; if delmode then remove from desired list but do not add to the othe
+        # Logic: If addmode then add to desired list and remove from the other;
+        # if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
             AddDomain "${dom}" "${listType}"
             if [[ ! "${listType}" == "regex" ]]; then
@@ -119,63 +120,64 @@ ProcessDomainList() {
 
 AddDomain() {
     local domain list num
-    domain="$1"
+    # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
+    domain="$(printf "%q" "$1")"
     list="$2"
 
     # Is the domain in the list we want to add it to?
     num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
 
-    if [[ "${num}" -eq 0 ]]; then
-        # Domain not found in the file, add it!
-        if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} Adding ${1} to ${listname}..."
-        fi
-        reload=true
-        # Add it to the list we want to add it to
-        local timestamp
-        timestamp="$(date --utc +'%s')"
-        sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (${sqlitekey},enabled,date_added) VALUES (\"${domain}\",1,${timestamp});"
-    else
-        if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
-        fi
+    if [[ "${num}" -ne 0 ]]; then
+      if [[ "${verbose}" == true ]]; then
+          echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
+      fi
+      return
     fi
+
+    # Domain not found in the table, add it!
+    if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} Adding ${1} to ${listname}..."
+    fi
+    reload=true
+    # Add it to the list we want to add it to
+    local timestamp
+    timestamp="$(date --utc +'%s')"
+    # Insert only domain and date_added here. The enabled fields will be filled
+    # with its default value is true.
+    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (${sqlitekey},date_added) VALUES (\"${domain}\",${timestamp});"
 }
 
 RemoveDomain() {
     local domain list num
-    domain="$1"
+    # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
+    domain="$(printf "%q" "$1")"
     list="$2"
 
     # Is the domain in the list we want to remove it from?
     num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE ${sqlitekey} = \"${domain}\";")"
 
-    if [[ "${num}" -ne 0 ]]; then
-        # Domain found in the file, remove it!
-        if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} Removing ${1} from ${listname}..."
-        fi
-        reload=true
-        # Remove it from the current list
-        local timestamp
-        timestamp="$(date --utc +'%s')"
-        sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE ${sqlitekey} = \"${domain}\";"
-    else
-        if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
-        fi
+    if [[ "${num}" -eq 0 ]]; then
+      if [[ "${verbose}" == true ]]; then
+          echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
+      fi
+      return
     fi
+
+    # Domain found in the table, remove it!
+    if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} Removing ${1} from ${listname}..."
+    fi
+    reload=true
+    # Remove it from the current list
+    local timestamp
+    timestamp="$(date --utc +'%s')"
+    sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE ${sqlitekey} = \"${domain}\";"
 }
 
 Displaylist() {
     local list listname count num_pipes domain enabled status
 
-    if [[ "${listType}" == "regex" ]]; then
-        listname="regex filters list"
-    else
-        # Whitelist / Blacklist
-        listname="${listType}"
-    fi
+    listname="${listType}"
     data="$(sqlite3 "${gravityDBfile}" "SELECT * FROM ${listType};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
