@@ -118,11 +118,11 @@ ProcessDomainList() {
 AddDomain() {
     local domain list num
     # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
-    domain="$(printf "%q" "$1")"
+    domain="$1"
     list="$2"
 
     # Is the domain in the list we want to add it to?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = \"${domain}\";")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = '${domain}';")"
 
     if [[ "${num}" -ne 0 ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -138,17 +138,17 @@ AddDomain() {
     reload=true
     # Insert only the domain here. The enabled and date_added fields will be filled
     # with their default values (enabled = true, date_added = current timestamp)
-    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (domain) VALUES (\"${domain}\");"
+    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (domain) VALUES ('${domain}');"
 }
 
 RemoveDomain() {
     local domain list num
     # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
-    domain="$(printf "%q" "$1")"
+    domain="$1"
     list="$2"
 
     # Is the domain in the list we want to remove it from?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = \"${domain}\";")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = '${domain}';")"
 
     if [[ "${num}" -eq 0 ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -163,7 +163,7 @@ RemoveDomain() {
     fi
     reload=true
     # Remove it from the current list
-    sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE domain = \"${domain}\";"
+    sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE domain = '${domain}';"
 }
 
 Displaylist() {
