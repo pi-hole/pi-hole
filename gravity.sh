@@ -20,8 +20,9 @@ source "${regexconverter}"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
-PIHOLE_USER="pihole"
-PIHOLE_GROUP="pihole"
+DATABASE_USER="pihole"
+DATABASE_GROUP="www-data"
+DATABASE_PERMISSIONS="0660"
 
 piholeDir="/etc/${basename}"
 
@@ -86,7 +87,8 @@ fi
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
   sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
-  chown $PIHOLE_USER:$PIHOLE_GROUP "${gravityDBfile}"
+  chown ${DATABASE_USER}:${DATABASE_GROUP} "${piholeDir}" "${gravityDBfile}"
+  chmod ${DATABASE_PERMISSIONS} "${piholeDir}" "${gravityDBfile}"
 }
 
 # Import domains from file and store them in the specified database table
