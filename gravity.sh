@@ -125,7 +125,10 @@ database_table_from_file() {
     # Read file line by line
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
-      echo "\"${domain}\",1,${timestamp}" >> "${tmpFile}"
+      # Only add non-empty lines
+      if [[ ! -z "${domain}" ]]; then
+        echo "\"${domain}\",1,${timestamp}" >> "${tmpFile}"
+      fi
     done
     inputfile="${tmpFile}"
   fi
