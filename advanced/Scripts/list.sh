@@ -186,9 +186,9 @@ Displaylist() {
             num_pipes="$(grep -c "^" <<< "$(grep -o "|" <<< "${line}")")"
 
             # Extract domain and enabled status based on the obtained number of pipe characters
-            domain="$(cut -d'|' -f"-$((num_pipes-2))" <<< "${line}")"
-            enabled="$(cut -d'|' -f"$((num_pipes-1))" <<< "${line}")"
-            dateadded="$(cut -d'|' -f"$((num_pipes))" <<< "${line}")"
+            domain="$(cut -d'|' -f"-$((num_pipes-3))" <<< "${line}")"
+            enabled="$(cut -d'|' -f"$((num_pipes-2))" <<< "${line}")"
+            dateadded="$(cut -d'|' -f"$((num_pipes-1))" <<< "${line}")"
 
             # Translate boolean status into human readable string
             if [[ "${enabled}" -eq 1 ]]; then
