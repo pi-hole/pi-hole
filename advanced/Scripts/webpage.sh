@@ -17,6 +17,8 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
+readonly gravityDBfile="/etc/pihole/gravity.db"
+
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
     source ${coltable}
@@ -385,19 +387,17 @@ SetWebUILayout() {
 }
 
 CustomizeAdLists() {
-    list="/etc/pihole/adlists.list"
+    local address
+    address="${args[3]}"
 
     if [[ "${args[2]}" == "enable" ]]; then
-        sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
+        sqlite3 "${gravityDBfile}" "UPDATE adlists SET enabled = 1 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "disable" ]]; then
-        sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
+        sqlite3 "${gravityDBfile}" "UPDATE adlists SET enabled = 0 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "add" ]]; then
-        if [[ $(grep -c "^${args[3]}$" "${list}") -eq 0 ]] ; then
-            echo "${args[3]}" >> ${list}
-        fi
+        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlists (address) VALUES ('${address}')"
     elif [[ "${args[2]}" == "del" ]]; then
-        var=$(echo "${args[3]}" | sed 's/\//\\\//g')
-        sed -i "/${var}/Id" "${list}"
+        sqlite3 "${gravityDBfile}" "DELETE FROM adlists WHERE address = '${address}'"
     else
         echo "Not permitted"
         return 1
