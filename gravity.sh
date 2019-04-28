@@ -89,6 +89,8 @@ database_table_from_file() {
   # Define locals
   local table="${1}"
   local source="${2}"
+  local backup_path="${piholeDir}/migration_backup"
+  local backup_file="${backup_path}/$(basename "${2}")"
 
   # Create database file if not present
   if [ ! -e "${gravityDBfile}" ]; then
@@ -140,8 +142,9 @@ database_table_from_file() {
   rm "${tmpFile}" > /dev/null 2>&1 || \
       echo -e "  ${CROSS} Unable to remove ${tmpFile}"
 
-  # Delete source file
-  rm "${source}" 2> /dev/null || \
+  # Move source file to backup directory, create directory if not existing
+  mkdir -p "${backup_path}"
+  mv "${source}" "${backup_file}" 2> /dev/null || \
       echo -e "  ${CROSS} Unable to remove ${source}"
 }
 
@@ -702,7 +705,6 @@ fi
 
 # Gravity downloads blocklists next
 gravity_CheckDNSResolutionAvailable
-gravity_GetBlocklistUrls
 if gravity_GetBlocklistUrls; then
   gravity_SetDownloadOptions
   # Build preEventHorizon
