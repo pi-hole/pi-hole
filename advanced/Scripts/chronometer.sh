@@ -444,6 +444,9 @@ get_strings() {
 }
 
 chronoFunc() {
+    local extra_arg="$1"
+    local extra_value="$2"
+
     get_init_stats
 
     for (( ; ; )); do
@@ -461,10 +464,8 @@ chronoFunc() {
         fi
 
         # Get refresh number
-        if [[ "$*" == *"-r"* ]]; then
-            num="$*"
-            num="${num/*-r /}"
-            num="${num/ */}"
+        if [[ "${extra_arg}" = "refresh" ]]; then
+            num="${extra_value}"
             num_str="Refresh set for every $num seconds"
         else
             num_str=""
@@ -473,7 +474,7 @@ chronoFunc() {
         clear
 
         # Remove exit message heading on third refresh
-        if [[ "$count" -le 2 ]] && [[ "$*" != *"-e"* ]]; then
+        if [[ "$count" -le 2 ]] && [[ "${extra_arg}" != "exit" ]]; then
             echo -e " ${COL_LIGHT_GREEN}Pi-hole Chronometer${COL_NC}
             $num_str
             ${COL_LIGHT_RED}Press Ctrl-C to exit${COL_NC}
@@ -521,10 +522,10 @@ chronoFunc() {
         fi
 
         # Handle exit/refresh options
-        if [[ "$*" == *"-e"* ]]; then
+        if [[ "${extra_arg}" == "exit" ]]; then
             exit 0
         else
-            if [[ "$*" == *"-r"* ]]; then
+            if [[ "${extra_arg}" == "refresh" ]]; then
                 sleep "$num"
             else
                 sleep 5
@@ -561,12 +562,10 @@ if [[ $# = 0 ]]; then
     chronoFunc
 fi
 
-for var in "$@"; do
-    case "$var" in
-        "-j" | "--json"    ) jsonFunc;;
-        "-h" | "--help"    ) helpFunc;;
-        "-r" | "--refresh" ) chronoFunc "$@";;
-        "-e" | "--exit"    ) chronoFunc "$@";;
-        *                  ) helpFunc "?";;
-    esac
-done
+case "$1" in
+    "-j" | "--json"    ) jsonFunc;;
+    "-h" | "--help"    ) helpFunc;;
+    "-r" | "--refresh" ) chronoFunc refresh "$2";;
+    "-e" | "--exit"    ) chronoFunc exit;;
+    *                  ) helpFunc "?";;
+esac
