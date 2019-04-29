@@ -122,7 +122,7 @@ database_table_from_file() {
     do
       # Only add non-empty lines
       if [[ ! -z "${domain}" ]]; then
-        echo "\"${domain}\",1,${timestamp}" >> "${tmpFile}"
+        echo "\"${domain}\",1,${timestamp},${timestamp}" >> "${tmpFile}"
       fi
     done
     inputfile="${tmpFile}"
@@ -145,7 +145,7 @@ database_table_from_file() {
   # Move source file to backup directory, create directory if not existing
   mkdir -p "${backup_path}"
   mv "${source}" "${backup_file}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to remove ${source}"
+      echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
 }
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
