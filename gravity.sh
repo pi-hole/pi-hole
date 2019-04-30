@@ -485,6 +485,7 @@ gravity_SortAndFilterConsolidatedList() {
   fi
 
   sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  chmod a+r "${piholeDir}/${preEventHorizon}"
 
   if [[ "${haveSourceUrls}" == true ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
@@ -509,6 +510,7 @@ gravity_Whitelist() {
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
   comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
+  chmod a+r "${piholeDir}/${whitelistMatter}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
@@ -561,6 +563,7 @@ gravity_ParseLocalDomains() {
 
   # Empty $localList if it already exists, otherwise, create it
   : > "${localList}"
+  chmod a+r "${localList}"
 
   gravity_ParseDomainsIntoHosts "${localList}.tmp" "${localList}"
 
@@ -581,8 +584,9 @@ gravity_ParseBlacklistDomains() {
     mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    cp -p "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
   fi
+  chmod a+r "${piholeDir}/${accretionDisc}"
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
   output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
@@ -592,6 +596,7 @@ gravity_ParseBlacklistDomains() {
     echo -e "\\n  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
     gravity_Cleanup "error"
   fi
+  chmod a+r "${adList}"
 }
 
 # Create user-added blacklist entries
@@ -602,6 +607,7 @@ gravity_ParseUserDomains() {
   # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
   cp "${blacklistFile}" "${blackList}" 2> /dev/null || \
     echo -e "\\n  ${CROSS} Unable to move ${blacklistFile##*/} to ${piholeDir}"
+  chmod a+r "${blackList}"
 }
 
 # Trap Ctrl-C

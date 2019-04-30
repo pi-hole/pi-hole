@@ -194,7 +194,7 @@ if is_command apt-get ; then
             exit # exit the installer
         else
             printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
-            cp ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
+            cp -p ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
             printf "  %b Backed up current configuration to %s\\n" "${TICK}" "${APT_SOURCES}.backup"
             add-apt-repository universe
             printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
@@ -847,7 +847,7 @@ setIFCFG() {
         # Put the IP in variables without the CIDR notation
         printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
         # Backup existing interface configuration:
-        cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
+        cp -p "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
         # Build Interface configuration file using the GLOBAL variables we have
         {
         echo "# Configured via Pi-hole installer"
@@ -1241,7 +1241,8 @@ version_check_dnsmasq() {
             printf "%b  %b Backing up dnsmasq.conf to dnsmasq.conf.orig...\\n" "${OVER}"  "${TICK}"
             printf "  %b Restoring default dnsmasq.conf..." "${INFO}"
             # and replace it with the default
-            cp ${dnsmasq_original_config} ${dnsmasq_conf}
+            cp -p ${dnsmasq_original_config} ${dnsmasq_conf}
+            chmod a+r ${dnsmasq_conf}
             printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
         # Otherwise,
         else
@@ -1252,7 +1253,7 @@ version_check_dnsmasq() {
         # If a file cannot be found,
         printf "  %b No dnsmasq.conf found... restoring default dnsmasq.conf..." "${INFO}"
         # restore the default one
-        cp ${dnsmasq_original_config} ${dnsmasq_conf}
+        cp -p ${dnsmasq_original_config} ${dnsmasq_conf}
         printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
     fi
 
@@ -1260,9 +1261,11 @@ version_check_dnsmasq() {
     # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
     if [[ ! -d "/etc/dnsmasq.d"  ]];then
         mkdir "/etc/dnsmasq.d"
+        chmod 755 "/etc/dnsmasq.d"
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
     cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
+    chmod a+r ${dnsmasq_pihole_01_location}
     printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
     # First, swap in the interface to listen on
@@ -1382,6 +1385,7 @@ installConfigs() {
             mkdir /etc/lighttpd
             # and set the owners
             chown "${USER}":root /etc/lighttpd
+            chmod 755 /etc/lighttpd
         # Otherwise, if the config file already exists
         elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
             # back up the original
@@ -1389,8 +1393,10 @@ installConfigs() {
         fi
         # and copy in the config file Pi-hole needs
         cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+        chmod a+r /etc/lighttpd/lighttpd.conf
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
+        chmod a+r /etc/lighttpd/external.conf
         # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
@@ -1422,15 +1428,26 @@ install_manpage() {
     if [[ ! -d "/usr/local/share/man/man8" ]]; then
         # if not present, create man8 directory
         mkdir /usr/local/share/man/man8
+        chown root:staff /usr/local/share/man/man8
+        chmod a+r /usr/local/share/man/man8
+        chmod a+x /usr/local/share/man/man8
+        chmod g+s /usr/local/share/man/man8
     fi
     if [[ ! -d "/usr/local/share/man/man5" ]]; then
-        # if not present, create man8 directory
+        # if not present, create man5 directory
         mkdir /usr/local/share/man/man5
+        chown root:staff /usr/local/share/man/man5
+        chmod a+r /usr/local/share/man/man5
+        chmod a+x /usr/local/share/man/man5
+        chmod g+s /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
     cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    chmod a+r /usr/local/share/man/man8/pihole.8
     cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
+    chmod a+r /usr/local/share/man/man8/pihole-FTL.8
     cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
+    chmod a+r /usr/local/share/man/man5/pihole-FTL.conf.5
     if mandb -q &>/dev/null; then
         # Updated successfully
         printf "%b  %b man pages installed and database updated\\n" "${OVER}" "${TICK}"
@@ -1711,6 +1728,9 @@ installCron() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
     cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    # File must not be world or group writeable and must be owned by root
+    chmod 644 /etc/cron.d/pihole
+    chown root:root /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1818,6 +1838,7 @@ finalExports() {
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
+    chmod 744 "${setupVars}"
 
     # Set the privacy level
     sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
@@ -1841,6 +1862,7 @@ installLogrotate() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the file over from the local repo
     cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
+    chmod a+r /etc/pihole/logrotate
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -2431,6 +2453,7 @@ copy_to_install_log() {
     # Copy the contents of file descriptor 3 into the install log
     # Since we use color codes such as '\e[1;33m', they should be removed
     sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
+    chmod a+r "${installLogLoc}"
 }
 
 main() {
@@ -2516,6 +2539,8 @@ main() {
         welcomeDialogs
         # Create directory for Pi-hole storage
         mkdir -p /etc/pihole/
+        chmod a+r /ect/pihole/
+        chmod a+x /etc/pihole/
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one

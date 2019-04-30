@@ -90,6 +90,7 @@ checkout() {
         local path
         path="development/${binary}"
         echo "development" > /etc/pihole/ftlbranch
+        chmod a+r /etc/pihole/ftlbranch
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
@@ -104,6 +105,7 @@ checkout() {
         local path
         path="master/${binary}"
         echo "master" > /etc/pihole/ftlbranch
+        chmod a+r /etc/pihole/ftlbranch
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
@@ -166,6 +168,7 @@ checkout() {
         if check_download_exists "$path"; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
+            chmod a+r /etc/pihole/ftlbranch
             FTLinstall "${binary}"
             restart_service pihole-FTL
             enable_service pihole-FTL
