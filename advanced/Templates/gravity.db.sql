@@ -17,7 +17,7 @@ CREATE VIEW vw_whitelist AS SELECT a.domain
 CREATE TRIGGER tr_whitelist_update AFTER UPDATE ON whitelist
     BEGIN
       UPDATE whitelist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
-     END;
+    END;
 
 CREATE VIEW vw_blacklist AS SELECT a.domain
     FROM blacklist a
@@ -25,7 +25,7 @@ CREATE VIEW vw_blacklist AS SELECT a.domain
 CREATE TRIGGER tr_blacklist_update AFTER UPDATE ON blacklist
     BEGIN
       UPDATE blacklist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
-     END;
+    END;
 
 CREATE VIEW vw_regex AS SELECT a.domain
     FROM regex a
@@ -33,7 +33,7 @@ CREATE VIEW vw_regex AS SELECT a.domain
 CREATE TRIGGER tr_regex_update AFTER UPDATE ON regex
     BEGIN
       UPDATE regex SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
-     END;
+    END;
 
 CREATE VIEW vw_adlists AS SELECT a.address
     FROM adlists a
@@ -41,5 +41,5 @@ CREATE VIEW vw_adlists AS SELECT a.address
 CREATE TRIGGER tr_adlists_update AFTER UPDATE ON adlists
     BEGIN
       UPDATE adlists SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
-     END;
+    END;
 
