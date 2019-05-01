@@ -36,11 +36,11 @@ CREATE TABLE adlists
 );
 CREATE TABLE gravity
 (
-	domain TEXT UNIQUE NOT NULL
+	domain TEXT UNIQUE PRIMARY KEY
 );
 CREATE TABLE info
 (
-	property TEXT NOT NULL,
+	property TEXT PRIMARY KEY,
 	value TEXT NOT NULL
 );
 
