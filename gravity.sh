@@ -87,10 +87,11 @@ generate_gravity_database() {
 # Import domains from file and store them in the specified database table
 database_table_from_file() {
   # Define locals
-  local table="${1}"
-  local source="${2}"
-  local backup_path="${piholeDir}/migration_backup"
-  local backup_file="${backup_path}/$(basename "${2}")"
+  local table source backup_path backup_file
+  table="${1}"
+  source="${2}"
+  backup_path="${piholeDir}/migration_backup"
+  backup_file="${backup_path}/$(basename "${2}")"
 
   # Create database file if not present
   if [ ! -e "${gravityDBfile}" ]; then

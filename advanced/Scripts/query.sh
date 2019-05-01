@@ -180,7 +180,7 @@ if [[ -z "${exact}" ]]; then
 fi
 
 # Get adlist file content as array
-if [[ -n "${blockpage}" ]]; then
+if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
     # Retrieve source URLs from gravity database
     mapfile -t adlists <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlists;" 2> /dev/null)"
 fi
