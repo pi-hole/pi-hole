@@ -149,32 +149,34 @@ database_table_from_file() {
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
-  # Create database file if not present
-  if [ ! -e "${gravityDBfile}" ]; then
-    echo -e "  ${INFO} Creating new gravity database"
-    generate_gravity_database
+  # Create database file only if not present
+  if [ -e "${gravityDBfile}" ]; then
+    return 0
+  fi
 
-    # Migrate list files to new database
-    if [[ -e "${adListFile}" ]]; then
-      # Store adlists domains in database
-      echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
-      database_table_from_file "adlists" "${adListFile}"
-    fi
-    if [[ -e "${blacklistFile}" ]]; then
-      # Store blacklisted domains in database
-      echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
-      database_table_from_file "blacklist" "${blacklistFile}"
-    fi
-    if [[ -e "${whitelistFile}" ]]; then
-      # Store whitelisted domains in database
-      echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
-      database_table_from_file "whitelist" "${whitelistFile}"
-    fi
-    if [[ -e "${regexFile}" ]]; then
-      # Store regex domains in database
-      echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
-      database_table_from_file "regex" "${regexFile}"
-    fi
+  echo -e "  ${INFO} Creating new gravity database"
+  generate_gravity_database
+
+  # Migrate list files to new database
+  if [[ -e "${adListFile}" ]]; then
+    # Store adlists domains in database
+    echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
+    database_table_from_file "adlists" "${adListFile}"
+  fi
+  if [[ -e "${blacklistFile}" ]]; then
+    # Store blacklisted domains in database
+    echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
+    database_table_from_file "blacklist" "${blacklistFile}"
+  fi
+  if [[ -e "${whitelistFile}" ]]; then
+    # Store whitelisted domains in database
+    echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
+    database_table_from_file "whitelist" "${whitelistFile}"
+  fi
+  if [[ -e "${regexFile}" ]]; then
+    # Store regex domains in database
+    echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
+    database_table_from_file "regex" "${regexFile}"
   fi
 }
 
