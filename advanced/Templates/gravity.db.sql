@@ -36,7 +36,7 @@ CREATE TABLE adlists
 );
 CREATE TABLE gravity
 (
-	domain TEXT UNIQUE PRIMARY KEY
+	domain TEXT PRIMARY KEY
 );
 CREATE TABLE info
 (
