@@ -92,13 +92,13 @@ PoplistFile() {
     # Check whitelist file exists, and if not, create it
     if [[ ! -f "${whitelist}" ]]; then
         touch "${whitelist}"
-        chmod a+r "${whitelist}"
+        chmod 644 "${whitelist}"
     fi
 
     # Check blacklist file exists, and if not, create it
     if [[ ! -f "${blacklist}" ]]; then
         touch "${blacklist}"
-        chmod a+r "${blacklist}"
+        chmod 644 "${blacklist}"
     fi
 
     for dom in "${domList[@]}"; do
@@ -244,7 +244,7 @@ NukeList() {
         cp -p "${listMain}" "${listMain}.bck~"
         # Empty out file
         echo "" > "${listMain}"
-        chmod a+r "${listMain}"
+        chmod 644 "${listMain}"
     fi
 }
 

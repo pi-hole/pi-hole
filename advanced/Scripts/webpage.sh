@@ -322,7 +322,7 @@ dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 #quiet-dhcp
 " > "${dhcpconfig}"
-    chmod a+r "${dhcpconfig}"
+    chmod 644 "${dhcpconfig}"
 
     if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
@@ -542,13 +542,13 @@ addAudit()
     do
         echo "${var}" >> /etc/pihole/auditlog.list
     done
-    chmod a+r /etc/pihole/auditlog.list
+    chmod 644 /etc/pihole/auditlog.list
 }
 
 clearAudit()
 {
     echo -n "" > /etc/pihole/auditlog.list
-    chmod a+r /etc/pihole/auditlog.list
+    chmod 644 /etc/pihole/auditlog.list
 }
 
 SetPrivacyLevel() {

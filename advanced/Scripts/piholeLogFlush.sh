@@ -41,7 +41,7 @@ if [[ "$@" == *"once"* ]]; then
         # moved file (it will have the same file handler)
         cp -p /var/log/pihole.log /var/log/pihole.log.1
         echo " " > /var/log/pihole.log
-        chmod a+r /var/log/pihole.log
+        chmod 644 /var/log/pihole.log
     fi
 else
     # Manual flushing
@@ -54,7 +54,7 @@ else
         echo " " > /var/log/pihole.log
         if [ -f /var/log/pihole.log.1 ]; then
             echo " " > /var/log/pihole.log.1
-            chmod a+r /var/log/pihole.log.1
+            chmod 644 /var/log/pihole.log.1
         fi
     fi
     # Delete most recent 24 hours from FTL's database, leave even older data intact (don't wipe out all history)
