@@ -93,12 +93,6 @@ database_table_from_file() {
   backup_path="${piholeDir}/migration_backup"
   backup_file="${backup_path}/$(basename "${2}")"
 
-  # Create database file if not present
-  if [ ! -e "${gravityDBfile}" ]; then
-    echo -e "  ${INFO} Creating new gravity database"
-    generate_gravity_database
-  fi
-
   # Truncate table
   output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM ${table};"; } 2>&1 )
   status="$?"
@@ -155,25 +149,32 @@ database_table_from_file() {
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
-  if [[ -e "${adListFile}" ]]; then
-    # Store adlists domains in database
-    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${adListFile} into database"
-    database_table_from_file "adlists" "${adListFile}"
-  fi
-  if [[ -e "${blacklistFile}" ]]; then
-    # Store blacklisted domains in database
-    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${blacklistFile} into database"
-    database_table_from_file "blacklist" "${blacklistFile}"
-  fi
-  if [[ -e "${whitelistFile}" ]]; then
-    # Store whitelisted domains in database
-    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${whitelistFile} into database"
-    database_table_from_file "whitelist" "${whitelistFile}"
-  fi
-  if [[ -e "${regexFile}" ]]; then
-    # Store regex domains in database
-    echo -e "  ${INFO} Pi-hole upgrade: Moving content of ${regexFile} into database"
-    database_table_from_file "regex" "${regexFile}"
+  # Create database file if not present
+  if [ ! -e "${gravityDBfile}" ]; then
+    echo -e "  ${INFO} Creating new gravity database"
+    generate_gravity_database
+
+    # Migrate list files to new database
+    if [[ -e "${adListFile}" ]]; then
+      # Store adlists domains in database
+      echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
+      database_table_from_file "adlists" "${adListFile}"
+    fi
+    if [[ -e "${blacklistFile}" ]]; then
+      # Store blacklisted domains in database
+      echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
+      database_table_from_file "blacklist" "${blacklistFile}"
+    fi
+    if [[ -e "${whitelistFile}" ]]; then
+      # Store whitelisted domains in database
+      echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
+      database_table_from_file "whitelist" "${whitelistFile}"
+    fi
+    if [[ -e "${regexFile}" ]]; then
+      # Store regex domains in database
+      echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
+      database_table_from_file "regex" "${regexFile}"
+    fi
   fi
 }
 
