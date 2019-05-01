@@ -11,7 +11,7 @@
 
 # Globals
 piholeDir="/etc/pihole"
-adListsList="$piholeDir/adlists.list"
+gravityDBfile="${piholeDir}/gravity.db"
 wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
 options="$*"
 adlist=""
@@ -71,11 +71,6 @@ Options:
   -all                Return all query matches within a block list
   -h, --help          Show this help dialog"
   exit 0
-fi
-
-if [[ ! -e "$adListsList" ]]; then
-    echo -e "${COL_LIGHT_RED}The file $adListsList was not found${COL_NC}"
-    exit 1
 fi
 
 # Handle valid options
@@ -185,12 +180,9 @@ if [[ -z "${exact}" ]]; then
 fi
 
 # Get adlist file content as array
-if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-    for adlistUrl in $(< "${adListsList}"); do
-        if [[ "${adlistUrl:0:4}" =~ (http|www.) ]]; then
-            adlists+=("${adlistUrl}")
-        fi
-    done
+if [[ -n "${blockpage}" ]]; then
+    # Retrieve source URLs from gravity database
+    mapfile -t adlists <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlists;" 2> /dev/null)"
 fi
 
 # Print "Exact matches for" title
