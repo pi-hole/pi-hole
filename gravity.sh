@@ -126,7 +126,7 @@ database_table_from_file() {
     do
       # Only add non-empty lines
       if [[ ! -z "${domain}" ]]; then
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp}" >> "${tmpFile}"
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
         rowid+=1
       fi
     done
