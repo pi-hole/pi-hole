@@ -1,29 +1,48 @@
-CREATE TABLE whitelist (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        domain TEXT UNIQUE NOT NULL,
-                        enabled BOOLEAN NOT NULL DEFAULT 1,
-                        date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        comment TEXT);
-CREATE TABLE blacklist (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        domain TEXT UNIQUE NOT NULL,
-                        enabled BOOLEAN NOT NULL DEFAULT 1,
-                        date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        comment TEXT);
-CREATE TABLE regex     (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        domain TEXT UNIQUE NOT NULL,
-                        enabled BOOLEAN NOT NULL DEFAULT 1,
-                        date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        comment TEXT);
-CREATE TABLE adlists   (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        address TEXT UNIQUE NOT NULL,
-                        enabled BOOLEAN NOT NULL DEFAULT 1,
-                        date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-                        comment TEXT);
-CREATE TABLE gravity   (domain TEXT UNIQUE NOT NULL);
-CREATE TABLE info      (property TEXT NOT NULL, value TEXT NOT NULL);
+CREATE TABLE whitelist
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	domain TEXT UNIQUE NOT NULL,
+	enabled BOOLEAN NOT NULL DEFAULT 1,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	comment TEXT
+);
+CREATE TABLE blacklist
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	domain TEXT UNIQUE NOT NULL,
+	enabled BOOLEAN NOT NULL DEFAULT 1,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	comment TEXT
+);
+CREATE TABLE regex
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	domain TEXT UNIQUE NOT NULL,
+	enabled BOOLEAN NOT NULL DEFAULT 1,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	comment TEXT
+);
+CREATE TABLE adlists
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	address TEXT UNIQUE NOT NULL,
+	enabled BOOLEAN NOT NULL DEFAULT 1,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	comment TEXT
+);
+CREATE TABLE gravity
+(
+	domain TEXT UNIQUE NOT NULL
+);
+CREATE TABLE info
+(
+	property TEXT NOT NULL,
+	value TEXT NOT NULL
+);
 
 INSERT INTO info VALUES("version","1");
 
