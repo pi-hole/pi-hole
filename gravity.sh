@@ -118,12 +118,16 @@ database_table_from_file() {
     inputfile="${source}"
   else
     # Apply format for white-, blacklist, regex, and adlists tables
+    local rowid
+    declare -i rowid
+    rowid=1
     # Read file line by line
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
       # Only add non-empty lines
       if [[ ! -z "${domain}" ]]; then
-        echo "\"${domain}\",1,${timestamp},${timestamp}" >> "${tmpFile}"
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp}" >> "${tmpFile}"
+        rowid+=1
       fi
     done
     inputfile="${tmpFile}"
