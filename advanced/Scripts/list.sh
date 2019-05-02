@@ -170,7 +170,7 @@ Displaylist() {
     local list listname count num_pipes domain enabled status nicedate
 
     listname="${listType}"
-    data="$(sqlite3 "${gravityDBfile}" "SELECT * FROM ${listType};" 2> /dev/null)"
+    data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM ${listType};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
         echo -e "Not showing empty ${listname}"
@@ -186,9 +186,9 @@ Displaylist() {
             num_pipes="$(grep -c "^" <<< "$(grep -o "|" <<< "${line}")")"
 
             # Extract domain and enabled status based on the obtained number of pipe characters
-            domain="$(cut -d'|' -f"-$((num_pipes-3))" <<< "${line}")"
-            enabled="$(cut -d'|' -f"$((num_pipes-2))" <<< "${line}")"
-            dateadded="$(cut -d'|' -f"$((num_pipes-1))" <<< "${line}")"
+            domain="$(cut -d'|' -f"-$((num_pipes-1))" <<< "${line}")"
+            enabled="$(cut -d'|' -f"$((num_pipes))" <<< "${line}")"
+            datemod="$(cut -d'|' -f"$((num_pipes+1))" <<< "${line}")"
 
             # Translate boolean status into human readable string
             if [[ "${enabled}" -eq 1 ]]; then
@@ -198,9 +198,9 @@ Displaylist() {
             fi
 
             # Get nice representation of numerical date stored in database
-            nicedate=$(date --rfc-2822 -d "@${dateadded}")
+            nicedate=$(date --rfc-2822 -d "@${datemod}")
 
-            echo "  ${count}: ${domain} (${status}, added ${nicedate})"
+            echo "  ${count}: ${domain} (${status}, last modified ${nicedate})"
             count=$((count+1))
         done <<< "${data}"
     fi
