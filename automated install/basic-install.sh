@@ -414,6 +414,8 @@ make_repo() {
     fi
     # Clone the repo and return the return code from this command
     git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+r "${directory}"
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Always return 0? Not sure this is correct
@@ -447,6 +449,8 @@ update_repo() {
     git pull --quiet &> /dev/null || return $?
     # Show a completion message
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+r "${directory}"
     # Move back into the original directory
     cd "${curdir}" &> /dev/null || return 1
     return 0
@@ -494,6 +498,8 @@ resetRepo() {
     printf "  %b %s..." "${INFO}" "${str}"
     # Use git to remove the local changes
     git reset --hard &> /dev/null || return $?
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+r "${directory}"
     # And show the status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Returning success anyway?
@@ -1241,8 +1247,7 @@ version_check_dnsmasq() {
             printf "%b  %b Backing up dnsmasq.conf to dnsmasq.conf.orig...\\n" "${OVER}"  "${TICK}"
             printf "  %b Restoring default dnsmasq.conf..." "${INFO}"
             # and replace it with the default
-            cp -p ${dnsmasq_original_config} ${dnsmasq_conf}
-            chmod 644 ${dnsmasq_conf}
+            install -D -m 644 -T ${dnsmasq_original_config} ${dnsmasq_conf}
             printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
         # Otherwise,
         else
@@ -1253,19 +1258,17 @@ version_check_dnsmasq() {
         # If a file cannot be found,
         printf "  %b No dnsmasq.conf found... restoring default dnsmasq.conf..." "${INFO}"
         # restore the default one
-        cp -p ${dnsmasq_original_config} ${dnsmasq_conf}
+        install -D -m 644 -T ${dnsmasq_original_config} ${dnsmasq_conf}
         printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
     fi
 
     printf "  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..." "${INFO}"
     # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
     if [[ ! -d "/etc/dnsmasq.d"  ]];then
-        mkdir "/etc/dnsmasq.d"
-        chmod 755 "/etc/dnsmasq.d"
+        install -d -m 755 "/etc/dnsmasq.d"
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
-    chmod 644 ${dnsmasq_pihole_01_location}
+    install -D -m 644 -T ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
     printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
     # First, swap in the interface to listen on
@@ -1381,19 +1384,15 @@ installConfigs() {
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
         if [[ ! -d "/etc/lighttpd" ]]; then
-            # make it
-            mkdir /etc/lighttpd
-            # and set the owners
-            chown "${USER}":root /etc/lighttpd
-            chmod 755 /etc/lighttpd
+            # make it and set the owners
+            install -d -m 755 -o "${USER}" -g root /etc/lighttpd
         # Otherwise, if the config file already exists
         elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
             # back up the original
             mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
         fi
         # and copy in the config file Pi-hole needs
-        cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
-        chmod 644 /etc/lighttpd/lighttpd.conf
+        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
         chmod 644 /etc/lighttpd/external.conf
@@ -1427,21 +1426,16 @@ install_manpage() {
     fi
     if [[ ! -d "/usr/local/share/man/man8" ]]; then
         # if not present, create man8 directory
-        mkdir /usr/local/share/man/man8
-        chmod 755 /usr/local/share/man/man8
+        install -d -m 755 /usr/local/share/man/man8
     fi
     if [[ ! -d "/usr/local/share/man/man5" ]]; then
         # if not present, create man5 directory
-        mkdir /usr/local/share/man/man5
-        chmod 755 /usr/local/share/man/man5
+        install -d -m 755 /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
-    cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
-    chmod 644 /usr/local/share/man/man8/pihole.8
-    cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
-    chmod 644 /usr/local/share/man/man8/pihole-FTL.8
-    cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
-    chmod 644 /usr/local/share/man/man5/pihole-FTL.conf.5
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
     if mandb -q &>/dev/null; then
         # Updated successfully
         printf "%b  %b man pages installed and database updated\\n" "${OVER}" "${TICK}"
@@ -1671,7 +1665,7 @@ installPiholeWeb() {
     # Install the directory
     install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
     # and the blockpage
-    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
 
     # Remove superseded file
     if [[ -e "${PI_HOLE_BLOCKPAGE_DIR}/index.js" ]]; then
@@ -1721,10 +1715,8 @@ installCron() {
     local str="Installing latest Cron script"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # File must not be world or group writeable and must be owned by root
-    chmod 644 /etc/cron.d/pihole
-    chown root:root /etc/cron.d/pihole
+    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1855,8 +1847,7 @@ installLogrotate() {
     local str="Installing latest logrotate script"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
-    chmod 644 /etc/pihole/logrotate
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -2120,6 +2111,8 @@ checkout_pull_branch() {
     printf "  %b %s" "${INFO}" "$str"
     git checkout "${branch}" --quiet || return 1
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+r "${directory}"
 
     git_pull=$(git pull || return 1)
 
@@ -2532,8 +2525,7 @@ main() {
         # Display welcome dialogs
         welcomeDialogs
         # Create directory for Pi-hole storage
-        mkdir -p /etc/pihole/
-        chmod 755 /ect/pihole/
+        install -d -m 755 /etc/pihole/
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one
