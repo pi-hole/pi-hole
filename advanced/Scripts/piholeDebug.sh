@@ -1180,7 +1180,7 @@ upload_to_tricorder() {
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
         # and then decide again which tool to use to submit it
-        tricorder_use_nc_or_ssl
+        tricorder_use_nc_or_curl
         # If we're not running in automated mode,
     else
         echo ""
@@ -1189,7 +1189,7 @@ upload_to_tricorder() {
         read -r -p "[?] Would you like to upload the log? [y/N] " response
         case ${response} in
             # If they say yes, run our function for uploading the log
-            [yY][eE][sS]|[yY]) tricorder_use_nc_or_ssl;;
+            [yY][eE][sS]|[yY]) tricorder_use_nc_or_curl;;
             # If they choose no, just exit out of the script
             *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.";exit;
         esac
