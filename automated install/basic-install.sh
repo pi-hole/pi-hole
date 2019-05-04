@@ -1366,6 +1366,7 @@ installConfigs() {
     # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
     # Some values may be empty (for example: DNS servers without IPv6 support)
     echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
+    chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
     # Install empty file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
@@ -1692,7 +1693,7 @@ installPiholeWeb() {
     local str="Installing sudoer file"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Make the .d directory if it doesn't exist
-    mkdir -p /etc/sudoers.d/
+    install -d -m 755 /etc/sudoers.d/
     # and copy in the pihole sudoers file
     install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
@@ -2259,6 +2260,7 @@ disable_dnsmasq() {
     fi
     # Create /etc/dnsmasq.conf
     echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
+    chmod 644 "${conffile}"
 }
 
 get_binary_name() {
