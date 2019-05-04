@@ -114,7 +114,7 @@ scanDatabaseTable() {
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     case "${type}" in
         "exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
-        *       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\'";;
+        *       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
     esac
 
     # Send prepared query to gravity database
