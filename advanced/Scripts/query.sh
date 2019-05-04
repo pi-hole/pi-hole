@@ -108,10 +108,10 @@ scanDatabaseTable() {
     table="${2}"
     type="${3:-}"
 
-    # As underscores are legitimate parts of domains, we escape possible them when using the LIKE operator.
-    # Underscores are a SQLite wildcard matching exactly one character. We obviously want to suppress this
+    # As underscores are legitimate parts of domains, we escape them when using the LIKE operator.
+    # Underscores are SQLite wildcards matching exactly one character. We obviously want to suppress this
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
-    # as a literal underscore character.
+    # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     case "${type}" in
         "exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
         *       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\'";;
@@ -120,13 +120,14 @@ scanDatabaseTable() {
     # Send prepared query to gravity database
     result="$(sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
     if [[ -z "${result}" ]]; then
-        # Return early when we have no results
+        # Return early when there are no matches in this table
         return
     fi
 
+    # Mark domain as having been white-/blacklist matched (global variable)
     wbMatch=true
-    mapfile -t results <<< "${result}"
     # Loop through each result
+    mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
         if [[ -n "${blockpage}" ]]; then
             echo "π ${result}"
