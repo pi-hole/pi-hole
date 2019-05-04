@@ -104,7 +104,7 @@ fi
 
 scanDatabaseTable() {
     local domain table type querystr result table_prev
-    domain="${1}"
+    domain="$(printf "%q" "${1}")"
     table="${2}"
     type="${3:-}"
 
