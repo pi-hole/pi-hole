@@ -103,7 +103,7 @@ if [[ -n "${str:-}" ]]; then
 fi
 
 scanDatabaseTable() {
-    local domain table type querystr result
+    local domain table type querystr result table_prev
     domain="${1}"
     table="${2}"
     type="${3:-}"
@@ -119,35 +119,29 @@ scanDatabaseTable() {
 
     # Send prepared query to gravity database
     result="$(sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
-    if [[ -n "${result}" ]]; then
-        # Prepend listname (separated by a colon) if we found at least one result
-        # and output result
-        results="$(sed "s/^/${table}:/g;" <<< "${result}")"
-    else
-        # Output empty string as the database query didn't return any result
+    if [[ -z "${result}" ]]; then
+        # Return early when we have no results
         return
     fi
-    mapfile -t results <<< "${results}"
-    if [[ -n "${results[*]}" ]]; then
-        wbMatch=true
-        # Loop through each result in order to print unique file title once
-        for result in "${results[@]}"; do
-            fileName="${result%%:*}"
-            if [[ -n "${blockpage}" ]]; then
-                echo "π ${result}"
-                exit 0
-            elif [[ -n "${exact}" ]]; then
-                echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
-            else
-                # Only print filename title once per file
-                if [[ ! "${fileName}" == "${fileName_prev:-}" ]]; then
-                    echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
-                    fileName_prev="${fileName}"
-                fi
-            echo "   ${result#*:}"
+
+    wbMatch=true
+    mapfile -t results <<< "${result}"
+    # Loop through each result
+    for result in "${results[@]}"; do
+        if [[ -n "${blockpage}" ]]; then
+            echo "π ${result}"
+            exit 0
+        elif [[ -n "${exact}" ]]; then
+            echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+        else
+            # Only print table name once
+            if [[ ! "${table}" == "${table_prev:-}" ]]; then
+                echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+                table_prev="${table}"
             fi
-        done
-    fi
+        echo "   ${result}"
+        fi
+    done
 }
 
 # Scan Whitelist and Blacklist
