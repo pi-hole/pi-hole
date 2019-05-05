@@ -867,6 +867,8 @@ setIFCFG() {
         echo "DNS2=$PIHOLE_DNS_2"
         echo "USERCTL=no"
         }> "${IFCFG_FILE}"
+        chmod 644 "${IFCFG_FILE}"
+        chown root:root "${IFCFG_FILE}"
         # Use ip to immediately set the new address
         ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
         # If NetworkMangler command line interface exists and ready to mangle,
@@ -1896,6 +1898,8 @@ installPihole() {
             # make the Web directory if necessary
             install -d -m 0755 ${webroot}
         fi
+        chmod a+rx /var/www
+        chmod a+rx /var/www/html
 
         if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
             # Set the owner and permissions
