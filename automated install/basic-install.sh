@@ -415,7 +415,7 @@ make_repo() {
     # Clone the repo and return the return code from this command
     git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+r "${directory}"
+    chmod -R a+rX "${directory}"
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Always return 0? Not sure this is correct
@@ -450,7 +450,7 @@ update_repo() {
     # Show a completion message
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+r "${directory}"
+    chmod -R a+rX "${directory}"
     # Move back into the original directory
     cd "${curdir}" &> /dev/null || return 1
     return 0
@@ -499,7 +499,7 @@ resetRepo() {
     # Use git to remove the local changes
     git reset --hard &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+r "${directory}"
+    chmod -R a+rX "${directory}"
     # And show the status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Returning success anyway?
@@ -2118,7 +2118,7 @@ checkout_pull_branch() {
     git checkout "${branch}" --quiet || return 1
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+r "${directory}"
+    chmod -R a+rX "${directory}"
 
     git_pull=$(git pull || return 1)
 
