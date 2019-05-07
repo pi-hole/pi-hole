@@ -413,7 +413,7 @@ make_repo() {
         rm -rf "${directory}"
     fi
     # Clone the repo and return the return code from this command
-    git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+    git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Always return 0? Not sure this is correct
