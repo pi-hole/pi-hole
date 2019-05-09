@@ -1193,6 +1193,7 @@ chooseBlocklists() {
     do
         appendToListsFile "${choice}"
     done
+    chmod 644 "${adlistFile}"
 }
 
 # Accept a string parameter, it must be one of the default lists
