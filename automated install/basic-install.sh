@@ -1616,7 +1616,6 @@ install_dependent_packages() {
 
     # Install packages passed in via argument array
     # No spinner - conflicts with set -e
-    declare -a argArray1=("${!1}")
     declare -a installArray
 
     # Debian based package install - debconf will download the entire package list
@@ -1626,7 +1625,7 @@ install_dependent_packages() {
     # installed by us, and remove only the installed packages, and not the entire list.
     if is_command debconf-apt-progress ; then
         # For each package,
-        for i in "${argArray1[@]}"; do
+        for i in "$@"; do
             printf "  %b Checking for %s..." "${INFO}" "${i}"
             if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
                 printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
@@ -1645,7 +1644,7 @@ install_dependent_packages() {
     fi
 
     # Install Fedora/CentOS packages
-    for i in "${argArray1[@]}"; do
+    for i in "$@"; do
         printf "  %b Checking for %s..." "${INFO}" "${i}"
         if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
             printf "%b  %b Checking for %s" "${OVER}" "${TICK}" "${i}"
@@ -2525,7 +2524,7 @@ main() {
     notify_package_updates_available
 
     # Install packages used by this installation script
-    install_dependent_packages INSTALLER_DEPS[@]
+    install_dependent_packages "${INSTALLER_DEPS[@]}"
 
     # Check if SELinux is Enforcing
     checkSelinux
@@ -2576,7 +2575,7 @@ main() {
         dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
     fi
 
-    install_dependent_packages dep_install_list[@]
+    install_dependent_packages "${dep_install_list[@]}"
     unset dep_install_list
 
     # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
