@@ -328,6 +328,7 @@ gravity_DownloadBlocklistFromUrl() {
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
   local source="${1}" destination="${2}" firstLine abpFilter
+  chmod 644 "${source}"
 
   # Determine if we are parsing a consolidated list
   if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
@@ -345,6 +346,7 @@ gravity_ParseFileIntoDomains() {
     sed -r '/(\/|#).*$/d' | \
     sed -r 's/^.*\s+//g' | \
     sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
+    chmod 644 "${destination}"
     return 0
   fi
 
@@ -375,6 +377,7 @@ gravity_ParseFileIntoDomains() {
       if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
       if($0) { print $0 }
     }' "${source}" > "${destination}"
+    chmod 644 "${destination}"
 
     # Determine if there are Adblock exception rules
     # https://adblockplus.org/filters
@@ -391,6 +394,7 @@ gravity_ParseFileIntoDomains() {
 
       # Remove exceptions
       comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
+	  chmod 644 "${source}"
       mv "${source}" "${destination}"
     fi
 
@@ -427,6 +431,7 @@ gravity_ParseFileIntoDomains() {
       gravity_Cleanup "error"
     fi
   fi
+  chmod 644 "${destination}"
 }
 
 # Create (unfiltered) "Matter and Light" consolidated list
@@ -440,6 +445,7 @@ gravity_ConsolidateDownloadedBlocklists() {
 
   # Empty $matterAndLight if it already exists, otherwise, create it
   : > "${piholeDir}/${matterAndLight}"
+  chmod 644 "${piholeDir}/${matterAndLight}"
 
   # Loop through each *.domains file
   for i in "${activeDomains[@]}"; do
