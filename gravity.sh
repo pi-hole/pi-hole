@@ -328,7 +328,6 @@ gravity_DownloadBlocklistFromUrl() {
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
   local source="${1}" destination="${2}" firstLine abpFilter
-  chmod 644 "${source}"
 
   # Determine if we are parsing a consolidated list
   if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
@@ -377,7 +376,6 @@ gravity_ParseFileIntoDomains() {
       if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
       if($0) { print $0 }
     }' "${source}" > "${destination}"
-    chmod 644 "${destination}"
 
     # Determine if there are Adblock exception rules
     # https://adblockplus.org/filters
@@ -394,7 +392,6 @@ gravity_ParseFileIntoDomains() {
 
       # Remove exceptions
       comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
-	  chmod 644 "${source}"
       mv "${source}" "${destination}"
     fi
 
