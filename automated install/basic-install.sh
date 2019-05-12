@@ -1890,9 +1890,6 @@ accountForRefactor() {
 
 # Install base files and web interface
 installPihole() {
-    # Create the pihole user
-    create_pihole_user
-
     # If the user wants to install the Web interface,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         if [[ ! -d "${webroot}" ]]; then
@@ -2591,6 +2588,8 @@ main() {
     else
         LIGHTTPD_ENABLED=false
     fi
+    # Create the pihole user
+    create_pihole_user
     # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
     if ! FTLdetect; then
         printf "  %b FTL Engine not installed\\n" "${CROSS}"
