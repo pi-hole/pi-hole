@@ -78,6 +78,8 @@ checkout() {
 
         echo "development" > /etc/pihole/ftlbranch
         echo "development" > /etc/pihole/apibranch
+        chmod 644 /etc/pihole/ftlbranch
+        chmod 644 /etc/pihole/apibranch
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
@@ -86,6 +88,8 @@ checkout() {
 
         echo "master" > /etc/pihole/ftlbranch
         echo "master" > /etc/pihole/apibranch
+        chmod 644 /etc/pihole/ftlbranch
+        chmod 644 /etc/pihole/apibranch
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
@@ -121,6 +125,7 @@ checkout() {
         if check_download_exists "$path"; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
+            chmod 644 /etc/pihole/ftlbranch
             FTLinstall "${binary}"
             restart_service pihole-FTL
             enable_service pihole-FTL
@@ -139,6 +144,7 @@ checkout() {
         if check_download_exists "$path"; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/apibranch
+            chmod 644 /etc/pihole/apibranch
             APIinstall
         else
             echo "  ${CROSS} Requested branch \"${2}\" is not available"

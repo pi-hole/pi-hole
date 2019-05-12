@@ -384,6 +384,7 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -404,6 +405,7 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -425,6 +427,7 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -441,6 +444,7 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     '''
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -457,6 +461,7 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     mock_command('uname', {'-m': ('mips', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = 'Not able to detect architecture (unknown: mips)'
@@ -470,6 +475,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-aarch64-linux-gnu"
+    create_pihole_user
     FTLinstall
     ''')
     expected_stdout = tick_box + ' Downloading and Installing FTL'
@@ -484,6 +490,7 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-mips"
+    create_pihole_user
     FTLinstall
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
@@ -500,6 +507,7 @@ def test_FTL_download_binary_unset_no_errors(Pihole):
     '''
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLinstall
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
@@ -516,6 +524,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     '''
     installed_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     pihole-FTL version
     ''')
