@@ -194,7 +194,7 @@ if is_command apt-get ; then
             exit # exit the installer
         else
             printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
-            cp ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
+            cp -p ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
             printf "  %b Backed up current configuration to %s\\n" "${TICK}" "${APT_SOURCES}.backup"
             add-apt-repository universe
             printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
@@ -414,6 +414,8 @@ make_repo() {
     fi
     # Clone the repo and return the return code from this command
     git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+rX "${directory}"
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Always return 0? Not sure this is correct
@@ -447,6 +449,8 @@ update_repo() {
     git pull --quiet &> /dev/null || return $?
     # Show a completion message
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+rX "${directory}"
     # Move back into the original directory
     cd "${curdir}" &> /dev/null || return 1
     return 0
@@ -494,6 +498,8 @@ resetRepo() {
     printf "  %b %s..." "${INFO}" "${str}"
     # Use git to remove the local changes
     git reset --hard &> /dev/null || return $?
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+rX "${directory}"
     # And show the status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Returning success anyway?
@@ -847,7 +853,7 @@ setIFCFG() {
         # Put the IP in variables without the CIDR notation
         printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
         # Backup existing interface configuration:
-        cp "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
+        cp -p "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
         # Build Interface configuration file using the GLOBAL variables we have
         {
         echo "# Configured via Pi-hole installer"
@@ -861,6 +867,8 @@ setIFCFG() {
         echo "DNS2=$PIHOLE_DNS_2"
         echo "USERCTL=no"
         }> "${IFCFG_FILE}"
+        chmod 644 "${IFCFG_FILE}"
+        chown root:root "${IFCFG_FILE}"
         # Use ip to immediately set the new address
         ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
         # If NetworkMangler command line interface exists and ready to mangle,
@@ -1185,6 +1193,7 @@ chooseBlocklists() {
     do
         appendToListsFile "${choice}"
     done
+    chmod 644 "${adlistFile}"
 }
 
 # Accept a string parameter, it must be one of the default lists
@@ -1241,7 +1250,7 @@ version_check_dnsmasq() {
             printf "%b  %b Backing up dnsmasq.conf to dnsmasq.conf.orig...\\n" "${OVER}"  "${TICK}"
             printf "  %b Restoring default dnsmasq.conf..." "${INFO}"
             # and replace it with the default
-            cp ${dnsmasq_original_config} ${dnsmasq_conf}
+            install -D -m 644 -T ${dnsmasq_original_config} ${dnsmasq_conf}
             printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
         # Otherwise,
         else
@@ -1252,17 +1261,17 @@ version_check_dnsmasq() {
         # If a file cannot be found,
         printf "  %b No dnsmasq.conf found... restoring default dnsmasq.conf..." "${INFO}"
         # restore the default one
-        cp ${dnsmasq_original_config} ${dnsmasq_conf}
+        install -D -m 644 -T ${dnsmasq_original_config} ${dnsmasq_conf}
         printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
     fi
 
     printf "  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..." "${INFO}"
     # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
     if [[ ! -d "/etc/dnsmasq.d"  ]];then
-        mkdir "/etc/dnsmasq.d"
+        install -d -m 755 "/etc/dnsmasq.d"
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    cp ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
+    install -D -m 644 -T ${dnsmasq_pihole_01_snippet} ${dnsmasq_pihole_01_location}
     printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
     # First, swap in the interface to listen on
@@ -1360,6 +1369,7 @@ installConfigs() {
     # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
     # Some values may be empty (for example: DNS servers without IPv6 support)
     echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
+    chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
     # Install empty file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
@@ -1378,19 +1388,18 @@ installConfigs() {
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
         if [[ ! -d "/etc/lighttpd" ]]; then
-            # make it
-            mkdir /etc/lighttpd
-            # and set the owners
-            chown "${USER}":root /etc/lighttpd
+            # make it and set the owners
+            install -d -m 755 -o "${USER}" -g root /etc/lighttpd
         # Otherwise, if the config file already exists
         elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
             # back up the original
             mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
         fi
         # and copy in the config file Pi-hole needs
-        cp ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
+        chmod 644 /etc/lighttpd/external.conf
         # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
@@ -1421,16 +1430,16 @@ install_manpage() {
     fi
     if [[ ! -d "/usr/local/share/man/man8" ]]; then
         # if not present, create man8 directory
-        mkdir /usr/local/share/man/man8
+        install -d -m 755 /usr/local/share/man/man8
     fi
     if [[ ! -d "/usr/local/share/man/man5" ]]; then
-        # if not present, create man8 directory
-        mkdir /usr/local/share/man/man5
+        # if not present, create man5 directory
+        install -d -m 755 /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
-    cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
-    cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
-    cp ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
     if mandb -q &>/dev/null; then
         # Updated successfully
         printf "%b  %b man pages installed and database updated\\n" "${OVER}" "${TICK}"
@@ -1660,7 +1669,7 @@ installPiholeWeb() {
     # Install the directory
     install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
     # and the blockpage
-    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
 
     # Remove superseded file
     if [[ -e "${PI_HOLE_BLOCKPAGE_DIR}/index.js" ]]; then
@@ -1687,7 +1696,7 @@ installPiholeWeb() {
     local str="Installing sudoer file"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Make the .d directory if it doesn't exist
-    mkdir -p /etc/sudoers.d/
+    install -d -m 755 /etc/sudoers.d/
     # and copy in the pihole sudoers file
     install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
@@ -1710,7 +1719,8 @@ installCron() {
     local str="Installing latest Cron script"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    # File must not be world or group writeable and must be owned by root
+    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1818,6 +1828,7 @@ finalExports() {
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     }>> "${setupVars}"
+    chmod 644 "${setupVars}"
 
     # Set the privacy level
     sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
@@ -1840,7 +1851,7 @@ installLogrotate() {
     local str="Installing latest logrotate script"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1879,9 +1890,6 @@ accountForRefactor() {
 
 # Install base files and web interface
 installPihole() {
-    # Create the pihole user
-    create_pihole_user
-
     # If the user wants to install the Web interface,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         if [[ ! -d "${webroot}" ]]; then
@@ -1893,6 +1901,9 @@ installPihole() {
             # Set the owner and permissions
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
             chmod 0775 ${webroot}
+            # Repair permissions if /var/www/html is not world readable
+            chmod a+rx /var/www
+            chmod a+rx /var/www/html
             # Give pihole access to the Web server group
             usermod -a -G ${LIGHTTPD_GROUP} pihole
             # If the lighttpd command is executable,
@@ -2104,6 +2115,8 @@ checkout_pull_branch() {
     printf "  %b %s" "${INFO}" "$str"
     git checkout "${branch}" --quiet || return 1
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
+    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
+    chmod -R a+rX "${directory}"
 
     git_pull=$(git pull || return 1)
 
@@ -2200,6 +2213,8 @@ FTLinstall() {
 
             # Before stopping FTL, we download the macvendor database
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
+            chmod 644 "${PI_HOLE_CONFIG_DIR}/macvendor.db"
+            chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/macvendor.db"
 
             # Stop pihole-FTL service if available
             stop_service pihole-FTL &> /dev/null
@@ -2250,6 +2265,7 @@ disable_dnsmasq() {
     fi
     # Create /etc/dnsmasq.conf
     echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
+    chmod 644 "${conffile}"
 }
 
 get_binary_name() {
@@ -2431,6 +2447,7 @@ copy_to_install_log() {
     # Copy the contents of file descriptor 3 into the install log
     # Since we use color codes such as '\e[1;33m', they should be removed
     sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
+    chmod 644 "${installLogLoc}"
 }
 
 main() {
@@ -2515,7 +2532,7 @@ main() {
         # Display welcome dialogs
         welcomeDialogs
         # Create directory for Pi-hole storage
-        mkdir -p /etc/pihole/
+        install -d -m 755 /etc/pihole/
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one
@@ -2571,6 +2588,8 @@ main() {
     else
         LIGHTTPD_ENABLED=false
     fi
+    # Create the pihole user
+    create_pihole_user
     # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
     if ! FTLdetect; then
         printf "  %b FTL Engine not installed\\n" "${CROSS}"

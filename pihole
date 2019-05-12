@@ -151,10 +151,12 @@ Time:
     if [[ -e "${gravitylist}" ]]; then
       mv "${gravitylist}" "${gravitylist}.bck"
       echo "" > "${gravitylist}"
+	  chmod 644 "${gravitylist}"
     fi
     if [[ -e "${blacklist}" ]]; then
       mv "${blacklist}" "${blacklist}.bck"
       echo "" > "${blacklist}"
+	  chmod 644 "${blacklist}"
     fi
     if [[ $# > 1 ]]; then
       local error=false
@@ -206,9 +208,11 @@ Time:
 
     if [[ -e "${gravitylist}.bck" ]]; then
       mv "${gravitylist}.bck" "${gravitylist}"
+	  chmod 644 "${gravitylist}"
     fi
     if [[ -e "${blacklist}.bck" ]]; then
       mv "${blacklist}.bck" "${blacklist}"
+	  chmod 644 "${blacklist}"
     fi
     sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
     echo "BLOCKING_ENABLED=true" >> "${setupVars}"

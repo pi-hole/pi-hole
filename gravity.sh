@@ -345,6 +345,7 @@ gravity_ParseFileIntoDomains() {
     sed -r '/(\/|#).*$/d' | \
     sed -r 's/^.*\s+//g' | \
     sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
+    chmod 644 "${destination}"
     return 0
   fi
 
@@ -375,6 +376,7 @@ gravity_ParseFileIntoDomains() {
       if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
       if($0) { print $0 }
     }' "${source}" > "${destination}"
+    chmod 644 "${destination}"
 
     # Determine if there are Adblock exception rules
     # https://adblockplus.org/filters
@@ -392,6 +394,7 @@ gravity_ParseFileIntoDomains() {
       # Remove exceptions
       comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
       mv "${source}" "${destination}"
+      chmod 644 "${destination}"
     fi
 
     echo -e "${OVER}  ${TICK} Format: Adblock"
@@ -415,11 +418,13 @@ gravity_ParseFileIntoDomains() {
       # Print if nonempty
       length { print }
     ' "${source}" 2> /dev/null > "${destination}"
+    chmod 644 "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
   else
     # Default: Keep hosts/domains file in same format as it was downloaded
     output=$( { mv "${source}" "${destination}"; } 2>&1 )
+    chmod 644 "${destination}"
 
     if [[ ! -e "${destination}" ]]; then
       echo -e "\\n  ${CROSS} Unable to move tmp file to ${piholeDir}
@@ -440,6 +445,7 @@ gravity_ConsolidateDownloadedBlocklists() {
 
   # Empty $matterAndLight if it already exists, otherwise, create it
   : > "${piholeDir}/${matterAndLight}"
+  chmod 644 "${piholeDir}/${matterAndLight}"
 
   # Loop through each *.domains file
   for i in "${activeDomains[@]}"; do
@@ -485,6 +491,7 @@ gravity_SortAndFilterConsolidatedList() {
   fi
 
   sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  chmod 644 "${piholeDir}/${preEventHorizon}"
 
   if [[ "${haveSourceUrls}" == true ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
@@ -509,6 +516,7 @@ gravity_Whitelist() {
 
   # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
   comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
+  chmod 644 "${piholeDir}/${whitelistMatter}"
 
   echo -e "${OVER}  ${INFO} ${str}"
 }
@@ -561,6 +569,7 @@ gravity_ParseLocalDomains() {
 
   # Empty $localList if it already exists, otherwise, create it
   : > "${localList}"
+  chmod 644 "${localList}"
 
   gravity_ParseDomainsIntoHosts "${localList}.tmp" "${localList}"
 
@@ -581,8 +590,9 @@ gravity_ParseBlacklistDomains() {
     mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
   else
     # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
+    cp -p "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
   fi
+  chmod 644 "${piholeDir}/${accretionDisc}"
 
   # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
   output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
@@ -592,6 +602,7 @@ gravity_ParseBlacklistDomains() {
     echo -e "\\n  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
     gravity_Cleanup "error"
   fi
+  chmod 644 "${adList}"
 }
 
 # Create user-added blacklist entries
@@ -602,6 +613,7 @@ gravity_ParseUserDomains() {
   # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
   cp "${blacklistFile}" "${blackList}" 2> /dev/null || \
     echo -e "\\n  ${CROSS} Unable to move ${blacklistFile##*/} to ${piholeDir}"
+  chmod 644 "${blackList}"
 }
 
 # Trap Ctrl-C

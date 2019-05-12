@@ -51,6 +51,7 @@ if [[ "$2" == "remote" ]]; then
 
     GITHUB_CORE_VERSION="$(json_extract tag_name "$(curl -s 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null)")"
     echo -n "${GITHUB_CORE_VERSION}" > "${GITHUB_VERSION_FILE}"
+    chmod 644 "${GITHUB_VERSION_FILE}"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -s 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
@@ -66,6 +67,7 @@ else
 
     CORE_BRANCH="$(get_local_branch /etc/.pihole)"
     echo -n "${CORE_BRANCH}" > "${LOCAL_BRANCH_FILE}"
+    chmod 644 "${LOCAL_BRANCH_FILE}"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
@@ -79,6 +81,7 @@ else
 
     CORE_VERSION="$(get_local_version /etc/.pihole)"
     echo -n "${CORE_VERSION}" > "${LOCAL_VERSION_FILE}"
+    chmod 644 "${LOCAL_VERSION_FILE}"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         WEB_VERSION="$(get_local_version /var/www/html/admin)"
