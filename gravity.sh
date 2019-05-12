@@ -376,6 +376,7 @@ gravity_ParseFileIntoDomains() {
       if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
       if($0) { print $0 }
     }' "${source}" > "${destination}"
+    chmod 644 "${destination}"
 
     # Determine if there are Adblock exception rules
     # https://adblockplus.org/filters
@@ -393,6 +394,7 @@ gravity_ParseFileIntoDomains() {
       # Remove exceptions
       comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
       mv "${source}" "${destination}"
+      chmod 644 "${destination}"
     fi
 
     echo -e "${OVER}  ${TICK} Format: Adblock"
@@ -416,11 +418,13 @@ gravity_ParseFileIntoDomains() {
       # Print if nonempty
       length { print }
     ' "${source}" 2> /dev/null > "${destination}"
+    chmod 644 "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
   else
     # Default: Keep hosts/domains file in same format as it was downloaded
     output=$( { mv "${source}" "${destination}"; } 2>&1 )
+    chmod 644 "${destination}"
 
     if [[ ! -e "${destination}" ]]; then
       echo -e "\\n  ${CROSS} Unable to move tmp file to ${piholeDir}
@@ -428,7 +432,6 @@ gravity_ParseFileIntoDomains() {
       gravity_Cleanup "error"
     fi
   fi
-  chmod 644 "${destination}"
 }
 
 # Create (unfiltered) "Matter and Light" consolidated list
