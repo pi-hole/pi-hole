@@ -153,7 +153,7 @@ removeNoPurge() {
 
     # Restore Resolved
     if [[ -e /etc/systemd/resolved.conf.orig ]]; then
-        ${SUDO} cp /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
+        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
         systemctl reload-or-restart systemd-resolved
     fi
 

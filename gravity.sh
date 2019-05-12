@@ -421,6 +421,7 @@ gravity_ParseFileIntoDomains() {
     sed -r '/(\/|#).*$/d' | \
     sed -r 's/^.*\s+//g' | \
     sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
+    chmod 644 "${destination}"
     return 0
   fi
 
@@ -451,6 +452,7 @@ gravity_ParseFileIntoDomains() {
       if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
       if($0) { print $0 }
     }' "${source}" > "${destination}"
+    chmod 644 "${destination}"
 
     # Determine if there are Adblock exception rules
     # https://adblockplus.org/filters
@@ -468,6 +470,7 @@ gravity_ParseFileIntoDomains() {
       # Remove exceptions
       comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
       mv "${source}" "${destination}"
+      chmod 644 "${destination}"
     fi
 
     echo -e "${OVER}  ${TICK} Format: Adblock"
@@ -491,11 +494,13 @@ gravity_ParseFileIntoDomains() {
       # Print if nonempty
       length { print }
     ' "${source}" 2> /dev/null > "${destination}"
+    chmod 644 "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
   else
     # Default: Keep hosts/domains file in same format as it was downloaded
     output=$( { mv "${source}" "${destination}"; } 2>&1 )
+    chmod 644 "${destination}"
 
     if [[ ! -e "${destination}" ]]; then
       echo -e "\\n  ${CROSS} Unable to move tmp file to ${piholeDir}
@@ -514,6 +519,7 @@ gravity_ConsolidateDownloadedBlocklists() {
 
   # Empty $matterAndLight if it already exists, otherwise, create it
   : > "${piholeDir}/${matterAndLight}"
+  chmod 644 "${piholeDir}/${matterAndLight}"
 
   # Loop through each *.domains file
   for i in "${activeDomains[@]}"; do
@@ -552,6 +558,7 @@ gravity_SortAndFilterConsolidatedList() {
   str="Removing duplicate domains"
   echo -ne "  ${INFO} ${str}..."
   sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  chmod 644 "${piholeDir}/${preEventHorizon}"
   echo -e "${OVER}  ${TICK} ${str}"
 
   # Format $preEventHorizon line total as currency
@@ -611,6 +618,7 @@ gravity_generateLocalList() {
 
   # Empty $localList if it already exists, otherwise, create it
   : > "${localList}"
+  chmod 644 "${localList}"
 
   gravity_ParseDomainsIntoHosts "${localList}.tmp" "${localList}"
 
