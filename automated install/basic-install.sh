@@ -233,7 +233,7 @@ if is_command apt-get ; then
         phpVer="php$phpInsMajor.$phpInsMinor"
     fi
     # We also need the correct version for `php-sqlite` (which differs across distros)
-    if "${PKG_MANAGER}" install --dry-run "${phpVer}"-sqlite3 > /dev/null 2>&1; then
+    if "${PKG_MANAGER}" install --dry-run "${phpVer}-sqlite3" > /dev/null 2>&1; then
         phpSqlite="sqlite3"
     else
         phpSqlite="sqlite"
@@ -245,7 +245,7 @@ if is_command apt-get ; then
     PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}"-common "${phpVer}"-cgi "${phpVer}-${phpSqlite}")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}")
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
