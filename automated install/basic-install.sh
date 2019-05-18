@@ -28,6 +28,20 @@ set -e
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
 
+# List of supported DNS servers
+DNS_SERVERS=$(cat << EOM
+Google (ECS);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+OpenDNS (ECS);208.67.222.222;208.67.220.220;2620:0:ccc::2;2620:0:ccd::2
+Level3;4.2.2.1;4.2.2.2;;
+Comodo;8.26.56.26;8.20.247.20;;
+DNS.WATCH;84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
+Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
+Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
+Quad9 (filtered + ECS);9.9.9.11;149.112.112.11;2620:fe::11;
+Cloudflare;1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+EOM
+)
+
 # Location for final installation log storage
 installLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
@@ -38,9 +52,12 @@ lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
 
+# Root of the web server
+webroot="/var/www/html"
+
 # We store several other directories and
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
-webInterfaceDir="/var/www/html/admin"
+webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # These are the names of pi-holes files, stored in an array
@@ -48,6 +65,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 # This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
@@ -395,7 +413,7 @@ make_repo() {
         rm -rf "${directory}"
     fi
     # Clone the repo and return the return code from this command
-    git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+    git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Always return 0? Not sure this is correct
@@ -507,7 +525,7 @@ find_IPv4_information() {
     fi
 
     # Append the CIDR notation to the IP address, if valid_ip fails this should return 127.0.0.1/8
-    IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
+    IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" |  awk '{print $4}' | awk 'END {print}')
 }
 
 # Get available interfaces that are UP
@@ -859,6 +877,13 @@ setStaticIPv4() {
     # Local, named variables
     local IFCFG_FILE
     local CONNECTION_NAME
+
+    # If a static interface is already configured, we are done.
+    if [[ -r "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}" ]]; then
+        if grep -q '^BOOTPROTO=.static.' "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}"; then
+            return 0
+        fi
+    fi
     # For the Debian family, if dhcpcd.conf exists,
     if [[ -f "/etc/dhcpcd.conf" ]]; then
         # configure networking via dhcpcd
@@ -919,15 +944,26 @@ setDNS() {
     local DNSSettingsCorrect
 
     # In an array, list the available upstream providers
-    DNSChooseOptions=(Google ""
-        OpenDNS ""
-        Level3 ""
-        Comodo ""
-        DNSWatch ""
-        Quad9 ""
-        FamilyShield ""
-        Cloudflare ""
-        Custom "")
+    DNSChooseOptions=()
+    local DNSServerCount=0
+    # Save the old Internal Field Separator in a variable
+    OIFS=$IFS
+    # and set the new one to newline
+    IFS=$'\n'
+    # Put the DNS Servers into an array
+    for DNSServer in ${DNS_SERVERS}
+    do
+        DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
+        DNSChooseOptions[DNSServerCount]="${DNSName}"
+        (( DNSServerCount=DNSServerCount+1 ))
+        DNSChooseOptions[DNSServerCount]=""
+        (( DNSServerCount=DNSServerCount+1 ))
+    done
+    DNSChooseOptions[DNSServerCount]="Custom"
+    (( DNSServerCount=DNSServerCount+1 ))
+    DNSChooseOptions[DNSServerCount]=""
+    # Restore the IFS to what it was
+    IFS=${OIFS}
     # In a whiptail dialog, show the options
     DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." ${r} ${c} 7 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
@@ -937,113 +973,90 @@ setDNS() {
     # Display the selection
     printf "  %b Using " "${INFO}"
     # Depending on the user's choice, set the GLOBAl variables to the IP of the respective provider
-    case ${DNSchoices} in
-        Google)
-            printf "Google DNS servers\\n"
-            PIHOLE_DNS_1="8.8.8.8"
-            PIHOLE_DNS_2="8.8.4.4"
-            ;;
-        OpenDNS)
-            printf "OpenDNS servers\\n"
-            PIHOLE_DNS_1="208.67.222.222"
-            PIHOLE_DNS_2="208.67.220.220"
-            ;;
-        Level3)
-            printf "Level3 servers\\n"
-            PIHOLE_DNS_1="4.2.2.1"
-            PIHOLE_DNS_2="4.2.2.2"
-            ;;
-        Comodo)
-            printf "Comodo Secure servers\\n"
-            PIHOLE_DNS_1="8.26.56.26"
-            PIHOLE_DNS_2="8.20.247.20"
-            ;;
-        DNSWatch)
-            printf "DNS.WATCH servers\\n"
-            PIHOLE_DNS_1="84.200.69.80"
-            PIHOLE_DNS_2="84.200.70.40"
-            ;;
-        Quad9)
-            printf "Quad9 servers\\n"
-            PIHOLE_DNS_1="9.9.9.9"
-            PIHOLE_DNS_2="149.112.112.112"
-            ;;
-        FamilyShield)
-            printf "FamilyShield servers\\n"
-            PIHOLE_DNS_1="208.67.222.123"
-            PIHOLE_DNS_2="208.67.220.123"
-            ;;
-        Cloudflare)
-            printf "Cloudflare servers\\n"
-            PIHOLE_DNS_1="1.1.1.1"
-            PIHOLE_DNS_2="1.0.0.1"
-            ;;
-        Custom)
-            # Until the DNS settings are selected,
-            until [[ "${DNSSettingsCorrect}" = True ]]; do
-                #
-                strInvalid="Invalid"
-                # If the first
-                if [[ ! "${PIHOLE_DNS_1}" ]]; then
-                    # and second upstream servers do not exist
-                    if [[ ! "${PIHOLE_DNS_2}" ]]; then
-                        prePopulate=""
-                    # Otherwise,
-                    else
-                        prePopulate=", ${PIHOLE_DNS_2}"
-                    fi
-                elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
-                    prePopulate="${PIHOLE_DNS_1}"
-                elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
-                    prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
-                fi
-
-                # Dialog for the user to enter custom upstream servers
-                piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
-                { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-                # Clean user input and replace whitespace with comma.
-                piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
-
-                printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
-                printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
-
-                # If the IP is valid,
-                if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
-                    # store it in the variable so we can use it
-                    PIHOLE_DNS_1=${strInvalid}
-                fi
-                # Do the same for the secondary server
-                if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
-                    PIHOLE_DNS_2=${strInvalid}
-                fi
-                # If either of the DNS servers are invalid,
-                if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
-                    # explain this to the user
-                    whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\\n\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
-                    # and set the variables back to nothing
-                    if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
-                        PIHOLE_DNS_1=""
-                    fi
-                    if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
-                        PIHOLE_DNS_2=""
-                    fi
-                # Since the settings will not work, stay in the loop
-                DNSSettingsCorrect=False
+    if [[ "${DNSchoices}" == "Custom" ]]
+    then
+        # Until the DNS settings are selected,
+        until [[ "${DNSSettingsCorrect}" = True ]]; do
+            #
+            strInvalid="Invalid"
+            # If the first
+            if [[ ! "${PIHOLE_DNS_1}" ]]; then
+                # and second upstream servers do not exist
+                if [[ ! "${PIHOLE_DNS_2}" ]]; then
+                    prePopulate=""
                 # Otherwise,
                 else
-                    # Show the settings
-                    if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}); then
-                    # and break from the loop since the servers are valid
-                    DNSSettingsCorrect=True
-                    # Otherwise,
-                    else
-                        # If the settings are wrong, the loop continues
-                        DNSSettingsCorrect=False
-                    fi
+                    prePopulate=", ${PIHOLE_DNS_2}"
                 fi
-            done
-            ;;
-    esac
+            elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
+                prePopulate="${PIHOLE_DNS_1}"
+            elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
+                prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
+            fi
+
+            # Dialog for the user to enter custom upstream servers
+            piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" ${r} ${c} "${prePopulate}" 3>&1 1>&2 2>&3) || \
+            { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+            # Clean user input and replace whitespace with comma.
+            piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
+
+            printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
+            printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
+
+            # If the IP is valid,
+            if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
+                # store it in the variable so we can use it
+                PIHOLE_DNS_1=${strInvalid}
+            fi
+            # Do the same for the secondary server
+            if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
+                PIHOLE_DNS_2=${strInvalid}
+            fi
+            # If either of the DNS servers are invalid,
+            if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
+                # explain this to the user
+                whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\\n\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
+                # and set the variables back to nothing
+                if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
+                    PIHOLE_DNS_1=""
+                fi
+                if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
+                    PIHOLE_DNS_2=""
+                fi
+            # Since the settings will not work, stay in the loop
+            DNSSettingsCorrect=False
+            # Otherwise,
+            else
+                # Show the settings
+                if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}); then
+                # and break from the loop since the servers are valid
+                DNSSettingsCorrect=True
+                # Otherwise,
+                else
+                    # If the settings are wrong, the loop continues
+                    DNSSettingsCorrect=False
+                fi
+            fi
+        done
+     else
+        # Save the old Internal Field Separator in a variable
+        OIFS=$IFS
+        # and set the new one to newline
+        IFS=$'\n'
+        for DNSServer in ${DNS_SERVERS}
+        do
+            DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
+            if [[ "${DNSchoices}" == "${DNSName}" ]]
+            then
+                printf "%s\\n" "${DNSName}"
+                PIHOLE_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
+                PIHOLE_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
+                break
+            fi
+        done
+        # Restore the IFS to what it was
+        IFS=${OIFS}
+    fi
 }
 
 # Allow the user to enable/disable logging
@@ -1081,7 +1094,7 @@ setPrivacyLevel() {
     local LevelCommand
     local LevelOptions
 
-    LevelCommand=(whiptail --separate-output --radiolist "Select a privacy mode for FTL." "${r}" "${c}" 6)
+    LevelCommand=(whiptail --separate-output --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" "${r}" "${c}" 6)
 
     # The default selection is level 0
     LevelOptions=(
@@ -1342,9 +1355,16 @@ installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
     # Make sure Pi-hole's config files are in place
     version_check_dnsmasq
+
+    # Install list of DNS servers
+    # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
+    # Some values may be empty (for example: DNS servers without IPv6 support)
+    echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
+
     # Install empty file if it does not exist
-    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
-        if ! install -o pihole -g pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
+        install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
+        if ! install -o pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
             printf "  %bError: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
@@ -1372,7 +1392,7 @@ installConfigs() {
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
         # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-        if [[ -f "/var/www/html/pihole/custom.php" ]]; then
+        if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
         fi
         # Make the directories if they do not exist and set the owners
@@ -1540,7 +1560,7 @@ update_package_cache() {
     else
         # show an error and exit
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
@@ -1638,13 +1658,13 @@ installPiholeWeb() {
     local str="Creating directory for blocking page, and copying files"
     printf "  %b %s..." "${INFO}" "${str}"
     # Install the directory
-    install -d /var/www/html/pihole
+    install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
     # and the blockpage
-    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* /var/www/html/pihole/
+    install -D ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
 
     # Remove superseded file
-    if [[ -e "/var/www/html/pihole/index.js" ]]; then
-        rm "/var/www/html/pihole/index.js"
+    if [[ -e "${PI_HOLE_BLOCKPAGE_DIR}/index.js" ]]; then
+        rm "${PI_HOLE_BLOCKPAGE_DIR}/index.js"
     fi
 
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -1652,9 +1672,9 @@ installPiholeWeb() {
     local str="Backing up index.lighttpd.html"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the default index file exists,
-    if [[ -f "/var/www/html/index.lighttpd.html" ]]; then
+    if [[ -f "${webroot}/index.lighttpd.html" ]]; then
         # back it up
-        mv /var/www/html/index.lighttpd.html /var/www/html/index.lighttpd.orig
+        mv ${webroot}/index.lighttpd.html ${webroot}/index.lighttpd.orig
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Otherwise,
     else
@@ -1669,7 +1689,7 @@ installPiholeWeb() {
     # Make the .d directory if it doesn't exist
     mkdir -p /etc/sudoers.d/
     # and copy in the pihole sudoers file
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
+    install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
     echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
 
@@ -1864,15 +1884,15 @@ installPihole() {
 
     # If the user wants to install the Web interface,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        if [[ ! -d "/var/www/html" ]]; then
+        if [[ ! -d "${webroot}" ]]; then
             # make the Web directory if necessary
-            mkdir -p /var/www/html
+            install -d -m 0755 ${webroot}
         fi
 
         if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
             # Set the owner and permissions
-            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/www/html
-            chmod 775 /var/www/html
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
+            chmod 0775 ${webroot}
             # Give pihole access to the Web server group
             usermod -a -G ${LIGHTTPD_GROUP} pihole
             # If the lighttpd command is executable,
@@ -2178,6 +2198,9 @@ FTLinstall() {
         if sha1sum --status --quiet -c "${binary}".sha1; then
             printf "transferred... "
 
+            # Before stopping FTL, we download the macvendor database
+            curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
+
             # Stop pihole-FTL service if available
             stop_service pihole-FTL &> /dev/null
 
@@ -2271,10 +2294,12 @@ get_binary_name() {
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the architecture of packages dpkg installs (for example, "i386")
         local dpkgarch
-        dpkgarch=$(dpkg --print-architecture 2> /dev/null)
+        dpkgarch=$(dpkg --print-architecture 2> /dev/null || true)
 
         # Special case: This is a 32 bit OS, installed on a 64 bit machine
         # -> change machine architecture to download the 32 bit executable
+        # We only check this for Debian-based systems as this has been an issue
+        # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
             binary="pihole-FTL-linux-x86_32"

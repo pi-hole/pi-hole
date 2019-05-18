@@ -34,7 +34,7 @@ function get_local_branch() {
 function get_local_version() {
     # Return active branch
     cd "${1}" 2> /dev/null || return 1
-    git describe --long --dirty --tags || return 1
+    git describe --long --dirty --tags 2> /dev/null || return 1
 }
 
 # Source the setupvars config file

@@ -131,8 +131,7 @@ removeNoPurge() {
         echo -e "  ${TICK} Removed /etc/cron.d/pihole"
     fi
 
-    package_check lighttpd > /dev/null
-    if [[ $? -eq 1 ]]; then
+    if package_check lighttpd > /dev/null; then
         ${SUDO} rm -rf /etc/lighttpd/ &> /dev/null
         echo -e "  ${TICK} Removed lighttpd"
     else
