@@ -413,9 +413,10 @@ make_repo() {
         rm -rf "${directory}"
     fi
     # Clone the repo and return the return code from this command
-    git clone -q --depth 1 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+    git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
+
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Always return 0? Not sure this is correct
@@ -531,7 +532,7 @@ find_IPv4_information() {
     fi
 
     # Append the CIDR notation to the IP address, if valid_ip fails this should return 127.0.0.1/8
-    IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}" |  awk '{print $4}' | awk 'END {print}')
+    IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" |  awk '{print $4}' | awk 'END {print}')
 }
 
 # Get available interfaces that are UP
@@ -1571,7 +1572,7 @@ update_package_cache() {
     else
         # show an error and exit
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
