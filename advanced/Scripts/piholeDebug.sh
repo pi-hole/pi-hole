@@ -1077,19 +1077,19 @@ show_db_entries() {
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT * FROM adlists" "2 100 7 10 13 50"
+    show_db_entries "Adlists" "SELECT * FROM adlists" "4 100 7 10 13 50"
 }
 
 show_whitelist() {
-    show_db_entries "Whitelist" "SELECT * FROM whitelist" "2 100 7 10 13 50"
+    show_db_entries "Whitelist" "SELECT * FROM whitelist" "4 100 7 10 13 50"
 }
 
 show_blacklist() {
-    show_db_entries "Blacklist" "SELECT * FROM blacklist" "2 100 7 10 13 50"
+    show_db_entries "Blacklist" "SELECT * FROM blacklist" "4 100 7 10 13 50"
 }
 
 show_regexlist() {
-    show_db_entries "Regexlist" "SELECT * FROM regex" "2 100 7 10 13 50"
+    show_db_entries "Regexlist" "SELECT * FROM regex" "4 100 7 10 13 50"
 }
 
 analyze_gravity_list() {
