@@ -1054,13 +1054,20 @@ head_tail_log() {
 show_db_entries() {
     local title="${1}"
     local query="${2}"
+    local widths="${3}"
 
     echo_current_diagnostic "${title}"
 
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local entries=()
-    mapfile -t entries < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" -cmd ".headers on" -cmd ".mode column" "${query}")
+    mapfile -t entries < <(\
+        sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" \
+            -cmd ".headers on" \
+            -cmd ".mode column" \
+            -cmd ".width ${widths}" \
+            "${query}"\
+    )
 
     for line in "${entries[@]}"; do
         log_write "   ${line}"
@@ -1070,19 +1077,19 @@ show_db_entries() {
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT * FROM adlists"
+    show_db_entries "Adlists" "SELECT * FROM adlists" "2 100 7 10 13 50"
 }
 
 show_whitelist() {
-    show_db_entries "Whitelist" "SELECT * FROM whitelist"
+    show_db_entries "Whitelist" "SELECT * FROM whitelist" "2 100 7 10 13 50"
 }
 
 show_blacklist() {
-    show_db_entries "Blacklist" "SELECT * FROM blacklist"
+    show_db_entries "Blacklist" "SELECT * FROM blacklist" "2 100 7 10 13 50"
 }
 
 show_regexlist() {
-    show_db_entries "Regexlist" "SELECT * FROM regex"
+    show_db_entries "Regexlist" "SELECT * FROM regex" "2 100 7 10 13 50"
 }
 
 analyze_gravity_list() {
