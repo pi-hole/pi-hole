@@ -1051,19 +1051,38 @@ head_tail_log() {
     IFS="$OLD_IFS"
 }
 
-show_adlists() {
-    echo_current_diagnostic "Adlists"
+show_db_entries() {
+    local title="${1}"
+    local query="${2}"
+
+    echo_current_diagnostic "${title}"
 
     OLD_IFS="$IFS"
     IFS=$'\r\n'
-    local adlists=()
-    mapfile -t adlists < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT address FROM vw_adlists")
+    local entries=()
+    mapfile -t entries < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" -cmd ".headers on" "${query}")
 
-    for line in "${adlists[@]}"; do
+    for line in "${entries[@]}"; do
         log_write "   ${line}"
     done
 
     IFS="$OLD_IFS"
+}
+
+show_adlists() {
+    show_db_entries "Adlists" "SELECT * FROM adlists"
+}
+
+show_whitelist() {
+    show_db_entries "Whitelist" "SELECT * FROM whitelist"
+}
+
+show_blacklist() {
+    show_db_entries "Blacklist" "SELECT * FROM blacklist"
+}
+
+show_regexlist() {
+    show_db_entries "Regexlist" "SELECT * FROM regex"
 }
 
 analyze_gravity_list() {
@@ -1240,6 +1259,9 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_adlists
+show_whitelist
+show_blacklist
+show_regexlist
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log
