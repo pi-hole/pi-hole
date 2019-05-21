@@ -1060,7 +1060,7 @@ show_db_entries() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local entries=()
-    mapfile -t entries < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" -cmd ".headers on" "${query}")
+    mapfile -t entries < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" -cmd ".headers on" -cmd ".mode column" "${query}")
 
     for line in "${entries[@]}"; do
         log_write "   ${line}"
