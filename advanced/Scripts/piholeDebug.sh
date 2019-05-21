@@ -1076,6 +1076,7 @@ analyze_gravity_list() {
     local gravity_size
     gravity_size=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT COUNT(*) FROM vw_gravity")
     log_write "   Size: ${COL_CYAN}${gravity_size}${COL_NC} entries"
+    log_write ""
 
     OLD_IFS="$IFS"
     IFS=$'\r\n'
