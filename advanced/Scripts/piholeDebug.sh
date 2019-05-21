@@ -89,16 +89,12 @@ PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
 #WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
-PIHOLE_DEFAULT_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.default"
-PIHOLE_USER_DEFINED_AD_LISTS="${PIHOLE_DIRECTORY}/adlists.list"
-PIHOLE_BLACKLIST_FILE="${PIHOLE_DIRECTORY}/blacklist.txt"
-PIHOLE_BLOCKLIST_FILE="${PIHOLE_DIRECTORY}/gravity.list"
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
-PIHOLE_WHITELIST_FILE="${PIHOLE_DIRECTORY}/whitelist.txt"
+PIHOLE_GRAVITY_DB_FILE="${PIHOLE_DIRECTORY}/gravity.db"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
@@ -142,16 +138,11 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_DHCP_CONFIG_FILE}"
 "${PIHOLE_WILDCARD_CONFIG_FILE}"
 "${WEB_SERVER_CONFIG_FILE}"
-"${PIHOLE_DEFAULT_AD_LISTS}"
-"${PIHOLE_USER_DEFINED_AD_LISTS}"
-"${PIHOLE_BLACKLIST_FILE}"
-"${PIHOLE_BLOCKLIST_FILE}"
 "${PIHOLE_INSTALL_LOG_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
 "${PIHOLE_LOGROTATE_FILE}"
 "${PIHOLE_SETUP_VARS_FILE}"
-"${PIHOLE_WHITELIST_FILE}"
 "${PIHOLE_COMMAND}"
 "${PIHOLE_COLTABLE_FILE}"
 "${FTL_PID}"
@@ -793,7 +784,7 @@ dig_at() {
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
-    random_url=$(shuf -n 1 "${PIHOLE_BLOCKLIST_FILE}")
+    random_url=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
 
     # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
     if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
@@ -975,8 +966,7 @@ list_files_in_dir() {
         if [[ -d "${dir_to_parse}/${each_file}" ]]; then
             # If it's a directoy, do nothing
             :
-        elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_BLOCKLIST_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
+        elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_SETUP_VARS_FILE}" ]] || \
@@ -1061,31 +1051,43 @@ head_tail_log() {
     IFS="$OLD_IFS"
 }
 
-analyze_gravity_list() {
-    echo_current_diagnostic "Gravity list"
-    local head_line
-    local tail_line
-    # Put the current Internal Field Separator into another variable so it can be restored later
+show_adlists() {
+    echo_current_diagnostic "Adlists"
+
     OLD_IFS="$IFS"
-    # Get the lines that are in the file(s) and store them in an array for parsing later
     IFS=$'\r\n'
+    local adlists=()
+    mapfile -t adlists < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT address FROM vw_adlists")
+
+    for line in "${adlists[@]}"; do
+        log_write "   ${line}"
+    done
+
+    IFS="$OLD_IFS"
+}
+
+analyze_gravity_list() {
+    echo_current_diagnostic "Gravity List and Database"
+
     local gravity_permissions
-    gravity_permissions=$(ls -ld "${PIHOLE_BLOCKLIST_FILE}")
+    gravity_permissions=$(ls -ld "${PIHOLE_GRAVITY_DB_FILE}")
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
-    local gravity_head=()
-    mapfile -t gravity_head < <(head -n 4 ${PIHOLE_BLOCKLIST_FILE})
-    log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_BLOCKLIST_FILE})------${COL_NC}"
-    for head_line in "${gravity_head[@]}"; do
-        log_write "   ${head_line}"
+
+    local gravity_size
+    gravity_size=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT COUNT(*) FROM vw_gravity")
+    log_write "   Size: ${COL_CYAN}${gravity_size}${COL_NC} entries"
+
+    OLD_IFS="$IFS"
+    IFS=$'\r\n'
+    local gravity_sample=()
+    mapfile -t gravity_sample < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
+    log_write "   ${COL_CYAN}----- First 10 Domains -----${COL_NC}"
+
+    for line in "${gravity_sample[@]}"; do
+        log_write "   ${line}"
     done
+
     log_write ""
-    local gravity_tail=()
-    mapfile -t gravity_tail < <(tail -n 4 ${PIHOLE_BLOCKLIST_FILE})
-    log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_BLOCKLIST_FILE})------${COL_NC}"
-    for tail_line in "${gravity_tail[@]}"; do
-        log_write "   ${tail_line}"
-    done
-    # Set the IFS back to what it was
     IFS="$OLD_IFS"
 }
 
@@ -1236,6 +1238,7 @@ process_status
 parse_setup_vars
 check_x_headers
 analyze_gravity_list
+show_adlists
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log
