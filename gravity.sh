@@ -184,8 +184,8 @@ migrate_to_database() {
 gravity_CheckDNSResolutionAvailable() {
   local lookupDomain="pi.hole"
 
-  # Determine if $localList does not exist
-  if [[ ! -e "${localList}" ]]; then
+  # Determine if $localList does not exist, and ensure it is not empty
+  if [[ ! -e "${localList}" ]] || [[ -s "${localList}" ]]; then
     lookupDomain="raw.githubusercontent.com"
   fi
 
