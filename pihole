@@ -54,6 +54,11 @@ flushFunc() {
   exit 0
 }
 
+arpFunc() {
+  "${PI_HOLE_SCRIPT_DIR}"/piholeARPTable.sh "$@"
+  exit 0
+}
+
 updatePiholeFunc() {
   shift
   "${PI_HOLE_SCRIPT_DIR}"/update.sh "$@"
@@ -430,8 +435,8 @@ fi
 case "${1}" in
   "-w" | "whitelist"            ) listFunc "$@";;
   "-b" | "blacklist"            ) listFunc "$@";;
-  "--wild" | "wildcard"          ) listFunc "$@";;
-  "--regex" | "regex"            ) listFunc "$@";;
+  "--wild" | "wildcard"         ) listFunc "$@";;
+  "--regex" | "regex"           ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
@@ -452,5 +457,6 @@ case "${1}" in
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
+  "arpflush"                    ) arpFunc "$@";;
   *                             ) helpFunc;;
 esac
