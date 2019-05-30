@@ -103,7 +103,7 @@ if [[ -n "${str:-}" ]]; then
 fi
 
 scanDatabaseTable() {
-    local domain table type querystr result table_prev
+    local domain table type querystr result
     domain="$(printf "%q" "${1}")"
     table="${2}"
     type="${3:-}"
@@ -126,22 +126,20 @@ scanDatabaseTable() {
 
     # Mark domain as having been white-/blacklist matched (global variable)
     wbMatch=true
-    # Loop through each result
+
+    # Print table name
+    if [[ ! -z "${result}" ]]; then
+        echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+    fi
+
+    # Loop over results and print them
     mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
         if [[ -n "${blockpage}" ]]; then
             echo "π ${result}"
             exit 0
-        elif [[ -n "${exact}" ]]; then
-            echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
-        else
-            # Only print table name once
-            if [[ ! "${table}" == "${table_prev:-}" ]]; then
-                echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
-                table_prev="${table}"
-            fi
-        echo "   ${result}"
         fi
+        echo "   ${result}"
     done
 }
 
