@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017-2018 Pi-hole, LLC (https://pi-hole.net)
+# (c) 2017-2019 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -508,7 +508,7 @@ find_IPv4_information() {
     local route
     local IPv4bare
 
-    # Find IP used to route to outside world by checking the the route to Google's public DNS server
+    # Find IP used to route to outside world by checking the route to Google's public DNS server
     route=$(ip route get 8.8.8.8)
 
     # Get just the interface IPv4 address
