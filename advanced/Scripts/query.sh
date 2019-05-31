@@ -128,9 +128,7 @@ scanDatabaseTable() {
     wbMatch=true
 
     # Print table name
-    if [[ ! -z "${result}" ]]; then
-        echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
-    fi
+    echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
 
     # Loop over results and print them
     mapfile -t results <<< "${result}"
