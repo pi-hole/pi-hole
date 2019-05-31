@@ -32,7 +32,7 @@ fi
 
 flushARP(){
     local output
-    if [[ "${args[1]}" != *"quiet"* ]]; then
+    if [[ "${args[1]}" != "quiet" ]]; then
         echo -ne "  ${INFO} Flushing network table ..."
     fi
 
@@ -44,14 +44,14 @@ flushARP(){
     fi
 
     # Truncate network table in pihole-FTL.db
-    if ! output=$(sqlite3 "${DBFILE}" "DELETE FROM network;" 2>&1); then
+    if ! output=$(sqlite3 "${DBFILE}" "DELETE FROM network" 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to truncate network table"
         echo "  Database location: ${DBFILE}"
         echo "  Output: ${output}"
         return 1
     fi
 
-    if [[ "${args[1]}" != *"quiet"* ]]; then
+    if [[ "${args[1]}" != "quiet" ]]; then
         echo -e "${OVER}  ${TICK} Flushed network table"
     fi
 }
@@ -61,6 +61,3 @@ args=("$@")
 case "${args[0]}" in
     "arpflush"            ) flushARP;;
 esac
-
-shift
-
