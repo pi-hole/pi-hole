@@ -102,29 +102,48 @@ if [[ -n "${str:-}" ]]; then
     exit 1
 fi
 
-# Scan Whitelist and Blacklist
-lists="whitelist.txt blacklist.txt"
-mapfile -t results <<< "$(scanList "${domainQuery}" "${lists}" "${exact}")"
-if [[ -n "${results[*]}" ]]; then
+scanDatabaseTable() {
+    local domain table type querystr result
+    domain="$(printf "%q" "${1}")"
+    table="${2}"
+    type="${3:-}"
+
+    # As underscores are legitimate parts of domains, we escape them when using the LIKE operator.
+    # Underscores are SQLite wildcards matching exactly one character. We obviously want to suppress this
+    # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
+    # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
+    case "${type}" in
+        "exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
+        *       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+    esac
+
+    # Send prepared query to gravity database
+    result="$(sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
+    if [[ -z "${result}" ]]; then
+        # Return early when there are no matches in this table
+        return
+    fi
+
+    # Mark domain as having been white-/blacklist matched (global variable)
     wbMatch=true
-    # Loop through each result in order to print unique file title once
+
+    # Print table name
+    echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+
+    # Loop over results and print them
+    mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
-        fileName="${result%%.*}"
         if [[ -n "${blockpage}" ]]; then
             echo "π ${result}"
             exit 0
-        elif [[ -n "${exact}" ]]; then
-            echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
-        else
-            # Only print filename title once per file
-            if [[ ! "${fileName}" == "${fileName_prev:-}" ]]; then
-                echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
-                fileName_prev="${fileName}"
-            fi
-        echo "   ${result#*:}"
         fi
+        echo "   ${result}"
     done
-fi
+}
+
+# Scan Whitelist and Blacklist
+scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
+scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
 
 # Scan Wildcards
 if [[ -e "${wildcardlist}" ]]; then
