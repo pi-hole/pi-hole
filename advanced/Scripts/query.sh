@@ -39,7 +39,7 @@ scanList(){
     # shellcheck disable=SC2086
     case "${type}" in
 		"exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-		"rx"    ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' ${lists} <(echo "$domain") 2>/dev/null;;
+		"rx"    ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' <(echo "$lists") <(echo "$domain") 2>/dev/null;;
 		*       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
@@ -97,8 +97,9 @@ scanDatabaseTable() {
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     case "${type}" in
-        "exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
-        *       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+		"exact"         ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
+		"retrievetable" ) querystr="SELECT domain FROM vw_${table}";;
+		*               ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
     esac
 
     # Send prepared query to gravity database
@@ -107,6 +108,13 @@ scanDatabaseTable() {
         # Return early when there are no matches in this table
         return
     fi
+
+	# If we are only retrieving the table
+	# Just output and return
+	if [[ "${type}" == "retrievetable" ]]; then
+		echo "${result[*]}"
+		return
+	fi
 
     # Mark domain as having been white-/blacklist matched (global variable)
     wbMatch=true
@@ -129,14 +137,21 @@ scanDatabaseTable() {
 scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
 scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
 
-# Scan Regex
-if [[ -e "${regexlist}" ]]; then
+# Scan Regex table
+regexlist=$(scanDatabaseTable "" "regex" "retrievetable")
+
+if [[ -n "${regexlist}" ]]; then
     # Return portion(s) of string that is found in the regex list
     mapfile -t results <<< "$(scanList "${domainQuery}" "${regexlist}" "rx")"
 
-    if [[ -n "${results[*]}" ]]; then
-		# A result is found
-		str="Phrase ${matchType}ed within ${COL_BOLD}regex list${COL_NC}"
+	# If a result is found
+	if [[ -n "${results[*]}" ]]; then
+		# Count the matches
+		regexCount=${#results[@]}
+		# Determine plural string
+		[[ $regexCount -gt 1 ]] && plu="es"
+		# Form output strings
+		str="${COL_BOLD}${regexCount}${COL_NC} ${matchType}${plu:-} found in ${COL_BOLD}regex${COL_NC} table"
 		result="${COL_BOLD}$(IFS=$'\n'; echo "${results[*]}")${COL_NC}"
 
         if [[ -z "${blockpage}" ]]; then
