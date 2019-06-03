@@ -137,7 +137,7 @@ if [[ -e "${regexlist}" ]]; then
     if [[ -n "${results[*]}" ]]; then
 		# A result is found
 		str="Phrase ${matchType}ed within ${COL_BOLD}regex list${COL_NC}"
-		result="${COL_BOLD}$(printf '%s\n' ${results[*]})${COL_NC}"
+		result="${COL_BOLD}$(IFS=$'\n'; echo "${results[*]}")${COL_NC}"
 
         if [[ -z "${blockpage}" ]]; then
             wcMatch=true
