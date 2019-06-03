@@ -12,7 +12,7 @@
 # Globals
 piholeDir="/etc/pihole"
 gravityDBfile="${piholeDir}/gravity.db"
-wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+regexlist="/etc/pihole/regex.list"
 options="$*"
 adlist=""
 all=""
@@ -23,27 +23,11 @@ matchType="match"
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
 
-# Print each subdomain
-# e.g: foo.bar.baz.com = "foo.bar.baz.com bar.baz.com baz.com com"
-processWildcards() {
-    IFS="." read -r -a array <<< "${1}"
-    for (( i=${#array[@]}-1; i>=0; i-- )); do
-        ar=""
-        for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
-            if [[ $j == $((${#array[@]}-1)) ]]; then
-                ar="${array[$j]}"
-            else
-                ar="${array[$j]}.${ar}"
-            fi
-        done
-        echo "${ar}"
-    done
-}
-
+# Scan an array of files for matching strings
 # Scan an array of files for matching strings
 scanList(){
     # Escape full stops
-    local domain="${1//./\\.}" lists="${2}" type="${3:-}"
+    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" type="${3:-}"
 
     # Prevent grep from printing file path
     cd "$piholeDir" || exit 1
@@ -54,9 +38,9 @@ scanList(){
     # /dev/null forces filename to be printed when only one list has been generated
     # shellcheck disable=SC2086
     case "${type}" in
-        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        "wc"    ) grep -i -o -m 1 "/${domain}/" ${lists} 2>/dev/null;;
-        *       ) grep -i "${domain}" ${lists} /dev/null 2>/dev/null;;
+		"exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
+		"rx"    ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' ${lists} <(echo "$domain") 2>/dev/null;;
+		*       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
 
@@ -145,24 +129,26 @@ scanDatabaseTable() {
 scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
 scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
 
-# Scan Wildcards
-if [[ -e "${wildcardlist}" ]]; then
-    # Determine all subdomains, domain and TLDs
-    mapfile -t wildcards <<< "$(processWildcards "${domainQuery}")"
-    for match in "${wildcards[@]}"; do
-        # Search wildcard list for matches
-        mapfile -t results <<< "$(scanList "${match}" "${wildcardlist}" "wc")"
-        if [[ -n "${results[*]}" ]]; then
-            if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
-                wcMatch=true
-                echo " ${matchType^} found in ${COL_BOLD}Wildcards${COL_NC}:"
-            fi
-            case "${blockpage}" in
-                true ) echo "π ${wildcardlist##*/}"; exit 0;;
-                *    ) echo "   *.${match}";;
-            esac
+# Scan Regex
+if [[ -e "${regexlist}" ]]; then
+    # Return portion(s) of string that is found in the regex list
+    mapfile -t results <<< "$(scanList "${domainQuery}" "${regexlist}" "rx")"
+
+    if [[ -n "${results[*]}" ]]; then
+		# A result is found
+		str="Phrase ${matchType}ed within ${COL_BOLD}regex list${COL_NC}"
+		result="${COL_BOLD}$(printf '%s\n' ${results[*]})${COL_NC}"
+
+        if [[ -z "${blockpage}" ]]; then
+            wcMatch=true
+            echo " $str"
         fi
-    done
+
+        case "${blockpage}" in
+            true ) echo "π ${regexlist##*/}"; exit 0;;
+            *    ) awk '{print "   "$0}' <<< "${result}";;
+        esac
+    fi
 fi
 
 # Get version sorted *.domains filenames (without dir path)
