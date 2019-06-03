@@ -39,7 +39,7 @@ scanList(){
     # shellcheck disable=SC2086
     case "${type}" in
 		"exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-		"rx"    ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' <(echo "$lists") <(echo "$domain") 2>/dev/null;;
+		"rx"    ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' <(echo "${lists}") <(echo "${domain}") 2>/dev/null;;
 		*       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
