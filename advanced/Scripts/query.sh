@@ -12,7 +12,6 @@
 # Globals
 piholeDir="/etc/pihole"
 gravityDBfile="${piholeDir}/gravity.db"
-regexlist="/etc/pihole/regex.list"
 options="$*"
 adlist=""
 all=""
@@ -23,7 +22,6 @@ matchType="match"
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
 
-# Scan an array of files for matching strings
 # Scan an array of files for matching strings
 scanList(){
     # Escape full stops
@@ -39,7 +37,12 @@ scanList(){
     # shellcheck disable=SC2086
     case "${type}" in
 		"exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-		"rx"    ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' <(echo "${lists}") <(echo "${domain}") 2>/dev/null;;
+		# Create array of regexps
+		# Iterate through each regexp and check whether it matches the domainQuery
+		# If it does, print the matching regexp and continue looping
+		# Input 1 - regexps | Input 2 - domainQuery
+		"regex" ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' \
+					<(echo "${lists}") <(echo "${domain}") 2>/dev/null;;
 		*       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
@@ -97,9 +100,8 @@ scanDatabaseTable() {
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     case "${type}" in
-		"exact"         ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
-		"retrievetable" ) querystr="SELECT domain FROM vw_${table}";;
-		*               ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+		"exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
+		*       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
     esac
 
     # Send prepared query to gravity database
@@ -108,13 +110,6 @@ scanDatabaseTable() {
         # Return early when there are no matches in this table
         return
     fi
-
-	# If we are only retrieving the table
-	# Just output and return
-	if [[ "${type}" == "retrievetable" ]]; then
-		echo "${result[*]}"
-		return
-	fi
 
     # Mark domain as having been white-/blacklist matched (global variable)
     wbMatch=true
@@ -138,20 +133,19 @@ scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
 scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
 
 # Scan Regex table
-regexlist=$(scanDatabaseTable "" "regex" "retrievetable")
+mapfile -t regexlist <<< "$(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex" 2> /dev/null)"
+# Split results over new line and store in a string
+# ready for processing
+str_regexlist=$(IFS=$'\n'; echo "${regexlist[*]}")
+# If there are regexps in the DB
+if [[ -n "${str_regexlist}" ]]; then
+    # Return any regexps that match the domainQuery
+    mapfile -t results <<< "$(scanList "${domainQuery}" "${str_regexlist}" "regex")"
 
-if [[ -n "${regexlist}" ]]; then
-    # Return portion(s) of string that is found in the regex list
-    mapfile -t results <<< "$(scanList "${domainQuery}" "${regexlist}" "rx")"
-
-	# If a result is found
+	# If there are matches to the domain query
 	if [[ -n "${results[*]}" ]]; then
-		# Count the matches
-		regexCount=${#results[@]}
-		# Determine plural string
-		[[ $regexCount -gt 1 ]] && plu="es"
 		# Form output strings
-		str="${COL_BOLD}${regexCount}${COL_NC} ${matchType}${plu:-} found in ${COL_BOLD}regex${COL_NC} table"
+		str="${matchType^} found in ${COL_BOLD}regex list${COL_NC}"
 		result="${COL_BOLD}$(IFS=$'\n'; echo "${results[*]}")${COL_NC}"
 
         if [[ -z "${blockpage}" ]]; then
@@ -160,7 +154,7 @@ if [[ -n "${regexlist}" ]]; then
         fi
 
         case "${blockpage}" in
-            true ) echo "π ${regexlist##*/}"; exit 0;;
+            true ) echo "π regex list"; exit 0;;
             *    ) awk '{print "   "$0}' <<< "${result}";;
         esac
     fi
