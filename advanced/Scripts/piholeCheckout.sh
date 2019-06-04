@@ -101,7 +101,7 @@ checkout() {
 
         if [[ "${corebranches[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
-            echo -e "${INFO} ${#corebranches[@]} branches available for Pi-hole Core"
+            echo -e "  ${INFO} ${#corebranches[@]} branches available for Pi-hole Core"
         else
             # Print STDERR output from get_available_branches
             echo -e "${OVER}  ${CROSS} $str\\n\\n${corebranches[*]}"
