@@ -2154,7 +2154,7 @@ APIinstall() {
     printf "transferred... "
 
     # Install the new version
-    if which pihole-API &> /dev/null; then
+    if command -v pihole-API &> /dev/null; then
         # Reinstall
         "${PKG_LOCAL_REINSTALL[@]}" "./${binary}" > /dev/null || { printf "Unable to update the API\\n"; return 1; }
     else
@@ -2179,7 +2179,7 @@ APIcheckUpdate() {
     printf "  %b Checking for existing API...\\n" "${INFO}"
 
     # Check if the API is installed
-    if ! which pihole-API &> /dev/null; then
+    if ! command -v pihole-API &> /dev/null; then
         printf "  %b No install found\\n" "${INFO}"
         return 0
     fi
