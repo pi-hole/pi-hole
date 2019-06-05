@@ -202,6 +202,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [Raspberry Pi: Block ads at home using Pi-hole and a Raspberry Pi](https://www.raspberrypi.org/blog/pi-hole-raspberry-pi/) (July, 2018)
 - [Troy Hunt: Mmm... Pi-hole...](https://www.troyhunt.com/mmm-pi-hole/) (September, 2018)
 - [PEBKAK Podcast: Interview With Jacob Salmela](https://www.jerseystudios.net/2018/10/11/150-pi-hole/) (October, 2018)
+- [Jeff Atwood: An Exercise Program for the Fat Web](https://blog.codinghorror.com/an-exercise-program-for-the-fat-web/) (May, 2019)
 
 -----
 
