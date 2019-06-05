@@ -145,7 +145,7 @@ if [[ -n "${str_regexlist}" ]]; then
 	# If there are matches to the domain query
 	if [[ -n "${results[*]}" ]]; then
 		# Form output strings
-		str="${matchType^} found in ${COL_BOLD}regex list${COL_NC}"
+		str="${matchType^} found in ${COL_BOLD}Regex list${COL_NC}"
 		result="${COL_BOLD}$(IFS=$'\n'; echo "${results[*]}")${COL_NC}"
 
         if [[ -z "${blockpage}" ]]; then
@@ -154,7 +154,7 @@ if [[ -n "${str_regexlist}" ]]; then
         fi
 
         case "${blockpage}" in
-            true ) echo "π regex list"; exit 0;;
+            true ) echo "π Regex list"; exit 0;;
             *    ) awk '{print "   "$0}' <<< "${result}";;
         esac
     fi
