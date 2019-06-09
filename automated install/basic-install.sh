@@ -49,8 +49,6 @@ setupVars=/etc/pihole/setupVars.conf
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
 # shellcheck disable=SC2034
 lighttpdConfig=/etc/lighttpd/lighttpd.conf
-# This is a file used for the colorized output
-coltable=/opt/pihole/COL_TABLE
 
 # Root of the web server
 webroot="/var/www/html"
@@ -67,6 +65,10 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
+
+# This is a file used for the colorized output
+coltable="${PI_HOLE_INSTALL_DIR}/COL_TABLE"
+
 
 adlistFile="/etc/pihole/adlists.list"
 regexFile="/etc/pihole/regex.list"
@@ -1722,7 +1724,7 @@ installCron() {
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
     # Run gravity in the current shell
-    { /opt/pihole/gravity.sh --force; }
+    { ${PI_HOLE_INSTALL_DIR}/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -2591,7 +2593,7 @@ main() {
             # generate a random password
             pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
             # shellcheck disable=SC1091
-            . /opt/pihole/webpage.sh
+            . ${PI_HOLE_INSTALL_DIR}/webpage.sh
             echo "WEBPASSWORD=$(HashPassword ${pw})" >> ${setupVars}
         fi
     fi
@@ -2627,8 +2629,8 @@ main() {
     runGravity
 
     # Force an update of the updatechecker
-    /opt/pihole/updatecheck.sh
-    /opt/pihole/updatecheck.sh x remote
+    ${PI_HOLE_INSTALL_DIR}/updatecheck.sh
+    ${PI_HOLE_INSTALL_DIR}/updatecheck.sh x remote
 
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
