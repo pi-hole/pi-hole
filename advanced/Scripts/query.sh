@@ -156,6 +156,7 @@ if [[ "${#regexlist[@]}" -ne 0 ]]; then
 			# Echo the "matched" message, indented by one space
 			echo " ${str_message}"
 			# Echo the "results" message, each line indented by three spaces
+			# shellcheck disable=SC2001
 			echo "${str_result}" | sed 's/^/   /'
 		else
 			echo "π Regex list"
