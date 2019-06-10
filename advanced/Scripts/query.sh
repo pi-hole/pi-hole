@@ -133,31 +133,36 @@ scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
 scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
 
 # Scan Regex table
-mapfile -t regexlist <<< "$(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex" 2> /dev/null)"
-# Split results over new line and store in a string
-# ready for processing
-str_regexlist=$(IFS=$'\n'; echo "${regexlist[*]}")
-# If there are regexps in the DB
-if [[ -n "${str_regexlist}" ]]; then
-    # Return any regexps that match the domainQuery
-    mapfile -t results <<< "$(scanList "${domainQuery}" "${str_regexlist}" "regex")"
+mapfile -t regexlist < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex" 2> /dev/null)
 
-	# If there are matches to the domain query
-	if [[ -n "${results[*]}" ]]; then
-		# Form output strings
-		str="${matchType^} found in ${COL_BOLD}Regex list${COL_NC}"
-		result="${COL_BOLD}$(IFS=$'\n'; echo "${results[*]}")${COL_NC}"
-
-        if [[ -z "${blockpage}" ]]; then
-            wcMatch=true
-            echo " $str"
-        fi
-
-        case "${blockpage}" in
-            true ) echo "π Regex list"; exit 0;;
-            *    ) awk '{print "   "$0}' <<< "${result}";;
-        esac
-    fi
+# If we have regexps to process
+if [[ "${#regexlist[@]}" -ne 0 ]]; then
+	# Split regexps over a new line
+	str_regexlist=$(printf '%s\n' "${regexlist[@]}")
+	# Check domainQuery against regexps
+	mapfile -t regexMatches < <(scanList "${domainQuery}" "${str_regexlist}" "regex")
+	# If there were regex matches
+	if [[  "${#regexMatches[@]}" -ne 0 ]]; then
+		# Split matching regexps over a new line
+		str_regexMatches=$(printf '%s\n' "${regexMatches[@]}")
+		# Form a "matched" message
+		str_message="${matchType^} found in ${COL_BOLD}Regex list${COL_NC}"
+		# Form a "results" message
+		str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
+		
+		if [[ -z "${blockpage}" ]]; then
+			# Set the wildcard match flag
+			wcMatch=true
+			# Echo the "matched" message, indented by one space
+			echo " ${str_message}"
+			# Echo the "results" message, each line indented by three spaces
+			echo "${str_result}" | sed 's/^/   /'
+		else
+			echo "π Regex list"
+			exit 0
+		fi
+		
+	fi
 fi
 
 # Get version sorted *.domains filenames (without dir path)
