@@ -133,14 +133,14 @@ scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
 scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
 
 # Scan Regex table
-mapfile -t regexlist < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex" 2> /dev/null)
+mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex" 2> /dev/null)
 
 # If we have regexps to process
-if [[ "${#regexlist[@]}" -ne 0 ]]; then
+if [[ "${#regexList[@]}" -ne 0 ]]; then
 	# Split regexps over a new line
-	str_regexlist=$(printf '%s\n' "${regexlist[@]}")
+	str_regexList=$(printf '%s\n' "${regexList[@]}")
 	# Check domainQuery against regexps
-	mapfile -t regexMatches < <(scanList "${domainQuery}" "${str_regexlist}" "regex")
+	mapfile -t regexMatches < <(scanList "${domainQuery}" "${str_regexList}" "regex")
 	# If there were regex matches
 	if [[  "${#regexMatches[@]}" -ne 0 ]]; then
 		# Split matching regexps over a new line
