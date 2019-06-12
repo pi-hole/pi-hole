@@ -149,7 +149,7 @@ if [[ "${#regexList[@]}" -ne 0 ]]; then
 		str_message="${matchType^} found in ${COL_BOLD}Regex list${COL_NC}"
 		# Form a "results" message
 		str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
-		
+		# If we are displaying more than just the source of the block
 		if [[ -z "${blockpage}" ]]; then
 			# Set the wildcard match flag
 			wcMatch=true
@@ -162,7 +162,6 @@ if [[ "${#regexList[@]}" -ne 0 ]]; then
 			echo "π Regex list"
 			exit 0
 		fi
-		
 	fi
 fi
 
