@@ -222,10 +222,10 @@ setHeader();
   <?=$viewPort ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="//pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="//pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="shortcut icon" href="/admin/img/favicon.png" type="image/x-icon"/>
+  <link rel="stylesheet" href="/pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
-  <script src="//pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php
