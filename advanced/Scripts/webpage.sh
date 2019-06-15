@@ -366,6 +366,14 @@ EnableDHCP() {
     delete_dnsmasq_setting "dhcp-"
     delete_dnsmasq_setting "quiet-dhcp"
 
+    # If a DHCP client claims that its name is "wpad", ignore that.
+    # This fixes a security hole. see CERT Vulnerability VU#598349
+    # We also ignore "localhost" as Windows behaves strangely if a
+    # device claims this host name
+    add_dnsmasq_setting "dhcp-name-match=set:hostname-ignore,wpad
+dhcp-name-match=set:hostname-ignore,localhost
+dhcp-ignore-names=tag:hostname-ignore"
+
     ProcessDHCPSettings
 
     RestartDNS
