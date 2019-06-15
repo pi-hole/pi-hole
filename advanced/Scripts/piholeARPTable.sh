@@ -43,6 +43,16 @@ flushARP(){
         return 1
     fi
 
+    # Truncate network_addresses table in pihole-FTL.db
+    # This needs to be done before we can truncate the network table due to
+    # foreign key contraints
+    if ! output=$(sqlite3 "${DBFILE}" "DELETE FROM network_addresses" 2>&1); then
+        echo -e "${OVER}  ${CROSS} Failed to truncate network_addresses table"
+        echo "  Database location: ${DBFILE}"
+        echo "  Output: ${output}"
+        return 1
+    fi
+
     # Truncate network table in pihole-FTL.db
     if ! output=$(sqlite3 "${DBFILE}" "DELETE FROM network" 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to truncate network table"
