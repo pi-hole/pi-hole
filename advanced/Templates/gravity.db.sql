@@ -7,6 +7,10 @@ CREATE TABLE domain_groups
 	"description" TEXT
 );
 INSERT INTO domain_groups ("id","description") VALUES (0,'Standard group');
+CREATE TRIGGER domain_groups_standard_group AFTER DELETE ON domain_groups WHEN OLD.id = 0
+    BEGIN
+      INSERT INTO domain_groups ("id","description") VALUES (0,'Standard group');
+    END;
 
 CREATE TABLE whitelist
 (
@@ -49,6 +53,10 @@ CREATE TABLE adlist_groups
 	"description" TEXT
 );
 INSERT INTO adlist_groups ("id","description") VALUES (0,'Standard group');
+CREATE TRIGGER adlist_groups_standard_group AFTER DELETE ON adlist_groups WHEN OLD.id = 0
+    BEGIN
+      INSERT INTO adlist_groups ("id","description") VALUES (0,'Standard group');
+    END;
 
 CREATE TABLE adlists
 (
