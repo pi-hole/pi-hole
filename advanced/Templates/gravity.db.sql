@@ -1,3 +1,13 @@
+PRAGMA FOREIGN_KEYS=ON;
+
+CREATE TABLE domain_groups
+(
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"enabled" BOOLEAN NOT NULL DEFAULT 1,
+	"description" TEXT
+);
+INSERT INTO domain_groups ("id","description") VALUES (0,'Standard group');
+
 CREATE TABLE whitelist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -5,7 +15,9 @@ CREATE TABLE whitelist
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	group_id INTEGER DEFAULT 0,
+	comment TEXT,
+	FOREIGN KEY (group_id) REFERENCES domain_groups(id)
 );
 CREATE TABLE blacklist
 (
@@ -14,7 +26,9 @@ CREATE TABLE blacklist
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	group_id INTEGER DEFAULT 0,
+	comment TEXT,
+	FOREIGN KEY (group_id) REFERENCES domain_groups(id)
 );
 CREATE TABLE regex
 (
@@ -23,7 +37,9 @@ CREATE TABLE regex
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	group_id INTEGER DEFAULT 0,
+	comment TEXT,
+	FOREIGN KEY (group_id) REFERENCES domain_groups(id)
 );
 CREATE TABLE adlists
 (
@@ -52,7 +68,8 @@ CREATE VIEW vw_gravity AS SELECT a.domain
 
 CREATE VIEW vw_whitelist AS SELECT a.domain
     FROM whitelist a
-    WHERE a.enabled == 1
+    INNER JOIN domain_groups b ON b.id = a.group_id
+    WHERE a.enabled = 1 AND b.enabled = 1
     ORDER BY a.id;
 
 CREATE TRIGGER tr_whitelist_update AFTER UPDATE ON whitelist
@@ -62,7 +79,8 @@ CREATE TRIGGER tr_whitelist_update AFTER UPDATE ON whitelist
 
 CREATE VIEW vw_blacklist AS SELECT a.domain
     FROM blacklist a
-    WHERE a.enabled == 1 AND a.domain NOT IN vw_whitelist
+    INNER JOIN domain_groups b ON b.id = a.group_id
+    WHERE a.enabled = 1 AND a.domain NOT IN vw_whitelist AND b.enabled = 1
     ORDER BY a.id;
 
 CREATE TRIGGER tr_blacklist_update AFTER UPDATE ON blacklist
@@ -72,7 +90,8 @@ CREATE TRIGGER tr_blacklist_update AFTER UPDATE ON blacklist
 
 CREATE VIEW vw_regex AS SELECT a.domain
     FROM regex a
-    WHERE a.enabled == 1
+    INNER JOIN domain_groups b ON b.id = a.group_id
+    WHERE a.enabled = 1 AND b.enabled = 1
     ORDER BY a.id;
 
 CREATE TRIGGER tr_regex_update AFTER UPDATE ON regex
