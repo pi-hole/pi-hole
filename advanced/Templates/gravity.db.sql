@@ -15,7 +15,7 @@ CREATE TABLE whitelist
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	group_id INTEGER DEFAULT 0,
+	group_id INTEGER NOT NULL DEFAULT 0,
 	comment TEXT,
 	FOREIGN KEY (group_id) REFERENCES domain_groups(id)
 );
@@ -26,7 +26,7 @@ CREATE TABLE blacklist
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	group_id INTEGER DEFAULT 0,
+	group_id INTEGER NOT NULL DEFAULT 0,
 	comment TEXT,
 	FOREIGN KEY (group_id) REFERENCES domain_groups(id)
 );
@@ -37,10 +37,19 @@ CREATE TABLE regex
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	group_id INTEGER DEFAULT 0,
+	group_id INTEGER NOT NULL DEFAULT 0,
 	comment TEXT,
 	FOREIGN KEY (group_id) REFERENCES domain_groups(id)
 );
+
+CREATE TABLE adlist_groups
+(
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"enabled" BOOLEAN NOT NULL DEFAULT 1,
+	"description" TEXT
+);
+INSERT INTO adlist_groups ("id","description") VALUES (0,'Standard group');
+
 CREATE TABLE adlists
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +57,9 @@ CREATE TABLE adlists
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	group_id INTEGER NOT NULL DEFAULT 0,
+	comment TEXT,
+	FOREIGN KEY (group_id) REFERENCES adlist_groups(id)
 );
 CREATE TABLE gravity
 (
@@ -101,7 +112,8 @@ CREATE TRIGGER tr_regex_update AFTER UPDATE ON regex
 
 CREATE VIEW vw_adlists AS SELECT a.address
     FROM adlists a
-    WHERE a.enabled == 1
+    INNER JOIN adlist_groups b ON b.id = a.group_id
+    WHERE a.enabled = 1 AND b.enabled = 1
     ORDER BY a.id;
 
 CREATE TRIGGER tr_adlists_update AFTER UPDATE ON adlists
