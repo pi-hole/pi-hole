@@ -83,7 +83,7 @@ INSERT INTO info VALUES("version","1");
 
 CREATE VIEW vw_gravity AS SELECT a.domain
     FROM gravity a
-    WHERE a.domain NOT IN (SELECT domain from whitelist WHERE enabled == 1);
+    WHERE a.domain NOT IN (SELECT domain from vw_whitelist);
 
 CREATE VIEW vw_whitelist AS SELECT a.domain
     FROM whitelist a
