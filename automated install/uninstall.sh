@@ -55,13 +55,13 @@ fi
 # Compatability
 if [ -x "$(command -v apt-get)" ]; then
     # Debian Family
-    PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
+    PKG_REMOVE=("${PKG_MANAGER}" -y remove --purge)
     package_check() {
         dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
     }
 elif [ -x "$(command -v rpm)" ]; then
     # Fedora Family
-    PKG_REMOVE="${PKG_MANAGER} remove -y"
+    PKG_REMOVE=("${PKG_MANAGER}" remove -y)
     package_check() {
         rpm -qa | grep "^$1-" > /dev/null
     }
@@ -80,7 +80,7 @@ removeAndPurge() {
                 case ${yn} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null;
+                        ${SUDO} "${PKG_REMOVE}" "${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
