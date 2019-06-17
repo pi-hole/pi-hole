@@ -80,7 +80,7 @@ removeAndPurge() {
                 case ${yn} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} "${PKG_REMOVE} ${i}" &> /dev/null;
+                        ${SUDO} ${PKG_REMOVE} "${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
@@ -132,12 +132,15 @@ removeNoPurge() {
     fi
 
     if package_check lighttpd > /dev/null; then
-        ${SUDO} rm -rf /etc/lighttpd/ &> /dev/null
-        echo -e "  ${TICK} Removed lighttpd"
-    else
-        if [ -f /etc/lighttpd/lighttpd.conf.orig ]; then
+        if [[ -f /etc/lighttpd/lighttpd.conf.orig ]]; then
             ${SUDO} mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
         fi
+
+        if [[ -f /etc/lighttpd/external.conf ]]; then
+            ${SUDO} rm /etc/lighttpd/external.conf
+        fi
+
+        echo -e "  ${TICK} Removed lighttpd configs"
     fi
 
     ${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
