@@ -80,7 +80,7 @@ removeAndPurge() {
                 case ${yn} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} "${PKG_REMOVE}" "${i}" &> /dev/null;
+                        ${SUDO} "${PKG_REMOVE[@]}" "${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
