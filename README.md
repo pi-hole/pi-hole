@@ -202,6 +202,7 @@ While quite outdated at this point, [this original blog post about Pi-hole](http
 - [Raspberry Pi: Block ads at home using Pi-hole and a Raspberry Pi](https://www.raspberrypi.org/blog/pi-hole-raspberry-pi/) (July, 2018)
 - [Troy Hunt: Mmm... Pi-hole...](https://www.troyhunt.com/mmm-pi-hole/) (September, 2018)
 - [PEBKAK Podcast: Interview With Jacob Salmela](https://www.jerseystudios.net/2018/10/11/150-pi-hole/) (October, 2018)
+- [SemperVideo: Das schwarze Loch für Werbung](https://www.youtube.com/watch?v=3GJ2Jqk8wD4), [Das schwarze Loch erweitern](https://www.youtube.com/watch?v=dFPKoKq7qM8) (February 2017)
 
 -----
 
