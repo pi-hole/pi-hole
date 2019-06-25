@@ -46,7 +46,11 @@ compress.filetype           = ( "application/javascript", "text/css", "text/html
 
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
-include_shell "/usr/share/lighttpd/create-mime.assign.pl"
+
+# old lighttpd, debian < 10
+include_shell "[ -f /usr/share/lighttpd/create-mime.assign.pl ] && /usr/share/lighttpd/create-mime.assign.pl; exit 0"
+# new lighttpd, debian >= 10
+include_shell "[ -f /usr/share/lighttpd/create-mime.conf.pl ] && /usr/share/lighttpd/create-mime.conf.pl; exit 0"
 
 # Prevent Lighttpd from enabling Let's Encrypt SSL for every blocked domain
 #include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
