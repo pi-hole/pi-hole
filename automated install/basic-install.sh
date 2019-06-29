@@ -2386,6 +2386,11 @@ FTLcheckUpdate() {
             local FTLlatesttag
             FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
+            if [[ $? != 0 ]]; then
+                # There was an issue while retrieving the latest version
+                return 3
+            fi
+
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
             else
