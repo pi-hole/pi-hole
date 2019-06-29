@@ -17,6 +17,8 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 
+readonly gravityDBfile="/etc/pihole/gravity.db"
+
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
     source ${coltable}
@@ -364,6 +366,14 @@ EnableDHCP() {
     delete_dnsmasq_setting "dhcp-"
     delete_dnsmasq_setting "quiet-dhcp"
 
+    # If a DHCP client claims that its name is "wpad", ignore that.
+    # This fixes a security hole. see CERT Vulnerability VU#598349
+    # We also ignore "localhost" as Windows behaves strangely if a
+    # device claims this host name
+    add_dnsmasq_setting "dhcp-name-match=set:hostname-ignore,wpad
+dhcp-name-match=set:hostname-ignore,localhost
+dhcp-ignore-names=tag:hostname-ignore"
+
     ProcessDHCPSettings
 
     RestartDNS
@@ -386,19 +396,17 @@ SetWebUILayout() {
 }
 
 CustomizeAdLists() {
-    list="/etc/pihole/adlists.list"
+    local address
+    address="${args[3]}"
 
     if [[ "${args[2]}" == "enable" ]]; then
-        sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
+        sqlite3 "${gravityDBfile}" "UPDATE adlists SET enabled = 1 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "disable" ]]; then
-        sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
+        sqlite3 "${gravityDBfile}" "UPDATE adlists SET enabled = 0 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "add" ]]; then
-        if [[ $(grep -c "^${args[3]}$" "${list}") -eq 0 ]] ; then
-            echo "${args[3]}" >> ${list}
-        fi
+        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlists (address) VALUES ('${address}')"
     elif [[ "${args[2]}" == "del" ]]; then
-        var=$(echo "${args[3]}" | sed 's/\//\\\//g')
-        sed -i "/${var}/Id" "${list}"
+        sqlite3 "${gravityDBfile}" "DELETE FROM adlists WHERE address = '${address}'"
     else
         echo "Not permitted"
         return 1
@@ -531,7 +539,7 @@ Interfaces:
 
 Teleporter() {
     local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
-    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.zip"
+    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.tar.gz"
 }
 
 addAudit()
