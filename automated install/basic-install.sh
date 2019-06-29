@@ -2383,13 +2383,15 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
+            local FTLreleaseData
             local FTLlatesttag
-            FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
-            if [[ $? != 0 ]]; then
+            if ! FTLreleaseData=$(curl -sI https://github.com/pi-hole/FTL/releases/latest); then
                 # There was an issue while retrieving the latest version
                 return 3
             fi
+
+            FTLlatesttag=$(grep 'Location' < "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
