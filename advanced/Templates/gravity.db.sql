@@ -96,7 +96,7 @@ CREATE VIEW vw_whitelist AS SELECT domain
     FROM whitelist
     LEFT JOIN whitelist_by_group ON whitelist_by_group.whitelist_id = whitelist.id
     LEFT JOIN "group" ON "group".id = whitelist_by_group.group_id
-    WHERE whitelist.enabled = 1 AND ("group".enabled IS NULL OR "group".enabled = 1)
+    WHERE whitelist.enabled = 1 AND (whitelist_by_group.group_id IS NULL OR "group".enabled = 1)
     ORDER BY whitelist.id;
 
 CREATE TRIGGER tr_whitelist_update AFTER UPDATE ON whitelist
@@ -108,7 +108,7 @@ CREATE VIEW vw_blacklist AS SELECT domain
     FROM blacklist
     LEFT JOIN blacklist_by_group ON blacklist_by_group.blacklist_id = blacklist.id
     LEFT JOIN "group" ON "group".id = blacklist_by_group.group_id
-    WHERE blacklist.enabled = 1 AND ("group".enabled IS NULL OR "group".enabled = 1)
+    WHERE blacklist.enabled = 1 AND (blacklist_by_group.group_id IS NULL OR "group".enabled = 1)
     ORDER BY blacklist.id;
 
 CREATE TRIGGER tr_blacklist_update AFTER UPDATE ON blacklist
@@ -120,7 +120,7 @@ CREATE VIEW vw_regex AS SELECT domain
     FROM regex
     LEFT JOIN regex_by_group ON regex_by_group.regex_id = regex.id
     LEFT JOIN "group" ON "group".id = regex_by_group.group_id
-    WHERE regex.enabled = 1 AND ("group".enabled IS NULL OR "group".enabled = 1)
+    WHERE regex.enabled = 1 AND (regex_by_group.group_id IS NULL OR "group".enabled = 1)
     ORDER BY regex.id;
 
 CREATE TRIGGER tr_regex_update AFTER UPDATE ON regex
@@ -132,7 +132,7 @@ CREATE VIEW vw_adlists AS SELECT address
     FROM adlists
     LEFT JOIN adlists_by_group ON adlists_by_group.adlists_id = adlists.id
     LEFT JOIN "group" ON "group".id = adlists_by_group.group_id
-    WHERE adlists.enabled = 1 AND ("group".enabled IS NULL OR "group".enabled = 1)
+    WHERE adlists.enabled = 1 AND (adlists_by_group.group_id IS NULL OR "group".enabled = 1)
     ORDER BY adlists.id;
 
 CREATE TRIGGER tr_adlists_update AFTER UPDATE ON adlists
