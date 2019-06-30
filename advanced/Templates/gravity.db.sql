@@ -4,6 +4,7 @@ CREATE TABLE "group"
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
+	name TEXT NOT NULL,
 	description TEXT
 );
 
