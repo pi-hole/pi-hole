@@ -59,7 +59,7 @@ CREATE TABLE regex_by_group
 	PRIMARY KEY (regex_id, group_id)
 );
 
-CREATE TABLE adlists
+CREATE TABLE adlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	address TEXT UNIQUE NOT NULL,
@@ -69,11 +69,11 @@ CREATE TABLE adlists
 	comment TEXT
 );
 
-CREATE TABLE adlists_by_group
+CREATE TABLE adlist_by_group
 (
-	adlists_id INTEGER NOT NULL REFERENCES adlists (id),
+	adlist_id INTEGER NOT NULL REFERENCES adlist (id),
 	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (adlists_id, group_id)
+	PRIMARY KEY (adlist_id, group_id)
 );
 
 CREATE TABLE gravity
@@ -128,15 +128,15 @@ CREATE TRIGGER tr_regex_update AFTER UPDATE ON regex
       UPDATE regex SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
     END;
 
-CREATE VIEW vw_adlists AS SELECT address
-    FROM adlists
-    LEFT JOIN adlists_by_group ON adlists_by_group.adlists_id = adlists.id
-    LEFT JOIN "group" ON "group".id = adlists_by_group.group_id
-    WHERE adlists.enabled = 1 AND (adlists_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY adlists.id;
+CREATE VIEW vw_adlist AS SELECT address
+    FROM adlist
+    LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = adlist.id
+    LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
+    WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    ORDER BY adlist.id;
 
-CREATE TRIGGER tr_adlists_update AFTER UPDATE ON adlists
+CREATE TRIGGER tr_adlist_update AFTER UPDATE ON adlist
     BEGIN
-      UPDATE adlists SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
+      UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
     END;
 

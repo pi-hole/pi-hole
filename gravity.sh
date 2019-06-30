@@ -111,7 +111,7 @@ database_table_from_file() {
     # No need to modify the input data for the gravity table
     inputfile="${source}"
   else
-    # Apply format for white-, blacklist, regex, and adlists tables
+    # Apply format for white-, blacklist, regex, and adlist tables
     local rowid
     declare -i rowid
     rowid=1
@@ -159,9 +159,9 @@ migrate_to_database() {
 
   # Migrate list files to new database
   if [[ -e "${adListFile}" ]]; then
-    # Store adlists domains in database
+    # Store adlist domains in database
     echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
-    database_table_from_file "adlists" "${adListFile}"
+    database_table_from_file "adlist" "${adListFile}"
   fi
   if [[ -e "${blacklistFile}" ]]; then
     # Store blacklisted domains in database
@@ -236,13 +236,13 @@ gravity_CheckDNSResolutionAvailable() {
   gravity_CheckDNSResolutionAvailable
 }
 
-# Retrieve blocklist URLs and parse domains from adlists.list
+# Retrieve blocklist URLs and parse domains from adlist.list
 gravity_GetBlocklistUrls() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
-  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlists;" 2> /dev/null)"
+  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
