@@ -92,7 +92,7 @@ CREATE VIEW vw_gravity AS SELECT domain
     FROM gravity
     WHERE domain NOT IN (SELECT domain from vw_whitelist);
 
-CREATE VIEW vw_whitelist AS SELECT domain
+CREATE VIEW vw_whitelist AS SELECT DISTINCT domain
     FROM whitelist
     LEFT JOIN whitelist_by_group ON whitelist_by_group.whitelist_id = whitelist.id
     LEFT JOIN "group" ON "group".id = whitelist_by_group.group_id
@@ -104,7 +104,7 @@ CREATE TRIGGER tr_whitelist_update AFTER UPDATE ON whitelist
       UPDATE whitelist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
     END;
 
-CREATE VIEW vw_blacklist AS SELECT domain
+CREATE VIEW vw_blacklist AS SELECT DISTINCT domain
     FROM blacklist
     LEFT JOIN blacklist_by_group ON blacklist_by_group.blacklist_id = blacklist.id
     LEFT JOIN "group" ON "group".id = blacklist_by_group.group_id
@@ -116,7 +116,7 @@ CREATE TRIGGER tr_blacklist_update AFTER UPDATE ON blacklist
       UPDATE blacklist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
     END;
 
-CREATE VIEW vw_regex AS SELECT domain
+CREATE VIEW vw_regex AS SELECT DISTINCT domain
     FROM regex
     LEFT JOIN regex_by_group ON regex_by_group.regex_id = regex.id
     LEFT JOIN "group" ON "group".id = regex_by_group.group_id
@@ -128,7 +128,7 @@ CREATE TRIGGER tr_regex_update AFTER UPDATE ON regex
       UPDATE regex SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
     END;
 
-CREATE VIEW vw_adlist AS SELECT address
+CREATE VIEW vw_adlist AS SELECT DISTINCT address
     FROM adlist
     LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = adlist.id
     LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
