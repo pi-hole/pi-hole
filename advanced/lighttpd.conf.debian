@@ -44,9 +44,18 @@ static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
 compress.cache-dir          = "/var/cache/lighttpd/compress/"
 compress.filetype           = ( "application/javascript", "text/css", "text/html", "text/plain" )
 
+mimetype.assign   = ( ".png"  => "image/png",
+                      ".jpg"  => "image/jpeg",
+                      ".jpeg" => "image/jpeg",
+                      ".html" => "text/html",
+                      ".css" => "text/css; charset=utf-8",
+                      ".js" => "application/javascript",
+                      ".json" => "application/json",
+                      ".txt"  => "text/plain",
+                      ".svg"  => "image/svg+xml" )
+
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
-include_shell "/usr/share/lighttpd/create-mime.assign.pl"
 
 # Prevent Lighttpd from enabling Let's Encrypt SSL for every blocked domain
 #include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
