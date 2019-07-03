@@ -41,7 +41,7 @@ scanList(){
 		# Iterate through each regexp and check whether it matches the domainQuery
 		# If it does, print the matching regexp and continue looping
 		# Input 1 - regexps | Input 2 - domainQuery
-		"regex" ) awk 'NR==FNR{regexps[$0]}{for (r in regexps)if($0 ~ r)print r}' \
+		"regex" ) awk 'NR==FNR{regexps[$0];next}{for (r in regexps)if($0 ~ r)print r}' \
 					<(echo "${lists}") <(echo "${domain}") 2>/dev/null;;
 		*       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
