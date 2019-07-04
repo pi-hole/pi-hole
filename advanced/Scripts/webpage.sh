@@ -400,13 +400,13 @@ CustomizeAdLists() {
     address="${args[3]}"
 
     if [[ "${args[2]}" == "enable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlists SET enabled = 1 WHERE address = '${address}'"
+        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "disable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlists SET enabled = 0 WHERE address = '${address}'"
+        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "add" ]]; then
-        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlists (address) VALUES ('${address}')"
+        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address) VALUES ('${address}')"
     elif [[ "${args[2]}" == "del" ]]; then
-        sqlite3 "${gravityDBfile}" "DELETE FROM adlists WHERE address = '${address}'"
+        sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
     else
         echo "Not permitted"
         return 1

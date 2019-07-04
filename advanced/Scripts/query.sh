@@ -201,7 +201,7 @@ fi
 # Get adlist file content as array
 if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
     # Retrieve source URLs from gravity database
-    mapfile -t adlists <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlists;" 2> /dev/null)"
+    mapfile -t adlists <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
 fi
 
 # Print "Exact matches for" title

@@ -1077,7 +1077,7 @@ show_db_entries() {
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT * FROM adlists" "4 100 7 10 13 50"
+    show_db_entries "Adlists" "SELECT * FROM adlist" "4 100 7 10 13 50"
 }
 
 show_whitelist() {
