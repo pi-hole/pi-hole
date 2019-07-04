@@ -113,7 +113,7 @@ if (is_file("/etc/pihole/adlists.list")) {
 
 // Get possible non-standard location of FTL's database
 $FTLsettings = parse_ini_file("/etc/pihole/pihole-FTL.conf");
-if(isset($FTLsettings["GRAVITYDB"])) {
+if (isset($FTLsettings["GRAVITYDB"])) {
     $gravityDBFile = $FTLsettings["GRAVITYDB"];
 } else {
     $gravityDBFile = "/etc/pihole/gravity.db";
@@ -129,7 +129,7 @@ try {
 // Get all adlist addresses
 $adlistResults = $db->query("SELECT address FROM vw_adlist");
 $adlistsUrls = array();
-while($row = $adlistResults->fetchArray()) {
+while ($row = $adlistResults->fetchArray()) {
     array_push($adlistsUrls, $row[0]);
 }
 
