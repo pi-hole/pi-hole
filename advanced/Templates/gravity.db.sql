@@ -80,13 +80,22 @@ CREATE TABLE gravity
 (
 	domain TEXT PRIMARY KEY
 );
+
+CREATE TABLE audit
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	domain TEXT UNIQUE NOT NULL,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	comment TEXT
+);
+
 CREATE TABLE info
 (
 	property TEXT PRIMARY KEY,
 	value TEXT NOT NULL
 );
 
-INSERT INTO info VALUES("version","1");
+INSERT INTO info VALUES("version","2");
 
 CREATE VIEW vw_gravity AS SELECT domain
     FROM gravity
