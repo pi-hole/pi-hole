@@ -546,17 +546,17 @@ addAudit()
 {
     shift # skip "-a"
     shift # skip "audit"
-    for var in "$@"
+    for domain in "$@"
     do
-        echo "${var}" >> /etc/pihole/auditlog.list
+      # Insert only the domain here. The date_added field will be
+      # filled with its default value (date_added = current timestamp)
+      sqlite3 "${gravityDBfile}" "INSERT INTO \"audit\" (domain) VALUES ('${domain}');"
     done
-    chmod 644 /etc/pihole/auditlog.list
 }
 
 clearAudit()
 {
-    echo -n "" > /etc/pihole/auditlog.list
-    chmod 644 /etc/pihole/auditlog.list
+    sqlite3 "${gravityDBfile}" "DELETE FROM \"audit\";"
 }
 
 SetPrivacyLevel() {
