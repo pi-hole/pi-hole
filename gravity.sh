@@ -17,6 +17,8 @@ coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 regexconverter="/opt/pihole/wildcard_regex_converter.sh"
 source "${regexconverter}"
+readonly databaseMigrationScript="/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
+source "${databaseMigrationScript}"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
@@ -28,6 +30,7 @@ whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
 adListFile="${piholeDir}/adlists.list"
+auditFile="${piholeDir}/audit.list"
 
 localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
@@ -116,14 +119,27 @@ database_table_from_file() {
     declare -i rowid
     rowid=1
     # Read file line by line
-    grep -v '^ *#' < "${source}" | while IFS= read -r domain
-    do
-      # Only add non-empty lines
-      if [[ ! -z "${domain}" ]]; then
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
-        rowid+=1
-      fi
-    done
+    if [[ "${table}" == "audit" ]]; then
+      grep -v '^ *#' < "${source}" | while IFS= read -r domain
+      do
+        # Only add non-empty lines
+        if [[ ! -z "${domain}" ]]; then
+          # Audit table format
+          echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
+          rowid+=1
+        fi
+      done
+    else
+      grep -v '^ *#' < "${source}" | while IFS= read -r domain
+      do
+        # Only add non-empty lines
+        if [[ ! -z "${domain}" ]]; then
+          # White-, black-, and regexlist format
+          echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+          rowid+=1
+        fi
+      done
+    fi
     inputfile="${tmpFile}"
   fi
   # Store domains in database table specified by ${table}
@@ -150,33 +166,39 @@ database_table_from_file() {
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
   # Create database file only if not present
-  if [ -e "${gravityDBfile}" ]; then
-    return 0
+  if [ ! -e "${gravityDBfile}" ]; then
+    echo -e "  ${INFO} Creating new gravity database"
+    generate_gravity_database
   fi
 
-  echo -e "  ${INFO} Creating new gravity database"
-  generate_gravity_database
+  # Check if gravity database needs to be updated
+  upgrade_gravityDB "${gravityDBfile}"
 
   # Migrate list files to new database
-  if [[ -e "${adListFile}" ]]; then
+  if [ -e "${adListFile}" ]; then
     # Store adlist domains in database
     echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
     database_table_from_file "adlist" "${adListFile}"
   fi
-  if [[ -e "${blacklistFile}" ]]; then
+  if [ -e "${blacklistFile}" ]; then
     # Store blacklisted domains in database
     echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
     database_table_from_file "blacklist" "${blacklistFile}"
   fi
-  if [[ -e "${whitelistFile}" ]]; then
+  if [ -e "${whitelistFile}" ]; then
     # Store whitelisted domains in database
     echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
     database_table_from_file "whitelist" "${whitelistFile}"
   fi
-  if [[ -e "${regexFile}" ]]; then
+  if [ -e "${regexFile}" ]; then
     # Store regex domains in database
     echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
     database_table_from_file "regex" "${regexFile}"
+  fi
+  if [ -e "${auditFile}" ]; then
+    # Store audit domains in database
+    echo -e "  ${INFO} Migrating content of ${auditFile} into new database"
+    database_table_from_file "audit" "${auditFile}"
   fi
 }
 
