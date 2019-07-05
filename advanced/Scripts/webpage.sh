@@ -546,12 +546,15 @@ addAudit()
 {
     shift # skip "-a"
     shift # skip "audit"
+    local domains="('${1}')"
+    shift # skip first domain, as it has already been added
     for domain in "$@"
     do
       # Insert only the domain here. The date_added field will be
       # filled with its default value (date_added = current timestamp)
-      sqlite3 "${gravityDBfile}" "INSERT INTO \"audit\" (domain) VALUES ('${domain}');"
+      domains="${domains},('${domain}')"
     done
+    sqlite3 "${gravityDBfile}" "INSERT INTO \"audit\" (domain) VALUES ${domains};"
 }
 
 clearAudit()
