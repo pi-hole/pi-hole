@@ -81,12 +81,11 @@ CREATE TABLE gravity
 	domain TEXT PRIMARY KEY
 );
 
-CREATE TABLE audit
+CREATE TABLE auditlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	domain TEXT UNIQUE NOT NULL,
-	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int))
 );
 
 CREATE TABLE info

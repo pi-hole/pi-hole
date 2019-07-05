@@ -30,7 +30,7 @@ whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
 adListFile="${piholeDir}/adlists.list"
-auditFile="${piholeDir}/audit.list"
+auditFile="${piholeDir}/auditlog.list"
 
 localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
@@ -119,12 +119,12 @@ database_table_from_file() {
     declare -i rowid
     rowid=1
     # Read file line by line
-    if [[ "${table}" == "audit" ]]; then
+    if [[ "${table}" == "auditlist" ]]; then
       grep -v '^ *#' < "${source}" | while IFS= read -r domain
       do
         # Only add non-empty lines
         if [[ ! -z "${domain}" ]]; then
-          # Audit table format
+          # Auditlist table format
           echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
           rowid+=1
         fi
@@ -198,7 +198,7 @@ migrate_to_database() {
   if [ -e "${auditFile}" ]; then
     # Store audit domains in database
     echo -e "  ${INFO} Migrating content of ${auditFile} into new database"
-    database_table_from_file "audit" "${auditFile}"
+    database_table_from_file "auditlist" "${auditFile}"
   fi
 }
 

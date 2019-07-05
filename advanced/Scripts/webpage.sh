@@ -554,12 +554,12 @@ addAudit()
       # filled with its default value (date_added = current timestamp)
       domains="${domains},('${domain}')"
     done
-    sqlite3 "${gravityDBfile}" "INSERT INTO \"audit\" (domain) VALUES ${domains};"
+    sqlite3 "${gravityDBfile}" "INSERT INTO \"auditlist\" (domain) VALUES ${domains};"
 }
 
 clearAudit()
 {
-    sqlite3 "${gravityDBfile}" "DELETE FROM \"audit\";"
+    sqlite3 "${gravityDBfile}" "DELETE FROM \"auditlist\";"
 }
 
 SetPrivacyLevel() {
