@@ -486,6 +486,13 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     '''
     confirms only aarch64 package is downloaded for FTL engine
     '''
+    # mock whiptail answers and ensure installer dependencies
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-aarch64-linux-gnu"
@@ -501,6 +508,13 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     '''
     confirms unknown binary is not downloaded for FTL engine
     '''
+    # mock whiptail answers and ensure installer dependencies
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-mips"
@@ -519,6 +533,13 @@ def test_FTL_download_binary_unset_no_errors(Pihole):
     '''
     confirms unset binary variable does not download FTL engine
     '''
+    # mock whiptail answers and ensure installer dependencies
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
