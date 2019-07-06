@@ -11,11 +11,11 @@
 # Please see LICENSE file for your rights under this license.
 
 upgrade_gravityDB(){
-	local version=$(sqlite3 "$1" "SELECT "value" FROM "info" WHERE "property" = 'version';")
+	local version
+	version=$(sqlite3 "$1" "SELECT "value" FROM "info" WHERE "property" = 'version';")
 
-	case "$version" in
-	1)
+	if [[ "$version" == "1" ]]; then
 		sqlite3 "$1" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/1_to_2.sql"
-		;;
-	esac
+		version=2
+	fi
 }

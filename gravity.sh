@@ -115,25 +115,28 @@ database_table_from_file() {
     inputfile="${source}"
   else
     # Apply format for white-, blacklist, regex, and adlist tables
-    local rowid
-    declare -i rowid
-    rowid=1
     # Read file line by line
     if [[ "${table}" == "auditlist" ]]; then
+      local rowid
+      declare -i rowid
+      rowid=1
       grep -v '^ *#' < "${source}" | while IFS= read -r domain
       do
         # Only add non-empty lines
-        if [[ ! -z "${domain}" ]]; then
+        if [[ -n "${domain}" ]]; then
           # Auditlist table format
           echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
           rowid+=1
         fi
       done
     else
+      local rowid
+      declare -i rowid
+      rowid=1
       grep -v '^ *#' < "${source}" | while IFS= read -r domain
       do
         # Only add non-empty lines
-        if [[ ! -z "${domain}" ]]; then
+        if [[ -n "${domain}" ]]; then
           # White-, black-, and regexlist format
           echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
           rowid+=1
@@ -198,7 +201,7 @@ migrate_to_database() {
   if [ -e "${auditFile}" ]; then
     # Store audit domains in database
     echo -e "  ${INFO} Migrating content of ${auditFile} into new database"
-    database_table_from_file "auditlist" "${auditFile}"
+    database_table_from_file "domain_auditlist" "${auditFile}"
   fi
 }
 
