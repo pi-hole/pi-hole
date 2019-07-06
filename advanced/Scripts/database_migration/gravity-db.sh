@@ -12,7 +12,7 @@
 
 upgrade_gravityDB(){
 	local version
-	version=$(sqlite3 "$1" "SELECT "value" FROM "info" WHERE "property" = 'version';")
+	version="$(sqlite3 "$1" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
 	if [[ "$version" == "1" ]]; then
 		sqlite3 "$1" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/1_to_2.sql"
