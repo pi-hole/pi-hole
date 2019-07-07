@@ -15,7 +15,16 @@ upgrade_gravityDB(){
 	version="$(sqlite3 "$1" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
 	if [[ "$version" == "1" ]]; then
+		# This migration script upgrades the gravity.db file by
+		# adding the domain_auditlist table
 		sqlite3 "$1" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/1_to_2.sql"
 		version=2
+
+		# Store audit domains in database table
+		if [ -e "${auditFile}" ]; then
+			echo -e "  ${INFO} Migrating content of ${auditFile} into new database"
+			# database_table_from_file is defined in gravity.sh
+			database_table_from_file "domain_auditlist" "${auditFile}"
+		fi
 	fi
 }

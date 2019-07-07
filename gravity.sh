@@ -17,8 +17,7 @@ coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 regexconverter="/opt/pihole/wildcard_regex_converter.sh"
 source "${regexconverter}"
-readonly databaseMigrationScript="/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
-source "${databaseMigrationScript}"
+source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
@@ -116,33 +115,23 @@ database_table_from_file() {
   else
     # Apply format for white-, blacklist, regex, and adlist tables
     # Read file line by line
-    if [[ "${table}" == "auditlist" ]]; then
-      local rowid
-      declare -i rowid
-      rowid=1
-      grep -v '^ *#' < "${source}" | while IFS= read -r domain
-      do
-        # Only add non-empty lines
-        if [[ -n "${domain}" ]]; then
+    local rowid
+    declare -i rowid
+    rowid=1
+    grep -v '^ *#' < "${source}" | while IFS= read -r domain
+    do
+      # Only add non-empty lines
+      if [[ -n "${domain}" ]]; then
+        if [[ "${table}" == "auditlist" ]]; then
           # Auditlist table format
           echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
-          rowid+=1
-        fi
-      done
-    else
-      local rowid
-      declare -i rowid
-      rowid=1
-      grep -v '^ *#' < "${source}" | while IFS= read -r domain
-      do
-        # Only add non-empty lines
-        if [[ -n "${domain}" ]]; then
+        else
           # White-, black-, and regexlist format
           echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
-          rowid+=1
         fi
-      done
-    fi
+        rowid+=1
+      fi
+    done
     inputfile="${tmpFile}"
   fi
   # Store domains in database table specified by ${table}
@@ -170,39 +159,35 @@ database_table_from_file() {
 migrate_to_database() {
   # Create database file only if not present
   if [ ! -e "${gravityDBfile}" ]; then
+    # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
     generate_gravity_database
+
+    # Migrate list files to new database
+    if [ -e "${adListFile}" ]; then
+      # Store adlist domains in database
+      echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
+      database_table_from_file "adlist" "${adListFile}"
+    fi
+    if [ -e "${blacklistFile}" ]; then
+      # Store blacklisted domains in database
+      echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
+      database_table_from_file "blacklist" "${blacklistFile}"
+    fi
+    if [ -e "${whitelistFile}" ]; then
+      # Store whitelisted domains in database
+      echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
+      database_table_from_file "whitelist" "${whitelistFile}"
+    fi
+    if [ -e "${regexFile}" ]; then
+      # Store regex domains in database
+      echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
+      database_table_from_file "regex" "${regexFile}"
+    fi
   fi
 
   # Check if gravity database needs to be updated
   upgrade_gravityDB "${gravityDBfile}"
-
-  # Migrate list files to new database
-  if [ -e "${adListFile}" ]; then
-    # Store adlist domains in database
-    echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
-    database_table_from_file "adlist" "${adListFile}"
-  fi
-  if [ -e "${blacklistFile}" ]; then
-    # Store blacklisted domains in database
-    echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
-    database_table_from_file "blacklist" "${blacklistFile}"
-  fi
-  if [ -e "${whitelistFile}" ]; then
-    # Store whitelisted domains in database
-    echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
-    database_table_from_file "whitelist" "${whitelistFile}"
-  fi
-  if [ -e "${regexFile}" ]; then
-    # Store regex domains in database
-    echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
-    database_table_from_file "regex" "${regexFile}"
-  fi
-  if [ -e "${auditFile}" ]; then
-    # Store audit domains in database
-    echo -e "  ${INFO} Migrating content of ${auditFile} into new database"
-    database_table_from_file "domain_auditlist" "${auditFile}"
-  fi
 }
 
 # Determine if DNS resolution is available before proceeding
