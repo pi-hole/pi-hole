@@ -17,6 +17,7 @@ coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 regexconverter="/opt/pihole/wildcard_regex_converter.sh"
 source "${regexconverter}"
+# shellcheck disable=SC1091
 source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
@@ -187,7 +188,7 @@ migrate_to_database() {
   fi
 
   # Check if gravity database needs to be updated
-  upgrade_gravityDB "${gravityDBfile}"
+  upgrade_gravityDB "${gravityDBfile}" "${auditFile}"
 }
 
 # Determine if DNS resolution is available before proceeding

@@ -11,13 +11,15 @@
 # Please see LICENSE file for your rights under this license.
 
 upgrade_gravityDB(){
-	local version
-	version="$(sqlite3 "$1" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
+	local database auditFile version
+	database="${1}"
+	auditFile="${2}"
+	version="$(sqlite3 "${database}" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
 	if [[ "$version" == "1" ]]; then
 		# This migration script upgrades the gravity.db file by
 		# adding the domain_auditlist table
-		sqlite3 "$1" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/1_to_2.sql"
+		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/1_to_2.sql"
 		version=2
 
 		# Store audit domains in database table
