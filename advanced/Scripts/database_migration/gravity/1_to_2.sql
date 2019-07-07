@@ -1,4 +1,4 @@
-CREATE TABLE domain_auditlist
+CREATE TABLE domain_audit
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	domain TEXT UNIQUE NOT NULL,

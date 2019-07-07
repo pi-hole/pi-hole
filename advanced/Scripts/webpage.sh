@@ -557,23 +557,27 @@ addAudit()
     shift # skip "-a"
     shift # skip "audit"
     local domains validDomain
-    domains="('$(checkDomain "${1}")')"
-    shift # skip first domain, as it has already been added
+    domains=""
     for domain in "$@"
     do
       # Insert only the domain here. The date_added field will be
       # filled with its default value (date_added = current timestamp)
       validDomain="$(checkDomain "${domain}")"
       if [[ -n "${validDomain}" ]]; then
-        domains="${domains},('${domain}')"
+        # Put comma in between () when there is
+        # more than one domains to be added
+        if [[ -n "${domains}" ]]; then
+          domains="${domains},"
+        fi
+        domains="${domains}('${domain}')"
       fi
     done
-    sqlite3 "${gravityDBfile}" "INSERT INTO \"domain_auditlist\" (domain) VALUES ${domains};"
+    sqlite3 "${gravityDBfile}" "INSERT INTO \"domain_audit\" (domain) VALUES ${domains};"
 }
 
 clearAudit()
 {
-    sqlite3 "${gravityDBfile}" "DELETE FROM \"domain_auditlist\";"
+    sqlite3 "${gravityDBfile}" "DELETE FROM \"domain_audit\";"
 }
 
 SetPrivacyLevel() {
