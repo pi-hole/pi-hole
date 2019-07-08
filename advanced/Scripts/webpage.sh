@@ -564,20 +564,22 @@ addAudit()
       # filled with its default value (date_added = current timestamp)
       validDomain="$(checkDomain "${domain}")"
       if [[ -n "${validDomain}" ]]; then
-        # Put comma in between () when there is
+        # Put comma in between domains when there is
         # more than one domains to be added
+        # SQL INSERT allows adding multiple rows at once using the format
+        ## INSERT INTO table (domain) VALUES ('abc.de'),('fgh.ij'),('klm.no'),('pqr.st');
         if [[ -n "${domains}" ]]; then
           domains="${domains},"
         fi
         domains="${domains}('${domain}')"
       fi
     done
-    sqlite3 "${gravityDBfile}" "INSERT INTO \"domain_audit\" (domain) VALUES ${domains};"
+    sqlite3 "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
 }
 
 clearAudit()
 {
-    sqlite3 "${gravityDBfile}" "DELETE FROM \"domain_audit\";"
+    sqlite3 "${gravityDBfile}" "DELETE FROM domain_audit;"
 }
 
 SetPrivacyLevel() {
