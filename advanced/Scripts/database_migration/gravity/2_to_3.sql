@@ -15,7 +15,7 @@ DROP VIEW vw_regex;
 DROP TRIGGER tr_regex_update;
 
 CREATE VIEW vw_regex_blacklist AS SELECT DISTINCT domain
-    FROM regex
+    FROM regex_blacklist
     LEFT JOIN regex_blacklist_by_group ON regex_blacklist_by_group.regex_blacklist_id = regex_blacklist.id
     LEFT JOIN "group" ON "group".id = regex_blacklist_by_group.group_id
     WHERE regex_blacklist.enabled = 1 AND (regex_blacklist_by_group.group_id IS NULL OR "group".enabled = 1)
