@@ -182,8 +182,10 @@ migrate_to_database() {
     fi
     if [ -e "${regexFile}" ]; then
       # Store regex domains in database
+      # Important note: We need to add the domains to the "regex" table
+      # as it will only later be renamed to "regex_blacklist"!
       echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
-      database_table_from_file "regex_blacklist" "${regexFile}"
+      database_table_from_file "regex" "${regexFile}"
     fi
   fi
 
