@@ -183,7 +183,7 @@ migrate_to_database() {
     if [ -e "${regexFile}" ]; then
       # Store regex domains in database
       echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
-      database_table_from_file "regex" "${regexFile}"
+      database_table_from_file "regex_blacklist" "${regexFile}"
     fi
   fi
 
@@ -591,9 +591,10 @@ gravity_Table_Count() {
 
 # Output count of blacklisted domains and regex filters
 gravity_ShowCount() {
-  gravity_Table_Count "blacklist" "blacklisted domains"
-  gravity_Table_Count "whitelist" "whitelisted domains"
-  gravity_Table_Count "regex" "regex filters"
+  gravity_Table_Count "blacklist" "exact blacklisted domains"
+  gravity_Table_Count "regex_blacklist" "regex blacklist filters"
+  gravity_Table_Count "whitelist" "exact whitelisted domains"
+  gravity_Table_Count "regex_whitelist" "regex whitelist filters"
 }
 
 # Parse list of domains into hosts format

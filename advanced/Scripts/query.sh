@@ -133,7 +133,7 @@ scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
 scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
 
 # Scan Regex table
-mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex" 2> /dev/null)
+mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex_blacklist" 2> /dev/null)
 
 # If we have regexps to process
 if [[ "${#regexList[@]}" -ne 0 ]]; then

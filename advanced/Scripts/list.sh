@@ -32,12 +32,12 @@ helpFunc() {
     if [[ "${listType}" == "whitelist" ]]; then
         param="w"
         type="whitelist"
-    elif [[ "${listType}" == "regex" && "${wildcard}" == true ]]; then
+    elif [[ "${listType}" == "regex_blacklist" && "${wildcard}" == true ]]; then
         param="-wild"
         type="wildcard blacklist"
-    elif [[ "${listType}" == "regex" ]]; then
+    elif [[ "${listType}" == "regex_blacklist" ]]; then
         param="-regex"
-        type="regex filter"
+        type="regex blacklist filter"
     else
         param="b"
         type="blacklist"
@@ -58,7 +58,8 @@ Options:
   exit 0
 }
 
-EscapeRegexp() {
+Escape
+Regexp() {
     # This way we may safely insert an arbitrary
     # string in our regular expressions
     # This sed is intentionally executed in three steps to ease maintainability
@@ -72,7 +73,7 @@ HandleOther() {
 
     # Check validity of domain (don't check for regex entries)
     if [[ "${#domain}" -le 253 ]]; then
-        if [[ "${listType}" == "regex" && "${wildcard}" == false ]]; then
+        if [[ "${listType}" == "regex_blacklist" && "${wildcard}" == false ]]; then
             validDomain="${domain}"
         else
             validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
@@ -88,9 +89,9 @@ HandleOther() {
 }
 
 ProcessDomainList() {
-    if [[ "${listType}" == "regex" ]]; then
+    if [[ "${listType}" == "regex_blacklist" ]]; then
         # Regex filter list
-        listname="regex filters"
+        listname="regex blacklist filters"
     else
         # Whitelist / Blacklist
         listname="${listType}"
@@ -106,7 +107,7 @@ ProcessDomainList() {
         # if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
             AddDomain "${dom}" "${listType}"
-            if [[ ! "${listType}" == "regex" ]]; then
+            if [[ ! "${listType}" == "regex_blacklist" ]]; then
                 RemoveDomain "${dom}" "${listAlt}"
             fi
         else
@@ -215,8 +216,8 @@ for var in "$@"; do
     case "${var}" in
         "-w" | "whitelist"   ) listType="whitelist"; listAlt="blacklist";;
         "-b" | "blacklist"   ) listType="blacklist"; listAlt="whitelist";;
-        "--wild" | "wildcard" ) listType="regex"; wildcard=true;;
-        "--regex" | "regex"   ) listType="regex";;
+        "--wild" | "wildcard" ) listType="regex_blacklist"; wildcard=true;;
+        "--regex" | "regex"   ) listType="regex_blacklist";;
         "-nr"| "--noreload"  ) reload=false;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
