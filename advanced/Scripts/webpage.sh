@@ -560,8 +560,7 @@ addAudit()
     domains=""
     for domain in "$@"
     do
-      # Insert only the domain here. The date_added field will be
-      # filled with its default value (date_added = current timestamp)
+      # Check domain to be added. Only continue if it is valid
       validDomain="$(checkDomain "${domain}")"
       if [[ -n "${validDomain}" ]]; then
         # Put comma in between domains when there is
@@ -574,6 +573,8 @@ addAudit()
         domains="${domains}('${domain}')"
       fi
     done
+    # Insert only the domain here. The date_added field will be
+    # filled with its default value (date_added = current timestamp)
     sqlite3 "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
 }
 

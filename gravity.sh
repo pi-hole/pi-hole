@@ -30,7 +30,6 @@ whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
 adListFile="${piholeDir}/adlists.list"
-auditFile="${piholeDir}/auditlog.list"
 
 localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
@@ -123,8 +122,8 @@ database_table_from_file() {
     do
       # Only add non-empty lines
       if [[ -n "${domain}" ]]; then
-        if [[ "${table}" == "auditlist" ]]; then
-          # Auditlist table format
+        if [[ "${table}" == "domain_audit" ]]; then
+          # domain_audit table format (no enable or modified fields)
           echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
         else
           # White-, black-, and regexlist format
@@ -188,7 +187,7 @@ migrate_to_database() {
   fi
 
   # Check if gravity database needs to be updated
-  upgrade_gravityDB "${gravityDBfile}" "${auditFile}"
+  upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
 }
 
 # Determine if DNS resolution is available before proceeding
