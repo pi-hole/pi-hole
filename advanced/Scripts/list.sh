@@ -58,8 +58,7 @@ Options:
   exit 0
 }
 
-Escape
-Regexp() {
+EscapeRegexp() {
     # This way we may safely insert an arbitrary
     # string in our regular expressions
     # This sed is intentionally executed in three steps to ease maintainability

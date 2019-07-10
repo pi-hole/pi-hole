@@ -1081,19 +1081,13 @@ show_adlists() {
 }
 
 show_whitelist() {
-    show_db_entries "Whitelist" "SELECT * FROM whitelist" "4 100 7 10 13 50"
+    show_db_entries "Exact whitelist" "SELECT * FROM whitelist" "4 100 7 10 13 50"
+    show_db_entries "Regex whitelist" "SELECT * FROM regex_whitelist" "4 100 7 10 13 50"
 }
 
 show_blacklist() {
-    show_db_entries "Blacklist" "SELECT * FROM blacklist" "4 100 7 10 13 50"
-}
-
-show_regexblacklist() {
-    show_db_entries "Regexblacklist" "SELECT * FROM regex_blacklist" "4 100 7 10 13 50"
-}
-
-show_regexwhitelist() {
-    show_db_entries "Regexwhitelist" "SELECT * FROM regex_whitelist" "4 100 7 10 13 50"
+    show_db_entries "Exact blacklist" "SELECT * FROM blacklist" "4 100 7 10 13 50"
+    show_db_entries "Regex blacklist" "SELECT * FROM regex_blacklist" "4 100 7 10 13 50"
 }
 
 analyze_gravity_list() {
@@ -1272,8 +1266,6 @@ analyze_gravity_list
 show_adlists
 show_whitelist
 show_blacklist
-show_regexblacklist
-show_regexwhitelist
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log
