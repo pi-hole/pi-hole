@@ -74,8 +74,8 @@ regexFile="/etc/pihole/regex.list"
 # this script can run
 IPV4_ADDRESS=""
 IPV6_ADDRESS=""
-# By default, query logging is enabled and the dashboard is set to be installed
-QUERY_LOGGING=true
+# By default, query logging is disabled and the dashboard is set to be installed
+QUERY_LOGGING=false
 INSTALL_WEB_INTERFACE=true
 PRIVACY_LEVEL=0
 
@@ -1076,21 +1076,21 @@ setLogging() {
     local LogChoices
 
     # Ask if the user wants to log queries
-    LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?" "${r}" "${c}" 6)
-    # The default selection is on
-    LogChooseOptions=("On (Recommended)" "" on
-        Off "" off)
+    LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries to pihole.log?" "${r}" "${c}" 6)
+    # The default selection is off to reduce stressing the SD card
+    LogChooseOptions=("Off (Recommended)" "" on
+        "On" "" off)
     # Get the user's choice
     LogChoices=$("${LogToggleCommand[@]}" "${LogChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
     case ${LogChoices} in
         # If it's on
-        "On (Recommended)")
+        "On")
             printf "  %b Logging On.\\n" "${INFO}"
             # Set the GLOBAL variable to true so we know what they selected
             QUERY_LOGGING=true
             ;;
         # Otherwise, it's off,
-        Off)
+        "Off (Recommended)")
             printf "  %b Logging Off.\\n" "${INFO}"
             # So set it to false
             QUERY_LOGGING=false
