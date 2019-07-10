@@ -1,3 +1,5 @@
+.timeout 30000
+
 CREATE TABLE domain_audit
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
