@@ -1,3 +1,5 @@
+.timeout 30000
+
 PRAGMA FOREIGN_KEYS=OFF;
 
 ALTER TABLE regex RENAME TO regex_blacklist;
