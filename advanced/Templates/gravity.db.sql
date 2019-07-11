@@ -80,6 +80,7 @@ CREATE TABLE gravity
 (
 	domain TEXT PRIMARY KEY
 );
+
 CREATE TABLE info
 (
 	property TEXT PRIMARY KEY,

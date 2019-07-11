@@ -542,21 +542,45 @@ Teleporter() {
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.tar.gz"
 }
 
+checkDomain()
+{
+    local domain validDomain
+    # Convert to lowercase
+    domain="${1,,}"
+    validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
+    validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+    echo "${validDomain}"
+}
+
 addAudit()
 {
     shift # skip "-a"
     shift # skip "audit"
-    for var in "$@"
+    local domains validDomain
+    domains=""
+    for domain in "$@"
     do
-        echo "${var}" >> /etc/pihole/auditlog.list
+      # Check domain to be added. Only continue if it is valid
+      validDomain="$(checkDomain "${domain}")"
+      if [[ -n "${validDomain}" ]]; then
+        # Put comma in between domains when there is
+        # more than one domains to be added
+        # SQL INSERT allows adding multiple rows at once using the format
+        ## INSERT INTO table (domain) VALUES ('abc.de'),('fgh.ij'),('klm.no'),('pqr.st');
+        if [[ -n "${domains}" ]]; then
+          domains="${domains},"
+        fi
+        domains="${domains}('${domain}')"
+      fi
     done
-    chmod 644 /etc/pihole/auditlog.list
+    # Insert only the domain here. The date_added field will be
+    # filled with its default value (date_added = current timestamp)
+    sqlite3 "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
 }
 
 clearAudit()
 {
-    echo -n "" > /etc/pihole/auditlog.list
-    chmod 644 /etc/pihole/auditlog.list
+    sqlite3 "${gravityDBfile}" "DELETE FROM domain_audit;"
 }
 
 SetPrivacyLevel() {
