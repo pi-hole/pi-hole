@@ -700,3 +700,42 @@ def test_IPv6_ULA_GUA_test(Pihole):
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
+
+
+def test_validate_ip_valid(Pihole):
+    '''
+    Given a valid IP address, valid_ip returns success
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "192.168.1.1"
+    ''')
+
+    assert output.rc == 0
+
+
+def test_validate_ip_invalid_octet(Pihole):
+    '''
+    Given an invalid IP address (large octet), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "1092.168.1.1"
+    ''')
+
+    assert output.rc == 1
+
+
+def test_validate_ip_invalid_letters(Pihole):
+    '''
+    Given an invalid IP address (contains letters), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "not an IP"
+    ''')
+
+    assert output.rc == 1
