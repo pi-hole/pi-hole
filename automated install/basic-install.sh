@@ -934,7 +934,7 @@ valid_ip() {
         # and set the new one to a dot (period)
         IFS='.'
         # Put the IP into an array
-        ip=("${ip}")
+        read -r -a ip <<< "${ip}"
         # Restore the IFS to what it was
         IFS=${OIFS}
         ## Evaluate each octet by checking if it's less than or equal to 255 (the max for each octet)
