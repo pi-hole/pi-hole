@@ -1168,12 +1168,11 @@ chooseBlocklists() {
         mv "${adlistFile}" "${adlistFile}.old"
     fi
     # Let user select (or not) blocklists via a checklist
-    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 7)
+    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 6)
     # In an array, show the options available (all off by default):
     options=(StevenBlack "StevenBlack's Unified Hosts List" on
         MalwareDom "MalwareDomains" on
         Cameleon "Cameleon" on
-        ZeusTracker "ZeusTracker" on
         DisconTrack "Disconnect.me Tracking" on
         DisconAd "Disconnect.me Ads" on
         HostsFile "Hosts-file.net Ads" on)
@@ -1195,7 +1194,6 @@ appendToListsFile() {
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
         Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
-        ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
         HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
@@ -1213,7 +1211,6 @@ installDefaultBlocklists() {
     appendToListsFile StevenBlack
     appendToListsFile MalwareDom
     appendToListsFile Cameleon
-    appendToListsFile ZeusTracker
     appendToListsFile DisconTrack
     appendToListsFile DisconAd
     appendToListsFile HostsFile
