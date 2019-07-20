@@ -2404,6 +2404,7 @@ FTLcheckUpdate() {
 
             if ! FTLreleaseData=$(curl -sI https://github.com/pi-hole/FTL/releases/latest); then
                 # There was an issue while retrieving the latest version
+                printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
 
