@@ -115,7 +115,9 @@ scanDatabaseTable() {
     wbMatch=true
 
     # Print table name
-    echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+    if [[ -z "${blockpage}" ]]; then
+        echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+    fi
 
     # Loop over results and print them
     mapfile -t results <<< "${result}"
@@ -159,7 +161,7 @@ if [[ "${#regexList[@]}" -ne 0 ]]; then
 			# shellcheck disable=SC2001
 			echo "${str_result}" | sed 's/^/   /'
 		else
-			echo "π Regex list"
+			echo "π .wildcard"
 			exit 0
 		fi
 	fi
