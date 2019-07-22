@@ -440,6 +440,7 @@ case "${1}" in
   "--wild" | "wildcard"         ) listFunc "$@";;
   "--regex" | "regex"           ) listFunc "$@";;
   "--whiteregex" | "whiteregex" ) listFunc "$@";;
+  "--whitewild" | "whitewild"   ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;

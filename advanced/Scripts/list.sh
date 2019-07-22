@@ -75,7 +75,7 @@ HandleOther() {
 
     # Check validity of domain (don't check for regex entries)
     if [[ "${#domain}" -le 253 ]]; then
-        if [[ "${listType}" == "regex_blacklist" && "${wildcard}" == false ]]; then
+        if [[ ( "${listType}" == "regex_blacklist" || "${listType}" == "regex_whitelist" ) && "${wildcard}" == false ]]; then
             validDomain="${domain}"
         else
             validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
@@ -224,6 +224,7 @@ for var in "$@"; do
         "--wild" | "wildcard" ) listType="regex_blacklist"; wildcard=true;;
         "--regex" | "regex"   ) listType="regex_blacklist";;
         "--whiteregex" | "whiteregex" ) listType="regex_whitelist";;
+        "--whitewild" | "whitewild" ) listType="regex_whitelist"; wildcard=true;;
         "-nr"| "--noreload"  ) reload=false;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
