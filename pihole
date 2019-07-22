@@ -375,9 +375,10 @@ Add '-h' after specific commands for more information on usage
 Whitelist/Blacklist Options:
   -w, whitelist       Whitelist domain(s)
   -b, blacklist       Blacklist domain(s)
-  --wild, wildcard     Wildcard blacklist domain(s)
   --regex, regex       Regex blacklist domains(s)
   --whiteregex         Regex whitelist domains(s)
+  --wild, wildcard     Wildcard blacklist domain(s)
+  --whitewild          Wildcard whitelist domain(s)
                         Add '-h' for more info on whitelist/blacklist usage
 
 Debugging Options:
