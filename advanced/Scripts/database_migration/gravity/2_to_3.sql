@@ -40,14 +40,14 @@ CREATE TABLE regex_whitelist
 
 CREATE TABLE regex_whitelist_by_group
 (
-	regex_id INTEGER NOT NULL REFERENCES regex_whitelist (id),
+	regex_whitelist_id INTEGER NOT NULL REFERENCES regex_whitelist (id),
 	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (regex_id, group_id)
+	PRIMARY KEY (regex_whitelist_id, group_id)
 );
 
 CREATE VIEW vw_regex_whitelist AS SELECT DISTINCT domain
     FROM regex_whitelist
-    LEFT JOIN regex_whitelist_by_group ON regex_whitelist_by_group.regex_id = regex_whitelist.id
+    LEFT JOIN regex_whitelist_by_group ON regex_whitelist_by_group.regex_whitelist_id = regex_whitelist.id
     LEFT JOIN "group" ON "group".id = regex_whitelist_by_group.group_id
     WHERE regex_whitelist.enabled = 1 AND (regex_whitelist_by_group.group_id IS NULL OR "group".enabled = 1)
     ORDER BY regex_whitelist.id;
