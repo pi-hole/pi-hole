@@ -38,6 +38,9 @@ helpFunc() {
     elif [[ "${listType}" == "regex_blacklist" ]]; then
         param="-regex"
         type="regex blacklist filter"
+    elif [[ "${listType}" == "regex_blacklist" ]]; then
+        param="-whiteregex"
+        type="regex whitelist filter"
     else
         param="b"
         type="blacklist"
@@ -89,8 +92,11 @@ HandleOther() {
 
 ProcessDomainList() {
     if [[ "${listType}" == "regex_blacklist" ]]; then
-        # Regex filter list
+        # Regex black filter list
         listname="regex blacklist filters"
+    elif [[ "${listType}" == "regex_whitelist" ]]; then
+        # Regex white filter list
+        listname="regex whitelist filters"
     else
         # Whitelist / Blacklist
         listname="${listType}"
@@ -106,7 +112,7 @@ ProcessDomainList() {
         # if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
             AddDomain "${dom}" "${listType}"
-            if [[ ! "${listType}" == "regex_blacklist" ]]; then
+            if [[ ! "${listType}" == "regex_"*"list" ]]; then
                 RemoveDomain "${dom}" "${listAlt}"
             fi
         else
@@ -173,7 +179,7 @@ Displaylist() {
     data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM ${listType};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
-        echo -e "Not showing empty ${listname}"
+        echo -e "Not showing empty list"
     else
         echo -e "Displaying ${listname}:"
         count=1
@@ -217,6 +223,7 @@ for var in "$@"; do
         "-b" | "blacklist"   ) listType="blacklist"; listAlt="whitelist";;
         "--wild" | "wildcard" ) listType="regex_blacklist"; wildcard=true;;
         "--regex" | "regex"   ) listType="regex_blacklist";;
+        "--whiteregex" | "whiteregex" ) listType="regex_whitelist";;
         "-nr"| "--noreload"  ) reload=false;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;

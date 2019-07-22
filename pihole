@@ -377,6 +377,7 @@ Whitelist/Blacklist Options:
   -b, blacklist       Blacklist domain(s)
   --wild, wildcard     Wildcard blacklist domain(s)
   --regex, regex       Regex blacklist domains(s)
+  --whiteregex         Regex whitelist domains(s)
                         Add '-h' for more info on whitelist/blacklist usage
 
 Debugging Options:
@@ -438,6 +439,7 @@ case "${1}" in
   "-b" | "blacklist"            ) listFunc "$@";;
   "--wild" | "wildcard"         ) listFunc "$@";;
   "--regex" | "regex"           ) listFunc "$@";;
+  "--whiteregex" | "whiteregex" ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
