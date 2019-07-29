@@ -84,8 +84,13 @@ if [ -z "${USER}" ]; then
 fi
 
 
-# Find the rows and columns will default to 80x24 if it can not be detected
-screen_size=$(stty size || printf '%d %d' 24 80)
+# Check if we are running on a real terminal and find the rows and columns
+# If there is no real terminal, we will default to 80x24
+if [ -t 0 ] ; then
+  screen_size=$(stty size)
+else
+  screen_size="24 80"
+fi
 # Set rows variable to contain first number
 printf -v rows '%d' "${screen_size%% *}"
 # Set columns variable to contain second number
