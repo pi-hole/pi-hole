@@ -85,6 +85,10 @@ fi
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
   sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+
+  # Ensure proper permissions are set for the newly created database
+  chown pihole:pihole "${gravityDBfile}"
+  chmod g+w "${piholeDir}" "${gravityDBfile}"
 }
 
 # Import domains from file and store them in the specified database table
