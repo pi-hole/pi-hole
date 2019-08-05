@@ -94,15 +94,19 @@ HandleOther() {
 }
 
 ProcessDomainList() {
+    local is_regexlist
     if [[ "${listType}" == "regex_blacklist" ]]; then
         # Regex black filter list
         listname="regex blacklist filters"
+        is_regexlist=true
     elif [[ "${listType}" == "regex_whitelist" ]]; then
         # Regex white filter list
         listname="regex whitelist filters"
+        is_regexlist=true
     else
         # Whitelist / Blacklist
         listname="${listType}"
+        is_regexlist=false
     fi
 
     for dom in "${domList[@]}"; do
@@ -115,7 +119,7 @@ ProcessDomainList() {
         # if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
             AddDomain "${dom}" "${listType}"
-            if [[ ! "${listType}" == "regex_"*"list" ]]; then
+            if ! ${is_regexlist}; then
                 RemoveDomain "${dom}" "${listAlt}"
             fi
         else
