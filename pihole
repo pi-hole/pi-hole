@@ -440,8 +440,8 @@ case "${1}" in
   "-b" | "blacklist"            ) listFunc "$@";;
   "--wild" | "wildcard"         ) listFunc "$@";;
   "--regex" | "regex"           ) listFunc "$@";;
-  "--whiteregex" | "whiteregex" ) listFunc "$@";;
-  "--whitewild" | "whitewild"   ) listFunc "$@";;
+  "--white-regex" | "white-regex" ) listFunc "$@";;
+  "--white-wild" | "white-wild"   ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;

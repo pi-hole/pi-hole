@@ -39,10 +39,10 @@ helpFunc() {
         param="-regex"
         type="regex blacklist filter"
     elif [[ "${listType}" == "regex_whitelist" && "${wildcard}" == true ]]; then
-        param="-whitewild"
+        param="-white-wild"
         type="wildcard whitelist"
     elif [[ "${listType}" == "regex_whitelist" ]]; then
-        param="-whiteregex"
+        param="-white-regex"
         type="regex whitelist filter"
     else
         param="b"
@@ -230,8 +230,8 @@ for var in "$@"; do
         "-b" | "blacklist"   ) listType="blacklist"; listAlt="whitelist";;
         "--wild" | "wildcard" ) listType="regex_blacklist"; wildcard=true;;
         "--regex" | "regex"   ) listType="regex_blacklist";;
-        "--whiteregex" | "whiteregex" ) listType="regex_whitelist";;
-        "--whitewild" | "whitewild" ) listType="regex_whitelist"; wildcard=true;;
+        "--white-regex" | "white-regex" ) listType="regex_whitelist";;
+        "--white-wild" | "white-wild" ) listType="regex_whitelist"; wildcard=true;;
         "-nr"| "--noreload"  ) reload=false;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
