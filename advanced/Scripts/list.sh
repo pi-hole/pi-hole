@@ -32,18 +32,18 @@ helpFunc() {
     if [[ "${listType}" == "whitelist" ]]; then
         param="w"
         type="whitelist"
-    elif [[ "${listType}" == "regex_blacklist" ]]; then
-        param="-regex"
-        type="regex blacklist filter"
     elif [[ "${listType}" == "regex_blacklist" && "${wildcard}" == true ]]; then
         param="-wild"
         type="wildcard blacklist"
-    elif [[ "${listType}" == "regex_whitelist" ]]; then
-        param="-whiteregex"
-        type="regex whitelist filter"
+    elif [[ "${listType}" == "regex_blacklist" ]]; then
+        param="-regex"
+        type="regex blacklist filter"
     elif [[ "${listType}" == "regex_whitelist" && "${wildcard}" == true ]]; then
         param="-whitewild"
         type="wildcard whitelist"
+    elif [[ "${listType}" == "regex_whitelist" ]]; then
+        param="-whiteregex"
+        type="regex whitelist filter"
     else
         param="b"
         type="blacklist"
