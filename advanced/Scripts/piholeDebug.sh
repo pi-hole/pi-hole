@@ -1077,7 +1077,7 @@ show_db_entries() {
 }
 
 show_groups() {
-    show_db_entries "Groups" "SELECT * FROM \"group\"" "4 100 7 10 13 50"
+    show_db_entries "Groups" "SELECT * FROM \"group\"" "4 4"
 }
 
 show_adlists() {
