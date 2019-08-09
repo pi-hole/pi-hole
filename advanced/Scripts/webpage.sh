@@ -458,7 +458,7 @@ SetCronTab()
   if [[ "$1" == "0" ]]; then
       crontab crontab.tmp && rm -f crontab.tmp
   else
-      newtab="0 */"${1}" * * * su root -c \""${speedtestfile}"\"  > /dev/null 2>&1"
+      newtab="0 */"${1}" * * * sudo \""${speedtestfile}"\"  > /dev/null 2>&1"
       printf '%s\n' "$newtab" >>crontab.tmp
       crontab crontab.tmp && rm -f crontab.tmp
   fi
