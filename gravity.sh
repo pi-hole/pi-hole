@@ -482,7 +482,8 @@ gravity_SortAndFilterConsolidatedList() {
     echo -ne "  ${INFO} ${str}..."
   fi
 
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}.tmp"
+  gravity_ParseDomainsIntoHosts "${piholeDir}/${preEventHorizon}.tmp" "${piholeDir}/${preEventHorizon}"
 
   if [[ "${haveSourceUrls}" == true ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
