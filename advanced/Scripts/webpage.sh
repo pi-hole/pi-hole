@@ -538,8 +538,8 @@ Interfaces:
 }
 
 Teleporter() {
-    datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
     local datetimestamp
+    datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.tar.gz"
 }
 
