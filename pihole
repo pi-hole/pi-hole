@@ -98,20 +98,16 @@ versionFunc() {
 
 restartDNS() {
   local svcOption svc str output status
-  svcOption="${1:-}"
+  svcOption="${1:-restart}"
 
-  # Determine if we should reload or restart restart
+  # Determine if we should reload or restart
   if [[ "${svcOption}" =~ "reload" ]]; then
-    # Using SIGHUP will NOT re-read any *.conf files
+    # Reload has been requested
+    # Note: This will NOT re-read any *.conf files
     svc="killall -s SIGHUP ${resolver}"
   else
-    # Get PID of resolver to determine if it needs to start or restart
-    if pidof pihole-FTL &> /dev/null; then
-      svcOption="restart"
-    else
-      svcOption="start"
-    fi
-    svc="service ${resolver} ${svcOption}"
+    # A full restart has been requested
+    svc="service ${resolver} restart"
   fi
 
   # Print output to Terminal, but not to Web Admin
