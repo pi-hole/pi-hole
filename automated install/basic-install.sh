@@ -2391,7 +2391,7 @@ FTLcheckUpdate() {
                 return 3
             fi
 
-            FTLlatesttag=$(grep 'Location' < "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
+            FTLlatesttag=$(grep 'Location' <<< "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
