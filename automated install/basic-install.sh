@@ -31,7 +31,7 @@ set -e
 # List of supported DNS servers
 DNS_SERVERS=$(cat << EOM
 Google (ECS);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
-OpenDNS (ECS);208.67.222.222;208.67.220.220;2620:0:ccc::2;2620:0:ccd::2
+OpenDNS (ECS);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
 DNS.WATCH;84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
@@ -84,8 +84,13 @@ if [ -z "${USER}" ]; then
 fi
 
 
-# Find the rows and columns will default to 80x24 if it can not be detected
-screen_size=$(stty size || printf '%d %d' 24 80)
+# Check if we are running on a real terminal and find the rows and columns
+# If there is no real terminal, we will default to 80x24
+if [ -t 0 ] ; then
+  screen_size=$(stty size)
+else
+  screen_size="24 80"
+fi
 # Set rows variable to contain first number
 printf -v rows '%d' "${screen_size%% *}"
 # Set columns variable to contain second number
@@ -283,7 +288,7 @@ elif is_command rpm ; then
     UPDATE_PKG_CACHE=":"
     PKG_INSTALL=(${PKG_MANAGER} install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    INSTALLER_DEPS=(dialog git iproute newt procps-ng which)
+    INSTALLER_DEPS=(dialog git iproute newt procps-ng which chkconfig)
     PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite libcap)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
     LIGHTTPD_USER="lighttpd"
@@ -1168,12 +1173,11 @@ chooseBlocklists() {
         mv "${adlistFile}" "${adlistFile}.old"
     fi
     # Let user select (or not) blocklists via a checklist
-    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 7)
+    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 6)
     # In an array, show the options available (all off by default):
     options=(StevenBlack "StevenBlack's Unified Hosts List" on
         MalwareDom "MalwareDomains" on
         Cameleon "Cameleon" on
-        ZeusTracker "ZeusTracker" on
         DisconTrack "Disconnect.me Tracking" on
         DisconAd "Disconnect.me Ads" on
         HostsFile "Hosts-file.net Ads" on)
@@ -1195,7 +1199,6 @@ appendToListsFile() {
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
         Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
-        ZeusTracker  )  echo "https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
         HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
@@ -1213,7 +1216,6 @@ installDefaultBlocklists() {
     appendToListsFile StevenBlack
     appendToListsFile MalwareDom
     appendToListsFile Cameleon
-    appendToListsFile ZeusTracker
     appendToListsFile DisconTrack
     appendToListsFile DisconAd
     appendToListsFile HostsFile
@@ -1605,7 +1607,6 @@ install_dependent_packages() {
 
     # Install packages passed in via argument array
     # No spinner - conflicts with set -e
-    declare -a argArray1=("${!1}")
     declare -a installArray
 
     # Debian based package install - debconf will download the entire package list
@@ -1615,7 +1616,7 @@ install_dependent_packages() {
     # installed by us, and remove only the installed packages, and not the entire list.
     if is_command debconf-apt-progress ; then
         # For each package,
-        for i in "${argArray1[@]}"; do
+        for i in "$@"; do
             printf "  %b Checking for %s..." "${INFO}" "${i}"
             if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
                 printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
@@ -1634,7 +1635,7 @@ install_dependent_packages() {
     fi
 
     # Install Fedora/CentOS packages
-    for i in "${argArray1[@]}"; do
+    for i in "$@"; do
         printf "  %b Checking for %s..." "${INFO}" "${i}"
         if ${PKG_MANAGER} -q list installed "${i}" &> /dev/null; then
             printf "%b  %b Checking for %s" "${OVER}" "${TICK}" "${i}"
@@ -2381,8 +2382,16 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
+            local FTLreleaseData
             local FTLlatesttag
-            FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep 'Location' | awk -F '/' '{print $NF}' | tr -d '\r\n')
+
+            if ! FTLreleaseData=$(curl -sI https://github.com/pi-hole/FTL/releases/latest); then
+                # There was an issue while retrieving the latest version
+                printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
+                return 3
+            fi
+
+            FTLlatesttag=$(grep 'Location' < "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
@@ -2506,7 +2515,7 @@ main() {
     notify_package_updates_available
 
     # Install packages used by this installation script
-    install_dependent_packages INSTALLER_DEPS[@]
+    install_dependent_packages "${INSTALLER_DEPS[@]}"
 
     # Check if SELinux is Enforcing
     checkSelinux
@@ -2557,7 +2566,7 @@ main() {
         dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
     fi
 
-    install_dependent_packages dep_install_list[@]
+    install_dependent_packages "${dep_install_list[@]}"
     unset dep_install_list
 
     # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
