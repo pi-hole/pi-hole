@@ -36,14 +36,14 @@ scanList(){
     # /dev/null forces filename to be printed when only one list has been generated
     # shellcheck disable=SC2086
     case "${type}" in
-		"exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-		# Create array of regexps
-		# Iterate through each regexp and check whether it matches the domainQuery
-		# If it does, print the matching regexp and continue looping
-		# Input 1 - regexps | Input 2 - domainQuery
-		"regex" ) awk 'NR==FNR{regexps[$0];next}{for (r in regexps)if($0 ~ r)print r}' \
-					<(echo "${lists}") <(echo "${domain}") 2>/dev/null;;
-		*       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
+        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
+        # Create array of regexps
+        # Iterate through each regexp and check whether it matches the domainQuery
+        # If it does, print the matching regexp and continue looping
+        # Input 1 - regexps | Input 2 - domainQuery
+        "regex" ) awk 'NR==FNR{regexps[$0];next}{for (r in regexps)if($0 ~ r)print r}' \
+                  <(echo "${lists}") <(echo "${domain}") 2>/dev/null;;
+        *       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
 
@@ -100,8 +100,8 @@ scanDatabaseTable() {
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     case "${type}" in
-		"exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
-		*       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+        "exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
+        *       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
     esac
 
     # Send prepared query to gravity database
@@ -129,40 +129,42 @@ scanDatabaseTable() {
 }
 
 scanRegexDatabaseTable() {
-local domain list
-domain="${1}"
-list="${2}"
-mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex_${list}" 2> /dev/null)
+    local domain list
+    domain="${1}"
+    list="${2}"
 
-# If we have regexps to process
-if [[ "${#regexList[@]}" -ne 0 ]]; then
-	# Split regexps over a new line
-	str_regexList=$(printf '%s\n' "${regexList[@]}")
-	# Check domain against regexps
-	mapfile -t regexMatches < <(scanList "${domain}" "${str_regexList}" "regex")
-	# If there were regex matches
-	if [[  "${#regexMatches[@]}" -ne 0 ]]; then
-		# Split matching regexps over a new line
-		str_regexMatches=$(printf '%s\n' "${regexMatches[@]}")
-		# Form a "matched" message
-		str_message="${matchType^} found in ${COL_BOLD}Regex ${list}${COL_NC}"
-		# Form a "results" message
-		str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
-		# If we are displaying more than just the source of the block
-		if [[ -z "${blockpage}" ]]; then
-			# Set the wildcard match flag
-			wcMatch=true
-			# Echo the "matched" message, indented by one space
-			echo " ${str_message}"
-			# Echo the "results" message, each line indented by three spaces
-			# shellcheck disable=SC2001
-			echo "${str_result}" | sed 's/^/   /'
-		else
-			echo "π Regex ${list}"
-			exit 0
-		fi
-	fi
-fi
+    # Query all regex from the corresponding database tables
+    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex_${list}" 2> /dev/null)
+
+    # If we have regexps to process
+    if [[ "${#regexList[@]}" -ne 0 ]]; then
+        # Split regexps over a new line
+        str_regexList=$(printf '%s\n' "${regexList[@]}")
+        # Check domain against regexps
+        mapfile -t regexMatches < <(scanList "${domain}" "${str_regexList}" "regex")
+        # If there were regex matches
+        if [[  "${#regexMatches[@]}" -ne 0 ]]; then
+            # Split matching regexps over a new line
+            str_regexMatches=$(printf '%s\n' "${regexMatches[@]}")
+            # Form a "matched" message
+            str_message="${matchType^} found in ${COL_BOLD}Regex ${list}${COL_NC}"
+            # Form a "results" message
+            str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
+            # If we are displaying more than just the source of the block
+            if [[ -z "${blockpage}" ]]; then
+                # Set the wildcard match flag
+                wcMatch=true
+                # Echo the "matched" message, indented by one space
+                echo " ${str_message}"
+                # Echo the "results" message, each line indented by three spaces
+                # shellcheck disable=SC2001
+                echo "${str_result}" | sed 's/^/   /'
+            else
+                echo "π Regex ${list}"
+                exit 0
+            fi
+        fi
+    fi
 }
 
 # Scan Whitelist and Blacklist
