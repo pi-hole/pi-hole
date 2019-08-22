@@ -2,6 +2,8 @@
 
 PRAGMA FOREIGN_KEYS=OFF;
 
+BEGIN TRANSACTION;
+
 ALTER TABLE regex RENAME TO regex_blacklist;
 
 CREATE TABLE regex_blacklist_by_group
@@ -59,3 +61,5 @@ CREATE TRIGGER tr_regex_whitelist_update AFTER UPDATE ON regex_whitelist
 
 
 UPDATE info SET value = 3 WHERE property = 'version';
+
+COMMIT;
