@@ -1081,22 +1081,22 @@ show_groups() {
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT * FROM adlist" "4 100 7 10 13 50"
+    show_db_entries "Adlists" "SELECT id,address,enabled,datetime(date_added,'unixepoch') date_added,datetime(date_modified,'unixepoch') date_modified,comment FROM adlist" "4 100 7 19 19 50"
     show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
 }
 
 show_whitelist() {
-    show_db_entries "Exact whitelist" "SELECT * FROM whitelist" "4 100 7 10 13 50"
-    show_db_entries "Exact whitelist groups" "SELECT * FROM regex_whitelist_by_group" "4 4"
-    show_db_entries "Regex whitelist" "SELECT * FROM regex_whitelist" "4 100 7 10 13 50"
-    show_db_entries "Regex whitelist groups" "SELECT * FROM whitelist_by_group" "4 4"
+    show_db_entries "Exact whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch') date_added,datetime(date_modified,'unixepoch') date_modified,comment FROM whitelist" "4 100 7 19 19 50"
+    show_db_entries "Exact whitelist groups" "SELECT * FROM whitelist_by_group" "4 4"
+    show_db_entries "Regex whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch') date_added,datetime(date_modified,'unixepoch') date_modified,comment FROM regex_whitelist" "4 100 7 19 19 50"
+    show_db_entries "Regex whitelist groups" "SELECT * FROM regex_whitelist_by_group" "4 4"
 }
 
 show_blacklist() {
-    show_db_entries "Exact blacklist" "SELECT * FROM blacklist" "4 100 7 10 13 50"
-    show_db_entries "Exact blacklist groups" "SELECT * FROM regex_blacklist_by_group" "4 4"
-    show_db_entries "Regex blacklist" "SELECT * FROM regex_blacklist" "4 100 7 10 13 50"
-    show_db_entries "Regex blacklist groups" "SELECT * FROM blacklist_by_group" "4 4"
+    show_db_entries "Exact blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch') date_added,datetime(date_modified,'unixepoch') date_modified,comment FROM blacklist" "4 100 7 19 19 50"
+    show_db_entries "Exact blacklist groups" "SELECT * FROM blacklist_by_group" "4 4"
+    show_db_entries "Regex blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch') date_added,datetime(date_modified,'unixepoch') date_modified,comment FROM regex_blacklist" "4 100 7 19 19 50"
+    show_db_entries "Regex blacklist groups" "SELECT * FROM regex_blacklist_by_group" "4 4"
 }
 
 analyze_gravity_list() {
