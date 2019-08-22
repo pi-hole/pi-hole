@@ -128,25 +128,24 @@ scanDatabaseTable() {
     done
 }
 
-# Scan Whitelist and Blacklist
-scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
-scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
-
-# Scan Regex table
-mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex_blacklist" 2> /dev/null)
+scanRegexDatabaseTable() {
+local domain list
+domain="${1}"
+list="${2}"
+mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex_${list}" 2> /dev/null)
 
 # If we have regexps to process
 if [[ "${#regexList[@]}" -ne 0 ]]; then
 	# Split regexps over a new line
 	str_regexList=$(printf '%s\n' "${regexList[@]}")
-	# Check domainQuery against regexps
-	mapfile -t regexMatches < <(scanList "${domainQuery}" "${str_regexList}" "regex")
+	# Check domain against regexps
+	mapfile -t regexMatches < <(scanList "${domain}" "${str_regexList}" "regex")
 	# If there were regex matches
 	if [[  "${#regexMatches[@]}" -ne 0 ]]; then
 		# Split matching regexps over a new line
 		str_regexMatches=$(printf '%s\n' "${regexMatches[@]}")
 		# Form a "matched" message
-		str_message="${matchType^} found in ${COL_BOLD}Regex list${COL_NC}"
+		str_message="${matchType^} found in ${COL_BOLD}Regex ${list}${COL_NC}"
 		# Form a "results" message
 		str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
 		# If we are displaying more than just the source of the block
@@ -159,11 +158,20 @@ if [[ "${#regexList[@]}" -ne 0 ]]; then
 			# shellcheck disable=SC2001
 			echo "${str_result}" | sed 's/^/   /'
 		else
-			echo "π Regex list"
+			echo "π Regex ${list}"
 			exit 0
 		fi
 	fi
 fi
+}
+
+# Scan Whitelist and Blacklist
+scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
+scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
+
+# Scan Regex table
+scanRegexDatabaseTable "${domainQuery}" "whitelist"
+scanRegexDatabaseTable "${domainQuery}" "blacklist"
 
 # Get version sorted *.domains filenames (without dir path)
 lists=("$(cd "$piholeDir" || exit 0; printf "%s\\n" -- *.domains | sort -V)")
