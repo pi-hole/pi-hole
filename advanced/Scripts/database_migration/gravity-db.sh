@@ -11,9 +11,12 @@
 # Please see LICENSE file for your rights under this license.
 
 upgrade_gravityDB(){
-	local database auditFile version
+	local database piholeDir auditFile version
 	database="${1}"
-	auditFile="${2}"
+	piholeDir="${2}"
+	auditFile="${piholeDir}/auditlog.list"
+
+	# Get database version
 	version="$(sqlite3 "${database}" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
 	if [[ "$version" == "1" ]]; then

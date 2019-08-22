@@ -486,6 +486,13 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     '''
     confirms only aarch64 package is downloaded for FTL engine
     '''
+    # mock whiptail answers and ensure installer dependencies
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-aarch64-linux-gnu"
@@ -501,6 +508,13 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     '''
     confirms unknown binary is not downloaded for FTL engine
     '''
+    # mock whiptail answers and ensure installer dependencies
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-mips"
@@ -519,6 +533,13 @@ def test_FTL_download_binary_unset_no_errors(Pihole):
     '''
     confirms unset binary variable does not download FTL engine
     '''
+    # mock whiptail answers and ensure installer dependencies
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
@@ -679,3 +700,42 @@ def test_IPv6_ULA_GUA_test(Pihole):
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
+
+
+def test_validate_ip_valid(Pihole):
+    '''
+    Given a valid IP address, valid_ip returns success
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "192.168.1.1"
+    ''')
+
+    assert output.rc == 0
+
+
+def test_validate_ip_invalid_octet(Pihole):
+    '''
+    Given an invalid IP address (large octet), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "1092.168.1.1"
+    ''')
+
+    assert output.rc == 1
+
+
+def test_validate_ip_invalid_letters(Pihole):
+    '''
+    Given an invalid IP address (contains letters), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "not an IP"
+    ''')
+
+    assert output.rc == 1

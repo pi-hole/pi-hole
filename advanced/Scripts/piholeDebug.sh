@@ -94,7 +94,35 @@ PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
-PIHOLE_GRAVITY_DB_FILE="${PIHOLE_DIRECTORY}/gravity.db"
+PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole-FTL.conf"
+
+# Read the value of an FTL config key. The value is printed to stdout.
+#
+# Args:
+# 1. The key to read
+# 2. The default if the setting or config does not exist
+get_ftl_conf_value() {
+    local key=$1
+    local default=$2
+    local value
+
+    # Obtain key=... setting from pihole-FTL.conf
+    if [[ -e "$PIHOLE_FTL_CONF_FILE" ]]; then
+        # Constructed to return nothing when
+        # a) the setting is not present in the config file, or
+        # b) the setting is commented out (e.g. "#DBFILE=...")
+        value="$(sed -n -e "s/^\\s*$key=\\s*//p" ${PIHOLE_FTL_CONF_FILE})"
+    fi
+
+    # Test for missing value. Use default value in this case.
+    if [[ -z "$value" ]]; then
+        value="$default"
+    fi
+
+    echo "$value"
+}
+
+PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "GRAVITYDB" "${PIHOLE_DIRECTORY}/gravity.db")"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
@@ -105,7 +133,7 @@ FTL_PORT="${RUN_DIRECTORY}/pihole-FTL.port"
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
-PIHOLE_FTL_LOG="${LOG_DIRECTORY}/pihole-FTL.log"
+PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log")"
 
 PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
 PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
