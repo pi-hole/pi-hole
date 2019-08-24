@@ -205,6 +205,8 @@ if is_command apt-get ; then
             printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
         fi
     fi
+    # Update package cache. This is required already here to assure apt-cache calls have package lists available.
+    update_package_cache || exit 1
     # Debian 7 doesn't have iproute2 so check if it's available first
     if apt-cache show iproute2 > /dev/null 2>&1; then
         iproute_pkg="iproute2"
@@ -293,8 +295,6 @@ elif is_command rpm ; then
         PKG_MANAGER="yum"
     fi
 
-    # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
-    UPDATE_PKG_CACHE=":"
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(dialog git iproute newt procps-ng which chkconfig)
@@ -2536,9 +2536,6 @@ main() {
     else
         verifyFreeDiskSpace
     fi
-
-    # Update package cache
-    update_package_cache || exit 1
 
     # Notify user of package availability
     notify_package_updates_available
