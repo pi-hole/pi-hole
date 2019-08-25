@@ -10,6 +10,7 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly gravitylist="/etc/pihole/gravity.list"
 readonly blacklist="/etc/pihole/black.list"
 
@@ -160,7 +161,7 @@ Time:
           local str="Disabling blocking for ${tt} seconds"
           echo -e "  ${INFO} ${str}..."
           local str="Blocking will be re-enabled in ${tt} seconds"
-          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+          nohup bash -c "sleep ${tt}; ${PI_HOLE_BIN_DIR}/pihole enable" </dev/null &>/dev/null &
         else
           local error=true
         fi
@@ -171,7 +172,7 @@ Time:
           echo -e "  ${INFO} ${str}..."
           local str="Blocking will be re-enabled in ${tt} minutes"
           tt=$((${tt}*60))
-          nohup bash -c "sleep ${tt}; pihole enable" </dev/null &>/dev/null &
+          nohup bash -c "sleep ${tt}; ${PI_HOLE_BIN_DIR}/pihole enable" </dev/null &>/dev/null &
         else
           local error=true
         fi
@@ -233,7 +234,7 @@ Options:
     sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
-      pihole -f
+      "${PI_HOLE_BIN_DIR}"/pihole -f
     fi
     echo -e "  ${INFO} Disabling logging..."
     local str="Logging has been disabled!"
@@ -286,7 +287,7 @@ statusFunc() {
       *) echo -e "  ${INFO} Pi-hole blocking will be enabled";;
     esac
     # Enable blocking
-    pihole enable
+    "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
 }
 
