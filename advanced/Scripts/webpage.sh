@@ -87,9 +87,9 @@ SetTemperatureUnit() {
 
 HashPassword() {
     # Compute password hash twice to avoid rainbow table vulnerability
-    return=$(echo -n ${1} | sha256sum | sed 's/\s.*$//')
-    return=$(echo -n ${return} | sha256sum | sed 's/\s.*$//')
-    echo ${return}
+    return=$(echo -n "${1}" | sha256sum | sed 's/\s.*$//')
+    return=$(echo -n "${return}" | sha256sum | sed 's/\s.*$//')
+    echo "${return}"
 }
 
 SetWebPassword() {
@@ -143,18 +143,18 @@ ProcessDNSSettings() {
     delete_dnsmasq_setting "server"
 
     COUNTER=1
-    while [[ 1 ]]; do
+    while true ; do
         var=PIHOLE_DNS_${COUNTER}
         if [ -z "${!var}" ]; then
             break;
         fi
         add_dnsmasq_setting "server" "${!var}"
-        let COUNTER=COUNTER+1
+        (( COUNTER++ ))
     done
 
     # The option LOCAL_DNS_PORT is deprecated
     # We apply it once more, and then convert it into the current format
-    if [ ! -z "${LOCAL_DNS_PORT}" ]; then
+    if [ -n "${LOCAL_DNS_PORT}" ]; then
         add_dnsmasq_setting "server" "127.0.0.1#${LOCAL_DNS_PORT}"
         add_setting "PIHOLE_DNS_${COUNTER}" "127.0.0.1#${LOCAL_DNS_PORT}"
         delete_setting "LOCAL_DNS_PORT"
@@ -184,7 +184,7 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 
     delete_dnsmasq_setting "host-record"
 
-    if [ ! -z "${HOSTRECORD}" ]; then
+    if [ -n "${HOSTRECORD}" ]; then
         add_dnsmasq_setting "host-record" "${HOSTRECORD}"
     fi
 
@@ -538,7 +538,8 @@ Interfaces:
 }
 
 Teleporter() {
-    local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+    local datetimestamp
+    datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.tar.gz"
 }
 
