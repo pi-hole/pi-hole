@@ -176,11 +176,12 @@ fi
 # 2. Remove comments after domain
 # 3. Remove hosts format IP address
 # 4. Remove any lines that no longer contain the queried domain name (in case the matched domain name was in a comment)
+esc_domain="${domainQuery//./\\.}"
 mapfile -t results <<< "$(IFS=$'\n'; sed \
 	-e "/:#/d" \
 	-e "s/[ \\t]#.*//g" \
 	-e "s/:.*[ \\t]/:/g" \
-	-e "/${domainQuery}/!d" \
+	-e "/${esc_domain}/!d" \
 	<<< "${results[*]}")"
 # Exit if result was in a comment
 [[ -z "${results[*]}" ]] && exit 0
