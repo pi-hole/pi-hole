@@ -188,10 +188,10 @@ if is_command apt-get ; then
     # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
     # Some distros vary slightly so these fixes for dependencies may apply
-    # on Ubuntu 18.04.1 LTS we need to add the universe repository to gain access to dialog and dhcpcd5
+    # on Ubuntu 18.04.1 LTS we need to add the universe repository to gain access to dhcpcd5
     APT_SOURCES="/etc/apt/sources.list"
     if awk 'BEGIN{a=1;b=0}/bionic main/{a=0}/bionic.*universe/{b=1}END{exit a + b}' ${APT_SOURCES}; then
-        if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5\\n- dialog" "${r}" "${c}"; then
+        if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5" "${r}" "${c}"; then
             printf "  %b Aborting installation: dependencies could not be installed.\\n" "${CROSS}"
             exit # exit the installer
         else
@@ -242,7 +242,7 @@ if is_command apt-get ; then
     fi
     # Since our install script is so large, we need several other programs to successfully get a machine provisioned
     # These programs are stored in an array so they can be looped through later
-    INSTALLER_DEPS=(apt-utils dialog debconf dhcpcd5 git "${iproute_pkg}" whiptail)
+    INSTALLER_DEPS=(apt-utils debconf dhcpcd5 git "${iproute_pkg}" whiptail)
     # Pi-hole itself has several dependencies that also need to be installed
     PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
     # The Web dashboard has some that also need to be installed
