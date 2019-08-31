@@ -2222,9 +2222,6 @@ FTLinstall() {
         fi
         
         install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service.ini" "${systemd_unit_file}"
-        
-        # Required to remove old generated services, before calls to systemctl enable or systemctl start
-        systemctl daemon-reload
     fi
 
     local ftlBranch
@@ -2683,6 +2680,11 @@ main() {
 
     printf "  %b Restarting services...\\n" "${INFO}"
     # Start services
+
+    # Ensure systemd is picking up the latest configuration, if present.
+    if is_command systemctl ; then
+        systemctl daemon-reload
+    fi
 
     # Enable FTL
     # Ensure the service is enabled before trying to start it
