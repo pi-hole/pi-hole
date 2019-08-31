@@ -33,21 +33,9 @@ start() {
   if is_running; then
     echo "pihole-FTL is already running"
   else
-    # Touch files to ensure they exist (create if non-existing, preserve if existing)
-    touch /var/log/pihole-FTL.log /var/log/pihole.log
-    touch /run/pihole-FTL.pid /run/pihole-FTL.port
-    touch /etc/pihole/dhcp.leases
-    mkdir -p /var/run/pihole
-    mkdir -p /var/log/pihole
-    chown pihole:pihole /var/run/pihole /var/log/pihole
-    # Remove possible leftovers from previous pihole-FTL processes
-    rm -f /dev/shm/FTL-* 2> /dev/null
-    rm /var/run/pihole/FTL.sock 2> /dev/null
-    # Ensure that permissions are set so that pihole-FTL can edit all necessary files
-    chown pihole:pihole /run/pihole-FTL.pid /run/pihole-FTL.port
-    chown pihole:pihole /etc/pihole /etc/pihole/dhcp.leases 2> /dev/null
-    chown pihole:pihole /var/log/pihole-FTL.log /var/log/pihole.log
-    chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
+    USER=$FTLUSER
+    source /etc/pihole/fix_files.sh
+
     echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL
     if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip "$(which pihole-FTL)"; then
       su -s /bin/sh -c "/usr/bin/pihole-FTL" "$FTLUSER"

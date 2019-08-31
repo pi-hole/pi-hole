@@ -165,10 +165,12 @@ removeNoPurge() {
         echo -ne "  ${INFO} Removing pihole-FTL..."
         if [[ -x "$(command -v systemctl)" ]]; then
             systemctl stop pihole-FTL
+            systemctl disable pihole-FTL
         else
             service pihole-FTL stop
         fi
         ${SUDO} rm -f /etc/init.d/pihole-FTL
+        ${SUDO} rm -f /etc/systemd/system/pihole-FTL.service
         ${SUDO} rm -f /usr/bin/pihole-FTL
         echo -e "${OVER}  ${TICK} Removed pihole-FTL"
     fi

@@ -2207,8 +2207,25 @@ FTLinstall() {
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
-    # Always replace pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/fix_files.sh" "/etc/pihole/fix_files.sh"
+    # Always replace pihole-FTL
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.sh" "/etc/init.d/pihole-FTL"
+    
+    if is_command systemctl ; then
+        local systemd_unit_file="/etc/systemd/system/pihole-FTL.service"
+        if [[ ! -f "${systemd_unit_file}" && -d "${systemd_unit_file}.d" ]]; then
+            # Users may have already tried to fix their old sysv-generated systemd service, error out
+            #  to avoid potentially hazardous combinations of overrides.
+            printf "  %bError: pihole now comes with a systemd service definition, but existing overrides have been detected.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "    %bPlease remove ${systemd_unit_file}.d before proceeding.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            return 1
+        fi
+        
+        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service.ini" "${systemd_unit_file}"
+        
+        # Required to remove old generated services, before calls to systemctl enable or systemctl start
+        systemctl daemon-reload
+    fi
 
     local ftlBranch
     local url
