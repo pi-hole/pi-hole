@@ -54,7 +54,7 @@ scanList(){
     # /dev/null forces filename to be printed when only one list has been generated
     # shellcheck disable=SC2086
     case "${type}" in
-        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
+        "exact" ) grep -i -E "(^|\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
         "wc"    ) grep -i -o -m 1 "/${domain}/" ${lists} 2>/dev/null;;
         *       ) grep -i "${domain}" ${lists} /dev/null 2>/dev/null;;
     esac
@@ -170,19 +170,21 @@ elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
     exit 0
 fi
 
-# Remove unwanted content from non-exact $results
-if [[ -z "${exact}" ]]; then
-    # Delete lines starting with #
-    # Remove comments after domain
-    # Remove hosts format IP address
-    mapfile -t results <<< "$(IFS=$'\n'; sed \
-        -e "/:#/d" \
-        -e "s/[ \\t]#.*//g" \
-        -e "s/:.*[ \\t]/:/g" \
-        <<< "${results[*]}")"
-    # Exit if result was in a comment
-    [[ -z "${results[*]}" ]] && exit 0
-fi
+# Remove unwanted content from $results
+# Each line in $results is formatted as such: [fileName]:[line]
+# 1. Delete lines starting with #
+# 2. Remove comments after domain
+# 3. Remove hosts format IP address
+# 4. Remove any lines that no longer contain the queried domain name (in case the matched domain name was in a comment)
+esc_domain="${domainQuery//./\\.}"
+mapfile -t results <<< "$(IFS=$'\n'; sed \
+	-e "/:#/d" \
+	-e "s/[ \\t]#.*//g" \
+	-e "s/:.*[ \\t]/:/g" \
+	-e "/${esc_domain}/!d" \
+	<<< "${results[*]}")"
+# Exit if result was in a comment
+[[ -z "${results[*]}" ]] && exit 0
 
 # Get adlist file content as array
 if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
