@@ -90,6 +90,16 @@ generate_gravity_database() {
   chmod g+w "${piholeDir}" "${gravityDBfile}"
 }
 
+update_gravity_timestamp() {
+  # Update timestamp when the gravity table was last updated successfully
+  output=$( { sqlite3 "${gravityDBfile}" <<< "INSERT OR REPLACE INTO info (property,value) values (\"updated\",cast(strftime('%s', 'now') as int));"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityDBfile}\\n  ${output}"
+  fi
+}
+
 # Import domains from file and store them in the specified database table
 database_table_from_file() {
   # Define locals
@@ -748,6 +758,8 @@ fi
 # Create local.list
 gravity_generateLocalList
 gravity_ShowCount
+
+update_gravity_timestamp
 
 gravity_Cleanup
 echo ""
