@@ -32,4 +32,11 @@ upgrade_gravityDB(){
 			database_table_from_file "domain_audit" "${auditFile}"
 		fi
 	fi
+	if [[ "$version" == "2" ]]; then
+		# This migration script upgrades the gravity.db file by
+		# renaming the regex table to regex_blacklist, and
+		# creating a new regex_whitelist table + corresponding linking table and views
+		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/2_to_3.sql"
+		version=3
+	fi
 }

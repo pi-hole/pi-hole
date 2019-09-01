@@ -84,6 +84,10 @@ fi
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
   sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+
+  # Ensure proper permissions are set for the newly created database
+  chown pihole:pihole "${gravityDBfile}"
+  chmod g+w "${piholeDir}" "${gravityDBfile}"
 }
 
 # Import domains from file and store them in the specified database table
@@ -181,6 +185,8 @@ migrate_to_database() {
     fi
     if [ -e "${regexFile}" ]; then
       # Store regex domains in database
+      # Important note: We need to add the domains to the "regex" table
+      # as it will only later be renamed to "regex_blacklist"!
       echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
       database_table_from_file "regex" "${regexFile}"
     fi
@@ -590,9 +596,10 @@ gravity_Table_Count() {
 
 # Output count of blacklisted domains and regex filters
 gravity_ShowCount() {
-  gravity_Table_Count "blacklist" "blacklisted domains"
-  gravity_Table_Count "whitelist" "whitelisted domains"
-  gravity_Table_Count "regex" "regex filters"
+  gravity_Table_Count "blacklist" "exact blacklisted domains"
+  gravity_Table_Count "regex_blacklist" "regex blacklist filters"
+  gravity_Table_Count "whitelist" "exact whitelisted domains"
+  gravity_Table_Count "regex_whitelist" "regex whitelist filters"
 }
 
 # Parse list of domains into hosts format

@@ -1,5 +1,7 @@
 .timeout 30000
 
+BEGIN TRANSACTION;
+
 CREATE TABLE domain_audit
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -8,3 +10,5 @@ CREATE TABLE domain_audit
 );
 
 UPDATE info SET value = 2 WHERE property = 'version';
+
+COMMIT;

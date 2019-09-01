@@ -1104,20 +1104,27 @@ show_db_entries() {
     IFS="$OLD_IFS"
 }
 
+show_groups() {
+    show_db_entries "Groups" "SELECT * FROM \"group\"" "4 4 30 50"
+}
+
 show_adlists() {
-    show_db_entries "Adlists" "SELECT * FROM adlist" "4 100 7 10 13 50"
+    show_db_entries "Adlists" "SELECT id,address,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist" "4 100 7 19 19 50"
+    show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
 }
 
 show_whitelist() {
-    show_db_entries "Whitelist" "SELECT * FROM whitelist" "4 100 7 10 13 50"
+    show_db_entries "Exact whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM whitelist" "4 100 7 19 19 50"
+    show_db_entries "Exact whitelist groups" "SELECT * FROM whitelist_by_group" "4 4"
+    show_db_entries "Regex whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_whitelist" "4 100 7 19 19 50"
+    show_db_entries "Regex whitelist groups" "SELECT * FROM regex_whitelist_by_group" "4 4"
 }
 
 show_blacklist() {
-    show_db_entries "Blacklist" "SELECT * FROM blacklist" "4 100 7 10 13 50"
-}
-
-show_regexlist() {
-    show_db_entries "Regexlist" "SELECT * FROM regex" "4 100 7 10 13 50"
+    show_db_entries "Exact blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM blacklist" "4 100 7 19 19 50"
+    show_db_entries "Exact blacklist groups" "SELECT * FROM blacklist_by_group" "4 4"
+    show_db_entries "Regex blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_blacklist" "4 100 7 19 19 50"
+    show_db_entries "Regex blacklist groups" "SELECT * FROM regex_blacklist_by_group" "4 4"
 }
 
 analyze_gravity_list() {
@@ -1293,10 +1300,10 @@ process_status
 parse_setup_vars
 check_x_headers
 analyze_gravity_list
+show_groups
 show_adlists
 show_whitelist
 show_blacklist
-show_regexlist
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log
