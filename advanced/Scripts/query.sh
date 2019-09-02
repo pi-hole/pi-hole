@@ -157,19 +157,6 @@ lists=("$(cd "$piholeDir" || exit 0; printf "%s\\n" -- *.domains | sort -V)")
 # Query blocklists for occurences of domain
 mapfile -t results <<< "$(scanList "${domainQuery}" "${lists[*]}" "${exact}")"
 
-# Handle notices
-if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
-    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the block lists"
-    exit 0
-elif [[ -z "${results[*]}" ]]; then
-    # Result found in WL/BL/Wildcards
-    exit 0
-elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
-    echo -e "  ${INFO} Over 100 ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC}
-        This can be overridden using the -all option"
-    exit 0
-fi
-
 # Remove unwanted content from $results
 # Each line in $results is formatted as such: [fileName]:[line]
 # 1. Delete lines starting with #
@@ -183,8 +170,19 @@ mapfile -t results <<< "$(IFS=$'\n'; sed \
 	-e "s/:.*[ \\t]/:/g" \
 	-e "/${esc_domain}/!d" \
 	<<< "${results[*]}")"
-# Exit if result was in a comment
-[[ -z "${results[*]}" ]] && exit 0
+
+# Handle notices
+if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
+    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the block lists"
+    exit 0
+elif [[ -z "${results[*]}" ]]; then
+    # Result found in WL/BL/Wildcards
+    exit 0
+elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
+    echo -e "  ${INFO} Over 100 ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC}
+        This can be overridden using the -all option"
+    exit 0
+fi
 
 # Get adlist file content as array
 if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
