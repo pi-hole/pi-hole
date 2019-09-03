@@ -353,7 +353,7 @@ gravity_ParseFileIntoDomains() {
   # Determine how to parse individual source file formats
   if [[ "${firstLine,,}" =~ (adblock|ublock|^!) ]]; then
     # Compare $firstLine against lower case words found in Adblock lists
-    echo -ne "  ${CROSS} Format: Adblock (list type not supported)"
+    echo -e "  ${CROSS} Format: Adblock (list type not supported)"
   elif grep -q "^address=/" "${source}" &> /dev/null; then
     # Parse Dnsmasq format lists
     echo -e "  ${CROSS} Format: Dnsmasq (list type not supported)"
