@@ -2207,7 +2207,8 @@ FTLinstall() {
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/fix_files.sh" "/etc/pihole/fix_files.sh"
+    # Ensure /opt/pihole exists, then install fix_files.sh
+    install -T -D -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/fix_files.sh" "${PI_HOLE_INSTALL_DIR}/fix_files.sh"
     # Always replace pihole-FTL
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.sh" "/etc/init.d/pihole-FTL"
     

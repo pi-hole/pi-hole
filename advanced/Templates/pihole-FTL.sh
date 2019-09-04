@@ -34,7 +34,7 @@ start() {
     echo "pihole-FTL is already running"
   else
     USER=$FTLUSER
-    source /etc/pihole/fix_files.sh
+    source /opt/pihole/fix_files.sh
 
     echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL
     if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip "$(which pihole-FTL)"; then
