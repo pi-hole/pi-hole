@@ -39,4 +39,9 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/2_to_3.sql"
 		version=3
 	fi
+	if [[ "$version" == "3" ]]; then
+		# This migration script upgrades ...
+		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/3_to_4.sql"
+		version=3
+	fi
 }
