@@ -7,7 +7,7 @@
 *  Please see LICENSE file for your rights under this license. */
 
 // Sanitise HTTP_HOST output
-$serverName = htmlspecialchars($_SERVER["HTTP_HOST"]);
+$serverName = htmlspecialchars($_SERVER["SERVER_ADDR"]);
 // Remove external ipv6 brackets if any
 $serverName = preg_replace('/^\[(.*)\]$/', '${1}', $serverName);
 
