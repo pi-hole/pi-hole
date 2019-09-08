@@ -38,8 +38,15 @@ CREATE VIEW vw_blacklist AS SELECT domain, blacklist_by_group.group_id AS group_
 
 CREATE TABLE client
 (
-	ip TEXT NOL NULL PRIMARY KEY,
-	"groups" TEXT NOT NULL
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	ip TEXT NOL NULL UNIQUE
+);
+
+CREATE TABLE client_by_group
+(
+	client_id INTEGER NOT NULL REFERENCES client (id),
+	group_id INTEGER NOT NULL REFERENCES "group" (id),
+	PRIMARY KEY (client_id, group_id)
 );
 
 UPDATE info SET value = 4 WHERE property = 'version';
