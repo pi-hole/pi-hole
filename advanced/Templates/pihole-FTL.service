@@ -13,7 +13,14 @@ FTLUSER=pihole
 PIDFILE=/var/run/pihole-FTL.pid
 
 get_pid() {
-    pidof "pihole-FTL"
+    # First, try to obtain PID from PIDFILE
+    if [ -s "${PIDFILE}" ]; then
+        cat "${PIDFILE}"
+        return
+    fi
+
+    # If the PIDFILE is empty or not available, obtain the PID using pidof
+    pidof "pihole-FTL" | awk '{print $(NF)}'
 }
 
 is_running() {
