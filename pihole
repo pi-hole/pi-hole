@@ -13,8 +13,8 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly gravitylist="/etc/pihole/gravity.list"
 readonly blacklist="/etc/pihole/black.list"
 
-# setupVars and PI_HOLE_BIN_DIR are not readonly here because in some funcitons (checkout),
-# it might get set again when the installer is sourced. This causes an
+# setupVars and PI_HOLE_BIN_DIR are not readonly here because in some functions (checkout),
+# they might get set again when the installer is sourced. This causes an
 # error due to modifying a readonly variable.
 setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
