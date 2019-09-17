@@ -1692,7 +1692,7 @@ installPiholeWeb() {
     # Otherwise,
     else
         # don't do anything
-        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+        printf "%b  %b %s\\n" "${OVER}" "${INFO}" "${str}"
         printf "      No default index.lighttpd.html file found... not backing up\\n"
     fi
 
