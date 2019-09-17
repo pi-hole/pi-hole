@@ -338,7 +338,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     expected_stdout = tick_box + (' Creating directory for blocking page, '
                                   'and copying files')
     assert expected_stdout in installWeb.stdout
-    expected_stdout = cross_box + ' Backing up index.lighttpd.html'
+    expected_stdout = info_box + ' Backing up index.lighttpd.html'
     assert expected_stdout in installWeb.stdout
     expected_stdout = ('No default index.lighttpd.html file found... '
                        'not backing up')
