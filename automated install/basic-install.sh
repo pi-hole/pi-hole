@@ -1639,6 +1639,12 @@ install_dependent_packages() {
         done
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
+            # If whiptail is found in the package array, install before calls to debconf-apt-progress
+            if [[ " ${installArray[*]} " =~ " whiptail " ]]; then
+                "${PKG_INSTALL[@]}" "whiptail" &> /dev/null
+                # remove whiptail from the package array
+                installArray=( "${installArray[@]/whiptail}" )
+            fi
             if is_command debconf-apt-progress ; then
                 # display progress if debconf-apt-progress is available
                 debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
