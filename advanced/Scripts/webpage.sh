@@ -18,6 +18,7 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly speedtestfile="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
 readonly speedtestdb="/etc/pihole/speedtest.db"
+readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
@@ -283,7 +284,7 @@ Reboot() {
 }
 
 RestartDNS() {
-    /usr/local/bin/pihole restartdns
+    "${PI_HOLE_BIN_DIR}"/pihole restartdns
 }
 
 SetQueryLogOptions() {
@@ -371,6 +372,14 @@ EnableDHCP() {
     # Remove possible old setting from file
     delete_dnsmasq_setting "dhcp-"
     delete_dnsmasq_setting "quiet-dhcp"
+
+    # If a DHCP client claims that its name is "wpad", ignore that.
+    # This fixes a security hole. see CERT Vulnerability VU#598349
+    # We also ignore "localhost" as Windows behaves strangely if a
+    # device claims this host name
+    add_dnsmasq_setting "dhcp-name-match=set:hostname-ignore,wpad
+dhcp-name-match=set:hostname-ignore,localhost
+dhcp-ignore-names=tag:hostname-ignore"
 
     ProcessDHCPSettings
 
