@@ -458,48 +458,7 @@ gravity_ParseFileIntoDomains() {
   # Determine how to parse individual source file formats
   if [[ "${firstLine,,}" =~ (adblock|ublock|^!) ]]; then
     # Compare $firstLine against lower case words found in Adblock lists
-    echo -ne "  ${INFO} Format: Adblock"
-
-    # Define symbols used as comments: [!
-    # "||.*^" includes the "Example 2" domains we can extract
-    # https://adblockplus.org/filter-cheatsheet
-    abpFilter="/^(\\[|!)|^(\\|\\|.*\\^)/"
-
-    # Parse Adblock lists by extracting "Example 2" domains
-    # Logic: Ignore lines which do not include comments or domain name anchor
-    awk ''"${abpFilter}"' {
-      # Remove valid adblock type options
-      gsub(/\$?~?(important|third-party|popup|subdocument|websocket),?/, "", $0)
-      # Remove starting domain name anchor "||" and ending seperator "^"
-      gsub(/^(\|\|)|(\^)/, "", $0)
-      # Remove invalid characters (*/,=$)
-      if($0 ~ /[*\/,=\$]/) { $0="" }
-      # Remove lines which are only IPv4 addresses
-      if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
-      if($0) { print $0 }
-    }' "${source}" > "${destination}"
-    chmod 644 "${destination}"
-
-    # Determine if there are Adblock exception rules
-    # https://adblockplus.org/filters
-    if grep -q "^@@||" "${source}" &> /dev/null; then
-      # Parse Adblock lists by extracting exception rules
-      # Logic: Ignore lines which do not include exception format "@@||example.com^"
-      awk -F "[|^]" '/^@@\|\|.*\^/ {
-        # Remove valid adblock type options
-        gsub(/\$?~?(third-party)/, "", $0)
-        # Remove invalid characters (*/,=$)
-        if($0 ~ /[*\/,=\$]/) { $0="" }
-        if($3) { print $3 }
-      }' "${source}" > "${destination}.exceptionsFile.tmp"
-
-      # Remove exceptions
-      comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
-      mv "${source}" "${destination}"
-      chmod 644 "${destination}"
-    fi
-
-    echo -e "${OVER}  ${TICK} Format: Adblock"
+    echo -e "  ${CROSS} Format: Adblock (list type not supported)"
   elif grep -q "^address=/" "${source}" &> /dev/null; then
     # Parse Dnsmasq format lists
     echo -e "  ${CROSS} Format: Dnsmasq (list type not supported)"

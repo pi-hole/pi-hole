@@ -16,6 +16,7 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
+readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
 
@@ -281,7 +282,7 @@ Reboot() {
 }
 
 RestartDNS() {
-    /usr/local/bin/pihole restartdns
+    "${PI_HOLE_BIN_DIR}"/pihole restartdns
 }
 
 SetQueryLogOptions() {

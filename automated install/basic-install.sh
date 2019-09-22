@@ -65,6 +65,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 # This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
@@ -1351,7 +1352,7 @@ installScripts() {
         install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
         install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
         install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
-        install -o "${USER}" -Dm755 -t /usr/local/bin/ pihole
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
         install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 
@@ -1704,13 +1705,13 @@ installPiholeWeb() {
     # and copy in the pihole sudoers file
     install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
     # Add lighttpd user (OS dependent) to sudoers file
-    echo "${LIGHTTPD_USER} ALL=NOPASSWD: /usr/local/bin/pihole" >> /etc/sudoers.d/pihole
+    echo "${LIGHTTPD_USER} ALL=NOPASSWD: ${PI_HOLE_BIN_DIR}/pihole" >> /etc/sudoers.d/pihole
 
     # If the Web server user is lighttpd,
     if [[ "$LIGHTTPD_USER" == "lighttpd" ]]; then
         # Allow executing pihole via sudo with Fedora
-        # Usually /usr/local/bin is not permitted as directory for sudoable programs
-        echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin" >> /etc/sudoers.d/pihole
+        # Usually /usr/local/bin ${PI_HOLE_BIN_DIR} is not permitted as directory for sudoable programs
+        echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:${PI_HOLE_BIN_DIR}" >> /etc/sudoers.d/pihole
     fi
     # Set the strict permissions on the file
     chmod 0440 /etc/sudoers.d/pihole
@@ -2413,7 +2414,7 @@ FTLcheckUpdate() {
                 return 3
             fi
 
-            FTLlatesttag=$(grep 'Location' < "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
+            FTLlatesttag=$(grep 'Location' <<< "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
@@ -2699,7 +2700,7 @@ main() {
 
     if [[ "${INSTALL_TYPE}" == "Update" ]]; then
         printf "\\n"
-        /usr/local/bin/pihole version --current
+        "${PI_HOLE_BIN_DIR}"/pihole version --current
     fi
 }
 
