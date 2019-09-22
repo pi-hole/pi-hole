@@ -7,7 +7,7 @@ _pihole() {
 
 	case "${prev}" in
 		"pihole")
-			opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist"
+			opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist arpflush"
 			COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 		;;
 		"whitelist"|"blacklist"|"wildcard"|"regex")

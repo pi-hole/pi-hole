@@ -18,6 +18,8 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 
+readonly gravityDBfile="/etc/pihole/gravity.db"
+
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
     source ${coltable}
@@ -86,9 +88,9 @@ SetTemperatureUnit() {
 
 HashPassword() {
     # Compute password hash twice to avoid rainbow table vulnerability
-    return=$(echo -n ${1} | sha256sum | sed 's/\s.*$//')
-    return=$(echo -n ${return} | sha256sum | sed 's/\s.*$//')
-    echo ${return}
+    return=$(echo -n "${1}" | sha256sum | sed 's/\s.*$//')
+    return=$(echo -n "${return}" | sha256sum | sed 's/\s.*$//')
+    echo "${return}"
 }
 
 SetWebPassword() {
@@ -142,18 +144,18 @@ ProcessDNSSettings() {
     delete_dnsmasq_setting "server"
 
     COUNTER=1
-    while [[ 1 ]]; do
+    while true ; do
         var=PIHOLE_DNS_${COUNTER}
         if [ -z "${!var}" ]; then
             break;
         fi
         add_dnsmasq_setting "server" "${!var}"
-        let COUNTER=COUNTER+1
+        (( COUNTER++ ))
     done
 
     # The option LOCAL_DNS_PORT is deprecated
     # We apply it once more, and then convert it into the current format
-    if [ ! -z "${LOCAL_DNS_PORT}" ]; then
+    if [ -n "${LOCAL_DNS_PORT}" ]; then
         add_dnsmasq_setting "server" "127.0.0.1#${LOCAL_DNS_PORT}"
         add_setting "PIHOLE_DNS_${COUNTER}" "127.0.0.1#${LOCAL_DNS_PORT}"
         delete_setting "LOCAL_DNS_PORT"
@@ -183,7 +185,7 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 
     delete_dnsmasq_setting "host-record"
 
-    if [ ! -z "${HOSTRECORD}" ]; then
+    if [ -n "${HOSTRECORD}" ]; then
         add_dnsmasq_setting "host-record" "${HOSTRECORD}"
     fi
 
@@ -211,6 +213,11 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
         add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
     fi
+
+    # Prevent Firefox from automatically switching over to DNS-over-HTTPS
+    # This follows https://support.mozilla.org/en-US/kb/configuring-networks-disable-dns-over-https
+    # (sourced 7th September 2019)
+    add_dnsmasq_setting "server=/use-application-dns.net/"
 }
 
 SetDNSServers() {
@@ -323,6 +330,7 @@ dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 #quiet-dhcp
 " > "${dhcpconfig}"
+    chmod 644 "${dhcpconfig}"
 
     if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
@@ -394,19 +402,17 @@ SetWebUILayout() {
 }
 
 CustomizeAdLists() {
-    list="/etc/pihole/adlists.list"
+    local address
+    address="${args[3]}"
 
     if [[ "${args[2]}" == "enable" ]]; then
-        sed -i "\\@${args[3]}@s/^#http/http/g" "${list}"
+        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "disable" ]]; then
-        sed -i "\\@${args[3]}@s/^http/#http/g" "${list}"
+        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "add" ]]; then
-        if [[ $(grep -c "^${args[3]}$" "${list}") -eq 0 ]] ; then
-            echo "${args[3]}" >> ${list}
-        fi
+        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address) VALUES ('${address}')"
     elif [[ "${args[2]}" == "del" ]]; then
-        var=$(echo "${args[3]}" | sed 's/\//\\\//g')
-        sed -i "/${var}/Id" "${list}"
+        sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
     else
         echo "Not permitted"
         return 1
@@ -538,23 +544,50 @@ Interfaces:
 }
 
 Teleporter() {
-    local datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+    local datetimestamp
+    datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.tar.gz"
+}
+
+checkDomain()
+{
+    local domain validDomain
+    # Convert to lowercase
+    domain="${1,,}"
+    validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
+    validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+    echo "${validDomain}"
 }
 
 addAudit()
 {
     shift # skip "-a"
     shift # skip "audit"
-    for var in "$@"
+    local domains validDomain
+    domains=""
+    for domain in "$@"
     do
-        echo "${var}" >> /etc/pihole/auditlog.list
+      # Check domain to be added. Only continue if it is valid
+      validDomain="$(checkDomain "${domain}")"
+      if [[ -n "${validDomain}" ]]; then
+        # Put comma in between domains when there is
+        # more than one domains to be added
+        # SQL INSERT allows adding multiple rows at once using the format
+        ## INSERT INTO table (domain) VALUES ('abc.de'),('fgh.ij'),('klm.no'),('pqr.st');
+        if [[ -n "${domains}" ]]; then
+          domains="${domains},"
+        fi
+        domains="${domains}('${domain}')"
+      fi
     done
+    # Insert only the domain here. The date_added field will be
+    # filled with its default value (date_added = current timestamp)
+    sqlite3 "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
 }
 
 clearAudit()
 {
-    echo -n "" > /etc/pihole/auditlog.list
+    sqlite3 "${gravityDBfile}" "DELETE FROM domain_audit;"
 }
 
 SetPrivacyLevel() {

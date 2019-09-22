@@ -338,7 +338,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     expected_stdout = tick_box + (' Creating directory for blocking page, '
                                   'and copying files')
     assert expected_stdout in installWeb.stdout
-    expected_stdout = cross_box + ' Backing up index.lighttpd.html'
+    expected_stdout = info_box + ' Backing up index.lighttpd.html'
     assert expected_stdout in installWeb.stdout
     expected_stdout = ('No default index.lighttpd.html file found... '
                        'not backing up')
@@ -398,6 +398,7 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -418,6 +419,7 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -439,6 +441,7 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -455,6 +458,7 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     '''
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = info_box + ' FTL Checks...'
@@ -471,6 +475,7 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     mock_command('uname', {'-m': ('mips', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     ''')
     expected_stdout = 'Not able to detect architecture (unknown: mips)'
@@ -491,6 +496,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-aarch64-linux-gnu"
+    create_pihole_user
     FTLinstall
     ''')
     expected_stdout = tick_box + ' Downloading and Installing FTL'
@@ -512,6 +518,7 @@ def test_FTL_download_unknown_fails_no_errors(Pihole):
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
     binary="pihole-FTL-mips"
+    create_pihole_user
     FTLinstall
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
@@ -535,6 +542,7 @@ def test_FTL_download_binary_unset_no_errors(Pihole):
     ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLinstall
     ''')
     expected_stdout = cross_box + ' Downloading and Installing FTL'
@@ -551,6 +559,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     '''
     installed_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
+    create_pihole_user
     FTLdetect
     pihole-FTL version
     ''')
@@ -691,3 +700,42 @@ def test_IPv6_ULA_GUA_test(Pihole):
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
+
+
+def test_validate_ip_valid(Pihole):
+    '''
+    Given a valid IP address, valid_ip returns success
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "192.168.1.1"
+    ''')
+
+    assert output.rc == 0
+
+
+def test_validate_ip_invalid_octet(Pihole):
+    '''
+    Given an invalid IP address (large octet), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "1092.168.1.1"
+    ''')
+
+    assert output.rc == 1
+
+
+def test_validate_ip_invalid_letters(Pihole):
+    '''
+    Given an invalid IP address (contains letters), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "not an IP"
+    ''')
+
+    assert output.rc == 1
