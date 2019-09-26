@@ -88,7 +88,35 @@ PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
-PIHOLE_GRAVITY_DB_FILE="${PIHOLE_DIRECTORY}/gravity.db"
+PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole-FTL.conf"
+
+# Read the value of an FTL config key. The value is printed to stdout.
+#
+# Args:
+# 1. The key to read
+# 2. The default if the setting or config does not exist
+get_ftl_conf_value() {
+    local key=$1
+    local default=$2
+    local value
+
+    # Obtain key=... setting from pihole-FTL.conf
+    if [[ -e "$PIHOLE_FTL_CONF_FILE" ]]; then
+        # Constructed to return nothing when
+        # a) the setting is not present in the config file, or
+        # b) the setting is commented out (e.g. "#DBFILE=...")
+        value="$(sed -n -e "s/^\\s*$key=\\s*//p" ${PIHOLE_FTL_CONF_FILE})"
+    fi
+
+    # Test for missing value. Use default value in this case.
+    if [[ -z "$value" ]]; then
+        value="$default"
+    fi
+
+    echo "$value"
+}
+
+PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "GRAVITYDB" "${PIHOLE_DIRECTORY}/gravity.db")"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
@@ -99,7 +127,7 @@ FTL_PORT="${RUN_DIRECTORY}/pihole-FTL.port"
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
-PIHOLE_FTL_LOG="${LOG_DIRECTORY}/pihole-FTL.log"
+PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log")"
 
 # An array of operating system "pretty names" that we officialy support
 # We can loop through the array at any time to see if it matches a value
@@ -976,20 +1004,27 @@ show_db_entries() {
     IFS="$OLD_IFS"
 }
 
+show_groups() {
+    show_db_entries "Groups" "SELECT * FROM \"group\"" "4 4 30 50"
+}
+
 show_adlists() {
-    show_db_entries "Adlists" "SELECT * FROM adlists" "4 100 7 10 13 50"
+    show_db_entries "Adlists" "SELECT id,address,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist" "4 100 7 19 19 50"
+    show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
 }
 
 show_whitelist() {
-    show_db_entries "Whitelist" "SELECT * FROM whitelist" "4 100 7 10 13 50"
+    show_db_entries "Exact whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM whitelist" "4 100 7 19 19 50"
+    show_db_entries "Exact whitelist groups" "SELECT * FROM whitelist_by_group" "4 4"
+    show_db_entries "Regex whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_whitelist" "4 100 7 19 19 50"
+    show_db_entries "Regex whitelist groups" "SELECT * FROM regex_whitelist_by_group" "4 4"
 }
 
 show_blacklist() {
-    show_db_entries "Blacklist" "SELECT * FROM blacklist" "4 100 7 10 13 50"
-}
-
-show_regexlist() {
-    show_db_entries "Regexlist" "SELECT * FROM regex" "4 100 7 10 13 50"
+    show_db_entries "Exact blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM blacklist" "4 100 7 19 19 50"
+    show_db_entries "Exact blacklist groups" "SELECT * FROM blacklist_by_group" "4 4"
+    show_db_entries "Regex blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_blacklist" "4 100 7 19 19 50"
+    show_db_entries "Regex blacklist groups" "SELECT * FROM regex_blacklist_by_group" "4 4"
 }
 
 analyze_gravity_list() {
@@ -1163,10 +1198,10 @@ check_name_resolution
 process_status
 parse_setup_vars
 analyze_gravity_list
+show_groups
 show_adlists
 show_whitelist
 show_blacklist
-show_regexlist
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log

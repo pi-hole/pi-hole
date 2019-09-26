@@ -32,12 +32,18 @@ helpFunc() {
     if [[ "${listType}" == "whitelist" ]]; then
         param="w"
         type="whitelist"
-    elif [[ "${listType}" == "regex" && "${wildcard}" == true ]]; then
+    elif [[ "${listType}" == "regex_blacklist" && "${wildcard}" == true ]]; then
         param="-wild"
         type="wildcard blacklist"
-    elif [[ "${listType}" == "regex" ]]; then
+    elif [[ "${listType}" == "regex_blacklist" ]]; then
         param="-regex"
-        type="regex filter"
+        type="regex blacklist filter"
+    elif [[ "${listType}" == "regex_whitelist" && "${wildcard}" == true ]]; then
+        param="-white-wild"
+        type="wildcard whitelist"
+    elif [[ "${listType}" == "regex_whitelist" ]]; then
+        param="-white-regex"
+        type="regex whitelist filter"
     else
         param="b"
         type="blacklist"
@@ -72,7 +78,7 @@ HandleOther() {
 
     # Check validity of domain (don't check for regex entries)
     if [[ "${#domain}" -le 253 ]]; then
-        if [[ "${listType}" == "regex" && "${wildcard}" == false ]]; then
+        if [[ ( "${listType}" == "regex_blacklist" || "${listType}" == "regex_whitelist" ) && "${wildcard}" == false ]]; then
             validDomain="${domain}"
         else
             validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
@@ -88,12 +94,19 @@ HandleOther() {
 }
 
 ProcessDomainList() {
-    if [[ "${listType}" == "regex" ]]; then
-        # Regex filter list
-        listname="regex filters"
+    local is_regexlist
+    if [[ "${listType}" == "regex_blacklist" ]]; then
+        # Regex black filter list
+        listname="regex blacklist filters"
+        is_regexlist=true
+    elif [[ "${listType}" == "regex_whitelist" ]]; then
+        # Regex white filter list
+        listname="regex whitelist filters"
+        is_regexlist=true
     else
         # Whitelist / Blacklist
         listname="${listType}"
+        is_regexlist=false
     fi
 
     for dom in "${domList[@]}"; do
@@ -106,7 +119,7 @@ ProcessDomainList() {
         # if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
             AddDomain "${dom}" "${listType}"
-            if [[ ! "${listType}" == "regex" ]]; then
+            if ! ${is_regexlist}; then
                 RemoveDomain "${dom}" "${listAlt}"
             fi
         else
@@ -173,7 +186,7 @@ Displaylist() {
     data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM ${listType};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
-        echo -e "Not showing empty ${listname}"
+        echo -e "Not showing empty list"
     else
         echo -e "Displaying ${listname}:"
         count=1
@@ -215,8 +228,10 @@ for var in "$@"; do
     case "${var}" in
         "-w" | "whitelist"   ) listType="whitelist"; listAlt="blacklist";;
         "-b" | "blacklist"   ) listType="blacklist"; listAlt="whitelist";;
-        "--wild" | "wildcard" ) listType="regex"; wildcard=true;;
-        "--regex" | "regex"   ) listType="regex";;
+        "--wild" | "wildcard" ) listType="regex_blacklist"; wildcard=true;;
+        "--regex" | "regex"   ) listType="regex_blacklist";;
+        "--white-regex" | "white-regex" ) listType="regex_whitelist";;
+        "--white-wild" | "white-wild" ) listType="regex_whitelist"; wildcard=true;;
         "-nr"| "--noreload"  ) reload=false;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;

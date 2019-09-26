@@ -17,6 +17,8 @@ coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 regexconverter="/opt/pihole/wildcard_regex_converter.sh"
 source "${regexconverter}"
+# shellcheck disable=SC1091
+source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
@@ -82,6 +84,20 @@ fi
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
   sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+
+  # Ensure proper permissions are set for the newly created database
+  chown pihole:pihole "${gravityDBfile}"
+  chmod g+w "${piholeDir}" "${gravityDBfile}"
+}
+
+update_gravity_timestamp() {
+  # Update timestamp when the gravity table was last updated successfully
+  output=$( { sqlite3 "${gravityDBfile}" <<< "INSERT OR REPLACE INTO info (property,value) values (\"updated\",cast(strftime('%s', 'now') as int));"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityDBfile}\\n  ${output}"
+  fi
 }
 
 # Import domains from file and store them in the specified database table
@@ -111,16 +127,22 @@ database_table_from_file() {
     # No need to modify the input data for the gravity table
     inputfile="${source}"
   else
-    # Apply format for white-, blacklist, regex, and adlists tables
+    # Apply format for white-, blacklist, regex, and adlist tables
+    # Read file line by line
     local rowid
     declare -i rowid
     rowid=1
-    # Read file line by line
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
       # Only add non-empty lines
-      if [[ ! -z "${domain}" ]]; then
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+      if [[ -n "${domain}" ]]; then
+        if [[ "${table}" == "domain_audit" ]]; then
+          # domain_audit table format (no enable or modified fields)
+          echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
+        else
+          # White-, black-, and regexlist format
+          echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+        fi
         rowid+=1
       fi
     done
@@ -129,7 +151,7 @@ database_table_from_file() {
   # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  output=$( { printf ".mode csv\\n.import \"%s\" %s\\n" "${inputfile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 10000\\n.mode csv\\n.import \"%s\" %s\\n" "${inputfile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -150,34 +172,38 @@ database_table_from_file() {
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
   # Create database file only if not present
-  if [ -e "${gravityDBfile}" ]; then
-    return 0
+  if [ ! -e "${gravityDBfile}" ]; then
+    # Create new database file - note that this will be created in version 1
+    echo -e "  ${INFO} Creating new gravity database"
+    generate_gravity_database
+
+    # Migrate list files to new database
+    if [ -e "${adListFile}" ]; then
+      # Store adlist domains in database
+      echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
+      database_table_from_file "adlist" "${adListFile}"
+    fi
+    if [ -e "${blacklistFile}" ]; then
+      # Store blacklisted domains in database
+      echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
+      database_table_from_file "blacklist" "${blacklistFile}"
+    fi
+    if [ -e "${whitelistFile}" ]; then
+      # Store whitelisted domains in database
+      echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
+      database_table_from_file "whitelist" "${whitelistFile}"
+    fi
+    if [ -e "${regexFile}" ]; then
+      # Store regex domains in database
+      # Important note: We need to add the domains to the "regex" table
+      # as it will only later be renamed to "regex_blacklist"!
+      echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
+      database_table_from_file "regex" "${regexFile}"
+    fi
   fi
 
-  echo -e "  ${INFO} Creating new gravity database"
-  generate_gravity_database
-
-  # Migrate list files to new database
-  if [[ -e "${adListFile}" ]]; then
-    # Store adlists domains in database
-    echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
-    database_table_from_file "adlists" "${adListFile}"
-  fi
-  if [[ -e "${blacklistFile}" ]]; then
-    # Store blacklisted domains in database
-    echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
-    database_table_from_file "blacklist" "${blacklistFile}"
-  fi
-  if [[ -e "${whitelistFile}" ]]; then
-    # Store whitelisted domains in database
-    echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
-    database_table_from_file "whitelist" "${whitelistFile}"
-  fi
-  if [[ -e "${regexFile}" ]]; then
-    # Store regex domains in database
-    echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
-    database_table_from_file "regex" "${regexFile}"
-  fi
+  # Check if gravity database needs to be updated
+  upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
 }
 
 # Determine if DNS resolution is available before proceeding
@@ -236,13 +262,13 @@ gravity_CheckDNSResolutionAvailable() {
   gravity_CheckDNSResolutionAvailable
 }
 
-# Retrieve blocklist URLs and parse domains from adlists.list
+# Retrieve blocklist URLs and parse domains from adlist.list
 gravity_GetBlocklistUrls() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
-  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlists;" 2> /dev/null)"
+  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
@@ -339,7 +365,7 @@ gravity_DownloadBlocklistFromUrl() {
     else
         printf -v port "%s" "${PIHOLE_DNS_1#*#}"
     fi
-    ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}")
+    ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
     if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
       port=443;
     else port=80
@@ -432,48 +458,7 @@ gravity_ParseFileIntoDomains() {
   # Determine how to parse individual source file formats
   if [[ "${firstLine,,}" =~ (adblock|ublock|^!) ]]; then
     # Compare $firstLine against lower case words found in Adblock lists
-    echo -ne "  ${INFO} Format: Adblock"
-
-    # Define symbols used as comments: [!
-    # "||.*^" includes the "Example 2" domains we can extract
-    # https://adblockplus.org/filter-cheatsheet
-    abpFilter="/^(\\[|!)|^(\\|\\|.*\\^)/"
-
-    # Parse Adblock lists by extracting "Example 2" domains
-    # Logic: Ignore lines which do not include comments or domain name anchor
-    awk ''"${abpFilter}"' {
-      # Remove valid adblock type options
-      gsub(/\$?~?(important|third-party|popup|subdocument|websocket),?/, "", $0)
-      # Remove starting domain name anchor "||" and ending seperator "^"
-      gsub(/^(\|\|)|(\^)/, "", $0)
-      # Remove invalid characters (*/,=$)
-      if($0 ~ /[*\/,=\$]/) { $0="" }
-      # Remove lines which are only IPv4 addresses
-      if($0 ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) { $0="" }
-      if($0) { print $0 }
-    }' "${source}" > "${destination}"
-    chmod 644 "${destination}"
-
-    # Determine if there are Adblock exception rules
-    # https://adblockplus.org/filters
-    if grep -q "^@@||" "${source}" &> /dev/null; then
-      # Parse Adblock lists by extracting exception rules
-      # Logic: Ignore lines which do not include exception format "@@||example.com^"
-      awk -F "[|^]" '/^@@\|\|.*\^/ {
-        # Remove valid adblock type options
-        gsub(/\$?~?(third-party)/, "", $0)
-        # Remove invalid characters (*/,=$)
-        if($0 ~ /[*\/,=\$]/) { $0="" }
-        if($3) { print $3 }
-      }' "${source}" > "${destination}.exceptionsFile.tmp"
-
-      # Remove exceptions
-      comm -23 "${destination}" <(sort "${destination}.exceptionsFile.tmp") > "${source}"
-      mv "${source}" "${destination}"
-      chmod 644 "${destination}"
-    fi
-
-    echo -e "${OVER}  ${TICK} Format: Adblock"
+    echo -e "  ${CROSS} Format: Adblock (list type not supported)"
   elif grep -q "^address=/" "${source}" &> /dev/null; then
     # Parse Dnsmasq format lists
     echo -e "  ${CROSS} Format: Dnsmasq (list type not supported)"
@@ -580,9 +565,10 @@ gravity_Table_Count() {
 
 # Output count of blacklisted domains and regex filters
 gravity_ShowCount() {
-  gravity_Table_Count "blacklist" "blacklisted domains"
-  gravity_Table_Count "whitelist" "whitelisted domains"
-  gravity_Table_Count "regex" "regex filters"
+  gravity_Table_Count "blacklist" "exact blacklisted domains"
+  gravity_Table_Count "regex_blacklist" "regex blacklist filters"
+  gravity_Table_Count "whitelist" "exact whitelisted domains"
+  gravity_Table_Count "regex_whitelist" "regex whitelist filters"
 }
 
 # Parse list of domains into hosts format
@@ -731,6 +717,8 @@ fi
 # Create local.list
 gravity_generateLocalList
 gravity_ShowCount
+
+update_gravity_timestamp
 
 gravity_Cleanup
 echo ""
