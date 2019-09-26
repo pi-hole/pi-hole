@@ -2528,15 +2528,15 @@ main() {
     enable_service pihole-FTL
     restart_service pihole-FTL
 
-    # Start the API if it's not already running (it was already enabled during
-    # install, and may have started on Debian machines)
-    restart_service pihole-API
-
     # Generate the dnsmasq configuration
     GenerateDnsConfig
 
     # Download and compile the aggregated block list
     runGravity
+
+    # Start the API if it's not already running (it was already enabled during
+    # install, and may have started on Debian machines)
+    restart_service pihole-API
 
     # Force an update of the updatechecker
     /opt/pihole/updatecheck.sh
