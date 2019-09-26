@@ -171,8 +171,8 @@ database_table_from_file() {
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
-  # Create database file only if not present
-  if [ ! -e "${gravityDBfile}" ]; then
+  # Create database file only if not present or zero size
+  if [ -s "${gravityDBfile}" ]; then
     # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
     generate_gravity_database
