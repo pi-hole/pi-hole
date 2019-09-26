@@ -2474,7 +2474,7 @@ main() {
     clone_or_update_repos
 
     # Install the Core dependencies
-    install_dependent_packages PIHOLE_DEPS[@]
+    install_dependent_packages "${PIHOLE_DEPS[@]}"
 
     # Create the pihole user
     create_pihole_user
