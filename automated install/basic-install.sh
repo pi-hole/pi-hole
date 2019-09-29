@@ -70,7 +70,6 @@ PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
-regexFile="/etc/pihole/regex.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=""
@@ -1384,11 +1383,6 @@ installConfigs() {
             printf "  %bError: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
-    fi
-    # Install an empty regex file
-    if [[ ! -f "${regexFile}" ]]; then
-        # Let PHP edit the regex file, if installed
-        install -o pihole -g "${LIGHTTPD_GROUP:-pihole}" -m 664 /dev/null "${regexFile}"
     fi
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
