@@ -89,10 +89,6 @@ CREATE TABLE info
 
 INSERT INTO info VALUES("version","1");
 
-CREATE VIEW vw_gravity AS SELECT domain
-    FROM gravity
-    WHERE domain NOT IN (SELECT domain from vw_whitelist);
-
 CREATE VIEW vw_whitelist AS SELECT DISTINCT domain
     FROM whitelist
     LEFT JOIN whitelist_by_group ON whitelist_by_group.whitelist_id = whitelist.id
@@ -141,3 +137,6 @@ CREATE TRIGGER tr_adlist_update AFTER UPDATE ON adlist
       UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
     END;
 
+CREATE VIEW vw_gravity AS SELECT domain
+    FROM gravity
+    WHERE domain NOT IN (SELECT domain from vw_whitelist);

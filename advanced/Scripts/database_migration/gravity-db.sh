@@ -22,6 +22,7 @@ upgrade_gravityDB(){
 	if [[ "$version" == "1" ]]; then
 		# This migration script upgrades the gravity.db file by
 		# adding the domain_audit table
+		echo -e "  ${INFO} Upgrading gravity database from version 1 to 2"
 		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/1_to_2.sql"
 		version=2
 
@@ -36,6 +37,7 @@ upgrade_gravityDB(){
 		# This migration script upgrades the gravity.db file by
 		# renaming the regex table to regex_blacklist, and
 		# creating a new regex_whitelist table + corresponding linking table and views
+		echo -e "  ${INFO} Upgrading gravity database from version 2 to 3"
 		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/2_to_3.sql"
 		version=3
 	fi

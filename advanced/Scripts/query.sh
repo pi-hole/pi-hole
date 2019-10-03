@@ -183,6 +183,20 @@ lists=("$(cd "$piholeDir" || exit 0; printf "%s\\n" -- *.domains | sort -V)")
 # Query blocklists for occurences of domain
 mapfile -t results <<< "$(scanList "${domainQuery}" "${lists[*]}" "${exact}")"
 
+# Remove unwanted content from $results
+# Each line in $results is formatted as such: [fileName]:[line]
+# 1. Delete lines starting with #
+# 2. Remove comments after domain
+# 3. Remove hosts format IP address
+# 4. Remove any lines that no longer contain the queried domain name (in case the matched domain name was in a comment)
+esc_domain="${domainQuery//./\\.}"
+mapfile -t results <<< "$(IFS=$'\n'; sed \
+	-e "/:#/d" \
+	-e "s/[ \\t]#.*//g" \
+	-e "s/:.*[ \\t]/:/g" \
+	-e "/${esc_domain}/!d" \
+	<<< "${results[*]}")"
+
 # Handle notices
 if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
     echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the block lists"
@@ -194,20 +208,6 @@ elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
     echo -e "  ${INFO} Over 100 ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC}
         This can be overridden using the -all option"
     exit 0
-fi
-
-# Remove unwanted content from non-exact $results
-if [[ -z "${exact}" ]]; then
-    # Delete lines starting with #
-    # Remove comments after domain
-    # Remove hosts format IP address
-    mapfile -t results <<< "$(IFS=$'\n'; sed \
-        -e "/:#/d" \
-        -e "s/[ \\t]#.*//g" \
-        -e "s/:.*[ \\t]/:/g" \
-        <<< "${results[*]}")"
-    # Exit if result was in a comment
-    [[ -z "${results[*]}" ]] && exit 0
 fi
 
 # Get adlist file content as array
