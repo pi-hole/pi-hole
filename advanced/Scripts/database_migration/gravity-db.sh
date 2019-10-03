@@ -10,6 +10,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+readonly scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
+
 upgrade_gravityDB(){
 	local database piholeDir auditFile version
 	database="${1}"
@@ -23,7 +25,7 @@ upgrade_gravityDB(){
 		# This migration script upgrades the gravity.db file by
 		# adding the domain_audit table
 		echo -e "  ${INFO} Upgrading gravity database from version 1 to 2"
-		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/1_to_2.sql"
+		sqlite3 "${database}" < "${scriptPath}/1_to_2.sql"
 		version=2
 
 		# Store audit domains in database table
@@ -38,13 +40,13 @@ upgrade_gravityDB(){
 		# renaming the regex table to regex_blacklist, and
 		# creating a new regex_whitelist table + corresponding linking table and views
 		echo -e "  ${INFO} Upgrading gravity database from version 2 to 3"
-		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/2_to_3.sql"
+		sqlite3 "${database}" < "${scriptPath}/2_to_3.sql"
 		version=3
 	fi
 	if [[ "$version" == "3" ]]; then
 		# This migration script upgrades the gravity and adlist views
 		# implementing necessary changes for per-client blocking
-		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/3_to_4.sql"
+		sqlite3 "${database}" < "${scriptPath}/3_to_4.sql"
 		version=3
 	fi
 }
