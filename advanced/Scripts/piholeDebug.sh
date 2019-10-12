@@ -584,13 +584,13 @@ ping_ipv4_or_ipv6() {
     if [[ ${protocol} == "6" ]]; then
         # use ping6
         cmd="ping6"
-        # and Google's public IPv6 address
-        public_address="2001:4860:4860::8888"
+        # and Quad9's public IPv6 address
+        public_address="2620:fe::fe"
     else
         # Otherwise, just use ping
         cmd="ping"
-        # and Google's public IPv4 address
-        public_address="8.8.8.8"
+        # and Quad9's public IPv4 address
+        public_address="9.9.9.9"
     fi
 }
 
@@ -778,14 +778,14 @@ dig_at() {
         # Set the IPv6 variables and record type
         local local_address="::1"
         local pihole_address="${IP}"
-        local remote_address="2001:4860:4860::8888"
+        local remote_address="2620:fe::fe"
         local record_type="AAAA"
     # Othwerwise, it should be 4
     else
         # so use the IPv4 values
         local local_address="127.0.0.1"
         local pihole_address="${IP}"
-        local remote_address="8.8.8.8"
+        local remote_address="9.9.9.9"
         local record_type="A"
     fi
 

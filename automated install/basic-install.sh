@@ -514,8 +514,8 @@ find_IPv4_information() {
     local route
     local IPv4bare
 
-    # Find IP used to route to outside world by checking the the route to Google's public DNS server
-    route=$(ip route get 8.8.8.8)
+    # Find IP used to route to outside world by checking the the route to Quad9's public DNS server
+    route=$(ip route get 9.9.9.9)
 
     # Get just the interface IPv4 address
     # shellcheck disable=SC2059,SC2086
