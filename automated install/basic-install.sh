@@ -1645,9 +1645,9 @@ install_dependent_packages() {
     for i in "$@"; do
         printf "  %b Checking for %s..." "${INFO}" "${i}"
         if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
-            printf "%b  %b Checking for %s" "${OVER}" "${TICK}" "${i}"
+            printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
         else
-            printf "%b  %b Checking for %s (will be installed)" "${OVER}" "${INFO}" "${i}"
+            echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
             installArray+=("${i}")
         fi
     done
