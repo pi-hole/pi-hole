@@ -1632,7 +1632,7 @@ install_dependent_packages() {
     # amount of download traffic.
     # NOTE: We may be able to use this installArray in the future to create a list of package that were
     # installed by us, and remove only the installed packages, and not the entire list.
-    if is_command debconf-apt-progress ; then
+    if is_command apt-get ; then
         # For each package,
         for i in "$@"; do
             printf "  %b Checking for %s..." "${INFO}" "${i}"
@@ -1645,7 +1645,7 @@ install_dependent_packages() {
         done
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
-            debconf-apt-progress -- "${PKG_INSTALL[@]}" "${installArray[@]}"
+            "${PKG_INSTALL[@]}" "${installArray[@]}"
             return
         fi
         printf "\\n"
