@@ -1959,20 +1959,42 @@ installPihole() {
 
 # SELinux
 checkSelinux() {
-    # If the getenforce command exists,
-    if is_command getenforce ; then
-        # Store the current mode in a variable
-        enforceMode=$(getenforce)
-        printf "\\n  %b SELinux mode detected: %s\\n" "${INFO}" "${enforceMode}"
-
-        # If it's enforcing,
-        if [[ "${enforceMode}" == "Enforcing" ]]; then
-            # Explain Pi-hole does not support it yet
-            whiptail --defaultno --title "SELinux Enforcing Detected" --yesno "SELinux is being ENFORCED on your system! \\n\\nPi-hole currently does not support SELinux, but you may still continue with the installation.\\n\\nNote: Web Admin will not be fully functional unless you set your policies correctly\\n\\nContinue installing Pi-hole?" "${r}" "${c}" || \
-            { printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-            printf "  %b Continuing installation with SELinux Enforcing\\n" "${INFO}"
-            printf "      %b Please refer to official SELinux documentation to create a custom policy\\n" "${INFO}"
-        fi
+    local DEFAULT_SELINUX
+    local CURRENT_SELINUX
+    local SELINUX_ENFORCING=0
+    # Check if a SELinux configuration file exists
+    if [[ -f /etc/selinux/config ]]; then
+        # If a SELinux configuration file was found, check the default SELinux mode.
+        DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
+        case "${DEFAULT_SELINUX,,}" in
+            enforcing)
+                echo -e "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+                SELINUX_ENFORCING=1
+                ;;
+            *)  # 'permissive' and 'disabled'
+                echo -e "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
+                ;;
+        esac
+        # Check the current state of SELinux
+        CURRENT_SELINUX=$(getenforce)
+        case "${CURRENT_SELINUX,,}" in
+            enforcing)
+                echo -e "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+                SELINUX_ENFORCING=1
+                ;;
+            *)  # 'permissive' and 'disabled'
+                echo -e "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
+                ;;
+        esac
+    else
+        echo -e "${INFO} ${COL_GREEN}SELinux not detected${COL_NC}";
+    fi
+    # Exit the installer if any SELinux checks toggled the flag
+    if [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -z "${PIHOLE_SELINUX}" ]]; then
+        echo -e "Pi-hole does not provide an SELinux policy as the required changes modify the security of your system."
+        echo -e "Please refer to https://wiki.centos.org/HowTos/SELinux if SELinux is required for your deployment."
+        printf "\\n%bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}";
+        exit 1;
     fi
 }
 
