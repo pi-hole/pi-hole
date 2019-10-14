@@ -7,6 +7,7 @@ from conftest import (
     mock_command_2,
 )
 
+
 def mock_selinux_config(state, Pihole):
     '''
     Creates a mock SELinux config file with expected content
