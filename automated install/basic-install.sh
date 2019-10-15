@@ -1628,7 +1628,7 @@ install_dependent_packages() {
             if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
                 printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
             else
-                echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
+                printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
                 installArray+=("${i}")
             fi
         done
@@ -1647,7 +1647,7 @@ install_dependent_packages() {
         if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
             printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
         else
-            echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
+            printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
             installArray+=("${i}")
         fi
     done
