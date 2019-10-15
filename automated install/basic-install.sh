@@ -1968,22 +1968,22 @@ checkSelinux() {
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
             enforcing)
-                echo -e "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+                printf "%b %bDefault SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${DEFAULT_SELINUX}" "${COL_NC}"
                 SELINUX_ENFORCING=1
                 ;;
             *)  # 'permissive' and 'disabled'
-                echo -e "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
+                printf "%b %bDefault SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${DEFAULT_SELINUX}" "${COL_NC}"
                 ;;
         esac
         # Check the current state of SELinux
         CURRENT_SELINUX=$(getenforce)
         case "${CURRENT_SELINUX,,}" in
             enforcing)
-                echo -e "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+                printf "%b %bCurrent SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${CURRENT_SELINUX}" "${COL_NC}"
                 SELINUX_ENFORCING=1
                 ;;
             *)  # 'permissive' and 'disabled'
-                echo -e "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
+                printf "%b %bCurrent SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${CURRENT_SELINUX}" "${COL_NC}"
                 ;;
         esac
     else
@@ -1991,8 +1991,8 @@ checkSelinux() {
     fi
     # Exit the installer if any SELinux checks toggled the flag
     if [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -z "${PIHOLE_SELINUX}" ]]; then
-        echo -e "Pi-hole does not provide an SELinux policy as the required changes modify the security of your system."
-        echo -e "Please refer to https://wiki.centos.org/HowTos/SELinux if SELinux is required for your deployment."
+        printf "Pi-hole does not provide an SELinux policy as the required changes modify the security of your system.\\n"
+        printf "Please refer to https://wiki.centos.org/HowTos/SELinux if SELinux is required for your deployment.\\n"
         printf "\\n%bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}";
         exit 1;
     fi
