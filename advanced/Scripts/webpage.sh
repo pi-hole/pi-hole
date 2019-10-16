@@ -524,10 +524,10 @@ Interfaces:
   fi
 
     if [[ "${args[2]}" == "all" ]]; then
-        echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
+        echo -e "  ${INFO} Listening on all interfaces, permitting all origins. Please use a firewall!"
         change_setting "DNSMASQ_LISTENING" "all"
     elif [[ "${args[2]}" == "local" ]]; then
-        echo -e "  ${INFO} Listening on all interfaces, permiting origins from one hop away (LAN)"
+        echo -e "  ${INFO} Listening on all interfaces, permitting origins from one hop away (LAN)"
         change_setting "DNSMASQ_LISTENING" "local"
     else
         echo -e "  ${INFO} Listening only on interface ${PIHOLE_INTERFACE}"
