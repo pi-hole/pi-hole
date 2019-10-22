@@ -16,6 +16,7 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
+readonly dhcpleasefile="/etc/pihole/dhcp.leases"
 readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
@@ -460,6 +461,11 @@ RemoveDHCPStaticAddress() {
     sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
 }
 
+RemoveDHCPLeaseAddress() {
+    mac="${args[2]}"
+    sed -i "/${mac}.*/d" "${dhcpleasefile}"
+}
+
 SetHostRecord() {
     if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
         echo "Usage: pihole -a hostrecord <domain> [IPv4-address],[IPv6-address]
@@ -620,6 +626,7 @@ main() {
         "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
+		"removedhcplease"	  ) RemoveDHCPLeaseAddress;;
         "-r" | "hostrecord"   ) SetHostRecord "$3";;
         "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
