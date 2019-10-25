@@ -4,6 +4,7 @@
 </p>
 
 The Pi-hole[®](https://pi-hole.net/trademark-rules-and-brand-guidelines/) is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) that protects your devices from unwanted content, without installing any client-side software.
+This allows the Pi-hole to intercept any outgoing or incoming DNS requests and can block or pass certain domains from accessing your device, keeping your computer and other devices safe from ads.
 
 - **Easy-to-install**: our versatile installer walks you through the process, and [takes less than ten minutes](https://www.youtube.com/watch?v=vKWjx1AQYgs)
 - **Resolute**: content is blocked in _non-browser locations_, such as ad-laden mobile apps and smart TVs
