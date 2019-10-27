@@ -17,6 +17,7 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly PI_HOLE_BIN_DIR="/usr/local/bin"
+readonly dnscustomfile="/etc/pihole/custom.list"
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
@@ -564,6 +565,17 @@ SetPrivacyLevel() {
     fi
 }
 
+AddCustomDNSAddress() {
+    ip="${args[2]}"
+    host="${args[3]}"
+	echo "${ip} ${host}" >> "${dnscustomfile}"
+}
+
+RemoveCustomDNSAddress() {
+    host="${args[2]}"
+    sed -i "/.*${host}/d" "${dnscustomfile}"
+}
+
 main() {
     args=("$@")
 
@@ -595,6 +607,8 @@ main() {
         "audit"               ) addAudit "$@";;
         "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
+        "addcustomdns"        ) AddCustomDNSAddress;;
+        "removecustomdns"     ) RemoveCustomDNSAddress;;
         *                     ) helpFunc;;
     esac
 
