@@ -572,8 +572,9 @@ AddCustomDNSAddress() {
 }
 
 RemoveCustomDNSAddress() {
-    host="${args[2]}"
-    sed -i "/.*${host}/d" "${dnscustomfile}"
+    ip="${args[2]}"
+    host="${args[3]}"
+    sed -i "/${ip} ${host}/d" "${dnscustomfile}"
 }
 
 main() {
