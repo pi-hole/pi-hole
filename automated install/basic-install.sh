@@ -408,6 +408,8 @@ make_repo() {
     # Set named variables for better readability
     local directory="${1}"
     local remoteRepo="${2}"
+    local curdir
+
     # The message to display when this function is running
     str="Clone ${remoteRepo} into ${directory}"
     # Display the message and use the color table to preface the message with an "info" indicator
@@ -421,10 +423,21 @@ make_repo() {
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
-
+     # Make sure we know what directory we are in so we can move back into it
+    curdir="${PWD}"
+    # Move into the directory that was passed as an argument
+    cd "${directory}" &> /dev/null || return 1
+    # Check current branch. If it is master, then reset to the latest availible tag.
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    curBranch = $(git rev-parse --abbrev-ref HEAD)
+    if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
+         git reset --hard $(git describe --abbrev=0) || return $?
+    fi
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-    # Always return 0? Not sure this is correct
+
+    # Move back into the original directory
+    cd "${curdir}" &> /dev/null || return 1
     return 0
 }
 
@@ -436,6 +449,7 @@ update_repo() {
     # This helps prevent the wrong value from being assigned if you were to set the variable as a GLOBAL one
     local directory="${1}"
     local curdir
+    local curBranch
 
     # A variable to store the message we want to display;
     # Again, it's useful to store these in variables in case we need to reuse or change the message;
@@ -453,6 +467,12 @@ update_repo() {
     git clean --quiet --force -d || true # Okay for already clean directory
     # Pull the latest commits
     git pull --quiet &> /dev/null || return $?
+    # Check current branch. If it is master, then reset to the latest availible tag.
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    curBranch = $(git rev-parse --abbrev-ref HEAD)
+    if [[ "${curBranch}" == "master" ]]; then
+         git reset --hard $(git describe --abbrev=0) || return $?
+    fi
     # Show a completion message
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
