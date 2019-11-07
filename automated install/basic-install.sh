@@ -838,7 +838,8 @@ setDHCPCD() {
         # Then use the ip command to immediately set the new address
         ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
         # Also give a warning that the user may need to reboot their system
-        printf "  %b Set IP address to %s \\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
+        printf "  %b Set IP address to %s\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
+        printf "  %b You may need to restart after the install is complete\\n" "${INFO}"
     fi
 }
 
@@ -984,8 +985,6 @@ setDNS() {
     # exit if Cancel is selected
     { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
 
-    # Display the selection
-    printf "  %b Using " "${INFO}"
     # Depending on the user's choice, set the GLOBAl variables to the IP of the respective provider
     if [[ "${DNSchoices}" == "Custom" ]]
     then
@@ -1037,14 +1036,14 @@ setDNS() {
                 if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
                     PIHOLE_DNS_2=""
                 fi
-            # Since the settings will not work, stay in the loop
-            DNSSettingsCorrect=False
+                # Since the settings will not work, stay in the loop
+                DNSSettingsCorrect=False
             # Otherwise,
             else
                 # Show the settings
                 if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" "${r}" "${c}"); then
-                # and break from the loop since the servers are valid
-                DNSSettingsCorrect=True
+                    # and break from the loop since the servers are valid
+                    DNSSettingsCorrect=True
                 # Otherwise,
                 else
                     # If the settings are wrong, the loop continues
@@ -1052,7 +1051,7 @@ setDNS() {
                 fi
             fi
         done
-     else
+    else
         # Save the old Internal Field Separator in a variable
         OIFS=$IFS
         # and set the new one to newline
@@ -1062,7 +1061,6 @@ setDNS() {
             DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
             if [[ "${DNSchoices}" == "${DNSName}" ]]
             then
-                printf "%s\\n" "${DNSName}"
                 PIHOLE_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
                 PIHOLE_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
                 break
@@ -1071,6 +1069,9 @@ setDNS() {
         # Restore the IFS to what it was
         IFS=${OIFS}
     fi
+
+    # Display final selection
+    printf "  %b Using upstream DNS: %s %s\\n" "${INFO}" "${PIHOLE_DNS_1}" "${PIHOLE_DNS_2}"
 }
 
 # Allow the user to enable/disable logging
