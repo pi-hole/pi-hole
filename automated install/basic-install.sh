@@ -422,7 +422,7 @@ make_repo() {
     pushd "${directory}" &> /dev/null || return 1
     # Check current branch. If it is master, then reset to the latest availible tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
-    curBranch = $(git rev-parse --abbrev-ref HEAD)
+    curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
          git reset --hard $(git describe --abbrev=0) || return $?
     fi
@@ -458,7 +458,7 @@ update_repo() {
     git pull --quiet &> /dev/null || return $?
     # Check current branch. If it is master, then reset to the latest availible tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
-    curBranch = $(git rev-parse --abbrev-ref HEAD)
+    curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
          git reset --hard $(git describe --abbrev=0) || return $?
     fi
