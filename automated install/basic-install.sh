@@ -378,17 +378,13 @@ fi
 is_repo() {
     # Use a named, local variable instead of the vague $1, which is the first argument passed to this function
     # These local variables should always be lowercase
-    local directory="${1}"
-    # A local variable for the current directory
-    local curdir
+    local directory="${1}"    
     # A variable to store the return code
-    local rc
-    # Assign the current directory variable by using pwd
-    curdir="${PWD}"
+    local rc        
     # If the first argument passed to this function is a directory,
     if [[ -d "${directory}" ]]; then
         # move into the directory
-        cd "${directory}"
+        pushd "${directory}" &> /dev/null || return 1
         # Use git to check if the directory is a repo
         # git -C is not used here to support git versions older than 1.8.4
         git status --short &> /dev/null || rc=$?
@@ -398,7 +394,7 @@ is_repo() {
         rc=1
     fi
     # Move back into the directory the user started in
-    cd "${curdir}"
+    popd &> /dev/null || return 1
     # Return the code; if one is not set, return 0
     return "${rc:-0}"
 }
@@ -408,7 +404,6 @@ make_repo() {
     # Set named variables for better readability
     local directory="${1}"
     local remoteRepo="${2}"
-    local curdir
 
     # The message to display when this function is running
     str="Clone ${remoteRepo} into ${directory}"
@@ -422,11 +417,9 @@ make_repo() {
     # Clone the repo and return the return code from this command
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+rX "${directory}"
-     # Make sure we know what directory we are in so we can move back into it
-    curdir="${PWD}"
+    chmod -R a+rX "${directory}"    
     # Move into the directory that was passed as an argument
-    cd "${directory}" &> /dev/null || return 1
+    pushd "${directory}" &> /dev/null || return 1
     # Check current branch. If it is master, then reset to the latest availible tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
     curBranch = $(git rev-parse --abbrev-ref HEAD)
@@ -437,7 +430,7 @@ make_repo() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 
     # Move back into the original directory
-    cd "${curdir}" &> /dev/null || return 1
+    popd &> /dev/null || return 1
     return 0
 }
 
@@ -448,18 +441,14 @@ update_repo() {
     # but since they are local, their scope does not go beyond this function
     # This helps prevent the wrong value from being assigned if you were to set the variable as a GLOBAL one
     local directory="${1}"
-    local curdir
     local curBranch
 
     # A variable to store the message we want to display;
     # Again, it's useful to store these in variables in case we need to reuse or change the message;
     # we only need to make one change here
     local str="Update repo in ${1}"
-
-    # Make sure we know what directory we are in so we can move back into it
-    curdir="${PWD}"
-    # Move into the directory that was passed as an argument
-    cd "${directory}" &> /dev/null || return 1
+    # Move into the directory that was passed as an argument    
+    pushd "${directory}" &> /dev/null || return 1
     # Let the user know what's happening
     printf "  %b %s..." "${INFO}" "${str}"
     # Stash any local commits as they conflict with our working code
@@ -478,7 +467,7 @@ update_repo() {
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
     # Move back into the original directory
-    cd "${curdir}" &> /dev/null || return 1
+    popd &> /dev/null || return 1
     return 0
 }
 
@@ -517,7 +506,7 @@ resetRepo() {
     # Use named variables for arguments
     local directory="${1}"
     # Move into the directory
-    cd "${directory}" &> /dev/null || return 1
+    pushd "${directory}" &> /dev/null || return 1
     # Store the message in a variable
     str="Resetting repository within ${1}..."
     # Show the message
@@ -528,7 +517,9 @@ resetRepo() {
     chmod -R a+rX "${directory}"
     # And show the status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-    # Returning success anyway?
+    # Return to where we came from
+    popd &> /dev/null || return 1
+    # Returning success anyway?    
     return 0
 }
 
