@@ -2394,6 +2394,7 @@ FTLcheckUpdate() {
                 return 1
             fi
         else
+            printf "  %b No existing FTL binary found\\n\\n" "${INFO}"
             return 0
         fi
     else
@@ -2428,6 +2429,7 @@ FTLcheckUpdate() {
                 fi
             fi
         else
+            printf "  %b No existing FTL binary found\\n\\n" "${INFO}"
             return 0
         fi
     fi
