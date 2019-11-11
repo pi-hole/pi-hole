@@ -504,55 +504,6 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     assert 'error' not in download_binary.stdout.lower()
 
 
-def test_FTL_download_unknown_fails_no_errors(Pihole):
-    '''
-    confirms unknown binary is not downloaded for FTL engine
-    '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    distro_check
-    install_dependent_packages ${INSTALLER_DEPS[@]}
-    ''')
-    download_binary = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    binary="pihole-FTL-mips"
-    create_pihole_user
-    FTLinstall
-    ''')
-    expected_stdout = cross_box + ' Downloading and Installing FTL'
-    assert expected_stdout in download_binary.stdout
-    error1 = 'Error: URL https://github.com/pi-hole/FTL/releases/download/'
-    assert error1 in download_binary.stdout
-    error2 = 'not found'
-    assert error2 in download_binary.stdout
-
-
-def test_FTL_download_binary_unset_no_errors(Pihole):
-    '''
-    confirms unset binary variable does not download FTL engine
-    '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    distro_check
-    install_dependent_packages ${INSTALLER_DEPS[@]}
-    ''')
-    download_binary = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    FTLinstall
-    ''')
-    expected_stdout = cross_box + ' Downloading and Installing FTL'
-    assert expected_stdout in download_binary.stdout
-    error1 = 'Error: URL https://github.com/pi-hole/FTL/releases/download/'
-    assert error1 in download_binary.stdout
-    error2 = 'not found'
-    assert error2 in download_binary.stdout
-
-
 def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     '''
     confirms FTL binary is copied and functional in installed location
