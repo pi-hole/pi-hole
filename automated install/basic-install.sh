@@ -424,7 +424,7 @@ make_repo() {
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
-         git reset --hard "$(git describe --abbrev=0)" || return $?
+         git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
     fi
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -460,7 +460,7 @@ update_repo() {
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
-         git reset --hard "$(git describe --abbrev=0)" || return $?
+         git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
     fi
     # Show a completion message
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
