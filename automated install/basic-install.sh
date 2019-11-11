@@ -378,9 +378,9 @@ fi
 is_repo() {
     # Use a named, local variable instead of the vague $1, which is the first argument passed to this function
     # These local variables should always be lowercase
-    local directory="${1}"    
+    local directory="${1}"
     # A variable to store the return code
-    local rc        
+    local rc
     # If the first argument passed to this function is a directory,
     if [[ -d "${directory}" ]]; then
         # move into the directory
