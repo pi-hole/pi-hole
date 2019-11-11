@@ -2168,12 +2168,15 @@ clone_or_update_repos() {
 
 # Download FTL binary to random temp directory and install FTL binary
 FTLinstall() {
-    # Local, named variables
-    local latesttag
+    # Get binary type to download
+    get_binary_name
+
+    # Status message
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Find the latest version tag for FTL
+    local latesttag
     latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
     # Tags should always start with v, check for that.
     if [[ ! "${latesttag}" == v* ]]; then
@@ -2341,8 +2344,6 @@ get_binary_name() {
 }
 
 FTLcheckUpdate() {
-    get_binary_name
-
     #In the next section we check to see if FTL is already installed (in case of pihole -r).
     #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
     printf "  %b Checking for existing FTL binary...\\n" "${INFO}"
