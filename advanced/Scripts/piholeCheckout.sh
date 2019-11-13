@@ -46,6 +46,16 @@ checkout() {
     local corebranches
     local webbranches
 
+    #Determine which binary we should download
+    local ftlBinary
+
+    if [[ -f "/etc/pihole/ftlBinary" ]];then
+        ftlBinary=$(</etc/pihole/ftlBinary)
+    else
+        get_binary_name
+        ftlBinary=$(</etc/pihole/ftlBinary)
+    fi
+
     # Avoid globbing
     set -f
 
@@ -88,7 +98,7 @@ checkout() {
 
         get_binary_name
         local path
-        path="development/${binary}"
+        path="development/${ftlBinary}"
         echo "development" > /etc/pihole/ftlbranch
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "master" ]] ; then
@@ -103,7 +113,7 @@ checkout() {
         #echo -e "  ${TICK} Web Interface"
         get_binary_name
         local path
-        path="master/${binary}"
+        path="master/${ftlBinary}"
         echo "master" > /etc/pihole/ftlbranch
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "core" ]] ; then
@@ -163,13 +173,13 @@ checkout() {
     elif [[ "${1}" == "ftl" ]] ; then
         get_binary_name
         local path
-        path="${2}/${binary}"
+        path="${2}/${ftlBinary}"
 
         if check_download_exists "$path"; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
             chmod 644 /etc/pihole/ftlbranch
-            FTLinstall "${binary}"
+            FTLinstall "${ftlBinary}"
             restart_service pihole-FTL
             enable_service pihole-FTL
         else
