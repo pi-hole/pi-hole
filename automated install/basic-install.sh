@@ -2222,12 +2222,7 @@ FTLinstall() {
     #Determine which binary we should download
     local ftlBinary
 
-    if [[ -f "/etc/pihole/ftlBinary" ]];then
-        ftlBinary=$(</etc/pihole/ftlBinary)
-    else
-        get_binary_name
-        ftlBinary=$(</etc/pihole/ftlBinary)
-    fi
+    ftlBinary=$(get_binary_name)
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]];then
@@ -2307,8 +2302,8 @@ get_binary_name() {
     local machine
     machine=$(uname -m)
 
-    local ftlBinary
-
+    local -n output=$1
+    
     local str="Detecting architecture"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the machine is arm or aarch
@@ -2324,24 +2319,24 @@ get_binary_name() {
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected ARM-aarch64 architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            ftlBinary="pihole-FTL-aarch64-linux-gnu"
+            output="pihole-FTL-aarch64-linux-gnu"
         #
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
             #
             if [[ "${rev}" -gt 6 ]]; then
                 printf "%b  %b Detected ARM-hf architecture (armv7+)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                ftlBinary="pihole-FTL-arm-linux-gnueabihf"
+                output="pihole-FTL-arm-linux-gnueabihf"
             # Otherwise,
             else
                 printf "%b  %b Detected ARM-hf architecture (armv6 or lower) Using ARM binary\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                ftlBinary="pihole-FTL-arm-linux-gnueabi"
+                output="pihole-FTL-arm-linux-gnueabi"
             fi
         else
             printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            ftlBinary="pihole-FTL-arm-linux-gnueabi"
+            output="pihole-FTL-arm-linux-gnueabi"
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the architecture of packages dpkg installs (for example, "i386")
@@ -2354,12 +2349,12 @@ get_binary_name() {
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
-            ftlBinary="pihole-FTL-linux-x86_32"
+            output="pihole-FTL-linux-x86_32"
         else
             # 64bit
             printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            ftlBinary="pihole-FTL-linux-x86_64"
+            output="pihole-FTL-linux-x86_64"
         fi
     else
         # Something else - we try to use 32bit executable and warn the user
@@ -2370,11 +2365,8 @@ get_binary_name() {
         else
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
         fi
-        ftlBinary="pihole-FTL-linux-x86_32"
-    fi
-
-    echo "${ftlBinary}" > /etc/pihole/ftlBinary
-    chmod 644 /etc/pihole/ftlBinary
+        output="pihole-FTL-linux-x86_32"
+    fi    
 }
 
 FTLcheckUpdate() {
@@ -2394,15 +2386,10 @@ FTLcheckUpdate() {
         ftlBranch="master"
     fi
 
-    #Determine which binary we should download
-    local ftlBinary
+    #Determine which binary we should download    
+    get_binary_name ftlBinary
 
-    if [[ -f "/etc/pihole/ftlBinary" ]];then
-        ftlBinary=$(</etc/pihole/ftlBinary)
-    else
-        get_binary_name
-        ftlBinary=$(</etc/pihole/ftlBinary)
-    fi
+    echo "${ftlBinary}"
 
     local remoteSha1
     local localSha1
