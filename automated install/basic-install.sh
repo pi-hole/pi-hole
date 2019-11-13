@@ -2369,6 +2369,9 @@ FTLcheckUpdate() {
         fi
     fi
 
+    # Get binary type to check
+    get_binary_name
+
     if [[ ! "${ftlBranch}" == "master" ]]; then
         #Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         local path
