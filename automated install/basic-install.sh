@@ -2219,6 +2219,10 @@ FTLinstall() {
         ftlBranch="master"
     fi
 
+    #Determine which binary we should download
+    local ftlBinary
+    get_binary_name ftlBinary
+
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]];then
         url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
@@ -2227,12 +2231,12 @@ FTLinstall() {
     fi
 
     # If the download worked,
-    if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
+    if curl -sSL --fail "${url}/${ftlBinary}" -o "${ftlBinary}"; then
         # get sha1 of the binary we just downloaded for verification.
-        curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
+        curl -sSL --fail "${url}/${ftlBinary}.sha1" -o "${ftlBinary}.sha1"
 
         # If we downloaded binary file (as opposed to text),
-        if sha1sum --status --quiet -c "${binary}".sha1; then
+        if sha1sum --status --quiet -c "${ftlBinary}".sha1; then
             printf "transferred... "
 
             # Before stopping FTL, we download the macvendor database
@@ -2244,7 +2248,7 @@ FTLinstall() {
             stop_service pihole-FTL &> /dev/null
 
             # Install the new version with the correct permissions
-            install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
+            install -T -m 0755 "${ftlBinary}" /usr/bin/pihole-FTL
 
             # Move back into the original directory the user was in
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
@@ -2257,7 +2261,7 @@ FTLinstall() {
             # the download failed, so just go back to the original directory
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %bError: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+            printf "  %bError: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${ftlBinary}" "${COL_NC}"
             return 1
         fi
     # Otherwise,
@@ -2265,7 +2269,7 @@ FTLinstall() {
         popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # The URL could not be found
-        printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+        printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${ftlBinary}" "${COL_NC}"
         return 1
     fi
 }
@@ -2297,6 +2301,8 @@ get_binary_name() {
     local machine
     machine=$(uname -m)
 
+    local -n output=$1
+    
     local str="Detecting architecture"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the machine is arm or aarch
@@ -2312,24 +2318,24 @@ get_binary_name() {
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected ARM-aarch64 architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            binary="pihole-FTL-aarch64-linux-gnu"
+            output="pihole-FTL-aarch64-linux-gnu"
         #
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
             #
             if [[ "${rev}" -gt 6 ]]; then
                 printf "%b  %b Detected ARM-hf architecture (armv7+)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabihf"
+                output="pihole-FTL-arm-linux-gnueabihf"
             # Otherwise,
             else
                 printf "%b  %b Detected ARM-hf architecture (armv6 or lower) Using ARM binary\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabi"
+                output="pihole-FTL-arm-linux-gnueabi"
             fi
         else
             printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            binary="pihole-FTL-arm-linux-gnueabi"
+            output="pihole-FTL-arm-linux-gnueabi"
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the architecture of packages dpkg installs (for example, "i386")
@@ -2342,12 +2348,12 @@ get_binary_name() {
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
-            binary="pihole-FTL-linux-x86_32"
+            output="pihole-FTL-linux-x86_32"
         else
             # 64bit
             printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            binary="pihole-FTL-linux-x86_64"
+            output="pihole-FTL-linux-x86_64"
         fi
     else
         # Something else - we try to use 32bit executable and warn the user
@@ -2358,13 +2364,11 @@ get_binary_name() {
         else
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
         fi
-        binary="pihole-FTL-linux-x86_32"
-    fi
+        output="pihole-FTL-linux-x86_32"
+    fi    
 }
 
 FTLcheckUpdate() {
-    get_binary_name
-
     #In the next section we check to see if FTL is already installed (in case of pihole -r).
     #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
     printf "  %b Checking for existing FTL binary...\\n" "${INFO}"
@@ -2372,6 +2376,7 @@ FTLcheckUpdate() {
     local ftlLoc
     ftlLoc=$(which pihole-FTL 2>/dev/null)
 
+    #Determine which branch FTL should be on
     local ftlBranch
 
     if [[ -f "/etc/pihole/ftlbranch" ]];then
@@ -2379,6 +2384,10 @@ FTLcheckUpdate() {
     else
         ftlBranch="master"
     fi
+
+    #Determine which binary we should download   
+    local ftlBinary 
+    get_binary_name ftlBinary
 
     local remoteSha1
     local localSha1
@@ -2393,7 +2402,7 @@ FTLcheckUpdate() {
     if [[ ! "${ftlBranch}" == "master" ]]; then
         #Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         local path
-        path="${ftlBranch}/${binary}"
+        path="${ftlBranch}/${ftlBinary}"
         # shellcheck disable=SC1090
         if ! check_download_exists "$path"; then
             printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
@@ -2404,7 +2413,7 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             # We already have a pihole-FTL binary downloaded.
             # Alt branches don't have a tagged version against them, so just confirm the checksum of the local vs remote to decide whether we download or not
-            remoteSha1=$(curl -sSL --fail "https://ftl.pi-hole.net/${ftlBranch}/${binary}.sha1" | cut -d ' ' -f 1)
+            remoteSha1=$(curl -sSL --fail "https://ftl.pi-hole.net/${ftlBranch}/${ftlBinary}.sha1" | cut -d ' ' -f 1)
             localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
 
             if [[ "${remoteSha1}" != "${localSha1}" ]]; then
@@ -2437,7 +2446,7 @@ FTLcheckUpdate() {
             else
                 printf "  %b Latest FTL Binary already installed (%s). Confirming Checksum...\\n" "${INFO}" "${FTLlatesttag}"
 
-                remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
+                remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${ftlBinary}.sha1" | cut -d ' ' -f 1)
                 localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
 
                 if [[ "${remoteSha1}" != "${localSha1}" ]]; then
