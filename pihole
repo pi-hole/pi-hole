@@ -10,11 +10,9 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-readonly gravitylist="/etc/pihole/gravity.list"
-readonly blacklist="/etc/pihole/black.list"
 
-# setupVars and PI_HOLE_BIN_DIR are not readonly here because in some funcitons (checkout),
-# it might get set again when the installer is sourced. This causes an
+# setupVars and PI_HOLE_BIN_DIR are not readonly here because in some functions (checkout),
+# they might get set again when the installer is sourced. This causes an
 # error due to modifying a readonly variable.
 setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
@@ -54,6 +52,11 @@ debugFunc() {
 
 flushFunc() {
   "${PI_HOLE_SCRIPT_DIR}"/piholeLogFlush.sh "$@"
+  exit 0
+}
+
+arpFunc() {
+  "${PI_HOLE_SCRIPT_DIR}"/piholeARPTable.sh "$@"
   exit 0
 }
 
@@ -145,14 +148,6 @@ Time:
       echo -e "  ${INFO} Blocking already disabled, nothing to do"
       exit 0
     fi
-    if [[ -e "${gravitylist}" ]]; then
-      mv "${gravitylist}" "${gravitylist}.bck"
-      echo "" > "${gravitylist}"
-    fi
-    if [[ -e "${blacklist}" ]]; then
-      mv "${blacklist}" "${blacklist}.bck"
-      echo "" > "${blacklist}"
-    fi
     if [[ $# > 1 ]]; then
       local error=false
       if [[ "${2}" == *"s" ]]; then
@@ -201,12 +196,6 @@ Time:
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    if [[ -e "${gravitylist}.bck" ]]; then
-      mv "${gravitylist}.bck" "${gravitylist}"
-    fi
-    if [[ -e "${blacklist}.bck" ]]; then
-      mv "${blacklist}.bck" "${blacklist}"
-    fi
     sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
     echo "BLOCKING_ENABLED=true" >> "${setupVars}"
   fi
@@ -310,7 +299,7 @@ tailFunc() {
   # Colour everything else as gray
   tail -f /var/log/pihole.log | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq[.*[0-9]]),,g" \
-    -e "s,(.*(gravity.list|black.list|regex.list| config ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(gravity |black |regex | config ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0
@@ -383,8 +372,10 @@ Add '-h' after specific commands for more information on usage
 Whitelist/Blacklist Options:
   -w, whitelist       Whitelist domain(s)
   -b, blacklist       Blacklist domain(s)
-  --wild, wildcard     Wildcard blacklist domain(s)
-  --regex, regex       Regex blacklist domains(s)
+  --regex, regex      Regex blacklist domains(s)
+  --white-regex       Regex whitelist domains(s)
+  --wild, wildcard    Wildcard blacklist domain(s)
+  --white-wild        Wildcard whitelist domain(s)
                         Add '-h' for more info on whitelist/blacklist usage
 
 Debugging Options:
@@ -416,7 +407,8 @@ Options:
                         Add '-h' for more info on disable usage
   restartdns          Restart Pi-hole subsystems
   checkout            Switch Pi-hole subsystems to a different Github branch
-                        Add '-h' for more info on checkout usage";
+                        Add '-h' for more info on checkout usage
+  arpflush            Flush information stored in Pi-hole's network tables";
   exit 0
 }
 
@@ -443,8 +435,10 @@ fi
 case "${1}" in
   "-w" | "whitelist"            ) listFunc "$@";;
   "-b" | "blacklist"            ) listFunc "$@";;
-  "--wild" | "wildcard"          ) listFunc "$@";;
-  "--regex" | "regex"            ) listFunc "$@";;
+  "--wild" | "wildcard"         ) listFunc "$@";;
+  "--regex" | "regex"           ) listFunc "$@";;
+  "--white-regex" | "white-regex" ) listFunc "$@";;
+  "--white-wild" | "white-wild"   ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
@@ -465,5 +459,6 @@ case "${1}" in
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
+  "arpflush"                    ) arpFunc "$@";;
   *                             ) helpFunc;;
 esac
