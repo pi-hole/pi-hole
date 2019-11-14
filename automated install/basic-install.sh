@@ -276,6 +276,29 @@ if is_command apt-get ; then
         return 0
     }
 
+###
+# If apt-get is not found, check for apk to see if it's Alpine Linux
+elif is_command apk ; then
+    PKG_MANAGER="apk"
+
+    # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
+    UPDATE_PKG_CACHE=":"
+
+    # shellcheck disable=SC2206
+    PKG_INSTALL=(${PKG_MANAGER} add)
+
+    # PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
+    PKG_COUNT="(echo 0 && ${PKG_MANAGER} upgrade -s | grep '/' | cut -d')' -f1 | cut -d'/' -f2) | tail -1" # FIXME: a more elegant way
+
+    # Alpine uses busybox which provides crond, which and iproute
+    INSTALLER_DEPS=(dialog git iproute2 newt procps dhcpcd) # no chkconfig on Alpine
+    PIHOLE_DEPS=(bind-tools curl chrony-openrc dhcpcd-openrc findutils nmap-ncat sudo unzip wget psmisc sqlite libcap dnsmasq coreutils ncurses) # no bind-utils->bind-tools cronie->busybox libdn2->N/A COL_TABLE require ncurses
+    PIHOLE_WEB_DEPS=(openrc lighttpd fcgi lighttpd-openrc lighttpd-mod_auth php-common php-cgi php-sqlite3 php-session php-openssl php-json php-phar)
+    LIGHTTPD_USER="lighttpd"
+    LIGHTTPD_GROUP="lighttpd"
+    LIGHTTPD_CFG="lighttpd.conf.fedora"
+###
+
 # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
 elif is_command rpm ; then
     # Then check if dnf or yum is the package manager
@@ -563,7 +586,7 @@ verifyFreeDiskSpace() {
     local required_free_kilobytes=51200
     # Calculate existing free space on this machine
     local existing_free_kilobytes
-    existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
+    existing_free_kilobytes=$(df -Pk / 2>/dev/null | grep '\/' | awk '{print $4}') # modified for termuxalpine
 
     # If the existing space is not an integer,
     if ! [[ "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
@@ -830,7 +853,7 @@ setDHCPCD() {
         static routers=${IPv4gw}
         static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
         # Then use the ip command to immediately set the new address
-        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}" 2>&1 | (grep -q "RTNETLINK answers: " && true) # This can happen inside Docker with Alpine, no need to abort though... 
         # Also give a warning that the user may need to reboot their system
         printf "  %b Set IP address to %s \\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
     fi
@@ -1485,6 +1508,8 @@ enable_service() {
     if is_command systemctl ; then
         # use that to enable the service
         systemctl enable "${1}" &> /dev/null
+    elif is_command rc-update; then # Alpine
+        rc-update add "${1}" default &> /dev/null
     # Otherwise,
     else
         # use update-rc.d to accomplish this
@@ -1635,6 +1660,25 @@ install_dependent_packages() {
         return 0
     fi
 
+    # Alpine
+    if [[ ${PKG_MANAGER} == "apk" ]]; then
+        for i in "$@"; do
+            printf "  %b Checking for %s..." "${INFO}" "${i}"
+            if ${PKG_MANAGER} info | grep -Eq "^${i}\$" &> /dev/null; then
+                printf "%b  %b Checking for %s" "${OVER}" "${TICK}" "${i}"
+            else
+                printf "%b  %b Checking for %s (will be installed)" "${OVER}" "${INFO}" "${i}"
+                installArray+=("${i}")
+            fi
+        done
+        if [[ "${#installArray[@]}" -gt 0 ]]; then
+            "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
+            return
+        fi
+        printf "\\n"
+        return 0
+    fi
+
     # Install Fedora/CentOS packages
     for i in "$@"; do
         printf "  %b Checking for %s..." "${INFO}" "${i}"
@@ -1711,12 +1755,16 @@ installCron() {
     # Install the cron job
     local str="Installing latest Cron script"
     printf "\\n  %b %s..." "${INFO}" "${str}"
+
+    # Alpine has /etc/crontabs not /etc/cron.d
+    [ -d /etc/cron.d ] && CRONFILE=/etc/cron.d/pihole || CRONFILE=/etc/crontabs/pihole
+
     # Copy the cron file over from the local repo
-    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron "${CRONFILE}"
     # Randomize gravity update time
-    sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+    sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" "${CRONFILE}"
     # Randomize update checker time
-    sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
+    sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" "${CRONFILE}"
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
@@ -1741,7 +1789,7 @@ create_pihole_user() {
         local str="Creating user 'pihole'"
         printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
         # create her with the useradd command
-        if useradd -r -s /usr/sbin/nologin pihole; then
+        if useradd -r -s /usr/sbin/nologin pihole 2>/dev/null || adduser -S -s /usr/sbin/nologin pihole 2>/dev/null; then # adduser for Alpine busybox
           printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         else
           printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1896,7 +1944,7 @@ installPihole() {
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
             chmod 0775 ${webroot}
             # Give pihole access to the Web server group
-            usermod -a -G ${LIGHTTPD_GROUP} pihole
+            usermod -a -G ${LIGHTTPD_GROUP} pihole 2>/dev/null || addgroup pihole ${LIGHTTPD_GROUP} 2>/dev/null # Alpine uses addgroup
             # If the lighttpd command is executable,
             if is_command lighty-enable-mod ; then
                 # enable fastcgi and fastcgi-php
@@ -2173,7 +2221,7 @@ FTLinstall() {
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
     # Always replace pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL" # -T doesn't work with Alpine busybox -> add coreutils
 
     local ftlBranch
     local url
@@ -2197,7 +2245,7 @@ FTLinstall() {
         curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
 
         # If we downloaded binary file (as opposed to text),
-        if sha1sum --status --quiet -c "${binary}".sha1; then
+        if sha1sum --status --quiet -c "${binary}".sha1; then # Alpine busybox doesn't support --status flag -> add coreutils
             printf "transferred... "
 
             # Before stopping FTL, we download the macvendor database
@@ -2382,7 +2430,7 @@ FTLcheckUpdate() {
     else
         if [[ ${ftlLoc} ]]; then
             local FTLversion
-            FTLversion=$(/usr/bin/pihole-FTL tag)
+            FTLversion=$(/usr/bin/pihole-FTL tag 2>/dev/null) # lots of symbol not found, see https://github.com/pi-hole/FTL/issues/552
             local FTLreleaseData
             local FTLlatesttag
 
@@ -2586,7 +2634,6 @@ main() {
         printf "  %b FTL Engine not installed\\n" "${CROSS}"
         exit 1
     fi
-
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
 
