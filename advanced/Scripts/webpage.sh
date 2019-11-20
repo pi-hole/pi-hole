@@ -626,7 +626,7 @@ main() {
         "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
-		"removedhcplease"	  ) RemoveDHCPLeaseAddress;;
+        "removedhcplease"     ) RemoveDHCPLeaseAddress;;
         "-r" | "hostrecord"   ) SetHostRecord "$3";;
         "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
