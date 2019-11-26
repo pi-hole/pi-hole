@@ -229,7 +229,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine if $lookupDomain is resolvable
-  if timeout 1 getent hosts "${lookupDomain}" &> /dev/null; then
+  if timeout 4 getent hosts "${lookupDomain}" &> /dev/null; then
     # Print confirmation of resolvability if it had previously failed
     if [[ -n "${secs:-}" ]]; then
       echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
@@ -243,7 +243,7 @@ gravity_CheckDNSResolutionAvailable() {
   # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
   # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventualy fails
   # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
-  if timeout 1 dig +short "${lookupDomain}" &> /dev/null; then
+  if timeout 4 dig +short "${lookupDomain}" &> /dev/null; then
     if [[ -n "${secs:-}" ]]; then
       echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
     fi
@@ -425,7 +425,7 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table
-      str="Adding to database table"
+      str="Adding adlist with ID ${adlistID} to database table"
       echo -ne "  ${INFO} ${str}..."
       database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
       echo -e "${OVER}  ${TICK} ${str}"
@@ -660,12 +660,23 @@ for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
     "-o" | "--optimize" ) optimize_database=true;;
+    "-r" | "--recreate" ) recreate_database=true;;
     "-h" | "--help" ) helpFunc;;
   esac
 done
 
 # Trap Ctrl-C
 gravity_Trap
+
+if [[ "${recreate_database:-}" == true ]]; then
+  str="Restoring from migration backup"
+  echo -ne "${INFO} ${str}..."
+  rm "${gravityDBfile}"
+  pushd "${piholeDir}" > /dev/null
+  cp migration_backup/* .
+  popd > /dev/null
+  echo -e "${OVER}  ${TICK} ${str}"
+fi
 
 # Move possibly existing legacy files to the gravity database
 migrate_to_database

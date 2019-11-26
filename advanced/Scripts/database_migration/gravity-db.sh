@@ -44,9 +44,17 @@ upgrade_gravityDB(){
 		version=3
 	fi
 	if [[ "$version" == "3" ]]; then
-		# This migration script upgrades the gravity and adlist views
+		# This migration script upgrades the gravity and list views
 		# implementing necessary changes for per-client blocking
+		echo -e "  ${INFO} Upgrading gravity database from version 3 to 4"
 		sqlite3 "${database}" < "${scriptPath}/3_to_4.sql"
-		version=3
+		version=4
+	fi
+	if [[ "$version" == "4" ]]; then
+		# This migration script upgrades the adlist view
+		# to return an ID used in gravity.sh
+		echo -e "  ${INFO} Upgrading gravity database from version 4 to 5"
+		sqlite3 "${database}" < "${scriptPath}/4_to_5.sql"
+		version=5
 	fi
 }
