@@ -599,15 +599,25 @@ SetPrivacyLevel() {
 }
 
 AddCustomDNSAddress() {
+    echo -e "  ${TICK} Adding custom DNS entry..."
+
     ip="${args[2]}"
     host="${args[3]}"
 	echo "${ip} ${host}" >> "${dnscustomfile}"
+
+    # Restart dnsmasq to load new custom DNS entries
+    RestartDNS
 }
 
 RemoveCustomDNSAddress() {
+    echo -e "  ${TICK} Removing custom DNS entry..."
+
     ip="${args[2]}"
     host="${args[3]}"
     sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+
+    # Restart dnsmasq to update removed custom DNS entries
+    RestartDNS
 }
 
 main() {
