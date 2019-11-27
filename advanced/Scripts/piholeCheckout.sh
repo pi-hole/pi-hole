@@ -46,6 +46,12 @@ checkout() {
     local corebranches
     local webbranches
 
+    # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    local binary
+    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+
     # Avoid globbing
     set -f
 
@@ -86,7 +92,6 @@ checkout() {
         fi
         #echo -e "  ${TICK} Pi-hole Core"
 
-        get_binary_name
         local path
         path="development/${binary}"
         echo "development" > /etc/pihole/ftlbranch
@@ -101,7 +106,6 @@ checkout() {
             fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
         fi
         #echo -e "  ${TICK} Web Interface"
-        get_binary_name
         local path
         path="master/${binary}"
         echo "master" > /etc/pihole/ftlbranch
@@ -161,7 +165,6 @@ checkout() {
         fi
         checkout_pull_branch "${webInterfaceDir}" "${2}"
     elif [[ "${1}" == "ftl" ]] ; then
-        get_binary_name
         local path
         path="${2}/${binary}"
 

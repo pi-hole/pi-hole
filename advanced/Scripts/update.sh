@@ -31,7 +31,6 @@ source "/opt/pihole/COL_TABLE"
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
 # getGitFiles() sourced from basic-install.sh
-# get_binary_name() sourced from basic-install.sh
 # FTLcheckUpdate() sourced from basic-install.sh
 
 GitCheckUpdateAvail() {
