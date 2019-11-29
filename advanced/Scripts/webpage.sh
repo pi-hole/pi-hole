@@ -17,6 +17,7 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly PI_HOLE_BIN_DIR="/usr/local/bin"
+readonly dnscustomfile="/etc/pihole/custom.list"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
 
@@ -599,6 +600,28 @@ SetPrivacyLevel() {
     fi
 }
 
+AddCustomDNSAddress() {
+    echo -e "  ${TICK} Adding custom DNS entry..."
+
+    ip="${args[2]}"
+    host="${args[3]}"
+	echo "${ip} ${host}" >> "${dnscustomfile}"
+
+    # Restart dnsmasq to load new custom DNS entries
+    RestartDNS
+}
+
+RemoveCustomDNSAddress() {
+    echo -e "  ${TICK} Removing custom DNS entry..."
+
+    ip="${args[2]}"
+    host="${args[3]}"
+    sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+
+    # Restart dnsmasq to update removed custom DNS entries
+    RestartDNS
+}
+
 main() {
     args=("$@")
 
@@ -630,6 +653,8 @@ main() {
         "audit"               ) addAudit "$@";;
         "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
+        "addcustomdns"        ) AddCustomDNSAddress;;
+        "removecustomdns"     ) RemoveCustomDNSAddress;;
         *                     ) helpFunc;;
     esac
 
