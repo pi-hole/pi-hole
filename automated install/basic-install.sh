@@ -69,7 +69,7 @@ PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
-adlistFile="/etc/pihole/adlists.list"
+adlistFile="${PI_HOLE_CONFIG_DIR}/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=""
@@ -1264,7 +1264,7 @@ version_check_dnsmasq() {
     # Local, named variables
     local dnsmasq_conf="/etc/dnsmasq.conf"
     local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
-    local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
+    local dnsmasq_pihole_id_string="addn-hosts=${PI_HOLE_CONFIG_DIR}/gravity.list"
     local dnsmasq_pihole_id_string2="# Dnsmasq config for Pi-hole's FTLDNS"
     local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
     local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
@@ -1765,7 +1765,7 @@ installCron() {
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
     # Run gravity in the current shell
-    { /opt/pihole/gravity.sh --force; }
+    { "${PI_HOLE_INSTALL_DIR}"/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -1876,7 +1876,7 @@ installLogrotate() {
     local str="Installing latest logrotate script"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the file over from the local repo
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
+    install -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate "${PI_HOLE_CONFIG_DIR}"/pihole/logrotate
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1887,7 +1887,7 @@ installLogrotate() {
     # If the variable has a value,
     if [[ ! -z "${logusergroup}" ]]; then
         #
-        sed -i "s/# su #/su ${logusergroup}/g;" /etc/pihole/logrotate
+        sed -i "s/# su #/su ${logusergroup}/g;" "${PI_HOLE_CONFIG_DIR}"/logrotate
     fi
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -2024,7 +2024,7 @@ displayFinalMessage() {
     if [[ "${#1}" -gt 0 ]] ; then
         pwstring="$1"
         # else, if the dashboard password in the setup variables exists,
-    elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
+    elif [[ $(grep 'WEBPASSWORD' -c "${PI_HOLE_CONFIG_DIR}"/setupVars.conf) -gt 0 ]]; then
         # set a variable for evaluation later
         pwstring="unchanged"
     else
@@ -2047,7 +2047,7 @@ IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
 If you set a new IP address, you should restart the Pi.
 
-The install log is in /etc/pihole.
+The install log is in ${PI_HOLE_CONFIG_DIR}.
 
 ${additional}" "${r}" "${c}"
 }
@@ -2227,8 +2227,8 @@ FTLinstall() {
     local ftlBranch
     local url
 
-    if [[ -f "/etc/pihole/ftlbranch" ]];then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]];then
+        ftlBranch=$(<"${PI_HOLE_CONFIG_DIR}"/ftlbranch)
     else
         ftlBranch="master"
     fi
@@ -2399,8 +2399,8 @@ FTLcheckUpdate() {
 
     local ftlBranch
 
-    if [[ -f "/etc/pihole/ftlbranch" ]];then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]];then
+        ftlBranch=$(<"${PI_HOLE_CONFIG_DIR}"/ftlbranch)
     else
         ftlBranch="master"
     fi
@@ -2588,7 +2588,7 @@ main() {
         # Display welcome dialogs
         welcomeDialogs
         # Create directory for Pi-hole storage
-        install -d -m 755 /etc/pihole/
+        install -d -m 755 "${PI_HOLE_CONFIG_DIR}"/
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one
@@ -2669,11 +2669,11 @@ main() {
         # Add password to web UI if there is none
         pw=""
         # If no password is set,
-        if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
+        if [[ $(grep 'WEBPASSWORD' -c "${PI_HOLE_CONFIG_DIR}"/setupVars.conf) == 0 ]] ; then
             # generate a random password
             pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
             # shellcheck disable=SC1091
-            . /opt/pihole/webpage.sh
+            . "${PI_HOLE_INSTALL_DIR}"/webpage.sh
             echo "WEBPASSWORD=$(HashPassword "${pw}")" >> "${setupVars}"
         fi
     fi
@@ -2709,8 +2709,8 @@ main() {
     runGravity
 
     # Force an update of the updatechecker
-    /opt/pihole/updatecheck.sh
-    /opt/pihole/updatecheck.sh x remote
+    "${PI_HOLE_INSTALL_DIR}"/updatecheck.sh
+    "${PI_HOLE_INSTALL_DIR}"/updatecheck.sh x remote
 
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
