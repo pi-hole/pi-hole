@@ -21,25 +21,12 @@ web=false
 
 domList=()
 
-listType=""
-listname=""
+typeId=""
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
-getTypeID() {
-    if [[ "$1" == "whitelist" ]]; then
-        echo "0"
-    elif  [[ "$1" == "blacklist" ]]; then
-        echo "1"
-    elif  [[ "$1" == "regex_whitelist" ]]; then
-        echo "2"
-    elif  [[ "$1" == "regex_blacklist" ]]; then
-        echo "3"
-    fi
-}
-
-getListnameFromType() {
+getListnameFromTypeId() {
     if [[ "$1" == "0" ]]; then
         echo "whitelist"
     elif  [[ "$1" == "1" ]]; then
@@ -52,19 +39,19 @@ getListnameFromType() {
 }
 
 helpFunc() {
-    if [[ "${listType}" == "whitelist" ]]; then
+    if [[ "${typeId}" == "0" ]]; then
         param="w"
         type="whitelist"
-    elif [[ "${listType}" == "regex_blacklist" && "${wildcard}" == true ]]; then
+    elif [[ "${typeId}" == "3" && "${wildcard}" == true ]]; then
         param="-wild"
         type="wildcard blacklist"
-    elif [[ "${listType}" == "regex_blacklist" ]]; then
+    elif [[ "${typeId}" == "3" ]]; then
         param="-regex"
         type="regex blacklist filter"
-    elif [[ "${listType}" == "regex_whitelist" && "${wildcard}" == true ]]; then
+    elif [[ "${typeId}" == "2" && "${wildcard}" == true ]]; then
         param="-white-wild"
         type="wildcard whitelist"
-    elif [[ "${listType}" == "regex_whitelist" ]]; then
+    elif [[ "${typeId}" == "2" ]]; then
         param="-white-regex"
         type="regex whitelist filter"
     else
@@ -101,7 +88,7 @@ HandleOther() {
 
     # Check validity of domain (don't check for regex entries)
     if [[ "${#domain}" -le 253 ]]; then
-        if [[ ( "${listType}" == "regex_blacklist" || "${listType}" == "regex_whitelist" ) && "${wildcard}" == false ]]; then
+        if [[ ( "${typeId}" == "3" || "${typeId}" == "2" ) && "${wildcard}" == false ]]; then
             validDomain="${domain}"
         else
             validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
@@ -117,17 +104,6 @@ HandleOther() {
 }
 
 ProcessDomainList() {
-    if [[ "${listType}" == "regex_blacklist" ]]; then
-        # Regex black filter list
-        listname="regex blacklist filters"
-    elif [[ "${listType}" == "regex_whitelist" ]]; then
-        # Regex white filter list
-        listname="regex whitelist filters"
-    else
-        # Whitelist / Blacklist
-        listname="${listType}"
-    fi
-
     for dom in "${domList[@]}"; do
         # Format domain into regex filter if requested
         if [[ "${wildcard}" == true ]]; then
@@ -137,34 +113,33 @@ ProcessDomainList() {
         # Logic: If addmode then add to desired list and remove from the other;
         # if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
-            AddDomain "${dom}" "${listType}"
+            AddDomain "${dom}"
         else
-            RemoveDomain "${dom}" "${listType}"
+            RemoveDomain "${dom}"
         fi
   done
 }
 
 AddDomain() {
-    local domain list num currTypeID currListName typeID
+    local domain num requestedListname existingTypeId existingListname
     # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
     domain="$1"
-    list="$2"
-    typeID="$(getTypeID "${list}")"
 
     # Is the domain in the list we want to add it to?
     num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}';")"
+    requestedListname="$(getListnameFromTypeId "${typeId}")"
 
     if [[ "${num}" -ne 0 ]]; then
-      currTypeID="$(sqlite3 "${gravityDBfile}" "SELECT type FROM domainlist WHERE domain = '${domain}';")"
-      if [[ "${currTypeID}" == "${typeID}" ]]; then
+      existingTypeId="$(sqlite3 "${gravityDBfile}" "SELECT type FROM domainlist WHERE domain = '${domain}';")"
+      if [[ "${existingTypeId}" == "${typeId}" ]]; then
         if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
+            echo -e "  ${INFO} ${1} already exists in ${requestedListname}, no need to add!"
         fi
       else
-        currListName="$(getListnameFromType "${currTypeID}")"
-        sqlite3 "${gravityDBfile}" "UPDATE domainlist SET type = ${typeID} WHERE domain='${domain}';"
+        existingListname="$(getListnameFromTypeId "${existingTypeId}")"
+        sqlite3 "${gravityDBfile}" "UPDATE domainlist SET type = ${typeId} WHERE domain='${domain}';"
         if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} already exists in ${currListName}, it has been moved to ${listname}"
+            echo -e "  ${INFO} ${1} already exists in ${existingListname}, it has been moved to ${requestedListname}!"
         fi
       fi
       return
@@ -172,51 +147,50 @@ AddDomain() {
 
     # Domain not found in the table, add it!
     if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} Adding ${1} to the ${listname}..."
+        echo -e "  ${INFO} Adding ${domain} to the ${requestedListname}..."
     fi
     reload=true
     # Insert only the domain here. The enabled and date_added fields will be filled
     # with their default values (enabled = true, date_added = current timestamp)
-    sqlite3 "${gravityDBfile}" "INSERT INTO domainlist (domain,type) VALUES ('${domain}',${typeID});"
+    sqlite3 "${gravityDBfile}" "INSERT INTO domainlist (domain,type) VALUES ('${domain}',${typeId});"
 }
 
 RemoveDomain() {
-    local domain list num typeID
+    local domain num requestedListname
     # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
     domain="$1"
-    list="$2"
-    typeID="$(getTypeID "${list}")"
 
     # Is the domain in the list we want to remove it from?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}' AND type = ${typeID};")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}' AND type = ${typeId};")"
+
+    requestedListname="$(getListnameFromTypeId "${typeId}")"
 
     if [[ "${num}" -eq 0 ]]; then
       if [[ "${verbose}" == true ]]; then
-          echo -e "  ${INFO} ${1} does not exist in ${list}, no need to remove!"
+          echo -e "  ${INFO} ${domain} does not exist in ${requestedListname}, no need to remove!"
       fi
       return
     fi
 
     # Domain found in the table, remove it!
     if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} Removing ${1} from the ${listname}..."
+        echo -e "  ${INFO} Removing ${domain} from the ${requestedListname}..."
     fi
     reload=true
     # Remove it from the current list
-    sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE domain = '${domain}' AND type = ${typeID};"
+    sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE domain = '${domain}' AND type = ${typeId};"
 }
 
 Displaylist() {
-    local list listname count num_pipes domain enabled status nicedate typeID
+    local count num_pipes domain enabled status nicedate requestedListname
 
-    listname="${listType}"
-    typeID="$(getTypeID "${listType}")"
-    data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM domainlist WHERE type = ${typeID};" 2> /dev/null)"
+    requestedListname="$(getListnameFromTypeId "${typeId}")"
+    data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM domainlist WHERE type = ${typeId};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
         echo -e "Not showing empty list"
     else
-        echo -e "Displaying ${listname}:"
+        echo -e "Displaying ${requestedListname}:"
         count=1
         while IFS= read -r line
         do
@@ -249,19 +223,17 @@ Displaylist() {
 }
 
 NukeList() {
-    local typeID
-    typeID=$(getTypeID "${list}")
-    sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeID};"
+    sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeId};"
 }
 
 for var in "$@"; do
     case "${var}" in
-        "-w" | "whitelist"   ) listType="whitelist"; listAlt="blacklist";;
-        "-b" | "blacklist"   ) listType="blacklist"; listAlt="whitelist";;
-        "--wild" | "wildcard" ) listType="regex_blacklist"; wildcard=true;;
-        "--regex" | "regex"   ) listType="regex_blacklist";;
-        "--white-regex" | "white-regex" ) listType="regex_whitelist";;
-        "--white-wild" | "white-wild" ) listType="regex_whitelist"; wildcard=true;;
+        "-w" | "whitelist"   ) typeId=0;;
+        "-b" | "blacklist"   ) typeId=1;;
+        "--white-regex" | "white-regex" ) typeId=2;;
+        "--white-wild" | "white-wild" ) typeId=2; wildcard=true;;
+        "--wild" | "wildcard" ) typeId=3; wildcard=true;;
+        "--regex" | "regex"   ) typeId=3;;
         "-nr"| "--noreload"  ) reload=false;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
