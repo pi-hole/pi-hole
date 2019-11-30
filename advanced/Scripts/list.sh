@@ -39,6 +39,18 @@ getTypeID() {
     fi
 }
 
+getListnameFromType() {
+    if [[ "$1" == "0" ]]; then
+        echo "whitelist"
+    elif  [[ "$1" == "1" ]]; then
+        echo "blacklist"
+    elif  [[ "$1" == "2" ]]; then
+        echo "regex_whitelist"
+    elif  [[ "$1" == "3" ]]; then
+        echo "regex_blacklist"
+    fi
+}
+
 helpFunc() {
     if [[ "${listType}" == "whitelist" ]]; then
         param="w"
@@ -105,19 +117,15 @@ HandleOther() {
 }
 
 ProcessDomainList() {
-    local is_regexlist
     if [[ "${listType}" == "regex_blacklist" ]]; then
         # Regex black filter list
         listname="regex blacklist filters"
-        is_regexlist=true
     elif [[ "${listType}" == "regex_whitelist" ]]; then
         # Regex white filter list
         listname="regex whitelist filters"
-        is_regexlist=true
     else
         # Whitelist / Blacklist
         listname="${listType}"
-        is_regexlist=false
     fi
 
     for dom in "${domList[@]}"; do
@@ -130,9 +138,6 @@ ProcessDomainList() {
         # if delmode then remove from desired list but do not add to the other
         if ${addmode}; then
             AddDomain "${dom}" "${listType}"
-            if ! ${is_regexlist}; then
-                RemoveDomain "${dom}" "${listAlt}"
-            fi
         else
             RemoveDomain "${dom}" "${listType}"
         fi
@@ -140,18 +145,27 @@ ProcessDomainList() {
 }
 
 AddDomain() {
-    local domain list num typeID
+    local domain list num currTypeID currListName typeID
     # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
     domain="$1"
     list="$2"
     typeID="$(getTypeID "${list}")"
 
     # Is the domain in the list we want to add it to?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}' AND type = ${typeID};")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}';")"
 
     if [[ "${num}" -ne 0 ]]; then
-      if [[ "${verbose}" == true ]]; then
-          echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
+      currTypeID="$(sqlite3 "${gravityDBfile}" "SELECT type FROM domainlist WHERE domain = '${domain}';")"
+      if [[ "${currTypeID}" == "${typeID}" ]]; then
+        if [[ "${verbose}" == true ]]; then
+            echo -e "  ${INFO} ${1} already exists in ${listname}, no need to add!"
+        fi
+      else
+        currListName="$(getListnameFromType "${currTypeID}")"
+        sqlite3 "${gravityDBfile}" "UPDATE domainlist SET type = ${typeID} WHERE domain='${domain}';"
+        if [[ "${verbose}" == true ]]; then
+            echo -e "  ${INFO} ${1} already exists in ${currListName}, it has been updated to the requested list type."
+        fi
       fi
       return
     fi
