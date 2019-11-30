@@ -26,7 +26,7 @@ typeId=""
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
-getListnameFromTypeId() {
+GetListnameFromTypeId() {
     if [[ "$1" == "0" ]]; then
         echo "whitelist"
     elif  [[ "$1" == "1" ]]; then
@@ -38,43 +38,44 @@ getListnameFromTypeId() {
     fi
 }
 
-helpFunc() {
+GetListParamFromTypeId() {
     if [[ "${typeId}" == "0" ]]; then
-        param="w"
-        type="whitelist"
-    elif [[ "${typeId}" == "3" && "${wildcard}" == true ]]; then
-        param="-wild"
-        type="wildcard blacklist"
-    elif [[ "${typeId}" == "3" ]]; then
-        param="-regex"
-        type="regex blacklist filter"
-    elif [[ "${typeId}" == "2" && "${wildcard}" == true ]]; then
-        param="-white-wild"
-        type="wildcard whitelist"
-    elif [[ "${typeId}" == "2" ]]; then
-        param="-white-regex"
-        type="regex whitelist filter"
-    else
-        param="b"
-        type="blacklist"
+        echo "w"
+    elif  [[ "${typeId}" == "1" ]]; then
+        echo "b"
+    elif  [[ "${typeId}" == "2" && "${wildcard}" == true ]]; then
+        echo "-white-wild"
+    elif  [[ "${typeId}" == "2" ]]; then
+        echo "regex_blacklist"
+    elif  [[ "${typeId}" == "3" && "${wildcard}" == true ]]; then
+        echo "-regex"
+    elif  [[ "${typeId}" == "3" ]]; then
+        echo "-wild"
     fi
+}
+
+helpFunc() {
+    local listname param
+
+    listname="$(GetListnameFromTypeId "${typeId}")"
+    param="$(GetListParamFromTypeId)"
 
     echo "Usage: pihole -${param} [options] <domain> <domain2 ...>
 Example: 'pihole -${param} site.com', or 'pihole -${param} site1.com site2.com'
-${type^} one or more domains
+${listname^} one or more domains
 
 Options:
-  -d, --delmode       Remove domain(s) from the ${type}
-  -nr, --noreload     Update ${type} without reloading the DNS server
+  -d, --delmode       Remove domain(s) from the ${listname}
+  -nr, --noreload     Update ${listname} without reloading the DNS server
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
-  -l, --list          Display all your ${type}listed domains
+  -l, --list          Display all your ${listname}listed domains
   --nuke              Removes all entries in a list"
 
   exit 0
 }
 
-HandleOther() {
+ValidateDomain() {
     # Convert to lowercase
     domain="${1,,}"
 
@@ -118,7 +119,7 @@ AddDomain() {
 
     # Is the domain in the list we want to add it to?
     num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}';")"
-    requestedListname="$(getListnameFromTypeId "${typeId}")"
+    requestedListname="$(GetListnameFromTypeId "${typeId}")"
 
     if [[ "${num}" -ne 0 ]]; then
       existingTypeId="$(sqlite3 "${gravityDBfile}" "SELECT type FROM domainlist WHERE domain = '${domain}';")"
@@ -127,7 +128,7 @@ AddDomain() {
             echo -e "  ${INFO} ${1} already exists in ${requestedListname}, no need to add!"
         fi
       else
-        existingListname="$(getListnameFromTypeId "${existingTypeId}")"
+        existingListname="$(GetListnameFromTypeId "${existingTypeId}")"
         sqlite3 "${gravityDBfile}" "UPDATE domainlist SET type = ${typeId} WHERE domain='${domain}';"
         if [[ "${verbose}" == true ]]; then
             echo -e "  ${INFO} ${1} already exists in ${existingListname}, it has been moved to ${requestedListname}!"
@@ -153,7 +154,7 @@ RemoveDomain() {
     # Is the domain in the list we want to remove it from?
     num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}' AND type = ${typeId};")"
 
-    requestedListname="$(getListnameFromTypeId "${typeId}")"
+    requestedListname="$(GetListnameFromTypeId "${typeId}")"
 
     if [[ "${num}" -eq 0 ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -174,7 +175,7 @@ RemoveDomain() {
 Displaylist() {
     local count num_pipes domain enabled status nicedate requestedListname
 
-    requestedListname="$(getListnameFromTypeId "${typeId}")"
+    requestedListname="$(GetListnameFromTypeId "${typeId}")"
     data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM domainlist WHERE type = ${typeId};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
@@ -231,7 +232,7 @@ for var in "$@"; do
         "-l" | "--list"      ) Displaylist;;
         "--nuke"             ) NukeList;;
         "--web"              ) web=true;;
-        *                    ) HandleOther "${var}";;
+        *                    ) ValidateDomain "${var}";;
     esac
 done
 
