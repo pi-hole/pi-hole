@@ -27,6 +27,17 @@ listname=""
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
+getTypeID() {
+    if [[ "$1" == "whitelist" ]]; then
+        echo "0"
+    elif  [[ "$1" == "blacklist" ]]; then
+        echo "1"
+    elif  [[ "$1" == "regex_whitelist" ]]; then
+        echo "2"
+    elif  [[ "$1" == "regex_blacklist" ]]; then
+        echo "3"
+    fi
+}
 
 helpFunc() {
     if [[ "${listType}" == "whitelist" ]]; then
@@ -129,13 +140,14 @@ ProcessDomainList() {
 }
 
 AddDomain() {
-    local domain list num
+    local domain list num typeID
     # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
     domain="$1"
     list="$2"
+    typeID="$(getTypeID "${list}")"
 
     # Is the domain in the list we want to add it to?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = '${domain}';")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}' AND type = ${typeID};")"
 
     if [[ "${num}" -ne 0 ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -151,17 +163,18 @@ AddDomain() {
     reload=true
     # Insert only the domain here. The enabled and date_added fields will be filled
     # with their default values (enabled = true, date_added = current timestamp)
-    sqlite3 "${gravityDBfile}" "INSERT INTO ${list} (domain) VALUES ('${domain}');"
+    sqlite3 "${gravityDBfile}" "INSERT INTO domainlist (domain,type) VALUES ('${domain}',${typeID});"
 }
 
 RemoveDomain() {
-    local domain list num
+    local domain list num typeID
     # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
     domain="$1"
     list="$2"
+    typeID="$(getTypeID "${list}")"
 
     # Is the domain in the list we want to remove it from?
-    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${list} WHERE domain = '${domain}';")"
+    num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}' AND type = ${typeID};")"
 
     if [[ "${num}" -eq 0 ]]; then
       if [[ "${verbose}" == true ]]; then
@@ -176,14 +189,15 @@ RemoveDomain() {
     fi
     reload=true
     # Remove it from the current list
-    sqlite3 "${gravityDBfile}" "DELETE FROM ${list} WHERE domain = '${domain}';"
+    sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE domain = '${domain}' AND type = ${typeID};"
 }
 
 Displaylist() {
-    local list listname count num_pipes domain enabled status nicedate
+    local list listname count num_pipes domain enabled status nicedate typeID
 
     listname="${listType}"
-    data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM ${listType};" 2> /dev/null)"
+    typeID="$(getTypeID "${listType}")"
+    data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM domainlist WHERE type = ${typeID};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
         echo -e "Not showing empty list"
@@ -221,7 +235,9 @@ Displaylist() {
 }
 
 NukeList() {
-    sqlite3 "${gravityDBfile}" "DELETE FROM ${listType};"
+    local typeID
+    typeID=$(getTypeID "${list}")
+    sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeID};"
 }
 
 for var in "$@"; do

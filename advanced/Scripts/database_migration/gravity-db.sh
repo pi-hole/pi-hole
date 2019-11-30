@@ -41,4 +41,11 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "/etc/.pihole/advanced/Scripts/database_migration/gravity/2_to_3.sql"
 		version=3
 	fi
+	if [[ "$version" == "3" ]]; then
+		# This migration script unifies the formally separated domain
+		# lists into a single table with a UNIQUE domain constraint
+		echo -e "  ${INFO} Upgrading gravity database from version 3 to 4"
+		sqlite3 "${database}" < "${scriptPath}/3_to_4.sql"
+		version=6
+	fi
 }
