@@ -164,7 +164,7 @@ AddDomain() {
         currListName="$(getListnameFromType "${currTypeID}")"
         sqlite3 "${gravityDBfile}" "UPDATE domainlist SET type = ${typeID} WHERE domain='${domain}';"
         if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} already exists in ${currListName}, it has been updated to the requested list type."
+            echo -e "  ${INFO} ${1} already exists in ${currListName}, it has been moved to ${listname}"
         fi
       fi
       return
