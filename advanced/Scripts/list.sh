@@ -74,14 +74,6 @@ Options:
   exit 0
 }
 
-EscapeRegexp() {
-    # This way we may safely insert an arbitrary
-    # string in our regular expressions
-    # This sed is intentionally executed in three steps to ease maintainability
-    # The first sed removes any amount of leading dots
-    echo $* | sed 's/^\.*//' | sed "s/[]\.|$(){}?+*^]/\\\\&/g" | sed "s/\\//\\\\\//g"
-}
-
 HandleOther() {
     # Convert to lowercase
     domain="${1,,}"
@@ -122,7 +114,6 @@ ProcessDomainList() {
 
 AddDomain() {
     local domain num requestedListname existingTypeId existingListname
-    # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
     domain="$1"
 
     # Is the domain in the list we want to add it to?
@@ -157,7 +148,6 @@ AddDomain() {
 
 RemoveDomain() {
     local domain num requestedListname
-    # Use printf to escape domain. %q prints the argument in a form that can be reused as shell input
     domain="$1"
 
     # Is the domain in the list we want to remove it from?
