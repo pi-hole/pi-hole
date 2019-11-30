@@ -84,8 +84,8 @@ ValidateDomain() {
         if [[ ( "${typeId}" == "3" || "${typeId}" == "2" ) && "${wildcard}" == false ]]; then
             validDomain="${domain}"
         else
-            validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
-            validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+            # Use regex to check the validity of the passed domain. see https://regexr.com/3abjr
+            validDomain=$(grep -P "^((?!-))(xn--)?[a-z0-9][a-z0-9-_]{0,61}[a-z0-9]{0,1}\.(xn--)?([a-z0-9\-]{1,61}|[a-z0-9-]{1,30}\.[a-z]{2,})$" <<< "${domain}")
         fi
     fi
 
