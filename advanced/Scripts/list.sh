@@ -32,9 +32,9 @@ GetListnameFromTypeId() {
     elif  [[ "$1" == "1" ]]; then
         echo "blacklist"
     elif  [[ "$1" == "2" ]]; then
-        echo "regex_whitelist"
+        echo "regex whitelist"
     elif  [[ "$1" == "3" ]]; then
-        echo "regex_blacklist"
+        echo "regex blacklist"
     fi
 }
 
