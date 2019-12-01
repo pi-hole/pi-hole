@@ -48,7 +48,7 @@ GetListParamFromTypeId() {
     elif  [[ "${typeId}" == "2" ]]; then
         echo "-white-regex"
     elif  [[ "${typeId}" == "3" && "${wildcard}" == true ]]; then
-        echo "-regex"
+        echo "-wild"
     elif  [[ "${typeId}" == "3" ]]; then
         echo "-regex"
     fi
