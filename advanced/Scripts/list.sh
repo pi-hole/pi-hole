@@ -46,7 +46,7 @@ GetListParamFromTypeId() {
     elif  [[ "${typeId}" == "2" && "${wildcard}" == true ]]; then
         echo "-white-wild"
     elif  [[ "${typeId}" == "2" ]]; then
-        echo "regex_blacklist"
+        echo "-white-regex"
     elif  [[ "${typeId}" == "3" && "${wildcard}" == true ]]; then
         echo "-regex"
     elif  [[ "${typeId}" == "3" ]]; then
