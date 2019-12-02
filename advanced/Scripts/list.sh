@@ -26,30 +26,37 @@ typeId=""
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
+# IDs are hard-wired to domain interpretation in the gravity database scheme
+# Clients (including FTL) will read them through the corresponding views
+readonly whitelist="0"
+readonly blacklist="1"
+readonly regex_whitelist="2"
+readonly regex_blacklist="3"
+
 GetListnameFromTypeId() {
-    if [[ "$1" == "0" ]]; then
+    if [[ "$1" == "${whitelist}" ]]; then
         echo "whitelist"
-    elif  [[ "$1" == "1" ]]; then
+    elif  [[ "$1" == "${blacklist}" ]]; then
         echo "blacklist"
-    elif  [[ "$1" == "2" ]]; then
+    elif  [[ "$1" == "${regex_whitelist}" ]]; then
         echo "regex whitelist"
-    elif  [[ "$1" == "3" ]]; then
+    elif  [[ "$1" == "${regex_blacklist}" ]]; then
         echo "regex blacklist"
     fi
 }
 
 GetListParamFromTypeId() {
-    if [[ "${typeId}" == "0" ]]; then
+    if [[ "${typeId}" == "${whitelist}" ]]; then
         echo "w"
-    elif  [[ "${typeId}" == "1" ]]; then
+    elif  [[ "${typeId}" == "${blacklist}" ]]; then
         echo "b"
-    elif  [[ "${typeId}" == "2" && "${wildcard}" == true ]]; then
+    elif  [[ "${typeId}" == "${regex_whitelist}" && "${wildcard}" == true ]]; then
         echo "-white-wild"
-    elif  [[ "${typeId}" == "2" ]]; then
+    elif  [[ "${typeId}" == "${regex_whitelist}" ]]; then
         echo "-white-regex"
-    elif  [[ "${typeId}" == "3" && "${wildcard}" == true ]]; then
+    elif  [[ "${typeId}" == "${regex_blacklist}" && "${wildcard}" == true ]]; then
         echo "-wild"
-    elif  [[ "${typeId}" == "3" ]]; then
+    elif  [[ "${typeId}" == "${regex_blacklist}" ]]; then
         echo "-regex"
     fi
 }
@@ -81,7 +88,7 @@ ValidateDomain() {
 
     # Check validity of domain (don't check for regex entries)
     if [[ "${#domain}" -le 253 ]]; then
-        if [[ ( "${typeId}" == "3" || "${typeId}" == "2" ) && "${wildcard}" == false ]]; then
+        if [[ ( "${typeId}" == "${regex_blacklist}" || "${typeId}" == "${regex_whitelist}" ) && "${wildcard}" == false ]]; then
             validDomain="${domain}"
         else
             # Use regex to check the validity of the passed domain. see https://regexr.com/3abjr
