@@ -1071,7 +1071,9 @@ setDNS() {
     fi
 
     # Display final selection
-    printf "  %b Using upstream DNS: %s %s\\n" "${INFO}" "${PIHOLE_DNS_1}" "${PIHOLE_DNS_2}"
+    local DNSIP=${PIHOLE_DNS_1}
+    [[ -z ${PIHOLE_DNS_2} ]] || DNSIP+=", ${PIHOLE_DNS_2}"
+    printf "  %b Using upstream DNS: %s (%s)\\n" "${INFO}" "${DNSchoices}" "${DNSIP}"
 }
 
 # Allow the user to enable/disable logging
