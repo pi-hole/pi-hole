@@ -529,19 +529,24 @@ gravity_ParseFileIntoDomains() {
 gravity_Table_Count() {
   local table="${1}"
   local str="${2}"
-  local extra="${3}"
   local num
-  num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${table} ${extra};")"
-  echo -e "  ${INFO} Number of ${str}: ${num}"
+  num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${table};")"
+  if [[ "${table}" == "vw_gravity" ]]; then
+    local unique
+    unique="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(DISTINCT domain) FROM ${table};")"
+    echo -e "  ${INFO} Number of ${str}: ${num} (${unique} unique domains)"
+  else
+    echo -e "  ${INFO} Number of ${str}: ${num}"
+  fi
 }
 
 # Output count of blacklisted domains and regex filters
 gravity_ShowCount() {
-  gravity_Table_Count "gravity" "gravity domains" ""
-  gravity_Table_Count "blacklist" "exact blacklisted domains" "WHERE enabled = 1"
-  gravity_Table_Count "regex_blacklist" "regex blacklist filters" "WHERE enabled = 1"
-  gravity_Table_Count "whitelist" "exact whitelisted domains" "WHERE enabled = 1"
-  gravity_Table_Count "regex_whitelist" "regex whitelist filters" "WHERE enabled = 1"
+  gravity_Table_Count "vw_gravity" "gravity domains" ""
+  gravity_Table_Count "vw_blacklist" "exact blacklisted domains"
+  gravity_Table_Count "vw_regex_blacklist" "regex blacklist filters"
+  gravity_Table_Count "vw_whitelist" "exact whitelisted domains"
+  gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
 }
 
 # Parse list of domains into hosts format
