@@ -49,7 +49,7 @@ mimetype.assign   = ( ".png"  => "image/png",
                       ".jpeg" => "image/jpeg",
                       ".html" => "text/html",
                       ".css" => "text/css; charset=utf-8",
-                      ".js" => "application/javascript",
+                      ".js" => "application/javascript; charset=utf-8",
                       ".json" => "application/json",
                       ".txt"  => "text/plain",
                       ".svg"  => "image/svg+xml" )
