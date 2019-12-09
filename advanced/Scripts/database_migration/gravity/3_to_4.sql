@@ -4,66 +4,92 @@ PRAGMA FOREIGN_KEYS=OFF;
 
 BEGIN TRANSACTION;
 
-DROP TABLE gravity;
-CREATE TABLE gravity
-(
-	domain TEXT NOT NULL,
-	adlist_id INTEGER NOT NULL REFERENCES adlist (id),
-	PRIMARY KEY(domain, adlist_id)
-);
-
-DROP VIEW vw_gravity;
-CREATE VIEW vw_gravity AS SELECT domain, adlist_by_group.group_id AS group_id
-    FROM gravity
-    LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = gravity.adlist_id
-    LEFT JOIN adlist ON adlist.id = gravity.adlist_id
-    LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
-    WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1);
-
-DROP VIEW vw_whitelist;
-CREATE VIEW vw_whitelist AS SELECT domain, whitelist.id AS id, whitelist_by_group.group_id AS group_id
-    FROM whitelist
-    LEFT JOIN whitelist_by_group ON whitelist_by_group.whitelist_id = whitelist.id
-    LEFT JOIN "group" ON "group".id = whitelist_by_group.group_id
-    WHERE whitelist.enabled = 1 AND (whitelist_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY whitelist.id;
-
-DROP VIEW vw_blacklist;
-CREATE VIEW vw_blacklist AS SELECT domain, blacklist.id AS id, blacklist_by_group.group_id AS group_id
-    FROM blacklist
-    LEFT JOIN blacklist_by_group ON blacklist_by_group.blacklist_id = blacklist.id
-    LEFT JOIN "group" ON "group".id = blacklist_by_group.group_id
-    WHERE blacklist.enabled = 1 AND (blacklist_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY blacklist.id;
-
-DROP VIEW vw_regex_whitelist;
-CREATE VIEW vw_regex_whitelist AS SELECT DISTINCT domain, regex_whitelist.id AS id, regex_whitelist_by_group.group_id AS group_id
-    FROM regex_whitelist
-    LEFT JOIN regex_whitelist_by_group ON regex_whitelist_by_group.regex_whitelist_id = regex_whitelist.id
-    LEFT JOIN "group" ON "group".id = regex_whitelist_by_group.group_id
-    WHERE regex_whitelist.enabled = 1 AND (regex_whitelist_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY regex_whitelist.id;
-
-DROP VIEW vw_regex_blacklist;
-CREATE VIEW vw_regex_blacklist AS SELECT DISTINCT domain, regex_blacklist.id AS id, regex_blacklist_by_group.group_id AS group_id
-    FROM regex_blacklist
-    LEFT JOIN regex_blacklist_by_group ON regex_blacklist_by_group.regex_blacklist_id = regex_blacklist.id
-    LEFT JOIN "group" ON "group".id = regex_blacklist_by_group.group_id
-    WHERE regex_blacklist.enabled = 1 AND (regex_blacklist_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY regex_blacklist.id;
-
-CREATE TABLE client
+CREATE TABLE domainlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	ip TEXT NOL NULL UNIQUE
+	type INTEGER NOT NULL DEFAULT 0,
+	domain TEXT UNIQUE NOT NULL,
+	enabled BOOLEAN NOT NULL DEFAULT 1,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	comment TEXT
 );
 
-CREATE TABLE client_by_group
+ALTER TABLE whitelist ADD COLUMN type INTEGER;
+UPDATE whitelist SET type = 0;
+INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM whitelist;
+
+ALTER TABLE blacklist ADD COLUMN type INTEGER;
+UPDATE blacklist SET type = 1;
+INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM blacklist;
+
+ALTER TABLE regex_whitelist ADD COLUMN type INTEGER;
+UPDATE regex_whitelist SET type = 2;
+INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM regex_whitelist;
+
+ALTER TABLE regex_blacklist ADD COLUMN type INTEGER;
+UPDATE regex_blacklist SET type = 3;
+INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM regex_blacklist;
+
+DROP TABLE whitelist_by_group;
+DROP TABLE blacklist_by_group;
+DROP TABLE regex_whitelist_by_group;
+DROP TABLE regex_blacklist_by_group;
+CREATE TABLE domainlist_by_group
 (
-	client_id INTEGER NOT NULL REFERENCES client (id),
+	domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
 	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (client_id, group_id)
+	PRIMARY KEY (domainlist_id, group_id)
 );
+
+DROP TRIGGER tr_whitelist_update;
+DROP TRIGGER tr_blacklist_update;
+DROP TRIGGER tr_regex_whitelist_update;
+DROP TRIGGER tr_regex_blacklist_update;
+CREATE TRIGGER tr_domainlist_update AFTER UPDATE ON domainlist
+    BEGIN
+      UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
+    END;
+
+DROP VIEW vw_whitelist;
+CREATE VIEW vw_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 0
+    ORDER BY domainlist.id;
+
+DROP VIEW vw_blacklist;
+CREATE VIEW vw_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 1
+    ORDER BY domainlist.id;
+
+DROP VIEW vw_regex_whitelist;
+CREATE VIEW vw_regex_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 2
+    ORDER BY domainlist.id;
+
+DROP VIEW vw_regex_blacklist;
+CREATE VIEW vw_regex_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 3
+    ORDER BY domainlist.id;
 
 UPDATE info SET value = 4 WHERE property = 'version';
 

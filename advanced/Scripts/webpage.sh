@@ -17,6 +17,7 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly PI_HOLE_BIN_DIR="/usr/local/bin"
+readonly dnscustomfile="/etc/pihole/custom.list"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
 
@@ -404,13 +405,15 @@ SetWebUILayout() {
 CustomizeAdLists() {
     local address
     address="${args[3]}"
+    local comment
+    comment="${args[4]}"
 
     if [[ "${args[2]}" == "enable" ]]; then
         sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "disable" ]]; then
         sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
     elif [[ "${args[2]}" == "add" ]]; then
-        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address) VALUES ('${address}')"
+        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
     elif [[ "${args[2]}" == "del" ]]; then
         sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
     else
@@ -524,10 +527,10 @@ Interfaces:
   fi
 
     if [[ "${args[2]}" == "all" ]]; then
-        echo -e "  ${INFO} Listening on all interfaces, permiting all origins. Please use a firewall!"
+        echo -e "  ${INFO} Listening on all interfaces, permitting all origins. Please use a firewall!"
         change_setting "DNSMASQ_LISTENING" "all"
     elif [[ "${args[2]}" == "local" ]]; then
-        echo -e "  ${INFO} Listening on all interfaces, permiting origins from one hop away (LAN)"
+        echo -e "  ${INFO} Listening on all interfaces, permitting origins from one hop away (LAN)"
         change_setting "DNSMASQ_LISTENING" "local"
     else
         echo -e "  ${INFO} Listening only on interface ${PIHOLE_INTERFACE}"
@@ -597,6 +600,28 @@ SetPrivacyLevel() {
     fi
 }
 
+AddCustomDNSAddress() {
+    echo -e "  ${TICK} Adding custom DNS entry..."
+
+    ip="${args[2]}"
+    host="${args[3]}"
+	echo "${ip} ${host}" >> "${dnscustomfile}"
+
+    # Restart dnsmasq to load new custom DNS entries
+    RestartDNS
+}
+
+RemoveCustomDNSAddress() {
+    echo -e "  ${TICK} Removing custom DNS entry..."
+
+    ip="${args[2]}"
+    host="${args[3]}"
+    sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+
+    # Restart dnsmasq to update removed custom DNS entries
+    RestartDNS
+}
+
 main() {
     args=("$@")
 
@@ -628,6 +653,8 @@ main() {
         "audit"               ) addAudit "$@";;
         "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
+        "addcustomdns"        ) AddCustomDNSAddress;;
+        "removecustomdns"     ) RemoveCustomDNSAddress;;
         *                     ) helpFunc;;
     esac
 

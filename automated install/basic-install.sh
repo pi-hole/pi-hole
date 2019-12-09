@@ -138,9 +138,6 @@ else
     OVER="\\r\\033[K"
 fi
 
-# Define global binary variable
-binary="tbd"
-
 # A simple function that just echoes out our logo in ASCII format
 # This lets users know that it is a Pi-hole, LLC product
 show_ascii_berry() {
@@ -250,7 +247,7 @@ if is_command apt-get ; then
     PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml")
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
@@ -290,7 +287,7 @@ elif is_command rpm ; then
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(dialog git iproute newt procps-ng which chkconfig)
     PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite libcap)
-    PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo)
+    PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
@@ -838,7 +835,8 @@ setDHCPCD() {
         # Then use the ip command to immediately set the new address
         ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
         # Also give a warning that the user may need to reboot their system
-        printf "  %b Set IP address to %s \\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
+        printf "  %b Set IP address to %s\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
+        printf "  %b You may need to restart after the install is complete\\n" "${INFO}"
     fi
 }
 
@@ -984,8 +982,6 @@ setDNS() {
     # exit if Cancel is selected
     { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
 
-    # Display the selection
-    printf "  %b Using " "${INFO}"
     # Depending on the user's choice, set the GLOBAl variables to the IP of the respective provider
     if [[ "${DNSchoices}" == "Custom" ]]
     then
@@ -1037,14 +1033,14 @@ setDNS() {
                 if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
                     PIHOLE_DNS_2=""
                 fi
-            # Since the settings will not work, stay in the loop
-            DNSSettingsCorrect=False
+                # Since the settings will not work, stay in the loop
+                DNSSettingsCorrect=False
             # Otherwise,
             else
                 # Show the settings
                 if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" "${r}" "${c}"); then
-                # and break from the loop since the servers are valid
-                DNSSettingsCorrect=True
+                    # and break from the loop since the servers are valid
+                    DNSSettingsCorrect=True
                 # Otherwise,
                 else
                     # If the settings are wrong, the loop continues
@@ -1052,7 +1048,7 @@ setDNS() {
                 fi
             fi
         done
-     else
+    else
         # Save the old Internal Field Separator in a variable
         OIFS=$IFS
         # and set the new one to newline
@@ -1062,7 +1058,6 @@ setDNS() {
             DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
             if [[ "${DNSchoices}" == "${DNSName}" ]]
             then
-                printf "%s\\n" "${DNSName}"
                 PIHOLE_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
                 PIHOLE_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
                 break
@@ -1071,6 +1066,11 @@ setDNS() {
         # Restore the IFS to what it was
         IFS=${OIFS}
     fi
+
+    # Display final selection
+    local DNSIP=${PIHOLE_DNS_1}
+    [[ -z ${PIHOLE_DNS_2} ]] || DNSIP+=", ${PIHOLE_DNS_2}"
+    printf "  %b Using upstream DNS: %s (%s)\\n" "${INFO}" "${DNSchoices}" "${DNSIP}"
 }
 
 # Allow the user to enable/disable logging
@@ -1628,7 +1628,7 @@ install_dependent_packages() {
             if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
                 printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
             else
-                echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
+                printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
                 installArray+=("${i}")
             fi
         done
@@ -1645,9 +1645,9 @@ install_dependent_packages() {
     for i in "$@"; do
         printf "  %b Checking for %s..." "${INFO}" "${i}"
         if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
-            printf "%b  %b Checking for %s" "${OVER}" "${TICK}" "${i}"
+            printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
         else
-            printf "%b  %b Checking for %s (will be installed)" "${OVER}" "${INFO}" "${i}"
+            printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
             installArray+=("${i}")
         fi
     done
@@ -1959,20 +1959,42 @@ installPihole() {
 
 # SELinux
 checkSelinux() {
-    # If the getenforce command exists,
-    if is_command getenforce ; then
-        # Store the current mode in a variable
-        enforceMode=$(getenforce)
-        printf "\\n  %b SELinux mode detected: %s\\n" "${INFO}" "${enforceMode}"
-
-        # If it's enforcing,
-        if [[ "${enforceMode}" == "Enforcing" ]]; then
-            # Explain Pi-hole does not support it yet
-            whiptail --defaultno --title "SELinux Enforcing Detected" --yesno "SELinux is being ENFORCED on your system! \\n\\nPi-hole currently does not support SELinux, but you may still continue with the installation.\\n\\nNote: Web Admin will not be fully functional unless you set your policies correctly\\n\\nContinue installing Pi-hole?" "${r}" "${c}" || \
-            { printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-            printf "  %b Continuing installation with SELinux Enforcing\\n" "${INFO}"
-            printf "      %b Please refer to official SELinux documentation to create a custom policy\\n" "${INFO}"
-        fi
+    local DEFAULT_SELINUX
+    local CURRENT_SELINUX
+    local SELINUX_ENFORCING=0
+    # Check if a SELinux configuration file exists
+    if [[ -f /etc/selinux/config ]]; then
+        # If a SELinux configuration file was found, check the default SELinux mode.
+        DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
+        case "${DEFAULT_SELINUX,,}" in
+            enforcing)
+                printf "  %b %bDefault SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${DEFAULT_SELINUX}" "${COL_NC}"
+                SELINUX_ENFORCING=1
+                ;;
+            *)  # 'permissive' and 'disabled'
+                printf "  %b %bDefault SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${DEFAULT_SELINUX}" "${COL_NC}"
+                ;;
+        esac
+        # Check the current state of SELinux
+        CURRENT_SELINUX=$(getenforce)
+        case "${CURRENT_SELINUX,,}" in
+            enforcing)
+                printf "  %b %bCurrent SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${CURRENT_SELINUX}" "${COL_NC}"
+                SELINUX_ENFORCING=1
+                ;;
+            *)  # 'permissive' and 'disabled'
+                printf "  %b %bCurrent SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${CURRENT_SELINUX}" "${COL_NC}"
+                ;;
+        esac
+    else
+        echo -e "  ${INFO} ${COL_GREEN}SELinux not detected${COL_NC}";
+    fi
+    # Exit the installer if any SELinux checks toggled the flag
+    if [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -z "${PIHOLE_SELINUX}" ]]; then
+        printf "  Pi-hole does not provide an SELinux policy as the required changes modify the security of your system.\\n"
+        printf "  Please refer to https://wiki.centos.org/HowTos/SELinux if SELinux is required for your deployment.\\n"
+        printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}";
+        exit 1;
     fi
 }
 
@@ -2167,7 +2189,10 @@ clone_or_update_repos() {
 }
 
 # Download FTL binary to random temp directory and install FTL binary
+# Disable directive for SC2120 a value _can_ be passed to this function, but it is passed from an external script that sources this one
+# shellcheck disable=SC2120
 FTLinstall() {
+
     # Local, named variables
     local latesttag
     local str="Downloading and Installing FTL"
@@ -2196,6 +2221,9 @@ FTLinstall() {
     else
         ftlBranch="master"
     fi
+
+    local binary
+    binary="${1}"
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]];then
@@ -2275,6 +2303,8 @@ get_binary_name() {
     local machine
     machine=$(uname -m)
 
+    local l_binary
+
     local str="Detecting architecture"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the machine is arm or aarch
@@ -2290,24 +2320,30 @@ get_binary_name() {
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected ARM-aarch64 architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            binary="pihole-FTL-aarch64-linux-gnu"
+            l_binary="pihole-FTL-aarch64-linux-gnu"
         #
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
             #
             if [[ "${rev}" -gt 6 ]]; then
                 printf "%b  %b Detected ARM-hf architecture (armv7+)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabihf"
+                l_binary="pihole-FTL-arm-linux-gnueabihf"
             # Otherwise,
             else
                 printf "%b  %b Detected ARM-hf architecture (armv6 or lower) Using ARM binary\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-arm-linux-gnueabi"
             fi
         else
-            printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used
-            binary="pihole-FTL-arm-linux-gnueabi"
+            if [[ -f "/.dockerenv" ]]; then
+                printf "%b  %b Detected ARM architecture in docker\\n" "${OVER}" "${TICK}"
+                # set the binary to be used
+                binary="pihole-FTL-armel-native"
+            else
+                printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
+                # set the binary to be used
+                binary="pihole-FTL-arm-linux-gnueabi"
+            fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the architecture of packages dpkg installs (for example, "i386")
@@ -2320,12 +2356,12 @@ get_binary_name() {
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
-            binary="pihole-FTL-linux-x86_32"
+            l_binary="pihole-FTL-linux-x86_32"
         else
             # 64bit
             printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            binary="pihole-FTL-linux-x86_64"
+            l_binary="pihole-FTL-linux-x86_64"
         fi
     else
         # Something else - we try to use 32bit executable and warn the user
@@ -2336,13 +2372,13 @@ get_binary_name() {
         else
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
         fi
-        binary="pihole-FTL-linux-x86_32"
+        l_binary="pihole-FTL-linux-x86_32"
     fi
+
+    echo ${l_binary}
 }
 
 FTLcheckUpdate() {
-    get_binary_name
-
     #In the next section we check to see if FTL is already installed (in case of pihole -r).
     #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
     printf "  %b Checking for existing FTL binary...\\n" "${INFO}"
@@ -2357,6 +2393,9 @@ FTLcheckUpdate() {
     else
         ftlBranch="master"
     fi
+
+    local binary
+    binary="${1}"
 
     local remoteSha1
     local localSha1
@@ -2436,8 +2475,10 @@ FTLcheckUpdate() {
 FTLdetect() {
     printf "\\n  %b FTL Checks...\\n\\n" "${INFO}"
 
-    if FTLcheckUpdate ; then
-        FTLinstall || return 1
+    printf "  %b" "${2}"
+
+    if FTLcheckUpdate "${1}"; then
+        FTLinstall "${1}" || return 1
     fi
 }
 
@@ -2600,8 +2641,15 @@ main() {
     fi
     # Create the pihole user
     create_pihole_user
+
     # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
-    if ! FTLdetect; then
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    local binary
+    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+    local theRest
+    theRest="${funcOutput%pihole-FTL*}" # Print the rest of get_binary_name's output to display (cut out from first instance of "pihole-FTL")
+    if ! FTLdetect "${binary}" "${theRest}"; then
         printf "  %b FTL Engine not installed\\n" "${CROSS}"
         exit 1
     fi
