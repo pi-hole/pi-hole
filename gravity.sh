@@ -434,7 +434,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       # Add domains to database table
-      str="Adding to database table"
+      str="Adding adlist with ID ${adlistID} to database table"
       echo -ne "  ${INFO} ${str}..."
       database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
       echo -e "${OVER}  ${TICK} ${str}"
@@ -677,9 +677,9 @@ if [[ "${recreate_database:-}" == true ]]; then
   str="Restoring from migration backup"
   echo -ne "${INFO} ${str}..."
   rm "${gravityDBfile}"
-  pushd "${piholeDir}" > /dev/null
+  pushd "${piholeDir}" > /dev/null || exit
   cp migration_backup/* .
-  popd > /dev/null
+  popd > /dev/null || exit
   echo -e "${OVER}  ${TICK} ${str}"
 fi
 
