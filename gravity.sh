@@ -40,9 +40,6 @@ gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 optimize_database=false
 
 domainsExtension="domains"
-matterAndLight="${basename}.0.matterandlight.txt"
-parsedMatter="${basename}.1.parsedmatter.txt"
-preEventHorizon="list.preEventHorizon"
 
 resolver="pihole-FTL"
 
@@ -92,7 +89,7 @@ generate_gravity_database() {
 
 update_gravity_timestamp() {
   # Update timestamp when the gravity table was last updated successfully
-  output=$( { sqlite3 "${gravityDBfile}" <<< "INSERT OR REPLACE INTO info (property,value) values (\"updated\",cast(strftime('%s', 'now') as int));"; } 2>&1 )
+  output=$( { sqlite3 "${gravityDBfile}" <<< "INSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%s', 'now') as int));"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -459,7 +456,7 @@ gravity_DownloadBlocklistFromUrl() {
 
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
-  local source="${1}" destination="${2}" firstLine abpFilter
+  local source="${1}" destination="${2}" firstLine
 
   # Determine if we are parsing a consolidated list
   #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
@@ -612,7 +609,7 @@ gravity_Cleanup() {
   # Ensure this function only runs when gravity_SetDownloadOptions() has completed
   if [[ "${gravity_Blackbody:-}" == true ]]; then
     # Remove any unused .domains files
-    for file in ${piholeDir}/*.${domainsExtension}; do
+    for file in "${piholeDir}"/*."${domainsExtension}"; do
       # If list is not in active array, then remove it
       if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
         rm -f "${file}" 2> /dev/null || \
