@@ -139,23 +139,29 @@ database_table_from_file() {
   local rowid
   declare -i rowid
   rowid=1
-  grep -v '^ *#' < "${source}" | while IFS= read -r domain
-  do
-    # Only add non-empty lines
-    if [[ -n "${domain}" ]]; then
-      if [[ "${table}" == "domain_audit" ]]; then
-        # domain_audit table format (no enable or modified fields)
-        echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
-      elif [[ "${table}" == "gravity" ]]; then
-        # gravity table format
-        echo "\"${domain}\",${arg}" >> "${tmpFile}"
-      else
-        # White-, black-, and regexlist format
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+
+  if [[ "${table}" == "gravity" ]]; then
+    #Append ,${arg} to every line and then remove blank lines before import
+    sed -e "s/$/,${arg}/" "${source}" > "${tmpFile}"
+    sed -i '/^$/d' "${tmpFile}"
+  else
+    grep -v '^ *#' < "${source}" | while IFS= read -r domain
+    do
+      # Only add non-empty lines
+      if [[ -n "${domain}" ]]; then
+        if [[ "${table}" == "domain_audit" ]]; then
+          # domain_audit table format (no enable or modified fields)
+          echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
+        else
+          # White-, black-, and regexlist format
+          echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+        fi
+        rowid+=1
       fi
-      rowid+=1
-    fi
-  done
+    done
+  fi
+
+
   inputfile="${tmpFile}"
 
   # Store domains in database table specified by ${table}
