@@ -257,5 +257,5 @@ echo "DONE"
 fi
 
 if [[ "${reload}" != false ]]; then
-    pihole restartdns reload
+    pihole restartdns reload-lists
 fi
