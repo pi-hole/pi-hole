@@ -48,6 +48,8 @@ start() {
     chown pihole:pihole /etc/pihole /etc/pihole/dhcp.leases 2> /dev/null
     chown pihole:pihole /var/log/pihole-FTL.log /var/log/pihole.log
     chmod 0644 /var/log/pihole-FTL.log /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole.log
+    # Chown database files to the user FTL runs as. We ignore errors as the files may not (yet) exist
+    chown pihole:pihole /etc/pihole/pihole-FTL.db /etc/pihole/gravity.db 2> /dev/null
     echo "nameserver 127.0.0.1" | /sbin/resolvconf -a lo.piholeFTL
     if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN+eip "$(which pihole-FTL)"; then
       su -s /bin/sh -c "/usr/bin/pihole-FTL" "$FTLUSER"
