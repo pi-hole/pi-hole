@@ -337,7 +337,7 @@ gravity_DownloadBlocklists() {
       *) cmd_ext="";;
     esac
 
-    echo -e "  ${INFO} Target: ${domain} (${url##*/})"
+    echo -e "  ${INFO} Target: ${url}"
     gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}"
     echo ""
   done
