@@ -221,7 +221,7 @@ for result in "${results[@]}"; do
     fi
 
     if [[ -n "${blockpage}" ]]; then
-        echo "${fileNum} ${adlistAddress}"
+        echo "0 ${adlistAddress}"
     elif [[ -n "${exact}" ]]; then
         echo "  - ${adlistAddress} ${enabled}"
     else
