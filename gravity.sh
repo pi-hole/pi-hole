@@ -160,9 +160,10 @@ database_table_from_file() {
       fi
     done
   fi
-
-
   inputfile="${tmpFile}"
+
+  # Remove possible duplicates found in lower-quality adlists
+  uniq -u "${inputfile}" "${inputfile}"
 
   # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
