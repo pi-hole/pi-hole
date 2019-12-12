@@ -64,4 +64,12 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "${scriptPath}/5_to_6.sql"
 		version=6
 	fi
+	if [[ "$version" == "6" ]]; then
+		# This migration script adds a special group with ID 0
+		# which is automatically associated to all clients not
+		# having their own group assignments
+		echo -e "  ${INFO} Upgrading gravity database from version 6 to 7"
+		sqlite3 "${database}" < "${scriptPath}/6_to_7.sql"
+		version=7
+	fi
 }
