@@ -10,7 +10,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
+readonly scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
 
 upgrade_gravityDB(){
 	local database piholeDir auditFile version
@@ -48,6 +48,20 @@ upgrade_gravityDB(){
 		# lists into a single table with a UNIQUE domain constraint
 		echo -e "  ${INFO} Upgrading gravity database from version 3 to 4"
 		sqlite3 "${database}" < "${scriptPath}/3_to_4.sql"
+		version=4
+	fi
+	if [[ "$version" == "4" ]]; then
+		# This migration script upgrades the gravity and list views
+		# implementing necessary changes for per-client blocking
+		echo -e "  ${INFO} Upgrading gravity database from version 4 to 5"
+		sqlite3 "${database}" < "${scriptPath}/4_to_5.sql"
+		version=5
+	fi
+	if [[ "$version" == "5" ]]; then
+		# This migration script upgrades the adlist view
+		# to return an ID used in gravity.sh
+		echo -e "  ${INFO} Upgrading gravity database from version 5 to 6"
+		sqlite3 "${database}" < "${scriptPath}/5_to_6.sql"
 		version=6
 	fi
 }

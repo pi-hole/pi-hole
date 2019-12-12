@@ -40,9 +40,6 @@ gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 optimize_database=false
 
 domainsExtension="domains"
-matterAndLight="${basename}.0.matterandlight.txt"
-parsedMatter="${basename}.1.parsedmatter.txt"
-preEventHorizon="list.preEventHorizon"
 
 resolver="pihole-FTL"
 
@@ -92,30 +89,44 @@ generate_gravity_database() {
 
 update_gravity_timestamp() {
   # Update timestamp when the gravity table was last updated successfully
-  output=$( { sqlite3 "${gravityDBfile}" <<< "INSERT OR REPLACE INTO info (property,value) values (\"updated\",cast(strftime('%s', 'now') as int));"; } 2>&1 )
+  output=$( { sqlite3 "${gravityDBfile}" <<< "INSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%s', 'now') as int));"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityDBfile}\\n  ${output}"
+    return 1
   fi
+  return 0
 }
 
-# Import domains from file and store them in the specified database table
-database_table_from_file() {
-  # Define locals
-  local table source backup_path backup_file
+database_truncate_table() {
+  local table
   table="${1}"
-  source="${2}"
-  backup_path="${piholeDir}/migration_backup"
-  backup_file="${backup_path}/$(basename "${2}")"
 
-  # Truncate table
   output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM ${table};"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to truncate ${table} database ${gravityDBfile}\\n  ${output}"
     gravity_Cleanup "error"
+    return 1
+  fi
+  return 0
+}
+
+# Import domains from file and store them in the specified database table
+database_table_from_file() {
+  # Define locals
+  local table source backup_path backup_file arg
+  table="${1}"
+  source="${2}"
+  arg="${3}"
+  backup_path="${piholeDir}/migration_backup"
+  backup_file="${backup_path}/$(basename "${2}")"
+
+  # Truncate table only if not gravity (we add multiple times to this table)
+  if [[ "${table}" != "gravity" ]]; then
+    database_truncate_table "${table}"
   fi
 
   local tmpFile
@@ -123,15 +134,17 @@ database_table_from_file() {
   local timestamp
   timestamp="$(date --utc +'%s')"
   local inputfile
+  # Apply format for white-, blacklist, regex, and adlist tables
+  # Read file line by line
+  local rowid
+  declare -i rowid
+  rowid=1
+
   if [[ "${table}" == "gravity" ]]; then
-    # No need to modify the input data for the gravity table
-    inputfile="${source}"
+    #Append ,${arg} to every line and then remove blank lines before import
+    sed -e "s/$/,${arg}/" "${source}" > "${tmpFile}"
+    sed -i '/^$/d' "${tmpFile}"
   else
-    # Apply format for white-, blacklist, regex, and adlist tables
-    # Read file line by line
-    local rowid
-    declare -i rowid
-    rowid=1
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
       # Only add non-empty lines
@@ -146,8 +159,11 @@ database_table_from_file() {
         rowid+=1
       fi
     done
-    inputfile="${tmpFile}"
   fi
+
+
+  inputfile="${tmpFile}"
+
   # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
@@ -216,7 +232,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine if $lookupDomain is resolvable
-  if timeout 1 getent hosts "${lookupDomain}" &> /dev/null; then
+  if timeout 4 getent hosts "${lookupDomain}" &> /dev/null; then
     # Print confirmation of resolvability if it had previously failed
     if [[ -n "${secs:-}" ]]; then
       echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
@@ -230,7 +246,7 @@ gravity_CheckDNSResolutionAvailable() {
   # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
   # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventualy fails
   # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
-  if timeout 1 dig +short "${lookupDomain}" &> /dev/null; then
+  if timeout 4 dig +short "${lookupDomain}" &> /dev/null; then
     if [[ -n "${secs:-}" ]]; then
       echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
     fi
@@ -263,12 +279,13 @@ gravity_CheckDNSResolutionAvailable() {
 }
 
 # Retrieve blocklist URLs and parse domains from adlist.list
-gravity_GetBlocklistUrls() {
+gravity_DownloadBlocklists() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
   mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
+  mapfile -t sourceIDs <<< "$(sqlite3 "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
@@ -285,20 +302,22 @@ gravity_GetBlocklistUrls() {
 
   if [[ -n "${sources[*]}" ]] && [[ -n "${sourceDomains[*]}" ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
-    return 0
   else
     echo -e "${OVER}  ${CROSS} ${str}"
     echo -e "  ${INFO} No source list found, or it is empty"
     echo ""
     return 1
   fi
-}
 
-# Define options for when retrieving blocklists
-gravity_SetDownloadOptions() {
   local url domain agent cmd_ext str
-
   echo ""
+
+  # Flush gravity table once before looping over sources
+  str="Flushing gravity table"
+  echo -ne "  ${INFO} ${str}..."
+  if database_truncate_table "gravity"; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
 
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
@@ -319,7 +338,7 @@ gravity_SetDownloadOptions() {
     esac
 
     echo -e "  ${INFO} Target: ${domain} (${url##*/})"
-    gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}"
+    gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}"
     echo ""
   done
   gravity_Blackbody=true
@@ -327,7 +346,7 @@ gravity_SetDownloadOptions() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" heisenbergCompensator="" patternBuffer str httpCode success=""
+  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
   patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
@@ -408,11 +427,20 @@ gravity_DownloadBlocklistFromUrl() {
   # Determine if the blocklist was downloaded and saved correctly
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
-      : # Do not attempt to re-parse file
+      # Add domains to database table
+      str="Adding adlist with ID ${adlistID} to database table"
+      echo -ne "  ${INFO} ${str}..."
+      database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
+      echo -e "${OVER}  ${TICK} ${str}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
+      # Add domains to database table
+      str="Adding adlist with ID ${adlistID} to database table"
+      echo -ne "  ${INFO} ${str}..."
+      database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
+      echo -e "${OVER}  ${TICK} ${str}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -421,6 +449,11 @@ gravity_DownloadBlocklistFromUrl() {
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
+      # Add domains to database table
+      str="Adding to database table"
+      echo -ne "  ${INFO} ${str}..."
+      database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
+      echo -e "${OVER}  ${TICK} ${str}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
     fi
@@ -429,10 +462,10 @@ gravity_DownloadBlocklistFromUrl() {
 
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
-  local source="${1}" destination="${2}" firstLine abpFilter
+  local source="${1}" destination="${2}" firstLine
 
   # Determine if we are parsing a consolidated list
-  if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
+  #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
     # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
     # This helps with that and makes it easier to read
@@ -449,7 +482,7 @@ gravity_ParseFileIntoDomains() {
     sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
     chmod 644 "${destination}"
     return 0
-  fi
+  #fi
 
   # Individual file parsing: Keep comments, while parsing domains from each line
   # We keep comments to respect the list maintainer's licensing
@@ -495,80 +528,28 @@ gravity_ParseFileIntoDomains() {
   fi
 }
 
-# Create (unfiltered) "Matter and Light" consolidated list
-gravity_ConsolidateDownloadedBlocklists() {
-  local str lastLine
-
-  str="Consolidating blocklists"
-  echo -ne "  ${INFO} ${str}..."
-
-  # Empty $matterAndLight if it already exists, otherwise, create it
-  : > "${piholeDir}/${matterAndLight}"
-  chmod 644 "${piholeDir}/${matterAndLight}"
-
-  # Loop through each *.domains file
-  for i in "${activeDomains[@]}"; do
-    # Determine if file has read permissions, as download might have failed
-    if [[ -r "${i}" ]]; then
-      # Remove windows CRs from file, convert list to lower case, and append into $matterAndLight
-      tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${matterAndLight}"
-
-      # Ensure that the first line of a new list is on a new line
-      lastLine=$(tail -1 "${piholeDir}/${matterAndLight}")
-      if [[ "${#lastLine}" -gt 0 ]]; then
-        echo "" >> "${piholeDir}/${matterAndLight}"
-      fi
-    fi
-  done
-  echo -e "${OVER}  ${TICK} ${str}"
-
-}
-
-# Parse consolidated list into (filtered, unique) domains-only format
-gravity_SortAndFilterConsolidatedList() {
-  local str num
-
-  str="Extracting domains from blocklists"
-  echo -ne "  ${INFO} ${str}..."
-
-  # Parse into file
-  gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
-
-  # Format $parsedMatter line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
-
-  echo -e "${OVER}  ${TICK} ${str}"
-  echo -e "  ${INFO} Gravity pulled in ${COL_BLUE}${num}${COL_NC} domains"
-
-  str="Removing duplicate domains"
-  echo -ne "  ${INFO} ${str}..."
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
-  chmod 644 "${piholeDir}/${preEventHorizon}"
-  echo -e "${OVER}  ${TICK} ${str}"
-
-  # Format $preEventHorizon line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  str="Storing ${COL_BLUE}${num}${COL_NC} unique blocking domains in database"
-  echo -ne "  ${INFO} ${str}..."
-  database_table_from_file "gravity" "${piholeDir}/${preEventHorizon}"
-  echo -e "${OVER}  ${TICK} ${str}"
-}
-
 # Report number of entries in a table
 gravity_Table_Count() {
   local table="${1}"
   local str="${2}"
   local num
-  num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${table} WHERE enabled = 1;")"
-  echo -e "  ${INFO} Number of ${str}: ${num}"
+  num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${table};")"
+  if [[ "${table}" == "vw_gravity" ]]; then
+    local unique
+    unique="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(DISTINCT domain) FROM ${table};")"
+    echo -e "  ${INFO} Number of ${str}: ${num} (${unique} unique domains)"
+  else
+    echo -e "  ${INFO} Number of ${str}: ${num}"
+  fi
 }
 
 # Output count of blacklisted domains and regex filters
 gravity_ShowCount() {
-  gravity_Table_Count "blacklist" "exact blacklisted domains"
-  gravity_Table_Count "regex_blacklist" "regex blacklist filters"
-  gravity_Table_Count "whitelist" "exact whitelisted domains"
-  gravity_Table_Count "regex_whitelist" "regex whitelist filters"
+  gravity_Table_Count "vw_gravity" "gravity domains" ""
+  gravity_Table_Count "vw_blacklist" "exact blacklisted domains"
+  gravity_Table_Count "vw_regex_blacklist" "regex blacklist filters"
+  gravity_Table_Count "vw_whitelist" "exact whitelisted domains"
+  gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
 }
 
 # Parse list of domains into hosts format
@@ -634,7 +615,7 @@ gravity_Cleanup() {
   # Ensure this function only runs when gravity_SetDownloadOptions() has completed
   if [[ "${gravity_Blackbody:-}" == true ]]; then
     # Remove any unused .domains files
-    for file in ${piholeDir}/*.${domainsExtension}; do
+    for file in "${piholeDir}"/*."${domainsExtension}"; do
       # If list is not in active array, then remove it
       if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
         rm -f "${file}" 2> /dev/null || \
@@ -687,12 +668,23 @@ for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
     "-o" | "--optimize" ) optimize_database=true;;
+    "-r" | "--recreate" ) recreate_database=true;;
     "-h" | "--help" ) helpFunc;;
   esac
 done
 
 # Trap Ctrl-C
 gravity_Trap
+
+if [[ "${recreate_database:-}" == true ]]; then
+  str="Restoring from migration backup"
+  echo -ne "${INFO} ${str}..."
+  rm "${gravityDBfile}"
+  pushd "${piholeDir}" > /dev/null || exit
+  cp migration_backup/* .
+  popd > /dev/null || exit
+  echo -e "${OVER}  ${TICK} ${str}"
+fi
 
 # Move possibly existing legacy files to the gravity database
 migrate_to_database
@@ -707,12 +699,7 @@ fi
 
 # Gravity downloads blocklists next
 gravity_CheckDNSResolutionAvailable
-if gravity_GetBlocklistUrls; then
-  gravity_SetDownloadOptions
-  # Build preEventHorizon
-  gravity_ConsolidateDownloadedBlocklists
-  gravity_SortAndFilterConsolidatedList
-fi
+gravity_DownloadBlocklists
 
 # Create local.list
 gravity_generateLocalList

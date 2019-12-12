@@ -91,6 +91,6 @@ CREATE VIEW vw_regex_blacklist AS SELECT domain, domainlist.id AS id, domainlist
     AND domainlist.type = 3
     ORDER BY domainlist.id;
 
-UPDATE info SET value = 6 WHERE property = 'version';
+UPDATE info SET value = 4 WHERE property = 'version';
 
 COMMIT;
