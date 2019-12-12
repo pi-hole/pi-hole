@@ -99,8 +99,8 @@ scanDatabaseTable() {
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     if [[ "${table}" == "gravity" ]]; then
       case "${type}" in
-          "exact" ) querystr="SELECT gravity.domain,adlist.address FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
-          *       ) querystr="SELECT gravity.domain,adlist.address FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+          "exact" ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
+          *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
       esac
     else
       case "${type}" in
@@ -210,12 +210,20 @@ if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
 fi
 
 for result in "${results[@]}"; do
-    adlistAddress="${result/*|/}"
+    match="${result/|*/}"
+    extra="${result#*|}"
+    adlistAddress="${extra/|*/}"
+    enabled="${extra#*|}"
+    if [[ "${enabled}" == "0" ]]; then
+      enabled="(disabled)"
+    else
+      enabled=""
+    fi
 
     if [[ -n "${blockpage}" ]]; then
         echo "${fileNum} ${adlistAddress}"
     elif [[ -n "${exact}" ]]; then
-        echo "  - ${adlistAddress}"
+        echo "  - ${adlistAddress} ${enabled}"
     else
         if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then
             count=""
@@ -230,7 +238,7 @@ for result in "${results[@]}"; do
             [[ "${count}" -gt "${max_count}" ]] && continue
             echo "   ${COL_GRAY}Over ${count} results found, skipping rest of file${COL_NC}"
         else
-            echo "   ${result/*|//}"
+            echo "   ${match} ${enabled}"
         fi
     fi
 done
