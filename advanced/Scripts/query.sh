@@ -88,7 +88,7 @@ if [[ -n "${str:-}" ]]; then
 fi
 
 scanDatabaseTable() {
-    local domain table type querystr result
+    local domain table type querystr result extra
     domain="$(printf "%q" "${1}")"
     table="${2}"
     type="${3:-}"
@@ -98,14 +98,14 @@ scanDatabaseTable() {
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     if [[ "${table}" == "gravity" ]]; then
-      case "${type}" in
+      case "${exact}" in
           "exact" ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
           *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
       esac
     else
-      case "${type}" in
-          "exact" ) querystr="SELECT domain FROM ${table} WHERE domain = '${domain}'";;
-          *       ) querystr="SELECT domain FROM ${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+      case "${exact}" in
+          "exact" ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain = '${domain}'";;
+          *       ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
       esac
     fi
 
@@ -126,7 +126,7 @@ scanDatabaseTable() {
 
     # Print table name
     if [[ -z "${blockpage}" ]]; then
-        echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+        echo " ${matchType^} found in ${COL_BOLD}exact ${table}${COL_NC}"
     fi
 
     # Loop over results and print them
@@ -136,7 +136,13 @@ scanDatabaseTable() {
             echo "π ${result}"
             exit 0
         fi
-        echo "   ${result}"
+        domain="${result/|*}"
+        if [[ "${result#*|}" == "0" ]]; then
+            extra=" (disabled)"
+        else
+            extra=""
+        fi
+        echo "   ${domain}${extra}"
     done
 }
 
@@ -144,9 +150,10 @@ scanRegexDatabaseTable() {
     local domain list
     domain="${1}"
     list="${2}"
+    type="${3:-}"
 
     # Query all regex from the corresponding database tables
-    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex_${list}" 2> /dev/null)
+    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = "${type} 2> /dev/null)
 
     # If we have regexps to process
     if [[ "${#regexList[@]}" -ne 0 ]]; then
@@ -159,7 +166,7 @@ scanRegexDatabaseTable() {
             # Split matching regexps over a new line
             str_regexMatches=$(printf '%s\n' "${regexMatches[@]}")
             # Form a "matched" message
-            str_message="${matchType^} found in ${COL_BOLD}Regex ${list}${COL_NC}"
+            str_message="${matchType^} found in ${COL_BOLD}regex ${list}${COL_NC}"
             # Form a "results" message
             str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
             # If we are displaying more than just the source of the block
@@ -180,15 +187,15 @@ scanRegexDatabaseTable() {
 }
 
 # Scan Whitelist and Blacklist
-scanDatabaseTable "${domainQuery}" "vw_whitelist" "${exact}"
-scanDatabaseTable "${domainQuery}" "vw_blacklist" "${exact}"
+scanDatabaseTable "${domainQuery}" "whitelist" "0"
+scanDatabaseTable "${domainQuery}" "blacklist" "1"
 
 # Scan Regex table
-scanRegexDatabaseTable "${domainQuery}" "whitelist"
-scanRegexDatabaseTable "${domainQuery}" "blacklist"
+scanRegexDatabaseTable "${domainQuery}" "whitelist" "2"
+scanRegexDatabaseTable "${domainQuery}" "blacklist" "3"
 
 # Query block lists
-mapfile -t results <<< "$(scanDatabaseTable "${domainQuery}" "gravity" "${exact}")"
+mapfile -t results <<< "$(scanDatabaseTable "${domainQuery}" "gravity")"
 
 # Handle notices
 if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
@@ -213,17 +220,17 @@ for result in "${results[@]}"; do
     match="${result/|*/}"
     extra="${result#*|}"
     adlistAddress="${extra/|*/}"
-    enabled="${extra#*|}"
-    if [[ "${enabled}" == "0" ]]; then
-      enabled="(disabled)"
+    extra="${extra#*|}"
+    if [[ "${extra}" == "0" ]]; then
+      extra="(disabled)"
     else
-      enabled=""
+      extra=""
     fi
 
     if [[ -n "${blockpage}" ]]; then
         echo "0 ${adlistAddress}"
     elif [[ -n "${exact}" ]]; then
-        echo "  - ${adlistAddress} ${enabled}"
+        echo "  - ${adlistAddress} ${extra}"
     else
         if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then
             count=""
@@ -238,7 +245,7 @@ for result in "${results[@]}"; do
             [[ "${count}" -gt "${max_count}" ]] && continue
             echo "   ${COL_GRAY}Over ${count} results found, skipping rest of file${COL_NC}"
         else
-            echo "   ${match} ${enabled}"
+            echo "   ${match} ${extra}"
         fi
     fi
 done
