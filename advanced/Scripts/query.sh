@@ -13,7 +13,6 @@
 piholeDir="/etc/pihole"
 gravityDBfile="${piholeDir}/gravity.db"
 options="$*"
-adlist=""
 all=""
 exact=""
 blockpage=""
@@ -153,7 +152,7 @@ scanRegexDatabaseTable() {
     type="${3:-}"
 
     # Query all regex from the corresponding database tables
-    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = "${type} 2> /dev/null)
+    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${type}" 2> /dev/null)
 
     # If we have regexps to process
     if [[ "${#regexList[@]}" -ne 0 ]]; then
