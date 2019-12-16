@@ -81,10 +81,6 @@ fi
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
   sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
-
-  # Ensure proper permissions are set for the newly created database
-  chown pihole:pihole "${gravityDBfile}"
-  chmod g+w "${piholeDir}" "${gravityDBfile}"
 }
 
 update_gravity_timestamp() {
@@ -689,6 +685,10 @@ fi
 
 # Move possibly existing legacy files to the gravity database
 migrate_to_database
+
+# Ensure proper permissions are set for the newly created database
+chown pihole:pihole "${gravityDBfile}"
+chmod g+w "${piholeDir}" "${gravityDBfile}"
 
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
