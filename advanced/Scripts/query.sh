@@ -13,7 +13,6 @@
 piholeDir="/etc/pihole"
 gravityDBfile="${piholeDir}/gravity.db"
 options="$*"
-adlist=""
 all=""
 exact=""
 blockpage=""
@@ -53,7 +52,6 @@ Example: 'pihole -q -exact domain.com'
 Query the adlists for a specified domain
 
 Options:
-  -adlist             Print the name of the block list URL
   -exact              Search the block lists for exact domain matches
   -all                Return all query matches within a block list
   -h, --help          Show this help dialog"
@@ -64,7 +62,6 @@ fi
 if [[ "${options}" == *"-bp"* ]]; then
     exact="exact"; blockpage=true
 else
-    [[ "${options}" == *"-adlist"* ]] && adlist=true
     [[ "${options}" == *"-all"* ]] && all=true
     if [[ "${options}" == *"-exact"* ]]; then
         exact="exact"; matchType="exact ${matchType}"
@@ -90,7 +87,7 @@ if [[ -n "${str:-}" ]]; then
 fi
 
 scanDatabaseTable() {
-    local domain table type querystr result
+    local domain table type querystr result extra
     domain="$(printf "%q" "${1}")"
     table="${2}"
     type="${3:-}"
@@ -99,10 +96,17 @@ scanDatabaseTable() {
     # Underscores are SQLite wildcards matching exactly one character. We obviously want to suppress this
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
-    case "${type}" in
-        "exact" ) querystr="SELECT domain FROM vw_${table} WHERE domain = '${domain}'";;
-        *       ) querystr="SELECT domain FROM vw_${table} WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
-    esac
+    if [[ "${table}" == "gravity" ]]; then
+      case "${exact}" in
+          "exact" ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
+          *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+      esac
+    else
+      case "${exact}" in
+          "exact" ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain = '${domain}'";;
+          *       ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+      esac
+    fi
 
     # Send prepared query to gravity database
     result="$(sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
@@ -111,12 +115,17 @@ scanDatabaseTable() {
         return
     fi
 
+    if [[ "${table}" == "gravity" ]]; then
+      echo "${result}"
+      return
+    fi
+
     # Mark domain as having been white-/blacklist matched (global variable)
     wbMatch=true
 
     # Print table name
     if [[ -z "${blockpage}" ]]; then
-        echo " ${matchType^} found in ${COL_BOLD}${table^}${COL_NC}"
+        echo " ${matchType^} found in ${COL_BOLD}exact ${table}${COL_NC}"
     fi
 
     # Loop over results and print them
@@ -126,7 +135,13 @@ scanDatabaseTable() {
             echo "π ${result}"
             exit 0
         fi
-        echo "   ${result}"
+        domain="${result/|*}"
+        if [[ "${result#*|}" == "0" ]]; then
+            extra=" (disabled)"
+        else
+            extra=""
+        fi
+        echo "   ${domain}${extra}"
     done
 }
 
@@ -134,9 +149,10 @@ scanRegexDatabaseTable() {
     local domain list
     domain="${1}"
     list="${2}"
+    type="${3:-}"
 
     # Query all regex from the corresponding database tables
-    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM vw_regex_${list}" 2> /dev/null)
+    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${type}" 2> /dev/null)
 
     # If we have regexps to process
     if [[ "${#regexList[@]}" -ne 0 ]]; then
@@ -149,7 +165,7 @@ scanRegexDatabaseTable() {
             # Split matching regexps over a new line
             str_regexMatches=$(printf '%s\n' "${regexMatches[@]}")
             # Form a "matched" message
-            str_message="${matchType^} found in ${COL_BOLD}Regex ${list}${COL_NC}"
+            str_message="${matchType^} found in ${COL_BOLD}regex ${list}${COL_NC}"
             # Form a "results" message
             str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
             # If we are displaying more than just the source of the block
@@ -170,32 +186,15 @@ scanRegexDatabaseTable() {
 }
 
 # Scan Whitelist and Blacklist
-scanDatabaseTable "${domainQuery}" "whitelist" "${exact}"
-scanDatabaseTable "${domainQuery}" "blacklist" "${exact}"
+scanDatabaseTable "${domainQuery}" "whitelist" "0"
+scanDatabaseTable "${domainQuery}" "blacklist" "1"
 
 # Scan Regex table
-scanRegexDatabaseTable "${domainQuery}" "whitelist"
-scanRegexDatabaseTable "${domainQuery}" "blacklist"
+scanRegexDatabaseTable "${domainQuery}" "whitelist" "2"
+scanRegexDatabaseTable "${domainQuery}" "blacklist" "3"
 
-# Get version sorted *.domains filenames (without dir path)
-lists=("$(cd "$piholeDir" || exit 0; printf "%s\\n" -- *.domains | sort -V)")
-
-# Query blocklists for occurences of domain
-mapfile -t results <<< "$(scanList "${domainQuery}" "${lists[*]}" "${exact}")"
-
-# Remove unwanted content from $results
-# Each line in $results is formatted as such: [fileName]:[line]
-# 1. Delete lines starting with #
-# 2. Remove comments after domain
-# 3. Remove hosts format IP address
-# 4. Remove any lines that no longer contain the queried domain name (in case the matched domain name was in a comment)
-esc_domain="${domainQuery//./\\.}"
-mapfile -t results <<< "$(IFS=$'\n'; sed \
-	-e "/:#/d" \
-	-e "s/[ \\t]#.*//g" \
-	-e "s/:.*[ \\t]/:/g" \
-	-e "/${esc_domain}/!d" \
-	<<< "${results[*]}")"
+# Query block lists
+mapfile -t results <<< "$(scanDatabaseTable "${domainQuery}" "gravity")"
 
 # Handle notices
 if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
@@ -210,12 +209,6 @@ elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
     exit 0
 fi
 
-# Get adlist file content as array
-if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-    # Retrieve source URLs from gravity database
-    mapfile -t adlists <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
-fi
-
 # Print "Exact matches for" title
 if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
     plural=""; [[ "${#results[*]}" -gt 1 ]] && plural="es"
@@ -223,28 +216,25 @@ if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
 fi
 
 for result in "${results[@]}"; do
-    fileName="${result/:*/}"
-
-    # Determine *.domains URL using filename's number
-    if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-        fileNum="${fileName/list./}"; fileNum="${fileNum%%.*}"
-        fileName="${adlists[$fileNum]}"
-
-        # Discrepency occurs when adlists has been modified, but Gravity has not been run
-        if [[ -z "${fileName}" ]]; then
-            fileName="${COL_LIGHT_RED}(no associated adlists URL found)${COL_NC}"
-        fi
+    match="${result/|*/}"
+    extra="${result#*|}"
+    adlistAddress="${extra/|*/}"
+    extra="${extra#*|}"
+    if [[ "${extra}" == "0" ]]; then
+      extra="(disabled)"
+    else
+      extra=""
     fi
 
     if [[ -n "${blockpage}" ]]; then
-        echo "${fileNum} ${fileName}"
+        echo "0 ${adlistAddress}"
     elif [[ -n "${exact}" ]]; then
-        echo "   ${fileName}"
+        echo "  - ${adlistAddress} ${extra}"
     else
-        if [[ ! "${fileName}" == "${fileName_prev:-}" ]]; then
+        if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then
             count=""
-            echo " ${matchType^} found in ${COL_BOLD}${fileName}${COL_NC}:"
-            fileName_prev="${fileName}"
+            echo " ${matchType^} found in ${COL_BOLD}${adlistAddress}${COL_NC}:"
+            adlistAddress_prev="${adlistAddress}"
         fi
         : $((count++))
 
@@ -254,7 +244,7 @@ for result in "${results[@]}"; do
             [[ "${count}" -gt "${max_count}" ]] && continue
             echo "   ${COL_GRAY}Over ${count} results found, skipping rest of file${COL_NC}"
         else
-            echo "   ${result#*:}"
+            echo "   ${match} ${extra}"
         fi
     fi
 done
