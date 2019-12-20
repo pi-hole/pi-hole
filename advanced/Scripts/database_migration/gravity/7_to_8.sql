@@ -1,0 +1,23 @@
+.timeout 30000
+
+PRAGMA FOREIGN_KEYS=OFF;
+
+BEGIN TRANSACTION;
+
+ALTER TABLE "group" RENAME TO "group__";
+
+CREATE TABLE "group"
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	enabled BOOLEAN NOT NULL DEFAULT 1,
+	name TEXT UNIQUE NOT NULL,
+	description TEXT
+);
+
+INSERT OR IGNORE INTO "group" SELECT * FROM "group__";
+
+DROP TABLE "group__";
+
+UPDATE info SET value = 8 WHERE property = 'version';
+
+COMMIT;
