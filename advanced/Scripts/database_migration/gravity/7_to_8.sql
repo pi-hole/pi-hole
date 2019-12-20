@@ -11,10 +11,17 @@ CREATE TABLE "group"
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	name TEXT UNIQUE NOT NULL,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	description TEXT
 );
 
-INSERT OR IGNORE INTO "group" SELECT * FROM "group__";
+CREATE TRIGGER tr_group_update AFTER UPDATE ON "group"
+    BEGIN
+      UPDATE "group" SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
+    END;
+
+INSERT OR IGNORE INTO "group" (id,enabled,name,description) SELECT id,enabled,name,description FROM "group__";
 
 DROP TABLE "group__";
 

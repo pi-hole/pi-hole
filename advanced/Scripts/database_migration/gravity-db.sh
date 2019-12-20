@@ -75,8 +75,9 @@ upgrade_gravityDB(){
 	if [[ "$version" == "7" ]]; then
 		# This migration script recreated the group table
 		# to ensure uniqueness on the group name
+		# We also add date_added and date_modified columns
 		echo -e "  ${INFO} Upgrading gravity database from version 7 to 8"
 		sqlite3 "${database}" < "${scriptPath}/7_to_8.sql"
-		version=7
+		version=8
 	fi
 }
