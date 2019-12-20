@@ -21,6 +21,11 @@ CREATE TRIGGER tr_group_update AFTER UPDATE ON "group"
       UPDATE "group" SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
     END;
 
+CREATE TRIGGER tr_group_zero AFTER DELETE ON "group"
+    BEGIN
+      INSERT OR IGNORE INTO "group" (id,enabled,name) VALUES (0,1,'Unassociated');
+    END;
+
 INSERT OR IGNORE INTO "group" (id,enabled,name,description) SELECT id,enabled,name,description FROM "group__";
 
 DROP TABLE "group__";
