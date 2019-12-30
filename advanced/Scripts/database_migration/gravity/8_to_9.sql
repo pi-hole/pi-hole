@@ -22,5 +22,6 @@ CREATE TRIGGER tr_group_zero AFTER DELETE ON "group"
       INSERT OR IGNORE INTO "group" (id,enabled,name) VALUES (0,1,'Unassociated');
     END;
 
+UPDATE info SET value = 9 WHERE property = 'version';
 
 COMMIT;
