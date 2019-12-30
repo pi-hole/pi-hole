@@ -80,4 +80,11 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "${scriptPath}/7_to_8.sql"
 		version=8
 	fi
+	if [[ "$version" == "8" ]]; then
+		# This migration fixes some issues that were introduced
+		# in the previous migration script.
+		echo -e "  ${INFO} Upgrading gravity database from version 8 to 9"
+		sqlite3 "${database}" < "${scriptPath}/8_to_9.sql"
+		version=9
+	fi
 }
