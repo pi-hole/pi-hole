@@ -1645,7 +1645,10 @@ install_dependent_packages() {
         done
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
+            printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
+            printf '%*s\n' "$columns" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
+            printf '%*s\n' "$columns" '' | tr " " -;
             return
         fi
         printf "\\n"
@@ -1663,7 +1666,10 @@ install_dependent_packages() {
         fi
     done
     if [[ "${#installArray[@]}" -gt 0 ]]; then
-        "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
+        printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
+        printf '%*s\n' "$columns" '' | tr " " -;
+        "${PKG_INSTALL[@]}" "${installArray[@]}"
+        printf '%*s\n' "$columns" '' | tr " " -;
         return
     fi
     printf "\\n"
