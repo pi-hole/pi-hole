@@ -287,15 +287,14 @@ elif is_command rpm ; then
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
     PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite libcap)
-    PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml)
+    PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
     # If the host OS is Fedora,
     if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
-        # ensure 'php-json' is installed on Fedora (installed as dependency on CentOS7 + Remi repository)
-        PIHOLE_WEB_DEPS+=('php-json')
+        : # continue
     # or if host OS is CentOS,
     elif grep -qiE 'centos|scientific' /etc/redhat-release; then
         # Pi-Hole currently supports CentOS 7+ with PHP7+
@@ -310,7 +309,21 @@ elif is_command rpm ; then
             # exit the installer
             exit
         fi
-        # on CentOS we need to add the EPEL repository to gain access to Fedora packages
+        # php-json is not required on CentOS 7 as it is already compiled into php
+        # verifiy via `php -m | grep json`
+        if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
+            # create a temporary array as arrays are not designed for use as mutable data structures
+            CENTOS7_PIHOLE_WEB_DEPS=()
+            for i in "${!PIHOLE_WEB_DEPS[@]}"; do
+                if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
+                    CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
+                fi
+            done
+            # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
+            PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
+            unset CENTOS7_PIHOLE_WEB_DEPS
+        fi
+        # CentOS requires the EPEL repository to gain access to Fedora packages
         EPEL_PKG="epel-release"
         rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
         if [[ $rc -ne 0 ]]; then
