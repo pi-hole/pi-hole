@@ -1105,7 +1105,7 @@ show_db_entries() {
 }
 
 show_groups() {
-    show_db_entries "Groups" "SELECT * FROM \"group\"" "4 4 30 50"
+    show_db_entries "Groups" "SELECT id,name,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 50 7 19 19 50"
 }
 
 show_adlists() {
