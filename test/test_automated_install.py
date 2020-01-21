@@ -104,14 +104,15 @@ def test_configureFirewall_firewalld_running_no_errors(Pihole):
     source /opt/pihole/basic-install.sh
     configureFirewall
     ''')
-    expected_stdout = 'Configuring FirewallD for httpd and pihole-FTL'
+    expected_stdout = 'Configuring FirewallD for httpd, dhcpd and pihole-FTL'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
     assert 'firewall-cmd --state' in firewall_calls
     assert ('firewall-cmd '
             '--permanent '
             '--add-service=http '
-            '--add-service=dns') in firewall_calls
+            '--add-service=dns '
+            '--add-service=dhcp') in firewall_calls
     assert 'firewall-cmd --reload' in firewall_calls
 
 

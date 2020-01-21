@@ -1786,7 +1786,7 @@ create_pihole_user() {
     fi
 }
 
-# Allow HTTP and DNS traffic
+# Allow HTTP, DHCP and DNS traffic
 configureFirewall() {
     printf "\\n"
     # If a firewall is running,
@@ -1794,9 +1794,9 @@ configureFirewall() {
         # ask if the user wants to install Pi-hole's default firewall rules
         whiptail --title "Firewall in use" --yesno "We have detected a running firewall\\n\\nPi-hole currently requires HTTP and DNS port access.\\n\\n\\n\\nInstall Pi-hole default firewall rules?" "${r}" "${c}" || \
         { printf "  %b Not installing firewall rulesets.\\n" "${INFO}"; return 0; }
-        printf "  %b Configuring FirewallD for httpd and pihole-FTL\\n" "${TICK}"
-        # Allow HTTP and DNS traffic
-        firewall-cmd --permanent --add-service=http --add-service=dns
+        printf "  %b Configuring FirewallD for httpd, dhcpd and pihole-FTL\\n" "${TICK}"
+        # Allow HTTP, DHCP and DNS traffic
+        firewall-cmd --permanent --add-service=http --add-service=dns --add-service=dhcp
         # Reload the firewall to apply these changes
         firewall-cmd --reload
         return 0
