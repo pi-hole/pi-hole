@@ -175,16 +175,16 @@ database_table_from_file() {
       echo -e "\\n  ${CROSS} Unable to fill table ${table} in database ${gravityDBfile}\\n  ${output}"
       gravity_Cleanup "error"
     fi
+
+    # Move source file to backup directory, create directory if not existing
+    mkdir -p "${backup_path}"
+    mv "${source}" "${backup_file}" 2> /dev/null || \
+        echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
   fi
 
   # Delete tmpFile
   rm "${tmpFile}" > /dev/null 2>&1 || \
     echo -e "  ${CROSS} Unable to remove ${tmpFile}"
-
-  # Move source file to backup directory, create directory if not existing
-  mkdir -p "${backup_path}"
-  mv "${source}" "${backup_file}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
 }
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
