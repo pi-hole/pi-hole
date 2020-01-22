@@ -827,7 +827,6 @@ setDHCPCD() {
         # we can append these lines to dhcpcd.conf to enable a static IP
         echo "interface ${PIHOLE_INTERFACE}
         static ip_address=${IPV4_ADDRESS}
-        static routers=${IPv4gw}
         static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
         # Then use the ip command to immediately set the new address
         ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
