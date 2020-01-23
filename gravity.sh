@@ -140,7 +140,7 @@ database_table_from_file() {
 
   if [[ "${table}" == "gravity_new" ]]; then
     #Append ,${arg} to every line and then remove blank lines before import
-    sed -e "s/$/,${arg}/;/^$/d" "${source}" > "${target}"
+    sed -e "s/$/,${arg}/;/^$/d" "${source}" >> "${target}"
   else
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
