@@ -140,7 +140,7 @@ database_table_from_file() {
 
   if [[ "${table}" == "gravity_temp" ]]; then
     #Append ,${arg} to every line and then remove blank lines before import
-    sed -e "s/$/,${arg}/;/^$/d" "${source}" >> "${target}"
+    time sed -e "s/$/,${arg}/;/^$/d" "${source}" >> "${target}"
   else
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
@@ -348,7 +348,7 @@ gravity_DownloadBlocklists() {
 
   str="Storing downloaded domains in new gravity table"
   echo -ne "  ${INFO} ${str}..."
-  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity_temp\\n" "${target}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  time output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity_temp\\n" "${target}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -360,7 +360,7 @@ gravity_DownloadBlocklists() {
 
   str="Activating new gravity table"
   echo -ne "  ${INFO} ${str}..."
-  output=$( { sqlite3 "${gravityDBfile}" < "${gravity_replace}"; } 2>&1 )
+  time output=$( { sqlite3 "${gravityDBfile}" < "${gravity_replace}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
