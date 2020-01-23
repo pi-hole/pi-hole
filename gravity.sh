@@ -37,7 +37,7 @@ VPNList="/etc/openvpn/ipp.txt"
 piholeGitDir="/etc/.pihole"
 gravityDBfile="${piholeDir}/gravity.db"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
-gravity_new_schema="${piholeGitDir}/advanced/Templates/gravity_new.sql"
+gravity_temp_schema="${piholeGitDir}/advanced/Templates/gravity_temp.sql"
 gravity_replace="${piholeGitDir}/advanced/Templates/gravity_replace.sql"
 optimize_database=false
 
@@ -125,7 +125,7 @@ database_table_from_file() {
   tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
 
   # Truncate table only if not gravity (we add multiple times to this table)
-  if [[ "${table}" != "gravity_new" ]]; then
+  if [[ "${table}" != "gravity_temp" ]]; then
     database_truncate_table "${table}"
   fi
 
@@ -138,7 +138,7 @@ database_table_from_file() {
   declare -i rowid
   rowid=1
 
-  if [[ "${table}" == "gravity_new" ]]; then
+  if [[ "${table}" == "gravity_temp" ]]; then
     #Append ,${arg} to every line and then remove blank lines before import
     sed -e "s/$/,${arg}/;/^$/d" "${source}" >> "${target}"
   else
@@ -161,7 +161,7 @@ database_table_from_file() {
   # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  if [[ "${table}" != "gravity_new" ]]; then
+  if [[ "${table}" != "gravity_temp" ]]; then
     output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
     status="$?"
 
@@ -311,7 +311,7 @@ gravity_DownloadBlocklists() {
   # Flush gravity table once before looping over sources
   str="Preparing new gravity table"
   echo -ne "  ${INFO} ${str}..."
-  output=$( { sqlite3 "${gravityDBfile}" < "${gravity_new_schema}"; } 2>&1 )
+  output=$( { sqlite3 "${gravityDBfile}" < "${gravity_temp_schema}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -348,11 +348,11 @@ gravity_DownloadBlocklists() {
 
   str="Storing downloaded domains in new gravity table"
   echo -ne "  ${INFO} ${str}..."
-  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity_new\\n" "${target}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity_temp\\n" "${target}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to fill table gravity_new in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to fill table gravity_temp in database ${gravityDBfile}\\n  ${output}"
     gravity_Cleanup "error"
   else
     echo -e "${OVER}  ${TICK} ${str}"
@@ -461,13 +461,13 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
-      database_table_from_file "gravity_new" "${saveLocation}" "${target}" "${adlistID}"
+      database_table_from_file "gravity_temp" "${saveLocation}" "${target}" "${adlistID}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       # Add domains to database table file
-      database_table_from_file "gravity_new" "${saveLocation}" "${target}" "${adlistID}"
+      database_table_from_file "gravity_temp" "${saveLocation}" "${target}" "${adlistID}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -477,7 +477,7 @@ gravity_DownloadBlocklistFromUrl() {
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       # Add domains to database table file
-      database_table_from_file "gravity_new" "${saveLocation}" "${target}" "${adlistID}"
+      database_table_from_file "gravity_temp" "${saveLocation}" "${target}" "${adlistID}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
     fi

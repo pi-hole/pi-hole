@@ -2,9 +2,9 @@
 
 BEGIN TRANSACTION;
 
-DROP TABLE IF EXISTS gravity_new;
+DROP TABLE IF EXISTS gravity_temp;
 
-CREATE TABLE gravity_new
+CREATE TABLE gravity_temp
 (
 	domain TEXT NOT NULL,
 	adlist_id INTEGER NOT NULL REFERENCES adlist (id),
