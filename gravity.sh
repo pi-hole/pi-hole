@@ -87,13 +87,18 @@ generate_gravity_database() {
 
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
-  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
+  local str
+  str="Swapping databases"
+  echo -ne "  ${INFO} ${str}..."
+
+  time output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
     return 1
   fi
+  echo -e "${OVER}  ${TICK} ${str}"
 
   # Swap databases and remove old database
   rm "${gravityDBfile}"
