@@ -36,9 +36,9 @@ VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
 gravityDBfile="${piholeDir}/gravity.db"
+gravityTEMPfile="${piholeDir}/gravity_temp.db"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
-gravity_temp_schema="${piholeGitDir}/advanced/Templates/gravity_temp.sql"
-gravity_replace="${piholeGitDir}/advanced/Templates/gravity_replace.sql"
+gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 optimize_database=false
 
 domainsExtension="domains"
@@ -82,31 +82,31 @@ fi
 
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
-  sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+  sqlite3 "${1}" < "${gravityDBschema}"
 }
 
-update_gravity_timestamp() {
-  # Update timestamp when the gravity table was last updated successfully
-  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+# Copy data from old to new database file and swap them
+gravity_swap_databases() {
+  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
     return 1
   fi
-  return 0
+
+  # Swap databases and remove old database
+  rm "${gravityDBfile}"
+  mv "${gravityTEMPfile}" "${gravityDBfile}"
 }
 
-database_truncate_table() {
-  local table
-  table="${1}"
-
-  output=$( { printf ".timeout 30000\\nDELETE FROM %s;" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+# Update timestamp when the gravity table was last updated successfully
+update_gravity_timestamp() {
+  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | sqlite3 "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to truncate ${table} database ${gravityDBfile}\\n  ${output}"
-    gravity_Cleanup "error"
+    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityTEMPfile}\\n  ${output}"
     return 1
   fi
   return 0
@@ -197,7 +197,7 @@ migrate_to_database() {
   if [ ! -e "${gravityDBfile}" ]; then
     # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
-    generate_gravity_database
+    generate_gravity_database "${gravityDBfile}"
 
     # Check if gravity database needs to be updated
     upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
@@ -321,14 +321,15 @@ gravity_DownloadBlocklists() {
   local url domain agent cmd_ext str target
   echo ""
 
-  # Flush gravity table once before looping over sources
-  str="Preparing new gravity table"
+  # Prepare new gravity database
+  str="Preparing new gravity database"
   echo -ne "  ${INFO} ${str}..."
-  output=$( { sqlite3 "${gravityDBfile}" < "${gravity_temp_schema}"; } 2>&1 )
+  rm "${gravityTEMPfile}" > /dev/null 2>&1
+  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBschema}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to activate new gravity table in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n  ${output}"
     gravity_Cleanup "error"
   else
     echo -e "${OVER}  ${TICK} ${str}"
@@ -359,25 +360,13 @@ gravity_DownloadBlocklists() {
     echo ""
   done
 
-  str="Storing downloaded domains in new gravity table"
+  str="Storing downloaded domains in new gravity database"
   echo -ne "  ${INFO} ${str}..."
-  time output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity_temp\\n" "${target}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  time output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity\\n" "${target}" | sqlite3 "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to fill table gravity_temp in database ${gravityDBfile}\\n  ${output}"
-    gravity_Cleanup "error"
-  else
-    echo -e "${OVER}  ${TICK} ${str}"
-  fi
-
-  str="Activating new gravity table"
-  echo -ne "  ${INFO} ${str}..."
-  time output=$( { sqlite3 "${gravityDBfile}" < "${gravity_replace}"; } 2>&1 )
-  status="$?"
-
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to activate new gravity table in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to fill gravity table in database ${gravityTEMPfile}\\n  ${output}"
     gravity_Cleanup "error"
   else
     echo -e "${OVER}  ${TICK} ${str}"
@@ -727,10 +716,6 @@ fi
 # Move possibly existing legacy files to the gravity database
 migrate_to_database
 
-# Ensure proper permissions are set for the newly created database
-chown pihole:pihole "${gravityDBfile}"
-chmod g+w "${piholeDir}" "${gravityDBfile}"
-
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
   echo -ne "${INFO} ${str}..."
@@ -745,15 +730,26 @@ gravity_DownloadBlocklists
 
 # Create local.list
 gravity_generateLocalList
-gravity_ShowCount
 
+# Update gravity timestamp
 update_gravity_timestamp
 
-gravity_Cleanup
-echo ""
+# Migrate rest of the data from old to new database
+gravity_swap_databases
+
+# Ensure proper permissions are set for the database
+chown pihole:pihole "${gravityDBfile}"
+chmod g+w "${piholeDir}" "${gravityDBfile}"
 
 # Determine if DNS has been restarted by this instance of gravity
 if [[ -z "${dnsWasOffline:-}" ]]; then
   "${PIHOLE_COMMAND}" restartdns reload
 fi
+
+# Compute numbers to be displayed
+gravity_ShowCount
+
+gravity_Cleanup
+echo ""
+
 "${PIHOLE_COMMAND}" status
