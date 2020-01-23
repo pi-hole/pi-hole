@@ -115,82 +115,76 @@ database_truncate_table() {
 # Import domains from file and store them in the specified database table
 database_table_from_file() {
   # Define locals
-  local table source backup_path backup_file target arg tmpFile type
+  local table source backup_path backup_file tmpFile type
   table="${1}"
   source="${2}"
-  target="${3}"
-  arg="${4}"
   backup_path="${piholeDir}/migration_backup"
   backup_file="${backup_path}/$(basename "${2}")"
   tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
 
   local timestamp
   timestamp="$(date --utc +'%s')"
-  local inputfile
-  # Apply format for white-, blacklist, regex, and adlist tables
-  # Read file line by line
+
   local rowid
   declare -i rowid
   rowid=1
 
-  if [[ "${table}" == "gravity_temp" ]]; then
-    #Append ,${arg} to every line and then remove blank lines before import
-    time sed -e "s/$/,${arg}/;/^$/d" "${source}" >> "${target}"
-  else
-    # Special handling for domains to be imported into the common domainlist table
-    if [[ "${table}" == "whitelist" ]]; then
-      type="0"
-      table="domainlist"
-    elif [[ "${table}" == "blacklist" ]]; then
-      type="1"
-      table="domainlist"
-    elif [[ "${table}" == "regex" ]]; then
-      type="3"
-      table="domainlist"
+  # Special handling for domains to be imported into the common domainlist table
+  if [[ "${table}" == "whitelist" ]]; then
+    type="0"
+    table="domainlist"
+  elif [[ "${table}" == "blacklist" ]]; then
+    type="1"
+    table="domainlist"
+  elif [[ "${table}" == "regex" ]]; then
+    type="3"
+    table="domainlist"
+  fi
+
+  # Get MAX(id) from domainlist when INSERTing into this table
+  if [[ "${table}" == "domainlist" ]]; then
+    rowid="$(sqlite3 "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
+    if [[ -z "$rowid" ]]; then
+      rowid=0
     fi
-    if [[ "${table}" == "domainlist" ]]; then
-      rowid="$(sqlite3 "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
-      if [[ -z "$rowid" ]]; then
-        rowid=0
+    rowid+=1
+  fi
+
+  # Loop over all domains in ${source} file
+  # Read file line by line
+  grep -v '^ *#' < "${source}" | while IFS= read -r domain
+  do
+    # Only add non-empty lines
+    if [[ -n "${domain}" ]]; then
+      if [[ "${table}" == "domain_audit" ]]; then
+        # domain_audit table format (no enable or modified fields)
+        echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
+      elif [[ "${table}" == "adlist" ]]; then
+        # Adlist table format
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+      else
+        # White-, black-, and regexlist table format
+        echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
       fi
       rowid+=1
     fi
-    grep -v '^ *#' < "${source}" | while IFS= read -r domain
-    do
-      # Only add non-empty lines
-      if [[ -n "${domain}" ]]; then
-        if [[ "${table}" == "domain_audit" ]]; then
-          # domain_audit table format (no enable or modified fields)
-          echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
-        elif [[ "${table}" == "adlist" ]]; then
-          # Adlist table format
-          echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
-        else
-          # White-, black-, and regexlist table format
-          echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
-        fi
-        rowid+=1
-      fi
-    done
-  fi
+  done
 
   # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  if [[ "${table}" != "gravity_temp" ]]; then
-    output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
-    status="$?"
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
 
-    if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to fill table ${table}${type} in database ${gravityDBfile}\\n  ${output}"
-      gravity_Cleanup "error"
-    fi
-
-    # Move source file to backup directory, create directory if not existing
-    mkdir -p "${backup_path}"
-    mv "${source}" "${backup_file}" 2> /dev/null || \
-        echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to fill table ${table}${type} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
   fi
+
+  # Move source file to backup directory, create directory if not existing
+  mkdir -p "${backup_path}"
+  mv "${source}" "${backup_file}" 2> /dev/null || \
+      echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
 
   # Delete tmpFile
   rm "${tmpFile}" > /dev/null 2>&1 || \
@@ -379,7 +373,6 @@ gravity_DownloadBlocklists() {
 
   str="Activating new gravity table"
   echo -ne "  ${INFO} ${str}..."
-  exit
   time output=$( { sqlite3 "${gravityDBfile}" < "${gravity_replace}"; } 2>&1 )
   status="$?"
 
@@ -481,13 +474,14 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
-      database_table_from_file "gravity_temp" "${saveLocation}" "${target}" "${adlistID}"
+      #Append ,${arg} to every line and then remove blank lines before import
+      time sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
-      # Add domains to database table file
-      database_table_from_file "gravity_temp" "${saveLocation}" "${target}" "${adlistID}"
+      #Append ,${arg} to every line and then remove blank lines before import
+      time sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -496,8 +490,8 @@ gravity_DownloadBlocklistFromUrl() {
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
-      # Add domains to database table file
-      database_table_from_file "gravity_temp" "${saveLocation}" "${target}" "${adlistID}"
+      #Append ,${arg} to every line and then remove blank lines before import
+      time sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
     fi
