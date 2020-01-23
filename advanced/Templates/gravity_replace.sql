@@ -7,6 +7,6 @@ ALTER TABLE gravity RENAME TO gravity_old;
 ALTER TABLE gravity_temp RENAME TO gravity;
 PRAGMA legacy_alter_table=OFF;
 
-DROP TABLE IF EXISTS gravity_old;
+DROP TABLE gravity_old;
 
 COMMIT;

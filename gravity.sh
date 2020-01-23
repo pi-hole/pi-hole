@@ -115,7 +115,7 @@ database_truncate_table() {
 # Import domains from file and store them in the specified database table
 database_table_from_file() {
   # Define locals
-  local table source backup_path backup_file target arg tmpFile
+  local table source backup_path backup_file target arg tmpFile type
   table="${1}"
   source="${2}"
   target="${3}"
@@ -123,11 +123,6 @@ database_table_from_file() {
   backup_path="${piholeDir}/migration_backup"
   backup_file="${backup_path}/$(basename "${2}")"
   tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
-
-  # Truncate table only if not gravity (we add multiple times to this table)
-  if [[ "${table}" != "gravity_temp" ]]; then
-    database_truncate_table "${table}"
-  fi
 
   local timestamp
   timestamp="$(date --utc +'%s')"
@@ -142,6 +137,24 @@ database_table_from_file() {
     #Append ,${arg} to every line and then remove blank lines before import
     time sed -e "s/$/,${arg}/;/^$/d" "${source}" >> "${target}"
   else
+    # Special handling for domains to be imported into the common domainlist table
+    if [[ "${table}" == "whitelist" ]]; then
+      type="0"
+      table="domainlist"
+    elif [[ "${table}" == "blacklist" ]]; then
+      type="1"
+      table="domainlist"
+    elif [[ "${table}" == "regex" ]]; then
+      type="3"
+      table="domainlist"
+    fi
+    if [[ "${table}" == "domainlist" ]]; then
+      rowid="$(sqlite3 "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
+      if [[ -z "$rowid" ]]; then
+        rowid=0
+      fi
+      rowid+=1
+    fi
     grep -v '^ *#' < "${source}" | while IFS= read -r domain
     do
       # Only add non-empty lines
@@ -149,9 +162,12 @@ database_table_from_file() {
         if [[ "${table}" == "domain_audit" ]]; then
           # domain_audit table format (no enable or modified fields)
           echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
-        else
-          # White-, black-, and regexlist format
+        elif [[ "${table}" == "adlist" ]]; then
+          # Adlist table format
           echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+        else
+          # White-, black-, and regexlist table format
+          echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
         fi
         rowid+=1
       fi
@@ -166,7 +182,7 @@ database_table_from_file() {
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to fill table ${table} in database ${gravityDBfile}\\n  ${output}"
+      echo -e "\\n  ${CROSS} Unable to fill table ${table}${type} in database ${gravityDBfile}\\n  ${output}"
       gravity_Cleanup "error"
     fi
 
@@ -188,6 +204,9 @@ migrate_to_database() {
     # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
     generate_gravity_database
+
+    # Check if gravity database needs to be updated
+    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
 
     # Migrate list files to new database
     if [ -e "${adListFile}" ]; then
@@ -360,6 +379,7 @@ gravity_DownloadBlocklists() {
 
   str="Activating new gravity table"
   echo -ne "  ${INFO} ${str}..."
+  exit
   time output=$( { sqlite3 "${gravityDBfile}" < "${gravity_replace}"; } 2>&1 )
   status="$?"
 
@@ -654,7 +674,7 @@ gravity_Cleanup() {
     str="Optimizing domains database"
     echo -ne "  ${INFO} ${str}..."
     # Run VACUUM command on database to optimize it
-    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
+    time output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
