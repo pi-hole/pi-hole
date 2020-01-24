@@ -1,62 +1,26 @@
-PRAGMA FOREIGN_KEYS=ON;
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
 
 CREATE TABLE "group"
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
-	name TEXT NOT NULL,
+	name TEXT UNIQUE NOT NULL,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	description TEXT
 );
+INSERT INTO "group" (id,enabled,name) VALUES (0,1,'Unassociated');
 
-CREATE TABLE whitelist
+CREATE TABLE domainlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	type INTEGER NOT NULL DEFAULT 0,
 	domain TEXT UNIQUE NOT NULL,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	comment TEXT
-);
-
-CREATE TABLE whitelist_by_group
-(
-	whitelist_id INTEGER NOT NULL REFERENCES whitelist (id),
-	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (whitelist_id, group_id)
-);
-
-CREATE TABLE blacklist
-(
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	domain TEXT UNIQUE NOT NULL,
-	enabled BOOLEAN NOT NULL DEFAULT 1,
-	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
-);
-
-CREATE TABLE blacklist_by_group
-(
-	blacklist_id INTEGER NOT NULL REFERENCES blacklist (id),
-	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (blacklist_id, group_id)
-);
-
-CREATE TABLE regex
-(
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	domain TEXT UNIQUE NOT NULL,
-	enabled BOOLEAN NOT NULL DEFAULT 1,
-	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
-);
-
-CREATE TABLE regex_by_group
-(
-	regex_id INTEGER NOT NULL REFERENCES regex (id),
-	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (regex_id, group_id)
 );
 
 CREATE TABLE adlist
@@ -78,7 +42,8 @@ CREATE TABLE adlist_by_group
 
 CREATE TABLE gravity
 (
-	domain TEXT PRIMARY KEY
+	domain TEXT NOT NULL,
+	adlist_id INTEGER NOT NULL REFERENCES adlist (id)
 );
 
 CREATE TABLE info
@@ -87,56 +52,129 @@ CREATE TABLE info
 	value TEXT NOT NULL
 );
 
-INSERT INTO info VALUES("version","1");
+INSERT INTO "info" VALUES('version','10');
 
-CREATE VIEW vw_whitelist AS SELECT DISTINCT domain
-    FROM whitelist
-    LEFT JOIN whitelist_by_group ON whitelist_by_group.whitelist_id = whitelist.id
-    LEFT JOIN "group" ON "group".id = whitelist_by_group.group_id
-    WHERE whitelist.enabled = 1 AND (whitelist_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY whitelist.id;
+CREATE TABLE domain_audit
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	domain TEXT UNIQUE NOT NULL,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int))
+);
 
-CREATE TRIGGER tr_whitelist_update AFTER UPDATE ON whitelist
-    BEGIN
-      UPDATE whitelist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
-    END;
+CREATE TABLE domainlist_by_group
+(
+	domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
+	group_id INTEGER NOT NULL REFERENCES "group" (id),
+	PRIMARY KEY (domainlist_id, group_id)
+);
 
-CREATE VIEW vw_blacklist AS SELECT DISTINCT domain
-    FROM blacklist
-    LEFT JOIN blacklist_by_group ON blacklist_by_group.blacklist_id = blacklist.id
-    LEFT JOIN "group" ON "group".id = blacklist_by_group.group_id
-    WHERE blacklist.enabled = 1 AND (blacklist_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY blacklist.id;
+CREATE TABLE client
+(
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	ip TEXT NOL NULL UNIQUE
+);
 
-CREATE TRIGGER tr_blacklist_update AFTER UPDATE ON blacklist
-    BEGIN
-      UPDATE blacklist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
-    END;
-
-CREATE VIEW vw_regex AS SELECT DISTINCT domain
-    FROM regex
-    LEFT JOIN regex_by_group ON regex_by_group.regex_id = regex.id
-    LEFT JOIN "group" ON "group".id = regex_by_group.group_id
-    WHERE regex.enabled = 1 AND (regex_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY regex.id;
-
-CREATE TRIGGER tr_regex_update AFTER UPDATE ON regex
-    BEGIN
-      UPDATE regex SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
-    END;
-
-CREATE VIEW vw_adlist AS SELECT DISTINCT address
-    FROM adlist
-    LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = adlist.id
-    LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
-    WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1)
-    ORDER BY adlist.id;
+CREATE TABLE client_by_group
+(
+	client_id INTEGER NOT NULL REFERENCES client (id),
+	group_id INTEGER NOT NULL REFERENCES "group" (id),
+	PRIMARY KEY (client_id, group_id)
+);
 
 CREATE TRIGGER tr_adlist_update AFTER UPDATE ON adlist
     BEGIN
       UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
     END;
 
-CREATE VIEW vw_gravity AS SELECT domain
+CREATE TRIGGER tr_domainlist_update AFTER UPDATE ON domainlist
+    BEGIN
+      UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
+    END;
+
+CREATE VIEW vw_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 0
+    ORDER BY domainlist.id;
+
+CREATE VIEW vw_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 1
+    ORDER BY domainlist.id;
+
+CREATE VIEW vw_regex_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 2
+    ORDER BY domainlist.id;
+
+CREATE VIEW vw_regex_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+    FROM domainlist
+    LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
+    LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
+    WHERE domainlist.enabled = 1 AND (domainlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    AND domainlist.type = 3
+    ORDER BY domainlist.id;
+
+CREATE VIEW vw_gravity AS SELECT domain, adlist_by_group.group_id AS group_id
     FROM gravity
-    WHERE domain NOT IN (SELECT domain from vw_whitelist);
+    LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = gravity.adlist_id
+    LEFT JOIN adlist ON adlist.id = gravity.adlist_id
+    LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
+    WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1);
+
+CREATE VIEW vw_adlist AS SELECT DISTINCT address, adlist.id AS id
+    FROM adlist
+    LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = adlist.id
+    LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
+    WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1)
+    ORDER BY adlist.id;
+
+CREATE TRIGGER tr_domainlist_add AFTER INSERT ON domainlist
+    BEGIN
+      INSERT INTO domainlist_by_group (domainlist_id, group_id) VALUES (NEW.id, 0);
+    END;
+
+CREATE TRIGGER tr_client_add AFTER INSERT ON client
+    BEGIN
+      INSERT INTO client_by_group (client_id, group_id) VALUES (NEW.id, 0);
+    END;
+
+CREATE TRIGGER tr_adlist_add AFTER INSERT ON adlist
+    BEGIN
+      INSERT INTO adlist_by_group (adlist_id, group_id) VALUES (NEW.id, 0);
+    END;
+
+CREATE TRIGGER tr_group_update AFTER UPDATE ON "group"
+    BEGIN
+      UPDATE "group" SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
+    END;
+
+CREATE TRIGGER tr_group_zero AFTER DELETE ON "group"
+    BEGIN
+      INSERT OR IGNORE INTO "group" (id,enabled,name) VALUES (0,1,'Unassociated');
+    END;
+
+CREATE TRIGGER tr_domainlist_delete AFTER DELETE ON domainlist
+    BEGIN
+      DELETE FROM domainlist_by_group WHERE domainlist_id = OLD.id;
+    END;
+
+CREATE TRIGGER tr_adlist_delete AFTER DELETE ON adlist
+    BEGIN
+      DELETE FROM adlist_by_group WHERE adlist_id = OLD.id;
+    END;
+
+CREATE TRIGGER tr_client_delete AFTER DELETE ON client
+    BEGIN
+      DELETE FROM client_by_group WHERE client_id = OLD.id;
+    END;
+
+COMMIT;
