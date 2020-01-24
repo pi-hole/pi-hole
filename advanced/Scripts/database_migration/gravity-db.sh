@@ -87,4 +87,11 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "${scriptPath}/8_to_9.sql"
 		version=9
 	fi
+	if [[ "$version" == "9" ]]; then
+		# This migration drops unused tables and creates triggers to remove
+		# obsolete groups assignments when the linked items are deleted
+		echo -e "  ${INFO} Upgrading gravity database from version 9 to 10"
+		sqlite3 "${database}" < "${scriptPath}/9_to_10.sql"
+		version=10
+	fi
 }
