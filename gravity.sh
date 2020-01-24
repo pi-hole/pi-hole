@@ -92,7 +92,7 @@ gravity_swap_databases() {
   echo -ne "  ${INFO} ${str}..."
 
   # The index is intentionally not UNIQUE as prro quality adlists may contain domains more than once
-  time output=$( { sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
+  output=$( { sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -104,7 +104,7 @@ gravity_swap_databases() {
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
-  time output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
+  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -380,7 +380,7 @@ gravity_DownloadBlocklists() {
 
   str="Storing downloaded domains in new gravity database"
   echo -ne "  ${INFO} ${str}..."
-  time output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity\\n" "${target}" | sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity\\n" "${target}" | sqlite3 "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -482,13 +482,13 @@ gravity_DownloadBlocklistFromUrl() {
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
       #Append ,${arg} to every line and then remove blank lines before import
-      time sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
+      sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       #Append ,${arg} to every line and then remove blank lines before import
-      time sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
+      sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -498,7 +498,7 @@ gravity_DownloadBlocklistFromUrl() {
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       #Append ,${arg} to every line and then remove blank lines before import
-      time sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
+      sed -e "s/$/,${adlistID}/;/^$/d" "${saveLocation}" >> "${target}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
     fi
@@ -675,7 +675,7 @@ gravity_Cleanup() {
     str="Optimizing domains database"
     echo -ne "  ${INFO} ${str}..."
     # Run VACUUM command on database to optimize it
-    time output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
+    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
     status="$?"
 
     if [[ "${status}" -ne 0 ]]; then
