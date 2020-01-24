@@ -43,8 +43,7 @@ CREATE TABLE adlist_by_group
 CREATE TABLE gravity
 (
 	domain TEXT NOT NULL,
-	adlist_id INTEGER NOT NULL REFERENCES adlist (id),
-	PRIMARY KEY(domain, adlist_id)
+	adlist_id INTEGER NOT NULL REFERENCES adlist (id)
 );
 
 CREATE TABLE info

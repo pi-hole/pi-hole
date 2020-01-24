@@ -88,6 +88,19 @@ generate_gravity_database() {
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
   local str
+  str="Building tree"
+  echo -ne "  ${INFO} ${str}..."
+
+  # The index is intentionally not UNIQUE as prro quality adlists may contain domains more than once
+  time output=$( { sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to build gravity tree in ${gravityTEMPfile}\\n  ${output}"
+    return 1
+  fi
+  echo -e "${OVER}  ${TICK} ${str}"
+
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
