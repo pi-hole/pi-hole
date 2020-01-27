@@ -52,7 +52,7 @@ CREATE TABLE info
 	value TEXT NOT NULL
 );
 
-INSERT INTO "info" VALUES('version','10');
+INSERT INTO "info" VALUES('version','11');
 
 CREATE TABLE domain_audit
 (
@@ -71,7 +71,10 @@ CREATE TABLE domainlist_by_group
 CREATE TABLE client
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	ip TEXT NOL NULL UNIQUE
+	ip TEXT NOL NULL UNIQUE,
+	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+	comment TEXT
 );
 
 CREATE TABLE client_by_group
@@ -84,6 +87,11 @@ CREATE TABLE client_by_group
 CREATE TRIGGER tr_adlist_update AFTER UPDATE ON adlist
     BEGIN
       UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
+    END;
+
+CREATE TRIGGER tr_client_update AFTER UPDATE ON client
+    BEGIN
+      UPDATE client SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE ip = NEW.ip;
     END;
 
 CREATE TRIGGER tr_domainlist_update AFTER UPDATE ON domainlist
