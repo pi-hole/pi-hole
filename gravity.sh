@@ -583,6 +583,7 @@ gravity_Table_Count() {
     local unique
     unique="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(DISTINCT domain) FROM ${table};")"
     echo -e "  ${INFO} Number of ${str}: ${num} (${unique} unique domains)"
+    sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"
   fi
