@@ -430,7 +430,7 @@ make_repo() {
     chmod -R a+rX "${directory}"    
     # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
-    # Check current branch. If it is master, then reset to the latest availible tag.
+    # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
@@ -466,7 +466,7 @@ update_repo() {
     git clean --quiet --force -d || true # Okay for already clean directory
     # Pull the latest commits
     git pull --quiet &> /dev/null || return $?
-    # Check current branch. If it is master, then reset to the latest availible tag.
+    # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then

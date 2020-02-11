@@ -52,7 +52,7 @@ if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     DEPS+=("${PIHOLE_WEB_DEPS[@]}")
 fi
 
-# Compatability
+# Compatibility
 if [ -x "$(command -v apt-get)" ]; then
     # Debian Family
     PKG_REMOVE=("${PKG_MANAGER}" -y remove --purge)
