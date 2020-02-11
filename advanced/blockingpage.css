@@ -325,7 +325,7 @@ main {
   box-shadow: inset 0 3px 5px rgba(0,0,0,0.125);
 }
 
-/* Input border colour */
+/* Input border color */
 .buttons *:not([disabled]):hover, .buttons input:focus {
   border-color: rgba(0,0,0,0.25);
 }

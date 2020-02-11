@@ -20,7 +20,7 @@ getInitSys() {
     elif [ -f /etc/init.d/cron ] && [ ! -h /etc/init.d/cron ]; then
         SYSTEMD=0
     else
-        echo "Unrecognised init system"
+        echo "Unrecognized init system"
         return 1
     fi
 }

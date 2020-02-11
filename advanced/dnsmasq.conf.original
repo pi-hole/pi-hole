@@ -46,7 +46,7 @@
 #resolv-file=
 
 # By  default,  dnsmasq  will  send queries to any of the upstream
-# servers it knows about and tries to favour servers to are  known
+# servers it knows about and tries to favor servers to are  known
 # to  be  up.  Uncommenting this forces dnsmasq to try each query
 # with  each  server  strictly  in  the  order  they   appear   in
 # /etc/resolv.conf
@@ -404,14 +404,14 @@
 #dhcp-option=vendor:MSFT,2,1i
 
 # Send the Encapsulated-vendor-class ID needed by some configurations of
-# Etherboot to allow is to recognise the DHCP server.
+# Etherboot to allow is to recognize the DHCP server.
 #dhcp-option=vendor:Etherboot,60,"Etherboot"
 
 # Send options to PXELinux. Note that we need to send the options even
 # though they don't appear in the parameter request list, so we need
 # to use dhcp-option-force here.
 # See http://syslinux.zytor.com/pxe.php#special for details.
-# Magic number - needed before anything else is recognised
+# Magic number - needed before anything else is recognized
 #dhcp-option-force=208,f1:00:74:7e
 # Configuration file name
 #dhcp-option-force=209,configs/common

@@ -36,7 +36,7 @@ warning1() {
             return 0
             ;;
         *)
-            echo -e "\\n  ${INFO} Branch change has been cancelled"
+            echo -e "\\n  ${INFO} Branch change has been canceled"
             return 1
             ;;
     esac
