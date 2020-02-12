@@ -1134,16 +1134,14 @@ analyze_gravity_list() {
     gravity_permissions=$(ls -ld "${PIHOLE_GRAVITY_DB_FILE}")
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
 
-    local gravity_size
-    gravity_size=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT COUNT(*) FROM vw_gravity")
-    log_write "   Size (excluding blacklist): ${COL_CYAN}${gravity_size}${COL_NC} entries"
+    show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
     log_write ""
 
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
     mapfile -t gravity_sample < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
-    log_write "   ${COL_CYAN}----- First 10 Domains -----${COL_NC}"
+    log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
         log_write "   ${line}"
