@@ -120,11 +120,11 @@ gravity_swap_databases() {
 
 # Update timestamp when the gravity table was last updated successfully
 update_gravity_timestamp() {
-  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityTEMPfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityDBfile}\\n  ${output}"
     return 1
   fi
   return 0
@@ -749,11 +749,11 @@ gravity_DownloadBlocklists
 # Create local.list
 gravity_generateLocalList
 
-# Update gravity timestamp
-update_gravity_timestamp
-
 # Migrate rest of the data from old to new database
 gravity_swap_databases
+
+# Update gravity timestamp
+update_gravity_timestamp
 
 # Ensure proper permissions are set for the database
 chown pihole:pihole "${gravityDBfile}"
