@@ -94,4 +94,14 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "${scriptPath}/9_to_10.sql"
 		version=10
 	fi
+	if [[ "$version" == "10" ]]; then
+		# This adds timestamp and an optional comment field to the client table
+		# These fields are only temporary and will be replaces by the columns
+		# defined in gravity.db.sql during gravity swapping. We add them here
+		# to keep the copying process generic (needs the same columns in both the
+		# source and the destination databases).
+		echo -e "  ${INFO} Upgrading gravity database from version 10 to 11"
+		sqlite3 "${database}" < "${scriptPath}/10_to_11.sql"
+		version=11
+	fi
 }
