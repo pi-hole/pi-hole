@@ -1113,18 +1113,14 @@ show_adlists() {
     show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
 }
 
-show_whitelist() {
-    show_db_entries "Exact whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM whitelist" "4 100 7 19 19 50"
-    show_db_entries "Exact whitelist groups" "SELECT * FROM whitelist_by_group" "4 4"
-    show_db_entries "Regex whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_whitelist" "4 100 7 19 19 50"
-    show_db_entries "Regex whitelist groups" "SELECT * FROM regex_whitelist_by_group" "4 4"
+show_domainlist() {
+    show_db_entries "Domainlist (0/1 = exact/regex whitelist, 2/3 = exact/regex blacklist)" "SELECT id,type,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist" "4 4 100 7 19 19 50"
+    show_db_entries "Domainlist groups" "SELECT * FROM domainlist_by_group" "10 10"
 }
 
-show_blacklist() {
-    show_db_entries "Exact blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM blacklist" "4 100 7 19 19 50"
-    show_db_entries "Exact blacklist groups" "SELECT * FROM blacklist_by_group" "4 4"
-    show_db_entries "Regex blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_blacklist" "4 100 7 19 19 50"
-    show_db_entries "Regex blacklist groups" "SELECT * FROM regex_blacklist_by_group" "4 4"
+show_clients() {
+    show_db_entries "Clients" "SELECT id,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client" "4 100 19 19 50"
+    show_db_entries "Client groups" "SELECT * FROM client_by_group" "10 10"
 }
 
 analyze_gravity_list() {
@@ -1299,9 +1295,9 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_groups
+show_domainlist
+show_clients
 show_adlists
-show_whitelist
-show_blacklist
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log
