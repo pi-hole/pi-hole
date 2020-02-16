@@ -427,11 +427,11 @@ make_repo() {
     # Clone the repo and return the return code from this command
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+rX "${directory}"    
+    chmod -R a+rX "${directory}"
     # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Check current branch. If it is master, then reset to the latest availible tag.
-    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
          git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
@@ -457,7 +457,7 @@ update_repo() {
     # Again, it's useful to store these in variables in case we need to reuse or change the message;
     # we only need to make one change here
     local str="Update repo in ${1}"
-    # Move into the directory that was passed as an argument    
+    # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Let the user know what's happening
     printf "  %b %s..." "${INFO}" "${str}"
@@ -467,7 +467,7 @@ update_repo() {
     # Pull the latest commits
     git pull --quiet &> /dev/null || return $?
     # Check current branch. If it is master, then reset to the latest availible tag.
-    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
          git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
@@ -529,7 +529,7 @@ resetRepo() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Return to where we came from
     popd &> /dev/null || return 1
-    # Returning success anyway?    
+    # Returning success anyway?
     return 0
 }
 
@@ -2229,7 +2229,7 @@ FTLinstall() {
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Find the latest version tag for FTL
-    latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
+    latesttag=$(curl --silent "https://api.github.com/repos/pi-hole/ftl/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     # Tags should always start with v, check for that.
     if [[ ! "${latesttag}" == v* ]]; then
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
