@@ -2228,15 +2228,6 @@ FTLinstall() {
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
 
-    # Find the latest version tag for FTL
-    latesttag=$(curl --silent "https://api.github.com/repos/pi-hole/ftl/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    # Tags should always start with v, check for that.
-    if [[ ! "${latesttag}" == v* ]]; then
-        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to get latest release location from GitHub%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        return 1
-    fi
-
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
@@ -2257,7 +2248,7 @@ FTLinstall() {
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]];then
-        url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
+        url="https://github.com/pi-hole/ftl/releases/latest/download"
     else
         url="https://ftl.pi-hole.net/${ftlBranch}"
     fi
