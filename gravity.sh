@@ -760,13 +760,13 @@ gravity_swap_databases
 chown pihole:pihole "${gravityDBfile}"
 chmod g+w "${piholeDir}" "${gravityDBfile}"
 
+# Compute numbers to be displayed
+gravity_ShowCount
+
 # Determine if DNS has been restarted by this instance of gravity
 if [[ -z "${dnsWasOffline:-}" ]]; then
   "${PIHOLE_COMMAND}" restartdns reload
 fi
-
-# Compute numbers to be displayed
-gravity_ShowCount
 
 gravity_Cleanup
 echo ""
