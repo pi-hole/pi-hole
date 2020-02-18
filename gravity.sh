@@ -390,6 +390,10 @@ gravity_DownloadBlocklists() {
     echo -e "${OVER}  ${TICK} ${str}"
   fi
 
+  if [[ "${status}" -eq 0 && ! -z "${output}" ]]; then
+    echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the list you're using!\\nSQL warnings:\\n${output}\\n"
+  fi
+
   rm "${target}" > /dev/null 2>&1 || \
     echo -e "  ${CROSS} Unable to remove ${target}"
 
