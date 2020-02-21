@@ -404,16 +404,6 @@ gravity_DownloadBlocklists() {
       fi
     done <<< "${output}"
     echo ""
-    local file line
-    while IFS= read -r line; do
-      warning="$(grep -oh "^[^:]*:[0-9]*" <<< "${line}")"
-      file="${warning%:*}"
-      lineno="${warning#*:}"
-      if [[ -n "${file}" && -n "${lineno}" ]]; then
-        echo -n "Line contains: "
-        awk "NR==${lineno}" < ${file}
-      fi
-    done <<< "${output}"
   fi
 
   rm "${target}" > /dev/null 2>&1 || \
