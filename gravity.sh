@@ -400,6 +400,11 @@ gravity_DownloadBlocklists() {
   gravity_Blackbody=true
 }
 
+parseList() {
+  local adlistID="${1}" src="${2}" target="${3}"
+  sed -e "s/$/,${adlistID}/;/^$/d;/.$/a\\" "${src}" >> "${target}"
+}
+
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}"
@@ -487,14 +492,14 @@ gravity_DownloadBlocklistFromUrl() {
       # Add domains to database table file
       #Append ,${arg} to every line and then remove blank lines before import
       # /.$/a\\ ensures there is a newline on the last line
-      sed -e "s/$/,${adlistID}/;/^$/d;/.$/a\\" "${saveLocation}" >> "${target}"
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       #Append ,${arg} to every line and then remove blank lines before import
       # /.$/a\\ ensures there is a newline on the last line
-      sed -e "s/$/,${adlistID}/;/^$/d;/.$/a\\" "${saveLocation}" >> "${target}"
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -505,7 +510,7 @@ gravity_DownloadBlocklistFromUrl() {
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       #Append ,${arg} to every line and then remove blank lines before import
       # /.$/a\\ ensures there is a newline on the last line
-      sed -e "s/$/,${adlistID}/;/^$/d;/.$/a\\" "${saveLocation}" >> "${target}"
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
     fi
