@@ -390,7 +390,7 @@ gravity_DownloadBlocklists() {
     echo -e "${OVER}  ${TICK} ${str}"
   fi
 
-  if [[ "${status}" -eq 0 && ! -z "${output}" ]]; then
+  if [[ "${status}" -eq 0 && -n "${output}" ]]; then
     echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the list you're using!\\nSQL warnings:\\n${output}\\n"
   fi
 
