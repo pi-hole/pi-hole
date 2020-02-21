@@ -390,7 +390,7 @@ gravity_DownloadBlocklists() {
     echo -e "${OVER}  ${TICK} ${str}"
   fi
 
-  if [[ "${status}" -eq 0 && -n "${output}" ]]; then
+  if [[ "${status}" -eq 0 && ! -z "${output}" ]]; then
     echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the list you're using!\\nSQL warnings:\\n${output}\\n"
   fi
 
@@ -402,6 +402,8 @@ gravity_DownloadBlocklists() {
 
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}"
+  #Append ,${arg} to every line and then remove blank lines before import
+  # /.$/a\\ ensures there is a newline on the last line
   sed -e "s/$/,${adlistID}/;/^$/d;/.$/a\\" "${src}" >> "${target}"
 }
 
@@ -490,15 +492,12 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
-      #Append ,${arg} to every line and then remove blank lines before import
-      # /.$/a\\ ensures there is a newline on the last line
       parseList "${adlistID}" "${saveLocation}" "${target}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
-      #Append ,${arg} to every line and then remove blank lines before import
-      # /.$/a\\ ensures there is a newline on the last line
+      # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
@@ -508,8 +507,7 @@ gravity_DownloadBlocklistFromUrl() {
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
-      #Append ,${arg} to every line and then remove blank lines before import
-      # /.$/a\\ ensures there is a newline on the last line
+      # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
