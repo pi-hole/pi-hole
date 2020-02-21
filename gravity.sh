@@ -391,7 +391,29 @@ gravity_DownloadBlocklists() {
   fi
 
   if [[ "${status}" -eq 0 && -n "${output}" ]]; then
-    echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the list you're using!\\nSQL warnings:\\n${output}\\n"
+    echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the lists you're using!\\n\\n  SQL warnings:"
+    local warning file line lineno
+    while IFS= read -r line; do
+      echo "  - ${line}"
+      warning="$(grep -oh "^[^:]*:[0-9]*" <<< "${line}")"
+      file="${warning%:*}"
+      lineno="${warning#*:}"
+      if [[ -n "${file}" && -n "${lineno}" ]]; then
+        echo -n "    Line contains: "
+        awk "NR==${lineno}" < ${file}
+      fi
+    done <<< "${output}"
+    echo ""
+    local file line
+    while IFS= read -r line; do
+      warning="$(grep -oh "^[^:]*:[0-9]*" <<< "${line}")"
+      file="${warning%:*}"
+      lineno="${warning#*:}"
+      if [[ -n "${file}" && -n "${lineno}" ]]; then
+        echo -n "Line contains: "
+        awk "NR==${lineno}" < ${file}
+      fi
+    done <<< "${output}"
   fi
 
   rm "${target}" > /dev/null 2>&1 || \
