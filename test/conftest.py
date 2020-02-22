@@ -1,8 +1,8 @@
+import subprocess
+
 import pytest
 import testinfra
 from textwrap import dedent
-
-check_output = testinfra.get_host("local://").check_output
 
 SETUPVARS = {
     'PIHOLE_INTERFACE': 'eth99',
@@ -29,17 +29,14 @@ def Docker(request, args, image, cmd):
     combine our fixtures into a docker run command and setup finalizer to
     cleanup
     '''
-    assert 'docker' in check_output('id'), "Are you in the docker group?"
-    docker_run = "docker run {} {} {}".format(args, image, cmd)
-    docker_id = check_output(docker_run)
-
-    def teardown():
-        check_output("docker rm -f %s", docker_id)
-    request.addfinalizer(teardown)
-
-    docker_container = testinfra.get_host("docker://" + docker_id)
-    docker_container.id = docker_id
-    return docker_container
+    assert 'docker' in subprocess.check_output('id'), "Are you in the docker group?"
+    # run a container
+    docker_id = subprocess.check_output(
+        ['docker', 'run', args, image, cmd]).decode().strip()
+    # return a testinfra connection to the container
+    yield testinfra.get_host("docker://" + docker_id)
+    # at the end of the test suite, destroy the container
+    subprocess.check_call(['docker', 'rm', '-f', docker_id])
 
 
 @pytest.fixture
