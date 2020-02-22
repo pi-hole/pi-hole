@@ -1,8 +1,10 @@
-import subprocess
-
 import pytest
 import testinfra
 from textwrap import dedent
+
+check_output = testinfra.get_backend(
+    "local://"
+).get_module("Command").check_output
 
 SETUPVARS = {
     'PIHOLE_INTERFACE': 'eth99',
@@ -12,33 +14,53 @@ SETUPVARS = {
     'PIHOLE_DNS_2': '4.2.2.2'
 }
 
-tick_box = "[\x1b[1;32m\xe2\x9c\x93\x1b[0m]"
-cross_box = "[\x1b[1;31m\xe2\x9c\x97\x1b[0m]"
-info_box = "[i]"
+tick_box = "[\x1b[1;32m\xe2\x9c\x93\x1b[0m]".decode("utf-8")
+cross_box = "[\x1b[1;31m\xe2\x9c\x97\x1b[0m]".decode("utf-8")
+info_box = "[i]".decode("utf-8")
 
 
 @pytest.fixture
 def Pihole(Docker):
-    # Docker.run = Docker.check_output
+    '''
+    used to contain some script stubbing, now pretty much an alias.
+    Also provides bash as the default run function shell
+    '''
+    def run_bash(self, command, *args, **kwargs):
+        cmd = self.get_command(command, *args)
+        if self.user is not None:
+            out = self.run_local(
+                "docker exec -u %s %s /bin/bash -c %s",
+                self.user, self.name, cmd)
+        else:
+            out = self.run_local(
+                "docker exec %s /bin/bash -c %s", self.name, cmd)
+        out.command = self.encode(cmd)
+        return out
+
+    funcType = type(Docker.run)
+    Docker.run = funcType(run_bash,
+                          Docker,
+                          testinfra.backend.docker.DockerBackend)
     return Docker
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def Docker(request, args, image, cmd):
     '''
     combine our fixtures into a docker run command and setup finalizer to
     cleanup
     '''
-    assert 'docker' in subprocess.check_output('id').decode().strip(), (
-        "Are you in the docker group?"
-    )
-    # run a container
-    docker_id = subprocess.check_output(
-        ['docker', 'run'] + args.split(" ") + [image] + cmd.split(" ")).decode().strip()
-    # return a testinfra connection to the container
-    yield testinfra.get_host("docker://" + docker_id)
-    # at the end of the test suite, destroy the container
-    subprocess.check_call(['docker', 'rm', '-f', docker_id])
+    assert 'docker' in check_output('id'), "Are you in the docker group?"
+    docker_run = "docker run {} {} {}".format(args, image, cmd)
+    docker_id = check_output(docker_run)
+
+    def teardown():
+        check_output("docker rm -f %s", docker_id)
+    request.addfinalizer(teardown)
+
+    docker_container = testinfra.get_backend("docker://" + docker_id)
+    docker_container.id = docker_id
+    return docker_container
 
 
 @pytest.fixture
@@ -84,7 +106,7 @@ def mock_command(script, args, container):
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1" in'''.format(script=script))
-    for k, v in args.items():
+    for k, v in args.iteritems():
         case = dedent('''
         {arg})
         echo {res}
@@ -111,7 +133,7 @@ def mock_command_2(script, args, container):
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1 \$2" in'''.format(script=script))
-    for k, v in args.items():
+    for k, v in args.iteritems():
         case = dedent('''
         \"{arg}\")
         echo \"{res}\"
@@ -129,6 +151,6 @@ def mock_command_2(script, args, container):
 
 
 def run_script(Pihole, script):
-    result = Pihole.check_output(script)
+    result = Pihole.run(script)
     assert result.rc == 0
     return result
