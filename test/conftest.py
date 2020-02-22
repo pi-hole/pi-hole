@@ -2,9 +2,7 @@ import pytest
 import testinfra
 from textwrap import dedent
 
-check_output = testinfra.get_host(
-    "local://"
-).__getattr__("Command").check_output
+check_output = testinfra.get_host("local://").check_output
 
 SETUPVARS = {
     'PIHOLE_INTERFACE': 'eth99',

@@ -1,8 +1,6 @@
 import testinfra
 
-run_local = testinfra.get_host(
-    "local://"
-).__getattr__("Command").run
+run_local = testinfra.get_host("local://").run
 
 
 def test_scripts_pass_shellcheck():
