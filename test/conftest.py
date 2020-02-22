@@ -19,7 +19,7 @@ info_box = "[i]"
 
 @pytest.fixture
 def Pihole(Docker):
-    Docker.run = Docker.check_output
+    #Docker.run = Docker.check_output
     return Docker
 
 
@@ -127,6 +127,6 @@ def mock_command_2(script, args, container):
 
 
 def run_script(Pihole, script):
-    result = Pihole.run(script)
+    result = Pihole.check_output(script)
     assert result.rc == 0
     return result
