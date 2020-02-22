@@ -400,7 +400,7 @@ gravity_DownloadBlocklists() {
       lineno="${warning#*:}"
       if [[ -n "${file}" && -n "${lineno}" ]]; then
         echo -n "    Line contains: "
-        awk "NR==${lineno}" < ${file}
+        awk "NR==${lineno}" < "${file}"
       fi
     done <<< "${output}"
     echo ""
@@ -415,17 +415,22 @@ gravity_DownloadBlocklists() {
 total_num=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
-  #Append ,${arg} to every line and then remove blank lines before import
-  # /.$/a\\ ensures there is a newline on the last line
-  sed -e "/[^a-zA-Z0-9.\_-]/d;s/$/,${adlistID}/;/^$/d;/.$/a\\" "${src}" >> "${target}"
+  # This sed does the following things:
+  # 1. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
+  # 2. Append ,adlistID to every line
+  # 3. Ensures there is a newline on the last line
+  sed -e "/[^a-zA-Z0-9.\_-]/d;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
+  # Find (up to) five domains containing invalid characters (see above)
   incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
 
   local num_lines num_target_lines num_correct_lines percentage percentage_fraction
+  # Get number of lines in source file
   num_lines="$(grep -c "^" "${src}")"
-  #num_correct_lines="$(grep -c "^[a-zA-Z0-9.-]*$" "${src}")"
+  # Get number of lines in destination file
   num_target_lines="$(grep -c "^" "${target}")"
   num_correct_lines="$(( num_target_lines-total_num ))"
   total_num="$num_target_lines"
+  # Compute percentage of valid lines
   percentage=100
   percentage_fraction=0
   if [[ "${num_lines}" -gt 0 ]]; then
@@ -433,15 +438,15 @@ parseList() {
     percentage_fraction="$(( percentage%10 ))"
     percentage="$(( percentage/10 ))"
   fi
-  echo "  ${INFO} List quality: ${num_correct_lines} of ${num_lines} lines importable (${percentage}.${percentage_fraction}%)"
+  echo "  ${INFO} ${num_correct_lines} of ${num_lines} domains imported (${percentage}.${percentage_fraction}%)"
 
+  # Display sample of invalid lines if we found some
   if [[ -n "${incorrect_lines}" ]]; then
-    echo "      Example for invalid domains (showing only the first five):"
+    echo "      Sample of invalid domains (showing up to five):"
     while IFS= read -r line; do
       echo "      - ${line}"
     done <<< "${incorrect_lines}"
   fi
-
 }
 
 # Download specified URL and perform checks on HTTP status and file content
