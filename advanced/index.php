@@ -102,20 +102,30 @@ if ($blocklistglob === array()) {
     die("[ERROR] There are no domain lists generated lists within <code>/etc/pihole/</code>! Please update gravity by running <code>pihole -g</code>, or repair Pi-hole using <code>pihole -r</code>.");
 }
 
-// Set location of adlists file
-if (is_file("/etc/pihole/adlists.list")) {
-    $adLists = "/etc/pihole/adlists.list";
-} elseif (is_file("/etc/pihole/adlists.default")) {
-    $adLists = "/etc/pihole/adlists.default";
+// Get possible non-standard location of FTL's database
+$FTLsettings = parse_ini_file("/etc/pihole/pihole-FTL.conf");
+if (isset($FTLsettings["GRAVITYDB"])) {
+    $gravityDBFile = $FTLsettings["GRAVITYDB"];
 } else {
-    die("[ERROR] File not found: <code>/etc/pihole/adlists.list</code>");
+    $gravityDBFile = "/etc/pihole/gravity.db";
 }
 
-// Get all URLs starting with "http" or "www" from adlists and re-index array numerically
-$adlistsUrls = array_values(preg_grep("/(^http)|(^www)/i", file($adLists, FILE_IGNORE_NEW_LINES)));
+// Connect to gravity.db
+try {
+    $db = new SQLite3($gravityDBFile, SQLITE3_OPEN_READONLY);
+} catch (Exception $exception) {
+    die("[ERROR]: Failed to connect to gravity.db");
+}
+
+// Get all adlist addresses
+$adlistResults = $db->query("SELECT address FROM vw_adlist");
+$adlistsUrls = array();
+while ($row = $adlistResults->fetchArray()) {
+    array_push($adlistsUrls, $row[0]);
+}
 
 if (empty($adlistsUrls))
-    die("[ERROR]: There are no adlist URL's found within <code>$adLists</code>");
+    die("[ERROR]: There are no adlists enabled");
 
 // Get total number of blocklists (Including Whitelist, Blacklist & Wildcard lists)
 $adlistsCount = count($adlistsUrls) + 3;

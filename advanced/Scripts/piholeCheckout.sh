@@ -46,6 +46,12 @@ checkout() {
     local corebranches
     local webbranches
 
+    # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    local binary
+    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+
     # Avoid globbing
     set -f
 
@@ -86,10 +92,10 @@ checkout() {
         fi
         #echo -e "  ${TICK} Pi-hole Core"
 
-        get_binary_name
         local path
         path="development/${binary}"
         echo "development" > /etc/pihole/ftlbranch
+        chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
@@ -100,10 +106,10 @@ checkout() {
             fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
         fi
         #echo -e "  ${TICK} Web Interface"
-        get_binary_name
         local path
         path="master/${binary}"
         echo "master" > /etc/pihole/ftlbranch
+        chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
@@ -159,13 +165,13 @@ checkout() {
         fi
         checkout_pull_branch "${webInterfaceDir}" "${2}"
     elif [[ "${1}" == "ftl" ]] ; then
-        get_binary_name
         local path
         path="${2}/${binary}"
 
         if check_download_exists "$path"; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
+            chmod 644 /etc/pihole/ftlbranch
             FTLinstall "${binary}"
             restart_service pihole-FTL
             enable_service pihole-FTL

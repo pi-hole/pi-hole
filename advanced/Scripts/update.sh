@@ -31,7 +31,6 @@ source "/opt/pihole/COL_TABLE"
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
 # getGitFiles() sourced from basic-install.sh
-# get_binary_name() sourced from basic-install.sh
 # FTLcheckUpdate() sourced from basic-install.sh
 
 GitCheckUpdateAvail() {
@@ -129,7 +128,12 @@ main() {
         fi
     fi
 
-    if FTLcheckUpdate > /dev/null; then
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    local binary
+    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+
+    if FTLcheckUpdate "${binary}" > /dev/null; then
         FTL_update=true
         echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
     else
