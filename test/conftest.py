@@ -29,8 +29,7 @@ def Docker(request, args, image, cmd):
     combine our fixtures into a docker run command and setup finalizer to
     cleanup
     '''
-    assert(
-        'docker' in subprocess.check_output('id').decode().strip(), 
+    assert 'docker' in subprocess.check_output('id').decode().strip(), (
         "Are you in the docker group?"
     )
     # run a container

@@ -258,7 +258,7 @@ def test_selinux_not_detected(Pihole):
     '''
     confirms installer continues when SELinux configuration file does not exist
     '''
-    check_selinux = Pihole.run('''
+    check_selinux = Pihole.check_output('''
     rm -f /etc/selinux/config
     source /opt/pihole/basic-install.sh
     checkSelinux
@@ -618,7 +618,7 @@ def test_validate_ip_valid(Pihole):
     Given a valid IP address, valid_ip returns success
     '''
 
-    output = Pihole.run('''
+    output = Pihole.check_output('''
     source /opt/pihole/basic-install.sh
     valid_ip "192.168.1.1"
     ''')
@@ -631,7 +631,7 @@ def test_validate_ip_invalid_octet(Pihole):
     Given an invalid IP address (large octet), valid_ip returns an error
     '''
 
-    output = Pihole.run('''
+    output = Pihole.check_output('''
     source /opt/pihole/basic-install.sh
     valid_ip "1092.168.1.1"
     ''')
@@ -644,7 +644,7 @@ def test_validate_ip_invalid_letters(Pihole):
     Given an invalid IP address (contains letters), valid_ip returns an error
     '''
 
-    output = Pihole.run('''
+    output = Pihole.check_output('''
     source /opt/pihole/basic-install.sh
     valid_ip "not an IP"
     ''')
