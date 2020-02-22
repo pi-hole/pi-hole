@@ -1,8 +1,8 @@
 import testinfra
 
-run_local = testinfra.get_backend(
+run_local = testinfra.get_host(
     "local://"
-).get_module("Command").run
+).__getattr__("Command").run
 
 
 def test_scripts_pass_shellcheck():

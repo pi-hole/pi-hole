@@ -2,9 +2,9 @@
 import pytest
 import testinfra
 
-run_local = testinfra.get_backend(
+run_local = testinfra.get_host(
     "local://"
-).get_module("Command").run
+).__getattr__("Command").run
 
 
 @pytest.mark.parametrize("image,tag", [
