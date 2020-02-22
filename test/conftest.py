@@ -23,7 +23,7 @@ def Pihole(Docker):
     return Docker
 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def Docker(request, args, image, cmd):
     '''
     combine our fixtures into a docker run command and setup finalizer to
