@@ -19,25 +19,7 @@ info_box = "[i]"
 
 @pytest.fixture
 def Pihole(Docker):
-    '''
-    used to contain some script stubbing, now pretty much an alias.
-    Also provides bash as the default run function shell
-    '''
-    def run_bash(self, command, *args, **kwargs):
-        cmd = self.get_command(command, *args)
-        if self.user is not None:
-            out = self.run_local(
-                "docker exec -u %s %s /bin/bash -c %s",
-                self.user, self.name, cmd)
-        else:
-            out = self.run_local(
-                "docker exec %s /bin/bash -c %s", self.name, cmd)
-        out.command = self.encode(cmd)
-        return out
-
-    funcType = type(Docker.run)
-    Docker.run = funcType(run_bash,
-                          testinfra.backend.docker.DockerBackend)
+    Docker.run = Docker.check_output
     return Docker
 
 
