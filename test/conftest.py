@@ -37,8 +37,7 @@ def Pihole(Docker):
 
     funcType = type(Docker.run)
     Docker.run = funcType(run_bash,
-                          Docker,
-                          testinfra.backend.docker.DockerBackend)
+                          Docker)
     return Docker
 
 
