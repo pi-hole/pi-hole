@@ -19,7 +19,7 @@ info_box = "[i]"
 
 @pytest.fixture
 def Pihole(Docker):
-    #Docker.run = Docker.check_output
+    # Docker.run = Docker.check_output
     return Docker
 
 
@@ -29,7 +29,10 @@ def Docker(request, args, image, cmd):
     combine our fixtures into a docker run command and setup finalizer to
     cleanup
     '''
-    assert 'docker' in subprocess.check_output('id'), "Are you in the docker group?"
+    assert(
+        'docker' in subprocess.check_output('id').decode().strip(), 
+        "Are you in the docker group?"
+    )
     # run a container
     docker_id = subprocess.check_output(
         ['docker', 'run', args, image, cmd]).decode().strip()
