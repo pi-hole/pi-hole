@@ -1,6 +1,6 @@
 from textwrap import dedent
 import re
-from conftest import (
+from .conftest import (
     SETUPVARS,
     tick_box,
     info_box,
@@ -34,7 +34,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     This confirms the sourced variables are in scope between functions
     '''
     setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         setup_var_file += "{}={}\n".format(k, v)
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
@@ -59,7 +59,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
 
     output = run_script(Pihole, script).stdout
 
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         assert "{}={}".format(k, v) in output
 
 
@@ -69,7 +69,7 @@ def test_setupVars_saved_to_file(Pihole):
     '''
     # dedent works better with this and padding matching script below
     set_setup_vars = '\n'
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         set_setup_vars += "    {}={}\n".format(k, v)
     Pihole.run(set_setup_vars).stdout
 
@@ -88,7 +88,7 @@ def test_setupVars_saved_to_file(Pihole):
 
     output = run_script(Pihole, script).stdout
 
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         assert "{}={}".format(k, v) in output
 
 
