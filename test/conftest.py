@@ -34,7 +34,7 @@ def Docker(request, args, image, cmd):
     )
     # run a container
     docker_id = subprocess.check_output(
-        ['docker', 'run', args, image, cmd]).decode().strip()
+        ['docker', 'run'] + args.split(" ") + [image, cmd]).decode().strip()
     # return a testinfra connection to the container
     yield testinfra.get_host("docker://" + docker_id)
     # at the end of the test suite, destroy the container
