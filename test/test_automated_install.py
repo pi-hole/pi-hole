@@ -1,6 +1,6 @@
 from textwrap import dedent
 import re
-from conftest import (
+from .conftest import (
     SETUPVARS,
     tick_box,
     info_box,
