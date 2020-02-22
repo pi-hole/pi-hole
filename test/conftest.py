@@ -104,7 +104,7 @@ def mock_command(script, args, container):
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1" in'''.format(script=script))
-    for k, v in args.iteritems():
+    for k, v in args.items():
         case = dedent('''
         {arg})
         echo {res}
@@ -131,7 +131,7 @@ def mock_command_2(script, args, container):
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1 \$2" in'''.format(script=script))
-    for k, v in args.iteritems():
+    for k, v in args.items():
         case = dedent('''
         \"{arg}\")
         echo \"{res}\"
