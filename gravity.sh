@@ -412,11 +412,36 @@ gravity_DownloadBlocklists() {
   gravity_Blackbody=true
 }
 
+total_num=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}"
+  local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
   #Append ,${arg} to every line and then remove blank lines before import
   # /.$/a\\ ensures there is a newline on the last line
-  sed -e "s/$/,${adlistID}/;/^$/d;/.$/a\\" "${src}" >> "${target}"
+  sed -e "/[^a-zA-Z0-9.\_-]/d;s/$/,${adlistID}/;/^$/d;/.$/a\\" "${src}" >> "${target}"
+  incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
+
+  local num_lines num_target_lines num_correct_lines percentage percentage_fraction
+  num_lines="$(grep -c "^" "${src}")"
+  #num_correct_lines="$(grep -c "^[a-zA-Z0-9.-]*$" "${src}")"
+  num_target_lines="$(grep -c "^" "${target}")"
+  num_correct_lines="$(( num_target_lines-total_num ))"
+  total_num="$num_target_lines"
+  percentage=100
+  percentage_fraction=0
+  if [[ "${num_lines}" -gt 0 ]]; then
+    percentage="$(( 1000*num_correct_lines/num_lines ))"
+    percentage_fraction="$(( percentage%10 ))"
+    percentage="$(( percentage/10 ))"
+  fi
+  echo "  ${INFO} List quality: ${num_correct_lines} of ${num_lines} lines importable (${percentage}.${percentage_fraction}%)"
+
+  if [[ -n "${incorrect_lines}" ]]; then
+    echo "      Example for invalid domains (showing only the first five):"
+    while IFS= read -r line; do
+      echo "      - ${line}"
+    done <<< "${incorrect_lines}"
+  fi
+
 }
 
 # Download specified URL and perform checks on HTTP status and file content
