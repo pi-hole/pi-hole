@@ -58,7 +58,7 @@ def Docker(request, args, image, cmd):
         check_output("docker rm -f %s", docker_id)
     request.addfinalizer(teardown)
 
-    docker_container = testinfra.get_backend("docker://" + docker_id)
+    docker_container = testinfra.get_host("docker://" + docker_id)
     docker_container.id = docker_id
     return docker_container
 
