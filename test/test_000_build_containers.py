@@ -16,6 +16,6 @@ run_local = testinfra.get_host("local://").run
 def test_build_pihole_image(image, tag):
     build_cmd = run_local('docker build -f {} -t {} .'.format(image, tag))
     if build_cmd.rc != 0:
-        print build_cmd.stdout
-        print build_cmd.stderr
+        print(build_cmd.stdout)
+        print(build_cmd.stderr)
     assert build_cmd.rc == 0
