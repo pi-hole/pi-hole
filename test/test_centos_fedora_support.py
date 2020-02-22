@@ -4,7 +4,6 @@ from .conftest import (
     info_box,
     cross_box,
     mock_command,
-    mock_command_2,
 )
 
 

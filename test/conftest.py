@@ -14,8 +14,8 @@ SETUPVARS = {
     'PIHOLE_DNS_2': '4.2.2.2'
 }
 
-tick_box = "[\x1b[1;32m\xe2\x9c\x93\x1b[0m]"
-cross_box = "[\x1b[1;31m\xe2\x9c\x97\x1b[0m]"
+tick_box = "[\x1b[1;32m\u2713\x1b[0m]"
+cross_box = "[\x1b[1;31m\u2717\x1b[0m]"
 info_box = "[i]"
 
 
