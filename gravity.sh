@@ -423,26 +423,19 @@ parseList() {
   # Find (up to) five domains containing invalid characters (see above)
   incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
 
-  local num_lines num_target_lines num_correct_lines percentage percentage_fraction
+  local num_lines num_target_lines num_correct_lines num_invalid
   # Get number of lines in source file
   num_lines="$(grep -c "^" "${src}")"
   # Get number of lines in destination file
   num_target_lines="$(grep -c "^" "${target}")"
   num_correct_lines="$(( num_target_lines-total_num ))"
   total_num="$num_target_lines"
-  # Compute percentage of valid lines
-  percentage=100
-  percentage_fraction=0
-  if [[ "${num_lines}" -gt 0 ]]; then
-    percentage="$(( 1000*num_correct_lines/num_lines ))"
-    percentage_fraction="$(( percentage%10 ))"
-    percentage="$(( percentage/10 ))"
-  fi
-  echo "  ${INFO} ${num_correct_lines} of ${num_lines} domains imported (${percentage}.${percentage_fraction}%)"
+  num_invalid="$(( num_lines-num_correct_lines ))"
+  echo "  ${INFO} Imported ${num_correct_lines} of ${num_lines} domains, ${num_invalid} domains invalid"
 
   # Display sample of invalid lines if we found some
   if [[ -n "${incorrect_lines}" ]]; then
-    echo "      Sample of invalid domains (showing up to five):"
+    echo "      Sample of invalid domains:"
     while IFS= read -r line; do
       echo "      - ${line}"
     done <<< "${incorrect_lines}"
