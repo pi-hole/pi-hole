@@ -662,19 +662,21 @@ ping_internet() {
 }
 
 compare_port_to_service_assigned() {
-    local service_name="${1}"
-    # The programs we use may change at some point, so they are in a varible here
-    local resolver="pihole-FTL"
-    local web_server="lighttpd"
-    local ftl="pihole-FTL"
+    local service_name
+    local expected_service
+    local port
+
+    service_name="${2}"
+    expected_service="${1}"
+    port="${3}"
 
     # If the service is a Pi-hole service, highlight it in green
-    if [[ "${service_name}" == "${resolver}" ]] || [[ "${service_name}" == "${web_server}" ]] || [[ "${service_name}" == "${ftl}" ]]; then
-        log_write "[${COL_GREEN}${port_number}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
+    if [[ "${service_name}" == "${expected_service}" ]]; then
+        log_write "[${COL_GREEN}${port}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
     # Otherwise,
     else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_RED}${port_number}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
+        log_write "[${COL_RED}${port}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
     fi
 }
 
@@ -708,11 +710,11 @@ check_required_ports() {
         fi
         # Use a case statement to determine if the right services are using the right ports
         case "$(echo "$port_number" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}"
+            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" 53
                 ;;
-            80) compare_port_to_service_assigned  "${web_server}"
+            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" 80
                 ;;
-            4711) compare_port_to_service_assigned  "${ftl}"
+            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" 4711
                 ;;
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
             *) log_write "${port_number} ${service_name} (${protocol_type})";
