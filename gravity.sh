@@ -391,7 +391,19 @@ gravity_DownloadBlocklists() {
   fi
 
   if [[ "${status}" -eq 0 && -n "${output}" ]]; then
-    echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the list you're using!\\nSQL warnings:\\n${output}\\n"
+    echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the lists you're using!\\n\\n  SQL warnings:"
+    local warning file line lineno
+    while IFS= read -r line; do
+      echo "  - ${line}"
+      warning="$(grep -oh "^[^:]*:[0-9]*" <<< "${line}")"
+      file="${warning%:*}"
+      lineno="${warning#*:}"
+      if [[ -n "${file}" && -n "${lineno}" ]]; then
+        echo -n "    Line contains: "
+        awk "NR==${lineno}" < "${file}"
+      fi
+    done <<< "${output}"
+    echo ""
   fi
 
   rm "${target}" > /dev/null 2>&1 || \
@@ -400,11 +412,38 @@ gravity_DownloadBlocklists() {
   gravity_Blackbody=true
 }
 
+total_num=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}"
-  #Append ,${arg} to every line and then remove blank lines before import
-  # /.$/a\\ ensures there is a newline on the last line
-  sed -e "s/$/,${adlistID}/;/^$/d;/.$/a\\" "${src}" >> "${target}"
+  local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
+  # This sed does the following things:
+  # 1. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
+  # 2. Append ,adlistID to every line
+  # 3. Ensures there is a newline on the last line
+  sed -e "/[^a-zA-Z0-9.\_-]/d;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
+  # Find (up to) five domains containing invalid characters (see above)
+  incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
+
+  local num_lines num_target_lines num_correct_lines num_invalid
+  # Get number of lines in source file
+  num_lines="$(grep -c "^" "${src}")"
+  # Get number of lines in destination file
+  num_target_lines="$(grep -c "^" "${target}")"
+  num_correct_lines="$(( num_target_lines-total_num ))"
+  total_num="$num_target_lines"
+  num_invalid="$(( num_lines-num_correct_lines ))"
+  if [[ "${num_invalid}" -eq 0 ]]; then
+    echo "  ${INFO} Received ${num_lines} domains"
+  else
+    echo "  ${INFO} Received ${num_lines} domains, ${num_invalid} domains invalid!"
+  fi
+
+  # Display sample of invalid lines if we found some
+  if [[ -n "${incorrect_lines}" ]]; then
+    echo "      Sample of invalid domains:"
+    while IFS= read -r line; do
+      echo "      - ${line}"
+    done <<< "${incorrect_lines}"
+  fi
 }
 
 # Download specified URL and perform checks on HTTP status and file content
