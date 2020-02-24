@@ -2459,16 +2459,13 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLreleaseData
             local FTLlatesttag
 
-            if ! FTLreleaseData=$(curl -sI https://github.com/pi-hole/FTL/releases/latest); then
+            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
-
-            FTLlatesttag=$(grep 'Location' <<< "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
