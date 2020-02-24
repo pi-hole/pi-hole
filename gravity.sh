@@ -431,7 +431,11 @@ parseList() {
   num_correct_lines="$(( num_target_lines-total_num ))"
   total_num="$num_target_lines"
   num_invalid="$(( num_lines-num_correct_lines ))"
-  echo "  ${INFO} Imported ${num_correct_lines} of ${num_lines} domains, ${num_invalid} domains invalid"
+  if [[ "${num_invalid}" -eq 0 ]]; then
+    echo "  ${INFO} Received ${num_lines} domains"
+  else
+    echo "  ${INFO} Received ${num_lines} domains, ${num_invalid} domains invalid!"
+  fi
 
   # Display sample of invalid lines if we found some
   if [[ -n "${incorrect_lines}" ]]; then
