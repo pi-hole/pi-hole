@@ -2545,6 +2545,8 @@ main() {
         installDefaultBlocklists
 
         # Source ${setupVars} to use predefined user variables in the functions
+        # Verify the source file does not have crlf, replace them with ln if present.  
+        sed -i 's/\r/\n/'  ${setupVars}
         source ${setupVars}
 
         # Get the privacy level if it exists (default is 0)
