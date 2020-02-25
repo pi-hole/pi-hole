@@ -211,6 +211,11 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
         add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
     fi
+
+    # Prevent Firefox from automatically switching over to DNS-over-HTTPS
+    # This follows https://support.mozilla.org/en-US/kb/configuring-networks-disable-dns-over-https
+    # (sourced 7th September 2019)
+    add_dnsmasq_setting "server=/use-application-dns.net/"
 }
 
 SetDNSServers() {
