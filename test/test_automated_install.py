@@ -398,7 +398,11 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -418,7 +422,11 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -439,7 +447,11 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -455,7 +467,11 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     '''
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
@@ -471,7 +487,11 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     mock_command('uname', {'-m': ('mips', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
     ''')
     expected_stdout = 'Not able to detect architecture (unknown: mips)'
     assert expected_stdout in detectPlatform.stdout
@@ -490,59 +510,12 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     ''')
     download_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    binary="pihole-FTL-aarch64-linux-gnu"
-    FTLinstall
+    create_pihole_user
+    FTLinstall "pihole-FTL-aarch64-linux-gnu"
     ''')
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in download_binary.stdout
     assert 'error' not in download_binary.stdout.lower()
-
-
-def test_FTL_download_unknown_fails_no_errors(Pihole):
-    '''
-    confirms unknown binary is not downloaded for FTL engine
-    '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    distro_check
-    install_dependent_packages ${INSTALLER_DEPS[@]}
-    ''')
-    download_binary = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    binary="pihole-FTL-mips"
-    FTLinstall
-    ''')
-    expected_stdout = cross_box + ' Downloading and Installing FTL'
-    assert expected_stdout in download_binary.stdout
-    error1 = 'Error: URL https://github.com/pi-hole/FTL/releases/download/'
-    assert error1 in download_binary.stdout
-    error2 = 'not found'
-    assert error2 in download_binary.stdout
-
-
-def test_FTL_download_binary_unset_no_errors(Pihole):
-    '''
-    confirms unset binary variable does not download FTL engine
-    '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    distro_check
-    install_dependent_packages ${INSTALLER_DEPS[@]}
-    ''')
-    download_binary = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    FTLinstall
-    ''')
-    expected_stdout = cross_box + ' Downloading and Installing FTL'
-    assert expected_stdout in download_binary.stdout
-    error1 = 'Error: URL https://github.com/pi-hole/FTL/releases/download/'
-    assert error1 in download_binary.stdout
-    error2 = 'not found'
-    assert error2 in download_binary.stdout
 
 
 def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
@@ -551,7 +524,11 @@ def test_FTL_binary_installed_and_responsive_no_errors(Pihole):
     '''
     installed_binary = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    FTLdetect
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
     pihole-FTL version
     ''')
     expected_stdout = 'v'

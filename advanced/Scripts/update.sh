@@ -31,7 +31,6 @@ source "/opt/pihole/COL_TABLE"
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
 # getGitFiles() sourced from basic-install.sh
-# get_binary_name() sourced from basic-install.sh
 # FTLcheckUpdate() sourced from basic-install.sh
 
 GitCheckUpdateAvail() {
@@ -129,7 +128,12 @@ main() {
         fi
     fi
 
-    if FTLcheckUpdate > /dev/null; then
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    local binary
+    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+
+    if FTLcheckUpdate "${binary}" > /dev/null; then
         FTL_update=true
         echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
     else
@@ -194,6 +198,14 @@ main() {
         ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
         echo -e "${basicError}" && exit 1
     fi
+
+    if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
+        # Force an update of the updatechecker
+        /opt/pihole/updatecheck.sh
+        /opt/pihole/updatecheck.sh x remote
+        echo -e "  ${INFO} Local version file information updated."
+    fi
+
     echo ""
     exit 0
 }
