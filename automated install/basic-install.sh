@@ -1926,13 +1926,13 @@ installPihole() {
             install -d -m 0755 ${webroot}
         fi
 
+        # Repair permissions if /var/www/html is not world readable
+        find "${webroot}" -type d -exec chmod 0775 {} \;;
+        find "${webroot}" -type f -exec chmod 0664 {} \;;
+
         if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
             # Set the owner and permissions
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
-            chmod 0775 ${webroot}
-            # Repair permissions if /var/www/html is not world readable
-            chmod a+rx /var/www
-            chmod a+rx /var/www/html
             # Give pihole access to the Web server group
             usermod -a -G ${LIGHTTPD_GROUP} pihole
             # Give lighttpd access to the pihole group so the web interface can
