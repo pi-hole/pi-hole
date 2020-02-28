@@ -66,14 +66,24 @@ Available commands and options:
     Adds or removes specified domain or domains to the blacklist
 .br
 
+\fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
+.br
+    Add or removes specified regex filter to the regex blacklist
+.br
+
+\fB--white-regex\fR [options] [<regex1> <regex2 ...>]
+.br
+    Add or removes specified regex filter to the regex whitelist
+.br
+
 \fB--wild, wildcard\fR [options] [<domain1> <domain2 ...>]
 .br
     Add or removes specified domain to the wildcard blacklist
 .br
 
-\fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
+\fB--white-wild\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified regex filter to the regex blacklist
+    Add or removes specified domain to the wildcard whitelist
 .br
 
     (Whitelist/Blacklist manipulation options):
@@ -351,6 +361,12 @@ Switching Pi-hole subsystem branches
 .br
     Switch to core development branch
 .br
+
+\fBpihole arpflush\fR
+.br
+    Flush information stored in Pi-hole's network tables
+.br
+
 .SH "SEE ALSO"
 
 \fBlighttpd\fR(8), \fBpihole-FTL\fR(8)
