@@ -35,11 +35,15 @@ scanList(){
     # /dev/null forces filename to be printed when only one list has been generated
     case "${type}" in
         "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        # Create array of regexps
         # Iterate through each regexp and check whether it matches the domainQuery
         # If it does, print the matching regexp and continue looping
         # Input 1 - regexps | Input 2 - domainQuery
-        "regex" ) if [[ "${domain}" =~ ${lists} ]]; then printf "%b\n" "${lists}"; fi;;
+        "regex" ) 
+            for list in `echo "${lists}"`; do
+                if [[ "${domain}" =~ ${list} ]]; then
+                    printf "%b\n" "${list}";
+                fi
+            done;;
         *       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
