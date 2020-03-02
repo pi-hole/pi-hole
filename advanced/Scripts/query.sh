@@ -39,7 +39,7 @@ scanList(){
         # If it does, print the matching regexp and continue looping
         # Input 1 - regexps | Input 2 - domainQuery
         "regex" ) 
-            for list in `echo "${lists}"`; do
+            for list in ${lists}; do
                 if [[ "${domain}" =~ ${list} ]]; then
                     printf "%b\n" "${list}";
                 fi
