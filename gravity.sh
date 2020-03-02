@@ -443,7 +443,7 @@ gravity_SortAndFilterConsolidatedList() {
     echo -ne "  ${INFO} ${str}..."
   fi
 
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
+  LANG=C sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
 
   if [[ "${haveSourceUrls}" == true ]]; then
     echo -e "${OVER}  ${TICK} ${str}"
