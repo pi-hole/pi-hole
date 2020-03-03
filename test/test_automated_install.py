@@ -111,6 +111,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     confirms all web page assets from Core repo are installed on a fresh build
     '''
     installWeb = Pihole.run('''
+    umask 0027
     source /opt/pihole/basic-install.sh
     installPiholeWeb
     ''')
@@ -129,6 +130,69 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
     assert 'index.php' in web_directory
     assert 'blockingpage.css' in web_directory
+
+
+def test_installPiholeWeb_fresh_install_readableBlockpage(Pihole):
+    '''
+    confirms all web page assets from Core repo are installed and readable by www-data on a fresh build
+    '''
+    installWeb = Pihole.run('''
+    umask 0027
+    source /opt/pihole/basic-install.sh
+    installPiholeWeb
+    ''')
+    expected_stdout = info_box + ' Installing blocking page...'
+    assert expected_stdout in installWeb.stdout
+    expected_stdout = tick_box + (' Creating directory for blocking page, '
+                                  'and copying files')
+    assert expected_stdout in installWeb.stdout
+    expected_stdout = info_box + ' Backing up index.lighttpd.html'
+    assert expected_stdout in installWeb.stdout
+    expected_stdout = ('No default index.lighttpd.html file found... '
+                       'not backing up')
+    assert expected_stdout in installWeb.stdout
+    expected_stdout = tick_box + ' Installing sudoer file'
+    assert expected_stdout in installWeb.stdout
+    exit_status_success = '0'
+    # check directories above $webroot for read and execute permission by www-data
+    check_var = 'echo $(sudo -u www-data test -r /var) $?'
+    expected_stdout = Pihole.run(check_var).stdout
+    assert exit_status_success in expected_stdout
+    check_var = 'echo $(sudo -u www-data test -x /var) $?'
+    expected_stdout = Pihole.run(check_var).stdout
+    assert exit_status_success in expected_stdout
+    check_www = 'echo $(sudo -u www-data test -r /var/www) $?'
+    expected_stdout = Pihole.run(check_www).stdout
+    assert exit_status_success in expected_stdout
+    check_www = 'echo $(sudo -u www-data test -x /var/www) $?'
+    expected_stdout = Pihole.run(check_www).stdout
+    assert exit_status_success in expected_stdout
+    check_html = 'echo $(sudo -u www-data test -r /var/www/html) $?'
+    expected_stdout = Pihole.run(check_html).stdout
+    assert exit_status_success in expected_stdout
+    check_html = 'echo $(sudo -u www-data test -x /var/www/html) $?'
+    expected_stdout = Pihole.run(check_html).stdout
+    assert exit_status_success in expected_stdout
+    # check directories below $webroot for read and execute permission by www-data
+    check_admin = 'echo $(sudo -u www-data test -r /var/www/html/admin) $?'
+    expected_stdout = Pihole.run(check_admin).stdout
+    assert exit_status_success in expected_stdout
+    check_admin = 'echo $(sudo -u www-data test -x /var/www/html/admin) $?'
+    expected_stdout = Pihole.run(check_admin).stdout
+    assert exit_status_success in expected_stdout
+    check_pihole = 'echo $(sudo -u www-data test -r /var/www/html/pihole) $?'
+    expected_stdout = Pihole.run(check_pihole).stdout
+    assert exit_status_success in expected_stdout
+    check_pihole = 'echo $(sudo -u www-data test -x /var/www/html/pihole) $?'
+    expected_stdout = Pihole.run(check_pihole).stdout
+    assert exit_status_success in expected_stdout
+    # check most important files in $webroot for read permission by www-data
+    check_index = 'echo $(sudo -u www-data test -r /var/www/html/admin/index.php) $?'
+    expected_stdout = Pihole.run(check_index).stdout
+    assert exit_status_success in expected_stdout
+    check_blockpage = 'echo $(sudo -u www-data test -r /var/www/html/admin/blockingpage.css) $?'
+    expected_stdout = Pihole.run(check_blockpage).stdout
+    assert exit_status_success in expected_stdout
 
 
 def test_update_package_cache_success_no_errors(Pihole):
