@@ -14,9 +14,9 @@ SETUPVARS = {
     'PIHOLE_DNS_2': '4.2.2.2'
 }
 
-tick_box = "[\x1b[1;32m\xe2\x9c\x93\x1b[0m]".decode("utf-8")
-cross_box = "[\x1b[1;31m\xe2\x9c\x97\x1b[0m]".decode("utf-8")
-info_box = "[i]".decode("utf-8")
+tick_box = "[\x1b[1;32m\u2713\x1b[0m]"
+cross_box = "[\x1b[1;31m\u2717\x1b[0m]"
+info_box = "[i]"
 
 
 @pytest.fixture
@@ -38,9 +38,7 @@ def Pihole(Docker):
         return out
 
     funcType = type(Docker.run)
-    Docker.run = funcType(run_bash,
-                          Docker,
-                          testinfra.backend.docker.DockerBackend)
+    Docker.run = funcType(run_bash, Docker)
     return Docker
 
 
@@ -106,7 +104,7 @@ def mock_command(script, args, container):
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1" in'''.format(script=script))
-    for k, v in args.iteritems():
+    for k, v in args.items():
         case = dedent('''
         {arg})
         echo {res}
@@ -133,7 +131,7 @@ def mock_command_2(script, args, container):
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1 \$2" in'''.format(script=script))
-    for k, v in args.iteritems():
+    for k, v in args.items():
         case = dedent('''
         \"{arg}\")
         echo \"{res}\"
