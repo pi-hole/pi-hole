@@ -244,10 +244,10 @@ if is_command apt-get ; then
     # These programs are stored in an array so they can be looped through later
     INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail)
     # Pi-hole itself has several dependencies that also need to be installed
-    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
+    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "php-intl")
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
@@ -286,7 +286,7 @@ elif is_command rpm ; then
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
-    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite libcap)
+    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
@@ -427,7 +427,7 @@ make_repo() {
     # Clone the repo and return the return code from this command
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+rX "${directory}"    
+    chmod -R a+rX "${directory}"
     # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Check current branch. If it is master, then reset to the latest available tag.
@@ -457,7 +457,7 @@ update_repo() {
     # Again, it's useful to store these in variables in case we need to reuse or change the message;
     # we only need to make one change here
     local str="Update repo in ${1}"
-    # Move into the directory that was passed as an argument    
+    # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Let the user know what's happening
     printf "  %b %s..." "${INFO}" "${str}"
@@ -529,7 +529,7 @@ resetRepo() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Return to where we came from
     popd &> /dev/null || return 1
-    # Returning success anyway?    
+    # Returning success anyway?
     return 0
 }
 
@@ -1232,7 +1232,7 @@ appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-        Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+        Cameleon     )  echo "https://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
         HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
@@ -2228,15 +2228,6 @@ FTLinstall() {
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
 
-    # Find the latest version tag for FTL
-    latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
-    # Tags should always start with v, check for that.
-    if [[ ! "${latesttag}" == v* ]]; then
-        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to get latest release location from GitHub%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        return 1
-    fi
-
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
@@ -2257,7 +2248,7 @@ FTLinstall() {
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]];then
-        url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
+        url="https://github.com/pi-hole/ftl/releases/latest/download"
     else
         url="https://ftl.pi-hole.net/${ftlBranch}"
     fi
@@ -2468,16 +2459,13 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLreleaseData
             local FTLlatesttag
 
-            if ! FTLreleaseData=$(curl -sI https://github.com/pi-hole/FTL/releases/latest); then
+            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
-
-            FTLlatesttag=$(grep 'Location' <<< "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0

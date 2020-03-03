@@ -96,12 +96,6 @@ if ($serverName === "pi.hole") {
 // Define admin email address text based off $svEmail presence
 $bpAskAdmin = !empty($svEmail) ? '<a href="mailto:'.$svEmail.'?subject=Site Blocked: '.$serverName.'"></a>' : "<span/>";
 
-// Determine if at least one block list has been generated
-$blocklistglob = glob("/etc/pihole/list.0.*.domains");
-if ($blocklistglob === array()) {
-    die("[ERROR] There are no domain lists generated lists within <code>/etc/pihole/</code>! Please update gravity by running <code>pihole -g</code>, or repair Pi-hole using <code>pihole -r</code>.");
-}
-
 // Get possible non-standard location of FTL's database
 $FTLsettings = parse_ini_file("/etc/pihole/pihole-FTL.conf");
 if (isset($FTLsettings["GRAVITYDB"])) {

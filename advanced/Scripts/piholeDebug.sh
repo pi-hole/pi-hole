@@ -662,19 +662,21 @@ ping_internet() {
 }
 
 compare_port_to_service_assigned() {
-    local service_name="${1}"
-    # The programs we use may change at some point, so they are in a varible here
-    local resolver="pihole-FTL"
-    local web_server="lighttpd"
-    local ftl="pihole-FTL"
+    local service_name
+    local expected_service
+    local port
+
+    service_name="${2}"
+    expected_service="${1}"
+    port="${3}"
 
     # If the service is a Pi-hole service, highlight it in green
-    if [[ "${service_name}" == "${resolver}" ]] || [[ "${service_name}" == "${web_server}" ]] || [[ "${service_name}" == "${ftl}" ]]; then
-        log_write "[${COL_GREEN}${port_number}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
+    if [[ "${service_name}" == "${expected_service}" ]]; then
+        log_write "[${COL_GREEN}${port}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
     # Otherwise,
     else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_RED}${port_number}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
+        log_write "[${COL_RED}${port}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
     fi
 }
 
@@ -708,11 +710,11 @@ check_required_ports() {
         fi
         # Use a case statement to determine if the right services are using the right ports
         case "$(echo "$port_number" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}"
+            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" 53
                 ;;
-            80) compare_port_to_service_assigned  "${web_server}"
+            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" 80
                 ;;
-            4711) compare_port_to_service_assigned  "${ftl}"
+            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" 4711
                 ;;
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
             *) log_write "${port_number} ${service_name} (${protocol_type})";
@@ -1105,7 +1107,7 @@ show_db_entries() {
 }
 
 show_groups() {
-    show_db_entries "Groups" "SELECT * FROM \"group\"" "4 4 30 50"
+    show_db_entries "Groups" "SELECT id,name,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 50 7 19 19 50"
 }
 
 show_adlists() {
@@ -1113,18 +1115,14 @@ show_adlists() {
     show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
 }
 
-show_whitelist() {
-    show_db_entries "Exact whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM whitelist" "4 100 7 19 19 50"
-    show_db_entries "Exact whitelist groups" "SELECT * FROM whitelist_by_group" "4 4"
-    show_db_entries "Regex whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_whitelist" "4 100 7 19 19 50"
-    show_db_entries "Regex whitelist groups" "SELECT * FROM regex_whitelist_by_group" "4 4"
+show_domainlist() {
+    show_db_entries "Domainlist (0/1 = exact/regex whitelist, 2/3 = exact/regex blacklist)" "SELECT id,type,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist" "4 4 100 7 19 19 50"
+    show_db_entries "Domainlist groups" "SELECT * FROM domainlist_by_group" "10 10"
 }
 
-show_blacklist() {
-    show_db_entries "Exact blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM blacklist" "4 100 7 19 19 50"
-    show_db_entries "Exact blacklist groups" "SELECT * FROM blacklist_by_group" "4 4"
-    show_db_entries "Regex blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_blacklist" "4 100 7 19 19 50"
-    show_db_entries "Regex blacklist groups" "SELECT * FROM regex_blacklist_by_group" "4 4"
+show_clients() {
+    show_db_entries "Clients" "SELECT id,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client" "4 100 19 19 50"
+    show_db_entries "Client groups" "SELECT * FROM client_by_group" "10 10"
 }
 
 analyze_gravity_list() {
@@ -1134,16 +1132,17 @@ analyze_gravity_list() {
     gravity_permissions=$(ls -ld "${PIHOLE_GRAVITY_DB_FILE}")
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
 
-    local gravity_size
-    gravity_size=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT COUNT(*) FROM vw_gravity")
-    log_write "   Size (excluding blacklist): ${COL_CYAN}${gravity_size}${COL_NC} entries"
+    show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
+    gravity_updated_raw="$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
+    gravity_updated="$(date -d @"${gravity_updated_raw}")"
+    log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
 
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
     mapfile -t gravity_sample < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
-    log_write "   ${COL_CYAN}----- First 10 Domains -----${COL_NC}"
+    log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
         log_write "   ${line}"
@@ -1301,9 +1300,9 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_groups
+show_domainlist
+show_clients
 show_adlists
-show_whitelist
-show_blacklist
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log

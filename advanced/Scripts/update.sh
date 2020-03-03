@@ -198,6 +198,14 @@ main() {
         ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
         echo -e "${basicError}" && exit 1
     fi
+
+    if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
+        # Force an update of the updatechecker
+        /opt/pihole/updatecheck.sh
+        /opt/pihole/updatecheck.sh x remote
+        echo -e "  ${INFO} Local version file information updated."
+    fi
+
     echo ""
     exit 0
 }
