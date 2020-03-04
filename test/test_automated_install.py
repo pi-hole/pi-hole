@@ -155,42 +155,42 @@ def test_installPiholeWeb_fresh_install_readableBlockpage(Pihole):
     assert expected_stdout in installWeb.stdout
     exit_status_success = '0'
     # check directories above $webroot for read and execute permission by www-data
-    check_var = 'echo $(sudo -u www-data test -r /var) $?'
+    check_var = 'echo $(su -c "test -r /var" www-data) $?'
     expected_stdout = Pihole.run(check_var).stdout
     assert exit_status_success in expected_stdout
-    check_var = 'echo $(sudo -u www-data test -x /var) $?'
+    check_var = 'echo $(su -c "test -x /var" www-data) $?'
     expected_stdout = Pihole.run(check_var).stdout
     assert exit_status_success in expected_stdout
-    check_www = 'echo $(sudo -u www-data test -r /var/www) $?'
+    check_www = 'echo $(su -c "test -r /var/www" www-data) $?'
     expected_stdout = Pihole.run(check_www).stdout
     assert exit_status_success in expected_stdout
-    check_www = 'echo $(sudo -u www-data test -x /var/www) $?'
+    check_www = 'echo $(su -c "test -x /var/www" www-data) $?'
     expected_stdout = Pihole.run(check_www).stdout
     assert exit_status_success in expected_stdout
-    check_html = 'echo $(sudo -u www-data test -r /var/www/html) $?'
+    check_html = 'echo $(su -c "test -r /var/www/html" www-data) $?'
     expected_stdout = Pihole.run(check_html).stdout
     assert exit_status_success in expected_stdout
-    check_html = 'echo $(sudo -u www-data test -x /var/www/html) $?'
+    check_html = 'echo $(su -c "test -x /var/www/html" www-data) $?'
     expected_stdout = Pihole.run(check_html).stdout
     assert exit_status_success in expected_stdout
     # check directories below $webroot for read and execute permission by www-data
-    check_admin = 'echo $(sudo -u www-data test -r /var/www/html/admin) $?'
+    check_admin = 'echo $(su -c "test -r /var/www/html/admin" www-data) $?'
     expected_stdout = Pihole.run(check_admin).stdout
     assert exit_status_success in expected_stdout
-    check_admin = 'echo $(sudo -u www-data test -x /var/www/html/admin) $?'
+    check_admin = 'echo $(su -c "test -x /var/www/html/admin" www-data) $?'
     expected_stdout = Pihole.run(check_admin).stdout
     assert exit_status_success in expected_stdout
-    check_pihole = 'echo $(sudo -u www-data test -r /var/www/html/pihole) $?'
+    check_pihole = 'echo $(su -c "test -r /var/www/html/pihole" www-data) $?'
     expected_stdout = Pihole.run(check_pihole).stdout
     assert exit_status_success in expected_stdout
-    check_pihole = 'echo $(sudo -u www-data test -x /var/www/html/pihole) $?'
+    check_pihole = 'echo $(su -c "test -x /var/www/html/pihole" www-data) $?'
     expected_stdout = Pihole.run(check_pihole).stdout
     assert exit_status_success in expected_stdout
     # check most important files in $webroot for read permission by www-data
-    check_index = 'echo $(sudo -u www-data test -r /var/www/html/admin/index.php) $?'
+    check_index = 'echo $(su -c "test -r /var/www/html/admin/index.php" www-data) $?'
     expected_stdout = Pihole.run(check_index).stdout
     assert exit_status_success in expected_stdout
-    check_blockpage = 'echo $(sudo -u www-data test -r /var/www/html/admin/blockingpage.css) $?'
+    check_blockpage = 'echo $(su -c "test -r /var/www/html/admin/blockingpage.css" www-data) $?'
     expected_stdout = Pihole.run(check_blockpage).stdout
     assert exit_status_success in expected_stdout
 
