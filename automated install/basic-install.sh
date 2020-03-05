@@ -77,7 +77,10 @@ IPV6_ADDRESS=""
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
+INSTALL_WEB_SERVER=true
 PRIVACY_LEVEL=0
+# If the web UI password hash is not set in setupVars, it will be randomly generated
+WEBPASSWORD=
 
 if [ -z "${USER}" ]; then
   USER="$(id -un)"
@@ -109,14 +112,13 @@ c=$(( c < 70 ? 70 : c ))
 skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
-INSTALL_WEB_SERVER=true
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
         "--reconfigure" ) reconfigure=true;;
         "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
-        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
+        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false INSTALL_WEB_INTERFACE=false;; 
     esac
 done
 
@@ -1897,7 +1899,7 @@ installLogrotate() {
 }
 
 # At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
-# Refactoring of install script has changed the name of a couple of variables. Sort them out here.
+# Refactoring of install script to changed the name of a couple of variables. Sort them out here.
 accountForRefactor() {
     sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' "${setupVars}"
     sed -i 's/IPv4_address/IPV4_ADDRESS/g' "${setupVars}"
@@ -1907,15 +1909,99 @@ accountForRefactor() {
     sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' "${setupVars}"
     sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' "${setupVars}"
     sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' "${setupVars}"
-    # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
-    if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
-        local webserver_installed=false
-        if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
-            webserver_installed=true
-        fi
-        echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
-    fi
 }
+
+# A function that validates the pihole_setupVars.conf required for unattended installation and updates.
+validate_setupVars () {
+    printf "  line 145\\n" "${INFO}"
+    # Replace any crlf with nl if they exists in the source file
+    sed -i 's/\r//'  ${setupVars}
+    # Does setupVars contain the minimume variables?
+    local requiredVars=(PIHOLE_INTERFACE IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2)
+    local optionalVarsTF=(QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE BLOCKING_ENABLED DNS_FQDN_REQUIRED DNS_BOGUS_PRIV DNSSEC CONDITIONAL_FORWARDING)
+    source ${setupVars}
+    for i in "${requiredVars[@]}"; do
+        if [[ -z "${!i}" ]]; then
+            echo "$i is not set"
+            exit 1
+        else
+            echo "$i is ${!i}"
+        fi
+    done
+    for i in "${optionalVarsTF[@]}"; do
+        if [[ "${!i}" == "true" ]] || [[ "${!i}" == "false" ]]; then
+            echo "$i is ${!i}"
+        else
+            echo "$i is ${!i}"
+            echo "If $i is set in setupVars.conf, valid options are: true or false."
+            exit 1
+        fi
+    done
+    # INSTALL_WEB_SERVER must be set to true if INSTALL_WEB_INTERFACE is set to true
+    if [[ $INSTALL_WEB_INTERFACE == true ]] && [[ $INSTALL_WEB_SERVER == false]]; then
+        echo "You can install the Web Server without the web interface, but you cannot install the web interface without the web server."
+        echo "INSTALL_WEB_SERVER is set to ${INSTALL_WEB_SERVER} and INSTALL_WEB_INTERFACE is set to ${INSTALL_WEB_INTERFACE}."
+        exit 1
+    fi
+    # Regex patterns to match
+    address="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    addressMask="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|[1-2][0-9]|3[0-2]))$"
+    addressPort="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(#([1-9][0-9]|[1-9]([0-9]){3}))?$"
+    addressReverse="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}in-addr\.arpa$"
+    # Validate the IPv4 address and subnet mask
+    if [[ ! ${IPV4_ADDRESS} =~ $addressMask ]] ; then
+        echo "$IPV4_ADDRESS is not a valid address or it is missing the subnet mask"
+        exit 1 
+    else
+        echo "IPv$ $IPV4_ADDRESS"
+    fi
+    # Validate the DNS_1 IP addresses
+    if [[ ! "${PIHOLE_DNS_1}" =~ $addressPort ]]; then
+        echo "${PIHOLE_DNS_1} is not a valid address"
+        exit 1
+    else
+        echo "DNS1 $PIHOLE_DNS_1"
+    fi
+    # Validate the DNS_2 IP addresses
+    if [[ ! "${PIHOLE_DNS_2}" =~ $addressPort ]]; then
+        echo "${PIHOLE_DNS_2} is not a valid address"
+        exit 1
+    else
+        echo "DNS2 $PIHOLE_DNS_2"
+    fi
+    # Validate Web UI Layout
+    if [[ "${WEBUIBOXEDLAYOUT}" == "boxed" ]] || [[ "${WEBUIBOXEDLAYOUT}" == "traditional" ]]; then
+            echo "WEBUIBOXEDLAYOUT is $WEBUIBOXEDLAYOUT"
+        else
+            echo "WEBUIBOXEDLAYOUT valid options are: boxed or traditional."
+            exit 1
+        fi
+    # Validate Conditional Forwarding settings
+    if [[ "${CONDITIONAL_FORWARDING_IP}" =~ $address ]]; then
+            echo "CONDITIONAL_FORWARDING_IP is ${CONDITIONAL_FORWARDING_IP}"
+    else
+            echo "$CONDITIONAL_FORWARDING_IP is not a valid IP Address"
+            exit 1
+        fi
+    if [[ "${CONDITIONAL_FORWARDING_REVERSE}" =~ $addressReverse ]]; then
+            echo "CONDITIONAL_FORWARDING_REVERSE is ${CONDITIONAL_FORWARDING_REVERSE}"
+    else
+            echo "$CONDITIONAL_FORWARDING_REVERSE is not a valid reverse address"
+            exit 1
+    fi
+    # LIGHTTPD_ENABLED should not be written to the setupVars.conf file.  It's a temporary variable and not used for installation or updates.
+    sed -i '/LIGHTTPD_ENABLED=/ d' "${setupVars}"
+    # DNSMASQ_LISTENING is not used during setup or updates.
+    sed -i '/DNSMASQ_LISTENING=/ d' "${setupVars}"
+}
+
+# For updates and unattended installation.
+if [[ "${runUnattended}" == true ]]; then
+    make sure the setupVars exists
+    chmod 644 "${setupVars}"
+    accountForRefactor
+    validate_setupVars
+fi
 
 # Install base files and web interface
 installPihole() {
@@ -1948,10 +2034,6 @@ installPihole() {
                 printf "      Please ensure fastcgi is enabled if you experience issues\\n"
             fi
         fi
-    fi
-    # For updates and unattended install.
-    if [[ "${useUpdateVars}" == true ]]; then
-        accountForRefactor
     fi
     # Install base files and web interface
     if ! installScripts; then
@@ -2696,9 +2778,8 @@ main() {
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Add password to web UI if there is none
-        pw=""
         # If no password is set,
-        if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
+        if [[ -n "${WEBPASSWORD}" ]] ; then
             # generate a random password
             pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
             # shellcheck disable=SC1091
