@@ -1827,7 +1827,38 @@ configureFirewall() {
     printf "  %b Skipping firewall configuration\\n" "${INFO}"
 }
 
-#
+replaceAddCreate() {
+    local theVariable="$1"
+    local theValue="${!1}"
+    local theFile="$2"
+    # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
+    if [[ ! -s "$2" ]] ; then
+       (umask 022 ; echo >> $2)
+    fi
+    # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
+    sed -i '/^[#]*[ \t]*'"$1"'=/ {h;s/=[^#]*\(.*\)/='"${!1}"'\1/;s/'"${!1}"'#/'"${!1}"' #/};${x;/^$/{s//'"$1"'='"${!1}"'/;H};x}' $2
+    # sed -i '/^$/d' $2         # remove all blank lines in a file
+    # sed -i '${/^$/d}' $2      # remove the last blank line of a file
+    #                                                    # The following is the same as the one line verion above.
+    #                                                    # Using ";" allows it to be written on one line.
+    #                                                    # It's broke out here for documentation.
+    #     sed -i '                                       # 
+    #         /^[#]*[ \t]*'"$1"'=/ {                     # <-- looks for indentation and/or a comment before the variable followed by "="
+    #              h                                     # h command copies the pattern buffer into the hold buffer. pattern buffer is unchanged.
+    #              s/=[^#]*\(.*\)/='"${!1}"'\1/          # <-- looks for a comment after the value, updates the value without losing the comment.
+    #              s/'"${!1}"'#/'"${!1}"' #/             # <-- looks for the value followed by inline comment with no space and adds a space between the value and #.
+    #         }                                          #
+    #         ${                                         #
+    #              x                                     # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         /^$/{                                      #
+    #              s//'"$1"'='"${!1}"'/                  # <-- Appends the variable and value if it's not found.
+    #              H                                     # H command appends lines to the hold buffer with a \n between them.
+    #              }                                     #
+    #              x                                     # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         }                                          #
+    #     ' $2                                           # <-- File to be modified.
+}
+
 finalExports() {
     # If the Web interface is not set to be installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
