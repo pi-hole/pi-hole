@@ -140,9 +140,10 @@ def test_installPiholeWeb_fresh_install_readableBlockpage(Pihole):
     umask 0027
     source /opt/pihole/basic-install.sh
     distro_check > /dev/null 2>&1
-    echo "LIGHTTPD_USER=${LIGHTTPD_USER}"
     install_dependent_packages ${PIHOLE_WEB_DEPS[@]} > /dev/null 2>&1
     installPiholeWeb
+    echo "LIGHTTPD_USER=${LIGHTTPD_USER}"
+    echo "webroot=${webroot}"
     ''')
     expected_stdout = info_box + ' Installing blocking page...'
     assert expected_stdout in installWeb.stdout
@@ -159,48 +160,54 @@ def test_installPiholeWeb_fresh_install_readableBlockpage(Pihole):
     webuser = ''
     user = re.findall("^\s*LIGHTTPD_USER=.*$", installWeb.stdout, re.MULTILINE)
     for match in user:
-       webuser = match.replace('LIGHTTPD_USER=', '').strip()
-    exit_status_success = '0'
-    test_command = 'echo $(su --command "test -{0} {1}" -p {2}) $?'
+        webuser = match.replace('LIGHTTPD_USER=', '').strip()
+    webroot = ''
+    user = re.findall("^\s*webroot=.*$", installWeb.stdout, re.MULTILINE)
+    for match in user:
+        webroot = match.replace('webroot=', '').strip()
+    if not webroot.strip():
+        webroot = '/var/www/html'
+    exit_status_success = 0
+    test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
     # check directories above $webroot for read and execute permission
-    check_var = test_command.format('r', '/var', webuser)
-    expected_stdout = Pihole.run(check_var).stdout
-    assert exit_status_success in expected_stdout
-    check_var = test_command.format('x', '/var', webuser)
-    expected_stdout = Pihole.run(check_var).stdout
-    assert exit_status_success in expected_stdout
-    check_www = test_command.format('r', '/var/www', webuser)
-    expected_stdout = Pihole.run(check_www).stdout
-    assert exit_status_success in expected_stdout
-    check_www = test_command.format('x', '/var/www', webuser)
-    expected_stdout = Pihole.run(check_www).stdout
-    assert exit_status_success in expected_stdout
-    check_html = test_command.format('r', '/var/www/html', webuser)
-    expected_stdout = Pihole.run(check_html).stdout
-    assert exit_status_success in expected_stdout
-    check_html = test_command.format('x', '/var/www/html', webuser)
-    expected_stdout = Pihole.run(check_html).stdout
-    assert exit_status_success in expected_stdout
+    check_var = test_cmd.format('r', '/var', webuser)
+    actual_rc = Pihole.run(check_var).rc
+    assert exit_status_success == actual_rc
+    check_var = test_cmd.format('x', '/var', webuser)
+    actual_rc = Pihole.run(check_var).rc
+    assert exit_status_success == actual_rc
+    check_www = test_cmd.format('r', '/var/www', webuser)
+    actual_rc = Pihole.run(check_www).rc
+    assert exit_status_success == actual_rc
+    check_www = test_cmd.format('x', '/var/www', webuser)
+    actual_rc = Pihole.run(check_www).rc
+    assert exit_status_success == actual_rc
+    check_html = test_cmd.format('r', '/var/www/html', webuser)
+    actual_rc = Pihole.run(check_html).rc
+    assert exit_status_success == actual_rc
+    check_html = test_cmd.format('x', '/var/www/html', webuser)
+    actual_rc = Pihole.run(check_html).rc
+    assert exit_status_success == actual_rc
     # check directories below $webroot for read and execute permission
-    check_admin = test_command.format('r', '/var/www/html/admin', webuser)
-    expected_stdout = Pihole.run(check_admin).stdout
-    assert exit_status_success in expected_stdout
-    check_admin = test_command.format('x', '/var/www/html/admin', webuser)
-    expected_stdout = Pihole.run(check_admin).stdout
-    assert exit_status_success in expected_stdout
-    check_pihole = test_command.format('r', '/var/www/html/pihole', webuser)
-    expected_stdout = Pihole.run(check_pihole).stdout
-    assert exit_status_success in expected_stdout
-    check_pihole = test_command.format('x', '/var/www/html/pihole', webuser)
-    expected_stdout = Pihole.run(check_pihole).stdout
-    assert exit_status_success in expected_stdout
+    check_admin = test_cmd.format('r', webroot + '/admin', webuser)
+    actual_rc = Pihole.run(check_admin).rc
+    assert exit_status_success == actual_rc
+    check_admin = test_cmd.format('x', webroot + '/admin', webuser)
+    actual_rc = Pihole.run(check_admin).rc
+    assert exit_status_success == actual_rc
+    check_pihole = test_cmd.format('r', webroot + '/pihole', webuser)
+    actual_rc = Pihole.run(check_pihole).rc
+    assert exit_status_success == actual_rc
+    check_pihole = test_cmd.format('x', webroot + '/pihole', webuser)
+    actual_rc = Pihole.run(check_pihole).rc
+    assert exit_status_success == actual_rc
     # check most important files in $webroot for read permission by
-    check_index = test_command.format('r', '/var/www/html/admin/index.php', webuser)
-    expected_stdout = Pihole.run(check_index).stdout
-    assert exit_status_success in expected_stdout
-    check_blockpage = test_command.format('r', '/var/www/html/admin/blockingpage.css', webuser)
-    expected_stdout = Pihole.run(check_blockpage).stdout
-    assert exit_status_success in expected_stdout
+    check_index = test_cmd.format('r', webroot + '/admin/index.php', webuser)
+    actual_rc = Pihole.run(check_index).rc
+    assert exit_status_success == actual_rc
+    check_blockpage = test_cmd.format('r', webroot + '/admin/blockingpage.css', webuser)
+    actual_rc = Pihole.run(check_blockpage).rc
+    assert exit_status_success == actual_rc
 
 
 def test_update_package_cache_success_no_errors(Pihole):
