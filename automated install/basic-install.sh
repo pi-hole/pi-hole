@@ -1873,31 +1873,22 @@ finalExports() {
         fi
     fi
     
-    # If the setup variable file exists,
-    if [[ -e "${setupVars}" ]]; then
-        # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
-    fi
+    # Updated settings
+    updatedVars= (PIHOLE_INTERFACE IPV4_ADDRESS IPV6_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2 QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE)
+    # Update setupVars.conf with new settings
+    for i in "${updatedVars[@]}"; do
+        replaceAddCreate $i $setupVars
+    done
     # echo the information to the user
-    {
-    echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-    echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-    echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
-    echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
-    echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
-    echo "QUERY_LOGGING=${QUERY_LOGGING}"
-    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
-    echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-    echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
-    }>> "${setupVars}"
-    chmod 644 "${setupVars}"
+    for i in "${updatedVars[@]}"; do
+        echo "$i=${!i}"
+    done    
 
     # Set the privacy level
     sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
     echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
 
     # Bring in the current settings and the functions to manipulate them
-    source "${setupVars}"
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
     # Look for DNS server settings which would have to be reapplied
