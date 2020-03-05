@@ -132,31 +132,22 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     assert 'blockingpage.css' in web_directory
 
 
-def test_installPiholeWeb_fresh_install_readableBlockpage(Pihole):
+def test_installPihole_fresh_install_readableBlockpage(Pihole):
     '''
     confirms all web page assets from Core repo are readable by $LIGHTTPD_USER on a fresh build
     '''
     installWeb = Pihole.run('''
     umask 0027
     source /opt/pihole/basic-install.sh
-    distro_check > /dev/null 2>&1
-    install_dependent_packages ${PIHOLE_WEB_DEPS[@]} > /dev/null 2>&1
-    installPiholeWeb
+    distro_check > /dev/null
+    clone_or_update_repos
+    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
+    create_pihole_user
+    installPihole
     echo "LIGHTTPD_USER=${LIGHTTPD_USER}"
     echo "webroot=${webroot}"
     ''')
-    expected_stdout = info_box + ' Installing blocking page...'
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = tick_box + (' Creating directory for blocking page, '
-                                  'and copying files')
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = info_box + ' Backing up index.lighttpd.html'
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = ('No default index.lighttpd.html file found... '
-                       'not backing up')
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = tick_box + ' Installing sudoer file'
-    assert expected_stdout in installWeb.stdout
+    assert 0 == installWeb.rc
     webuser = ''
     user = re.findall("^\s*LIGHTTPD_USER=.*$", installWeb.stdout, re.MULTILINE)
     for match in user:
