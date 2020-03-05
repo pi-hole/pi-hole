@@ -1,0 +1,38 @@
+# ;
+# ; *  IMPORTANT NOTE:  This file is used as a variable file for the Bash install script and
+# ;    as a PHP ini file for /var/www/html/admin/settings.php.
+# ; *  Bash reads comments as "#"
+# ; *  PHP reads comments as ";" (As of PHP 7.0.0, "#" are no longer recognized as PHP comments)
+# ; *  All lines must end with a LF, not CRLF
+# ; *  There must be a blank line at the end of the file.
+# ; *  Options set during or after installation will be appended to the last line.
+# ;
+# ; *  Run ~/pihole-install.sh --unattended >> /var/log/unnattended-pihole-install.log
+# ;    to find the new web GUI password at /var/log/unnattended-pihole-install.log  
+# ;    after installation
+# ;
+# ; *  To create a random Web GUI password, delete "WEBPASSWORD=".  If it is left as is, no password will
+# ;    be required to login.  The password can be changed after installation with 'pihole -a -p'
+# ;
+# ;    To use default settings, remove the variable completely
+# ;
+
+PIHOLE_INTERFACE=ens160
+IPV4_ADDRESS=x.x.x.x/xx
+PIHOLE_DNS_1=x.x.x.x#5353
+PIHOLE_DNS_2=x.x.x.x
+QUERY_LOGGING=true
+INSTALL_WEB_SERVER=true
+INSTALL_WEB_INTERFACE=true
+WEBPASSWORD=63b000e76a263ebe9c247952491a9ed56ffdb060b864b80d31990f6121d129fd
+TEMPERATUREUNIT=F
+WEBUIBOXEDLAYOUT=boxed
+BLOCKING_ENABLED=true
+DNSMASQ_LISTENING=single
+DNS_FQDN_REQUIRED=false
+DNS_BOGUS_PRIV=false
+DNSSEC=false
+CONDITIONAL_FORWARDING=true
+CONDITIONAL_FORWARDING_IP=192.168.1.1
+CONDITIONAL_FORWARDING_DOMAIN=mydomain.net
+CONDITIONAL_FORWARDING_REVERSE=1.168.192.in-addr.arpa
