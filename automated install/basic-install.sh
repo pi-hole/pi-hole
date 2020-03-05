@@ -1839,7 +1839,7 @@ finalExports() {
             IPV6_ADDRESS="::/0"
         fi
     fi
-
+    
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
@@ -2637,10 +2637,14 @@ main() {
         # Source ${setupVars} to use predefined user variables in the functions
         source "${setupVars}"
 
-        # Get the privacy level if it exists (default is 0)
+        # Get the privacy level if it exists (default is 0), check pihole-FTL.conf first, then check setupVars.conf
         if [[ -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
             PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf")
-
+            # If no setting was found, default to 0
+            PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
+        else
+            # Check setupVars.conf
+            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${setupVars}")
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
         fi
