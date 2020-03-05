@@ -137,16 +137,21 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole):
     confirms all web page assets from Core repo are readable by $LIGHTTPD_USER on a fresh build
     '''
     installWeb = Pihole.run('''
+    export TERM=xterm
     umask 0027
     source /opt/pihole/basic-install.sh
-    distro_check > /dev/null
-    clone_or_update_repos
-    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
-    create_pihole_user
-    installPihole
+    main
     echo "LIGHTTPD_USER=${LIGHTTPD_USER}"
     echo "webroot=${webroot}"
     ''')
+#    distro_check > /dev/null
+#    clone_or_update_repos
+#    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
+#    create_pihole_user
+#    installPihole
+#    echo "LIGHTTPD_USER=${LIGHTTPD_USER}"
+#    echo "webroot=${webroot}"
+#    ''')
     assert 0 == installWeb.rc
     webuser = ''
     user = re.findall("^\s*LIGHTTPD_USER=.*$", installWeb.stdout, re.MULTILINE)
