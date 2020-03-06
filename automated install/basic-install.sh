@@ -79,8 +79,7 @@ QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
 INSTALL_WEB_SERVER=true
 PRIVACY_LEVEL=0
-# If the web UI password hash is not set in setupVars, it will be randomly generated
-WEBPASSWORD=
+export DNS_CACHE_SIZE=10000    # added in PR #3170 - Add CACHE_SIZE to setupVars
 
 if [ -z "${USER}" ]; then
   USER="$(id -un)"
@@ -246,10 +245,10 @@ if is_command apt-get ; then
     # These programs are stored in an array so they can be looped through later
     INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail)
     # Pi-hole itself has several dependencies that also need to be installed
-    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
+    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "php-intl")
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
@@ -288,7 +287,7 @@ elif is_command rpm ; then
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
-    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite libcap)
+    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
@@ -429,11 +428,11 @@ make_repo() {
     # Clone the repo and return the return code from this command
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+rX "${directory}"    
+    chmod -R a+rX "${directory}"
     # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Check current branch. If it is master, then reset to the latest availible tag.
-    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
          git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
@@ -459,7 +458,7 @@ update_repo() {
     # Again, it's useful to store these in variables in case we need to reuse or change the message;
     # we only need to make one change here
     local str="Update repo in ${1}"
-    # Move into the directory that was passed as an argument    
+    # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Let the user know what's happening
     printf "  %b %s..." "${INFO}" "${str}"
@@ -469,7 +468,7 @@ update_repo() {
     # Pull the latest commits
     git pull --quiet &> /dev/null || return $?
     # Check current branch. If it is master, then reset to the latest availible tag.
-    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
          git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
@@ -531,7 +530,7 @@ resetRepo() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Return to where we came from
     popd &> /dev/null || return 1
-    # Returning success anyway?    
+    # Returning success anyway?
     return 0
 }
 
@@ -1234,7 +1233,7 @@ appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-        Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+        Cameleon     )  echo "https://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
         HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
@@ -1306,7 +1305,7 @@ version_check_dnsmasq() {
     printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
     # First, swap in the interface to listen on
-    sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_location}"
+    replaceAddCreateRename PIHOLE_INTERFACE interface "${dnsmasq_pihole_01_location}"
     if [[ "${PIHOLE_DNS_1}" != "" ]]; then
         # Then swap in the primary DNS server
         sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_location}"
@@ -1321,6 +1320,9 @@ version_check_dnsmasq() {
         #
         sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
     fi
+    # Set the cache size (added in PR #3170 - Add CACHE_SIZE to setupVars)
+    # added -+ to DNS_CACHE_SIZE to fix Lint error because the variable is not used anywhere else.
+    replaceAddCreateRename DNS_CACHE_SIZE cache-size "${dnsmasq_pihole_01_location}"
 
     #
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
@@ -1408,7 +1410,11 @@ installConfigs() {
         if ! install -o pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
             printf "  %bError: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
+        else
+            echo >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
         fi
+    else
+        echo >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
     fi
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
@@ -1827,36 +1833,72 @@ configureFirewall() {
     printf "  %b Skipping firewall configuration\\n" "${INFO}"
 }
 
-replaceAddCreate() {
-    local theVariable="$1"
+replaceAddCreateRename() {
     local theValue="${!1}"
-    local theFile="$2"
+    local newVariable="${2}"
+    local theFile="${3}"
     # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
-    if [[ ! -s "$2" ]] ; then
-       (umask 022 ; echo >> $2)
+    if [[ ! -s "theFile" ]] ; then
+       (umask 022 ; echo >> "${theFile}")
     fi
     # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
-    sed -i '/^[#]*[ \t]*'"$1"'=/ {h;s/=[^#]*\(.*\)/='"${!1}"'\1/;s/'"${!1}"'#/'"${!1}"' #/};${x;/^$/{s//'"$1"'='"${!1}"'/;H};x}' $2
-    # sed -i '/^$/d' $2         # remove all blank lines in a file
-    # sed -i '${/^$/d}' $2      # remove the last blank line of a file
+    sed -i '
+        /^[#]*[ \t]*'"${newVariable}"'=/ {
+            h
+            s/=[^#]*\(.*\)/='"${theValue}"'\1/
+            s/'"${theValue}"'#/'"${theValue}"' #/}
+            ${
+                x
+            /^$/{
+                s//'"${newVariable}"'='"${theValue}"'/
+                H
+                }
+                x
+            }
+        ' "${theFile}"
+}
+
+replaceAddCreate() {
+    local theVariable="${1}"
+    local theValue="${!1}"
+    local theFile="${2}"
+    # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
+    if [[ ! -s "${theFile}" ]] ; then
+       (umask 022 ; echo >> "${theFile}")
+    fi
+    # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
+    sed -i '
+        /^[#]*[ \t]*'"${theVariable}"'=/ {
+            h
+            s/=[^#]*\(.*\)/='"${theValue}"'\1/
+            s/'"${theValue}"'#/'"${theValue}"' #/}
+            ${
+                x
+            /^$/{
+                s//'"${theVariable}"'='"${theValue}"'/
+                H
+                }
+                x
+            }
+        ' "${theFile}"
     #                                                    # The following is the same as the one line verion above.
     #                                                    # Using ";" allows it to be written on one line.
     #                                                    # It's broke out here for documentation.
-    #     sed -i '                                       # 
-    #         /^[#]*[ \t]*'"$1"'=/ {                     # <-- looks for indentation and/or a comment before the variable followed by "="
-    #              h                                     # h command copies the pattern buffer into the hold buffer. pattern buffer is unchanged.
-    #              s/=[^#]*\(.*\)/='"${!1}"'\1/          # <-- looks for a comment after the value, updates the value without losing the comment.
-    #              s/'"${!1}"'#/'"${!1}"' #/             # <-- looks for the value followed by inline comment with no space and adds a space between the value and #.
-    #         }                                          #
-    #         ${                                         #
-    #              x                                     # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
-    #         /^$/{                                      #
-    #              s//'"$1"'='"${!1}"'/                  # <-- Appends the variable and value if it's not found.
-    #              H                                     # H command appends lines to the hold buffer with a \n between them.
-    #              }                                     #
-    #              x                                     # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
-    #         }                                          #
-    #     ' $2                                           # <-- File to be modified.
+    #     sed -i '                                              # 
+    #         /^[#]*[ \t]*'"${theVariable}"'=/ {                # <-- looks for indentation and/or a comment before the variable followed by "="
+    #              h                                            # h command copies the pattern buffer into the hold buffer. pattern buffer is unchanged.
+    #              s/=[^#]*\(.*\)/='"${theValue}"'\1/           # <-- looks for a comment after the value, updates the value without losing the comment.
+    #              s/'"${theValue}"'#/'"${theValue}"' #/        # <-- looks for the value followed by inline comment with no space and adds a space between the value and #.
+    #         }                                                 #
+    #         ${                                                #
+    #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         /^$/{                                             #
+    #              s//'"${theVariable}"'='"${theValue}"'/       # <-- Appends the variable and value if it's not found.
+    #              H                                            # H command appends lines to the hold buffer with a \n between them.
+    #              }                                            #
+    #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         }                                                 #
+    #     ' ${theFile}                                          # <-- File to be modified.
 }
 
 finalExports() {
@@ -1872,21 +1914,20 @@ finalExports() {
             IPV6_ADDRESS="::/0"
         fi
     fi
-    
+    set +e      # set -e will cause the loop to exit early
     # Updated settings
-    updatedVars= (PIHOLE_INTERFACE IPV4_ADDRESS IPV6_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2 QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE)
+    updatedVars=(PIHOLE_INTERFACE IPV6_ADDRESS IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2 QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE DNS_CACHE_SIZE)
     # Update setupVars.conf with new settings
-    for i in "${updatedVars[@]}"; do
-        replaceAddCreate $i $setupVars
+    for var in "${updatedVars[@]}"; do
+        replaceAddCreate "${var}" "${setupVars}"
     done
     # echo the information to the user
-    for i in "${updatedVars[@]}"; do
-        echo "$i=${!i}"
+    for var in "${updatedVars[@]}"; do
+        echo "${var}=${!var}"
     done    
-
     # Set the privacy level
-    sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
-    echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    replaceAddCreateRename PRIVACY_LEVEL PRIVACYLEVEL "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    set -e      # exit on non-zero 
 
     # Bring in the current settings and the functions to manipulate them
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
@@ -1935,32 +1976,35 @@ accountForRefactor() {
 
 # A function that validates the pihole_setupVars.conf required for unattended installation and updates.
 validate_setupVars () {
-    printf "  line 145\\n" "${INFO}"
+    printf "  Validating setupVars.conf\\n"
+    echo ""
     # Replace any crlf with nl if they exists in the source file
     sed -i 's/\r//'  ${setupVars}
     # Does setupVars contain the minimume variables?
     local requiredVars=(PIHOLE_INTERFACE IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2)
     local optionalVarsTF=(QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE BLOCKING_ENABLED DNS_FQDN_REQUIRED DNS_BOGUS_PRIV DNSSEC CONDITIONAL_FORWARDING)
     source ${setupVars}
-    for i in "${requiredVars[@]}"; do
-        if [[ -z "${!i}" ]]; then
-            echo "$i is not set"
+    for var in "${requiredVars[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            echo "${var} is not set"
             exit 1
         else
-            echo "$i is ${!i}"
+            echo "${var} is ${!var}"
         fi
     done
     for i in "${optionalVarsTF[@]}"; do
-        if [[ "${!i}" == "true" ]] || [[ "${!i}" == "false" ]]; then
-            echo "$i is ${!i}"
+        if [[ "${!var}" == "true" ]] || [[ "${!var}" == "false" ]]; then
+            echo "${var} is ${!var}"
+        elif [[ -z "${!var}" ]]; then
+            echo "${var} is not set"
         else
-            echo "$i is ${!i}"
-            echo "If $i is set in setupVars.conf, valid options are: true or false."
+            echo "${var} is ${!var}"
+            echo "If ${var} is set in setupVars.conf, valid options are: true or false."
             exit 1
         fi
     done
     # INSTALL_WEB_SERVER must be set to true if INSTALL_WEB_INTERFACE is set to true
-    if [[ $INSTALL_WEB_INTERFACE == true ]] && [[ $INSTALL_WEB_SERVER == false]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]] && [[ "${INSTALL_WEB_SERVER}" == false ]]; then
         echo "You can install the Web Server without the web interface, but you cannot install the web interface without the web server."
         echo "INSTALL_WEB_SERVER is set to ${INSTALL_WEB_SERVER} and INSTALL_WEB_INTERFACE is set to ${INSTALL_WEB_INTERFACE}."
         exit 1
@@ -1971,58 +2015,67 @@ validate_setupVars () {
     addressPort="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(#([1-9][0-9]|[1-9]([0-9]){3}))?$"
     addressReverse="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}in-addr\.arpa$"
     # Validate the IPv4 address and subnet mask
-    if [[ ! ${IPV4_ADDRESS} =~ $addressMask ]] ; then
-        echo "$IPV4_ADDRESS is not a valid address or it is missing the subnet mask"
+    if [[ ! ${IPV4_ADDRESS} =~ ${addressMask} ]] ; then
+        echo "${IPV4_ADDRESS} is not a valid address or it is missing the subnet mask"
         exit 1 
     else
-        echo "IPv$ $IPV4_ADDRESS"
+        echo "IPv4 ${IPV4_ADDRESS}"
     fi
     # Validate the DNS_1 IP addresses
-    if [[ ! "${PIHOLE_DNS_1}" =~ $addressPort ]]; then
+    if [[ ! "${PIHOLE_DNS_1}" =~ ${addressPort} ]]; then
         echo "${PIHOLE_DNS_1} is not a valid address"
         exit 1
     else
-        echo "DNS1 $PIHOLE_DNS_1"
+        echo "DNS1 ${PIHOLE_DNS_1}"
     fi
     # Validate the DNS_2 IP addresses
-    if [[ ! "${PIHOLE_DNS_2}" =~ $addressPort ]]; then
+    if [[ ! "${PIHOLE_DNS_2}" =~ ${addressPort} ]]; then
         echo "${PIHOLE_DNS_2} is not a valid address"
         exit 1
     else
-        echo "DNS2 $PIHOLE_DNS_2"
+        echo "DNS2 ${PIHOLE_DNS_2}"
     fi
     # Validate Web UI Layout
     if [[ "${WEBUIBOXEDLAYOUT}" == "boxed" ]] || [[ "${WEBUIBOXEDLAYOUT}" == "traditional" ]]; then
-            echo "WEBUIBOXEDLAYOUT is $WEBUIBOXEDLAYOUT"
+            echo "WEBUIBOXEDLAYOUT is ${WEBUIBOXEDLAYOUT}"
+        elif [[ -z "${WEBUIBOXEDLAYOUT}" ]]; then
+            echo "WEBUIBOXEDLAYOUT is not set"
         else
             echo "WEBUIBOXEDLAYOUT valid options are: boxed or traditional."
             exit 1
         fi
     # Validate Conditional Forwarding settings
-    if [[ "${CONDITIONAL_FORWARDING_IP}" =~ $address ]]; then
+    if [[ "${CONDITIONAL_FORWARDING_IP}" =~ ${address} ]]; then
             echo "CONDITIONAL_FORWARDING_IP is ${CONDITIONAL_FORWARDING_IP}"
+    elif [[ -z "${CONDITIONAL_FORWARDING_IP}" ]]; then
+            echo "CONDITIONAL_FORWARDING_IP is not set"
     else
-            echo "$CONDITIONAL_FORWARDING_IP is not a valid IP Address"
+            echo "${CONDITIONAL_FORWARDING_IP} is not a valid IP Address"
             exit 1
         fi
-    if [[ "${CONDITIONAL_FORWARDING_REVERSE}" =~ $addressReverse ]]; then
+    if [[ "${CONDITIONAL_FORWARDING_REVERSE}" =~ ${addressReverse} ]]; then
             echo "CONDITIONAL_FORWARDING_REVERSE is ${CONDITIONAL_FORWARDING_REVERSE}"
+    elif [[ -z "${CONDITIONAL_FORWARDING_REVERSE}" ]]; then
+            echo "CONDITIONAL_FORWARDING_REVERSE is not set"
     else
-            echo "$CONDITIONAL_FORWARDING_REVERSE is not a valid reverse address"
+            echo "${CONDITIONAL_FORWARDING_REVERSE} is not a valid reverse address"
             exit 1
     fi
     # LIGHTTPD_ENABLED should not be written to the setupVars.conf file.  It's a temporary variable and not used for installation or updates.
     sed -i '/LIGHTTPD_ENABLED=/ d' "${setupVars}"
     # DNSMASQ_LISTENING is not used during setup or updates.
     sed -i '/DNSMASQ_LISTENING=/ d' "${setupVars}"
+    # Ensure setupVars ends with a newline
+    sed -i -e '$a\ ' "${setupVars}"
 }
 
 # For updates and unattended installation.
 if [[ "${runUnattended}" == true ]]; then
-    make sure the setupVars exists
-    chmod 644 "${setupVars}"
-    accountForRefactor
-    validate_setupVars
+    if [[ -f "${setupVars}" ]]; then
+        chmod 644 "${setupVars}"
+        accountForRefactor
+        validate_setupVars
+    fi
 fi
 
 # Install base files and web interface
@@ -2136,7 +2189,7 @@ checkSelinux() {
 displayFinalMessage() {
     # If
     if [[ "${#1}" -gt 0 ]] ; then
-        pwstring="$1"
+        pwstring="${1}"
         # else, if the dashboard password in the setup variables exists,
     elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
         # set a variable for evaluation later
@@ -2150,20 +2203,21 @@ displayFinalMessage() {
         # Store a message in a variable and display it
         additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
-Your Admin Webpage login password is ${pwstring}"
-   fi
-
+    Your Admin Webpage login password is ${pwstring}"
+    fi
+    if [[ "${useUpdateVars}" == false ]]; then
     # Final completion message to user
-    whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
+        whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
 
-IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS:-"Not Configured"}
+    IPv4:	${IPV4_ADDRESS%/*}
+    IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
-If you set a new IP address, you should restart the Pi.
+    If you set a new IP address, you should restart the Pi.
 
-The install log is in /etc/pihole.
+    The install log is in /etc/pihole.
 
-${additional}" "${r}" "${c}"
+     ${additional}" "${r}" "${c}"
+    fi
 }
 
 update_dialogs() {
@@ -2332,15 +2386,6 @@ FTLinstall() {
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
 
-    # Find the latest version tag for FTL
-    latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
-    # Tags should always start with v, check for that.
-    if [[ ! "${latesttag}" == v* ]]; then
-        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to get latest release location from GitHub%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        return 1
-    fi
-
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
@@ -2361,7 +2406,7 @@ FTLinstall() {
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]];then
-        url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
+        url="https://github.com/pi-hole/ftl/releases/latest/download"
     else
         url="https://ftl.pi-hole.net/${ftlBranch}"
     fi
@@ -2572,16 +2617,13 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLreleaseData
             local FTLlatesttag
 
-            if ! FTLreleaseData=$(curl -sI https://github.com/pi-hole/FTL/releases/latest); then
+            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
-
-            FTLlatesttag=$(grep 'Location' <<< "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
@@ -2741,14 +2783,14 @@ main() {
         # Source ${setupVars} to use predefined user variables in the functions
         source "${setupVars}"
 
-        # Get the privacy level if it exists (default is 0), check pihole-FTL.conf first, then check setupVars.conf
+        # Get the privacy level if it exists (default is 0), check setupVars.conf first, then check pihole-FTL.conf.conf
         if [[ -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
             PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf")
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
         else
             # Check setupVars.conf
-            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${setupVars}")
+            PRIVACY_LEVEL=$(sed -ne 's/PRIVACY_LEVEL=\(.*\)/\1/p' "${setupVars}")
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
         fi
@@ -2791,7 +2833,6 @@ main() {
         printf "  %b FTL Engine not installed\\n" "${CROSS}"
         exit 1
     fi
-
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
 
@@ -2800,8 +2841,8 @@ main() {
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Add password to web UI if there is none
-        # If no password is set,
-        if [[ -n "${WEBPASSWORD}" ]] ; then
+        # If WEBPASSWORD is not defined, (blank passwords are accepted),
+        if [[ -z "${WEBPASSWORD}" ]] ; then
             # generate a random password
             pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
             # shellcheck disable=SC1091
@@ -2844,9 +2885,8 @@ main() {
     /opt/pihole/updatecheck.sh
     /opt/pihole/updatecheck.sh x remote
 
-    if [[ "${useUpdateVars}" == false ]]; then
-        displayFinalMessage "${pw}"
-    fi
+    # Display the final message even for unattended, will display to installation log
+    displayFinalMessage "${pw}"
 
     # If the Web interface was installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
