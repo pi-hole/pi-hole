@@ -264,7 +264,7 @@ gravity_DownloadBlocklistFromUrl() {
         printf -v port "%s" "${PIHOLE_DNS_1#*#}"
     fi
     ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
-    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then 
+    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
       port=443;
     else port=80
     fi
