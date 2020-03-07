@@ -264,11 +264,15 @@ gravity_DownloadBlocklistFromUrl() {
         printf -v port "%s" "${PIHOLE_DNS_1#*#}"
     fi
     ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
-    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
+    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then 
       port=443;
     else port=80
     fi
     bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
+    # added check for https://github.com/pi-hole/pi-hole/issues/3196
+    if [ $(echo -n ${bad_list} | wc -m) -eq 0 ]; then
+		  bad_list='a Regular Expression'
+    fi    
     echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
