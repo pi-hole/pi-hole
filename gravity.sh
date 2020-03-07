@@ -270,7 +270,7 @@ gravity_DownloadBlocklistFromUrl() {
     fi
     bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
     # added check for https://github.com/pi-hole/pi-hole/issues/3196
-    if [-z "${bad_list}" ]; then
+    if [ -z "${bad_list}" ]; then
 		  bad_list='a Regular Expression'
     fi    
     echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
