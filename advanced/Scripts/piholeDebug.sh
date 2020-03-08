@@ -1116,7 +1116,7 @@ show_adlists() {
 }
 
 show_domainlist() {
-    show_db_entries "Domainlist (0/1 = exact/regex whitelist, 2/3 = exact/regex blacklist)" "SELECT id,type,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist" "4 4 100 7 19 19 50"
+    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,type,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist" "4 4 100 7 19 19 50"
     show_db_entries "Domainlist groups" "SELECT * FROM domainlist_by_group" "10 10"
 }
 
