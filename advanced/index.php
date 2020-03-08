@@ -6,7 +6,7 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-// Sanitise HTTP_HOST output
+// Sanitize HTTP_HOST output
 $serverName = htmlspecialchars($_SERVER["HTTP_HOST"]);
 // Remove external ipv6 brackets if any
 $serverName = preg_replace('/^\[(.*)\]$/', '${1}', $serverName);
@@ -68,7 +68,7 @@ if ($serverName === "pi.hole") {
     // Unset variables so as to not be included in $landPage
     unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
 
-    // Render splash/landing page when directly browsing via IP or authorised hostname
+    // Render splash/landing page when directly browsing via IP or authorized hostname
     exit($renderPage);
 } elseif ($currentUrlExt === "js") {
     // Serve Pi-hole Javascript for blocked domains requesting JS
@@ -209,7 +209,7 @@ $phVersion = exec("cd /etc/.pihole/ && git describe --long --tags");
 if (explode("-", $phVersion)[1] != "0")
   $execTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
 
-// Please Note: Text is added via CSS to allow an admin to provide a localised
+// Please Note: Text is added via CSS to allow an admin to provide a localized
 // language without the need to edit this file
 
 setHeader();

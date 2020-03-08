@@ -138,7 +138,7 @@ PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log"
 PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
 PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 
-# An array of operating system "pretty names" that we officialy support
+# An array of operating system "pretty names" that we officially support
 # We can loop through the array at any time to see if it matches a value
 #SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
@@ -300,7 +300,7 @@ compare_local_version_to_git_version() {
             if [[ "${remote_branch}" == "master" ]]; then
                 # so the color of the text is green
                 log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
-            # If it is any other branch, they are in a developement branch
+            # If it is any other branch, they are in a development branch
             else
                 # So show that in yellow, signifying it's something to take a look at, but not a critical error
                 log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
@@ -357,7 +357,7 @@ check_component_versions() {
 
 get_program_version() {
     local program_name="${1}"
-    # Create a loval variable so this function can be safely reused
+    # Create a local variable so this function can be safely reused
     local program_version
     echo_current_diagnostic "${program_name} version"
     # Evalutate the program we are checking, if it is any of the ones below, show the version
@@ -747,7 +747,7 @@ check_x_headers() {
     # Do it for the dashboard as well, as the header is different than above
     local dashboard
     dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
-    # Store what the X-Header shoud be in variables for comparision later
+    # Store what the X-Header shoud be in variables for comparison later
     local block_page_working
     block_page_working="X-Pi-hole: A black hole for Internet advertisements."
     local dashboard_working
@@ -818,7 +818,7 @@ dig_at() {
 
     # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
     if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
-        # If it can, show sucess
+        # If it can, show success
         log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC (${local_address})"
     else
         # Otherwise, show a failure
@@ -969,7 +969,7 @@ check_name_resolution() {
 # This function can check a directory exists
 # Pi-hole has files in several places, so we will reuse this function
 dir_check() {
-    # Set the first argument passed to tihs function as a named variable for better readability
+    # Set the first argument passed to this function as a named variable for better readability
     local directory="${1}"
     # Display the current test that is running
     echo_current_diagnostic "contents of ${COL_CYAN}${directory}${COL_NC}"
@@ -987,14 +987,14 @@ dir_check() {
 }
 
 list_files_in_dir() {
-    # Set the first argument passed to tihs function as a named variable for better readability
+    # Set the first argument passed to this function as a named variable for better readability
     local dir_to_parse="${1}"
     # Store the files found in an array
     mapfile -t files_found < <(ls "${dir_to_parse}")
     # For each file in the array,
     for each_file in "${files_found[@]}"; do
         if [[ -d "${dir_to_parse}/${each_file}" ]]; then
-            # If it's a directoy, do nothing
+            # If it's a directory, do nothing
             :
         elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
@@ -1190,7 +1190,7 @@ analyze_pihole_log() {
                 # So first check if there are domains in the log that should be obfuscated
                 if [[ -n ${line_to_obfuscate} ]]; then
                     # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
-                    # so we substitue the domain for the placeholder value
+                    # so we substitute the domain for the placeholder value
                     obfuscated_line=$(echo "${line_to_obfuscate}" | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
                     log_write "   ${obfuscated_line}"
                 else
@@ -1238,7 +1238,7 @@ upload_to_tricorder() {
     log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
     log_write "    * For more information, see: ${TRICORDER_CONTEST}"
     log_write "    * If available, we'll use openssl to upload the log, otherwise it will fall back to netcat."
-    # If pihole -d is running automatically (usually throught the dashboard)
+    # If pihole -d is running automatically (usually through the dashboard)
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"

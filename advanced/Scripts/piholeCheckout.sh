@@ -36,7 +36,7 @@ warning1() {
             return 0
             ;;
         *)
-            echo -e "\\n  ${INFO} Branch change has been cancelled"
+            echo -e "\\n  ${INFO} Branch change has been canceled"
             return 1
             ;;
     esac
@@ -84,7 +84,7 @@ checkout() {
         echo -e "  ${INFO} Shortcut \"dev\" detected - checking out development / devel branches..."
         echo ""
         echo -e "  ${INFO} Pi-hole Core"
-        fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core developement branch"; exit 1; }
+        fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
         if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
             echo ""
             echo -e "  ${INFO} Web interface"

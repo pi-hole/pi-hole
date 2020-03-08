@@ -195,12 +195,12 @@ def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
+    # General call type occurrences
     assert len(re.findall(r'iptables -S', firewall_calls)) == 1
     assert len(re.findall(r'iptables -C', firewall_calls)) == 4
     assert len(re.findall(r'iptables -I', firewall_calls)) == 0
 
-    # Specific port call occurances
+    # Specific port call occurrences
     assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 1
     assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 1
     assert len(re.findall(r'udp --dport 53', firewall_calls)) == 1
@@ -242,12 +242,12 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
+    # General call type occurrences
     assert len(re.findall(r'iptables -S', firewall_calls)) == 1
     assert len(re.findall(r'iptables -C', firewall_calls)) == 4
     assert len(re.findall(r'iptables -I', firewall_calls)) == 4
 
-    # Specific port call occurances
+    # Specific port call occurrences
     assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 2
     assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 2
     assert len(re.findall(r'udp --dport 53', firewall_calls)) == 2
