@@ -51,7 +51,7 @@ function setHeader($type = "x") {
 
 // Determine block page type
 if ($serverName === "pi.hole"
-    || (!empty($_SERVER["VIRTUAL_HOST"]) && $_SERVER["SERVER_NAME"] === $_SERVER["VIRTUAL_HOST"])) {
+    || (!empty($_SERVER["VIRTUAL_HOST"]) && $serverName === $_SERVER["VIRTUAL_HOST"])) {
     // Redirect to Web Interface
     exit(header("Location: /admin"));
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
