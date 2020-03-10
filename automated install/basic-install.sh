@@ -192,8 +192,8 @@ if is_command apt-get ; then
     APT_SOURCES="/etc/apt/sources.list"
     if awk 'BEGIN{a=1;b=0}/bionic main/{a=0}/bionic.*universe/{b=1}END{exit a + b}' ${APT_SOURCES}; then
         if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5" "${r}" "${c}"; then
-            printf "  %b Aborting installation: dependencies could not be installed.\\n" "${CROSS}"
-            exit # exit the installer
+            printf "  %b Aborting installation: Dependencies could not be installed.\\n" "${CROSS}"
+            exit 1 # exit the installer
         else
             printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
             cp -p ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
@@ -202,14 +202,18 @@ if is_command apt-get ; then
             printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
         fi
     fi
-    # Debian 7 doesn't have iproute2 so if the dry run install is successful,
-    if "${PKG_MANAGER}" install --dry-run iproute2 > /dev/null 2>&1; then
-        # we can install it
+    # Update package cache. This is required already here to assure apt-cache calls have package lists available.
+    update_package_cache || exit 1
+    # Debian 7 doesn't have iproute2 so check if it's available first
+    if apt-cache show iproute2 > /dev/null 2>&1; then
         iproute_pkg="iproute2"
-    # Otherwise,
-    else
-        # use iproute
+    # Otherwise, check if iproute is available
+    elif apt-cache show iproute > /dev/null 2>&1; then
         iproute_pkg="iproute"
+    # Else print error and exit
+    else
+        printf "  %b Aborting installation: iproute2 and iproute packages were not found in APT repository.\\n" "${CROSS}"
+        exit 1
     fi
     # Check for and determine version number (major and minor) of current php install
     if is_command php ; then
@@ -224,21 +228,28 @@ if is_command apt-get ; then
     # Check if installed php is v 7.0, or newer to determine packages to install
     if [[ "$phpInsNewer" != true ]]; then
         # Prefer the php metapackage if it's there
-        if "${PKG_MANAGER}" install --dry-run php > /dev/null 2>&1; then
+        if apt-cache show php > /dev/null 2>&1; then
             phpVer="php"
-        # fall back on the php5 packages
-        else
+        # Else fall back on the php5 package if it's there
+        elif apt-cache show php5 > /dev/null 2>&1; then
             phpVer="php5"
+        # Else print error and exit
+        else
+            printf "  %b Aborting installation: No PHP packages were found in APT repository.\\n" "${CROSS}"
+            exit 1
         fi
     else
         # Newer php is installed, its common, cgi & sqlite counterparts are deps
         phpVer="php$phpInsMajor.$phpInsMinor"
     fi
     # We also need the correct version for `php-sqlite` (which differs across distros)
-    if "${PKG_MANAGER}" install --dry-run "${phpVer}-sqlite3" > /dev/null 2>&1; then
+    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
         phpSqlite="sqlite3"
-    else
+    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
         phpSqlite="sqlite"
+    else
+        printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
+        exit 1
     fi
     # Since our install script is so large, we need several other programs to successfully get a machine provisioned
     # These programs are stored in an array so they can be looped through later
@@ -281,8 +292,6 @@ elif is_command rpm ; then
         PKG_MANAGER="yum"
     fi
 
-    # Fedora and family update cache on every PKG_INSTALL call, no need for a separate update.
-    UPDATE_PKG_CACHE=":"
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
@@ -2584,9 +2593,6 @@ main() {
     else
         verifyFreeDiskSpace
     fi
-
-    # Update package cache
-    update_package_cache || exit 1
 
     # Notify user of package availability
     notify_package_updates_available
