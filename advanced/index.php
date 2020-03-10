@@ -6,8 +6,8 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-// Sanitize HTTP_HOST output
-$serverName = htmlspecialchars($_SERVER["HTTP_HOST"]);
+// Sanitize SERVER_NAME output
+$serverName = htmlspecialchars($_SERVER["SERVER_NAME"]);
 // Remove external ipv6 brackets if any
 $serverName = preg_replace('/^\[(.*)\]$/', '${1}', $serverName);
 
@@ -50,7 +50,8 @@ function setHeader($type = "x") {
 }
 
 // Determine block page type
-if ($serverName === "pi.hole") {
+if ($serverName === "pi.hole"
+    || (!empty($_SERVER["VIRTUAL_HOST"]) && $_SERVER["SERVER_NAME"] === $_SERVER["VIRTUAL_HOST"])) {
     // Redirect to Web Interface
     exit(header("Location: /admin"));
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
@@ -131,7 +132,12 @@ ini_set("default_socket_timeout", 3);
 function queryAds($serverName) {
     // Determine the time it takes while querying adlists
     $preQueryTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
-    $queryAds = file("http://127.0.0.1/admin/scripts/pi-hole/php/queryads.php?domain=$serverName&bp", FILE_IGNORE_NEW_LINES);
+    $queryAdsURL = sprintf(
+        "http://127.0.0.1:%s/admin/scripts/pi-hole/php/queryads.php?domain=%s&bp",
+        $_SERVER["SERVER_PORT"],
+        $serverName
+    );
+    $queryAds = file($queryAdsURL, FILE_IGNORE_NEW_LINES);
     $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAds)));
     $queryTime = sprintf("%.0f", (microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"]) - $preQueryTime);
 
@@ -226,10 +232,10 @@ setHeader();
   <?=$viewPort ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="//pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="//pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="shortcut icon" href="admin/img/favicon.png" type="image/x-icon"/>
+  <link rel="stylesheet" href="pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
-  <script src="//pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php
