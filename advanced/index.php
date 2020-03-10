@@ -57,10 +57,17 @@ if ($serverName === "pi.hole"
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
     // Set Splash Page output
     $splashPage = "
-    <html><head>
+    <html>
+      <head>
         $viewPort
-        <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
-    </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements<br><a href='/admin'>Did you mean to go to the admin panel?</a></body></html>
+        <link rel='stylesheet' href='pihole/blockingpage.css' type='text/css'/>
+      </head>
+      <body id='splashpage'>
+        <img src='admin/img/logo.svg'/><br/>
+        Pi-<b>hole</b>: Your black hole for Internet advertisements<br/>
+        <a href='/admin'>Did you mean to go to the admin panel?</a>
+      </body>
+    </html>
     ";
 
     // Set splash/landing page based off presence of $landPage
