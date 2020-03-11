@@ -1173,11 +1173,13 @@ setAdminFlag() {
             printf "  %b Web Interface Off\\n" "${INFO}"
             # or false
             INSTALL_WEB_INTERFACE=false
+            # Deselect the web server as well, since it is obsolete then
+            INSTALL_WEB_SERVER=false
             ;;
     esac
 
-    # Request user to install web server, if --disable-install-webserver has not been used (INSTALL_WEB_SERVER=true is default).
-    if [[ "${INSTALL_WEB_INTERFACE}" == true && "${INSTALL_WEB_SERVER}" == true ]]; then
+    # Request user to install web server, if it has not been deselected before (INSTALL_WEB_SERVER=true is default).
+    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd) and required PHP modules?\\n\\nNB: If you disable this, and, do not have an existing webserver with required PHP modules installed, the web interface will not function.\nRequired PHP modules are: xml sqlite intl json\nAdditionally the web server needs to be member of the \"pihole\" group for full functionality." "${r}" "${c}" 6)
         # with the default being enabled
         WebChooseOptions=("On (Recommended)" "" on
