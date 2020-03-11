@@ -1177,8 +1177,8 @@ setAdminFlag() {
     esac
 
     # Request user to install web server, if --disable-install-webserver has not been used (INSTALL_WEB_SERVER=true is default).
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd)?\\n\\nNB: If you disable this, and, do not have an existing webserver installed, the web interface will not function." "${r}" "${c}" 6)
+    if [[ "${INSTALL_WEB_INTERFACE}" == true && "${INSTALL_WEB_SERVER}" == true ]]; then
+        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd) and required PHP modules?\\n\\nNB: If you disable this, and, do not have an existing webserver with required PHP modules installed, the web interface will not function.\nRequired PHP modules are: xml sqlite intl json\nAdditionally the web server needs to be member of the \"pihole\" group for full functionality." "${r}" "${c}" 6)
         # with the default being enabled
         WebChooseOptions=("On (Recommended)" "" on
             Off "" off)
@@ -1932,7 +1932,7 @@ installPihole() {
             chmod 0775 ${webroot}
             # Repair permissions if /var/www/html is not world readable
             chmod a+rx /var/www
-            chmod a+rx /var/www/html
+            chmod a+rx ${webroot}
             # Give pihole access to the Web server group
             usermod -a -G ${LIGHTTPD_GROUP} pihole
             # Give lighttpd access to the pihole group so the web interface can
