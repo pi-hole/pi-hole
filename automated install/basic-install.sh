@@ -184,7 +184,7 @@ if is_command apt-get ; then
     # A variable to store the command used to update the package cache
     UPDATE_PKG_CACHE="${PKG_MANAGER} update"
     # An array for something...
-    PKG_INSTALL=("${PKG_MANAGER}" --yes --no-install-recommends install)
+    PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
     # Some distros vary slightly so these fixes for dependencies may apply
