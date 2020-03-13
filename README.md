@@ -26,7 +26,7 @@ Those who want to get started quickly and conveniently may install Pi-hole using
 
 #### `curl -sSL https://install.pi-hole.net | bash`
 
-### Note: the automated installer requires useradd and usermod. Be sure your $PATH is right.
+#### Note: the automated installer requires useradd and usermod. Be sure your $PATH is right.
 
 
 ## Alternative Install Methods
@@ -38,7 +38,7 @@ git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole
 cd "Pi-hole/automated install/"
 sudo bash basic-install.sh
 ```
-### Note: the installer requires useradd and usermod. Be sure your $PATH is right.
+#### Note: the installer requires useradd and usermod. Be sure your $PATH is right.
 
 
 ### Method 2: Manually download the installer and run
