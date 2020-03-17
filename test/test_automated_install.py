@@ -201,17 +201,23 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole):
     if not webroot.strip():
         webroot = '/var/www/html'
     installWebInterface = True
-    interface = re.findall("^\s*INSTALL_WEB_INTERFACE=.*$", installWeb.stdout, re.MULTILINE)
+    interface = re.findall(
+        "^\s*INSTALL_WEB_INTERFACE=.*$", installWeb.stdout, re.MULTILINE)
     for match in interface:
         testvalue = match.replace('INSTALL_WEB_INTERFACE=', '').strip().lower()
         if not testvalue.strip():
             installWebInterface = testvalue == "true"
     installWebServer = True
-    server = re.findall("^\s*INSTALL_WEB_SERVER=.*$", installWeb.stdout, re.MULTILINE)
+    server = re.findall(
+        "^\s*INSTALL_WEB_SERVER=.*$", installWeb.stdout, re.MULTILINE)
     for match in server:
         testvalue = match.replace('INSTALL_WEB_SERVER=', '').strip().lower()
         if not testvalue.strip():
             installWebServer = testvalue == "true"
+    # if webserver install was not requested
+    # at least pihole must be able to read files
+    if installWebServer is False:
+        webuser = 'pihole'
     exit_status_success = 0
     test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
     # check directories above $webroot for read and execute permission
@@ -241,7 +247,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole):
     actual_rc = Pihole.run(check_admin).rc
     assert exit_status_success == actual_rc
     # check web interface files
-    if installWebInterface == True:
+    if installWebInterface is True:
         check_pihole = test_cmd.format('r', webroot + '/pihole', webuser)
         actual_rc = Pihole.run(check_pihole).rc
         assert exit_status_success == actual_rc
@@ -249,12 +255,12 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole):
         actual_rc = Pihole.run(check_pihole).rc
         assert exit_status_success == actual_rc
         # check most important files in $webroot for read permission
-        check_index = test_cmd.format('r',
-            webroot + '/pihole/index.php', webuser)
+        check_index = test_cmd.format(
+            'r', webroot + '/pihole/index.php', webuser)
         actual_rc = Pihole.run(check_index).rc
         assert exit_status_success == actual_rc
-        check_blockpage = test_cmd.format('r',
-            webroot + '/pihole/blockingpage.css', webuser)
+        check_blockpage = test_cmd.format(
+            'r', webroot + '/pihole/blockingpage.css', webuser)
         actual_rc = Pihole.run(check_blockpage).rc
         assert exit_status_success == actual_rc
 
