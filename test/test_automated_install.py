@@ -134,24 +134,61 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
 
 def test_installPihole_fresh_install_readableBlockpage(Pihole):
     '''
-    confirms all web page assets from Core repo are readable by $LIGHTTPD_USER on a fresh build
+    confirms all web page assets from Core repo are readable
+    by $LIGHTTPD_USER on a fresh build
     '''
+    # mock systemctl to start lighttpd and FTL
+    mock_command_2(
+        'systemctl',
+        {
+            'enable lighttpd': (
+                '',
+                '0'
+            ),
+            'restart lighttpd': (
+                '/etc/init.d/lighttpd restart',
+                '0'
+            ),
+            'start lighttpd': (
+                '/etc/init.d/lighttpd start',
+                '0'
+            ),
+            'enable pihole-FTL': (
+                '',
+                '0'
+            ),
+            'restart pihole-FTL': (
+                '/etc/init.d/pihole-FTL start',
+                '0'
+            ),
+            'start pihole-FTL': (
+                '/etc/init.d/pihole-FTL start',
+                '0'
+            )
+        },
+        Pihole
+    )
+    # create configuration file
+    setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
+    for k, v in SETUPVARS.items():
+        setup_var_file += "{}={}\n".format(k, v)
+    setup_var_file += "EOF\n"
+    Pihole.run(setup_var_file)
     installWeb = Pihole.run('''
     export TERM=xterm
+    export DEBIAN_FRONTEND=noninteractive
     umask 0027
-    source /opt/pihole/basic-install.sh
+    runUnattended=true
+    useUpdateVars=true
+    source /opt/pihole/basic-install.sh > /dev/null
+    runUnattended=true
+    useUpdateVars=true
     main
     echo "LIGHTTPD_USER=${LIGHTTPD_USER}"
     echo "webroot=${webroot}"
+    echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
+    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
-#    distro_check > /dev/null
-#    clone_or_update_repos
-#    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
-#    create_pihole_user
-#    installPihole
-#    echo "LIGHTTPD_USER=${LIGHTTPD_USER}"
-#    echo "webroot=${webroot}"
-#    ''')
     assert 0 == installWeb.rc
     webuser = ''
     user = re.findall("^\s*LIGHTTPD_USER=.*$", installWeb.stdout, re.MULTILINE)
@@ -163,6 +200,18 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole):
         webroot = match.replace('webroot=', '').strip()
     if not webroot.strip():
         webroot = '/var/www/html'
+    installWebInterface = True
+    interface = re.findall("^\s*INSTALL_WEB_INTERFACE=.*$", installWeb.stdout, re.MULTILINE)
+    for match in interface:
+        testvalue = match.replace('INSTALL_WEB_INTERFACE=', '').strip().lower()
+        if not testvalue.strip():
+            installWebInterface = testvalue == "true"
+    installWebServer = True
+    server = re.findall("^\s*INSTALL_WEB_SERVER=.*$", installWeb.stdout, re.MULTILINE)
+    for match in server:
+        testvalue = match.replace('INSTALL_WEB_SERVER=', '').strip().lower()
+        if not testvalue.strip():
+            installWebServer = testvalue == "true"
     exit_status_success = 0
     test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
     # check directories above $webroot for read and execute permission
@@ -191,19 +240,23 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole):
     check_admin = test_cmd.format('x', webroot + '/admin', webuser)
     actual_rc = Pihole.run(check_admin).rc
     assert exit_status_success == actual_rc
-    check_pihole = test_cmd.format('r', webroot + '/pihole', webuser)
-    actual_rc = Pihole.run(check_pihole).rc
-    assert exit_status_success == actual_rc
-    check_pihole = test_cmd.format('x', webroot + '/pihole', webuser)
-    actual_rc = Pihole.run(check_pihole).rc
-    assert exit_status_success == actual_rc
-    # check most important files in $webroot for read permission by
-    check_index = test_cmd.format('r', webroot + '/admin/index.php', webuser)
-    actual_rc = Pihole.run(check_index).rc
-    assert exit_status_success == actual_rc
-    check_blockpage = test_cmd.format('r', webroot + '/admin/blockingpage.css', webuser)
-    actual_rc = Pihole.run(check_blockpage).rc
-    assert exit_status_success == actual_rc
+    # check web interface files
+    if installWebInterface == True:
+        check_pihole = test_cmd.format('r', webroot + '/pihole', webuser)
+        actual_rc = Pihole.run(check_pihole).rc
+        assert exit_status_success == actual_rc
+        check_pihole = test_cmd.format('x', webroot + '/pihole', webuser)
+        actual_rc = Pihole.run(check_pihole).rc
+        assert exit_status_success == actual_rc
+        # check most important files in $webroot for read permission
+        check_index = test_cmd.format('r',
+            webroot + '/pihole/index.php', webuser)
+        actual_rc = Pihole.run(check_index).rc
+        assert exit_status_success == actual_rc
+        check_blockpage = test_cmd.format('r',
+            webroot + '/pihole/blockingpage.css', webuser)
+        actual_rc = Pihole.run(check_blockpage).rc
+        assert exit_status_success == actual_rc
 
 
 def test_update_package_cache_success_no_errors(Pihole):
