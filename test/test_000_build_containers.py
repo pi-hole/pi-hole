@@ -9,9 +9,15 @@ run_local = testinfra.get_backend(
 
 @pytest.mark.parametrize("image,tag", [
     ('test/debian.Dockerfile', 'pytest_pihole:debian'),
+    ('test/debian_9.Dockerfile', 'pytest_pihole:debian_9'),
+    ('test/debian_10.Dockerfile', 'pytest_pihole:debian_10'),
     ('test/centos7.Dockerfile', 'pytest_pihole:centos7'),
     ('test/centos.Dockerfile', 'pytest_pihole:centos'),
     ('test/fedora.Dockerfile', 'pytest_pihole:fedora'),
+    ('test/fedora_28.Dockerfile', 'pytest_pihole:fedora_28'),
+    ('test/fedora_29.Dockerfile', 'pytest_pihole:fedora_29'),
+    ('test/ubuntu_16.Dockerfile', 'pytest_pihole:ubuntu_16'),
+    ('test/ubuntu_18.Dockerfile', 'pytest_pihole:ubuntu_18'),
 ])
 # mark as 'build_stage' so we can ensure images are built first when tests
 # are executed in parallel. (not required when tests are executed serially)
