@@ -10,7 +10,7 @@
 #
 #
 # This file is under source-control of the Pi-hole installation and update
-# scripts, any changes made to this file will be overwritten when the softare
+# scripts, any changes made to this file will be overwritten when the software
 # is updated or re-installed. Please make any changes to the appropriate crontab
 # or other cron file snippets.
 
