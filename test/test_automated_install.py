@@ -601,8 +601,8 @@ def test_install_dependent_packages_no_errors(Pihole):
     '''
     confirms all dependent packages are installed on a fresh build
     '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    # mock whiptail answers to use universe repo if asked
+    mock_command('whiptail', {'*': ('', '1')}, Pihole)
     # create configuration file
     setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
     for k, v in SETUPVARS.items():
@@ -625,10 +625,10 @@ def test_install_dependent_packages_no_errors(Pihole):
 
 def test_install_dependent_packages_web_no_errors(Pihole):
     '''
-    confirms all dependent packages are installed on a fresh build
+    confirms all dependent web packages are installed on a fresh build
     '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    # mock whiptail answers to use universe repo if asked
+    mock_command('whiptail', {'*': ('', '1')}, Pihole)
     # mock systemctl to start lighttpd
     mock_command_2(
         'systemctl',
