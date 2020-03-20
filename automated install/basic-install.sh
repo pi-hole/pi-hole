@@ -1926,9 +1926,12 @@ installPihole() {
             # Set the owner and permissions
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
             chmod 0775 ${webroot}
-            # Repair permissions if /var/www/html is not world readable
-            chmod a+rx /var/www
-            chmod a+rx /var/www/html
+            # Repair permissions if parents of $webroot (e.g. /var/www/html) are not world readable
+            chmod_path="${webroot}"
+            while [[ "${chmod_path}" != "/" ]]; do
+                chmod a+rx "$chmod_path"
+                chmod_path="$(dirname '${chmod_path}')"
+            done
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
             usermod -a -G pihole ${LIGHTTPD_USER}
