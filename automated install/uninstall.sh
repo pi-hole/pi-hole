@@ -8,7 +8,13 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-source "/opt/pihole/COL_TABLE"
+# Include required constants
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+PH_TEST="true"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+# setupVars set in basic-install.sh
+source "${setupVars}"
+source "${PI_HOLE_INSTALL_DIR}/COL_TABLE"
 
 while true; do
     read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " yn
@@ -35,12 +41,6 @@ else
         exit 1
     fi
 fi
-
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-PH_TEST="true"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# setupVars set in basic-install.sh
-source "${setupVars}"
 
 # distro_check() sourced from basic-install.sh
 distro_check
@@ -146,10 +146,10 @@ removeNoPurge() {
     ${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
     ${SUDO} rm -f /etc/dnsmasq.d/01-pihole.conf &> /dev/null
     ${SUDO} rm -rf /var/log/*pihole* &> /dev/null
-    ${SUDO} rm -rf /etc/pihole/ &> /dev/null
-    ${SUDO} rm -rf /etc/.pihole/ &> /dev/null
-    ${SUDO} rm -rf /opt/pihole/ &> /dev/null
-    ${SUDO} rm -f /usr/local/bin/pihole &> /dev/null
+    ${SUDO} rm -rf "${PI_HOLE_CONFIG_DIR}/" &> /dev/null
+    ${SUDO} rm -rf "${PI_HOLE_LOCAL_REPO}/" &> /dev/null
+    ${SUDO} rm -rf "${PI_HOLE_INSTALL_DIR}/" &> /dev/null
+    ${SUDO} rm -f "${PI_HOLE_BIN_DIR}/pihole" &> /dev/null
     ${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null
     ${SUDO} rm -f /etc/sudoers.d/pihole &> /dev/null
     echo -e "  ${TICK} Removed config files"
