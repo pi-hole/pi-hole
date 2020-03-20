@@ -42,16 +42,6 @@ Cloudflare;1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
-# Location for final installation log storage
-installLogLoc=/etc/pihole/install.log
-# This is an important file as it contains information specific to the machine it's being installed on
-setupVars=/etc/pihole/setupVars.conf
-# Pi-hole uses lighttpd as a Web server, and this is the config file for it
-# shellcheck disable=SC2034
-lighttpdConfig=/etc/lighttpd/lighttpd.conf
-# This is a file used for the colorized output
-coltable=/opt/pihole/COL_TABLE
-
 # Root of the web server
 webroot="/var/www/html"
 
@@ -68,6 +58,16 @@ PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
+
+# Location for final installation log storage
+installLogLoc=${PI_HOLE_CONFIG_DIR}/install.log
+# This is an important file as it contains information specific to the machine it's being installed on
+setupVars=${PI_HOLE_CONFIG_DIR}/setupVars.conf
+# Pi-hole uses lighttpd as a Web server, and this is the config file for it
+# shellcheck disable=SC2034
+lighttpdConfig=/etc/lighttpd/lighttpd.conf
+# This is a file used for the colorized output
+coltable=${PI_HOLE_INSTALL_DIR}/COL_TABLE
 
 adlistFile="${PI_HOLE_CONFIG_DIR}/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
