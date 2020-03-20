@@ -25,8 +25,10 @@ CHECK_ONLY=false
 # shellcheck disable=SC1090
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # shellcheck disable=SC1091
-source "/opt/pihole/COL_TABLE"
+source "${PI_HOLE_INSTALL_DIR}/COL_TABLE"
 
+# PI_HOLE_INSTALL_DIR set in basic-install.sh
+# PI_HOLE_CONFIG_DIR set in basic-install.sh
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
@@ -152,8 +154,8 @@ main() {
 
     # Determine FTL branch
     local ftlBranch
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<"${PI_HOLE_CONFIG_DIR}/ftlbranch")
     else
         ftlBranch="master"
     fi
@@ -179,7 +181,7 @@ main() {
         echo ""
         echo -e "  ${INFO} Pi-hole core files out of date, updating local repo."
         getGitFiles "${PI_HOLE_FILES_DIR}" "${PI_HOLE_GIT_URL}"
-        echo -e "  ${INFO} If you had made any changes in '/etc/.pihole/', they have been stashed using 'git stash'"
+        echo -e "  ${INFO} If you had made any changes in '${PI_HOLE_FILES_DIR}/', they have been stashed using 'git stash'"
     fi
 
     if [[ "${web_update}" == true ]]; then
