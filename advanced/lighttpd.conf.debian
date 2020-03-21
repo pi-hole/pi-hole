@@ -61,6 +61,9 @@ include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
 #include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
 include_shell "find /etc/lighttpd/conf-enabled -name '*.conf' -a ! -name 'letsencrypt.conf' -printf 'include \"%p\"\n' 2>/dev/null"
 
+# Redirect to admin page
+url.redirect = ("^/$" => "/admin" )
+
 # If the URL starts with /admin, it is the Web interface
 $HTTP["url"] =~ "^/admin/" {
     # Create a response header for debugging using curl -I
