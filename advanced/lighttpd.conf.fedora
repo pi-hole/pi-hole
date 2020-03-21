@@ -70,6 +70,9 @@ fastcgi.server = ( ".php" =>
                    )
                  )
 
+# Redirect to admin page
+url.redirect = ("^/$" => "/admin" )
+
 # If the URL starts with /admin, it is the Web interface
 $HTTP["url"] =~ "^/admin/" {
 	  # Create a response header for debugging using curl -I
