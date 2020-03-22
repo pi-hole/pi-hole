@@ -290,6 +290,31 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     check_admin = test_cmd.format('x', webroot + '/admin', webuser)
     actual_rc = Pihole.run(check_admin).rc
     assert exit_status_success == actual_rc
+    def get_directories_recursive(dir):
+        if dir is None:
+            return dir
+        webinterface = Pihole.run('ls -d {}'.format(dir + '/*/'))
+        directories = list(filter(bool, webinterface.stdout.splitlines()))
+        dirs = directories
+        for dir in directories:
+            dir_rec = get_directories_recursive(dir)
+            if type(dir_rec) == str:
+                dirs.extend([dir_rec])
+            else:
+                dirs.extend(dir_rec)
+        return dirs
+    directories = get_directories_recursive(webroot + '/admin/*/')
+    for dir in directories:
+        check_pihole = test_cmd.format('r', dir, webuser)
+        actual_rc = Pihole.run(check_pihole).rc
+        check_pihole = test_cmd.format('x', dir, webuser)
+        actual_rc = Pihole.run(check_pihole).rc
+        filelist = Pihole.run(
+            'find "{}" -maxdepth 1 -type f  -exec echo {{}} \;;'.format(dir))
+        files = list(filter(bool, filelist.stdout.splitlines()))
+        for file in files:
+            check_pihole = test_cmd.format('r', file, webuser)
+            actual_rc = Pihole.run(check_pihole).rc
     # TODO: which other files have to be checked?
     # check web interface files
     if installWebInterface is True:
@@ -318,7 +343,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         if test_webpage is True:
             # check webpage for unreadable files
             noPHPfopen = re.compile(
-                (r"PHP Error(%d+):\s+fopen([^)]+):\s+" + 
+                (r"PHP Error(%d+):\s+fopen([^)]+):\s+" +
                 r"failed to open stream: " + 
                 r"Permission denied in"),
                 re.I)
