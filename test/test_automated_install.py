@@ -140,7 +140,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     by $LIGHTTPD_USER on a fresh build
     '''
     # TODO: also add IP address from setupVars?
-    # TODO: pi.hole can not be resolved because of some error in FTL
+    # TODO: pi.hole can not be resolved because of some error in FTL or resolved
     piholeWebpage = ["http://127.0.0.1/admin", "http://pi.hole/admin"]
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
@@ -154,26 +154,40 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
             LIGHTTPD_USER="lighttpd"
             LIGHTTPD_GROUP="lighttpd"
         fi
-        mkdir -p /var/run/lighttpd
-        chown ${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}} /var/run/lighttpd
-        mkdir -p /var/cache/lighttpd/compress
-        chown ${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}} /var/cache/lighttpd
-        chown ${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}} /var/cache/lighttpd/compress
-        mkdir -p /var/cache/lighttpd/uploads
-        chown ${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}} /var/cache/lighttpd/uploads
+        mkdir -p "{run}"
+        chown {usergroup} "{run}"
+        mkdir -p "{compress}"
+        chown {usergroup} "{cache}"
+        chown {usergroup} "{compress}"
+        mkdir -p "{uploads}"
+        chown {usergroup} "{uploads}"
         # TODO: changing these permissions might be wrong
         chmod 0777 /var
         chmod 0777 /var/cache
-        chmod 0777 /var/cache/lighttpd
-        find "/var/run/lighttpd" -type d -exec chmod 0777 {{}} \;;
-        find "/var/run/lighttpd" -type f -exec chmod 0666 {{}} \;;
-        find "/var/cache/lighttpd/compress" -type d -exec chmod 0777 {{}} \;;
-        find "/var/cache/lighttpd/compress" -type f -exec chmod 0666 {{}} \;;
-        find "/var/cache/lighttpd/uploads" -type d -exec chmod 0777 {{}} \;;
-        find "/var/cache/lighttpd/uploads" -type f -exec chmod 0666 {{}} \;;
-        /usr/sbin/lighttpd -tt -f '/etc/lighttpd/lighttpd.conf'
-        /usr/sbin/lighttpd -f '/etc/lighttpd/lighttpd.conf'
-        echo \"''')
+        chmod 0777 "{cache}"
+        find "{run}" -type d -exec chmod 0777 {chmodarg} \;;
+        find "{run}" -type f -exec chmod 0666 {chmodarg} \;;
+        find "{compress}" -type d -exec chmod 0777 {chmodarg} \;;
+        find "{compress}" -type f -exec chmod 0666 {chmodarg} \;;
+        find "{uploads}" -type d -exec chmod 0777 {chmodarg} \;;
+        find "{uploads}" -type f -exec chmod 0666 {chmodarg} \;;
+        /usr/sbin/lighttpd -tt -f '{config}'
+        /usr/sbin/lighttpd -f '{config}'
+        echo \"'''.format(
+            '{}',
+            usergroup='${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}}',
+            chmodarg='{{}}',
+            config='/etc/lighttpd/lighttpd.conf',
+            run='/var/run/lighttpd',
+            cache='/var/cache/lighttpd',
+            uploads='/var/cache/lighttpd/uploads',
+            compress='/var/cache/lighttpd/compress'
+        )
+    )
+    FTLcommand = dedent('''\"
+        /etc/init.d/pihole-FTL restart
+        echo \"'''
+    )
     mock_command_2(
         'systemctl',
         {
@@ -193,14 +207,12 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                 '',
                 '0'
             ),
-            'restart pihole-FTL': (dedent('''\"
-                /etc/init.d/pihole-FTL restart
-                echo \"'''),
+            'restart pihole-FTL': (
+                 FTLcommand,
                 '0'
             ),
-            'start pihole-FTL': (dedent('''\"
-                /etc/init.d/pihole-FTL start
-                echo \"'''),
+            'start pihole-FTL': (
+                FTLcommand,
                 '0'
             ),
             '*': (
@@ -290,27 +302,28 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     check_admin = test_cmd.format('x', webroot + '/admin', webuser)
     actual_rc = Pihole.run(check_admin).rc
     assert exit_status_success == actual_rc
+
     def get_directories_recursive(dir):
         if dir is None:
             return dir
-        webinterface = Pihole.run('ls -d {}'.format(dir + '/*/'))
-        directories = list(filter(bool, webinterface.stdout.splitlines()))
+        ls = Pihole.run('ls -d {}'.format(dir + '/*/'))
+        directories = list(filter(bool, ls.stdout.splitlines()))
         dirs = directories
-        for dir in directories:
-            dir_rec = get_directories_recursive(dir)
-            if type(dir_rec) == str:
+        for directory in directories:
+            dir_rec = get_directories_recursive(directory)
+            if isinstance(dir_rec, str):
                 dirs.extend([dir_rec])
             else:
                 dirs.extend(dir_rec)
         return dirs
     directories = get_directories_recursive(webroot + '/admin/*/')
-    for dir in directories:
-        check_pihole = test_cmd.format('r', dir, webuser)
+    for directory in directories:
+        check_pihole = test_cmd.format('r', directory, webuser)
         actual_rc = Pihole.run(check_pihole).rc
-        check_pihole = test_cmd.format('x', dir, webuser)
+        check_pihole = test_cmd.format('x', directory, webuser)
         actual_rc = Pihole.run(check_pihole).rc
-        filelist = Pihole.run(
-            'find "{}" -maxdepth 1 -type f  -exec echo {{}} \;;'.format(dir))
+        findfiles = 'find "{}" -maxdepth 1 -type f  -exec echo {{}} \\;;'
+        filelist = Pihole.run(findfiles.format(directory))
         files = list(filter(bool, filelist.stdout.splitlines()))
         for file in files:
             check_pihole = test_cmd.format('r', file, webuser)
@@ -319,10 +332,8 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     # check web interface files
     if installWebInterface is True:
         # TODO: login into admin interface?
-        passwd = Pihole.run(
-        '''
-        grep "WEBPASSWORD" -c "/etc/pihole/setupVars.conf"
-        ''')
+        passwordcommand = 'grep "WEBPASSWORD" -c "/etc/pihole/setupVars.conf"'
+        passwd = Pihole.run(passwordcommand)
         webpassword = passwd.stdout.strip()
         print (webpassword)
         check_pihole = test_cmd.format('r', webroot + '/pihole', webuser)
@@ -344,18 +355,18 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
             # check webpage for unreadable files
             noPHPfopen = re.compile(
                 (r"PHP Error(%d+):\s+fopen([^)]+):\s+" +
-                r"failed to open stream: " + 
-                r"Permission denied in"),
+                    r"failed to open stream: " +
+                    r"Permission denied in"),
                 re.I)
+            status = ('curl -s --head "{}" | ' +
+                'head -n 1 | ' +
+                'grep "HTTP/1.[01] [23].." > /dev/null')
+            pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
                 # check HTTP status of blockpage
-                actual_rc = Pihole.run(
-                '''
-                curl -s --head "{}" | head -n 1 | grep "HTTP/1.[01] [23].." > /dev/null
-                '''.format(page))
+                actual_rc = Pihole.run(status.format(page))
                 assert exit_status_success == actual_rc.rc
-                actual_output = Pihole.run(
-                    'curl --verbose -L "{}"'.format(page))
+                actual_output = Pihole.run(pagecontent.format(page))
                 assert noPHPfopen.match(actual_output.stdout) is None
 
 
