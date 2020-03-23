@@ -226,6 +226,8 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
     for k, v in SETUPVARS.items():
         setup_var_file += "{}={}\n".format(k, v)
+    setup_var_file += "INSTALL_WEB_SERVER=true\n"
+    setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
     installWeb = Pihole.run('''
