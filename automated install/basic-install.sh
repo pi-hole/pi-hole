@@ -244,7 +244,7 @@ if is_command apt-get ; then
     # These programs are stored in an array so they can be looped through later
     INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail)
     # Pi-hole itself has several dependencies that also need to be installed
-    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
+    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
     PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "php-intl")
@@ -855,7 +855,7 @@ setDHCPCD() {
         echo "interface ${PIHOLE_INTERFACE}
         static ip_address=${IPV4_ADDRESS}
         static routers=${IPv4gw}
-        static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
+        static domain_name_servers=${PIHOLE_DNS_1} ${PIHOLE_DNS_2}" | tee -a /etc/dhcpcd.conf >/dev/null
         # Then use the ip command to immediately set the new address
         ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
         # Also give a warning that the user may need to reboot their system
