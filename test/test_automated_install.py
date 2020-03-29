@@ -133,6 +133,294 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     assert 'blockingpage.css' in web_directory
 
 
+def get_directories_recursive(Pihole, directory):
+    if directory is None:
+        return directory
+    ls = Pihole.run('ls -d {}'.format(directory + '/*/'))
+    directories = list(filter(bool, ls.stdout.splitlines()))
+    dirs = directories
+    for directory in directories:
+        dir_rec = get_directories_recursive(Pihole, directory)
+        if isinstance(dir_rec, str):
+            dirs.extend([dir_rec])
+        else:
+            dirs.extend(dir_rec)
+    return dirs
+
+
+def test_installPihole_fresh_install_readableFiles(Pihole):
+    '''
+    confirms all neccessary files are readable by pihole user
+    '''
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    # mock systemctl to not start lighttpd and FTL
+    mock_command_2(
+        'systemctl',
+        {
+            'enable lighttpd': (
+                '',
+                '0'
+            ),
+            'restart lighttpd': (
+                '',
+                '0'
+            ),
+            'start lighttpd': (
+                '',
+                '0'
+            ),
+            'enable pihole-FTL': (
+                '',
+                '0'
+            ),
+            'restart pihole-FTL': (
+                 '',
+                '0'
+            ),
+            'start pihole-FTL': (
+                '',
+                '0'
+            ),
+            '*': (
+                'echo "systemctl call with $@"',
+                '0'
+            ),
+        },
+        Pihole
+    )
+    # create configuration file
+    setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
+    for k, v in SETUPVARS.items():
+        setup_var_file += "{}={}\n".format(k, v)
+    setup_var_file += "INSTALL_WEB_SERVER=true\n"
+    setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
+    setup_var_file += "EOF\n"
+    Pihole.run(setup_var_file)
+    install = Pihole.run('''
+    export TERM=xterm
+    export DEBIAN_FRONTEND=noninteractive
+    umask 0027
+    runUnattended=true
+    useUpdateVars=true
+    source /opt/pihole/basic-install.sh > /dev/null
+    runUnattended=true
+    useUpdateVars=true
+    main
+    ''')
+    assert 0 == install.rc
+    maninstalled = True
+    if (info_box + ' man not installed') in install.stdout:
+        maninstalled = False
+    piholeuser = 'pihole'
+    exit_status_success = 0
+    test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
+    # check files in /etc/pihole for read, write and execute permission
+    check_etc = test_cmd.format('r', '/etc/pihole', piholeuser)
+    actual_rc = Pihole.run(check_etc).rc
+    assert exit_status_success == actual_rc
+    check_etc = test_cmd.format('x', '/etc/pihole', piholeuser)
+    actual_rc = Pihole.run(check_etc).rc
+    assert exit_status_success == actual_rc
+    # readable adlist.list
+    # TODO: is not always created, why? problem with FTL start?
+    # check_adlist = test_cmd.format('r', '/etc/pihole/adlists.list', piholeuser)
+    # actual_rc = Pihole.run(check_adlist).rc
+    # assert exit_status_success == actual_rc
+    #readable and writable dhcp.leases
+    check_leases = test_cmd.format('r', '/etc/pihole/dhcp.leases', piholeuser)
+    actual_rc = Pihole.run(check_leases).rc
+    assert exit_status_success == actual_rc
+    check_leases = test_cmd.format('w', '/etc/pihole/dhcp.leases', piholeuser)
+    actual_rc = Pihole.run(check_leases).rc
+    # readable dns-servers.conf
+    assert exit_status_success == actual_rc
+    check_servers = test_cmd.format(
+        'r', '/etc/pihole/dns-servers.conf', piholeuser)
+    actual_rc = Pihole.run(check_servers).rc
+    assert exit_status_success == actual_rc
+    # readable GitHubVersions
+    check_version = test_cmd.format(
+        'r', '/etc/pihole/GitHubVersions', piholeuser)
+    actual_rc = Pihole.run(check_version).rc
+    assert exit_status_success == actual_rc
+    # readable gravity.list TODO: not needed anymore?
+    # check_gravity = test_cmd.format(
+    #     'r', '/etc/pihole/gravity.list', piholeuser)
+    # actual_rc = Pihole.run(check_gravity).rc
+    # assert exit_status_success == actual_rc
+    # readable install.log
+    check_install = test_cmd.format(
+        'r', '/etc/pihole/install.log', piholeuser)
+    actual_rc = Pihole.run(check_install).rc
+    assert exit_status_success == actual_rc
+    # readable localbranches
+    check_localbranch = test_cmd.format(
+        'r', '/etc/pihole/localbranches', piholeuser)
+    actual_rc = Pihole.run(check_localbranch).rc
+    assert exit_status_success == actual_rc
+    # readable localversions
+    check_localversion = test_cmd.format(
+        'r', '/etc/pihole/localversions', piholeuser)
+    actual_rc = Pihole.run(check_localversion).rc
+    assert exit_status_success == actual_rc
+    # readable logrotate
+    check_logrotate = test_cmd.format(
+        'r', '/etc/pihole/logrotate', piholeuser)
+    actual_rc = Pihole.run(check_logrotate).rc
+    assert exit_status_success == actual_rc
+    # readable macvendor.db
+    check_macvendor = test_cmd.format(
+        'r', '/etc/pihole/macvendor.db', piholeuser)
+    actual_rc = Pihole.run(check_macvendor).rc
+    assert exit_status_success == actual_rc
+    # readable and writeable pihole-FTL.conf
+    check_FTLconf = test_cmd.format(
+        'r', '/etc/pihole/pihole-FTL.conf', piholeuser)
+    actual_rc = Pihole.run(check_FTLconf).rc
+    assert exit_status_success == actual_rc
+    check_FTLconf = test_cmd.format(
+        'w', '/etc/pihole/pihole-FTL.conf', piholeuser)
+    actual_rc = Pihole.run(check_FTLconf).rc
+    assert exit_status_success == actual_rc
+    # readable and writeable pihole-FTL.db
+    # TODO: is created by FTL and if downloading fails this fails too?
+    # check_FTLconf = test_cmd.format(
+    #     'r', '/etc/pihole/pihole-FTL.db', piholeuser)
+    # actual_rc = Pihole.run(check_FTLconf).rc
+    # assert exit_status_success == actual_rc
+    # check_FTLconf = test_cmd.format(
+    #     'w', '/etc/pihole/pihole-FTL.db', piholeuser)
+    # actual_rc = Pihole.run(check_FTLconf).rc
+    # assert exit_status_success == actual_rc
+    # readable and writeable regex.list
+    # TODO: where is this file created?
+    # check_regex = test_cmd.format(
+    #     'r', '/etc/pihole/regex.list', piholeuser)
+    # actual_rc = Pihole.run(check_regex).rc
+    # assert exit_status_success == actual_rc
+    # check_regex = test_cmd.format(
+    #     'w', '/etc/pihole/regex.list', piholeuser)
+    # actual_rc = Pihole.run(check_regex).rc
+    # assert exit_status_success == actual_rc
+    # readable setupVars.conf
+    check_setup = test_cmd.format(
+        'r', '/etc/pihole/setupVars.conf', piholeuser)
+    actual_rc = Pihole.run(check_setup).rc
+    assert exit_status_success == actual_rc
+    # check dnsmasq files
+    # readable /etc/dnsmasq.conf
+    check_dnsmasqconf = test_cmd.format(
+        'r', '/etc/dnsmasq.conf', piholeuser)
+    actual_rc = Pihole.run(check_dnsmasqconf).rc
+    assert exit_status_success == actual_rc
+    # readable /etc/dnsmasq.d/01-pihole.conf
+    check_dnsmasqconf = test_cmd.format(
+        'r', '/etc/dnsmasq.d', piholeuser)
+    actual_rc = Pihole.run(check_dnsmasqconf).rc
+    assert exit_status_success == actual_rc
+    check_dnsmasqconf = test_cmd.format(
+        'x', '/etc/dnsmasq.d', piholeuser)
+    actual_rc = Pihole.run(check_dnsmasqconf).rc
+    assert exit_status_success == actual_rc
+    check_dnsmasqconf = test_cmd.format(
+        'r', '/etc/dnsmasq.d/01-pihole.conf', piholeuser)
+    actual_rc = Pihole.run(check_dnsmasqconf).rc
+    assert exit_status_success == actual_rc
+    # check readable and executable /etc/init.d/pihole-FTL
+    check_init = test_cmd.format(
+        'x', '/etc/init.d/pihole-FTL', piholeuser)
+    actual_rc = Pihole.run(check_init).rc
+    assert exit_status_success == actual_rc
+    check_init = test_cmd.format(
+        'r', '/etc/init.d/pihole-FTL', piholeuser)
+    actual_rc = Pihole.run(check_init).rc
+    assert exit_status_success == actual_rc
+    # check readable /etc/lighttpd/lighttpd.conf
+    check_lighttpd = test_cmd.format(
+        'r', '/etc/lighttpd/lighttpd.conf', piholeuser)
+    actual_rc = Pihole.run(check_lighttpd).rc
+    assert exit_status_success == actual_rc
+    # check readable and executable manpages
+    # TODO: should man be installed before the test?
+    if maninstalled is True:
+        check_man = test_cmd.format(
+            'x', '/usr/local/share/man', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'r', '/usr/local/share/man', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'x', '/usr/local/share/man/man8', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'r', '/usr/local/share/man/man8', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'x', '/usr/local/share/man/man5', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'r', '/usr/local/share/man/man5', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'r', '/usr/local/share/man/man8/pihole.8', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'r', '/usr/local/share/man/man8/pihole-FTL.8', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+        check_man = test_cmd.format(
+            'r', '/usr/local/share/man/man5/pihole-FTL.conf.5', piholeuser)
+        actual_rc = Pihole.run(check_man).rc
+        assert exit_status_success == actual_rc
+    # check not readable sudoers file
+    # TODO: directory may be readable?
+    # check_sudo = test_cmd.format(
+    #     'x', '/etc/sudoers.d/', piholeuser)
+    # actual_rc = Pihole.run(check_sudo).rc
+    # assert exit_status_success != actual_rc
+    # check_sudo = test_cmd.format(
+    #     'r', '/etc/sudoers.d/', piholeuser)
+    # actual_rc = Pihole.run(check_sudo).rc
+    # assert exit_status_success != actual_rc
+    check_sudo = test_cmd.format(
+        'r', '/etc/sudoers.d/pihole', piholeuser)
+    actual_rc = Pihole.run(check_sudo).rc
+    assert exit_status_success != actual_rc
+    # check not readable cron file
+    check_sudo = test_cmd.format(
+        'x', '/etc/cron.d/', piholeuser)
+    actual_rc = Pihole.run(check_sudo).rc
+    assert exit_status_success == actual_rc
+    check_sudo = test_cmd.format(
+        'r', '/etc/cron.d/', piholeuser)
+    actual_rc = Pihole.run(check_sudo).rc
+    assert exit_status_success == actual_rc
+    check_sudo = test_cmd.format(
+        'r', '/etc/cron.d/pihole', piholeuser)
+    actual_rc = Pihole.run(check_sudo).rc
+    assert exit_status_success == actual_rc
+    directories = get_directories_recursive(Pihole, '/etc/.pihole/')
+    for directory in directories:
+        check_pihole = test_cmd.format('r', directory, piholeuser)
+        actual_rc = Pihole.run(check_pihole).rc
+        check_pihole = test_cmd.format('x', directory, piholeuser)
+        actual_rc = Pihole.run(check_pihole).rc
+        findfiles = 'find "{}" -maxdepth 1 -type f  -exec echo {{}} \\;;'
+        filelist = Pihole.run(findfiles.format(directory))
+        files = list(filter(bool, filelist.stdout.splitlines()))
+        for file in files:
+            check_pihole = test_cmd.format('r', file, piholeuser)
+            actual_rc = Pihole.run(check_pihole).rc
+
+
 @pytest.mark.parametrize("test_webpage", [False])
 def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     '''
@@ -246,6 +534,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
     assert 0 == installWeb.rc
+    piholeuser = 'pihole'
     webuser = ''
     user = re.findall(
         r"^\s*LIGHTTPD_USER=.*$", installWeb.stdout, re.MULTILINE)
@@ -275,7 +564,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     # if webserver install was not requested
     # at least pihole must be able to read files
     if installWebServer is False:
-        webuser = 'pihole'
+        webuser = piholeuser
     exit_status_success = 0
     test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
     # check directories above $webroot for read and execute permission
@@ -304,21 +593,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     check_admin = test_cmd.format('x', webroot + '/admin', webuser)
     actual_rc = Pihole.run(check_admin).rc
     assert exit_status_success == actual_rc
-
-    def get_directories_recursive(dir):
-        if dir is None:
-            return dir
-        ls = Pihole.run('ls -d {}'.format(dir + '/*/'))
-        directories = list(filter(bool, ls.stdout.splitlines()))
-        dirs = directories
-        for directory in directories:
-            dir_rec = get_directories_recursive(directory)
-            if isinstance(dir_rec, str):
-                dirs.extend([dir_rec])
-            else:
-                dirs.extend(dir_rec)
-        return dirs
-    directories = get_directories_recursive(webroot + '/admin/*/')
+    directories = get_directories_recursive(Pihole, webroot + '/admin/*/')
     for directory in directories:
         check_pihole = test_cmd.format('r', directory, webuser)
         actual_rc = Pihole.run(check_pihole).rc
@@ -337,7 +612,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         passwordcommand = 'grep "WEBPASSWORD" -c "/etc/pihole/setupVars.conf"'
         passwd = Pihole.run(passwordcommand)
         webpassword = passwd.stdout.strip()
-        print (webpassword)
         check_pihole = test_cmd.format('r', webroot + '/pihole', webuser)
         actual_rc = Pihole.run(check_pihole).rc
         assert exit_status_success == actual_rc
