@@ -431,7 +431,7 @@ CustomizeAdLists() {
             return 1
         fi
     else
-        echo "Invald Url"
+        echo "Invalid Url"
         return 1
     fi
 }
