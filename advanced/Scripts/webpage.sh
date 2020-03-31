@@ -417,8 +417,6 @@ CustomizeAdLists() {
     address="${args[3]}"
     local comment
     comment="${args[4]}"
-    local validUrl
-    validUrl="$(CheckUrl "${address}")"
 
     if CheckUrl "${address}"; then
         if [[ "${args[2]}" == "enable" ]]; then
