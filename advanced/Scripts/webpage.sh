@@ -401,22 +401,37 @@ SetWebUILayout() {
     change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 }
 
+CheckUrl(){
+    local url validUrl regex
+    regex="^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$"
+    url="${1}"
+    validUrl=$(grep -P "${regex}" <<< "${string}")
+    echo "${validUrl}"
+}
+
 CustomizeAdLists() {
     local address
     address="${args[3]}"
     local comment
-    comment="${args[4]}"
+    comment="${args[4]}"]
+    local validUrl
+    validUrl="$(CheckUrl "${address}")"
 
-    if [[ "${args[2]}" == "enable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
-    elif [[ "${args[2]}" == "disable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
-    elif [[ "${args[2]}" == "add" ]]; then
-        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
-    elif [[ "${args[2]}" == "del" ]]; then
-        sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+    if [[ -n "${validUrl}" ]]; then
+        if [[ "${args[2]}" == "enable" ]]; then
+            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
+        elif [[ "${args[2]}" == "disable" ]]; then
+            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
+        elif [[ "${args[2]}" == "add" ]]; then
+            sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
+        elif [[ "${args[2]}" == "del" ]]; then
+            sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+        else
+            echo "Not permitted"
+            return 1
+        fi
     else
-        echo "Not permitted"
+        echo "Invald Url"
         return 1
     fi
 }
