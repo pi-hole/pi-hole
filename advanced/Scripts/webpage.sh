@@ -404,7 +404,7 @@ SetWebUILayout() {
 CheckUrl(){
     local regex
     # Check for characters NOT allowed in URLs
-    regex="[^a-zA-Z0-9:/?&=~._-]"
+    regex="[^a-zA-Z0-9:/?&%=~._-]"
     if [[ "${1}" =~ ${regex} ]]; then
         return 1
     else
