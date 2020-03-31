@@ -402,23 +402,25 @@ SetWebUILayout() {
 }
 
 CheckUrl(){
-    local url validUrl regex
-    #regex from https://www.regextester.com/94502
-    regex="^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$"
-    url="${1}"
-    validUrl=$(grep -P "${regex}" <<< "${string}")
-    echo "${validUrl}"
+    local regex
+    # Check for characters NOT allowed in URLs
+    regex="[^a-zA-Z0-9:/?&=~._-]"
+    if [[ "${1}" =~ ${regex} ]]; then
+        return 1
+    else
+        return 0
+    fi
 }
 
 CustomizeAdLists() {
     local address
     address="${args[3]}"
     local comment
-    comment="${args[4]}"]
+    comment="${args[4]}"
     local validUrl
     validUrl="$(CheckUrl "${address}")"
 
-    if [[ -n "${validUrl}" ]]; then
+    if CheckUrl "${address}"; then
         if [[ "${args[2]}" == "enable" ]]; then
             sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
         elif [[ "${args[2]}" == "disable" ]]; then
