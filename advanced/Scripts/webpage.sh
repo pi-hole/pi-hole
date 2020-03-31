@@ -403,6 +403,7 @@ SetWebUILayout() {
 
 CheckUrl(){
     local url validUrl regex
+    #regex from https://www.regextester.com/94502
     regex="^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$"
     url="${1}"
     validUrl=$(grep -P "${regex}" <<< "${string}")
