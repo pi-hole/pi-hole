@@ -1212,8 +1212,7 @@ chooseBlocklists() {
         MalwareDom "MalwareDomains" on
         Cameleon "Cameleon" on
         DisconTrack "Disconnect.me Tracking" on
-        DisconAd "Disconnect.me Ads" on
-        HostsFile "Hosts-file.net Ads" on)
+        DisconAd "Disconnect.me Ads" on)
 
     # In a variable, show the choices available; exit if Cancel is selected
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
@@ -1235,7 +1234,6 @@ appendToListsFile() {
         Cameleon     )  echo "https://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
-        HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
     esac
 }
 
