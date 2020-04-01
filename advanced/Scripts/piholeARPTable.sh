@@ -36,13 +36,6 @@ flushARP(){
         echo -ne "  ${INFO} Flushing network table ..."
     fi
 
-    # Flush ARP cache to avoid re-adding of dead entries
-    if ! output=$(ip neigh flush all 2>&1); then
-        echo -e "${OVER}  ${CROSS} Failed to clear ARP cache"
-        echo "  Output: ${output}"
-        return 1
-    fi
-
     # Truncate network_addresses table in pihole-FTL.db
     # This needs to be done before we can truncate the network table due to
     # foreign key contraints
