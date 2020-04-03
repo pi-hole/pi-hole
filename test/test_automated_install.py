@@ -175,7 +175,7 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
                 '0'
             ),
             'restart pihole-FTL': (
-                 '',
+                '',
                 '0'
             ),
             'start pihole-FTL': (
@@ -227,7 +227,7 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
     # check_adlist = test_cmd.format('r', '/etc/pihole/adlists.list', piholeuser)
     # actual_rc = Pihole.run(check_adlist).rc
     # assert exit_status_success == actual_rc
-    #readable and writable dhcp.leases
+    # readable and writable dhcp.leases
     check_leases = test_cmd.format('r', '/etc/pihole/dhcp.leases', piholeuser)
     actual_rc = Pihole.run(check_leases).rc
     assert exit_status_success == actual_rc
@@ -474,8 +474,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     )
     FTLcommand = dedent('''\"
         /etc/init.d/pihole-FTL restart
-        echo \"'''
-    )
+        echo \"''')
     mock_command_2(
         'systemctl',
         {
@@ -496,7 +495,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                 '0'
             ),
             'restart pihole-FTL': (
-                 FTLcommand,
+                FTLcommand,
                 '0'
             ),
             'start pihole-FTL': (
@@ -634,7 +633,8 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                     r"failed to open stream: " +
                     r"Permission denied in"),
                 re.I)
-            status = ('curl -s --head "{}" | ' +
+            status = (
+                'curl -s --head "{}" | ' +
                 'head -n 1 | ' +
                 'grep "HTTP/1.[01] [23].." > /dev/null')
             pagecontent = 'curl --verbose -L "{}"'
