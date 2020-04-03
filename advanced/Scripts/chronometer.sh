@@ -13,7 +13,7 @@ LC_NUMERIC=C
 
 # Retrieve stats from FTL engine
 pihole-FTL() {
-    ftl_port=$(cat /var/run/pihole-FTL.port 2> /dev/null)
+    ftl_port=$(cat /run/pihole-FTL.port 2> /dev/null)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
         exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
