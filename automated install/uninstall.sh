@@ -188,6 +188,14 @@ removeNoPurge() {
             echo -e "  ${CROSS} Unable to remove 'pihole' user"
         fi
     fi
+    # If the pihole group exists, then remove
+    if getent group "pihole" &> /dev/null; then
+        if ${SUDO} groupdel pihole 2> /dev/null; then
+            echo -e "  ${TICK} Removed 'pihole' group"
+        else
+            echo -e "  ${CROSS} Unable to remove 'pihole' group"
+        fi
+    fi
 
     echo -e "\\n   We're sorry to see you go, but thanks for checking out Pi-hole!
        If you need help, reach out to us on Github, Discourse, Reddit or Twitter

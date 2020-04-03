@@ -1771,7 +1771,7 @@ create_pihole_user() {
     # If the user pihole exists,
     if id -u pihole &> /dev/null; then
         # if group exists
-        if getent group pihole; then
+        if getent group pihole > /dev/null 2>&1; then
             # just show a success
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         else
@@ -1799,7 +1799,7 @@ create_pihole_user() {
         local str="Creating user 'pihole'"
         printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
         # create her with the useradd command
-        if getent group pihole; then
+        if getent group pihole > /dev/null 2>&1; then
             # add primary group pihole as it already exists
             if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
