@@ -96,6 +96,7 @@ def test_pihole_user_group_creation(Pihole):
     '''
     check user creation works if user or group already exist
     '''
+    sudo_cmd = 'su --shell /bin/bash --command "{0}" -p root'
     # normal situation where neither user or group exist
     user_create = Pihole.run('''
     source /opt/pihole/basic-install.sh
@@ -111,7 +112,7 @@ def test_pihole_user_group_creation(Pihole):
     expected_stdout = tick_box + ' Checking for user \'pihole\''
     assert expected_stdout in user_create.stdout
     # situation where only group and no user exists
-    Pihole.run('su --shell /bin/bash --command "userdel -r pihole" -p root')
+    Pihole.run(sudo_cmd.format('userdel -r pihole'))
     user_create = Pihole.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
@@ -119,10 +120,13 @@ def test_pihole_user_group_creation(Pihole):
     expected_stdout = tick_box + ' Creating user \'pihole\''
     assert expected_stdout in user_create.stdout
     # situation where only user and no group exists
-    Pihole.run('su --shell /bin/bash --command "userdel -r pihole" -p root')
-    Pihole.run('su --shell /bin/bash --command "groupdel pihole" -p root')
-    Pihole.run('su --shell /bin/bash --command "groupadd pihole_dummy" -p root')
-    Pihole.run('su --shell /bin/bash --command "useradd -r --no-user-group -g pihole_dummy -s /usr/sbin/nologin pihole" -p root')
+    Pihole.run(sudo_cmd.format('userdel -r pihole'))
+    Pihole.run(sudo_cmd.format('groupdel pihole'))
+    Pihole.run(sudo_cmd.format('groupadd pihole_dummy'))
+    useradd_dummy = (
+        'useradd -r --no-user-group -g pihole_dummy ' +
+        '-s /usr/sbin/nologin pihole')
+    Pihole.run(sudo_cmd.format(useradd_dummy))
     user_create = Pihole.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
