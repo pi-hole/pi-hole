@@ -414,8 +414,8 @@ Options:
   disable             Disable Pi-hole subsystems
                         Add '-h' for more info on disable usage
   restartdns          Full restart Pi-hole subsystems
-                        Add '--reload' to only updates the lists and flushes dnsmasq 's DNS cache
-                        Add '--reload-lists' to only update the lists WITHOUT flushing dnsmasq 's DNS cache
+                        Add 'reload' to update the lists and flush the cache without restarting the DNS server
+                        Add 'reload-lists' to only update the lists WITHOUT flushing the cache or restarting the DNS server
   checkout            Switch Pi-hole subsystems to a different Github branch
                         Add '-h' for more info on checkout usage
   arpflush            Flush information stored in Pi-hole's network tables";
