@@ -519,7 +519,9 @@ Options:
     if [[ -n "${args[2]}" ]]; then
 
         # Sanitize email address in case of security issues
-        if [[ ! "${args[2]}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$  ]]; then
+        local regex
+        regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
+        if [[ ! "${args[2]}" =~ ${regex}  ]]; then
             echo -e "  ${CROSS} Invalid email address"
             exit 0
         fi
