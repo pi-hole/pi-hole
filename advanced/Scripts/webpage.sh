@@ -517,6 +517,13 @@ Options:
     fi
 
     if [[ -n "${args[2]}" ]]; then
+
+        # Sanitize email address in case of security issues
+        if [[ ! "${args[2]}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$  ]]; then
+            echo -e "  ${CROSS} Invalid email address"
+            exit 0
+        fi
+
         change_setting "ADMIN_EMAIL" "${args[2]}"
         echo -e "  ${TICK} Setting admin contact to ${args[2]}"
     else
