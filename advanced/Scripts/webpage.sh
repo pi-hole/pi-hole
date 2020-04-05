@@ -519,6 +519,7 @@ Options:
     if [[ -n "${args[2]}" ]]; then
 
         # Sanitize email address in case of security issues
+        # Regex from https://stackoverflow.com/a/2138832/4065967
         local regex
         regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
         if [[ ! "${args[2]}" =~ ${regex}  ]]; then
