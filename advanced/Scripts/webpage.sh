@@ -179,7 +179,6 @@ ProcessDNSSettings() {
 
     if [[ "${DNSSEC}" == true ]]; then
         echo "dnssec
-trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
 trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D
 " >> "${dnsmasqconfig}"
     fi
@@ -402,22 +401,38 @@ SetWebUILayout() {
     change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 }
 
+CheckUrl(){
+    local regex
+    # Check for characters NOT allowed in URLs
+    regex="[^a-zA-Z0-9:/?&%=~._-]"
+    if [[ "${1}" =~ ${regex} ]]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
 CustomizeAdLists() {
     local address
     address="${args[3]}"
     local comment
     comment="${args[4]}"
 
-    if [[ "${args[2]}" == "enable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
-    elif [[ "${args[2]}" == "disable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
-    elif [[ "${args[2]}" == "add" ]]; then
-        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
-    elif [[ "${args[2]}" == "del" ]]; then
-        sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+    if CheckUrl "${address}"; then
+        if [[ "${args[2]}" == "enable" ]]; then
+            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
+        elif [[ "${args[2]}" == "disable" ]]; then
+            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
+        elif [[ "${args[2]}" == "add" ]]; then
+            sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
+        elif [[ "${args[2]}" == "del" ]]; then
+            sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+        else
+            echo "Not permitted"
+            return 1
+        fi
     else
-        echo "Not permitted"
+        echo "Invalid Url"
         return 1
     fi
 }
@@ -502,6 +517,13 @@ Options:
     fi
 
     if [[ -n "${args[2]}" ]]; then
+
+        # Sanitize email address in case of security issues
+        if [[ ! "${args[2]}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$  ]]; then
+            echo -e "  ${CROSS} Invalid email address"
+            exit 0
+        fi
+
         change_setting "ADMIN_EMAIL" "${args[2]}"
         echo -e "  ${TICK} Setting admin contact to ${args[2]}"
     else
