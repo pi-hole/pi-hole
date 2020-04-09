@@ -288,9 +288,6 @@ SetDNSServers() {
         change_setting "REV_SERVER_DOMAIN" "${args[9]}"
     else
         change_setting "REV_SERVER" "false"
-        delete_setting "REV_SERVER_CIDR"
-        delete_setting "REV_SERVER_TARGET"
-        delete_setting "REV_SERVER_DOMAIN"
     fi
 
     ProcessDNSSettings
