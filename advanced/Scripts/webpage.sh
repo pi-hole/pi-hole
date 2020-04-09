@@ -231,12 +231,12 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
             # Private network, Class A (RFC 1597 + RFC 1918)
             REV_SERVER_CIDR="10.0.0.0/8"
         elif [[ "${REV_SERVER_TARGET}" =~ 192\.168\..* ]]; then
-            # Private network, Class C (RFC 1597 + RFC 1918)
+            # Private network, Class B (RFC 1597 + RFC 1918)
             REV_SERVER_CIDR="192.168.0.0/16"
         else
-            # Something else. The user will have to adapt this
-            # as we cannot know how large their subnet is
-            REV_SERVER_CIDR="${REV_SERVER_TARGET}/32"
+            # Something else, convert to /24 subnet (preserves legacy behavior)
+            # This sed converts "192.168.1.2" to "192.168.1.0/24"
+            REV_SERVER_CIDR="$(sed "s+\\.[0-9]*$+\\.0/24+" <<< "${REV_SERVER_TARGET}")"
         fi
         add_setting "REV_SERVER_CIDR" "${REV_SERVER_CIDR}"
     fi
