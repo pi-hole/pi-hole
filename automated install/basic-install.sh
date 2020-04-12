@@ -909,6 +909,29 @@ setIFCFG() {
     fi
 }
 
+# configure xxx.network in /etc/systemd/network
+setSYSTEMD_NETWORK() {
+    NETWORK_FILE="${1:-/etc/systemd/network/${PIHOLE_INTERFACE}.network}"
+    if grep -Eq "${IPADDR}(\\b|\\/)" "${NETWORK_FILE}"; then
+        printf "  %b Static IP already configured\\n" "${INFO}"
+    else
+        printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
+        {
+        echo "; Configured via Pi-hole installer"
+        echo '[Match]'
+        echo "Name=${PIHOLE_INTERFACE}"
+        echo '[Network]'
+        echo "Address=$IPADDR/$CIDR"
+        echo "Gateway=$IPv4gw"
+        echo '[Address]'
+        echo "DNS=$PIHOLE_DNS_1"
+        echo "DNS=$PIHOLE_DNS_2"
+        }> "${NETWORK_FILE}"
+        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
+        printf "  %b Set IP address to %s\\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%%/*}"
+    fi
+}
+
 setStaticIPv4() {
     # Local, named variables
     local IFCFG_FILE
@@ -940,6 +963,13 @@ setStaticIPv4() {
             # If it exists,
             IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
             setIFCFG "${IFCFG_FILE}"
+            return 0
+        fi
+    fi
+    # if systemd-networkd manages network
+    if is_command networkctl && networkctl list "${PIHOLE_INTERFACE}" &> /dev/null; then
+        if [[ -f "/etc/systemd/network/${PIHOLE_INTERFACE}.network" ]]; then
+            setSYSTEMD_NETWORK "/etc/systemd/network/${PIHOLE_INTERFACE}.network"
             return 0
         fi
     fi
