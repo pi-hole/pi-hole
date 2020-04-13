@@ -1953,10 +1953,15 @@ installPihole() {
             chmod a+rx /var/www
             chmod a+rx /var/www/html
             # Give pihole access to the Web server group
-            usermod -a -G ${LIGHTTPD_GROUP} pihole
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
-            usermod -a -G pihole ${LIGHTTPD_USER}
+            if is_command usermod ; then
+                usermod -a -G ${LIGHTTPD_GROUP} pihole
+                usermod -a -G pihole ${LIGHTTPD_USER}
+            else
+                addgroup pihole ${LIGHTTPD_GROUP}
+                addgroup ${LIGHTTPD_USER} pihole
+            fi
             # If the lighttpd command is executable,
             if is_command lighty-enable-mod ; then
                 # enable fastcgi and fastcgi-php
