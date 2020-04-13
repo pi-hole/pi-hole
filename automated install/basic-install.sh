@@ -2264,7 +2264,7 @@ FTLinstall() {
         curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
 
         # If we downloaded binary file (as opposed to text),
-        if sha1sum --status --quiet -c "${binary}".sha1; then
+        if sha1sum -c "${binary}".sha1 &>/dev/null; then
             printf "transferred... "
 
             # Before stopping FTL, we download the macvendor database
