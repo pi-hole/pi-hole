@@ -1286,7 +1286,7 @@ version_check_dnsmasq() {
             printf "%b  %b Backing up dnsmasq.conf to dnsmasq.conf.orig...\\n" "${OVER}"  "${TICK}"
             printf "  %b Restoring default dnsmasq.conf..." "${INFO}"
             # and replace it with the default
-            install -D -m 644 -T "${dnsmasq_original_config}" "${dnsmasq_conf}"
+            install -D -m 644 "${dnsmasq_original_config}" "${dnsmasq_conf}"
             printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
         # Otherwise,
         else
@@ -1297,7 +1297,8 @@ version_check_dnsmasq() {
         # If a file cannot be found,
         printf "  %b No dnsmasq.conf found... restoring default dnsmasq.conf..." "${INFO}"
         # restore the default one
-        install -D -m 644 -T "${dnsmasq_original_config}" "${dnsmasq_conf}"
+        rm -f "${dnsmasq_conf}"
+        install -D -m 644 "${dnsmasq_original_config}" "${dnsmasq_conf}"
         printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
     fi
 
@@ -1307,7 +1308,8 @@ version_check_dnsmasq() {
         install -d -m 755 "/etc/dnsmasq.d"
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    install -D -m 644 -T "${dnsmasq_pihole_01_snippet}" "${dnsmasq_pihole_01_location}"
+    rm -f "${dnsmasq_pihole_01_location}"
+    install -D -m 644 "${dnsmasq_pihole_01_snippet}" "${dnsmasq_pihole_01_location}"
     printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
     # First, swap in the interface to listen on
@@ -1427,7 +1429,7 @@ installConfigs() {
             mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
         fi
         # and copy in the config file Pi-hole needs
-        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+        install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
         chmod 644 /etc/lighttpd/external.conf
@@ -1468,9 +1470,10 @@ install_manpage() {
         install -d -m 755 /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
+    rm -f /usr/local/share/man/man8/pihole{,-FTL}.8 /usr/local/share/man/man5/pihole-FTL.conf.5
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
     if mandb -q &>/dev/null; then
         # Updated successfully
         printf "%b  %b man pages installed and database updated\\n" "${OVER}" "${TICK}"
@@ -1793,7 +1796,10 @@ installCron() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
     # File must not be world or group writeable and must be owned by root
-    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    [[ ! -d /etc/cron.d ]] && mkdir /etc/cron.d
+    cp ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    chmod 644 /etc/cron.d/pihole
+    chown root:root /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1885,7 +1891,8 @@ installLogrotate() {
     local str="Installing latest logrotate script"
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the file over from the local repo
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
+    rm -f /etc/pihole/logrotate
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -2233,10 +2240,11 @@ FTLinstall() {
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
     # Always replace pihole-FTL.service
+    rm -f /etc/init.d/pihole-FTL
     if [[ "${PKG_MANAGER}" == "apk" ]]; then
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.openrc" "/etc/init.d/pihole-FTL"
+        install -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.openrc" "/etc/init.d/pihole-FTL"
     else
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+        install -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
     fi
 
     local ftlBranch
@@ -2276,7 +2284,8 @@ FTLinstall() {
             stop_service pihole-FTL &> /dev/null
 
             # Install the new version with the correct permissions
-            install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
+            rm -f /usr/bin/pihole-FTL
+            install -m 0755 "${binary}" /usr/bin/pihole-FTL
 
             # Move back into the original directory the user was in
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
