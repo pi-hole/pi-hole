@@ -1828,10 +1828,17 @@ create_pihole_user() {
         local str="Creating user 'pihole'"
         printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
         # create her with the useradd command
-        if useradd -r -s /usr/sbin/nologin pihole; then
-          printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        if is_command useradd ; then
+            useradd -r -s /usr/sbin/nologin pihole || rc=$?
         else
-          printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            addgroup -S pihole || true # If this fails, next one will fail too
+            adduser -S -s /usr/sbin/nologin pihole || rc=$?
+        fi
+
+        if [[ $rc -eq 0 ]]; then
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        else
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         fi
     fi
 }
