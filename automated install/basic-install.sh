@@ -1522,6 +1522,9 @@ enable_service() {
     if is_command systemctl ; then
         # use that to enable the service
         systemctl enable "${1}" &> /dev/null
+    # Else, if rc-update exists,
+    elif is_command rc-update; then
+        rc-update add "${1}" &> /dev/null
     # Otherwise,
     else
         # use update-rc.d to accomplish this
@@ -1539,6 +1542,9 @@ disable_service() {
     if is_command systemctl ; then
         # use that to disable the service
         systemctl disable "${1}" &> /dev/null
+    # Else, if rc-update exists,
+    elif is_command rc-update; then
+        rc-update del "${1}" &> /dev/null
     # Otherwise,
     else
         # use update-rc.d to accomplish this
@@ -1552,6 +1558,9 @@ check_service_active() {
     if is_command systemctl ; then
         # use that to check the status of the service
         systemctl is-enabled "${1}" &> /dev/null
+    # Else, if rc-update exists,
+    elif is_command rc-update; then
+        rc-update show "${1}" &> /dev/null
     # Otherwise,
     else
         # fall back to service command
@@ -1689,6 +1698,14 @@ install_dependent_packages() {
         done
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
+
+            # Initialize openrc if we installed it
+            if [[ "${installArray[*]}" =~ "openrc" ]] && [[ ! -d /run/openrc ]]; then
+                mkdir /run/openrc
+                touch /run/openrc/softlevel
+                openrc
+            fi
+
             return
         fi
         printf "\\n"
@@ -2216,7 +2233,11 @@ FTLinstall() {
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
     # Always replace pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    if [[ "${PKG_MANAGER}" == "apk" ]]; then
+        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.openrc" "/etc/init.d/pihole-FTL"
+    else
+        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    fi
 
     local ftlBranch
     local url
