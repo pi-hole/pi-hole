@@ -138,7 +138,8 @@ database_table_from_file() {
   source="${2}"
   backup_path="${piholeDir}/migration_backup"
   backup_file="${backup_path}/$(basename "${2}")"
-  tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
+  tmpFile="$(mktemp -p "/tmp")"
+  mv "${tmpFile}" "${tmpFile%.*}.gravity"
 
   local timestamp
   timestamp="$(date --utc +'%s')"
@@ -353,7 +354,8 @@ gravity_DownloadBlocklists() {
     echo -e "${OVER}  ${TICK} ${str}"
   fi
 
-  target="$(mktemp -p "/tmp" --suffix=".gravity")"
+  target="$(mktemp -p "/tmp")"
+  mv "${target}" "${target%.*}.gravity"
 
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
@@ -459,7 +461,8 @@ gravity_DownloadBlocklistFromUrl() {
   local heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
-  patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
+  patternBuffer=$(mktemp -p "/tmp")
+  mv "${patternBuffer}" "${patternBuffer%.*}.phgpb"
 
   # Determine if $saveLocation has read permission
   if [[ -r "${saveLocation}" && $url != "file"* ]]; then
