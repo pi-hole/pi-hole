@@ -2405,6 +2405,9 @@ get_binary_name() {
         if [[ "${dpkgarch}" == "i386" ]]; then
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-linux-x86_32"
+        elif ldd /bin/ls | grep -q "ld-musl-x86_64"; then
+            printf "%b  %b Detected musl-x86_64 architecture\\n" "${OVER}" "${TICK}"
+            l_binary="pihole-FTL-musl-linux-x86_64"
         else
             # 64bit
             printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
