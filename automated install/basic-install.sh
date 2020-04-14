@@ -375,7 +375,20 @@ elif is_command rpm ; then
         fi
     fi
 
-# If neither apt-get or yum/dnf package managers were found
+# If rpm is not found, check for apk to see if it's Alpine Linux
+elif is_command apk ; then
+    PKG_MANAGER="apk"
+    UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+    PKG_INSTALL=("${PKG_MANAGER}" add)
+    PKG_COUNT="${PKG_MANAGER} upgrade --simulate --no-progress | head -n -1 | wc -l"
+    INSTALLER_DEPS=(dialog git newt procps dhcpcd openrc ncurses)
+    PIHOLE_DEPS=(curl bind-tools nmap-ncat psmisc sudo unzip wget libidn sqlite libcap openresolv)
+    PIHOLE_WEB_DEPS=(lighttpd lighttpd-mod_auth fcgi php7 php7-cgi php7-sqlite3 php7-session php7-openssl php7-json)
+    LIGHTTPD_USER="lighttpd"
+    LIGHTTPD_GROUP="lighttpd"
+    LIGHTTPD_CFG="lighttpd.conf.fedora"
+
+# If neither apt-get, yum/dnf or apk package managers were found
 else
     # it's not an OS we can support,
     printf "  %b OS distribution not supported\\n" "${CROSS}"
@@ -1656,6 +1669,26 @@ install_dependent_packages() {
             printf '%*s\n' "$columns" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
             printf '%*s\n' "$columns" '' | tr " " -;
+            return
+        fi
+        printf "\\n"
+        return 0
+    fi
+
+    # Alpine
+    if [[ "${PKG_MANAGER}" == "apk" ]]; then
+        # For each package,
+        for i in "$@"; do
+            printf "  %b Checking for %s..." "${INFO}" "${i}"
+            if "${PKG_MANAGER}" info | grep -Eq "^${i}\$" &> /dev/null; then
+                printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
+            else
+                echo -e "${OVER}  ${INFO} Checking for $i (will be installed)"
+                installArray+=("${i}")
+            fi
+        done
+        if [[ "${#installArray[@]}" -gt 0 ]]; then
+            "${PKG_INSTALL[@]}" "${installArray[@]}" &> /dev/null
             return
         fi
         printf "\\n"
