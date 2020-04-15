@@ -573,12 +573,14 @@ gravity_ParseFileIntoDomains() {
     # It also helps with debugging so each stage of the script can be researched more in depth
     # 1) Remove carriage returns
     # 2) Convert all characters to lowercase
-    # 3) Remove lines containing "#" or "/"
-    # 4) Remove leading tabs, spaces, etc.
-    # 5) Delete lines not matching domain names
+    # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
+    # 4) Remove lines containing "/"
+    # 5) Remove leading tabs, spaces, etc.
+    # 6) Delete lines not matching domain names
     < "${source}" tr -d '\r' | \
     tr '[:upper:]' '[:lower:]' | \
-    sed -r '/(\/|#).*$/d' | \
+    sed 's/\s*#.*//g' | \
+    sed -r '/(\/).*$/d' | \
     sed -r 's/^.*\s+//g' | \
     sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
     chmod 644 "${destination}"
