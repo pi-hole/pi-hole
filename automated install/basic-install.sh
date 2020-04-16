@@ -1198,8 +1198,7 @@ appendToListsFile() {
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
         Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
-        DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
-        HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
+        DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";
     esac
 }
 
@@ -1216,7 +1215,6 @@ installDefaultBlocklists() {
     appendToListsFile Cameleon
     appendToListsFile DisconTrack
     appendToListsFile DisconAd
-    appendToListsFile HostsFile
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
