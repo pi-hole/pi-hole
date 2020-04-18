@@ -84,6 +84,21 @@ getRemoteVersion(){
     # Get the version from the remote origin
     local daemon="${1}"
     local version
+    local cachedVersions
+    local arrCache
+    cachedVersions="/etc/pihole/GitHubVersions"
+
+    #If the above file exists, then we can read from that. Prevents overuse of Github API
+    if [[ -f "$cachedVersions" ]]; then
+        IFS=' ' read -r -a arrCache <<< $(cat $cachedVersions)
+        case $daemon in
+          "pi-hole"   )  echo ${arrCache[0]};;
+          "AdminLTE"  )  echo ${arrCache[1]};;
+          "FTL"       )  echo ${arrCache[2]};;
+        esac
+
+        return 0
+    fi
 
     version=$(curl --silent --fail "https://api.github.com/repos/pi-hole/${daemon}/releases/latest" | \
         awk -F: '$1 ~/tag_name/ { print $2 }' | \
@@ -98,20 +113,23 @@ getRemoteVersion(){
 }
 
 getLocalBranch(){
-     # Local FTL btranch is stored in /etc/pihole/ftlbranch
-    if [[ "$1" == "FTL" ]]; then
-        cat /etc/pihole/ftlbranch
-        return 0
-    fi
-
     # Get the checked out branch of the local directory
     local directory="${1}"
     local branch
 
-    cd "${directory}" 2> /dev/null || { echo "${DEFAULT}"; return 1; }
-    branch=$(git rev-parse --abbrev-ref HEAD || echo "$DEFAULT")
+     # Local FTL btranch is stored in /etc/pihole/ftlbranch
+    if [[ "$1" == "FTL" ]]; then
+        branch=$(cat /etc/pihole/ftlbranch)
+    else
+        cd "${directory}" 2> /dev/null || { echo "${DEFAULT}"; return 1; }
+        branch=$(git rev-parse --abbrev-ref HEAD || echo "$DEFAULT")
+    fi
     if [[ ! "${branch}" =~ ^v ]]; then
-        echo "${branch}"
+        if [[ "${branch}" == "master" ]]; then
+            echo ""
+        else
+            echo "${branch} "
+        fi
     elif [[ "${branch}" == "${DEFAULT}" ]]; then
         echo "ERROR"
         return 1
@@ -132,17 +150,16 @@ versionOutput() {
         [[ "$3" == "-c" ]] || [[ "$3" == "--current" ]] || [[ -z "$3" ]] && curHash=$(getLocalHash "$GITDIR") && branch=$(getLocalBranch $GITDIR)
         [[ "$3" == "-l" ]] || [[ "$3" == "--latest" ]] || [[ -z "$3" ]] && latHash=$(getRemoteHash "$1" "$(cd "$GITDIR" 2> /dev/null && git rev-parse --abbrev-ref HEAD)")
     fi
-
     if [[ -n "$current" ]] && [[ -n "$latest" ]]; then
-        output="${1^} version is $current (Latest: $latest) Branch: $branch"
+        output="${1^} version is $branch$current (Latest: $latest)"
     elif [[ -n "$current" ]] && [[ -z "$latest" ]]; then
-        output="Current ${1^} version is $current. Branch: $branch"
+        output="Current ${1^} version is $branch$current."
     elif [[ -z "$current" ]] && [[ -n "$latest" ]]; then
         output="Latest ${1^} version is $latest"
     elif [[ "$curHash" == "N/A" ]] || [[ "$latHash" == "N/A" ]]; then
         output="${1^} hash is not applicable"
     elif [[ -n "$curHash" ]] && [[ -n "$latHash" ]]; then
-        output="${1^} hash is $curHash (Latest: $latHash) Branch: $branch"
+        output="${1^} hash is $curHash (Latest: $latHash)"
     elif [[ -n "$curHash" ]] && [[ -z "$latHash" ]]; then
         output="Current ${1^} hash is $curHash"
     elif [[ -z "$curHash" ]] && [[ -n "$latHash" ]]; then
