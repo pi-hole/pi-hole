@@ -90,11 +90,11 @@ getRemoteVersion(){
 
     #If the above file exists, then we can read from that. Prevents overuse of Github API
     if [[ -f "$cachedVersions" ]]; then
-        IFS=' ' read -r -a arrCache <<< $(cat $cachedVersions)
+        IFS=' ' read -r -a arrCache < "$cachedVersions"
         case $daemon in
-          "pi-hole"   )  echo ${arrCache[0]};;
-          "AdminLTE"  )  echo ${arrCache[1]};;
-          "FTL"       )  echo ${arrCache[2]};;
+          "pi-hole"   )  echo "${arrCache[0]}";;
+          "AdminLTE"  )  echo "${arrCache[1]}";;
+          "FTL"       )  echo "${arrCache[2]}";;
         esac
 
         return 0
