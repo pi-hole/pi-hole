@@ -1930,7 +1930,7 @@ installPihole() {
             chmod_path="${webroot}"
             while [[ "${chmod_path}" != "/" ]]; do
                 chmod a+rx "$chmod_path"
-                chmod_path="$(dirname '${chmod_path}')"
+                chmod_path="$(dirname "${chmod_path}")"
             done
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
