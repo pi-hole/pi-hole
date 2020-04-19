@@ -11,9 +11,12 @@
 # Include required constants
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 PH_TEST="true"
+# shellcheck source=SCRIPTDIR/basic-install.sh
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # setupVars set in basic-install.sh
+# shellcheck disable=SC1090
 source "${setupVars}"
+# shellcheck source=advanced/Scripts/COL_TABLE
 source "${PI_HOLE_INSTALL_DIR}/COL_TABLE"
 
 while true; do

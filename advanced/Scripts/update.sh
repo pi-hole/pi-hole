@@ -24,7 +24,7 @@ CHECK_ONLY=false
 
 # shellcheck disable=SC1090
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# shellcheck disable=SC1091
+# shellcheck source=SCRIPTDIR/COL_TABLE
 source "${PI_HOLE_INSTALL_DIR}/COL_TABLE"
 
 # PI_HOLE_INSTALL_DIR set in basic-install.sh
