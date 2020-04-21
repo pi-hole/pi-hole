@@ -127,6 +127,8 @@ getLocalBranch(){
     if [[ ! "${branch}" =~ ^v ]]; then
         if [[ "${branch}" == "master" ]]; then
             echo ""
+        elif [[ "${branch}" == "HEAD" ]]; then
+            echo "in detached HEAD state at "
         else
             echo "${branch} "
         fi
