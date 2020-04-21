@@ -119,7 +119,7 @@ getLocalBranch(){
 
      # Local FTL btranch is stored in /etc/pihole/ftlbranch
     if [[ "$1" == "FTL" ]]; then
-        branch=$(cat /etc/pihole/ftlbranch)
+        branch="$(pihole-FTL branch)"
     else
         cd "${directory}" 2> /dev/null || { echo "${DEFAULT}"; return 1; }
         branch=$(git rev-parse --abbrev-ref HEAD || echo "$DEFAULT")
