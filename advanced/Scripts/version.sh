@@ -132,11 +132,9 @@ getLocalBranch(){
         else
             echo "${branch} "
         fi
-    elif [[ "${branch}" == "${DEFAULT}" ]]; then
-        echo "ERROR"
-        return 1
     else
-        echo "No Checked out branch"
+        # Branch started in "v"
+        echo "release "
     fi
     return 0
 }
