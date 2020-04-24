@@ -302,12 +302,12 @@ tailFunc() {
   source /etc/pihole/setupVars.conf
 
   # Strip date from each line
-  # Colour blocklist/blacklist/wildcard entries as red
-  # Colour A/AAAA/DHCP strings as white
-  # Colour everything else as gray
+  # Color blocklist/blacklist/wildcard entries as red
+  # Color A/AAAA/DHCP strings as white
+  # Color everything else as gray
   tail -f /var/log/pihole.log | sed -E \
-    -e "s,($(date +'%b %d ')| dnsmasq[.*[0-9]]),,g" \
-    -e "s,(.*(gravity |black |regex | config ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
+    -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
+    -e "s,(.*(blacklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0

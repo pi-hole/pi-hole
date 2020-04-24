@@ -36,7 +36,9 @@ VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
 gravityDBfile="${piholeDir}/gravity.db"
+gravityTEMPfile="${piholeDir}/gravity_temp.db"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
+gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 optimize_database=false
 
 domainsExtension="domains"
@@ -80,12 +82,45 @@ fi
 
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
-  sqlite3 "${gravityDBfile}" < "${gravityDBschema}"
+  sqlite3 "${1}" < "${gravityDBschema}"
 }
 
+# Copy data from old to new database file and swap them
+gravity_swap_databases() {
+  local str
+  str="Building tree"
+  echo -ne "  ${INFO} ${str}..."
+
+  # The index is intentionally not UNIQUE as prro quality adlists may contain domains more than once
+  output=$( { sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to build gravity tree in ${gravityTEMPfile}\\n  ${output}"
+    return 1
+  fi
+  echo -e "${OVER}  ${TICK} ${str}"
+
+  str="Swapping databases"
+  echo -ne "  ${INFO} ${str}..."
+
+  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
+    return 1
+  fi
+  echo -e "${OVER}  ${TICK} ${str}"
+
+  # Swap databases and remove old database
+  rm "${gravityDBfile}"
+  mv "${gravityTEMPfile}" "${gravityDBfile}"
+}
+
+# Update timestamp when the gravity table was last updated successfully
 update_gravity_timestamp() {
-  # Update timestamp when the gravity table was last updated successfully
-  output=$( { sqlite3 "${gravityDBfile}" <<< "INSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%s', 'now') as int));"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -95,91 +130,83 @@ update_gravity_timestamp() {
   return 0
 }
 
-database_truncate_table() {
-  local table
-  table="${1}"
-
-  output=$( { sqlite3 "${gravityDBfile}" <<< "DELETE FROM ${table};"; } 2>&1 )
-  status="$?"
-
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to truncate ${table} database ${gravityDBfile}\\n  ${output}"
-    gravity_Cleanup "error"
-    return 1
-  fi
-  return 0
-}
-
 # Import domains from file and store them in the specified database table
 database_table_from_file() {
   # Define locals
-  local table source backup_path backup_file arg
+  local table source backup_path backup_file tmpFile type
   table="${1}"
   source="${2}"
-  arg="${3}"
   backup_path="${piholeDir}/migration_backup"
   backup_file="${backup_path}/$(basename "${2}")"
-
-  # Truncate table only if not gravity (we add multiple times to this table)
-  if [[ "${table}" != "gravity" ]]; then
-    database_truncate_table "${table}"
-  fi
-
-  local tmpFile
   tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
+
   local timestamp
   timestamp="$(date --utc +'%s')"
-  local inputfile
-  # Apply format for white-, blacklist, regex, and adlist tables
-  # Read file line by line
+
   local rowid
   declare -i rowid
   rowid=1
 
-  if [[ "${table}" == "gravity" ]]; then
-    #Append ,${arg} to every line and then remove blank lines before import
-    sed -e "s/$/,${arg}/" "${source}" > "${tmpFile}"
-    sed -i '/^$/d' "${tmpFile}"
-  else
-    grep -v '^ *#' < "${source}" | while IFS= read -r domain
-    do
-      # Only add non-empty lines
-      if [[ -n "${domain}" ]]; then
-        if [[ "${table}" == "domain_audit" ]]; then
-          # domain_audit table format (no enable or modified fields)
-          echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
-        else
-          # White-, black-, and regexlist format
-          echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
-        fi
-        rowid+=1
-      fi
-    done
+  # Special handling for domains to be imported into the common domainlist table
+  if [[ "${table}" == "whitelist" ]]; then
+    type="0"
+    table="domainlist"
+  elif [[ "${table}" == "blacklist" ]]; then
+    type="1"
+    table="domainlist"
+  elif [[ "${table}" == "regex" ]]; then
+    type="3"
+    table="domainlist"
   fi
-  inputfile="${tmpFile}"
 
-  # Remove possible duplicates found in lower-quality adlists
-  sort -u -o "${inputfile}" "${inputfile}"
+  # Get MAX(id) from domainlist when INSERTing into this table
+  if [[ "${table}" == "domainlist" ]]; then
+    rowid="$(sqlite3 "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
+    if [[ -z "$rowid" ]]; then
+      rowid=0
+    fi
+    rowid+=1
+  fi
+
+  # Loop over all domains in ${source} file
+  # Read file line by line
+  grep -v '^ *#' < "${source}" | while IFS= read -r domain
+  do
+    # Only add non-empty lines
+    if [[ -n "${domain}" ]]; then
+      if [[ "${table}" == "domain_audit" ]]; then
+        # domain_audit table format (no enable or modified fields)
+        echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
+      elif [[ "${table}" == "adlist" ]]; then
+        # Adlist table format
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+      else
+        # White-, black-, and regexlist table format
+        echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+      fi
+      rowid+=1
+    fi
+  done
 
   # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  output=$( { printf ".timeout 10000\\n.mode csv\\n.import \"%s\" %s\\n" "${inputfile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to fill table ${table} in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to fill table ${table}${type} in database ${gravityDBfile}\\n  ${output}"
     gravity_Cleanup "error"
   fi
-
-  # Delete tmpfile
-  rm "${tmpFile}" > /dev/null 2>&1 || \
-      echo -e "  ${CROSS} Unable to remove ${tmpFile}"
 
   # Move source file to backup directory, create directory if not existing
   mkdir -p "${backup_path}"
   mv "${source}" "${backup_file}" 2> /dev/null || \
       echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
+
+  # Delete tmpFile
+  rm "${tmpFile}" > /dev/null 2>&1 || \
+    echo -e "  ${CROSS} Unable to remove ${tmpFile}"
 }
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
@@ -188,7 +215,10 @@ migrate_to_database() {
   if [ ! -e "${gravityDBfile}" ]; then
     # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
-    generate_gravity_database
+    generate_gravity_database "${gravityDBfile}"
+
+    # Check if gravity database needs to be updated
+    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
 
     # Migrate list files to new database
     if [ -e "${adListFile}" ]; then
@@ -241,7 +271,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
-  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventualy fails
+  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventually fails
   # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
   if timeout 4 dig +short "${lookupDomain}" &> /dev/null; then
     if [[ -n "${secs:-}" ]]; then
@@ -306,15 +336,24 @@ gravity_DownloadBlocklists() {
     return 1
   fi
 
-  local url domain agent cmd_ext str
+  local url domain agent cmd_ext str target
   echo ""
 
-  # Flush gravity table once before looping over sources
-  str="Flushing gravity table"
+  # Prepare new gravity database
+  str="Preparing new gravity database"
   echo -ne "  ${INFO} ${str}..."
-  if database_truncate_table "gravity"; then
+  rm "${gravityTEMPfile}" > /dev/null 2>&1
+  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBschema}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  else
     echo -e "${OVER}  ${TICK} ${str}"
   fi
+
+  target="$(mktemp -p "/tmp" --suffix=".gravity")"
 
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
@@ -335,15 +374,89 @@ gravity_DownloadBlocklists() {
     esac
 
     echo -e "  ${INFO} Target: ${url}"
-    gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}"
+    local regex
+    # Check for characters NOT allowed in URLs
+    regex="[^a-zA-Z0-9:/?&%=~._-]"
+    if [[ "${url}" =~ ${regex} ]]; then
+        echo -e "  ${CROSS} Invalid Target"
+    else
+       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
+    fi
     echo ""
   done
+
+  str="Storing downloaded domains in new gravity database"
+  echo -ne "  ${INFO} ${str}..."
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity\\n" "${target}" | sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to fill gravity table in database ${gravityTEMPfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
+
+  if [[ "${status}" -eq 0 && -n "${output}" ]]; then
+    echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the lists you're using!\\n\\n  SQL warnings:"
+    local warning file line lineno
+    while IFS= read -r line; do
+      echo "  - ${line}"
+      warning="$(grep -oh "^[^:]*:[0-9]*" <<< "${line}")"
+      file="${warning%:*}"
+      lineno="${warning#*:}"
+      if [[ -n "${file}" && -n "${lineno}" ]]; then
+        echo -n "    Line contains: "
+        awk "NR==${lineno}" < "${file}"
+      fi
+    done <<< "${output}"
+    echo ""
+  fi
+
+  rm "${target}" > /dev/null 2>&1 || \
+    echo -e "  ${CROSS} Unable to remove ${target}"
+
   gravity_Blackbody=true
+}
+
+total_num=0
+parseList() {
+  local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
+  # This sed does the following things:
+  # 1. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
+  # 2. Append ,adlistID to every line
+  # 3. Ensures there is a newline on the last line
+  sed -e "/[^a-zA-Z0-9.\_-]/d;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
+  # Find (up to) five domains containing invalid characters (see above)
+  incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
+
+  local num_lines num_target_lines num_correct_lines num_invalid
+  # Get number of lines in source file
+  num_lines="$(grep -c "^" "${src}")"
+  # Get number of lines in destination file
+  num_target_lines="$(grep -c "^" "${target}")"
+  num_correct_lines="$(( num_target_lines-total_num ))"
+  total_num="$num_target_lines"
+  num_invalid="$(( num_lines-num_correct_lines ))"
+  if [[ "${num_invalid}" -eq 0 ]]; then
+    echo "  ${INFO} Received ${num_lines} domains"
+  else
+    echo "  ${INFO} Received ${num_lines} domains, ${num_invalid} domains invalid!"
+  fi
+
+  # Display sample of invalid lines if we found some
+  if [[ -n "${incorrect_lines}" ]]; then
+    echo "      Sample of invalid domains:"
+    while IFS= read -r line; do
+      echo "      - ${line}"
+    done <<< "${incorrect_lines}"
+  fi
 }
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" heisenbergCompensator="" patternBuffer str httpCode success=""
+  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}"
+  local heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
   patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
@@ -424,20 +537,14 @@ gravity_DownloadBlocklistFromUrl() {
   # Determine if the blocklist was downloaded and saved correctly
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
-      # Add domains to database table
-      str="Adding adlist with ID ${adlistID} to database table"
-      echo -ne "  ${INFO} ${str}..."
-      database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
-      echo -e "${OVER}  ${TICK} ${str}"
+      # Add domains to database table file
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
-      # Add domains to database table
-      str="Adding adlist with ID ${adlistID} to database table"
-      echo -ne "  ${INFO} ${str}..."
-      database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
-      echo -e "${OVER}  ${TICK} ${str}"
+      # Add domains to database table file
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -446,11 +553,8 @@ gravity_DownloadBlocklistFromUrl() {
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
-      # Add domains to database table
-      str="Adding to database table"
-      echo -ne "  ${INFO} ${str}..."
-      database_table_from_file "gravity" "${saveLocation}" "${adlistID}"
-      echo -e "${OVER}  ${TICK} ${str}"
+      # Add domains to database table file
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
     fi
@@ -464,7 +568,7 @@ gravity_ParseFileIntoDomains() {
   # Determine if we are parsing a consolidated list
   #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
-    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contiguous
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
     # 1) Remove carriage returns
@@ -535,6 +639,7 @@ gravity_Table_Count() {
     local unique
     unique="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(DISTINCT domain) FROM ${table};")"
     echo -e "  ${INFO} Number of ${str}: ${num} (${unique} unique domains)"
+    sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"
   fi
@@ -644,7 +749,7 @@ gravity_Cleanup() {
     dnsWasOffline=true
   fi
 
-  # Print Pi-hole status if an error occured
+  # Print Pi-hole status if an error occurred
   if [[ -n "${error}" ]]; then
     "${PIHOLE_COMMAND}" status
     exit 1
@@ -686,10 +791,6 @@ fi
 # Move possibly existing legacy files to the gravity database
 migrate_to_database
 
-# Ensure proper permissions are set for the newly created database
-chown pihole:pihole "${gravityDBfile}"
-chmod g+w "${piholeDir}" "${gravityDBfile}"
-
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
   echo -ne "${INFO} ${str}..."
@@ -704,15 +805,26 @@ gravity_DownloadBlocklists
 
 # Create local.list
 gravity_generateLocalList
-gravity_ShowCount
 
+# Migrate rest of the data from old to new database
+gravity_swap_databases
+
+# Update gravity timestamp
 update_gravity_timestamp
 
-gravity_Cleanup
-echo ""
+# Ensure proper permissions are set for the database
+chown pihole:pihole "${gravityDBfile}"
+chmod g+w "${piholeDir}" "${gravityDBfile}"
+
+# Compute numbers to be displayed
+gravity_ShowCount
 
 # Determine if DNS has been restarted by this instance of gravity
 if [[ -z "${dnsWasOffline:-}" ]]; then
   "${PIHOLE_COMMAND}" restartdns reload
 fi
+
+gravity_Cleanup
+echo ""
+
 "${PIHOLE_COMMAND}" status

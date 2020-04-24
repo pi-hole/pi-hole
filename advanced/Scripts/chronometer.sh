@@ -72,7 +72,7 @@ printFunc() {
 
     # Remove excess characters from main text
     if [[ "$text_main_len" -gt "$text_main_max_len" ]]; then
-        # Trim text without colours
+        # Trim text without colors
         text_main_trim="${text_main_nocol:0:$text_main_max_len}"
         # Replace with trimmed text
         text_main="${text_main/$text_main_nocol/$text_main_trim}"
@@ -88,7 +88,7 @@ printFunc() {
 
     [[ "$spc_num" -le 0 ]] && spc_num="0"
     spc=$(printf "%${spc_num}s")
-    #spc="${spc// /.}" # Debug: Visualise spaces
+    #spc="${spc// /.}" # Debug: Visualize spaces
 
     printf "%s%s$spc" "$title" "$text_main"
 
@@ -131,7 +131,7 @@ get_init_stats() {
         printf "%s%02d:%02d:%02d\\n" "$days" "$hrs" "$mins" "$secs"
     }
 
-    # Set Colour Codes
+    # Set Color Codes
     coltable="/opt/pihole/COL_TABLE"
     if [[ -f "${coltable}" ]]; then
         source ${coltable}
@@ -269,7 +269,7 @@ get_sys_stats() {
     scr_lines="${scr_size[0]}"
     scr_cols="${scr_size[1]}"
 
-    # Determine Chronometer size behaviour
+    # Determine Chronometer size behavior
     if [[ "$scr_cols" -ge 58 ]]; then
         chrono_width="large"
     elif [[ "$scr_cols" -gt 40 ]]; then
@@ -308,7 +308,7 @@ get_sys_stats() {
         [[ "${cpu_freq}" == *".0"* ]] && cpu_freq="${cpu_freq/.0/}"
     fi
 
-    # Determine colour for temperature
+    # Determine color for temperature
     if [[ -n "$temp_file" ]]; then
         if [[ "$temp_unit" == "C" ]]; then
             cpu_temp=$(printf "%.0fc\\n" "$(calcFunc "$(< $temp_file) / 1000")")

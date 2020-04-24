@@ -1,6 +1,6 @@
 from textwrap import dedent
 import re
-from conftest import (
+from .conftest import (
     SETUPVARS,
     tick_box,
     info_box,
@@ -34,7 +34,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     This confirms the sourced variables are in scope between functions
     '''
     setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         setup_var_file += "{}={}\n".format(k, v)
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
@@ -59,7 +59,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
 
     output = run_script(Pihole, script).stdout
 
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         assert "{}={}".format(k, v) in output
 
 
@@ -69,7 +69,7 @@ def test_setupVars_saved_to_file(Pihole):
     '''
     # dedent works better with this and padding matching script below
     set_setup_vars = '\n'
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         set_setup_vars += "    {}={}\n".format(k, v)
     Pihole.run(set_setup_vars).stdout
 
@@ -88,7 +88,7 @@ def test_setupVars_saved_to_file(Pihole):
 
     output = run_script(Pihole, script).stdout
 
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         assert "{}={}".format(k, v) in output
 
 
@@ -195,12 +195,12 @@ def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
+    # General call type occurrences
     assert len(re.findall(r'iptables -S', firewall_calls)) == 1
     assert len(re.findall(r'iptables -C', firewall_calls)) == 4
     assert len(re.findall(r'iptables -I', firewall_calls)) == 0
 
-    # Specific port call occurances
+    # Specific port call occurrences
     assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 1
     assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 1
     assert len(re.findall(r'udp --dport 53', firewall_calls)) == 1
@@ -242,12 +242,12 @@ def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
     expected_stdout = 'Installing new IPTables firewall rulesets'
     assert expected_stdout in configureFirewall.stdout
     firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
+    # General call type occurrences
     assert len(re.findall(r'iptables -S', firewall_calls)) == 1
     assert len(re.findall(r'iptables -C', firewall_calls)) == 4
     assert len(re.findall(r'iptables -I', firewall_calls)) == 4
 
-    # Specific port call occurances
+    # Specific port call occurrences
     assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 2
     assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 2
     assert len(re.findall(r'udp --dport 53', firewall_calls)) == 2

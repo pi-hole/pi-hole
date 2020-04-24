@@ -184,7 +184,7 @@ if is_command apt-get ; then
     # A variable to store the command used to update the package cache
     UPDATE_PKG_CACHE="${PKG_MANAGER} update"
     # An array for something...
-    PKG_INSTALL=("${PKG_MANAGER}" --yes --no-install-recommends install)
+    PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
     # Some distros vary slightly so these fixes for dependencies may apply
@@ -244,10 +244,10 @@ if is_command apt-get ; then
     # These programs are stored in an array so they can be looped through later
     INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail)
     # Pi-hole itself has several dependencies that also need to be installed
-    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data resolvconf libcap2)
+    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "php-intl")
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
@@ -286,7 +286,7 @@ elif is_command rpm ; then
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
-    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip wget libidn2 psmisc sqlite libcap)
+    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
@@ -428,7 +428,7 @@ make_repo() {
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
-    # Check current branch. If it is master, then reset to the latest availible tag.
+    # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
@@ -456,7 +456,7 @@ update_repo() {
     # Again, it's useful to store these in variables in case we need to reuse or change the message;
     # we only need to make one change here
     local str="Update repo in ${1}"
-    # Move into the directory that was passed as an argument    
+    # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Let the user know what's happening
     printf "  %b %s..." "${INFO}" "${str}"
@@ -465,7 +465,7 @@ update_repo() {
     git clean --quiet --force -d || true # Okay for already clean directory
     # Pull the latest commits
     git pull --quiet &> /dev/null || return $?
-    # Check current branch. If it is master, then reset to the latest availible tag.
+    # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
@@ -528,7 +528,7 @@ resetRepo() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Return to where we came from
     popd &> /dev/null || return 1
-    # Returning success anyway?    
+    # Returning success anyway?
     return 0
 }
 
@@ -818,13 +818,13 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
         # Ask for the IPv4 address
         IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" "${r}" "${c}" "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
-        # Cancelling IPv4 settings window
+        # Canceling IPv4 settings window
         { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
         printf "  %b Your static IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
 
         # Ask for the gateway
         IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" "${r}" "${c}" "${IPv4gw}" 3>&1 1>&2 2>&3) || \
-        # Cancelling gateway settings window
+        # Canceling gateway settings window
         { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
         printf "  %b Your static IPv4 gateway: %s\\n" "${INFO}" "${IPv4gw}"
 
@@ -854,7 +854,7 @@ setDHCPCD() {
         echo "interface ${PIHOLE_INTERFACE}
         static ip_address=${IPV4_ADDRESS}
         static routers=${IPv4gw}
-        static domain_name_servers=127.0.0.1" | tee -a /etc/dhcpcd.conf >/dev/null
+        static domain_name_servers=${PIHOLE_DNS_1} ${PIHOLE_DNS_2}" | tee -a /etc/dhcpcd.conf >/dev/null
         # Then use the ip command to immediately set the new address
         ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
         # Also give a warning that the user may need to reboot their system
@@ -1211,8 +1211,7 @@ chooseBlocklists() {
         MalwareDom "MalwareDomains" on
         Cameleon "Cameleon" on
         DisconTrack "Disconnect.me Tracking" on
-        DisconAd "Disconnect.me Ads" on
-        HostsFile "Hosts-file.net Ads" on)
+        DisconAd "Disconnect.me Ads" on)
 
     # In a variable, show the choices available; exit if Cancel is selected
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
@@ -1231,10 +1230,9 @@ appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-        Cameleon     )  echo "http://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
+        Cameleon     )  echo "https://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
-        HostsFile    )  echo "https://hosts-file.net/ad_servers.txt" >> "${adlistFile}";;
     esac
 }
 
@@ -2227,15 +2225,6 @@ FTLinstall() {
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
 
-    # Find the latest version tag for FTL
-    latesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep "Location" | awk -F '/' '{print $NF}')
-    # Tags should always start with v, check for that.
-    if [[ ! "${latesttag}" == v* ]]; then
-        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to get latest release location from GitHub%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        return 1
-    fi
-
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
@@ -2256,7 +2245,7 @@ FTLinstall() {
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]];then
-        url="https://github.com/pi-hole/FTL/releases/download/${latesttag%$'\r'}"
+        url="https://github.com/pi-hole/ftl/releases/latest/download"
     else
         url="https://ftl.pi-hole.net/${ftlBranch}"
     fi
@@ -2467,16 +2456,13 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLreleaseData
             local FTLlatesttag
 
-            if ! FTLreleaseData=$(curl -sI https://github.com/pi-hole/FTL/releases/latest); then
+            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
-
-            FTLlatesttag=$(grep 'Location' <<< "${FTLreleaseData}" | awk -F '/' '{print $NF}' | tr -d '\r\n')
 
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0

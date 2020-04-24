@@ -138,7 +138,7 @@ PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log"
 PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
 PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 
-# An array of operating system "pretty names" that we officialy support
+# An array of operating system "pretty names" that we officially support
 # We can loop through the array at any time to see if it matches a value
 #SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
@@ -300,7 +300,7 @@ compare_local_version_to_git_version() {
             if [[ "${remote_branch}" == "master" ]]; then
                 # so the color of the text is green
                 log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
-            # If it is any other branch, they are in a developement branch
+            # If it is any other branch, they are in a development branch
             else
                 # So show that in yellow, signifying it's something to take a look at, but not a critical error
                 log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
@@ -357,7 +357,7 @@ check_component_versions() {
 
 get_program_version() {
     local program_name="${1}"
-    # Create a loval variable so this function can be safely reused
+    # Create a local variable so this function can be safely reused
     local program_version
     echo_current_diagnostic "${program_name} version"
     # Evalutate the program we are checking, if it is any of the ones below, show the version
@@ -662,19 +662,21 @@ ping_internet() {
 }
 
 compare_port_to_service_assigned() {
-    local service_name="${1}"
-    # The programs we use may change at some point, so they are in a varible here
-    local resolver="pihole-FTL"
-    local web_server="lighttpd"
-    local ftl="pihole-FTL"
+    local service_name
+    local expected_service
+    local port
+
+    service_name="${2}"
+    expected_service="${1}"
+    port="${3}"
 
     # If the service is a Pi-hole service, highlight it in green
-    if [[ "${service_name}" == "${resolver}" ]] || [[ "${service_name}" == "${web_server}" ]] || [[ "${service_name}" == "${ftl}" ]]; then
-        log_write "[${COL_GREEN}${port_number}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
+    if [[ "${service_name}" == "${expected_service}" ]]; then
+        log_write "[${COL_GREEN}${port}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
     # Otherwise,
     else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_RED}${port_number}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
+        log_write "[${COL_RED}${port}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
     fi
 }
 
@@ -708,11 +710,11 @@ check_required_ports() {
         fi
         # Use a case statement to determine if the right services are using the right ports
         case "$(echo "$port_number" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}"
+            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" 53
                 ;;
-            80) compare_port_to_service_assigned  "${web_server}"
+            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" 80
                 ;;
-            4711) compare_port_to_service_assigned  "${ftl}"
+            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" 4711
                 ;;
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
             *) log_write "${port_number} ${service_name} (${protocol_type})";
@@ -745,7 +747,7 @@ check_x_headers() {
     # Do it for the dashboard as well, as the header is different than above
     local dashboard
     dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
-    # Store what the X-Header shoud be in variables for comparision later
+    # Store what the X-Header shoud be in variables for comparison later
     local block_page_working
     block_page_working="X-Pi-hole: A black hole for Internet advertisements."
     local dashboard_working
@@ -816,7 +818,7 @@ dig_at() {
 
     # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
     if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
-        # If it can, show sucess
+        # If it can, show success
         log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC (${local_address})"
     else
         # Otherwise, show a failure
@@ -967,7 +969,7 @@ check_name_resolution() {
 # This function can check a directory exists
 # Pi-hole has files in several places, so we will reuse this function
 dir_check() {
-    # Set the first argument passed to tihs function as a named variable for better readability
+    # Set the first argument passed to this function as a named variable for better readability
     local directory="${1}"
     # Display the current test that is running
     echo_current_diagnostic "contents of ${COL_CYAN}${directory}${COL_NC}"
@@ -985,14 +987,14 @@ dir_check() {
 }
 
 list_files_in_dir() {
-    # Set the first argument passed to tihs function as a named variable for better readability
+    # Set the first argument passed to this function as a named variable for better readability
     local dir_to_parse="${1}"
     # Store the files found in an array
     mapfile -t files_found < <(ls "${dir_to_parse}")
     # For each file in the array,
     for each_file in "${files_found[@]}"; do
         if [[ -d "${dir_to_parse}/${each_file}" ]]; then
-            # If it's a directoy, do nothing
+            # If it's a directory, do nothing
             :
         elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
@@ -1105,7 +1107,7 @@ show_db_entries() {
 }
 
 show_groups() {
-    show_db_entries "Groups" "SELECT * FROM \"group\"" "4 4 30 50"
+    show_db_entries "Groups" "SELECT id,name,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 50 7 19 19 50"
 }
 
 show_adlists() {
@@ -1113,18 +1115,14 @@ show_adlists() {
     show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
 }
 
-show_whitelist() {
-    show_db_entries "Exact whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM whitelist" "4 100 7 19 19 50"
-    show_db_entries "Exact whitelist groups" "SELECT * FROM whitelist_by_group" "4 4"
-    show_db_entries "Regex whitelist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_whitelist" "4 100 7 19 19 50"
-    show_db_entries "Regex whitelist groups" "SELECT * FROM regex_whitelist_by_group" "4 4"
+show_domainlist() {
+    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,type,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist" "4 4 100 7 19 19 50"
+    show_db_entries "Domainlist groups" "SELECT * FROM domainlist_by_group" "10 10"
 }
 
-show_blacklist() {
-    show_db_entries "Exact blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM blacklist" "4 100 7 19 19 50"
-    show_db_entries "Exact blacklist groups" "SELECT * FROM blacklist_by_group" "4 4"
-    show_db_entries "Regex blacklist" "SELECT id,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM regex_blacklist" "4 100 7 19 19 50"
-    show_db_entries "Regex blacklist groups" "SELECT * FROM regex_blacklist_by_group" "4 4"
+show_clients() {
+    show_db_entries "Clients" "SELECT id,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client" "4 100 19 19 50"
+    show_db_entries "Client groups" "SELECT * FROM client_by_group" "10 10"
 }
 
 analyze_gravity_list() {
@@ -1134,16 +1132,17 @@ analyze_gravity_list() {
     gravity_permissions=$(ls -ld "${PIHOLE_GRAVITY_DB_FILE}")
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
 
-    local gravity_size
-    gravity_size=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT COUNT(*) FROM vw_gravity")
-    log_write "   Size (excluding blacklist): ${COL_CYAN}${gravity_size}${COL_NC} entries"
+    show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
+    gravity_updated_raw="$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
+    gravity_updated="$(date -d @"${gravity_updated_raw}")"
+    log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
 
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
     mapfile -t gravity_sample < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
-    log_write "   ${COL_CYAN}----- First 10 Domains -----${COL_NC}"
+    log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
         log_write "   ${line}"
@@ -1191,7 +1190,7 @@ analyze_pihole_log() {
                 # So first check if there are domains in the log that should be obfuscated
                 if [[ -n ${line_to_obfuscate} ]]; then
                     # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
-                    # so we substitue the domain for the placeholder value
+                    # so we substitute the domain for the placeholder value
                     obfuscated_line=$(echo "${line_to_obfuscate}" | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
                     log_write "   ${obfuscated_line}"
                 else
@@ -1239,7 +1238,7 @@ upload_to_tricorder() {
     log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
     log_write "    * For more information, see: ${TRICORDER_CONTEST}"
     log_write "    * If available, we'll use openssl to upload the log, otherwise it will fall back to netcat."
-    # If pihole -d is running automatically (usually throught the dashboard)
+    # If pihole -d is running automatically (usually through the dashboard)
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
@@ -1301,9 +1300,9 @@ parse_setup_vars
 check_x_headers
 analyze_gravity_list
 show_groups
+show_domainlist
+show_clients
 show_adlists
-show_whitelist
-show_blacklist
 show_content_of_pihole_files
 parse_locale
 analyze_pihole_log

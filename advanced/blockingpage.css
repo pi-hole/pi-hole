@@ -14,7 +14,7 @@
 #bpOutput.add:before { content: "Info"; }
 #bpOutput.add:after { content: "The domain is being whitelisted..."; }
 #bpOutput.error:before, .unhandled:before { content: "Error"; }
-#bpOutput.unhandled:after { content: "An unhandled exception occured. This may happen when your browser is unable to load jQuery, or when the webserver is denying access to the Pi-hole API."; }
+#bpOutput.unhandled:after { content: "An unhandled exception occurred. This may happen when your browser is unable to load jQuery, or when the webserver is denying access to the Pi-hole API."; }
 #bpOutput.success:before { content: "Success"; }
 #bpOutput.success:after { content: "Website has been whitelisted! You may need to flush your DNS cache"; }
 
@@ -325,7 +325,7 @@ main {
   box-shadow: inset 0 3px 5px rgba(0,0,0,0.125);
 }
 
-/* Input border colour */
+/* Input border color */
 .buttons *:not([disabled]):hover, .buttons input:focus {
   border-color: rgba(0,0,0,0.25);
 }
