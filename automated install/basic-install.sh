@@ -1962,8 +1962,6 @@ installPihole() {
             # Repair permissions if /var/www/html is not world readable
             chmod a+rx /var/www
             chmod a+rx /var/www/html
-            # Give pihole access to the Web server group
-            usermod -a -G ${LIGHTTPD_GROUP} pihole
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
             usermod -a -G pihole ${LIGHTTPD_USER}
