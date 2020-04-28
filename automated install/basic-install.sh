@@ -1768,18 +1768,49 @@ create_pihole_user() {
     printf "  %b %s..." "${INFO}" "${str}"
     # If the user pihole exists,
     if id -u pihole &> /dev/null; then
-        # just show a success
-        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        # if group exists
+        if getent group pihole > /dev/null 2>&1; then
+            # just show a success
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        else
+            local str="Checking for group 'pihole'"
+            printf "  %b %s..." "${INFO}" "${str}"
+            local str="Creating group 'pihole'"
+            # if group can be created
+            if groupadd pihole; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                local str="Adding user 'pihole' to group 'pihole'"
+                printf "  %b %s..." "${INFO}" "${str}"
+                # if pihole user can be added to group pihole
+                if usermod -g pihole pihole; then
+                    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                else
+                    printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                fi
+            else
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            fi
+        fi
     # Otherwise,
     else
         printf "%b  %b %s" "${OVER}" "${CROSS}" "${str}"
         local str="Creating user 'pihole'"
         printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
         # create her with the useradd command
-        if useradd -r -s /usr/sbin/nologin pihole; then
-          printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        if getent group pihole > /dev/null 2>&1; then
+            # add primary group pihole as it already exists
+            if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+            else
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            fi
         else
-          printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            # add user pihole with default group settings
+            if useradd -r -s /usr/sbin/nologin pihole; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+            else
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            fi
         fi
     fi
 }

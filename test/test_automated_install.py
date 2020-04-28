@@ -92,6 +92,51 @@ def test_setupVars_saved_to_file(Pihole):
         assert "{}={}".format(k, v) in output
 
 
+def test_pihole_user_group_creation(Pihole):
+    '''
+    check user creation works if user or group already exist
+    '''
+    sudo_cmd = 'su --shell /bin/bash --command "{0}" -p root'
+    # normal situation where neither user or group exist
+    user_create = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    ''')
+    expected_stdout = tick_box + ' Creating user \'pihole\''
+    assert expected_stdout in user_create.stdout
+    # situation where both user and group already exist
+    user_create = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    ''')
+    expected_stdout = tick_box + ' Checking for user \'pihole\''
+    assert expected_stdout in user_create.stdout
+    # situation where only group and no user exists
+    Pihole.run(sudo_cmd.format('userdel -r pihole'))
+    user_create = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    ''')
+    expected_stdout = tick_box + ' Creating user \'pihole\''
+    assert expected_stdout in user_create.stdout
+    # situation where only user and no group exists
+    Pihole.run(sudo_cmd.format('userdel -r pihole'))
+    Pihole.run(sudo_cmd.format('groupdel pihole'))
+    Pihole.run(sudo_cmd.format('groupadd pihole_dummy'))
+    useradd_dummy = (
+        'useradd -r --no-user-group -g pihole_dummy ' +
+        '-s /usr/sbin/nologin pihole')
+    Pihole.run(sudo_cmd.format(useradd_dummy))
+    user_create = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    ''')
+    expected_stdout = tick_box + ' Creating group \'pihole\''
+    assert expected_stdout in user_create.stdout
+    expected_stdout = tick_box + ' Adding user \'pihole\' to group \'pihole\''
+    assert expected_stdout in user_create.stdout
+
+
 def test_configureFirewall_firewalld_running_no_errors(Pihole):
     '''
     confirms firewalld rules are applied when firewallD is running
