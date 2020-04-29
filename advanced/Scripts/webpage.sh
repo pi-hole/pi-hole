@@ -401,6 +401,10 @@ SetWebUILayout() {
     change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 }
 
+SetWebUITheme() {
+    change_setting "WEBTHEME" "${args[2]}"
+}
+
 CheckUrl(){
     local regex
     # Check for characters NOT allowed in URLs
@@ -662,6 +666,7 @@ main() {
         "enabledhcp"          ) EnableDHCP;;
         "disabledhcp"         ) DisableDHCP;;
         "layout"              ) SetWebUILayout;;
+        "theme"               ) SetWebUITheme;;
         "-h" | "--help"       ) helpFunc;;
         "privacymode"         ) SetPrivacyMode;;
         "resolve"             ) ResolutionSettings;;
