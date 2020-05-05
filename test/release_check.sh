@@ -22,4 +22,4 @@ popd
 sudo mkdir -pv /etc/pihole
 echo "release/v5.0" |sudo tee /etc/pihole/ftlbranch
 
-/etc/.pihole/automated\ install/basic-install.sh
+sudo bash /etc/.pihole/automated\ install/basic-install.sh
