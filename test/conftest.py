@@ -121,6 +121,33 @@ def mock_command(script, args, container):
                                          scriptlog=script))
 
 
+def mock_command_run(script, args, container):
+    '''
+    Allows for setup of commands we don't really want to have to run for real
+    in unit tests
+    '''
+    full_script_path = '/usr/local/bin/{}'.format(script)
+    mock_script = dedent('''\
+    #!/bin/bash -e
+    echo "\$0 \$@" >> /var/log/{script}
+    case "\$1 \$2" in'''.format(script=script))
+    for k, v in args.items():
+        case = dedent('''
+        \"{arg}\")
+        echo {res}
+        exit {retcode}
+        ;;'''.format(arg=k, res=v[0], retcode=v[1]))
+        mock_script += case
+    mock_script += dedent('''
+    esac''')
+    container.run('''
+    cat <<EOF> {script}\n{content}\nEOF
+    chmod +x {script}
+    rm -f /var/log/{scriptlog}'''.format(script=full_script_path,
+                                         content=mock_script,
+                                         scriptlog=script))
+
+
 def mock_command_2(script, args, container):
     '''
     Allows for setup of commands we don't really want to have to run for real
@@ -146,7 +173,6 @@ def mock_command_2(script, args, container):
     rm -f /var/log/{scriptlog}'''.format(script=full_script_path,
                                          content=mock_script,
                                          scriptlog=script))
-
 
 def run_script(Pihole, script):
     result = Pihole.run(script)

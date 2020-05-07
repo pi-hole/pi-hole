@@ -7,6 +7,7 @@ from .conftest import (
     info_box,
     cross_box,
     mock_command,
+    mock_command_run,
     mock_command_2,
     run_script
 )
@@ -421,7 +422,7 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
             actual_rc = Pihole.run(check_pihole).rc
 
 
-@pytest.mark.parametrize("test_webpage", [False])
+@pytest.mark.parametrize("test_webpage", [True])
 def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     '''
     confirms all web page assets from Core repo are readable
@@ -429,11 +430,14 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     '''
     # TODO: also add IP address from setupVars?
     # TODO: pi.hole can not be resolved because of some error in FTL or resolved
-    piholeWebpage = ["http://127.0.0.1/admin", "http://pi.hole/admin"]
+    piholeWebpage = [
+        "http://127.0.0.1/admin",
+        "http://pi.hole/admin"
+    ]
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
     # mock systemctl to start lighttpd and FTL
-    ligthttpdcommand = dedent(r'''\"
+    ligthttpdcommand = dedent(r'''\"\"
         echo 'starting lighttpd with {}'
         if [ command -v "apt-get" >/dev/null 2>&1 ]; then
             LIGHTTPD_USER="www-data"
@@ -444,8 +448,10 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         fi
         mkdir -p "{run}"
         chown {usergroup} "{run}"
-        mkdir -p "{compress}"
+        mkdir -p "{cache}"
+        chown {usergroup} "/var/cache"
         chown {usergroup} "{cache}"
+        mkdir -p "{compress}"
         chown {usergroup} "{compress}"
         mkdir -p "{uploads}"
         chown {usergroup} "{uploads}"
@@ -461,7 +467,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         find "{uploads}" -type f -exec chmod 0666 {chmodarg} \;;
         /usr/sbin/lighttpd -tt -f '{config}'
         /usr/sbin/lighttpd -f '{config}'
-        echo \"'''.format(
+        echo \"\"'''.format(
             '{}',
             usergroup='${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}}',
             chmodarg='{{}}',
@@ -472,10 +478,10 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
             compress='/var/cache/lighttpd/compress'
         )
     )
-    FTLcommand = dedent('''\"
+    FTLcommand = dedent('''\"\"
         /etc/init.d/pihole-FTL restart
-        echo \"''')
-    mock_command_2(
+        echo \"\"''')
+    mock_command_run(
         'systemctl',
         {
             'enable lighttpd': (
@@ -517,6 +523,11 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
+    # TODO: set in dependance of currently build branch
+    b = Pihole.run('mkdir -p /etc/pihole && echo "development" > /etc/pihole/ftlbranch');
+    assert 0 == b.rc
+    b = Pihole.run('cat /etc/pihole/ftlbranch');
+    print(b.stdout)
     installWeb = Pihole.run('''
     export TERM=xterm
     export DEBIAN_FRONTEND=noninteractive
