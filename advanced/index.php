@@ -6,8 +6,8 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-// Sanitise HTTP_HOST output
-$serverName = htmlspecialchars($_SERVER["HTTP_HOST"]);
+// Sanitize SERVER_NAME output
+$serverName = htmlspecialchars($_SERVER["SERVER_NAME"]);
 // Remove external ipv6 brackets if any
 $serverName = preg_replace('/^\[(.*)\]$/', '${1}', $serverName);
 
@@ -50,16 +50,24 @@ function setHeader($type = "x") {
 }
 
 // Determine block page type
-if ($serverName === "pi.hole") {
+if ($serverName === "pi.hole"
+    || (!empty($_SERVER["VIRTUAL_HOST"]) && $serverName === $_SERVER["VIRTUAL_HOST"])) {
     // Redirect to Web Interface
     exit(header("Location: /admin"));
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
     // Set Splash Page output
     $splashPage = "
-    <html><head>
+    <html>
+      <head>
         $viewPort
-        <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
-    </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements<br><a href='/admin'>Did you mean to go to the admin panel?</a></body></html>
+        <link rel='stylesheet' href='pihole/blockingpage.css' type='text/css'/>
+      </head>
+      <body id='splashpage'>
+        <img src='admin/img/logo.svg'/><br/>
+        Pi-<b>hole</b>: Your black hole for Internet advertisements<br/>
+        <a href='/admin'>Did you mean to go to the admin panel?</a>
+      </body>
+    </html>
     ";
 
     // Set splash/landing page based off presence of $landPage
@@ -68,7 +76,7 @@ if ($serverName === "pi.hole") {
     // Unset variables so as to not be included in $landPage
     unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
 
-    // Render splash/landing page when directly browsing via IP or authorised hostname
+    // Render splash/landing page when directly browsing via IP or authorized hostname
     exit($renderPage);
 } elseif ($currentUrlExt === "js") {
     // Serve Pi-hole Javascript for blocked domains requesting JS
@@ -96,26 +104,30 @@ if ($serverName === "pi.hole") {
 // Define admin email address text based off $svEmail presence
 $bpAskAdmin = !empty($svEmail) ? '<a href="mailto:'.$svEmail.'?subject=Site Blocked: '.$serverName.'"></a>' : "<span/>";
 
-// Determine if at least one block list has been generated
-$blocklistglob = glob("/etc/pihole/list.0.*.domains");
-if ($blocklistglob === array()) {
-    die("[ERROR] There are no domain lists generated lists within <code>/etc/pihole/</code>! Please update gravity by running <code>pihole -g</code>, or repair Pi-hole using <code>pihole -r</code>.");
-}
-
-// Set location of adlists file
-if (is_file("/etc/pihole/adlists.list")) {
-    $adLists = "/etc/pihole/adlists.list";
-} elseif (is_file("/etc/pihole/adlists.default")) {
-    $adLists = "/etc/pihole/adlists.default";
+// Get possible non-standard location of FTL's database
+$FTLsettings = parse_ini_file("/etc/pihole/pihole-FTL.conf");
+if (isset($FTLsettings["GRAVITYDB"])) {
+    $gravityDBFile = $FTLsettings["GRAVITYDB"];
 } else {
-    die("[ERROR] File not found: <code>/etc/pihole/adlists.list</code>");
+    $gravityDBFile = "/etc/pihole/gravity.db";
 }
 
-// Get all URLs starting with "http" or "www" from adlists and re-index array numerically
-$adlistsUrls = array_values(preg_grep("/(^http)|(^www)/i", file($adLists, FILE_IGNORE_NEW_LINES)));
+// Connect to gravity.db
+try {
+    $db = new SQLite3($gravityDBFile, SQLITE3_OPEN_READONLY);
+} catch (Exception $exception) {
+    die("[ERROR]: Failed to connect to gravity.db");
+}
+
+// Get all adlist addresses
+$adlistResults = $db->query("SELECT address FROM vw_adlist");
+$adlistsUrls = array();
+while ($row = $adlistResults->fetchArray()) {
+    array_push($adlistsUrls, $row[0]);
+}
 
 if (empty($adlistsUrls))
-    die("[ERROR]: There are no adlist URL's found within <code>$adLists</code>");
+    die("[ERROR]: There are no adlists enabled");
 
 // Get total number of blocklists (Including Whitelist, Blacklist & Wildcard lists)
 $adlistsCount = count($adlistsUrls) + 3;
@@ -127,7 +139,12 @@ ini_set("default_socket_timeout", 3);
 function queryAds($serverName) {
     // Determine the time it takes while querying adlists
     $preQueryTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
-    $queryAds = file("http://127.0.0.1/admin/scripts/pi-hole/php/queryads.php?domain=$serverName&bp", FILE_IGNORE_NEW_LINES);
+    $queryAdsURL = sprintf(
+        "http://127.0.0.1:%s/admin/scripts/pi-hole/php/queryads.php?domain=%s&bp",
+        $_SERVER["SERVER_PORT"],
+        $serverName
+    );
+    $queryAds = file($queryAdsURL, FILE_IGNORE_NEW_LINES);
     $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAds)));
     $queryTime = sprintf("%.0f", (microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"]) - $preQueryTime);
 
@@ -205,7 +222,7 @@ $phVersion = exec("cd /etc/.pihole/ && git describe --long --tags");
 if (explode("-", $phVersion)[1] != "0")
   $execTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
 
-// Please Note: Text is added via CSS to allow an admin to provide a localised
+// Please Note: Text is added via CSS to allow an admin to provide a localized
 // language without the need to edit this file
 
 setHeader();
@@ -222,10 +239,10 @@ setHeader();
   <?=$viewPort ?>
   <meta name="robots" content="noindex,nofollow"/>
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="//pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="//pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="shortcut icon" href="admin/img/favicon.png" type="image/x-icon"/>
+  <link rel="stylesheet" href="pihole/blockingpage.css" type="text/css"/>
   <title>● <?=$serverName ?></title>
-  <script src="//pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php

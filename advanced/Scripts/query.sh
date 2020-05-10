@@ -11,10 +11,8 @@
 
 # Globals
 piholeDir="/etc/pihole"
-adListsList="$piholeDir/adlists.list"
-wildcardlist="/etc/dnsmasq.d/03-pihole-wildcard.conf"
+gravityDBfile="${piholeDir}/gravity.db"
 options="$*"
-adlist=""
 all=""
 exact=""
 blockpage=""
@@ -23,27 +21,10 @@ matchType="match"
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
 
-# Print each subdomain
-# e.g: foo.bar.baz.com = "foo.bar.baz.com bar.baz.com baz.com com"
-processWildcards() {
-    IFS="." read -r -a array <<< "${1}"
-    for (( i=${#array[@]}-1; i>=0; i-- )); do
-        ar=""
-        for (( j=${#array[@]}-1; j>${#array[@]}-i-2; j-- )); do
-            if [[ $j == $((${#array[@]}-1)) ]]; then
-                ar="${array[$j]}"
-            else
-                ar="${array[$j]}.${ar}"
-            fi
-        done
-        echo "${ar}"
-    done
-}
-
 # Scan an array of files for matching strings
 scanList(){
     # Escape full stops
-    local domain="${1//./\\.}" lists="${2}" type="${3:-}"
+    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" type="${3:-}"
 
     # Prevent grep from printing file path
     cd "$piholeDir" || exit 1
@@ -52,11 +33,18 @@ scanList(){
     export LC_CTYPE=C
 
     # /dev/null forces filename to be printed when only one list has been generated
-    # shellcheck disable=SC2086
     case "${type}" in
-        "exact" ) grep -i -E "(^|\\s)${domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        "wc"    ) grep -i -o -m 1 "/${domain}/" ${lists} 2>/dev/null;;
-        *       ) grep -i "${domain}" ${lists} /dev/null 2>/dev/null;;
+        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
+        # Iterate through each regexp and check whether it matches the domainQuery
+        # If it does, print the matching regexp and continue looping
+        # Input 1 - regexps | Input 2 - domainQuery
+        "regex" ) 
+            for list in ${lists}; do
+                if [[ "${domain}" =~ ${list} ]]; then
+                    printf "%b\n" "${list}";
+                fi
+            done;;
+        *       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
 
@@ -66,23 +54,16 @@ Example: 'pihole -q -exact domain.com'
 Query the adlists for a specified domain
 
 Options:
-  -adlist             Print the name of the block list URL
   -exact              Search the block lists for exact domain matches
   -all                Return all query matches within a block list
   -h, --help          Show this help dialog"
   exit 0
 fi
 
-if [[ ! -e "$adListsList" ]]; then
-    echo -e "${COL_LIGHT_RED}The file $adListsList was not found${COL_NC}"
-    exit 1
-fi
-
 # Handle valid options
 if [[ "${options}" == *"-bp"* ]]; then
     exact="exact"; blockpage=true
 else
-    [[ "${options}" == *"-adlist"* ]] && adlist=true
     [[ "${options}" == *"-all"* ]] && all=true
     if [[ "${options}" == *"-exact"* ]]; then
         exact="exact"; matchType="exact ${matchType}"
@@ -107,69 +88,115 @@ if [[ -n "${str:-}" ]]; then
     exit 1
 fi
 
-# Scan Whitelist and Blacklist
-lists="whitelist.txt blacklist.txt"
-mapfile -t results <<< "$(scanList "${domainQuery}" "${lists}" "${exact}")"
-if [[ -n "${results[*]}" ]]; then
+scanDatabaseTable() {
+    local domain table type querystr result extra
+    domain="$(printf "%q" "${1}")"
+    table="${2}"
+    type="${3:-}"
+
+    # As underscores are legitimate parts of domains, we escape them when using the LIKE operator.
+    # Underscores are SQLite wildcards matching exactly one character. We obviously want to suppress this
+    # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
+    # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
+    if [[ "${table}" == "gravity" ]]; then
+      case "${exact}" in
+          "exact" ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
+          *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+      esac
+    else
+      case "${exact}" in
+          "exact" ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain = '${domain}'";;
+          *       ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+      esac
+    fi
+
+    # Send prepared query to gravity database
+    result="$(sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
+    if [[ -z "${result}" ]]; then
+        # Return early when there are no matches in this table
+        return
+    fi
+
+    if [[ "${table}" == "gravity" ]]; then
+      echo "${result}"
+      return
+    fi
+
+    # Mark domain as having been white-/blacklist matched (global variable)
     wbMatch=true
-    # Loop through each result in order to print unique file title once
+
+    # Print table name
+    if [[ -z "${blockpage}" ]]; then
+        echo " ${matchType^} found in ${COL_BOLD}exact ${table}${COL_NC}"
+    fi
+
+    # Loop over results and print them
+    mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
-        fileName="${result%%.*}"
         if [[ -n "${blockpage}" ]]; then
             echo "π ${result}"
             exit 0
-        elif [[ -n "${exact}" ]]; then
-            echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
+        fi
+        domain="${result/|*}"
+        if [[ "${result#*|}" == "0" ]]; then
+            extra=" (disabled)"
         else
-            # Only print filename title once per file
-            if [[ ! "${fileName}" == "${fileName_prev:-}" ]]; then
-                echo " ${matchType^} found in ${COL_BOLD}${fileName^}${COL_NC}"
-                fileName_prev="${fileName}"
-            fi
-        echo "   ${result#*:}"
+            extra=""
         fi
+        echo "   ${domain}${extra}"
     done
-fi
+}
 
-# Scan Wildcards
-if [[ -e "${wildcardlist}" ]]; then
-    # Determine all subdomains, domain and TLDs
-    mapfile -t wildcards <<< "$(processWildcards "${domainQuery}")"
-    for match in "${wildcards[@]}"; do
-        # Search wildcard list for matches
-        mapfile -t results <<< "$(scanList "${match}" "${wildcardlist}" "wc")"
-        if [[ -n "${results[*]}" ]]; then
-            if [[ -z "${wcMatch:-}" ]] && [[ -z "${blockpage}" ]]; then
+scanRegexDatabaseTable() {
+    local domain list
+    domain="${1}"
+    list="${2}"
+    type="${3:-}"
+
+    # Query all regex from the corresponding database tables
+    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${type}" 2> /dev/null)
+
+    # If we have regexps to process
+    if [[ "${#regexList[@]}" -ne 0 ]]; then
+        # Split regexps over a new line
+        str_regexList=$(printf '%s\n' "${regexList[@]}")
+        # Check domain against regexps
+        mapfile -t regexMatches < <(scanList "${domain}" "${str_regexList}" "regex")
+        # If there were regex matches
+        if [[  "${#regexMatches[@]}" -ne 0 ]]; then
+            # Split matching regexps over a new line
+            str_regexMatches=$(printf '%s\n' "${regexMatches[@]}")
+            # Form a "matched" message
+            str_message="${matchType^} found in ${COL_BOLD}regex ${list}${COL_NC}"
+            # Form a "results" message
+            str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
+            # If we are displaying more than just the source of the block
+            if [[ -z "${blockpage}" ]]; then
+                # Set the wildcard match flag
                 wcMatch=true
-                echo " ${matchType^} found in ${COL_BOLD}Wildcards${COL_NC}:"
+                # Echo the "matched" message, indented by one space
+                echo " ${str_message}"
+                # Echo the "results" message, each line indented by three spaces
+                # shellcheck disable=SC2001
+                echo "${str_result}" | sed 's/^/   /'
+            else
+                echo "π .wildcard"
+                exit 0
             fi
-            case "${blockpage}" in
-                true ) echo "π ${wildcardlist##*/}"; exit 0;;
-                *    ) echo "   *.${match}";;
-            esac
         fi
-    done
-fi
+    fi
+}
 
-# Get version sorted *.domains filenames (without dir path)
-lists=("$(cd "$piholeDir" || exit 0; printf "%s\\n" -- *.domains | sort -V)")
+# Scan Whitelist and Blacklist
+scanDatabaseTable "${domainQuery}" "whitelist" "0"
+scanDatabaseTable "${domainQuery}" "blacklist" "1"
 
-# Query blocklists for occurences of domain
-mapfile -t results <<< "$(scanList "${domainQuery}" "${lists[*]}" "${exact}")"
+# Scan Regex table
+scanRegexDatabaseTable "${domainQuery}" "whitelist" "2"
+scanRegexDatabaseTable "${domainQuery}" "blacklist" "3"
 
-# Remove unwanted content from $results
-# Each line in $results is formatted as such: [fileName]:[line]
-# 1. Delete lines starting with #
-# 2. Remove comments after domain
-# 3. Remove hosts format IP address
-# 4. Remove any lines that no longer contain the queried domain name (in case the matched domain name was in a comment)
-esc_domain="${domainQuery//./\\.}"
-mapfile -t results <<< "$(IFS=$'\n'; sed \
-	-e "/:#/d" \
-	-e "s/[ \\t]#.*//g" \
-	-e "s/:.*[ \\t]/:/g" \
-	-e "/${esc_domain}/!d" \
-	<<< "${results[*]}")"
+# Query block lists
+mapfile -t results <<< "$(scanDatabaseTable "${domainQuery}" "gravity")"
 
 # Handle notices
 if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
@@ -184,15 +211,6 @@ elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
     exit 0
 fi
 
-# Get adlist file content as array
-if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-    for adlistUrl in $(< "${adListsList}"); do
-        if [[ "${adlistUrl:0:4}" =~ (http|www.) ]]; then
-            adlists+=("${adlistUrl}")
-        fi
-    done
-fi
-
 # Print "Exact matches for" title
 if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
     plural=""; [[ "${#results[*]}" -gt 1 ]] && plural="es"
@@ -200,28 +218,25 @@ if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
 fi
 
 for result in "${results[@]}"; do
-    fileName="${result/:*/}"
-
-    # Determine *.domains URL using filename's number
-    if [[ -n "${adlist}" ]] || [[ -n "${blockpage}" ]]; then
-        fileNum="${fileName/list./}"; fileNum="${fileNum%%.*}"
-        fileName="${adlists[$fileNum]}"
-
-        # Discrepency occurs when adlists has been modified, but Gravity has not been run
-        if [[ -z "${fileName}" ]]; then
-            fileName="${COL_LIGHT_RED}(no associated adlists URL found)${COL_NC}"
-        fi
+    match="${result/|*/}"
+    extra="${result#*|}"
+    adlistAddress="${extra/|*/}"
+    extra="${extra#*|}"
+    if [[ "${extra}" == "0" ]]; then
+      extra="(disabled)"
+    else
+      extra=""
     fi
 
     if [[ -n "${blockpage}" ]]; then
-        echo "${fileNum} ${fileName}"
+        echo "0 ${adlistAddress}"
     elif [[ -n "${exact}" ]]; then
-        echo "   ${fileName}"
+        echo "  - ${adlistAddress} ${extra}"
     else
-        if [[ ! "${fileName}" == "${fileName_prev:-}" ]]; then
+        if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then
             count=""
-            echo " ${matchType^} found in ${COL_BOLD}${fileName}${COL_NC}:"
-            fileName_prev="${fileName}"
+            echo " ${matchType^} found in ${COL_BOLD}${adlistAddress}${COL_NC}:"
+            adlistAddress_prev="${adlistAddress}"
         fi
         : $((count++))
 
@@ -231,7 +246,7 @@ for result in "${results[@]}"; do
             [[ "${count}" -gt "${max_count}" ]] && continue
             echo "   ${COL_GRAY}Over ${count} results found, skipping rest of file${COL_NC}"
         else
-            echo "   ${result#*:}"
+            echo "   ${match} ${extra}"
         fi
     fi
 done

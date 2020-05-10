@@ -1,4 +1,4 @@
-.TH "Pi-hole" "8" "Pi-hole" "Pi-hole" "May 2018"
+.TH "Pi-hole" "8" "Pi-hole" "Pi-hole" "April 2020"
 .SH "NAME"
 
 Pi-hole : A black-hole for internet advertisements
@@ -10,8 +10,6 @@ Pi-hole : A black-hole for internet advertisements
 \fBpihole -a\fR \fB-p\fR password
 .br
 \fBpihole -a\fR (\fB-c|-f|-k\fR)
-.br
-\fBpihole -a\fR [\fB-r\fR hostrecord]
 .br
 \fBpihole -a -e\fR email
 .br
@@ -43,7 +41,7 @@ pihole -g\fR
 .br
 pihole status
 .br
-pihole restartdns\fR
+pihole restartdns\fR [options]
 .br
 \fBpihole\fR (\fBenable\fR|\fBdisable\fR [time])
 .br
@@ -66,14 +64,24 @@ Available commands and options:
     Adds or removes specified domain or domains to the blacklist
 .br
 
+\fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
+.br
+    Add or removes specified regex filter to the regex blacklist
+.br
+
+\fB--white-regex\fR [options] [<regex1> <regex2 ...>]
+.br
+    Add or removes specified regex filter to the regex whitelist
+.br
+
 \fB--wild, wildcard\fR [options] [<domain1> <domain2 ...>]
 .br
     Add or removes specified domain to the wildcard blacklist
 .br
 
-\fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
+\fB--white-wild\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified regex filter to the regex blacklist
+    Add or removes specified domain to the wildcard whitelist
 .br
 
     (Whitelist/Blacklist manipulation options):
@@ -124,9 +132,6 @@ Available commands and options:
       -f, fahrenheit    Set Fahrenheit as preferred temperature unit
 .br
       -k, kelvin        Set Kelvin as preferred temperature unit
-.br
-      -r, hostrecord    Add a name to the DNS associated to an
-                        IPv4/IPv6 address
 .br
       -e, email         Set an administrative contact address for the
                         Block Page
@@ -250,9 +255,16 @@ Available commands and options:
       #m                Disable Pi-hole functionality for # minute(s)
 .br
 
-\fBrestartdns\fR
+\fBrestartdns\fR [options]
 .br
-    Restart Pi-hole subsystems
+    Full restart Pi-hole subsystems
+.br
+
+    (restart options):
+.br
+      reload            Updates the lists and flushes DNS cache
+.br
+      reload-lists      Updates the lists WITHOUT flushing the DNS cache
 .br
 
 \fBcheckout\fR [repo] [branch]
@@ -351,6 +363,12 @@ Switching Pi-hole subsystem branches
 .br
     Switch to core development branch
 .br
+
+\fBpihole arpflush\fR
+.br
+    Flush information stored in Pi-hole's network tables
+.br
+
 .SH "SEE ALSO"
 
 \fBlighttpd\fR(8), \fBpihole-FTL\fR(8)
