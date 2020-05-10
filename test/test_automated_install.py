@@ -479,6 +479,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         )
     )
     FTLcommand = dedent('''\"\"
+        set -x
         /etc/init.d/pihole-FTL restart
         echo \"\"''')
     mock_command_run(
@@ -524,10 +525,10 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
     # TODO: set in dependance of currently build branch
-    b = Pihole.run('mkdir -p /etc/pihole && echo "development" > /etc/pihole/ftlbranch');
-    assert 0 == b.rc
-    b = Pihole.run('cat /etc/pihole/ftlbranch');
-    print(b.stdout)
+    # b = Pihole.run('mkdir -p /etc/pihole && printf "development" > /etc/pihole/ftlbranch');
+    # assert 0 == b.rc
+    # b = Pihole.run('cat /etc/pihole/ftlbranch');
+    # print(b.stdout)
     installWeb = Pihole.run('''
     export TERM=xterm
     export DEBIAN_FRONTEND=noninteractive
@@ -544,6 +545,38 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
     assert 0 == installWeb.rc
+    b = Pihole.run('apt-get install e2fsprogs');
+    print(b.stdout)
+    b = Pihole.run('dnf install e2fsprogs');
+    print(b.stdout)
+    b = Pihole.run('yum install e2fsprogs');
+    print(b.stdout)
+    b = Pihole.run('ls -la $(which pihole-FTL)');
+    print(b.stdout)
+    b = Pihole.run('lsattr $(which pihole-FTL)');
+    print(b.stdout)
+    b = Pihole.run('lsattr $(which pihole-FTL)/../');
+    print(b.stdout)
+    b = Pihole.run('chmod a+x $(which pihole-FTL)');
+    print(b.stdout)
+    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL version" -p root');
+    print(b.stdout)
+    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL tag" -p root');
+    print(b.stdout)
+    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL branch" -p root');
+    print(b.stdout)
+    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL test" -p root');
+    print(b.stdout)
+    b = Pihole.run('ldd $(which pihole-FTL)');
+    print(b.stdout)
+    b = Pihole.run('LD_DEBUG=help pihole-FTL version');
+    print(b.stdout)
+    b = Pihole.run('file pihole-FTL');
+    print(b.stdout)
+    b = Pihole.run('cat /var/log/pihole.log');
+    print(b.stdout)
+    b = Pihole.run('cat /etc/pihole/install.log');
+    print(b.stdout)
     piholeuser = 'pihole'
     webuser = ''
     user = re.findall(

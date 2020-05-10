@@ -66,7 +66,7 @@ def args(request):
     '''
     -t became required when tput began being used
     '''
-    return '-t -d'
+    return '-t -d --cap-add=NET_ADMIN'
 
 
 @pytest.fixture(params=['debian', 'centos', 'fedora'])
