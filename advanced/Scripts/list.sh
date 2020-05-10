@@ -22,6 +22,9 @@ web=false
 domList=()
 
 typeId=""
+comment=""
+declare -i domaincount
+domaincount=0
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
@@ -97,10 +100,12 @@ ValidateDomain() {
     fi
 
     if [[ -n "${validDomain}" ]]; then
-        domList=("${domList[@]}" ${validDomain})
+        domList=("${domList[@]}" "${validDomain}")
     else
         echo -e "  ${CROSS} ${domain} is not a valid argument or domain name!"
     fi
+
+    domaincount=$((domaincount+1))
 }
 
 ProcessDomainList() {
@@ -151,7 +156,12 @@ AddDomain() {
     reload=true
     # Insert only the domain here. The enabled and date_added fields will be filled
     # with their default values (enabled = true, date_added = current timestamp)
-    sqlite3 "${gravityDBfile}" "INSERT INTO domainlist (domain,type) VALUES ('${domain}',${typeId});"
+    if [[ -z "${comment}" ]]; then
+        sqlite3 "${gravityDBfile}" "INSERT INTO domainlist (domain,type) VALUES ('${domain}',${typeId});"
+    else
+        # also add comment when variable has been set through the "--comment" option
+        sqlite3 "${gravityDBfile}" "INSERT INTO domainlist (domain,type,comment) VALUES ('${domain}',${typeId},'${comment}');"
+    fi
 }
 
 RemoveDomain() {
@@ -224,8 +234,16 @@ NukeList() {
     sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeId};"
 }
 
-for var in "$@"; do
-    case "${var}" in
+GetComment() {
+    comment="$1"
+    if [[ "${comment}" =~ [^a-zA-Z0-9_\#:/\.,\ -] ]]; then
+      echo "  ${CROSS} Found invalid characters in domain comment!"
+      exit
+    fi
+}
+
+while (( "$#" )); do
+    case "${1}" in
         "-w" | "whitelist"   ) typeId=0;;
         "-b" | "blacklist"   ) typeId=1;;
         "--white-regex" | "white-regex" ) typeId=2;;
@@ -239,13 +257,15 @@ for var in "$@"; do
         "-l" | "--list"      ) Displaylist;;
         "--nuke"             ) NukeList;;
         "--web"              ) web=true;;
-        *                    ) ValidateDomain "${var}";;
+        "--comment"          ) GetComment "${2}"; shift;;
+        *                    ) ValidateDomain "${1}";;
     esac
+    shift
 done
 
 shift
 
-if [[ $# = 0 ]]; then
+if [[ ${domaincount} == 0 ]]; then
     helpFunc
 fi
 

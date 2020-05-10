@@ -1214,11 +1214,10 @@ chooseBlocklists() {
         mv "${adlistFile}" "${adlistFile}.old"
     fi
     # Let user select (or not) blocklists via a checklist
-    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 6)
+    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 5)
     # In an array, show the options available (all off by default):
     options=(StevenBlack "StevenBlack's Unified Hosts List" on
         MalwareDom "MalwareDomains" on
-        Cameleon "Cameleon" on
         DisconTrack "Disconnect.me Tracking" on
         DisconAd "Disconnect.me Ads" on)
 
@@ -1239,7 +1238,6 @@ appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
         MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
-        Cameleon     )  echo "https://sysctl.org/cameleon/hosts" >> "${adlistFile}";;
         DisconTrack  )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt" >> "${adlistFile}";;
         DisconAd     )  echo "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt" >> "${adlistFile}";;
     esac
@@ -1255,10 +1253,8 @@ installDefaultBlocklists() {
     fi
     appendToListsFile StevenBlack
     appendToListsFile MalwareDom
-    appendToListsFile Cameleon
     appendToListsFile DisconTrack
     appendToListsFile DisconAd
-    appendToListsFile HostsFile
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1823,45 +1819,6 @@ create_pihole_user() {
     fi
 }
 
-# Allow HTTP and DNS traffic
-configureFirewall() {
-    printf "\\n"
-    # If a firewall is running,
-    if firewall-cmd --state &> /dev/null; then
-        # ask if the user wants to install Pi-hole's default firewall rules
-        whiptail --title "Firewall in use" --yesno "We have detected a running firewall\\n\\nPi-hole currently requires HTTP and DNS port access.\\n\\n\\n\\nInstall Pi-hole default firewall rules?" "${r}" "${c}" || \
-        { printf "  %b Not installing firewall rulesets.\\n" "${INFO}"; return 0; }
-        printf "  %b Configuring FirewallD for httpd and pihole-FTL\\n" "${TICK}"
-        # Allow HTTP and DNS traffic
-        firewall-cmd --permanent --add-service=http --add-service=dns
-        # Reload the firewall to apply these changes
-        firewall-cmd --reload
-        return 0
-        # Check for proper kernel modules to prevent failure
-    elif modinfo ip_tables &> /dev/null && is_command iptables ; then
-    # If chain Policy is not ACCEPT or last Rule is not ACCEPT
-    # then check and insert our Rules above the DROP/REJECT Rule.
-        if iptables -S INPUT | head -n1 | grep -qv '^-P.*ACCEPT$' || iptables -S INPUT | tail -n1 | grep -qv '^-\(A\|P\).*ACCEPT$'; then
-            whiptail --title "Firewall in use" --yesno "We have detected a running firewall\\n\\nPi-hole currently requires HTTP and DNS port access.\\n\\n\\n\\nInstall Pi-hole default firewall rules?" "${r}" "${c}" || \
-            { printf "  %b Not installing firewall rulesets.\\n" "${INFO}"; return 0; }
-            printf "  %b Installing new IPTables firewall rulesets\\n" "${TICK}"
-            # Check chain first, otherwise a new rule will duplicate old ones
-            iptables -C INPUT -p tcp -m tcp --dport 80 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 80 -j ACCEPT
-            iptables -C INPUT -p tcp -m tcp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 53 -j ACCEPT
-            iptables -C INPUT -p udp -m udp --dport 53 -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p udp -m udp --dport 53 -j ACCEPT
-            iptables -C INPUT -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT &> /dev/null || iptables -I INPUT 1 -p tcp -m tcp --dport 4711:4720 -i lo -j ACCEPT
-            return 0
-        fi
-    # Otherwise,
-    else
-        # no firewall is running
-        printf "  %b No active firewall detected.. skipping firewall configuration\\n" "${INFO}"
-        # so just exit
-        return 0
-    fi
-    printf "  %b Skipping firewall configuration\\n" "${INFO}"
-}
-
 #
 finalExports() {
     # If the Web interface is not set to be installed,
@@ -2010,10 +1967,6 @@ installPihole() {
     # Check if dnsmasq is present. If so, disable it and back up any possible
     # config file
     disable_dnsmasq
-    # Configure the firewall
-    if [[ "${useUpdateVars}" == false ]]; then
-        configureFirewall
-    fi
 
     # install a man page entry for pihole
     install_manpage
