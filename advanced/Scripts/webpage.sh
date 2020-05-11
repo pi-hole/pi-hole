@@ -478,6 +478,7 @@ SetCronTab()
       printf '%s\n' "$newtab" >>crontab.tmp
       crontab crontab.tmp && rm -f crontab.tmp
   fi
+}
 CheckUrl(){
     local regex
     # Check for characters NOT allowed in URLs
