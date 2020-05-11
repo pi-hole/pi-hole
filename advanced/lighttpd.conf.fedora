@@ -89,6 +89,23 @@ $HTTP["url"] =~ "^/admin/\.(.*)" {
      url.access-deny = ("")
 }
 
+$HTTP["request-method"] !~ "^(GET|POST|HEAD)$" {
+	url.access-deny = ("")
+}
+
+server.http-parseopts = (
+        "header-strict"            => "enable",
+        "host-strict"              => "enable",
+        "host-normalize"           => "enable",
+        "url-normalize"            => "enable",
+        "url-normalize-unreserved" => "enable",
+        "url-normalize-required"   => "enable",
+        "url-ctrls-reject"         => "enable",
+        "url-path-2f-decode"       => "disable",
+        "url-path-dotseg-remove"   => "enable",
+        "url-query-20-plus"        => "enable"
+)
+
 # Add user chosen options held in external file
 # This uses include_shell instead of an include wildcard for compatibility
 include_shell "cat external.conf 2>/dev/null"
