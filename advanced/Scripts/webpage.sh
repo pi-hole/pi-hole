@@ -745,10 +745,8 @@ main() {
         "removecustomdns"     ) RemoveCustomDNSAddress;;
         *                     ) helpFunc;;
     esac
-
     shift
-
-    if [[ $# = 0 ]]; then
+        if [[ $# = 0 ]]; then
         helpFunc
     fi
 }
