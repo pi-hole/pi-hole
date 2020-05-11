@@ -438,7 +438,7 @@ make_repo() {
     # Move into the directory that was passed as an argument
     pushd "${directory}" &> /dev/null || return 1
     # Check current branch. If it is master, then reset to the latest available tag.
-    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
          git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
@@ -475,7 +475,7 @@ update_repo() {
     # Pull the latest commits
     git pull --quiet &> /dev/null || return $?
     # Check current branch. If it is master, then reset to the latest available tag.
-    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)    
+    # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
          git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
@@ -2394,11 +2394,11 @@ get_binary_name() {
             if [[ -f "/.dockerenv" ]]; then
                 printf "%b  %b Detected ARM architecture in docker\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-armel-native"
+                l_binary="pihole-FTL-armel-native"
             else
                 printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-arm-linux-gnueabi"
             fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
