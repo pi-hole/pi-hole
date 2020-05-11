@@ -747,6 +747,6 @@ main() {
     esac
     shift
         if [[ $# = 0 ]]; then
-        helpFunc;;
+        helpFunc
     fi
 }
