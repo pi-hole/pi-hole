@@ -7,7 +7,7 @@ _pihole() {
 
 	case "${prev}" in
 		"pihole")
-			opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist"
+			opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist arpflush"
 			COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 		;;
 		"whitelist"|"blacklist"|"wildcard"|"regex")
@@ -15,7 +15,7 @@ _pihole() {
 			COMPREPLY=( $(compgen -W "${opts_lists}" -- ${cur}) )
 		;;
 		"admin")
-			opts_admin="celsius email fahrenheit hostrecord interface kelvin password privacylevel"
+			opts_admin="celsius email fahrenheit interface kelvin password privacylevel"
 			COMPREPLY=( $(compgen -W "${opts_admin}" -- ${cur}) )
 		;;
 		"checkout")

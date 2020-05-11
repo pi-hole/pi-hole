@@ -17,36 +17,33 @@ coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
 regexconverter="/opt/pihole/wildcard_regex_converter.sh"
 source "${regexconverter}"
+# shellcheck disable=SC1091
+source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
 piholeDir="/etc/${basename}"
 
-adListFile="${piholeDir}/adlists.list"
-adListDefault="${piholeDir}/adlists.default"
-
+# Legacy (pre v5.0) list file locations
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
+adListFile="${piholeDir}/adlists.list"
 
-adList="${piholeDir}/gravity.list"
-blackList="${piholeDir}/black.list"
 localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
-domainsExtension="domains"
-matterAndLight="${basename}.0.matterandlight.txt"
-parsedMatter="${basename}.1.parsedmatter.txt"
-whitelistMatter="${basename}.2.whitelistmatter.txt"
-accretionDisc="${basename}.3.accretionDisc.txt"
-preEventHorizon="list.preEventHorizon"
+piholeGitDir="/etc/.pihole"
+gravityDBfile="${piholeDir}/gravity.db"
+gravityTEMPfile="${piholeDir}/gravity_temp.db"
+gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
+gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
+optimize_database=false
 
-skipDownload="false"
+domainsExtension="domains"
 
 resolver="pihole-FTL"
-
-haveSourceUrls=true
 
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
@@ -83,31 +80,186 @@ if [[ -r "${piholeDir}/pihole.conf" ]]; then
   echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
 fi
 
-# Determine if Pi-hole blocking is disabled
-# If this is the case, we want to update
-#  gravity.list.bck and black.list.bck instead of
-#  gravity.list and black.list
-detect_pihole_blocking_status() {
-  if [[ "${BLOCKING_ENABLED}" == false ]]; then
-    echo -e "  ${INFO} Pi-hole blocking is disabled"
-    adList="${adList}.bck"
-    blackList="${blackList}.bck"
-  else
-    echo -e "  ${INFO} Pi-hole blocking is enabled"
+# Generate new sqlite3 file from schema template
+generate_gravity_database() {
+  sqlite3 "${1}" < "${gravityDBschema}"
+}
+
+# Copy data from old to new database file and swap them
+gravity_swap_databases() {
+  local str
+  str="Building tree"
+  echo -ne "  ${INFO} ${str}..."
+
+  # The index is intentionally not UNIQUE as prro quality adlists may contain domains more than once
+  output=$( { sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to build gravity tree in ${gravityTEMPfile}\\n  ${output}"
+    return 1
   fi
+  echo -e "${OVER}  ${TICK} ${str}"
+
+  str="Swapping databases"
+  echo -ne "  ${INFO} ${str}..."
+
+  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
+    return 1
+  fi
+  echo -e "${OVER}  ${TICK} ${str}"
+
+  # Swap databases and remove old database
+  rm "${gravityDBfile}"
+  mv "${gravityTEMPfile}" "${gravityDBfile}"
+}
+
+# Update timestamp when the gravity table was last updated successfully
+update_gravity_timestamp() {
+  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityDBfile}\\n  ${output}"
+    return 1
+  fi
+  return 0
+}
+
+# Import domains from file and store them in the specified database table
+database_table_from_file() {
+  # Define locals
+  local table source backup_path backup_file tmpFile type
+  table="${1}"
+  source="${2}"
+  backup_path="${piholeDir}/migration_backup"
+  backup_file="${backup_path}/$(basename "${2}")"
+  tmpFile="$(mktemp -p "/tmp" --suffix=".gravity")"
+
+  local timestamp
+  timestamp="$(date --utc +'%s')"
+
+  local rowid
+  declare -i rowid
+  rowid=1
+
+  # Special handling for domains to be imported into the common domainlist table
+  if [[ "${table}" == "whitelist" ]]; then
+    type="0"
+    table="domainlist"
+  elif [[ "${table}" == "blacklist" ]]; then
+    type="1"
+    table="domainlist"
+  elif [[ "${table}" == "regex" ]]; then
+    type="3"
+    table="domainlist"
+  fi
+
+  # Get MAX(id) from domainlist when INSERTing into this table
+  if [[ "${table}" == "domainlist" ]]; then
+    rowid="$(sqlite3 "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
+    if [[ -z "$rowid" ]]; then
+      rowid=0
+    fi
+    rowid+=1
+  fi
+
+  # Loop over all domains in ${source} file
+  # Read file line by line
+  grep -v '^ *#' < "${source}" | while IFS= read -r domain
+  do
+    # Only add non-empty lines
+    if [[ -n "${domain}" ]]; then
+      if [[ "${table}" == "domain_audit" ]]; then
+        # domain_audit table format (no enable or modified fields)
+        echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
+      elif [[ "${table}" == "adlist" ]]; then
+        # Adlist table format
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+      else
+        # White-, black-, and regexlist table format
+        echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+      fi
+      rowid+=1
+    fi
+  done
+
+  # Store domains in database table specified by ${table}
+  # Use printf as .mode and .import need to be on separate lines
+  # see https://unix.stackexchange.com/a/445615/83260
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to fill table ${table}${type} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+
+  # Move source file to backup directory, create directory if not existing
+  mkdir -p "${backup_path}"
+  mv "${source}" "${backup_file}" 2> /dev/null || \
+      echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
+
+  # Delete tmpFile
+  rm "${tmpFile}" > /dev/null 2>&1 || \
+    echo -e "  ${CROSS} Unable to remove ${tmpFile}"
+}
+
+# Migrate pre-v5.0 list files to database-based Pi-hole versions
+migrate_to_database() {
+  # Create database file only if not present
+  if [ ! -e "${gravityDBfile}" ]; then
+    # Create new database file - note that this will be created in version 1
+    echo -e "  ${INFO} Creating new gravity database"
+    generate_gravity_database "${gravityDBfile}"
+
+    # Check if gravity database needs to be updated
+    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+
+    # Migrate list files to new database
+    if [ -e "${adListFile}" ]; then
+      # Store adlist domains in database
+      echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
+      database_table_from_file "adlist" "${adListFile}"
+    fi
+    if [ -e "${blacklistFile}" ]; then
+      # Store blacklisted domains in database
+      echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
+      database_table_from_file "blacklist" "${blacklistFile}"
+    fi
+    if [ -e "${whitelistFile}" ]; then
+      # Store whitelisted domains in database
+      echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
+      database_table_from_file "whitelist" "${whitelistFile}"
+    fi
+    if [ -e "${regexFile}" ]; then
+      # Store regex domains in database
+      # Important note: We need to add the domains to the "regex" table
+      # as it will only later be renamed to "regex_blacklist"!
+      echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
+      database_table_from_file "regex" "${regexFile}"
+    fi
+  fi
+
+  # Check if gravity database needs to be updated
+  upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
 }
 
 # Determine if DNS resolution is available before proceeding
 gravity_CheckDNSResolutionAvailable() {
   local lookupDomain="pi.hole"
 
-  # Determine if $localList does not exist
-  if [[ ! -e "${localList}" ]]; then
+  # Determine if $localList does not exist, and ensure it is not empty
+  if [[ ! -e "${localList}" ]] || [[ -s "${localList}" ]]; then
     lookupDomain="raw.githubusercontent.com"
   fi
 
   # Determine if $lookupDomain is resolvable
-  if timeout 1 getent hosts "${lookupDomain}" &> /dev/null; then
+  if timeout 4 getent hosts "${lookupDomain}" &> /dev/null; then
     # Print confirmation of resolvability if it had previously failed
     if [[ -n "${secs:-}" ]]; then
       echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
@@ -121,7 +273,7 @@ gravity_CheckDNSResolutionAvailable() {
   # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
   # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventualy fails
   # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
-  if timeout 1 dig +short "${lookupDomain}" &> /dev/null; then
+  if timeout 4 dig +short "${lookupDomain}" &> /dev/null; then
     if [[ -n "${secs:-}" ]]; then
       echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
     fi
@@ -153,19 +305,14 @@ gravity_CheckDNSResolutionAvailable() {
   gravity_CheckDNSResolutionAvailable
 }
 
-# Retrieve blocklist URLs and parse domains from adlists.list
-gravity_GetBlocklistUrls() {
+# Retrieve blocklist URLs and parse domains from adlist.list
+gravity_DownloadBlocklists() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
-  if [[ -f "${adListDefault}" ]] && [[ -f "${adListFile}" ]]; then
-    # Remove superceded $adListDefault file
-    rm "${adListDefault}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to remove ${adListDefault}"
-  fi
-
-  # Retrieve source URLs from $adListFile
-  # Logic: Remove comments and empty lines
-  mapfile -t sources <<< "$(grep -v -E "^(#|$)" "${adListFile}" 2> /dev/null)"
+  # Retrieve source URLs from gravity database
+  # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
+  mapfile -t sources <<< "$(sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
+  mapfile -t sourceIDs <<< "$(sqlite3 "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
@@ -186,15 +333,27 @@ gravity_GetBlocklistUrls() {
     echo -e "${OVER}  ${CROSS} ${str}"
     echo -e "  ${INFO} No source list found, or it is empty"
     echo ""
-    haveSourceUrls=false
+    return 1
   fi
-}
 
-# Define options for when retrieving blocklists
-gravity_SetDownloadOptions() {
-  local url domain agent cmd_ext str
-
+  local url domain agent cmd_ext str target
   echo ""
+
+  # Prepare new gravity database
+  str="Preparing new gravity database"
+  echo -ne "  ${INFO} ${str}..."
+  rm "${gravityTEMPfile}" > /dev/null 2>&1
+  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBschema}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
+
+  target="$(mktemp -p "/tmp" --suffix=".gravity")"
 
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
@@ -214,18 +373,90 @@ gravity_SetDownloadOptions() {
       *) cmd_ext="";;
     esac
 
-    if [[ "${skipDownload}" == false ]]; then
-      echo -e "  ${INFO} Target: ${domain} (${url##*/})"
-      gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}"
-      echo ""
+    echo -e "  ${INFO} Target: ${url}"
+    local regex
+    # Check for characters NOT allowed in URLs
+    regex="[^a-zA-Z0-9:/?&%=~._()-]"
+    if [[ "${url}" =~ ${regex} ]]; then
+        echo -e "  ${CROSS} Invalid Target"
+    else
+       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
     fi
+    echo ""
   done
+
+  str="Storing downloaded domains in new gravity database"
+  echo -ne "  ${INFO} ${str}..."
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" gravity\\n" "${target}" | sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to fill gravity table in database ${gravityTEMPfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
+
+  if [[ "${status}" -eq 0 && -n "${output}" ]]; then
+    echo -e "  Encountered non-critical SQL warnings. Please check the suitability of the lists you're using!\\n\\n  SQL warnings:"
+    local warning file line lineno
+    while IFS= read -r line; do
+      echo "  - ${line}"
+      warning="$(grep -oh "^[^:]*:[0-9]*" <<< "${line}")"
+      file="${warning%:*}"
+      lineno="${warning#*:}"
+      if [[ -n "${file}" && -n "${lineno}" ]]; then
+        echo -n "    Line contains: "
+        awk "NR==${lineno}" < "${file}"
+      fi
+    done <<< "${output}"
+    echo ""
+  fi
+
+  rm "${target}" > /dev/null 2>&1 || \
+    echo -e "  ${CROSS} Unable to remove ${target}"
+
   gravity_Blackbody=true
+}
+
+total_num=0
+parseList() {
+  local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
+  # This sed does the following things:
+  # 1. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
+  # 2. Append ,adlistID to every line
+  # 3. Ensures there is a newline on the last line
+  sed -e "/[^a-zA-Z0-9.\_-]/d;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
+  # Find (up to) five domains containing invalid characters (see above)
+  incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
+
+  local num_lines num_target_lines num_correct_lines num_invalid
+  # Get number of lines in source file
+  num_lines="$(grep -c "^" "${src}")"
+  # Get number of lines in destination file
+  num_target_lines="$(grep -c "^" "${target}")"
+  num_correct_lines="$(( num_target_lines-total_num ))"
+  total_num="$num_target_lines"
+  num_invalid="$(( num_lines-num_correct_lines ))"
+  if [[ "${num_invalid}" -eq 0 ]]; then
+    echo "  ${INFO} Received ${num_lines} domains"
+  else
+    echo "  ${INFO} Received ${num_lines} domains, ${num_invalid} domains invalid!"
+  fi
+
+  # Display sample of invalid lines if we found some
+  if [[ -n "${incorrect_lines}" ]]; then
+    echo "      Sample of invalid domains:"
+    while IFS= read -r line; do
+      echo "      - ${line}"
+    done <<< "${incorrect_lines}"
+  fi
 }
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" heisenbergCompensator="" patternBuffer str httpCode success=""
+  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}"
+  local heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
   patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
@@ -306,11 +537,14 @@ gravity_DownloadBlocklistFromUrl() {
   # Determine if the blocklist was downloaded and saved correctly
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
-      : # Do not attempt to re-parse file
+      # Add domains to database table file
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
+      # Add domains to database table file
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -319,6 +553,8 @@ gravity_DownloadBlocklistFromUrl() {
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
+      # Add domains to database table file
+      parseList "${adlistID}" "${saveLocation}" "${target}"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
     fi
@@ -327,24 +563,29 @@ gravity_DownloadBlocklistFromUrl() {
 
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
-  local source="${1}" destination="${2}" firstLine abpFilter
+  local source="${1}" destination="${2}" firstLine
 
   # Determine if we are parsing a consolidated list
-  if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
+  #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
     # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
-    # Awk -F splits on given IFS, we grab the right hand side (chops trailing #coments and /'s to grab the domain only.
-    # Last awk command takes non-commented lines and if they have 2 fields, take the right field (the domain) and leave
-    # the left (IP address), otherwise grab the single field.
-
-    < ${source} awk -F '#' '{print $1}' | \
-    awk -F '/' '{print $1}' | \
-    awk '($1 !~ /^#/) { if (NF>1) {print $2} else {print $1}}' | \
-    sed -nr -e 's/\.{2,}/./g' -e '/\./p' >  ${destination}
+    # 1) Remove carriage returns
+    # 2) Convert all characters to lowercase
+    # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
+    # 4) Remove lines containing "/"
+    # 5) Remove leading tabs, spaces, etc.
+    # 6) Delete lines not matching domain names
+    < "${source}" tr -d '\r' | \
+    tr '[:upper:]' '[:lower:]' | \
+    sed 's/\s*#.*//g' | \
+    sed -r '/(\/).*$/d' | \
+    sed -r 's/^.*\s+//g' | \
+    sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
+    chmod 644 "${destination}"
     return 0
-  fi
+  #fi
 
   # Individual file parsing: Keep comments, while parsing domains from each line
   # We keep comments to respect the list maintainer's licensing
@@ -374,11 +615,13 @@ gravity_ParseFileIntoDomains() {
       # Print if nonempty
       length { print }
     ' "${source}" 2> /dev/null > "${destination}"
+    chmod 644 "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
   else
     # Default: Keep hosts/domains file in same format as it was downloaded
     output=$( { mv "${source}" "${destination}"; } 2>&1 )
+    chmod 644 "${destination}"
 
     if [[ ! -e "${destination}" ]]; then
       echo -e "\\n  ${CROSS} Unable to move tmp file to ${piholeDir}
@@ -388,103 +631,29 @@ gravity_ParseFileIntoDomains() {
   fi
 }
 
-# Create (unfiltered) "Matter and Light" consolidated list
-gravity_ConsolidateDownloadedBlocklists() {
-  local str lastLine
-
-  str="Consolidating blocklists"
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -ne "  ${INFO} ${str}..."
+# Report number of entries in a table
+gravity_Table_Count() {
+  local table="${1}"
+  local str="${2}"
+  local num
+  num="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${table};")"
+  if [[ "${table}" == "vw_gravity" ]]; then
+    local unique
+    unique="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(DISTINCT domain) FROM ${table};")"
+    echo -e "  ${INFO} Number of ${str}: ${num} (${COL_BOLD}${unique} unique domains${COL_NC})"
+    sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
+  else
+    echo -e "  ${INFO} Number of ${str}: ${num}"
   fi
-
-  # Empty $matterAndLight if it already exists, otherwise, create it
-  : > "${piholeDir}/${matterAndLight}"
-
-  # Loop through each *.domains file
-  for i in "${activeDomains[@]}"; do
-    # Determine if file has read permissions, as download might have failed
-    if [[ -r "${i}" ]]; then
-      # Remove windows CRs from file, convert list to lower case, and append into $matterAndLight
-      tr -d '\r' < "${i}" | tr '[:upper:]' '[:lower:]' >> "${piholeDir}/${matterAndLight}"
-
-      # Ensure that the first line of a new list is on a new line
-      lastLine=$(tail -1 "${piholeDir}/${matterAndLight}")
-      if [[ "${#lastLine}" -gt 0 ]]; then
-        echo "" >> "${piholeDir}/${matterAndLight}"
-      fi
-    fi
-  done
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
-  fi
-}
-
-# Parse consolidated list into (filtered, unique) domains-only format
-gravity_SortAndFilterConsolidatedList() {
-  local str num
-
-  str="Extracting domains from blocklists"
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -ne "  ${INFO} ${str}..."
-  fi
-
-  # Parse into hosts file
-  gravity_ParseFileIntoDomains "${piholeDir}/${matterAndLight}" "${piholeDir}/${parsedMatter}"
-
-  # Format $parsedMatter line total as currency
-  num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${parsedMatter}")")
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
-  fi
-  echo -e "  ${INFO} Number of domains being pulled in by gravity: ${COL_BLUE}${num}${COL_NC}"
-
-  str="Removing duplicate domains"
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -ne "  ${INFO} ${str}..."
-  fi
-
-  sort -u "${piholeDir}/${parsedMatter}" > "${piholeDir}/${preEventHorizon}"
-
-  if [[ "${haveSourceUrls}" == true ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
-    # Format $preEventHorizon line total as currency
-    num=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-    echo -e "  ${INFO} Number of unique domains trapped in the Event Horizon: ${COL_BLUE}${num}${COL_NC}"
-  fi
-}
-
-# Whitelist user-defined domains
-gravity_Whitelist() {
-  local num str
-
-  if [[ ! -f "${whitelistFile}" ]]; then
-    echo -e "  ${INFO} Nothing to whitelist!"
-    return 0
-  fi
-
-  num=$(wc -l < "${whitelistFile}")
-  str="Number of whitelisted domains: ${num}"
-  echo -ne "  ${INFO} ${str}..."
-
-  # Print everything from preEventHorizon into whitelistMatter EXCEPT domains in $whitelistFile
-  comm -23 "${piholeDir}/${preEventHorizon}" <(sort "${whitelistFile}") > "${piholeDir}/${whitelistMatter}"
-
-  echo -e "${OVER}  ${INFO} ${str}"
 }
 
 # Output count of blacklisted domains and regex filters
-gravity_ShowBlockCount() {
-  local num
-
-  if [[ -f "${blacklistFile}" ]]; then
-    num=$(printf "%'.0f" "$(wc -l < "${blacklistFile}")")
-    echo -e "  ${INFO} Number of blacklisted domains: ${num}"
-  fi
-
-  if [[ -f "${regexFile}" ]]; then
-    num=$(grep -cv "^#" "${regexFile}")
-    echo -e "  ${INFO} Number of regex filters: ${num}"
-  fi
+gravity_ShowCount() {
+  gravity_Table_Count "vw_gravity" "gravity domains" ""
+  gravity_Table_Count "vw_blacklist" "exact blacklisted domains"
+  gravity_Table_Count "vw_regex_blacklist" "regex blacklist filters"
+  gravity_Table_Count "vw_whitelist" "exact whitelisted domains"
+  gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
 }
 
 # Parse list of domains into hosts format
@@ -504,7 +673,7 @@ gravity_ParseDomainsIntoHosts() {
 }
 
 # Create "localhost" entries into hosts format
-gravity_ParseLocalDomains() {
+gravity_generateLocalList() {
   local hostname
 
   if [[ -s "/etc/hostname" ]]; then
@@ -520,6 +689,7 @@ gravity_ParseLocalDomains() {
 
   # Empty $localList if it already exists, otherwise, create it
   : > "${localList}"
+  chmod 644 "${localList}"
 
   gravity_ParseDomainsIntoHosts "${localList}.tmp" "${localList}"
 
@@ -527,40 +697,6 @@ gravity_ParseLocalDomains() {
   if [[ -f "${VPNList}" ]]; then
     awk -F, '{printf $2"\t"$1".vpn\n"}' "${VPNList}" >> "${localList}"
   fi
-}
-
-# Create primary blacklist entries
-gravity_ParseBlacklistDomains() {
-  local output status
-
-  # Empty $accretionDisc if it already exists, otherwise, create it
-  : > "${piholeDir}/${accretionDisc}"
-
-  if [[ -f "${piholeDir}/${whitelistMatter}" ]]; then
-    mv "${piholeDir}/${whitelistMatter}" "${piholeDir}/${accretionDisc}"
-  else
-    # There was no whitelist file, so use preEventHorizon instead of whitelistMatter.
-    cp "${piholeDir}/${preEventHorizon}" "${piholeDir}/${accretionDisc}"
-  fi
-
-  # Move the file over as /etc/pihole/gravity.list so dnsmasq can use it
-  output=$( { mv "${piholeDir}/${accretionDisc}" "${adList}"; } 2>&1 )
-  status="$?"
-
-  if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to move ${accretionDisc} from ${piholeDir}\\n  ${output}"
-    gravity_Cleanup "error"
-  fi
-}
-
-# Create user-added blacklist entries
-gravity_ParseUserDomains() {
-  if [[ ! -f "${blacklistFile}" ]]; then
-    return 0
-  fi
-  # Copy the file over as /etc/pihole/black.list so dnsmasq can use it
-  cp "${blacklistFile}" "${blackList}" 2> /dev/null || \
-    echo -e "\\n  ${CROSS} Unable to move ${blacklistFile##*/} to ${piholeDir}"
 }
 
 # Trap Ctrl-C
@@ -583,7 +719,7 @@ gravity_Cleanup() {
   # Ensure this function only runs when gravity_SetDownloadOptions() has completed
   if [[ "${gravity_Blackbody:-}" == true ]]; then
     # Remove any unused .domains files
-    for file in ${piholeDir}/*.${domainsExtension}; do
+    for file in "${piholeDir}"/*."${domainsExtension}"; do
       # If list is not in active array, then remove it
       if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
         rm -f "${file}" 2> /dev/null || \
@@ -593,6 +729,21 @@ gravity_Cleanup() {
   fi
 
   echo -e "${OVER}  ${TICK} ${str}"
+
+  if ${optimize_database} ; then
+    str="Optimizing domains database"
+    echo -ne "  ${INFO} ${str}..."
+    # Run VACUUM command on database to optimize it
+    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
+    status="$?"
+
+    if [[ "${status}" -ne 0 ]]; then
+      echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
+      error="error"
+    else
+      echo -e "${OVER}  ${TICK} ${str}"
+    fi
+  fi
 
   # Only restart DNS service if offline
   if ! pidof ${resolver} &> /dev/null; then
@@ -620,16 +771,27 @@ Options:
 for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
+    "-o" | "--optimize" ) optimize_database=true;;
+    "-r" | "--recreate" ) recreate_database=true;;
     "-h" | "--help" ) helpFunc;;
-    "-sd" | "--skip-download" ) skipDownload=true;;
-    "-b" | "--blacklist-only" ) listType="blacklist";;
-    "-w" | "--whitelist-only" ) listType="whitelist";;
-    "-wild" | "--wildcard-only" ) listType="wildcard"; dnsRestartType="restart";;
   esac
 done
 
 # Trap Ctrl-C
 gravity_Trap
+
+if [[ "${recreate_database:-}" == true ]]; then
+  str="Restoring from migration backup"
+  echo -ne "${INFO} ${str}..."
+  rm "${gravityDBfile}"
+  pushd "${piholeDir}" > /dev/null || exit
+  cp migration_backup/* .
+  popd > /dev/null || exit
+  echo -e "${OVER}  ${TICK} ${str}"
+fi
+
+# Move possibly existing legacy files to the gravity database
+migrate_to_database
 
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
@@ -639,56 +801,32 @@ if [[ "${forceDelete:-}" == true ]]; then
   echo -e "${OVER}  ${TICK} ${str}"
 fi
 
-detect_pihole_blocking_status
+# Gravity downloads blocklists next
+gravity_CheckDNSResolutionAvailable
+gravity_DownloadBlocklists
 
-# Determine which functions to run
-if [[ "${skipDownload}" == false ]]; then
-  # Gravity needs to download blocklists
-  gravity_CheckDNSResolutionAvailable
-  gravity_GetBlocklistUrls
-  if [[ "${haveSourceUrls}" == true ]]; then
-    gravity_SetDownloadOptions
-  fi
-  gravity_ConsolidateDownloadedBlocklists
-  gravity_SortAndFilterConsolidatedList
-else
-  # Gravity needs to modify Blacklist/Whitelist/Wildcards
-  echo -e "  ${INFO} Using cached Event Horizon list..."
-  numberOf=$(printf "%'.0f" "$(wc -l < "${piholeDir}/${preEventHorizon}")")
-  echo -e "  ${INFO} ${COL_BLUE}${numberOf}${COL_NC} unique domains trapped in the Event Horizon"
-fi
+# Create local.list
+gravity_generateLocalList
 
-# Perform when downloading blocklists, or modifying the whitelist
-if [[ "${skipDownload}" == false ]] || [[ "${listType}" == "whitelist" ]]; then
-  gravity_Whitelist
-fi
+# Migrate rest of the data from old to new database
+gravity_swap_databases
 
-convert_wildcard_to_regex
-gravity_ShowBlockCount
+# Update gravity timestamp
+update_gravity_timestamp
 
-# Perform when downloading blocklists, or modifying the white/blacklist (not wildcards)
-if [[ "${skipDownload}" == false ]] || [[ "${listType}" == *"list" ]]; then
-  str="Parsing domains into hosts format"
-  echo -ne "  ${INFO} ${str}..."
+# Ensure proper permissions are set for the database
+chown pihole:pihole "${gravityDBfile}"
+chmod g+w "${piholeDir}" "${gravityDBfile}"
 
-  gravity_ParseUserDomains
-
-  # Perform when downloading blocklists
-  if [[ ! "${listType:-}" == "blacklist" ]]; then
-    gravity_ParseLocalDomains
-    gravity_ParseBlacklistDomains
-  fi
-
-  echo -e "${OVER}  ${TICK} ${str}"
-
-  gravity_Cleanup
-fi
-
-echo ""
+# Compute numbers to be displayed
+gravity_ShowCount
 
 # Determine if DNS has been restarted by this instance of gravity
 if [[ -z "${dnsWasOffline:-}" ]]; then
-  # Use "force-reload" when restarting dnsmasq for everything but Wildcards
-  "${PIHOLE_COMMAND}" restartdns "${dnsRestartType:-force-reload}"
+  "${PIHOLE_COMMAND}" restartdns reload
 fi
+
+gravity_Cleanup
+echo ""
+
 "${PIHOLE_COMMAND}" status

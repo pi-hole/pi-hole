@@ -92,235 +92,16 @@ def test_setupVars_saved_to_file(Pihole):
         assert "{}={}".format(k, v) in output
 
 
-def test_configureFirewall_firewalld_running_no_errors(Pihole):
+def test_selinux_not_detected(Pihole):
     '''
-    confirms firewalld rules are applied when firewallD is running
+    confirms installer continues when SELinux configuration file does not exist
     '''
-    # firewallD returns 'running' as status
-    mock_command('firewall-cmd', {'*': ('running', 0)}, Pihole)
-    # Whiptail dialog returns Ok for user prompt
-    mock_command('whiptail', {'*': ('', 0)}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Configuring FirewallD for httpd and pihole-FTL'
-    assert expected_stdout in configureFirewall.stdout
-    firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
-    assert 'firewall-cmd --state' in firewall_calls
-    assert ('firewall-cmd '
-            '--permanent '
-            '--add-service=http '
-            '--add-service=dns') in firewall_calls
-    assert 'firewall-cmd --reload' in firewall_calls
-
-
-def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
-    '''
-    confirms firewalld rules are not applied when firewallD is not running
-    '''
-    # firewallD returns non-running status
-    mock_command('firewall-cmd', {'*': ('not running', '1')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = ('No active firewall detected.. '
-                       'skipping firewall configuration')
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
-    '''
-    confirms firewalld rules are not applied when firewallD is running, user
-    declines ruleset
-    '''
-    # firewallD returns running status
-    mock_command('firewall-cmd', {'*': ('running', 0)}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', 1)}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Not installing firewall rulesets.'
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_no_firewall(Pihole):
-    ''' confirms firewall skipped no daemon is running '''
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'No active firewall detected'
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
-    '''
-    confirms IPTables rules are not applied when IPTables is running, user
-    declines ruleset
-    '''
-    # iptables command exists
-    mock_command('iptables', {'*': ('', '0')}, Pihole)
-    # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*': ('', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '1')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Not installing firewall rulesets.'
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
-    '''
-    confirms IPTables rules are not applied when IPTables is running and rules
-    exist
-    '''
-    # iptables command exists and returns 0 on calls
-    # (should return 0 on iptables -C)
-    mock_command('iptables', {'-S': ('-P INPUT DENY', '0')}, Pihole)
-    # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*': ('', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Installing new IPTables firewall rulesets'
-    assert expected_stdout in configureFirewall.stdout
-    firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
-    assert len(re.findall(r'iptables -S', firewall_calls)) == 1
-    assert len(re.findall(r'iptables -C', firewall_calls)) == 4
-    assert len(re.findall(r'iptables -I', firewall_calls)) == 0
-
-    # Specific port call occurances
-    assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 1
-    assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 1
-    assert len(re.findall(r'udp --dport 53', firewall_calls)) == 1
-    assert len(re.findall(r'tcp --dport 4711:4720', firewall_calls)) == 1
-
-
-def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
-    '''
-    confirms IPTables rules are applied when IPTables is running and rules do
-    not exist
-    '''
-    # iptables command and returns 0 on calls (should return 1 on iptables -C)
-    mock_command(
-        'iptables',
-        {
-            '-S': (
-                '-P INPUT DENY',
-                '0'
-            ),
-            '-C': (
-                '',
-                1
-            ),
-            '-I': (
-                '',
-                0
-            )
-        },
-        Pihole
-    )
-    # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*': ('', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Installing new IPTables firewall rulesets'
-    assert expected_stdout in configureFirewall.stdout
-    firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
-    assert len(re.findall(r'iptables -S', firewall_calls)) == 1
-    assert len(re.findall(r'iptables -C', firewall_calls)) == 4
-    assert len(re.findall(r'iptables -I', firewall_calls)) == 4
-
-    # Specific port call occurances
-    assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 2
-    assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 2
-    assert len(re.findall(r'udp --dport 53', firewall_calls)) == 2
-    assert len(re.findall(r'tcp --dport 4711:4720', firewall_calls)) == 2
-
-
-def test_selinux_enforcing_default_exit(Pihole):
-    '''
-    confirms installer prompts to exit when SELinux is Enforcing by default
-    '''
-    # getenforce returns the running state of SELinux
-    mock_command('getenforce', {'*': ('Enforcing', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '1')}, Pihole)
     check_selinux = Pihole.run('''
+    rm -f /etc/selinux/config
     source /opt/pihole/basic-install.sh
     checkSelinux
     ''')
-    expected_stdout = info_box + ' SELinux mode detected: Enforcing'
-    assert expected_stdout in check_selinux.stdout
-    expected_stdout = 'SELinux Enforcing detected, exiting installer'
-    assert expected_stdout in check_selinux.stdout
-    assert check_selinux.rc == 1
-
-
-def test_selinux_enforcing_continue(Pihole):
-    '''
-    confirms installer prompts to continue with custom policy warning
-    '''
-    # getenforce returns the running state of SELinux
-    mock_command('getenforce', {'*': ('Enforcing', '0')}, Pihole)
-    # Whiptail dialog returns Continue for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    check_selinux = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    checkSelinux
-    ''')
-    expected_stdout = info_box + ' SELinux mode detected: Enforcing'
-    assert expected_stdout in check_selinux.stdout
-    expected_stdout = info_box + (' Continuing installation with SELinux '
-                                  'Enforcing')
-    assert expected_stdout in check_selinux.stdout
-    expected_stdout = info_box + (' Please refer to official SELinux '
-                                  'documentation to create a custom policy')
-    assert expected_stdout in check_selinux.stdout
-    assert check_selinux.rc == 0
-
-
-def test_selinux_permissive(Pihole):
-    '''
-    confirms installer continues when SELinux is Permissive
-    '''
-    # getenforce returns the running state of SELinux
-    mock_command('getenforce', {'*': ('Permissive', '0')}, Pihole)
-    check_selinux = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    checkSelinux
-    ''')
-    expected_stdout = info_box + ' SELinux mode detected: Permissive'
-    assert expected_stdout in check_selinux.stdout
-    assert check_selinux.rc == 0
-
-
-def test_selinux_disabled(Pihole):
-    '''
-    confirms installer continues when SELinux is Disabled
-    '''
-    mock_command('getenforce', {'*': ('Disabled', '0')}, Pihole)
-    check_selinux = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    checkSelinux
-    ''')
-    expected_stdout = info_box + ' SELinux mode detected: Disabled'
+    expected_stdout = info_box + ' SELinux not detected'
     assert expected_stdout in check_selinux.stdout
     assert check_selinux.rc == 0
 
@@ -338,7 +119,7 @@ def test_installPiholeWeb_fresh_install_no_errors(Pihole):
     expected_stdout = tick_box + (' Creating directory for blocking page, '
                                   'and copying files')
     assert expected_stdout in installWeb.stdout
-    expected_stdout = cross_box + ' Backing up index.lighttpd.html'
+    expected_stdout = info_box + ' Backing up index.lighttpd.html'
     assert expected_stdout in installWeb.stdout
     expected_stdout = ('No default index.lighttpd.html file found... '
                        'not backing up')
@@ -668,3 +449,42 @@ def test_IPv6_ULA_GUA_test(Pihole):
     ''')
     expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
     assert expected_stdout in detectPlatform.stdout
+
+
+def test_validate_ip_valid(Pihole):
+    '''
+    Given a valid IP address, valid_ip returns success
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "192.168.1.1"
+    ''')
+
+    assert output.rc == 0
+
+
+def test_validate_ip_invalid_octet(Pihole):
+    '''
+    Given an invalid IP address (large octet), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "1092.168.1.1"
+    ''')
+
+    assert output.rc == 1
+
+
+def test_validate_ip_invalid_letters(Pihole):
+    '''
+    Given an invalid IP address (contains letters), valid_ip returns an error
+    '''
+
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    valid_ip "not an IP"
+    ''')
+
+    assert output.rc == 1
