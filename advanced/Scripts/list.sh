@@ -222,6 +222,7 @@ Displaylist() {
 
 NukeList() {
     sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeId};"
+    exit 0;
 }
 
 for var in "$@"; do
