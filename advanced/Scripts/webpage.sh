@@ -36,7 +36,6 @@ Options:
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
-  -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
@@ -482,32 +481,6 @@ RemoveDHCPStaticAddress() {
     sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
 }
 
-SetHostRecord() {
-    if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
-        echo "Usage: pihole -a hostrecord <domain> [IPv4-address],[IPv6-address]
-Example: 'pihole -a hostrecord home.domain.com 192.168.1.1,2001:db8:a0b:12f0::1'
-Add a name to the DNS associated to an IPv4/IPv6 address
-
-Options:
-  \"\"                  Empty: Remove host record
-  -h, --help          Show this help dialog"
-        exit 0
-    fi
-
-    if [[ -n "${args[3]}" ]]; then
-        change_setting "HOSTRECORD" "${args[2]},${args[3]}"
-        echo -e "  ${TICK} Setting host record for ${args[2]} to ${args[3]}"
-    else
-        change_setting "HOSTRECORD" ""
-        echo -e "  ${TICK} Removing host record"
-    fi
-
-    ProcessDNSSettings
-
-    # Restart dnsmasq to load new configuration
-    RestartDNS
-}
-
 SetAdminEmail() {
     if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
         echo "Usage: pihole -a email <address>
@@ -523,7 +496,10 @@ Options:
     if [[ -n "${args[2]}" ]]; then
 
         # Sanitize email address in case of security issues
-        if [[ ! "${args[2]}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$  ]]; then
+        # Regex from https://stackoverflow.com/a/2138832/4065967
+        local regex
+        regex="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\$"
+        if [[ ! "${args[2]}" =~ ${regex} ]]; then
             echo -e "  ${CROSS} Invalid email address"
             exit 0
         fi
@@ -672,7 +648,6 @@ main() {
         "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
-        "-r" | "hostrecord"   ) SetHostRecord "$3";;
         "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;

@@ -413,7 +413,9 @@ Options:
   enable              Enable Pi-hole subsystems
   disable             Disable Pi-hole subsystems
                         Add '-h' for more info on disable usage
-  restartdns          Restart Pi-hole subsystems
+  restartdns          Full restart Pi-hole subsystems
+                        Add 'reload' to update the lists and flush the cache without restarting the DNS server
+                        Add 'reload-lists' to only update the lists WITHOUT flushing the cache or restarting the DNS server
   checkout            Switch Pi-hole subsystems to a different Github branch
                         Add '-h' for more info on checkout usage
   arpflush            Flush information stored in Pi-hole's network tables";
