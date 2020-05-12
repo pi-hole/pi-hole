@@ -18,6 +18,7 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly dnscustomfile="/etc/pihole/custom.list"
+readonly dnscustomcnamefile="/etc/dnsmasq.d/05-pihole-custom-cname.conf"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
 
@@ -644,6 +645,28 @@ RemoveCustomDNSAddress() {
     RestartDNS
 }
 
+AddCustomCNAMERecord() {
+    echo -e "  ${TICK} Adding custom CNAME record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+	echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
+
+    # Restart dnsmasq to load new custom CNAME records
+    RestartDNS
+}
+
+RemoveCustomCNAMERecord() {
+    echo -e "  ${TICK} Removing custom CNAME record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    sed -i "/cname=${domain},${target}/d" "${dnscustomcnamefile}"
+
+    # Restart dnsmasq to update removed custom CNAME records
+    RestartDNS
+}
+
 main() {
     args=("$@")
 
@@ -677,6 +700,8 @@ main() {
         "-l" | "privacylevel" ) SetPrivacyLevel;;
         "addcustomdns"        ) AddCustomDNSAddress;;
         "removecustomdns"     ) RemoveCustomDNSAddress;;
+        "addcustomcname"      ) AddCustomCNAMERecord;;
+        "removecustomcname"   ) RemoveCustomCNAMERecord;;
         *                     ) helpFunc;;
     esac
 
