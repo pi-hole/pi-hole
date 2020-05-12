@@ -104,4 +104,10 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "${scriptPath}/10_to_11.sql"
 		version=11
 	fi
+	if [[ "$version" == "11" ]]; then
+		# Rename group 0 from "Unassociated" to "Default"
+		echo -e "  ${INFO} Upgrading gravity database from version 11 to 12"
+		sqlite3 "${database}" < "${scriptPath}/11_to_12.sql"
+		version=12
+	fi
 }
