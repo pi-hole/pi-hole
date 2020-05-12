@@ -1980,9 +1980,9 @@ checkSelinux() {
     local DEFAULT_SELINUX
     local CURRENT_SELINUX
     local SELINUX_ENFORCING=0
-    # Check if a SELinux configuration file exists
-    if [[ -f /etc/selinux/config ]]; then
-        # If a SELinux configuration file was found, check the default SELinux mode.
+    # Check for SELinux configuration file and getenforce command
+    if [[ -f /etc/selinux/config ]] && command -v getenforce &> /dev/null; then
+        # Check the default SELinux mode
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
             enforcing)
