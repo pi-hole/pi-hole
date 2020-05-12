@@ -650,7 +650,7 @@ AddCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
-	echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
+    echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
 
     # Restart dnsmasq to load new custom CNAME records
     RestartDNS
