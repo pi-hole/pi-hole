@@ -317,7 +317,7 @@ piholeCheckoutFunc() {
   if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
     echo "Usage: pihole checkout [repo] [branch]
 Example: 'pihole checkout master' or 'pihole checkout core dev'
-Switch Pi-hole subsystems to a different Github branch
+Switch Pi-hole subsystems to a different GitHub branch
 
 Repositories:
   core [branch]       Change the branch of Pi-hole's core subsystem
@@ -416,7 +416,7 @@ Options:
   restartdns          Full restart Pi-hole subsystems
                         Add 'reload' to update the lists and flush the cache without restarting the DNS server
                         Add 'reload-lists' to only update the lists WITHOUT flushing the cache or restarting the DNS server
-  checkout            Switch Pi-hole subsystems to a different Github branch
+  checkout            Switch Pi-hole subsystems to a different GitHub branch
                         Add '-h' for more info on checkout usage
   arpflush            Flush information stored in Pi-hole's network tables";
   exit 0

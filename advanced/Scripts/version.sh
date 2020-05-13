@@ -88,7 +88,7 @@ getRemoteVersion(){
     local arrCache
     cachedVersions="/etc/pihole/GitHubVersions"
 
-    #If the above file exists, then we can read from that. Prevents overuse of Github API
+    #If the above file exists, then we can read from that. Prevents overuse of GitHub API
     if [[ -f "$cachedVersions" ]]; then
         IFS=' ' read -r -a arrCache < "$cachedVersions"
         case $daemon in
@@ -203,7 +203,7 @@ Repositories:
 Options:
   -c, --current        Return the current version
   -l, --latest         Return the latest version
-  --hash               Return the Github hash from your local repositories
+  --hash               Return the GitHub hash from your local repositories
   -h, --help           Show this help dialog"
   exit 0
 }
