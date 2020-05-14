@@ -68,7 +68,6 @@ If you'd rather not [donate](https://pi-hole.net/donate/) (_which is okay!_), th
 - [Patreon](https://patreon.com/pihole) _Become a patron for rewards_
 - [Digital Ocean](http://www.digitalocean.com/?refcode=344d234950e1) _affiliate link_
 - [Stickermule](https://www.stickermule.com/unlock?ref_id=9127301701&utm_medium=link&utm_source=invite) _earn a $10 credit after your first purchase_
-- [Pi-hole Swag Store](https://pi-hole.net/shop/) _affiliate link_
 - [Amazon](http://www.amazon.com/exec/obidos/redirect-home/pihole09-20) _affiliate link_
 - [DNS Made Easy](https://cp.dnsmadeeasy.com/u/133706) _affiliate link_
 - [Vultr](http://www.vultr.com/?ref=7190426) _affiliate link_
