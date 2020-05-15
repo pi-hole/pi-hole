@@ -685,7 +685,12 @@ gravity_generateLocalList() {
     return 0
   fi
 
-  echo -e "${hostname}\\npi.hole" > "${localList}.tmp"
+  # Add hostname.suffix entry when DHCP is enabled
+  if [[ "${DHCP_ACTIVE}" == true ]] && [[ -n "${PIHOLE_DOMAIN}" ]]; then
+    echo -e "${hostname}.${PIHOLE_DOMAIN} ${hostname}\\npi.hole" > "${localList}.tmp"
+  else
+    echo -e "${hostname}\\npi.hole" > "${localList}.tmp"
+  fi
 
   # Empty $localList if it already exists, otherwise, create it
   : > "${localList}"
