@@ -1223,7 +1223,9 @@ chooseBlocklists() {
 
     # In a variable, show the choices available; exit if Cancel is selected
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
-    # For each choice available,
+    # create empty adlist file if no list was selected
+    : > "${adlistFile}"
+    # For each choice available
     for choice in ${choices}
     do
         appendToListsFile "${choice}"
