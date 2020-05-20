@@ -600,6 +600,7 @@ SetPrivacyLevel() {
     # Set privacy level. Minimum is 0, maximum is 4
     if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 4 ]; then
         changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
+        pihole restartdns reload-lists
     fi
 }
 
