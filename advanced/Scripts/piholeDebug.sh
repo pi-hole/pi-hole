@@ -296,7 +296,11 @@ compare_local_version_to_git_version() {
                 log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
             fi
 
-            # If the repo is on the master branch, they are on the stable codebase
+            # Print the repo upstreams
+            remotes=$(git remote -v)
+            log_write "${INFO} Remotes: ${remotes//$'\n'/'\n             '}"
+
+            # If the repo is on the master branchs, they are on the stable codebase
             if [[ "${remote_branch}" == "master" ]]; then
                 # so the color of the text is green
                 log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
