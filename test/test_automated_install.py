@@ -559,13 +559,13 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     print(b.stdout)
     b = Pihole.run('chmod a+x $(which pihole-FTL)');
     print(b.stdout)
-    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL version" -p root');
+    b = Pihole.run('pihole-FTL version');
     print(b.stdout)
-    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL tag" -p root');
+    b = Pihole.run('pihole-FTL tag');
     print(b.stdout)
-    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL branch" -p root');
+    b = Pihole.run('pihole-FTL branch');
     print(b.stdout)
-    b = Pihole.run('su --shell /bin/bash --command "pihole-FTL test" -p root');
+    b = Pihole.run('pihole-FTL test');
     print(b.stdout)
     b = Pihole.run('ldd $(which pihole-FTL)');
     print(b.stdout)
@@ -678,10 +678,10 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                     r"Permission denied in"),
                 re.I)
             status = (
-                'curl -s --head "{}" | ' +
+                'curl --dns-servers 127.0.0.1 -s --head "{}" | ' +
                 'head -n 1 | ' +
                 'grep "HTTP/1.[01] [23].." > /dev/null')
-            pagecontent = 'curl --verbose -L "{}"'
+            pagecontent = 'curl --dns-servers 127.0.0.1 --verbose -L "{}"'
             for page in piholeWebpage:
                 # check HTTP status of blockpage
                 actual_rc = Pihole.run(status.format(page))
