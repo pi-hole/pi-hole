@@ -545,11 +545,17 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
     assert 0 == installWeb.rc
-    b = Pihole.run('apt-get install e2fsprogs');
+    b = Pihole.run('cat /etc/resolv.conf');
     print(b.stdout)
-    b = Pihole.run('dnf install e2fsprogs');
+    b = Pihole.run('ls -la /etc/pihole');
     print(b.stdout)
-    b = Pihole.run('yum install e2fsprogs');
+    b = Pihole.run('ls -la /etc/sudoers.d');
+    print(b.stdout)
+    b = Pihole.run('command -v apt-get && apt-get install -qq --no-install-recommends e2fsprogs');
+    print(b.stdout)
+    b = Pihole.run('command -v dnf && dnf install -y e2fsprogs');
+    print(b.stdout)
+    b = Pihole.run('command -v yum && yum install -y e2fsprogs');
     print(b.stdout)
     b = Pihole.run('ls -la $(which pihole-FTL)');
     print(b.stdout)
@@ -610,6 +616,30 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         webuser = piholeuser
     exit_status_success = 0
     test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
+    # check files that need a running FTL to be created
+    check_adlist = test_cmd.format('r', '/etc/pihole/adlists.list', piholeuser)
+    actual_rc = Pihole.run(check_adlist).rc
+    assert exit_status_success == actual_rc
+    # readable and writeable pihole-FTL.db
+    # TODO: is created by FTL and if downloading fails this fails too?
+    check_FTLconf = test_cmd.format(
+        'r', '/etc/pihole/pihole-FTL.db', piholeuser)
+    actual_rc = Pihole.run(check_FTLconf).rc
+    assert exit_status_success == actual_rc
+    check_FTLconf = test_cmd.format(
+        'w', '/etc/pihole/pihole-FTL.db', piholeuser)
+    actual_rc = Pihole.run(check_FTLconf).rc
+    assert exit_status_success == actual_rc
+    # readable and writeable regex.list
+    # TODO: where is this file created?
+    check_regex = test_cmd.format(
+        'r', '/etc/pihole/regex.list', piholeuser)
+    actual_rc = Pihole.run(check_regex).rc
+    assert exit_status_success == actual_rc
+    check_regex = test_cmd.format(
+        'w', '/etc/pihole/regex.list', piholeuser)
+    actual_rc = Pihole.run(check_regex).rc
+    assert exit_status_success == actual_rc
     # check directories above $webroot for read and execute permission
     check_var = test_cmd.format('r', '/var', webuser)
     actual_rc = Pihole.run(check_var).rc
