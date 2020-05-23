@@ -190,6 +190,10 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
         },
         Pihole
     )
+    # try to install man
+    Pihole.run('command -v apt-get > /dev/null && apt-get install -qq man')
+    Pihole.run('command -v dnf > /dev/null && dnf install -y man')
+    Pihole.run('command -v yum > /dev/null && yum install -y man')
     # create configuration file
     setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
     for k, v in SETUPVARS.items():
@@ -223,11 +227,6 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
     check_etc = test_cmd.format('x', '/etc/pihole', piholeuser)
     actual_rc = Pihole.run(check_etc).rc
     assert exit_status_success == actual_rc
-    # readable adlist.list
-    # TODO: is not always created, why? problem with FTL start?
-    # check_adlist = test_cmd.format('r', '/etc/pihole/adlists.list', piholeuser)
-    # actual_rc = Pihole.run(check_adlist).rc
-    # assert exit_status_success == actual_rc
     # readable and writable dhcp.leases
     check_leases = test_cmd.format('r', '/etc/pihole/dhcp.leases', piholeuser)
     actual_rc = Pihole.run(check_leases).rc
@@ -245,11 +244,6 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
         'r', '/etc/pihole/GitHubVersions', piholeuser)
     actual_rc = Pihole.run(check_version).rc
     assert exit_status_success == actual_rc
-    # readable gravity.list TODO: not needed anymore?
-    # check_gravity = test_cmd.format(
-    #     'r', '/etc/pihole/gravity.list', piholeuser)
-    # actual_rc = Pihole.run(check_gravity).rc
-    # assert exit_status_success == actual_rc
     # readable install.log
     check_install = test_cmd.format(
         'r', '/etc/pihole/install.log', piholeuser)
@@ -284,26 +278,6 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
         'w', '/etc/pihole/pihole-FTL.conf', piholeuser)
     actual_rc = Pihole.run(check_FTLconf).rc
     assert exit_status_success == actual_rc
-    # readable and writeable pihole-FTL.db
-    # TODO: is created by FTL and if downloading fails this fails too?
-    # check_FTLconf = test_cmd.format(
-    #     'r', '/etc/pihole/pihole-FTL.db', piholeuser)
-    # actual_rc = Pihole.run(check_FTLconf).rc
-    # assert exit_status_success == actual_rc
-    # check_FTLconf = test_cmd.format(
-    #     'w', '/etc/pihole/pihole-FTL.db', piholeuser)
-    # actual_rc = Pihole.run(check_FTLconf).rc
-    # assert exit_status_success == actual_rc
-    # readable and writeable regex.list
-    # TODO: where is this file created?
-    # check_regex = test_cmd.format(
-    #     'r', '/etc/pihole/regex.list', piholeuser)
-    # actual_rc = Pihole.run(check_regex).rc
-    # assert exit_status_success == actual_rc
-    # check_regex = test_cmd.format(
-    #     'w', '/etc/pihole/regex.list', piholeuser)
-    # actual_rc = Pihole.run(check_regex).rc
-    # assert exit_status_success == actual_rc
     # readable setupVars.conf
     check_setup = test_cmd.format(
         'r', '/etc/pihole/setupVars.conf', piholeuser)
@@ -343,7 +317,6 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
     actual_rc = Pihole.run(check_lighttpd).rc
     assert exit_status_success == actual_rc
     # check readable and executable manpages
-    # TODO: should man be installed before the test?
     if maninstalled is True:
         check_man = test_cmd.format(
             'x', '/usr/local/share/man', piholeuser)
@@ -524,11 +497,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
-    # TODO: set in dependance of currently build branch
-    # b = Pihole.run('mkdir -p /etc/pihole && printf "development" > /etc/pihole/ftlbranch');
-    # assert 0 == b.rc
-    # b = Pihole.run('cat /etc/pihole/ftlbranch');
-    # print(b.stdout)
     installWeb = Pihole.run('''
     export TERM=xterm
     export DEBIAN_FRONTEND=noninteractive
@@ -617,9 +585,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     exit_status_success = 0
     test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
     # check files that need a running FTL to be created
-    check_adlist = test_cmd.format('r', '/etc/pihole/adlists.list', piholeuser)
-    actual_rc = Pihole.run(check_adlist).rc
-    assert exit_status_success == actual_rc
     # readable and writeable pihole-FTL.db
     # TODO: is created by FTL and if downloading fails this fails too?
     check_FTLconf = test_cmd.format(
@@ -629,16 +594,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     check_FTLconf = test_cmd.format(
         'w', '/etc/pihole/pihole-FTL.db', piholeuser)
     actual_rc = Pihole.run(check_FTLconf).rc
-    assert exit_status_success == actual_rc
-    # readable and writeable regex.list
-    # TODO: where is this file created?
-    check_regex = test_cmd.format(
-        'r', '/etc/pihole/regex.list', piholeuser)
-    actual_rc = Pihole.run(check_regex).rc
-    assert exit_status_success == actual_rc
-    check_regex = test_cmd.format(
-        'w', '/etc/pihole/regex.list', piholeuser)
-    actual_rc = Pihole.run(check_regex).rc
     assert exit_status_success == actual_rc
     # check directories above $webroot for read and execute permission
     check_var = test_cmd.format('r', '/var', webuser)
@@ -680,6 +635,9 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
             actual_rc = Pihole.run(check_pihole).rc
     # TODO: which other files have to be checked?
     # check web interface files
+    # change nameserver to pi-hole
+    ns = Pihole.run('sed -i "s/nameserver.*/nameserver 127.0.0.1/" /etc/resolv.conf')
+    print(ns.stdout)
     if installWebInterface is True:
         # TODO: login into admin interface?
         passwordcommand = 'grep "WEBPASSWORD" -c "/etc/pihole/setupVars.conf"'
@@ -708,10 +666,10 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                     r"Permission denied in"),
                 re.I)
             status = (
-                'curl --dns-servers 127.0.0.1 -s --head "{}" | ' +
+                'curl -s --head "{}" | ' +
                 'head -n 1 | ' +
                 'grep "HTTP/1.[01] [23].." > /dev/null')
-            pagecontent = 'curl --dns-servers 127.0.0.1 --verbose -L "{}"'
+            pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
                 # check HTTP status of blockpage
                 actual_rc = Pihole.run(status.format(page))
