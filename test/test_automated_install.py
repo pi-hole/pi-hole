@@ -636,8 +636,10 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     # TODO: which other files have to be checked?
     # check web interface files
     # change nameserver to pi-hole
-    ns = Pihole.run('sed -i "s/nameserver.*/nameserver 127.0.0.1/" /etc/resolv.conf')
-    print(ns.stdout)
+    # setting nameserver in /etc/resolv.conf to pi-hole does
+    # not work here because of the way docker uses this file
+    ns = Pihole.run("sed -i 's/nameserver.*/nameserver 127.0.0.1/' /etc/resolv.conf")
+    pihole_is_ns = ns.rc == 0
     if installWebInterface is True:
         # TODO: login into admin interface?
         passwordcommand = 'grep "WEBPASSWORD" -c "/etc/pihole/setupVars.conf"'
@@ -665,17 +667,25 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                     r"failed to open stream: " +
                     r"Permission denied in"),
                 re.I)
+            # using cURL option --dns-servers is not possible
             status = (
                 'curl -s --head "{}" | ' +
                 'head -n 1 | ' +
                 'grep "HTTP/1.[01] [23].." > /dev/null')
             pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
-                # check HTTP status of blockpage
-                actual_rc = Pihole.run(status.format(page))
-                assert exit_status_success == actual_rc.rc
-                actual_output = Pihole.run(pagecontent.format(page))
-                assert noPHPfopen.match(actual_output.stdout) is None
+                d = Pihole.run("echo {} | sed -e 's|http://||' -e 's|/.*||'".format(page))
+                print(d.stdout)
+                dig = Pihole.run("dig @127.0.0.1 $(echo {} | sed -e 's|http://||' -e 's|/.*||')".format(page))
+                print(dig.stdout)
+                dig = Pihole.run("nslookup $(echo {} | sed -e 's|http://||' -e 's|/.*||') 127.0.0.1".format(page))
+                print(dig.stdout)
+                if dig.rc == 0 or pihole_is_ns:
+                    # check HTTP status of blockpage
+                    actual_rc = Pihole.run(status.format(page))
+                    assert exit_status_success == actual_rc.rc
+                    actual_output = Pihole.run(pagecontent.format(page))
+                    assert noPHPfopen.match(actual_output.stdout) is None
 
 
 def test_update_package_cache_success_no_errors(Pihole):
