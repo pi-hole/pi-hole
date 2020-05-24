@@ -495,6 +495,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         setup_var_file += "{}={}\n".format(k, v)
     setup_var_file += "INSTALL_WEB_SERVER=true\n"
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
+    setup_var_file += "IPV4_ADDRESS=127.0.0.1\n"
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
     installWeb = Pihole.run('''
@@ -674,11 +675,11 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                 'grep "HTTP/1.[01] [23].." > /dev/null')
             pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
-                d = Pihole.run("echo {} | sed -e 's|http://||' -e 's|/.*||'".format(page))
-                print(d.stdout)
+                # d = Pihole.run("echo {} | sed -e 's|http://||' -e 's|/.*||'".format(page))
+                # print(d.stdout)
                 dig = Pihole.run("dig @127.0.0.1 $(echo {} | sed -e 's|http://||' -e 's|/.*||')".format(page))
                 print(dig.stdout)
-                dig = Pihole.run("nslookup $(echo {} | sed -e 's|http://||' -e 's|/.*||') 127.0.0.1".format(page))
+                dig = Pihole.run("nslookup $(echo {} | sed -e 's|http://||' -e 's|/.*||') 127.0.0.1 | grep '^Address:' | head -n 2 | sed -e 's/Address: *//'".format(page))
                 print(dig.stdout)
                 if dig.rc == 0 or pihole_is_ns:
                     # check HTTP status of blockpage
