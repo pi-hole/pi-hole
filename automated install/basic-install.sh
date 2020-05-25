@@ -184,17 +184,17 @@ os_check() {
     display_warning=true
 
     detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
-    detected_os=$(echo "${detected_os_pretty}" | sed 's/ .*//')
+    detected_os="${detected_os_pretty%% *}"
     detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
 
     mapfile -t supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"' | tr ' ' '\n')
 
     for i in "${supportedOS[@]}"
     do
-        os_part=$(echo $i | cut -d '=' -f1)
-        versions_part=$(echo $i | cut -d '=' -f2-)
+        os_part=$(echo "$i" | cut -d '=' -f1)
+        versions_part=$(echo "$i" | cut -d '=' -f2-)
 
-        if [[ "${detected_os}" =~ "${os_part}" ]]; then
+        if [[ "${detected_os}" =~ ${os_part} ]]; then
           valid_os=true
           mapfile -t supportedVer < <(echo "${versions_part}" | tr ',' '\n')
           for x in "${supportedVer[@]}"
