@@ -1433,8 +1433,8 @@ installConfigs() {
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
         fi
         # Make the directories if they do not exist and set the owners
-        mkdir -p /var/run/lighttpd
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/run/lighttpd
+        mkdir -p /run/lighttpd
+        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
         mkdir -p /var/cache/lighttpd/compress
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
         mkdir -p /var/cache/lighttpd/uploads
