@@ -376,7 +376,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Target: ${url}"
     local regex
     # Check for characters NOT allowed in URLs
-    regex="[^a-zA-Z0-9:/?&%=~._()-]"
+    regex="[^a-zA-Z0-9:/?&%=~._()-;]"
     if [[ "${url}" =~ ${regex} ]]; then
         echo -e "  ${CROSS} Invalid Target"
     else
