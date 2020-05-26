@@ -402,10 +402,9 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     by $LIGHTTPD_USER on a fresh build
     '''
     # TODO: also add IP address from setupVars?
-    # TODO: pi.hole can not be resolved because of some error in FTL or resolved
     piholeWebpage = [
-        "http://127.0.0.1/admin",
-        "http://pi.hole/admin"
+        "127.0.0.1",
+        "pi.hole"
     ]
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
@@ -514,39 +513,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
     assert 0 == installWeb.rc
-    b = Pihole.run('cat /etc/resolv.conf');
-    print(b.stdout)
-    b = Pihole.run('ls -la /etc/pihole');
-    print(b.stdout)
-    b = Pihole.run('ls -la /etc/sudoers.d');
-    print(b.stdout)
-    b = Pihole.run('command -v apt-get && apt-get install -qq --no-install-recommends e2fsprogs');
-    print(b.stdout)
-    b = Pihole.run('command -v dnf && dnf install -y e2fsprogs');
-    print(b.stdout)
-    b = Pihole.run('command -v yum && yum install -y e2fsprogs');
-    print(b.stdout)
-    b = Pihole.run('ls -la $(which pihole-FTL)');
-    print(b.stdout)
-    b = Pihole.run('lsattr $(which pihole-FTL)');
-    print(b.stdout)
-    b = Pihole.run('lsattr $(which pihole-FTL)/../');
-    print(b.stdout)
-    b = Pihole.run('chmod a+x $(which pihole-FTL)');
-    print(b.stdout)
-    b = Pihole.run('pihole-FTL version');
-    print(b.stdout)
-    b = Pihole.run('pihole-FTL tag');
-    print(b.stdout)
-    b = Pihole.run('pihole-FTL branch');
-    print(b.stdout)
     b = Pihole.run('pihole-FTL test');
-    print(b.stdout)
-    b = Pihole.run('ldd $(which pihole-FTL)');
-    print(b.stdout)
-    b = Pihole.run('LD_DEBUG=help pihole-FTL version');
-    print(b.stdout)
-    b = Pihole.run('file pihole-FTL');
     print(b.stdout)
     b = Pihole.run('cat /var/log/pihole.log');
     print(b.stdout)
@@ -641,6 +608,9 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     # not work here because of the way docker uses this file
     ns = Pihole.run("sed -i 's/nameserver.*/nameserver 127.0.0.1/' /etc/resolv.conf")
     pihole_is_ns = ns.rc == 0
+    def is_ip(address):
+        m = re.match(r"(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})", address)
+        return bool(m)
     if installWebInterface is True:
         # TODO: login into admin interface?
         passwordcommand = 'grep "WEBPASSWORD" -c "/etc/pihole/setupVars.conf"'
@@ -675,17 +645,18 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                 'grep "HTTP/1.[01] [23].." > /dev/null')
             pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
-                # d = Pihole.run("echo {} | sed -e 's|http://||' -e 's|/.*||'".format(page))
-                # print(d.stdout)
-                dig = Pihole.run("dig @127.0.0.1 $(echo {} | sed -e 's|http://||' -e 's|/.*||')".format(page))
-                print(dig.stdout)
-                dig = Pihole.run("nslookup $(echo {} | sed -e 's|http://||' -e 's|/.*||') 127.0.0.1 | grep '^Address:' | head -n 2 | sed -e 's/Address: *//'".format(page))
-                print(dig.stdout)
-                if dig.rc == 0 or pihole_is_ns:
+                testpage = "http://" + page + "/admin"
+                resolvesuccess = True
+                if is_ip(page) is False:
+                    dig = Pihole.run(r"dig A +short {} @127.0.0.1".format(page))
+                    testpage = "http://" + dig.stdout.strip() + "/admin"
+                    resolvesuccess = dig.rc == 0
+                if resolvesuccess or pihole_is_ns:
                     # check HTTP status of blockpage
-                    actual_rc = Pihole.run(status.format(page))
+                    actual_rc = Pihole.run(status.format(testpage))
                     assert exit_status_success == actual_rc.rc
-                    actual_output = Pihole.run(pagecontent.format(page))
+                    # check for PHP error
+                    actual_output = Pihole.run(pagecontent.format(testpage))
                     assert noPHPfopen.match(actual_output.stdout) is None
 
 
