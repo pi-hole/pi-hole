@@ -140,8 +140,8 @@ def get_directories_recursive(Pihole, directory):
     ls = Pihole.run('ls -d {}'.format(directory + '/*/'))
     directories = list(filter(bool, ls.stdout.splitlines()))
     dirs = directories
-    for directory in directories:
-        dir_rec = get_directories_recursive(Pihole, directory)
+    for dir in directories:
+        dir_rec = get_directories_recursive(Pihole, dir)
         if isinstance(dir_rec, str):
             dirs.extend([dir_rec])
         else:
@@ -513,12 +513,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
     assert 0 == installWeb.rc
-    b = Pihole.run('pihole-FTL test');
-    print(b.stdout)
-    b = Pihole.run('cat /var/log/pihole.log');
-    print(b.stdout)
-    b = Pihole.run('cat /etc/pihole/install.log');
-    print(b.stdout)
     piholeuser = 'pihole'
     webuser = ''
     user = re.findall(
@@ -606,8 +600,10 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     # change nameserver to pi-hole
     # setting nameserver in /etc/resolv.conf to pi-hole does
     # not work here because of the way docker uses this file
-    ns = Pihole.run("sed -i 's/nameserver.*/nameserver 127.0.0.1/' /etc/resolv.conf")
+    ns = Pihole.run(
+        r"sed -i 's/nameserver.*/nameserver 127.0.0.1/' /etc/resolv.conf")
     pihole_is_ns = ns.rc == 0
+
     def is_ip(address):
         m = re.match(r"(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})", address)
         return bool(m)
@@ -643,12 +639,13 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                 'curl -s --head "{}" | ' +
                 'head -n 1 | ' +
                 'grep "HTTP/1.[01] [23].." > /dev/null')
+            digcommand = r"dig A +short {} @127.0.0.1"
             pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
                 testpage = "http://" + page + "/admin"
                 resolvesuccess = True
                 if is_ip(page) is False:
-                    dig = Pihole.run(r"dig A +short {} @127.0.0.1".format(page))
+                    dig = Pihole.run(digcommand.format(page))
                     testpage = "http://" + dig.stdout.strip() + "/admin"
                     resolvesuccess = dig.rc == 0
                 if resolvesuccess or pihole_is_ns:
