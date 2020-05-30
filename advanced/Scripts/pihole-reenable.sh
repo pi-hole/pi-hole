@@ -12,5 +12,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+readonly PI_HOLE_BIN_DIR="/usr/local/bin"
+
 sleep "${1}"
-pihole enable
+"${PI_HOLE_BIN_DIR}"/pihole enable
