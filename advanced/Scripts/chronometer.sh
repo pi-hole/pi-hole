@@ -153,7 +153,7 @@ get_init_stats() {
 
         sys_throttle_raw=$(vgt=$(sudo vcgencmd get_throttled); echo "${vgt##*x}")
 
-        # Active Throttle Notice: http://bit.ly/2gnunOo
+        # Active Throttle Notice: https://bit.ly/2gnunOo
         if [[ "$sys_throttle_raw" != "0" ]]; then
             case "$sys_throttle_raw" in
                 *0001) thr_type="${COL_YELLOW}Under Voltage";;
