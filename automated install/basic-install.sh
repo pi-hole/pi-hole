@@ -1228,6 +1228,7 @@ chooseBlocklists() {
     do
         appendToListsFile "${choice}"
     done
+    touch "${adlistFile}"
     chmod 644 "${adlistFile}"
 }
 
