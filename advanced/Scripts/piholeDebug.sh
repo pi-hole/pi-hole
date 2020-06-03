@@ -393,53 +393,53 @@ check_critical_program_versions() {
     get_program_version "php"
 }
 
-is_os_supported() {
-    local os_to_check="${1}"
-    # Strip just the base name of the system using sed
-    # shellcheck disable=SC2001
-    the_os=$(echo "${os_to_check}" | sed 's/ .*//')
-    # If the variable is one of our supported OSes,
-    case "${the_os}" in
-        # Print it in green
-        "Raspbian") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "Ubuntu") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "Fedora") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "Debian") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "CentOS") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        # If not, show it in red and link to our software requirements page
-        *) log_write "${CROSS} ${COL_RED}${os_to_check}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})";
-    esac
-}
+os_check() {
+    # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
+    # and determines whether or not the script is running on one of those systems
+    local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version
+    remote_os_domain="versions.pi-hole.net"
+    valid_os=false
+    valid_version=false
 
-get_distro_attributes() {
-    # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
-    # Store the distro info in an array and make it global since the OS won't change,
-    # but we'll keep it within the function for better unit testing
-    local distro_info
-    #shellcheck disable=SC2016
-    IFS=$'\r\n' command eval 'distro_info=( $(cat /etc/*release) )'
+    detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
+    detected_os="${detected_os_pretty%% *}"
+    detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
 
-    # Set a named variable for better readability
-    local distro_attribute
-    # For each line found in an /etc/*release file,
-    for distro_attribute in "${distro_info[@]}"; do
-        # store the key in a variable
-        local pretty_name_key
-        pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
-        # we need just the OS PRETTY_NAME,
-        if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
-            # so save in in a variable when we find it
-            PRETTY_NAME_VALUE=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
-            # then pass it as an argument that checks if the OS is supported
-            is_os_supported "${PRETTY_NAME_VALUE}"
-        else
-            # Since we only need the pretty name, we can just skip over anything that is not a match
-            :
+    mapfile -t supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"' | tr ' ' '\n')
+
+    for i in "${supportedOS[@]}"
+    do
+        os_part=$(echo "$i" | cut -d '=' -f1)
+        versions_part=$(echo "$i" | cut -d '=' -f2-)
+
+        if [[ "${detected_os}" =~ ${os_part} ]]; then
+          valid_os=true
+          mapfile -t supportedVer < <(echo "${versions_part}" | tr ',' '\n')
+          for x in "${supportedVer[@]}"
+          do
+            if [[ "${detected_version}" =~ $x ]];then
+              valid_version=true
+              break
+            fi
+          done
+          break
         fi
     done
-    # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+
+    # Display findings back to the user
+    if [ "$valid_os" = true ]; then
+        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os}${COL_NC}"
+
+        if [ "$valid_version" = true ]; then
+            log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
+        else
+            log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
+            log_write "${CROSS} Error: ${COL_RED}${detected_os} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+        fi
+    else
+        log_write "${CROSS} Distro:  ${COL_RED}${detected_os}${COL_NC}"
+        log_write "${CROSS} Error: ${COL_RED}${detected_os} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+    fi
 }
 
 diagnose_operating_system() {
@@ -451,7 +451,7 @@ diagnose_operating_system() {
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
         # display the attributes to the user from the function made earlier
-        get_distro_attributes
+        os_check
     else
         # If it doesn't exist, it's not a system we currently support and link to FAQ
         log_write "${CROSS} ${COL_RED}${error_msg}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})"
