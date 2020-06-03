@@ -95,7 +95,6 @@ While we are primarily reachable on our <a href="https://discourse.pi-hole.net/"
   <li><a href="https://discourse.pi-hole.net/c/feature-requests?order=votes">Feature Requests</a></li>
   <li><a href="https://discourse.pi-hole.net/">Discourse User Forum</a></li>
   <li><a href="https://www.reddit.com/r/pihole/">Reddit</a></li>
-  <li><a href="https://gitter.im/pi-hole/pi-hole">Gitter</a> (Real-time chat)</li>
   <li><a href="https://twitter.com/The_Pi_Hole">Twitter</a></li>
   <li><a href="https://www.youtube.com/channel/UCT5kq9w0wSjogzJb81C9U0w">YouTube</a></li>
   <li><a href="https://www.facebook.com/ThePiHole/">Facebook</a></li>
