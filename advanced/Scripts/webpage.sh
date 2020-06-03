@@ -46,6 +46,7 @@ Options:
                       use -sn to prevent logging to results list
   -sd                 Set speedtest display range
   -sn                 Run speedtest now
+  -sm		      Speedtest Mode
   -sc                 Clear speedtest data
   -ss                 Set custom server
   -l, privacylevel    Set privacy level (0 = lowest, 4 = highest)"
@@ -462,6 +463,17 @@ RunSpeedtestNow(){
   fi
 }
 
+SpeedtestMode(){
+  if [[ "${args[2]}" ]]; then
+      change_setting "SPEEDTEST_MODE" "${args[2]}"
+  else
+      # Autoselect for invalid data
+      change_setting "SPEEDTEST_MODE" "python"
+  fi
+
+}
+
+
 SetCronTab()
 {
   # Remove OLD
@@ -474,7 +486,15 @@ SetCronTab()
   if [[ "$1" == "0" ]]; then
       crontab crontab.tmp && rm -f crontab.tmp
   else
-      newtab="0 */"${1}" * * * sudo \""${speedtestfile}"\"  > /dev/null 2>&1"
+      mode=$(sed -n -e '/SPEEDTEST_MODE/ s/.*\= *//p' $setupVars)
+
+      if [[ "$mode" =~ "official" ]]; then
+        speedtest_file="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest-official.sh"
+      else
+      	speedtest_file="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
+      fi
+
+      newtab="0 */"${1}" * * * sudo \""${speedtest_file}"\"  > /dev/null 2>&1"
       printf '%s\n' "$newtab" >>crontab.tmp
       crontab crontab.tmp && rm -f crontab.tmp
   fi
@@ -740,6 +760,7 @@ main() {
         "-s" | "speedtest"    ) ChageSpeedTestSchedule;;
         "-sd"                 ) UpdateSpeedTestRange;;
         "-sn"                 ) RunSpeedtestNow;;
+	    "-sm"                 ) SpeedtestMode;;
         "-sc"                 ) ClearSpeedtestData;;
         "-ss"                 ) SpeedtestServer;;
         "addcustomdns"        ) AddCustomDNSAddress;;
