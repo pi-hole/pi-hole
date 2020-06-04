@@ -226,7 +226,8 @@ SetDNSServers() {
     IFS=',' read -r -a array <<< "${args[2]}"
     for index in "${!array[@]}"
     do
-        add_setting "PIHOLE_DNS_$((index+1))" "${array[index]}"
+        # Replace possible "\#" by "#". This fixes AdminLTE#1427
+        add_setting "PIHOLE_DNS_$((index+1))" "${array[index]//\\#/#}"
     done
 
     if [[ "${args[3]}" == "domain-needed" ]]; then
