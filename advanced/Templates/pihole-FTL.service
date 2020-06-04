@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ### BEGIN INIT INFO
 # Provides:          pihole-FTL
-# Required-Start:    $remote_fs $syslog $network
+# Required-Start:    $remote_fs $syslog $network $time
 # Required-Stop:     $remote_fs $syslog $network
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
