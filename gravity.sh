@@ -376,7 +376,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Target: ${url}"
     local regex
     # Check for characters NOT allowed in URLs
-    regex="[^a-zA-Z0-9:/?&%=~._-]"
+    regex="[^a-zA-Z0-9:/?&%=~._()-;]"
     if [[ "${url}" =~ ${regex} ]]; then
         echo -e "  ${CROSS} Invalid Target"
     else
@@ -573,12 +573,14 @@ gravity_ParseFileIntoDomains() {
     # It also helps with debugging so each stage of the script can be researched more in depth
     # 1) Remove carriage returns
     # 2) Convert all characters to lowercase
-    # 3) Remove lines containing "#" or "/"
-    # 4) Remove leading tabs, spaces, etc.
-    # 5) Delete lines not matching domain names
+    # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
+    # 4) Remove lines containing "/"
+    # 5) Remove leading tabs, spaces, etc.
+    # 6) Delete lines not matching domain names
     < "${source}" tr -d '\r' | \
     tr '[:upper:]' '[:lower:]' | \
-    sed -r '/(\/|#).*$/d' | \
+    sed 's/\s*#.*//g' | \
+    sed -r '/(\/).*$/d' | \
     sed -r 's/^.*\s+//g' | \
     sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
     chmod 644 "${destination}"
@@ -638,7 +640,7 @@ gravity_Table_Count() {
   if [[ "${table}" == "vw_gravity" ]]; then
     local unique
     unique="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(DISTINCT domain) FROM ${table};")"
-    echo -e "  ${INFO} Number of ${str}: ${num} (${unique} unique domains)"
+    echo -e "  ${INFO} Number of ${str}: ${num} (${COL_BOLD}${unique} unique domains${COL_NC})"
     sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"

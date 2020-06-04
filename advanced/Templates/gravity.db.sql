@@ -10,17 +10,18 @@ CREATE TABLE "group"
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	description TEXT
 );
-INSERT INTO "group" (id,enabled,name) VALUES (0,1,'Unassociated');
+INSERT INTO "group" (id,enabled,name,description) VALUES (0,1,'Default','The default group');
 
 CREATE TABLE domainlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	type INTEGER NOT NULL DEFAULT 0,
-	domain TEXT UNIQUE NOT NULL,
+	domain TEXT NOT NULL,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	comment TEXT,
+	UNIQUE(domain, type)
 );
 
 CREATE TABLE adlist
@@ -52,7 +53,7 @@ CREATE TABLE info
 	value TEXT NOT NULL
 );
 
-INSERT INTO "info" VALUES('version','11');
+INSERT INTO "info" VALUES('version','12');
 
 CREATE TABLE domain_audit
 (
@@ -167,7 +168,7 @@ CREATE TRIGGER tr_group_update AFTER UPDATE ON "group"
 
 CREATE TRIGGER tr_group_zero AFTER DELETE ON "group"
     BEGIN
-      INSERT OR IGNORE INTO "group" (id,enabled,name) VALUES (0,1,'Unassociated');
+      INSERT OR IGNORE INTO "group" (id,enabled,name) VALUES (0,1,'Default');
     END;
 
 CREATE TRIGGER tr_domainlist_delete AFTER DELETE ON domainlist

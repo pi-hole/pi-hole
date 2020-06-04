@@ -13,7 +13,7 @@ LC_NUMERIC=C
 
 # Retrieve stats from FTL engine
 pihole-FTL() {
-    ftl_port=$(cat /var/run/pihole-FTL.port 2> /dev/null)
+    ftl_port=$(cat /run/pihole-FTL.port 2> /dev/null)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
         exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
@@ -153,7 +153,7 @@ get_init_stats() {
 
         sys_throttle_raw=$(vgt=$(sudo vcgencmd get_throttled); echo "${vgt##*x}")
 
-        # Active Throttle Notice: http://bit.ly/2gnunOo
+        # Active Throttle Notice: https://bit.ly/2gnunOo
         if [[ "$sys_throttle_raw" != "0" ]]; then
             case "$sys_throttle_raw" in
                 *0001) thr_type="${COL_YELLOW}Under Voltage";;

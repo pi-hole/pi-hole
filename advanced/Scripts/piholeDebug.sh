@@ -87,7 +87,7 @@ PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
 PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
-#WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
+WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
@@ -166,11 +166,13 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_DHCP_CONFIG_FILE}"
 "${PIHOLE_WILDCARD_CONFIG_FILE}"
 "${WEB_SERVER_CONFIG_FILE}"
+"${WEB_SERVER_CUSTOM_CONFIG_FILE}"
 "${PIHOLE_INSTALL_LOG_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
 "${PIHOLE_LOGROTATE_FILE}"
 "${PIHOLE_SETUP_VARS_FILE}"
+"${PIHOLE_FTL_CONF_FILE}"
 "${PIHOLE_COMMAND}"
 "${PIHOLE_COLTABLE_FILE}"
 "${FTL_PID}"
@@ -296,7 +298,11 @@ compare_local_version_to_git_version() {
                 log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
             fi
 
-            # If the repo is on the master branch, they are on the stable codebase
+            # Print the repo upstreams
+            remotes=$(git remote -v)
+            log_write "${INFO} Remotes: ${remotes//$'\n'/'\n             '}"
+
+            # If the repo is on the master branchs, they are on the stable codebase
             if [[ "${remote_branch}" == "master" ]]; then
                 # so the color of the text is green
                 log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
@@ -1107,22 +1113,19 @@ show_db_entries() {
 }
 
 show_groups() {
-    show_db_entries "Groups" "SELECT id,name,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 50 7 19 19 50"
+    show_db_entries "Groups" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,name,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 7 50 19 19 50"
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT id,address,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist" "4 100 7 19 19 50"
-    show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
+    show_db_entries "Adlists" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids,address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "4 7 12 100 19 19 50"
 }
 
 show_domainlist() {
-    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,type,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist" "4 4 100 7 19 19 50"
-    show_db_entries "Domainlist groups" "SELECT * FROM domainlist_by_group" "10 10"
+    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,CASE type WHEN '0' THEN '0   ' WHEN '1' THEN ' 1  ' WHEN '2' THEN '  2 ' WHEN '3' THEN '   3' ELSE type END type,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "4 4 7 12 100 19 19 50"
 }
 
 show_clients() {
-    show_db_entries "Clients" "SELECT id,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client" "4 100 19 19 50"
-    show_db_entries "Client groups" "SELECT * FROM client_by_group" "10 10"
+    show_db_entries "Clients" "SELECT id,GROUP_CONCAT(client_by_group.group_id) group_ids,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client LEFT JOIN client_by_group ON client.id = client_by_group.client_id GROUP BY id;" "4 12 100 19 19 50"
 }
 
 analyze_gravity_list() {

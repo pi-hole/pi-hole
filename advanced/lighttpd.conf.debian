@@ -30,7 +30,7 @@ server.document-root        = "/var/www/html"
 server.error-handler-404    = "/pihole/index.php"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error.log"
-server.pid-file             = "/var/run/lighttpd.pid"
+server.pid-file             = "/run/lighttpd.pid"
 server.username             = "www-data"
 server.groupname            = "www-data"
 server.port                 = 80
@@ -49,7 +49,7 @@ mimetype.assign   = ( ".png"  => "image/png",
                       ".jpeg" => "image/jpeg",
                       ".html" => "text/html",
                       ".css" => "text/css; charset=utf-8",
-                      ".js" => "application/javascript",
+                      ".js" => "application/javascript; charset=utf-8",
                       ".json" => "application/json",
                       ".txt"  => "text/plain",
                       ".svg"  => "image/svg+xml" )
