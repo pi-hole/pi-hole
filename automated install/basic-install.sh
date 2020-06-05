@@ -174,6 +174,61 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+os_check() {
+    # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
+    # and determines whether or not the script is running on one of those systems
+    local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version display_warning
+    remote_os_domain="versions.pi-hole.net"
+    valid_os=false
+    valid_version=false
+    display_warning=true
+
+    detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
+    detected_os="${detected_os_pretty%% *}"
+    detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
+
+    IFS=" "; read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"')
+
+    for i in "${supportedOS[@]}"
+    do
+        os_part=$(echo "$i" | cut -d '=' -f1)
+        versions_part=$(echo "$i" | cut -d '=' -f2-)
+
+        if [[ "${detected_os}" =~ ${os_part} ]]; then
+          valid_os=true
+          IFS=","; read -r -a supportedVer <<<"${versions_part}"
+          for x in "${supportedVer[@]}"
+          do
+            if [[ "${detected_version}" =~ $x ]];then
+              valid_version=true
+              break
+            fi
+          done
+          break
+        fi
+    done
+
+    if [ "$valid_os" = true ] && [ "$valid_version" = true ]; then
+        display_warning=false
+    fi
+
+    if [ "$display_warning" = true ] && [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
+        printf "  %b %bUnsupported OS detected%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
+        printf "\\n"
+        printf "      This check can be skipped by setting the environment variable %bPIHOLE_SKIP_OS_CHECK%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "      e.g: export PIHOLE_SKIP_OS_CHECK=true\\n"
+        printf "      By setting this variable to true you acknowledge there may be issues with Pi-hole during or after the install\\n"
+        printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "      https://discourse.pi-hole.net/c/bugs-problems-issues/community-help/\\n"
+        exit 1
+    elif [ "$display_warning" = true ] && [ "$PIHOLE_SKIP_OS_CHECK" = true ]; then
+        printf "  %b %bUnsupported OS detected%b. PIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
+    else
+        printf "  %b %bSupported OS detected%b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+    fi
+}
+
 # Compatibility
 distro_check() {
 # If apt-get is installed, then we know it's part of the Debian family
@@ -608,7 +663,7 @@ verifyFreeDiskSpace() {
         printf "      We were unable to determine available free disk space on this system.\\n"
         printf "      You may override this check, however, it is not recommended.\\n"
         printf "      The option '%b--i_do_not_follow_recommendations%b' can override this.\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        printf "      e.g: curl -L https://install.pi-hole.net | bash /dev/stdin %b<option>%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "      e.g: curl -sSL https://install.pi-hole.net | bash /dev/stdin %b<option>%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
         # exit with an error code
         exit 1
     # If there is insufficient free disk space,
@@ -623,7 +678,7 @@ verifyFreeDiskSpace() {
             printf "      If this is a new install you may need to expand your disk\\n"
             printf "      Run 'sudo raspi-config', and choose the 'expand file system' option\\n"
             printf "      After rebooting, run this installation again\\n"
-            printf "      e.g: curl -L https://install.pi-hole.net | bash\\n"
+            printf "      e.g: curl -sSL https://install.pi-hole.net | bash\\n"
         fi
         # Show there is not enough free space
         printf "\\n      %bInsufficient free space, exiting...%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
@@ -2546,6 +2601,7 @@ main() {
     fi
 
     # Check for supported distribution
+    os_check
     distro_check
 
     # If the setup variable file exists,
