@@ -405,7 +405,7 @@ os_check() {
     detected_os="${detected_os_pretty%% *}"
     detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
 
-    mapfile -t supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"' | tr ' ' '\n')
+    IFS=" "; read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"')
 
     for i in "${supportedOS[@]}"
     do
@@ -414,7 +414,7 @@ os_check() {
 
         if [[ "${detected_os}" =~ ${os_part} ]]; then
           valid_os=true
-          mapfile -t supportedVer < <(echo "${versions_part}" | tr ',' '\n')
+          IFS=","; read -r -a supportedVer <<<"${versions_part}"
           for x in "${supportedVer[@]}"
           do
             if [[ "${detected_version}" =~ $x ]];then
