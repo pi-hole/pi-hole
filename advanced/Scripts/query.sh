@@ -122,7 +122,7 @@ scanDatabaseTable() {
       return
     fi
 
-    # Mark domain as having been white-/blacklist matched (global variable)
+    # Mark domain as having been allow-/blocklist matched (global variable)
     wbMatch=true
 
     # Print table name
@@ -187,13 +187,13 @@ scanRegexDatabaseTable() {
     fi
 }
 
-# Scan Whitelist and Blacklist
-scanDatabaseTable "${domainQuery}" "whitelist" "0"
-scanDatabaseTable "${domainQuery}" "blacklist" "1"
+# Scan Allowlist and Blocklist
+scanDatabaseTable "${domainQuery}" "allowlist" "0"
+scanDatabaseTable "${domainQuery}" "blocklist" "1"
 
 # Scan Regex table
-scanRegexDatabaseTable "${domainQuery}" "whitelist" "2"
-scanRegexDatabaseTable "${domainQuery}" "blacklist" "3"
+scanRegexDatabaseTable "${domainQuery}" "allowlist" "2"
+scanRegexDatabaseTable "${domainQuery}" "blocklist" "3"
 
 # Query block lists
 mapfile -t results <<< "$(scanDatabaseTable "${domainQuery}" "gravity")"

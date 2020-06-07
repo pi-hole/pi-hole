@@ -12,38 +12,38 @@
 .linkEmail:before { content: "Contact Admin"; }
 
 #bpOutput.add:before { content: "Info"; }
-#bpOutput.add:after { content: "The domain is being whitelisted..."; }
+#bpOutput.add:after { content: "The domain is being allowlisted..."; }
 #bpOutput.error:before, .unhandled:before { content: "Error"; }
 #bpOutput.unhandled:after { content: "An unhandled exception occured. This may happen when your browser is unable to load jQuery, or when the webserver is denying access to the Pi-hole API."; }
 #bpOutput.success:before { content: "Success"; }
-#bpOutput.success:after { content: "Website has been whitelisted! You may need to flush your DNS cache"; }
+#bpOutput.success:after { content: "Website has been allowlisted! You may need to flush your DNS cache"; }
 
-.recentwl:before { content: "This site has been whitelisted. Please flush your DNS cache and/or restart your browser."; }
-.unknown:before { content: "This website is not found in any of Pi-hole's blacklists. The reason you have arrived here is unknown."; }
+.recentwl:before { content: "This site has been allowlisted. Please flush your DNS cache and/or restart your browser."; }
+.unknown:before { content: "This website is not found in any of Pi-hole's blocklists. The reason you have arrived here is unknown."; }
 .cname:before { content: "This site is an alias for "; } /* <a href="http://cname.com">cname.com</a> */
 .cname:after { content: ", which may be blocked by Pi-hole."; }
 
-.blacklist:before { content: "Manually Blacklisted"; }
-.wildcard:before { content: "Manually Blacklisted by Wildcard"; }
-.noblock:before { content: "Not found on any Blacklist"; }
+.blocklist:before { content: "Manually Blocklisted"; }
+.wildcard:before { content: "Manually Blocklisted by Wildcard"; }
+.noblock:before { content: "Not found on any Blocklist"; }
 
 #bpBlock:before { content: "Access to the following website has been denied:"; }
 #bpFlag:before { content: "This is primarily due to being flagged as:"; }
 
 #bpHelpTxt:before { content: "If you have an ongoing use for this website, please "; }
 #bpHelpTxt a:before, #bpHelpTxt span:before { content: "ask the administrator"; }
-#bpHelpTxt:after{ content: " of the Pi-hole on this network to have it whitelisted"; }
+#bpHelpTxt:after{ content: " of the Pi-hole on this network to have it allowlisted"; }
 
 #bpBack:before { content: "Back to safety"; }
 #bpInfo:before { content: "Technical Info"; }
 #bpFoundIn:before { content: "This site is found in "; }
 #bpFoundIn span:after { content: " of "; }
 #bpFoundIn:after { content: " lists:"; }
-#bpWhitelist:before { content: "Whitelist"; }
+#bpAllowlist:before { content: "Allowlist"; }
 
 footer span:before { content: "Page generated on "; }
 
-/* Hide whitelisting form entirely */
+/* Hide allowlisting form entirely */
 /* #bpWLButtons { display: none; } */
 /* Text Customisation Options <=============================== */
 
@@ -333,7 +333,7 @@ main {
 #bpButtons * { width: 50%; color: #FFF; }
 #bpBack           { background-color: #00a65a; }
 #bpInfo           { background-color: #3c8dbc;  }
-#bpWhitelist  { background-color: #dd4b39; }
+#bpAllowlist  { background-color: #dd4b39; }
 
 #blockpage .buttons [type=password][disabled] { color: rgba(0,0,0,1); }
 #blockpage .buttons [disabled] { color: rgba(0,0,0,0.55); background-color: #e3e3e3; }
@@ -360,7 +360,7 @@ input[type=password] { font-size: 1.5rem; }
 #bpWLButtons * { display: inline-block; }
 #bpWLDomain { display: none; }
 #bpWLPassword { width: 160px; }
-#bpWhitelist { color: #fff; }
+#bpAllowlist { color: #fff; }
 
 footer {
   background: #fff;

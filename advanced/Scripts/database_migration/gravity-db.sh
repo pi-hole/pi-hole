@@ -37,8 +37,8 @@ upgrade_gravityDB(){
 	fi
 	if [[ "$version" == "2" ]]; then
 		# This migration script upgrades the gravity.db file by
-		# renaming the regex table to regex_blacklist, and
-		# creating a new regex_whitelist table + corresponding linking table and views
+		# renaming the regex table to regex_blocklist, and
+		# creating a new regex_allowlist table + corresponding linking table and views
 		echo -e "  ${INFO} Upgrading gravity database from version 2 to 3"
 		sqlite3 "${database}" < "${scriptPath}/2_to_3.sql"
 		version=3

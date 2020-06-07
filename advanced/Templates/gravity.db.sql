@@ -99,7 +99,7 @@ CREATE TRIGGER tr_domainlist_update AFTER UPDATE ON domainlist
       UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
     END;
 
-CREATE VIEW vw_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+CREATE VIEW vw_allowlist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
@@ -107,7 +107,7 @@ CREATE VIEW vw_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_gr
     AND domainlist.type = 0
     ORDER BY domainlist.id;
 
-CREATE VIEW vw_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+CREATE VIEW vw_blocklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
@@ -115,7 +115,7 @@ CREATE VIEW vw_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_gr
     AND domainlist.type = 1
     ORDER BY domainlist.id;
 
-CREATE VIEW vw_regex_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+CREATE VIEW vw_regex_allowlist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
@@ -123,7 +123,7 @@ CREATE VIEW vw_regex_whitelist AS SELECT domain, domainlist.id AS id, domainlist
     AND domainlist.type = 2
     ORDER BY domainlist.id;
 
-CREATE VIEW vw_regex_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+CREATE VIEW vw_regex_blocklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id

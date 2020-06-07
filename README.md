@@ -109,10 +109,10 @@ While we are primarily reachable on our <a href="https://discourse.pi-hole.net/"
 ### The Command Line Interface
 The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole, without the need of the Web Interface. It's fast, user-friendly, and auditable by anyone with an understanding of `bash`.
 
-<a href="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif"><img src="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif" alt="Pi-hole Blacklist Demo"/></a>
+<a href="https://pi-hole.github.io/graphics/Screenshots/blocklist-cli.gif"><img src="https://pi-hole.github.io/graphics/Screenshots/blocklist-cli.gif" alt="Pi-hole Blocklist Demo"/></a>
 
 Some notable features include:
-* [Whitelisting, Blacklisting and Wildcards](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#whitelisting-blacklisting-and-wildcards)
+* [Allowlisting, Blocklisting and Wildcards](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#allowlisting-blocklisting-and-wildcards)
 * [Debugging utility](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#debugger)
 * [Viewing the live log file](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#tail)
 * [Real-time Statistics via `ssh`](https://github.com/pi-hole/pi-hole/wiki/Core-Function-Breakdown#chronometer) or [your TFT LCD screen](http://www.amazon.com/exec/obidos/ASIN/B00ID39LM4/pihole09-20)

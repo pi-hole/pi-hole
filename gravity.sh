@@ -26,8 +26,7 @@ PIHOLE_COMMAND="/usr/local/bin/${basename}"
 piholeDir="/etc/${basename}"
 
 # Legacy (pre v5.0) list file locations
-whitelistFile="${piholeDir}/whitelist.txt"
-blacklistFile="${piholeDir}/blacklist.txt"
+allowlistFile="${piholeDir}/allowlist.txt"
 regexFile="${piholeDir}/regex.list"
 adListFile="${piholeDir}/adlists.list"
 
@@ -148,10 +147,10 @@ database_table_from_file() {
   rowid=1
 
   # Special handling for domains to be imported into the common domainlist table
-  if [[ "${table}" == "whitelist" ]]; then
+  if [[ "${table}" == "allowlist" ]]; then
     type="0"
     table="domainlist"
-  elif [[ "${table}" == "blacklist" ]]; then
+  elif [[ "${table}" == "blocklist" ]]; then
     type="1"
     table="domainlist"
   elif [[ "${table}" == "regex" ]]; then
@@ -181,7 +180,7 @@ database_table_from_file() {
         # Adlist table format
         echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
       else
-        # White-, black-, and regexlist table format
+        # Allow-, block-, and regexlist table format
         echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
       fi
       rowid+=1
@@ -226,20 +225,20 @@ migrate_to_database() {
       echo -e "  ${INFO} Migrating content of ${adListFile} into new database"
       database_table_from_file "adlist" "${adListFile}"
     fi
-    if [ -e "${blacklistFile}" ]; then
-      # Store blacklisted domains in database
-      echo -e "  ${INFO} Migrating content of ${blacklistFile} into new database"
-      database_table_from_file "blacklist" "${blacklistFile}"
+    if [ -e "${blocklistFile}" ]; then
+      # Store blocklisted domains in database
+      echo -e "  ${INFO} Migrating content of ${blocklistFile} into new database"
+      database_table_from_file "blocklist" "${blocklistFile}"
     fi
-    if [ -e "${whitelistFile}" ]; then
-      # Store whitelisted domains in database
-      echo -e "  ${INFO} Migrating content of ${whitelistFile} into new database"
-      database_table_from_file "whitelist" "${whitelistFile}"
+    if [ -e "${allowlistFile}" ]; then
+      # Store allowlisted domains in database
+      echo -e "  ${INFO} Migrating content of ${allowlistFile} into new database"
+      database_table_from_file "allowlist" "${allowlistFile}"
     fi
     if [ -e "${regexFile}" ]; then
       # Store regex domains in database
       # Important note: We need to add the domains to the "regex" table
-      # as it will only later be renamed to "regex_blacklist"!
+      # as it will only later be renamed to "regex_blocklist"!
       echo -e "  ${INFO} Migrating content of ${regexFile} into new database"
       database_table_from_file "regex" "${regexFile}"
     fi
@@ -647,13 +646,13 @@ gravity_Table_Count() {
   fi
 }
 
-# Output count of blacklisted domains and regex filters
+# Output count of blocklisted domains and regex filters
 gravity_ShowCount() {
   gravity_Table_Count "vw_gravity" "gravity domains" ""
-  gravity_Table_Count "vw_blacklist" "exact blacklisted domains"
-  gravity_Table_Count "vw_regex_blacklist" "regex blacklist filters"
-  gravity_Table_Count "vw_whitelist" "exact whitelisted domains"
-  gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
+  gravity_Table_Count "vw_blocklist" "exact blocklisted domains"
+  gravity_Table_Count "vw_regex_blocklist" "regex blocklist filters"
+  gravity_Table_Count "vw_allowlist" "exact allowlisted domains"
+  gravity_Table_Count "vw_regex_allowlist" "regex allowlist filters"
 }
 
 # Parse list of domains into hosts format

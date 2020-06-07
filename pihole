@@ -302,12 +302,12 @@ tailFunc() {
   source /etc/pihole/setupVars.conf
 
   # Strip date from each line
-  # Colour blocklist/blacklist/wildcard entries as red
+  # Colour blocklist/wildcard entries as red
   # Colour A/AAAA/DHCP strings as white
   # Colour everything else as gray
   tail -f /var/log/pihole.log | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
-    -e "s,(.*(blacklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(blocklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0
@@ -377,14 +377,14 @@ helpFunc() {
 Example: 'pihole -w -h'
 Add '-h' after specific commands for more information on usage
 
-Whitelist/Blacklist Options:
-  -w, whitelist       Whitelist domain(s)
-  -b, blacklist       Blacklist domain(s)
-  --regex, regex      Regex blacklist domains(s)
-  --white-regex       Regex whitelist domains(s)
-  --wild, wildcard    Wildcard blacklist domain(s)
-  --white-wild        Wildcard whitelist domain(s)
-                        Add '-h' for more info on whitelist/blacklist usage
+Allowlist/Blocklist Options:
+  -w, allowlist       Allowlist domain(s)
+  -b, blocklist       Blocklist domain(s)
+  --regex, regex      Regex blocklist domains(s)
+  --allow-regex       Regex allowlist domains(s)
+  --wild, wildcard    Wildcard blocklist domain(s)
+  --allow-wild        Wildcard allowlist domain(s)
+                        Add '-h' for more info on allowlist/blocklist usage
 
 Debugging Options:
   -d, debug           Start a debugging session
@@ -443,12 +443,12 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-  "-w" | "whitelist"            ) listFunc "$@";;
-  "-b" | "blacklist"            ) listFunc "$@";;
+  "-w" | "allowlist"            ) listFunc "$@";;
+  "-b" | "blocklist"            ) listFunc "$@";;
   "--wild" | "wildcard"         ) listFunc "$@";;
   "--regex" | "regex"           ) listFunc "$@";;
-  "--white-regex" | "white-regex" ) listFunc "$@";;
-  "--white-wild" | "white-wild"   ) listFunc "$@";;
+  "--allow-regex" | "allow-regex" ) listFunc "$@";;
+  "--allow-wild" | "allow-wild"   ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
