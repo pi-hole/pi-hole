@@ -478,7 +478,7 @@ SetCronTab()
 {
   # Remove OLD
   crontab -l >crontab.tmp
-  old=$(cat crontab.tmp | awk '/speedtest.sh/ {print FNR}')
+  old=$(cat crontab.tmp | awk '/speedtest/ {print FNR}')
   if [[ "$old" =~ ^[0-9]+$ ]]; then
     crontab -l | sed -e "${old}d" >crontab.tmp
   fi
