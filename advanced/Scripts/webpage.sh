@@ -477,21 +477,20 @@ SpeedtestMode(){
 SetCronTab()
 {
   # Remove OLD
-  crontab -l >crontab.tmp
-  old=$(cat crontab.tmp | awk '/speedtest/ {print FNR}')
-  if [[ "$old" =~ ^[0-9]+$ ]]; then
-    crontab -l | sed -e "${old}d" >crontab.tmp
-  fi
-  # Add New
+  crontab -l > crontab.tmp
+
   if [[ "$1" == "0" ]]; then
+      sed -i '/speedtest/d' crontab.tmp
       crontab crontab.tmp && rm -f crontab.tmp
   else
+      sed -i '/speedtest/d' crontab.tmp
+
       mode=$(sed -n -e '/SPEEDTEST_MODE/ s/.*\= *//p' $setupVars)
 
       if [[ "$mode" =~ "official" ]]; then
         speedtest_file="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest-official.sh"
       else
-      	speedtest_file="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
+        speedtest_file="/var/www/html/admin/scripts/pi-hole/speedtest/speedtest.sh"
       fi
 
       newtab="0 */"${1}" * * * sudo \""${speedtest_file}"\"  > /dev/null 2>&1"
