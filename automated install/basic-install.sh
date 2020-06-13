@@ -308,9 +308,9 @@ if is_command apt-get ; then
     fi
     # Since our install script is so large, we need several other programs to successfully get a machine provisioned
     # These programs are stored in an array so they can be looped through later
-    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail)
+    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail dnsutils)
     # Pi-hole itself has several dependencies that also need to be installed
-    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
     PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
@@ -349,8 +349,8 @@ elif is_command rpm ; then
 
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
-    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap)
+    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig bind-utils)
+    PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
@@ -2601,7 +2601,6 @@ main() {
     fi
 
     # Check for supported distribution
-    os_check
     distro_check
 
     # If the setup variable file exists,
@@ -2633,6 +2632,9 @@ main() {
 
     # Install packages used by this installation script
     install_dependent_packages "${INSTALLER_DEPS[@]}"
+
+    # Check that the installed OS is officially supported - display warning if not
+    os_check
 
     # Check if SELinux is Enforcing
     checkSelinux
