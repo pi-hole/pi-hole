@@ -1017,21 +1017,29 @@ valid_ip() {
     local ip=${1}
     local stat=1
 
-    # If the IP matches the format xxx.xxx.xxx.xxx,
-    if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+    # If the IP matches the format xxx.xxx.xxx.xxx (optional port of range #0-65536), also ensure string ends with 0-9
+    if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}#{0,1}[0-9]{0,5}$ && "${ip}" =~ ^.*[0-9]$ ]]; then
         # Save the old Internal Field Separator in a variable
         OIFS=$IFS
         # and set the new one to a dot (period)
-        IFS='.'
+        IFS='.#'
         # Put the IP into an array
         read -r -a ip <<< "${ip}"
         # Restore the IFS to what it was
         IFS=${OIFS}
+
         ## Evaluate each octet by checking if it's less than or equal to 255 (the max for each octet)
-        [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 \
-        && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 ]]
+        [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 ]]
         # Save the exit code
         stat=$?
+
+        # If there is a 5th part to the array, then it is a port number - check it is between 1 and 65536
+        if [[ "${ip[4]}" ]]; then
+            [[ "${ip[4]}" -ge 1 && "${ip[4]}" -le 65536 ]]
+            # Save the exit code
+            stat=$?
+        fi
+
     fi
     # Return the exit code
     return "${stat}"
