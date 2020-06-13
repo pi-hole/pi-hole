@@ -10,17 +10,20 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
-readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly dnscustomfile="/etc/pihole/custom.list"
 readonly dnscustomcnamefile="/etc/dnsmasq.d/05-pihole-custom-cname.conf"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
+
+# Source install script for ${setupVars}, ${PI_HOLE_BIN_DIR} and valid_ip()
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+PH_TEST="true"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
@@ -227,7 +230,15 @@ SetDNSServers() {
     for index in "${!array[@]}"
     do
         # Replace possible "\#" by "#". This fixes AdminLTE#1427
-        add_setting "PIHOLE_DNS_$((index+1))" "${array[index]//\\#/#}"
+        local ip
+        ip="${array[index]//\\#/#}"
+
+        if valid_ip "${ip}" ; then
+            add_setting "PIHOLE_DNS_$((index+1))" "${ip}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
     done
 
     if [[ "${args[3]}" == "domain-needed" ]]; then
