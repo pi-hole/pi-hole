@@ -1018,7 +1018,7 @@ valid_ip() {
     local stat=1
 
     # If the IP matches the format xxx.xxx.xxx.xxx (optional port of range #0-65536), also ensure string ends with 0-9
-    if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}#{0,1}[0-9]{0,5}$ && "${ip}" =~ ^.*[0-9]$ ]]; then
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(#[0-9]{1,5})?$ ]]; then
         # Save the old Internal Field Separator in a variable
         OIFS=$IFS
         # and set the new one to a dot (period)
