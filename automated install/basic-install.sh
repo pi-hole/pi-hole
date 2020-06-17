@@ -2310,11 +2310,11 @@ get_binary_name() {
             if [[ -f "/.dockerenv" ]]; then
                 printf "%b  %b Detected ARM architecture in docker\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-armel-native"
+                l_binary="pihole-FTL-armel-native"
             else
                 printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-arm-linux-gnueabi"
             fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
