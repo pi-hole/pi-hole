@@ -1017,22 +1017,16 @@ valid_ip() {
     local ip=${1}
     local stat=1
 
-    # If the IP matches the format xxx.xxx.xxx.xxx,
-    if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        # Save the old Internal Field Separator in a variable
-        OIFS=$IFS
-        # and set the new one to a dot (period)
-        IFS='.'
-        # Put the IP into an array
-        read -r -a ip <<< "${ip}"
-        # Restore the IFS to what it was
-        IFS=${OIFS}
-        ## Evaluate each octet by checking if it's less than or equal to 255 (the max for each octet)
-        [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 \
-        && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 ]]
-        # Save the exit code
-        stat=$?
-    fi
+    # One IPv4 element is 8bit: 0 - 256
+    local ipv4elem="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)";
+    # optional port number starting '#' with range of 1-65536
+    local portelem="(#([1-9]|[1-8][0-9]|9[0-9]|[1-8][0-9]{2}|9[0-8][0-9]|99[0-9]|[1-8][0-9]{3}|9[0-8][0-9]{2}|99[0-8][0-9]|999[0-9]|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-6]))?"
+    # build a full regex string from the above parts
+    local regex="^${ipv4elem}\.${ipv4elem}\.${ipv4elem}\.${ipv4elem}${portelem}$"
+
+    [[ $ip =~ ${regex} ]]
+
+    stat=$?
     # Return the exit code
     return "${stat}"
 }
