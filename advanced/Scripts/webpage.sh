@@ -226,19 +226,10 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
         delete_setting "CONDITIONAL_FORWARDING_IP"
 
-        # Try to detect intended CIDR by analyzing the target
-        if [[ "${REV_SERVER_TARGET}" =~ 10\..* ]]; then
-            # Private network, Class A (RFC 1597 + RFC 1918)
-            REV_SERVER_CIDR="10.0.0.0/8"
-        elif [[ "${REV_SERVER_TARGET}" =~ 192\.168\..* ]]; then
-            # Private network, Class B (RFC 1597 + RFC 1918)
-            REV_SERVER_CIDR="192.168.0.0/16"
-        else
-            # Something else, convert to /24 subnet (preserves legacy behavior)
-            # This sed converts "192.168.1.2" to "192.168.1.0/24"
-            # shellcheck disable=2001
-            REV_SERVER_CIDR="$(sed "s+\\.[0-9]*$+\\.0/24+" <<< "${REV_SERVER_TARGET}")"
-        fi
+        # Convert existing input to /24 subnet (preserves legacy behavior)
+        # This sed converts "192.168.1.2" to "192.168.1.0/24"
+        # shellcheck disable=2001
+        REV_SERVER_CIDR="$(sed "s+\\.[0-9]*$+\\.0/24+" <<< "${REV_SERVER_TARGET}")"
         add_setting "REV_SERVER_CIDR" "${REV_SERVER_CIDR}"
     fi
 
