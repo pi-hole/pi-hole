@@ -214,8 +214,34 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
     fi
 
     if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
-        add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
-        add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
+        # Convert legacy "conditional forwarding" to rev-server configuration
+        REV_SERVER=true
+        add_setting "REV_SERVER" "true"
+
+        REV_SERVER_DOMAIN="${CONDITIONAL_FORWARDING_DOMAIN}"
+        add_setting "REV_SERVER_DOMAIN" "${REV_SERVER_DOMAIN}"
+
+        REV_SERVER_TARGET="${CONDITIONAL_FORWARDING_IP}"
+        add_setting "REV_SERVER_TARGET" "${REV_SERVER_TARGET}"
+
+        # Remove obsolete settings from setupVars.conf
+        delete_setting "CONDITIONAL_FORWARDING"
+        delete_setting "CONDITIONAL_FORWARDING_REVERSE"
+        delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
+        delete_setting "CONDITIONAL_FORWARDING_IP"
+
+        # Convert existing input to /24 subnet (preserves legacy behavior)
+        # This sed converts "192.168.1.2" to "192.168.1.0/24"
+        # shellcheck disable=2001
+        REV_SERVER_CIDR="$(sed "s+\\.[0-9]*$+\\.0/24+" <<< "${REV_SERVER_TARGET}")"
+        add_setting "REV_SERVER_CIDR" "${REV_SERVER_CIDR}"
+    fi
+
+    if [[ "${REV_SERVER}" == true ]]; then
+        add_dnsmasq_setting "rev-server=${REV_SERVER_CIDR},${REV_SERVER_TARGET}"
+        if [ -n "${REV_SERVER_DOMAIN}" ]; then
+            add_dnsmasq_setting "server=/${REV_SERVER_DOMAIN}/${REV_SERVER_TARGET}"
+        fi
     fi
 
     # Prevent Firefox from automatically switching over to DNS-over-HTTPS
@@ -260,16 +286,13 @@ SetDNSServers() {
         change_setting "DNSSEC" "false"
     fi
 
-    if [[ "${args[6]}" == "conditional_forwarding" ]]; then
-        change_setting "CONDITIONAL_FORWARDING" "true"
-        change_setting "CONDITIONAL_FORWARDING_IP" "${args[7]}"
-        change_setting "CONDITIONAL_FORWARDING_DOMAIN" "${args[8]}"
-        change_setting "CONDITIONAL_FORWARDING_REVERSE" "${args[9]}"
+    if [[ "${args[6]}" == "rev-server" ]]; then
+        change_setting "REV_SERVER" "true"
+        change_setting "REV_SERVER_CIDR" "${args[7]}"
+        change_setting "REV_SERVER_TARGET" "${args[8]}"
+        change_setting "REV_SERVER_DOMAIN" "${args[9]}"
     else
-        change_setting "CONDITIONAL_FORWARDING" "false"
-        delete_setting "CONDITIONAL_FORWARDING_IP"
-        delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
-        delete_setting "CONDITIONAL_FORWARDING_REVERSE"
+        change_setting "REV_SERVER" "false"
     fi
 
     ProcessDNSSettings
