@@ -260,7 +260,7 @@ SetDNSServers() {
         local ip
         ip="${array[index]//\\#/#}"
 
-        if valid_ip "${ip}" ; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
             add_setting "PIHOLE_DNS_$((index+1))" "${ip}"
         else
             echo -e "  ${CROSS} Invalid IP has been passed"

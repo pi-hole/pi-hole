@@ -1031,6 +1031,24 @@ valid_ip() {
     return "${stat}"
 }
 
+valid_ip6() {
+    local ip=${1}
+    local stat=1
+
+    # One IPv6 element is 16bit: 0000 - FFFF
+    local ipv6elem="[0-9a-fA-F]{1,4}"
+    # CIDR for IPv6 is 1- 128 bit
+    local v6cidr="(\\/([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])){0,1}"
+    # build a full regex string from the above parts
+    local regex="^(((${ipv6elem}))((:${ipv6elem}))*::((${ipv6elem}))*((:${ipv6elem}))*|((${ipv6elem}))((:${ipv6elem})){7})${v6cidr}$"
+
+    [[ ${ip} =~ ${regex} ]]
+
+    stat=$?
+    # Return the exit code
+    return "${stat}"
+}
+
 # A function to choose the upstream DNS provider(s)
 setDNS() {
     # Local, named variables
