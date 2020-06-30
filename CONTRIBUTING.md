@@ -32,7 +32,7 @@ When requesting or submitting new features, first consider whether it might be u
 
 - Submit Pull Requests to the **development branch only**.
 - Before Submitting your Pull Request, merge `development` with your new branch and fix any conflicts. (Make sure you don't break anything in development!)
-- Please use the [Google Style Guide for Shell](https://google.github.io/styleguide/shell.xml) for your code submission styles. 
+- Please use the [Google Style Guide for Shell](https://google.github.io/styleguide/shell.xml) for your code submission styles.
 - Commit Unix line endings.
 - Please use the Pi-hole brand: **Pi-hole** (Take a special look at the capitalized 'P' and a low 'h' with a hyphen)
 - (Optional fun) keep to the theme of Star Trek/black holes/gravity.
