@@ -2,7 +2,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# lighttpd config for Pi-hole
+# Lighttpd config for Pi-hole
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
@@ -78,7 +78,7 @@ $HTTP["url"] =~ "^/admin/" {
         "X-Frame-Options" => "DENY"
     )
 
-    $HTTP["url"] =~ ".ttf$" {
+    $HTTP["url"] =~ "\.(eot|otf|tt[cf]|woff2?)$" {
         # Allow Block Page access to local fonts
         setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }

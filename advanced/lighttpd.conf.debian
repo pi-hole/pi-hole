@@ -69,7 +69,7 @@ $HTTP["url"] =~ "^/admin/" {
         "X-Frame-Options" => "DENY"
     )
 
-    $HTTP["url"] =~ ".ttf$" {
+    $HTTP["url"] =~ "\.(eot|otf|tt[cf]|woff2?)$" {
         # Allow Block Page access to local fonts
         setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }
