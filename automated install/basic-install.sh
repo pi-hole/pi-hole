@@ -21,6 +21,10 @@
 # instead of continuing the installation with something broken
 set -e
 
+# Set PATH to a usual default to assure that all basic commands are available.
+# When using "su" an uncomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
+export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
 # This allows us to make a change in one place that can propagate to all instances of the variable
