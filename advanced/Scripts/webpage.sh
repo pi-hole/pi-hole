@@ -374,6 +374,10 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
 
     # Sourced from setupVars
     # shellcheck disable=SC2154
+    if [[ "${DHCP_expand_hosts}" == "true" ]]; then
+        echo "expand-hosts" >> "${dhcpconfig}"
+    fi
+
     if [[ "${DHCP_rapid_commit}" == "true" ]]; then
         echo "dhcp-rapid-commit" >> "${dhcpconfig}"
     fi
@@ -403,6 +407,7 @@ EnableDHCP() {
     change_setting "PIHOLE_DOMAIN" "${args[6]}"
     change_setting "DHCP_IPv6" "${args[7]}"
     change_setting "DHCP_rapid_commit" "${args[8]}"
+    change_setting "DHCP_expand_hosts" "${args[9]}"
 
     # Remove possible old setting from file
     delete_dnsmasq_setting "dhcp-"
