@@ -359,9 +359,10 @@ gravity_DownloadBlocklists() {
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
     domain="${sourceDomains[$i]}"
+    id="${sourceIDs[$i]}"
 
     # Save the file as list.#.domain
-    saveLocation="${piholeDir}/list.${i}.${domain}.${domainsExtension}"
+    saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
