@@ -302,7 +302,7 @@ compare_local_version_to_git_version() {
             remotes=$(git remote -v)
             log_write "${INFO} Remotes: ${remotes//$'\n'/'\n             '}"
 
-            # If the repo is on the master branchs, they are on the stable codebase
+            # If the repo is on the master branch, they are on the stable codebase
             if [[ "${remote_branch}" == "master" ]]; then
                 # so the color of the text is green
                 log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
@@ -315,7 +315,7 @@ compare_local_version_to_git_version() {
             log_write "${INFO} Commit: ${remote_commit}"
             # if `local_status` is non-null, then the repo is not clean, display details here
             if [[ ${local_status} ]]; then
-              #Replace new lines in the status with 12 spaces to make the output cleaner
+              # Replace new lines in the status with 12 spaces to make the output cleaner
               log_write "${INFO} Status: ${local_status//$'\n'/'\n            '}"
               local local_diff
               local_diff=$(git diff)
