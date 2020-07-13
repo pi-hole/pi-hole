@@ -1,8 +1,12 @@
 <!-- markdownlint-configure-file { "MD004": { "style": "consistent" } } -->
+<!-- markdownlint-disable MD033 -->
 <p align="center">
 <a href="https://pi-hole.net"><img src="https://pi-hole.github.io/graphics/Vortex/Vortex_with_text.png" width="150" height="255" alt="Pi-hole"></a><br/>
 <b>Network-wide ad blocking via your own Linux hardware</b><br/>
 </p>
+<!-- markdownlint-enable MD033 -->
+
+#
 
 The Pi-hole® is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) that protects your devices from unwanted content, without installing any client-side software.
 
@@ -19,7 +23,7 @@ The Pi-hole® is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) th
 
 -----
 
-##### Master [![Build Status](https://travis-ci.com/pi-hole/pi-hole.svg?branch=master)](https://travis-ci.com/pi-hole/pi-hole) Development [![Build Status](https://travis-ci.com/pi-hole/pi-hole.svg?branch=development)](https://travis-ci.com/pi-hole/pi-hole)
+Master [![Build Status](https://travis-ci.com/pi-hole/pi-hole.svg?branch=master)](https://travis-ci.com/pi-hole/pi-hole) Development [![Build Status](https://travis-ci.com/pi-hole/pi-hole.svg?branch=development)](https://travis-ci.com/pi-hole/pi-hole)
 
 ## One-Step Automated Install
 
@@ -88,12 +92,12 @@ You'll find that the [install script](https://github.com/pi-hole/pi-hole/blob/ma
 
 ## Getting in touch with us
 
-While we are primarily reachable on our [Discourse User Forum]("https://discourse.pi-hole.net/), we can also be found on a variety of social media outlets. **Please be sure to check the FAQ's** before starting a new discussion, as we do not have the spare time to reply to every request for assistance.
+While we are primarily reachable on our [Discourse User Forum](https://discourse.pi-hole.net/), we can also be found on a variety of social media outlets. **Please be sure to check the FAQ's** before starting a new discussion, as we do not have the spare time to reply to every request for assistance.
 
-- [Frequently Asked Questions]("https://discourse.pi-hole.net/c/faqs")
-- [Feature Requests]("https://discourse.pi-hole.net/c/feature-requests?order=votes")
-- [Reddit]("https://www.reddit.com/r/pihole/")
-- [Twitter]("https://twitter.com/The_Pi_hole")
+- [Frequently Asked Questions](https://discourse.pi-hole.net/c/faqs)
+- [Feature Requests](https://discourse.pi-hole.net/c/feature-requests?order=votes)
+- [Reddit](https://www.reddit.com/r/pihole/)
+- [Twitter](https://twitter.com/The_Pi_hole)
 
 -----
 
@@ -103,7 +107,7 @@ While we are primarily reachable on our [Discourse User Forum]("https://discours
 
 The `pihole` command has all the functionality necessary to be able to fully administer the Pi-hole, without the need of the Web Interface. It's fast, user-friendly, and auditable by anyone with an understanding of `bash`.
 
-<a href="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif"><img src="https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif" alt="Pi-hole Blacklist Demo"/></a>
+![Pi-hole Blacklist Demo](https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif)
 
 Some notable features include:
 
@@ -122,7 +126,7 @@ You can read our [Core Feature Breakdown](https://github.com/pi-hole/pi-hole/wik
 
 This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
 
-<img src="https://pi-hole.github.io/graphics/Screenshots/pihole-dashboard.png"  alt="Pi-hole Dashboard"/></a>
+![Pi-hole Dashboard](https://pi-hole.github.io/graphics/Screenshots/pihole-dashboard.png)
 
 Some notable features include:
 
