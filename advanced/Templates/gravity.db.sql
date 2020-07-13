@@ -31,7 +31,8 @@ CREATE TABLE adlist
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	comment TEXT,
+	date_updated INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int))
 );
 
 CREATE TABLE adlist_by_group
@@ -53,7 +54,7 @@ CREATE TABLE info
 	value TEXT NOT NULL
 );
 
-INSERT INTO "info" VALUES('version','12');
+INSERT INTO "info" VALUES('version','13');
 
 CREATE TABLE domain_audit
 (
