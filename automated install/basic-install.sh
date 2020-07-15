@@ -72,8 +72,8 @@ useUpdateVars=false
 adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
-IPV4_ADDRESS=""
-IPV6_ADDRESS=""
+IPV4_ADDRESS=${IPV4_ADDRESS}
+IPV6_ADDRESS=${IPV6_ADDRESS}
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
