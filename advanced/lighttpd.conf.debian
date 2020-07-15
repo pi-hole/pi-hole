@@ -16,21 +16,21 @@
 ###############################################################################
 
 server.modules = (
-	"mod_access",
-	"mod_accesslog",
-	"mod_auth",
-	"mod_expire",
-	"mod_compress",
-	"mod_redirect",
-	"mod_setenv",
-	"mod_rewrite"
+    "mod_access",
+    "mod_accesslog",
+    "mod_auth",
+    "mod_expire",
+    "mod_compress",
+    "mod_redirect",
+    "mod_setenv",
+    "mod_rewrite"
 )
 
 server.document-root        = "/var/www/html"
 server.error-handler-404    = "/pihole/index.php"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error.log"
-server.pid-file             = "/var/run/lighttpd.pid"
+server.pid-file             = "/run/lighttpd.pid"
 server.username             = "www-data"
 server.groupname            = "www-data"
 server.port                 = 80
@@ -41,18 +41,45 @@ index-file.names            = ( "index.php", "index.html", "index.lighttpd.html"
 url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )
 static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
 
-compress.cache-dir          = "/var/cache/lighttpd/compress/"
-compress.filetype           = ( "application/javascript", "text/css", "text/html", "text/plain" )
+compress.cache-dir = "/var/cache/lighttpd/compress/"
+compress.filetype  = (
+    "application/json",
+    "application/vnd.ms-fontobject",
+    "application/xml",
+    "font/eot",
+    "font/opentype",
+    "font/otf",
+    "font/ttf",
+    "image/bmp",
+    "image/svg+xml",
+    "image/vnd.microsoft.icon",
+    "image/x-icon",
+    "text/css",
+    "text/html",
+    "text/javascript",
+    "text/plain",
+    "text/xml"
+)
 
-mimetype.assign   = ( ".png"  => "image/png",
-                      ".jpg"  => "image/jpeg",
-                      ".jpeg" => "image/jpeg",
-                      ".html" => "text/html",
-                      ".css" => "text/css; charset=utf-8",
-                      ".js" => "application/javascript",
-                      ".json" => "application/json",
-                      ".txt"  => "text/plain",
-                      ".svg"  => "image/svg+xml" )
+mimetype.assign = (
+    ".ico"   => "image/x-icon",
+    ".jpeg"  => "image/jpeg",
+    ".jpg"   => "image/jpeg",
+    ".png"   => "image/png",
+    ".svg"   => "image/svg+xml",
+    ".css"   => "text/css; charset=utf-8",
+    ".html"  => "text/html; charset=utf-8",
+    ".js"    => "text/javascript; charset=utf-8",
+    ".json"  => "application/json; charset=utf-8",
+    ".map"   => "application/json; charset=utf-8",
+    ".txt"   => "text/plain; charset=utf-8",
+    ".eot"   => "application/vnd.ms-fontobject",
+    ".otf"   => "font/otf",
+    ".ttc"   => "font/collection",
+    ".ttf"   => "font/ttf",
+    ".woff"  => "font/woff",
+    ".woff2" => "font/woff2"
+)
 
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
@@ -69,7 +96,7 @@ $HTTP["url"] =~ "^/admin/" {
         "X-Frame-Options" => "DENY"
     )
 
-    $HTTP["url"] =~ ".ttf$" {
+    $HTTP["url"] =~ "\.(eot|otf|tt[cf]|woff2?)$" {
         # Allow Block Page access to local fonts
         setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
     }
@@ -77,8 +104,11 @@ $HTTP["url"] =~ "^/admin/" {
 
 # Block . files from being served, such as .git, .github, .gitignore
 $HTTP["url"] =~ "^/admin/\.(.*)" {
-     url.access-deny = ("")
+    url.access-deny = ("")
 }
+
+# Default expire header
+expire.url = ( "" => "access plus 0 seconds" )
 
 # Add user chosen options held in external file
 # This uses include_shell instead of an include wildcard for compatibility
