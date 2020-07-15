@@ -1257,7 +1257,7 @@ upload_to_tricorder() {
             # If they say yes, run our function for uploading the log
             [yY][eE][sS]|[yY]) tricorder_use_nc_or_curl;;
             # If they choose no, just exit out of the script
-            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.";exit;
+            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}";exit;
         esac
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token
