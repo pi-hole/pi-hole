@@ -1215,6 +1215,11 @@ tricorder_use_nc_or_curl() {
         log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
         # transmit he log via TLS and store the token returned in a variable
         tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER})
+        if [ -z "${tricorder_token}" ]; then
+         # curl failed, fallback to nc
+         log_write "    * ${COL_GREEN}curl${COL_NC} failed, falling back to ${COL_YELLOW}netcat${COL_NC} for transmission."
+         tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+        fi
     # Otherwise,
     else
         # use net cat
