@@ -213,7 +213,7 @@ os_check() {
     fi
 
     if [ "$display_warning" = true ] && [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
-        printf "  %b %bUnsupported OS detected%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %b %bUnsupported OS detected: %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os_pretty}" "${COL_NC}"
         printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
         printf "\\n"
         printf "      This check can be skipped by setting the environment variable %bPIHOLE_SKIP_OS_CHECK%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
