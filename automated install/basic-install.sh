@@ -1040,8 +1040,10 @@ valid_ip6() {
     local ipv6elem="[0-9a-fA-F]{1,4}"
     # CIDR for IPv6 is 1- 128 bit
     local v6cidr="(\\/([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])){0,1}"
+    # optional port number starting '#' with range of 1-65536
+    local portelem="(#([1-9]|[1-8][0-9]|9[0-9]|[1-8][0-9]{2}|9[0-8][0-9]|99[0-9]|[1-8][0-9]{3}|9[0-8][0-9]{2}|99[0-8][0-9]|999[0-9]|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-6]))?"
     # build a full regex string from the above parts
-    local regex="^(((${ipv6elem}))((:${ipv6elem}))*::((${ipv6elem}))*((:${ipv6elem}))*|((${ipv6elem}))((:${ipv6elem})){7})${v6cidr}$"
+    local regex="^(((${ipv6elem}))((:${ipv6elem}))*::((${ipv6elem}))*((:${ipv6elem}))*|((${ipv6elem}))((:${ipv6elem})){7})${v6cidr}${portelem}$"
 
     [[ ${ip} =~ ${regex} ]]
 
