@@ -1215,6 +1215,11 @@ tricorder_use_nc_or_curl() {
         log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
         # transmit he log via TLS and store the token returned in a variable
         tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER})
+        if [ -z "${tricorder_token}" ]; then
+         # curl failed, fallback to nc
+         log_write "    * ${COL_GREEN}curl${COL_NC} failed, falling back to ${COL_YELLOW}netcat${COL_NC} for transmission."
+         tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+        fi
     # Otherwise,
     else
         # use net cat
@@ -1257,7 +1262,7 @@ upload_to_tricorder() {
             # If they say yes, run our function for uploading the log
             [yY][eE][sS]|[yY]) tricorder_use_nc_or_curl;;
             # If they choose no, just exit out of the script
-            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.";exit;
+            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
         esac
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token
