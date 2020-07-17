@@ -224,7 +224,7 @@ Available commands and options:
 .br
       -l, --latest      Return the latest version
 .br
-      --hash            Return the Github hash from your local
+      --hash            Return the GitHub hash from your local
                         repositories
 .br
 
@@ -257,19 +257,19 @@ Available commands and options:
 
 \fBrestartdns\fR [options]
 .br
-    Full restart Pi-hole subsystems
+    Full restart Pi-hole subsystems. Without any options (see below) a full restart causes config file parsing and history re-reading
 .br
 
     (restart options):
 .br
-      reload            Updates the lists and flushes DNS cache
+      reload            Updates the lists (incl. HOSTS files) and flushes DNS cache. Does not reparse config files
 .br
-      reload-lists      Updates the lists WITHOUT flushing the DNS cache
+      reload-lists      Updates the lists (excl. HOSTS files) WITHOUT flushing the DNS cache. Does not reparse config files
 .br
 
 \fBcheckout\fR [repo] [branch]
 .br
-    Switch Pi-hole subsystems to a different Github branch
+    Switch Pi-hole subsystems to a different GitHub branch
 .br
 
     (repo options):

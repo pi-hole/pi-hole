@@ -29,7 +29,7 @@ scanList(){
     # Prevent grep from printing file path
     cd "$piholeDir" || exit 1
 
-    # Prevent grep -i matching slowly: http://bit.ly/2xFXtUX
+    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
     export LC_CTYPE=C
 
     # /dev/null forces filename to be printed when only one list has been generated

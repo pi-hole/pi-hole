@@ -10,7 +10,7 @@
 - [ ] It is compatible with the [EUPL 1.2 license](https://opensource.org/licenses/EUPL-1.1)
 - [ ] I have squashed any insignificant commits. ([`git rebase`](http://gitready.com/advanced/2009/02/10/squashing-commits-with-rebase.html))
 
-Please make sure you [Sign Off](https://github.com/pi-hole/pi-hole/wiki/How-to-signoff-your-commits.) all commits. Pi-hole enforces the [DCO](https://github.com/pi-hole/pi-hole/wiki/Contributing-to-the-project).
+Please make sure you [Sign Off](https://docs.pi-hole.net/guides/github/how-to-signoff/) all commits. Pi-hole enforces the [DCO](https://docs.pi-hole.net/guides/github/contributing/).
 
 ---
 **What does this PR aim to accomplish?:**

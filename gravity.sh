@@ -271,7 +271,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
-  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventualy fails
+  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventually fails
   # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
   if timeout 4 dig +short "${lookupDomain}" &> /dev/null; then
     if [[ -n "${secs:-}" ]]; then
@@ -376,7 +376,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Target: ${url}"
     local regex
     # Check for characters NOT allowed in URLs
-    regex="[^a-zA-Z0-9:/?&%=~._()-]"
+    regex="[^a-zA-Z0-9:/?&%=~._()-;]"
     if [[ "${url}" =~ ${regex} ]]; then
         echo -e "  ${CROSS} Invalid Target"
     else
@@ -568,7 +568,7 @@ gravity_ParseFileIntoDomains() {
   # Determine if we are parsing a consolidated list
   #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
-    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contiguous
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
     # 1) Remove carriage returns
@@ -751,7 +751,7 @@ gravity_Cleanup() {
     dnsWasOffline=true
   fi
 
-  # Print Pi-hole status if an error occured
+  # Print Pi-hole status if an error occurred
   if [[ -n "${error}" ]]; then
     "${PIHOLE_COMMAND}" status
     exit 1

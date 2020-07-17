@@ -16,11 +16,12 @@ CREATE TABLE domainlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	type INTEGER NOT NULL DEFAULT 0,
-	domain TEXT UNIQUE NOT NULL,
+	domain TEXT NOT NULL,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	comment TEXT,
+	UNIQUE(domain, type)
 );
 
 CREATE TABLE adlist

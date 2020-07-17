@@ -1,10 +1,9 @@
 import pytest
-from conftest import (
+from .conftest import (
     tick_box,
     info_box,
     cross_box,
     mock_command,
-    mock_command_2,
 )
 
 
