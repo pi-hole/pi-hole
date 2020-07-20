@@ -77,6 +77,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
+INSTALL_WEB_SERVER=true
 PRIVACY_LEVEL=0
 
 if [ -z "${USER}" ]; then
@@ -109,14 +110,13 @@ c=$(( c < 70 ? 70 : c ))
 skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
-INSTALL_WEB_SERVER=true
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
         "--reconfigure" ) reconfigure=true;;
         "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
-        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
+        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false INSTALL_WEB_INTERFACE=false;;
     esac
 done
 
@@ -1977,6 +1977,102 @@ accountForRefactor() {
     fi
 }
 
+# A function that validates the pihole_setupVars.conf required for unattended installation and updates.
+validate_setupVars () {
+    printf "  Validating setupVars.conf\\n"
+    echo ""
+    # Replace any crlf with nl if they exists in the source file
+    sed -i 's/\r//'  ${setupVars}
+    # Does setupVars contain the minimume variables?
+    local requiredVars=(PIHOLE_INTERFACE IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2)
+    # Variables with true or false as the only options
+    local optionalVarsTF=(QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE BLOCKING_ENABLED DNS_FQDN_REQUIRED DNS_BOGUS_PRIV DNSSEC CONDITIONAL_FORWARDING)
+    source ${setupVars}
+    for var in "${requiredVars[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            echo "${var} is not set"
+            exit 1
+        else
+            echo "${var} is ${!var}"
+        fi
+    done
+    for i in "${optionalVarsTF[@]}"; do
+        if [[ "${!var}" == "true" ]] || [[ "${!var}" == "false" ]]; then
+            echo "${var} is ${!var}"
+        elif [[ -z "${!var}" ]]; then
+            echo "${var} is not set"
+        else
+            echo "${var} is ${!var}"
+            echo "If ${var} is set in setupVars.conf, valid options are: true or false."
+            exit 1
+        fi
+    done
+    # INSTALL_WEB_SERVER must be set to true if INSTALL_WEB_INTERFACE is set to true
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]] && [[ "${INSTALL_WEB_SERVER}" == false ]]; then
+        echo "You can install the Web Server without the web interface, but you cannot install the web interface without the web server."
+        echo "INSTALL_WEB_SERVER is set to ${INSTALL_WEB_SERVER} and INSTALL_WEB_INTERFACE is set to ${INSTALL_WEB_INTERFACE}."
+        exit 1
+    fi
+    # Regex patterns to match
+    address="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+    addressMask="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|[1-2][0-9]|3[0-2]))$"
+    addressPort="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(#([1-9][0-9]|[1-9]([0-9]){3}))?$"
+    addressReverse="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}in-addr\.arpa$"
+    # Validate the IPv4 address and subnet mask
+    if [[ ! ${IPV4_ADDRESS} =~ ${addressMask} ]] ; then
+        echo "${IPV4_ADDRESS} is not a valid address or it is missing the subnet mask"
+        exit 1 
+    else
+        echo "IPv4 ${IPV4_ADDRESS}"
+    fi
+    # Validate the DNS_1 IP addresses
+    if [[ ! "${PIHOLE_DNS_1}" =~ ${addressPort} ]]; then
+        echo "${PIHOLE_DNS_1} is not a valid address"
+        exit 1
+    else
+        echo "DNS1 ${PIHOLE_DNS_1}"
+    fi
+    # Validate the DNS_2 IP addresses
+    if [[ ! "${PIHOLE_DNS_2}" =~ ${addressPort} ]]; then
+        echo "${PIHOLE_DNS_2} is not a valid address"
+        exit 1
+    else
+        echo "DNS2 ${PIHOLE_DNS_2}"
+    fi
+    # Validate Web UI Layout
+    if [[ "${WEBUIBOXEDLAYOUT}" == "boxed" ]] || [[ "${WEBUIBOXEDLAYOUT}" == "traditional" ]]; then
+            echo "WEBUIBOXEDLAYOUT is ${WEBUIBOXEDLAYOUT}"
+        elif [[ -z "${WEBUIBOXEDLAYOUT}" ]]; then
+            echo "WEBUIBOXEDLAYOUT is not set"
+        else
+            echo "WEBUIBOXEDLAYOUT valid options are: boxed or traditional."
+            exit 1
+        fi
+    # Validate Conditional Forwarding settings
+    if [[ "${CONDITIONAL_FORWARDING_IP}" =~ ${address} ]]; then
+            echo "CONDITIONAL_FORWARDING_IP is ${CONDITIONAL_FORWARDING_IP}"
+    elif [[ -z "${CONDITIONAL_FORWARDING_IP}" ]]; then
+            echo "CONDITIONAL_FORWARDING_IP is not set"
+    else
+            echo "${CONDITIONAL_FORWARDING_IP} is not a valid IP Address"
+            exit 1
+        fi
+    if [[ "${CONDITIONAL_FORWARDING_REVERSE}" =~ ${addressReverse} ]]; then
+            echo "CONDITIONAL_FORWARDING_REVERSE is ${CONDITIONAL_FORWARDING_REVERSE}"
+    elif [[ -z "${CONDITIONAL_FORWARDING_REVERSE}" ]]; then
+            echo "CONDITIONAL_FORWARDING_REVERSE is not set"
+    else
+            echo "${CONDITIONAL_FORWARDING_REVERSE} is not a valid reverse address"
+            exit 1
+    fi
+    # LIGHTTPD_ENABLED should not be written to the setupVars.conf file.  It's a temporary variable and not used for installation or updates.
+    sed -i '/LIGHTTPD_ENABLED=/ d' "${setupVars}"
+    # DNSMASQ_LISTENING is not used during setup or updates.
+    sed -i '/DNSMASQ_LISTENING=/ d' "${setupVars}"
+    # Ensure setupVars ends with a newline
+    sed -i -e '$a\ ' "${setupVars}"
+}
+
 # Install base files and web interface
 installPihole() {
     # If the user wants to install the Web interface,
@@ -2008,8 +2104,12 @@ installPihole() {
         fi
     fi
     # For updates and unattended install.
-    if [[ "${useUpdateVars}" == true ]]; then
-        accountForRefactor
+    if [[ "${runUnattended}" == true ]]; then
+        if [[ -f "${setupVars}" ]]; then
+            chmod 644 "${setupVars}"
+            accountForRefactor
+            validate_setupVars
+        fi
     fi
     # Install base files and web interface
     if ! installScripts; then
