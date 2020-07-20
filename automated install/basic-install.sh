@@ -1885,7 +1885,81 @@ create_pihole_user() {
     fi
 }
 
-#
+# replaceAddCreateRename takes three varialbles
+# 1 - the name of the local variable that represents the new value
+# 2 - the name of the variable in the target file
+# 3 - the path and name of the target file to modify
+replaceAddCreateRename() {
+    local theValue="${!1}"
+    local newVariable="${2}"
+    local theFile="${3}"
+    # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
+    if [[ ! -s "theFile" ]] ; then
+       (umask 022 ; echo >> "${theFile}")
+    fi
+    # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
+    sed -i '
+        /^[#]*[ \t]*'"${newVariable}"'=/ {
+            h
+            s/=[^#]*\(.*\)/='"${theValue}"'\1/
+            s/'"${theValue}"'#/'"${theValue}"' #/}
+            ${
+                x
+            /^$/{
+                s//'"${newVariable}"'='"${theValue}"'/
+                H
+                }
+                x
+            }
+        ' "${theFile}"
+}
+
+# replaceAddCreate takes two varialbles
+# 1 - the name of the local variable that represents the new value
+# 2 - the path and name of the target file to modify
+replaceAddCreate() {
+    local theVariable="${1}"
+    local theValue="${!1}"
+    local theFile="${2}"
+    # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
+    if [[ ! -s "${theFile}" ]] ; then
+       (umask 022 ; echo >> "${theFile}")
+    fi
+    # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
+    sed -i '
+        /^[#]*[ \t]*'"${theVariable}"'=/ {
+            h
+            s/=[^#]*\(.*\)/='"${theValue}"'\1/
+            s/'"${theValue}"'#/'"${theValue}"' #/}
+            ${
+                x
+            /^$/{
+                s//'"${theVariable}"'='"${theValue}"'/
+                H
+                }
+                x
+            }
+        ' "${theFile}"
+    #                                                    # The following is the same as the one line verion above.
+    #                                                    # Using ";" allows it to be written on one line.
+    #                                                    # It's broke out here for documentation.
+    #     sed -i '                                              # 
+    #         /^[#]*[ \t]*'"${theVariable}"'=/ {                # <-- looks for indentation and/or a comment before the variable followed by "="
+    #              h                                            # h command copies the pattern buffer into the hold buffer. pattern buffer is unchanged.
+    #              s/=[^#]*\(.*\)/='"${theValue}"'\1/           # <-- looks for a comment after the value, updates the value without losing the comment.
+    #              s/'"${theValue}"'#/'"${theValue}"' #/        # <-- looks for the value followed by inline comment with no space and adds a space between the value and #.
+    #         }                                                 #
+    #         ${                                                #
+    #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         /^$/{                                             #
+    #              s//'"${theVariable}"'='"${theValue}"'/       # <-- Appends the variable and value if it's not found.
+    #              H                                            # H command appends lines to the hold buffer with a \n between them.
+    #              }                                            #
+    #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         }                                                 #
+    #     ' ${theFile}                                          # <-- File to be modified.
+}
+
 finalExports() {
     # If the Web interface is not set to be installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
@@ -1900,31 +1974,22 @@ finalExports() {
         fi
     fi
 
-    # If the setup variable file exists,
-    if [[ -e "${setupVars}" ]]; then
-        # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
-    fi
+    set +e      # set -e will cause the loop to exit early
+    # Updated settings
+    updatedVars=(PIHOLE_INTERFACE IPV6_ADDRESS IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2 QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE DNS_CACHE_SIZE)
+    # Update setupVars.conf with new settings
+    for var in "${updatedVars[@]}"; do
+        replaceAddCreate "${var}" "${setupVars}"
+    done
     # echo the information to the user
-    {
-    echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-    echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-    echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
-    echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
-    echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
-    echo "QUERY_LOGGING=${QUERY_LOGGING}"
-    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
-    echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-    echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
-    }>> "${setupVars}"
-    chmod 644 "${setupVars}"
-
+    for var in "${updatedVars[@]}"; do
+        echo "${var}=${!var}"
+    done    
     # Set the privacy level
-    sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
-    echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    replaceAddCreateRename PRIVACY_LEVEL PRIVACYLEVEL "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    set -e      # exit on non-zero 
 
     # Bring in the current settings and the functions to manipulate them
-    source "${setupVars}"
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
     # Look for DNS server settings which would have to be reapplied
@@ -1973,7 +2038,7 @@ accountForRefactor() {
         if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
             webserver_installed=true
         fi
-        echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
+        replaceAddCreateRename INSTALL_WEB_SERVER webserver_installed "${setupVars}"
     fi
 }
 
