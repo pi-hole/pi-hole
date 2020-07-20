@@ -14,8 +14,8 @@ while true; do
     read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " yn
     case ${yn} in
         [Yy]* ) break;;
-        [Nn]* ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
-        * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been cancelled${COL_NC}"; exit 0;;
+        [Nn]* ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
+        * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
     esac
 done
 
@@ -52,7 +52,7 @@ if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     DEPS+=("${PIHOLE_WEB_DEPS[@]}")
 fi
 
-# Compatability
+# Compatibility
 if [ -x "$(command -v apt-get)" ]; then
     # Debian Family
     PKG_REMOVE=("${PKG_MANAGER}" -y remove --purge)
@@ -188,9 +188,17 @@ removeNoPurge() {
             echo -e "  ${CROSS} Unable to remove 'pihole' user"
         fi
     fi
+    # If the pihole group exists, then remove
+    if getent group "pihole" &> /dev/null; then
+        if ${SUDO} groupdel pihole 2> /dev/null; then
+            echo -e "  ${TICK} Removed 'pihole' group"
+        else
+            echo -e "  ${CROSS} Unable to remove 'pihole' group"
+        fi
+    fi
 
     echo -e "\\n   We're sorry to see you go, but thanks for checking out Pi-hole!
-       If you need help, reach out to us on Github, Discourse, Reddit or Twitter
+       If you need help, reach out to us on GitHub, Discourse, Reddit or Twitter
        Reinstall at any time: ${COL_WHITE}curl -sSL https://install.pi-hole.net | bash${COL_NC}
 
       ${COL_LIGHT_RED}Please reset the DNS on your router/clients to restore internet connectivity

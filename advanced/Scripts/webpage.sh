@@ -10,16 +10,21 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-readonly setupVars="/etc/pihole/setupVars.conf"
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
-readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly dnscustomfile="/etc/pihole/custom.list"
+readonly dnscustomcnamefile="/etc/dnsmasq.d/05-pihole-custom-cname.conf"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
+
+# Source install script for ${setupVars}, ${PI_HOLE_BIN_DIR} and valid_ip()
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# shellcheck disable=SC2034  # used in basic-install
+PH_TEST="true"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
@@ -36,7 +41,6 @@ Options:
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
-  -r, hostrecord      Add a name to the DNS associated to an IPv4/IPv6 address
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
@@ -179,7 +183,6 @@ ProcessDNSSettings() {
 
     if [[ "${DNSSEC}" == true ]]; then
         echo "dnssec
-trust-anchor=.,19036,8,2,49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5
 trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D
 " >> "${dnsmasqconfig}"
     fi
@@ -211,8 +214,34 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
     fi
 
     if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
-        add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_DOMAIN}/${CONDITIONAL_FORWARDING_IP}"
-        add_dnsmasq_setting "server=/${CONDITIONAL_FORWARDING_REVERSE}/${CONDITIONAL_FORWARDING_IP}"
+        # Convert legacy "conditional forwarding" to rev-server configuration
+        REV_SERVER=true
+        add_setting "REV_SERVER" "true"
+
+        REV_SERVER_DOMAIN="${CONDITIONAL_FORWARDING_DOMAIN}"
+        add_setting "REV_SERVER_DOMAIN" "${REV_SERVER_DOMAIN}"
+
+        REV_SERVER_TARGET="${CONDITIONAL_FORWARDING_IP}"
+        add_setting "REV_SERVER_TARGET" "${REV_SERVER_TARGET}"
+
+        # Remove obsolete settings from setupVars.conf
+        delete_setting "CONDITIONAL_FORWARDING"
+        delete_setting "CONDITIONAL_FORWARDING_REVERSE"
+        delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
+        delete_setting "CONDITIONAL_FORWARDING_IP"
+
+        # Convert existing input to /24 subnet (preserves legacy behavior)
+        # This sed converts "192.168.1.2" to "192.168.1.0/24"
+        # shellcheck disable=2001
+        REV_SERVER_CIDR="$(sed "s+\\.[0-9]*$+\\.0/24+" <<< "${REV_SERVER_TARGET}")"
+        add_setting "REV_SERVER_CIDR" "${REV_SERVER_CIDR}"
+    fi
+
+    if [[ "${REV_SERVER}" == true ]]; then
+        add_dnsmasq_setting "rev-server=${REV_SERVER_CIDR},${REV_SERVER_TARGET}"
+        if [ -n "${REV_SERVER_DOMAIN}" ]; then
+            add_dnsmasq_setting "server=/${REV_SERVER_DOMAIN}/${REV_SERVER_TARGET}"
+        fi
     fi
 
     # Prevent Firefox from automatically switching over to DNS-over-HTTPS
@@ -227,7 +256,16 @@ SetDNSServers() {
     IFS=',' read -r -a array <<< "${args[2]}"
     for index in "${!array[@]}"
     do
-        add_setting "PIHOLE_DNS_$((index+1))" "${array[index]}"
+        # Replace possible "\#" by "#". This fixes AdminLTE#1427
+        local ip
+        ip="${array[index]//\\#/#}"
+
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            add_setting "PIHOLE_DNS_$((index+1))" "${ip}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
     done
 
     if [[ "${args[3]}" == "domain-needed" ]]; then
@@ -248,16 +286,13 @@ SetDNSServers() {
         change_setting "DNSSEC" "false"
     fi
 
-    if [[ "${args[6]}" == "conditional_forwarding" ]]; then
-        change_setting "CONDITIONAL_FORWARDING" "true"
-        change_setting "CONDITIONAL_FORWARDING_IP" "${args[7]}"
-        change_setting "CONDITIONAL_FORWARDING_DOMAIN" "${args[8]}"
-        change_setting "CONDITIONAL_FORWARDING_REVERSE" "${args[9]}"
+    if [[ "${args[6]}" == "rev-server" ]]; then
+        change_setting "REV_SERVER" "true"
+        change_setting "REV_SERVER_CIDR" "${args[7]}"
+        change_setting "REV_SERVER_TARGET" "${args[8]}"
+        change_setting "REV_SERVER_DOMAIN" "${args[9]}"
     else
-        change_setting "CONDITIONAL_FORWARDING" "false"
-        delete_setting "CONDITIONAL_FORWARDING_IP"
-        delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
-        delete_setting "CONDITIONAL_FORWARDING_REVERSE"
+        change_setting "REV_SERVER" "false"
     fi
 
     ProcessDNSSettings
@@ -402,22 +437,42 @@ SetWebUILayout() {
     change_setting "WEBUIBOXEDLAYOUT" "${args[2]}"
 }
 
+SetWebUITheme() {
+    change_setting "WEBTHEME" "${args[2]}"
+}
+
+CheckUrl(){
+    local regex
+    # Check for characters NOT allowed in URLs
+    regex="[^a-zA-Z0-9:/?&%=~._-]"
+    if [[ "${1}" =~ ${regex} ]]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
 CustomizeAdLists() {
     local address
     address="${args[3]}"
     local comment
     comment="${args[4]}"
 
-    if [[ "${args[2]}" == "enable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
-    elif [[ "${args[2]}" == "disable" ]]; then
-        sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
-    elif [[ "${args[2]}" == "add" ]]; then
-        sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
-    elif [[ "${args[2]}" == "del" ]]; then
-        sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+    if CheckUrl "${address}"; then
+        if [[ "${args[2]}" == "enable" ]]; then
+            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
+        elif [[ "${args[2]}" == "disable" ]]; then
+            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
+        elif [[ "${args[2]}" == "add" ]]; then
+            sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
+        elif [[ "${args[2]}" == "del" ]]; then
+            sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+        else
+            echo "Not permitted"
+            return 1
+        fi
     else
-        echo "Not permitted"
+        echo "Invalid Url"
         return 1
     fi
 }
@@ -463,32 +518,6 @@ RemoveDHCPStaticAddress() {
     sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
 }
 
-SetHostRecord() {
-    if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
-        echo "Usage: pihole -a hostrecord <domain> [IPv4-address],[IPv6-address]
-Example: 'pihole -a hostrecord home.domain.com 192.168.1.1,2001:db8:a0b:12f0::1'
-Add a name to the DNS associated to an IPv4/IPv6 address
-
-Options:
-  \"\"                  Empty: Remove host record
-  -h, --help          Show this help dialog"
-        exit 0
-    fi
-
-    if [[ -n "${args[3]}" ]]; then
-        change_setting "HOSTRECORD" "${args[2]},${args[3]}"
-        echo -e "  ${TICK} Setting host record for ${args[2]} to ${args[3]}"
-    else
-        change_setting "HOSTRECORD" ""
-        echo -e "  ${TICK} Removing host record"
-    fi
-
-    ProcessDNSSettings
-
-    # Restart dnsmasq to load new configuration
-    RestartDNS
-}
-
 SetAdminEmail() {
     if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
         echo "Usage: pihole -a email <address>
@@ -502,6 +531,16 @@ Options:
     fi
 
     if [[ -n "${args[2]}" ]]; then
+
+        # Sanitize email address in case of security issues
+        # Regex from https://stackoverflow.com/a/2138832/4065967
+        local regex
+        regex="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\$"
+        if [[ ! "${args[2]}" =~ ${regex} ]]; then
+            echo -e "  ${CROSS} Invalid email address"
+            exit 0
+        fi
+
         change_setting "ADMIN_EMAIL" "${args[2]}"
         echo -e "  ${TICK} Setting admin contact to ${args[2]}"
     else
@@ -597,6 +636,7 @@ SetPrivacyLevel() {
     # Set privacy level. Minimum is 0, maximum is 4
     if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 4 ]; then
         changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
+        pihole restartdns reload-lists
     fi
 }
 
@@ -622,6 +662,28 @@ RemoveCustomDNSAddress() {
     RestartDNS
 }
 
+AddCustomCNAMERecord() {
+    echo -e "  ${TICK} Adding custom CNAME record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
+
+    # Restart dnsmasq to load new custom CNAME records
+    RestartDNS
+}
+
+RemoveCustomCNAMERecord() {
+    echo -e "  ${TICK} Removing custom CNAME record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    sed -i "/cname=${domain},${target}/d" "${dnscustomcnamefile}"
+
+    # Restart dnsmasq to update removed custom CNAME records
+    RestartDNS
+}
+
 main() {
     args=("$@")
 
@@ -640,12 +702,12 @@ main() {
         "enabledhcp"          ) EnableDHCP;;
         "disabledhcp"         ) DisableDHCP;;
         "layout"              ) SetWebUILayout;;
+        "theme"               ) SetWebUITheme;;
         "-h" | "--help"       ) helpFunc;;
         "privacymode"         ) SetPrivacyMode;;
         "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
-        "-r" | "hostrecord"   ) SetHostRecord "$3";;
         "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;
@@ -655,6 +717,8 @@ main() {
         "-l" | "privacylevel" ) SetPrivacyLevel;;
         "addcustomdns"        ) AddCustomDNSAddress;;
         "removecustomdns"     ) RemoveCustomDNSAddress;;
+        "addcustomcname"      ) AddCustomCNAMERecord;;
+        "removecustomcname"   ) RemoveCustomCNAMERecord;;
         *                     ) helpFunc;;
     esac
 

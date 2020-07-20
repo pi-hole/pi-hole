@@ -29,19 +29,21 @@ scanList(){
     # Prevent grep from printing file path
     cd "$piholeDir" || exit 1
 
-    # Prevent grep -i matching slowly: http://bit.ly/2xFXtUX
+    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
     export LC_CTYPE=C
 
     # /dev/null forces filename to be printed when only one list has been generated
-    # shellcheck disable=SC2086
     case "${type}" in
         "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        # Create array of regexps
         # Iterate through each regexp and check whether it matches the domainQuery
         # If it does, print the matching regexp and continue looping
         # Input 1 - regexps | Input 2 - domainQuery
-        "regex" ) awk 'NR==FNR{regexps[$0];next}{for (r in regexps)if($0 ~ r)print r}' \
-                  <(echo "${lists}") <(echo "${domain}") 2>/dev/null;;
+        "regex" ) 
+            for list in ${lists}; do
+                if [[ "${domain}" =~ ${list} ]]; then
+                    printf "%b\n" "${list}";
+                fi
+            done;;
         *       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
     esac
 }
