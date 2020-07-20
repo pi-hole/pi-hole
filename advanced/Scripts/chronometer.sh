@@ -13,7 +13,7 @@ LC_NUMERIC=C
 
 # Retrieve stats from FTL engine
 pihole-FTL() {
-    ftl_port=$(cat /var/run/pihole-FTL.port 2> /dev/null)
+    ftl_port=$(cat /run/pihole-FTL.port 2> /dev/null)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
         exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
@@ -72,7 +72,7 @@ printFunc() {
 
     # Remove excess characters from main text
     if [[ "$text_main_len" -gt "$text_main_max_len" ]]; then
-        # Trim text without colours
+        # Trim text without colors
         text_main_trim="${text_main_nocol:0:$text_main_max_len}"
         # Replace with trimmed text
         text_main="${text_main/$text_main_nocol/$text_main_trim}"
@@ -88,7 +88,7 @@ printFunc() {
 
     [[ "$spc_num" -le 0 ]] && spc_num="0"
     spc=$(printf "%${spc_num}s")
-    #spc="${spc// /.}" # Debug: Visualise spaces
+    #spc="${spc// /.}" # Debug: Visualize spaces
 
     printf "%s%s$spc" "$title" "$text_main"
 
@@ -131,7 +131,7 @@ get_init_stats() {
         printf "%s%02d:%02d:%02d\\n" "$days" "$hrs" "$mins" "$secs"
     }
 
-    # Set Colour Codes
+    # Set Color Codes
     coltable="/opt/pihole/COL_TABLE"
     if [[ -f "${coltable}" ]]; then
         source ${coltable}
@@ -153,7 +153,7 @@ get_init_stats() {
 
         sys_throttle_raw=$(vgt=$(sudo vcgencmd get_throttled); echo "${vgt##*x}")
 
-        # Active Throttle Notice: http://bit.ly/2gnunOo
+        # Active Throttle Notice: https://bit.ly/2gnunOo
         if [[ "$sys_throttle_raw" != "0" ]]; then
             case "$sys_throttle_raw" in
                 *0001) thr_type="${COL_YELLOW}Under Voltage";;
@@ -269,7 +269,7 @@ get_sys_stats() {
     scr_lines="${scr_size[0]}"
     scr_cols="${scr_size[1]}"
 
-    # Determine Chronometer size behaviour
+    # Determine Chronometer size behavior
     if [[ "$scr_cols" -ge 58 ]]; then
         chrono_width="large"
     elif [[ "$scr_cols" -gt 40 ]]; then
@@ -308,7 +308,7 @@ get_sys_stats() {
         [[ "${cpu_freq}" == *".0"* ]] && cpu_freq="${cpu_freq/.0/}"
     fi
 
-    # Determine colour for temperature
+    # Determine color for temperature
     if [[ -n "$temp_file" ]]; then
         if [[ "$temp_unit" == "C" ]]; then
             cpu_temp=$(printf "%.0fc\\n" "$(calcFunc "$(< $temp_file) / 1000")")

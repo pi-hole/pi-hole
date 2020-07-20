@@ -9,11 +9,11 @@
 `{Replace this with a number from 1 to 10. 1 being not familiar, and 10 being very familiar}`
 
 ---
-**Expected behaviour:**
+**Expected behavior:**
 
 `{A detailed description of what you expect to see}`
 
-**Actual behaviour:**
+**Actual behavior:**
 
 `{A detailed description and/or screenshots of what you do see}`
 

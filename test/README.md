@@ -7,11 +7,11 @@ From command line all you need to do is:
 - `pip install tox`
 - `tox`
 
-Tox handles setting up a virtual environment for python dependancies, installing dependancies, building the docker images used by tests, and finally running tests.  It's an easy way to have travis-ci like build behavior locally.
+Tox handles setting up a virtual environment for python dependencies, installing dependencies, building the docker images used by tests, and finally running tests.  It's an easy way to have travis-ci like build behavior locally.
 
 ## Alternative py.test method of running tests
 
-You're responsible for setting up your virtual env and dependancies in this situation.
+You're responsible for setting up your virtual env and dependencies in this situation.
 
 ```
 py.test -vv -n auto -m "build_stage"
