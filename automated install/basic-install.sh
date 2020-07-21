@@ -175,7 +175,7 @@ is_command() {
 }
 
 os_check() {
-    if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
+    if [[ ! -f /tmp/pihole_skip_os_check ]]; then
         # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
         # and determines whether or not the script is running on one of those systems
         local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version display_warning
@@ -217,10 +217,9 @@ os_check() {
             printf "  %b %bUnsupported OS detected%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
             printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
             printf "\\n"
-            printf "      This check can be skipped by setting the environment variable %bPIHOLE_SKIP_OS_CHECK%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
-            printf "      e.g: 'sudo PIHOLE_SKIP_OS_CHECK=true curl -sSL https://install.pi-hole.net | bash'\\n"
-            printf "      or   'sudo PIHOLE_SKIP_OS_CHECK=true pihole -up'\\n"
-            printf "      By setting this variable to true you acknowledge there may be issues with Pi-hole during or after the install\\n"
+            printf "      This check can be skipped by creating a file in %b/tmp%b named %bpihole_skip_os_check%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "      e.g: 'touch /tmp/pihole_skip_os_check'\\n"
+            printf "      By creating this file you acknowledge there may be issues with Pi-hole during or after the install\\n"
             printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             printf "      https://discourse.pi-hole.net/c/bugs-problems-issues/community-help/\\n"
             exit 1
@@ -229,7 +228,7 @@ os_check() {
             printf "  %b %bSupported OS detected%b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${COL_NC}"
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %b/tmp/pihole_skip_os_check file found - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
 }
 
