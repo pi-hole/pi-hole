@@ -6,8 +6,8 @@
 *  This file is copyright under the latest version of the EUPL.
 *  Please see LICENSE file for your rights under this license. */
 
-// Sanitise HTTP_HOST output
-$serverName = htmlspecialchars($_SERVER["HTTP_HOST"]);
+// Sanitize SERVER_NAME output
+$serverName = htmlspecialchars($_SERVER["SERVER_NAME"]);
 // Remove external ipv6 brackets if any
 $serverName = preg_replace('/^\[(.*)\]$/', '${1}', $serverName);
 
@@ -41,7 +41,7 @@ $validExtTypes = array("asp", "htm", "html", "php", "rss", "xml", "");
 $currentUrlExt = pathinfo($_SERVER["REQUEST_URI"], PATHINFO_EXTENSION);
 
 // Set mobile friendly viewport
-$viewPort = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>';
+$viewPort = '<meta name="viewport" content="width=device-width, initial-scale=1">';
 
 // Set response header
 function setHeader($type = "x") {
@@ -50,16 +50,29 @@ function setHeader($type = "x") {
 }
 
 // Determine block page type
-if ($serverName === "pi.hole") {
+if ($serverName === "pi.hole"
+    || (!empty($_SERVER["VIRTUAL_HOST"]) && $serverName === $_SERVER["VIRTUAL_HOST"])) {
     // Redirect to Web Interface
     exit(header("Location: /admin"));
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
     // Set Splash Page output
     $splashPage = "
-    <html><head>
-        $viewPort
-        <link rel='stylesheet' href='/pihole/blockingpage.css' type='text/css'/>
-    </head><body id='splashpage'><img src='/admin/img/logo.svg'/><br/>Pi-<b>hole</b>: Your black hole for Internet advertisements<br><a href='/admin'>Did you mean to go to the admin panel?</a></body></html>
+    <!doctype html>
+    <html lang='en'>
+        <head>
+            <meta charset='utf-8'>
+            $viewPort
+            <title>● $serverName</title>
+            <link rel='stylesheet' href='pihole/blockingpage.css'>
+            <link rel='shortcut icon' href='admin/img/favicons/favicon.ico' type='image/x-icon'>
+        </head>
+        <body id='splashpage'>
+            <img src='admin/img/logo.svg' alt='Pi-hole logo' width='256' height='377'>
+            <br>
+            <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
+            <a href='/admin'>Did you mean to go to the admin panel?</a>
+        </body>
+    </html>
     ";
 
     // Set splash/landing page based off presence of $landPage
@@ -68,25 +81,42 @@ if ($serverName === "pi.hole") {
     // Unset variables so as to not be included in $landPage
     unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
 
-    // Render splash/landing page when directly browsing via IP or authorised hostname
+    // Render splash/landing page when directly browsing via IP or authorized hostname
     exit($renderPage);
 } elseif ($currentUrlExt === "js") {
-    // Serve Pi-hole Javascript for blocked domains requesting JS
+    // Serve Pi-hole JavaScript for blocked domains requesting JS
     exit(setHeader("js").'var x = "Pi-hole: A black hole for Internet advertisements."');
 } elseif (strpos($_SERVER["REQUEST_URI"], "?") !== FALSE && isset($_SERVER["HTTP_REFERER"])) {
     // Serve blank image upon receiving REQUEST_URI w/ query string & HTTP_REFERRER
     // e.g: An iframe of a blocked domain
-    exit(setHeader().'<html>
-        <head><script>window.close();</script></head>
-        <body><img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs="></body>
+    exit(setHeader().'<!doctype html>
+    <html lang="en">
+        <head>
+            <meta charset="utf-8"><script>window.close();</script>
+        </head>
+        <body>
+            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=">
+        </body>
     </html>');
 } elseif (!in_array($currentUrlExt, $validExtTypes) || substr_count($_SERVER["REQUEST_URI"], "?")) {
     // Serve SVG upon receiving non $validExtTypes URL extension or query string
     // e.g: Not an iframe of a blocked domain, such as when browsing to a file/query directly
     // QoL addition: Allow the SVG to be clicked on in order to quickly show the full Block Page
-    $blockImg = '<a href="/"><svg xmlns="http://www.w3.org/2000/svg" width="110" height="16"><defs><style>a {text-decoration: none;} circle {stroke: rgba(152,2,2,0.5); fill: none; stroke-width: 2;} rect {fill: rgba(152,2,2,0.5);} text {opacity: 0.3; font: 11px Arial;}</style></defs><circle cx="8" cy="8" r="7"/><rect x="10.3" y="-6" width="2" height="12" transform="rotate(45)"/><text x="19.3" y="12">Blocked by Pi-hole</text></svg></a>';
-    exit(setHeader()."<html>
-        <head>$viewPort</head>
+    $blockImg = '<a href="/">
+    <svg xmlns="http://www.w3.org/2000/svg" width="110" height="16">
+      <circle cx="8" cy="8" r="7" fill="none" stroke="rgba(152,2,2,.5)" stroke-width="2"/>
+      <path fill="rgba(152,2,2,.5)" d="M11.526 3.04l1.414 1.415-8.485 8.485-1.414-1.414z"/>
+      <text x="19.3" y="12" opacity=".3" style="font:11px Arial">
+        Blocked by Pi-hole
+      </text>
+    </svg>
+    </a>';
+    exit(setHeader()."<!doctype html>
+    <html lang='en'>
+        <head>
+            <meta charset='utf-8'>
+            $viewPort
+        </head>
         <body>$blockImg</body>
     </html>");
 }
@@ -131,7 +161,12 @@ ini_set("default_socket_timeout", 3);
 function queryAds($serverName) {
     // Determine the time it takes while querying adlists
     $preQueryTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
-    $queryAds = file("http://127.0.0.1/admin/scripts/pi-hole/php/queryads.php?domain=$serverName&bp", FILE_IGNORE_NEW_LINES);
+    $queryAdsURL = sprintf(
+        "http://127.0.0.1:%s/admin/scripts/pi-hole/php/queryads.php?domain=%s&bp",
+        $_SERVER["SERVER_PORT"],
+        $serverName
+    );
+    $queryAds = file($queryAdsURL, FILE_IGNORE_NEW_LINES);
     $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAds)));
     $queryTime = sprintf("%.0f", (microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"]) - $preQueryTime);
 
@@ -209,12 +244,12 @@ $phVersion = exec("cd /etc/.pihole/ && git describe --long --tags");
 if (explode("-", $phVersion)[1] != "0")
   $execTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
 
-// Please Note: Text is added via CSS to allow an admin to provide a localised
+// Please Note: Text is added via CSS to allow an admin to provide a localized
 // language without the need to edit this file
 
 setHeader();
 ?>
-<!DOCTYPE html>
+<!doctype html>
 <!-- Pi-hole: A black hole for Internet advertisements
 *  (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 *  Network-wide ad blocking via your own hardware.
@@ -222,14 +257,14 @@ setHeader();
 *  This file is copyright under the latest version of the EUPL. -->
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <?=$viewPort ?>
-  <meta name="robots" content="noindex,nofollow"/>
+  <meta name="robots" content="noindex,nofollow">
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="shortcut icon" href="//pi.hole/admin/img/favicon.png" type="image/x-icon"/>
-  <link rel="stylesheet" href="//pi.hole/pihole/blockingpage.css" type="text/css"/>
+  <link rel="stylesheet" href="pihole/blockingpage.css">
+  <link rel="shortcut icon" href="admin/img/favicons/favicon.ico" type="image/x-icon">
   <title>● <?=$serverName ?></title>
-  <script src="//pi.hole/admin/scripts/vendor/jquery.min.js"></script>
+  <script src="admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php
@@ -261,10 +296,10 @@ setHeader();
   </h1>
   <div class="spc"></div>
 
-  <input id="bpAboutToggle" type="checkbox"/>
+  <input id="bpAboutToggle" type="checkbox">
   <div id="bpAbout">
     <div class="aboutPH">
-      <div class="aboutImg"/></div>
+      <div class="aboutImg"></div>
       <p>Open Source Ad Blocker
         <small>Designed for Raspberry Pi</small>
       </p>
@@ -301,8 +336,9 @@ setHeader();
     <pre id='bpQueryOutput'><?php if ($featuredTotal > 0) foreach ($queryResults as $num => $value) { echo "<span>[$num]:</span>$adlistsUrls[$num]\n"; } ?></pre>
 
     <form id="bpWLButtons" class="buttons">
-      <input id="bpWLDomain" type="text" value="<?=$serverName ?>" disabled/>
-      <input id="bpWLPassword" type="password" placeholder="Javascript disabled" disabled/><button id="bpWhitelist" type="button" disabled></button>
+      <input id="bpWLDomain" type="text" value="<?=$serverName ?>" disabled>
+      <input id="bpWLPassword" type="password" placeholder="JavaScript disabled" disabled>
+      <button id="bpWhitelist" type="button" disabled></button>
     </form>
   </div>
 </main>

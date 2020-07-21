@@ -1,6 +1,6 @@
 from textwrap import dedent
 import re
-from conftest import (
+from .conftest import (
     SETUPVARS,
     tick_box,
     info_box,
@@ -34,7 +34,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
     This confirms the sourced variables are in scope between functions
     '''
     setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         setup_var_file += "{}={}\n".format(k, v)
     setup_var_file += "EOF\n"
     Pihole.run(setup_var_file)
@@ -59,7 +59,7 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
 
     output = run_script(Pihole, script).stdout
 
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         assert "{}={}".format(k, v) in output
 
 
@@ -69,7 +69,7 @@ def test_setupVars_saved_to_file(Pihole):
     '''
     # dedent works better with this and padding matching script below
     set_setup_vars = '\n'
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         set_setup_vars += "    {}={}\n".format(k, v)
     Pihole.run(set_setup_vars).stdout
 
@@ -88,170 +88,8 @@ def test_setupVars_saved_to_file(Pihole):
 
     output = run_script(Pihole, script).stdout
 
-    for k, v in SETUPVARS.iteritems():
+    for k, v in SETUPVARS.items():
         assert "{}={}".format(k, v) in output
-
-
-def test_configureFirewall_firewalld_running_no_errors(Pihole):
-    '''
-    confirms firewalld rules are applied when firewallD is running
-    '''
-    # firewallD returns 'running' as status
-    mock_command('firewall-cmd', {'*': ('running', 0)}, Pihole)
-    # Whiptail dialog returns Ok for user prompt
-    mock_command('whiptail', {'*': ('', 0)}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Configuring FirewallD for httpd and pihole-FTL'
-    assert expected_stdout in configureFirewall.stdout
-    firewall_calls = Pihole.run('cat /var/log/firewall-cmd').stdout
-    assert 'firewall-cmd --state' in firewall_calls
-    assert ('firewall-cmd '
-            '--permanent '
-            '--add-service=http '
-            '--add-service=dns') in firewall_calls
-    assert 'firewall-cmd --reload' in firewall_calls
-
-
-def test_configureFirewall_firewalld_disabled_no_errors(Pihole):
-    '''
-    confirms firewalld rules are not applied when firewallD is not running
-    '''
-    # firewallD returns non-running status
-    mock_command('firewall-cmd', {'*': ('not running', '1')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = ('No active firewall detected.. '
-                       'skipping firewall configuration')
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_firewalld_enabled_declined_no_errors(Pihole):
-    '''
-    confirms firewalld rules are not applied when firewallD is running, user
-    declines ruleset
-    '''
-    # firewallD returns running status
-    mock_command('firewall-cmd', {'*': ('running', 0)}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', 1)}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Not installing firewall rulesets.'
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_no_firewall(Pihole):
-    ''' confirms firewall skipped no daemon is running '''
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'No active firewall detected'
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_IPTables_enabled_declined_no_errors(Pihole):
-    '''
-    confirms IPTables rules are not applied when IPTables is running, user
-    declines ruleset
-    '''
-    # iptables command exists
-    mock_command('iptables', {'*': ('', '0')}, Pihole)
-    # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*': ('', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '1')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Not installing firewall rulesets.'
-    assert expected_stdout in configureFirewall.stdout
-
-
-def test_configureFirewall_IPTables_enabled_rules_exist_no_errors(Pihole):
-    '''
-    confirms IPTables rules are not applied when IPTables is running and rules
-    exist
-    '''
-    # iptables command exists and returns 0 on calls
-    # (should return 0 on iptables -C)
-    mock_command('iptables', {'-S': ('-P INPUT DENY', '0')}, Pihole)
-    # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*': ('', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Installing new IPTables firewall rulesets'
-    assert expected_stdout in configureFirewall.stdout
-    firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
-    assert len(re.findall(r'iptables -S', firewall_calls)) == 1
-    assert len(re.findall(r'iptables -C', firewall_calls)) == 4
-    assert len(re.findall(r'iptables -I', firewall_calls)) == 0
-
-    # Specific port call occurances
-    assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 1
-    assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 1
-    assert len(re.findall(r'udp --dport 53', firewall_calls)) == 1
-    assert len(re.findall(r'tcp --dport 4711:4720', firewall_calls)) == 1
-
-
-def test_configureFirewall_IPTables_enabled_not_exist_no_errors(Pihole):
-    '''
-    confirms IPTables rules are applied when IPTables is running and rules do
-    not exist
-    '''
-    # iptables command and returns 0 on calls (should return 1 on iptables -C)
-    mock_command(
-        'iptables',
-        {
-            '-S': (
-                '-P INPUT DENY',
-                '0'
-            ),
-            '-C': (
-                '',
-                1
-            ),
-            '-I': (
-                '',
-                0
-            )
-        },
-        Pihole
-    )
-    # modinfo returns always true (ip_tables module check)
-    mock_command('modinfo', {'*': ('', '0')}, Pihole)
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    configureFirewall = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    configureFirewall
-    ''')
-    expected_stdout = 'Installing new IPTables firewall rulesets'
-    assert expected_stdout in configureFirewall.stdout
-    firewall_calls = Pihole.run('cat /var/log/iptables').stdout
-    # General call type occurances
-    assert len(re.findall(r'iptables -S', firewall_calls)) == 1
-    assert len(re.findall(r'iptables -C', firewall_calls)) == 4
-    assert len(re.findall(r'iptables -I', firewall_calls)) == 4
-
-    # Specific port call occurances
-    assert len(re.findall(r'tcp --dport 80', firewall_calls)) == 2
-    assert len(re.findall(r'tcp --dport 53', firewall_calls)) == 2
-    assert len(re.findall(r'udp --dport 53', firewall_calls)) == 2
-    assert len(re.findall(r'tcp --dport 4711:4720', firewall_calls)) == 2
 
 
 def test_selinux_not_detected(Pihole):

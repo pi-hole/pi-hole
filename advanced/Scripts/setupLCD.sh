@@ -20,7 +20,7 @@ getInitSys() {
     elif [ -f /etc/init.d/cron ] && [ ! -h /etc/init.d/cron ]; then
         SYSTEMD=0
     else
-        echo "Unrecognised init system"
+        echo "Unrecognized init system"
         return 1
     fi
 }
@@ -70,5 +70,5 @@ setupcon
 reboot
 
 # Start showing the stats on the screen by running the command on another tty:
-# http://unix.stackexchange.com/questions/170063/start-a-process-on-a-different-tty
+# https://unix.stackexchange.com/questions/170063/start-a-process-on-a-different-tty
 #setsid sh -c 'exec /usr/local/bin/chronometer.sh <> /dev/tty1 >&0 2>&1'

@@ -271,7 +271,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
-  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventualy fails
+  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventually fails
   # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
   if timeout 4 dig +short "${lookupDomain}" &> /dev/null; then
     if [[ -n "${secs:-}" ]]; then
@@ -359,9 +359,10 @@ gravity_DownloadBlocklists() {
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
     domain="${sourceDomains[$i]}"
+    id="${sourceIDs[$i]}"
 
     # Save the file as list.#.domain
-    saveLocation="${piholeDir}/list.${i}.${domain}.${domainsExtension}"
+    saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
@@ -374,7 +375,14 @@ gravity_DownloadBlocklists() {
     esac
 
     echo -e "  ${INFO} Target: ${url}"
-    gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
+    local regex
+    # Check for characters NOT allowed in URLs
+    regex="[^a-zA-Z0-9:/?&%=~._()-;]"
+    if [[ "${url}" =~ ${regex} ]]; then
+        echo -e "  ${CROSS} Invalid Target"
+    else
+       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
+    fi
     echo ""
   done
 
@@ -561,17 +569,19 @@ gravity_ParseFileIntoDomains() {
   # Determine if we are parsing a consolidated list
   #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
-    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contigious
+    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contiguous
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
     # 1) Remove carriage returns
     # 2) Convert all characters to lowercase
-    # 3) Remove lines containing "#" or "/"
-    # 4) Remove leading tabs, spaces, etc.
-    # 5) Delete lines not matching domain names
+    # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
+    # 4) Remove lines containing "/"
+    # 5) Remove leading tabs, spaces, etc.
+    # 6) Delete lines not matching domain names
     < "${source}" tr -d '\r' | \
     tr '[:upper:]' '[:lower:]' | \
-    sed -r '/(\/|#).*$/d' | \
+    sed 's/\s*#.*//g' | \
+    sed -r '/(\/).*$/d' | \
     sed -r 's/^.*\s+//g' | \
     sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
     chmod 644 "${destination}"
@@ -631,7 +641,7 @@ gravity_Table_Count() {
   if [[ "${table}" == "vw_gravity" ]]; then
     local unique
     unique="$(sqlite3 "${gravityDBfile}" "SELECT COUNT(DISTINCT domain) FROM ${table};")"
-    echo -e "  ${INFO} Number of ${str}: ${num} (${unique} unique domains)"
+    echo -e "  ${INFO} Number of ${str}: ${num} (${COL_BOLD}${unique} unique domains${COL_NC})"
     sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"
@@ -742,7 +752,7 @@ gravity_Cleanup() {
     dnsWasOffline=true
   fi
 
-  # Print Pi-hole status if an error occured
+  # Print Pi-hole status if an error occurred
   if [[ -n "${error}" ]]; then
     "${PIHOLE_COMMAND}" status
     exit 1

@@ -1,4 +1,4 @@
-.TH "Pi-hole" "8" "Pi-hole" "Pi-hole" "May 2018"
+.TH "Pi-hole" "8" "Pi-hole" "Pi-hole" "April 2020"
 .SH "NAME"
 
 Pi-hole : A black-hole for internet advertisements
@@ -10,8 +10,6 @@ Pi-hole : A black-hole for internet advertisements
 \fBpihole -a\fR \fB-p\fR password
 .br
 \fBpihole -a\fR (\fB-c|-f|-k\fR)
-.br
-\fBpihole -a\fR [\fB-r\fR hostrecord]
 .br
 \fBpihole -a -e\fR email
 .br
@@ -43,7 +41,7 @@ pihole -g\fR
 .br
 pihole status
 .br
-pihole restartdns\fR
+pihole restartdns\fR [options]
 .br
 \fBpihole\fR (\fBenable\fR|\fBdisable\fR [time])
 .br
@@ -134,9 +132,6 @@ Available commands and options:
       -f, fahrenheit    Set Fahrenheit as preferred temperature unit
 .br
       -k, kelvin        Set Kelvin as preferred temperature unit
-.br
-      -r, hostrecord    Add a name to the DNS associated to an
-                        IPv4/IPv6 address
 .br
       -e, email         Set an administrative contact address for the
                         Block Page
@@ -229,7 +224,7 @@ Available commands and options:
 .br
       -l, --latest      Return the latest version
 .br
-      --hash            Return the Github hash from your local
+      --hash            Return the GitHub hash from your local
                         repositories
 .br
 
@@ -260,14 +255,21 @@ Available commands and options:
       #m                Disable Pi-hole functionality for # minute(s)
 .br
 
-\fBrestartdns\fR
+\fBrestartdns\fR [options]
 .br
-    Restart Pi-hole subsystems
+    Full restart Pi-hole subsystems. Without any options (see below) a full restart causes config file parsing and history re-reading
+.br
+
+    (restart options):
+.br
+      reload            Updates the lists (incl. HOSTS files) and flushes DNS cache. Does not reparse config files
+.br
+      reload-lists      Updates the lists (excl. HOSTS files) WITHOUT flushing the DNS cache. Does not reparse config files
 .br
 
 \fBcheckout\fR [repo] [branch]
 .br
-    Switch Pi-hole subsystems to a different Github branch
+    Switch Pi-hole subsystems to a different GitHub branch
 .br
 
     (repo options):

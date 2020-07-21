@@ -87,7 +87,7 @@ PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
 PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
-#WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
+WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
@@ -138,7 +138,7 @@ PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log"
 PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
 PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 
-# An array of operating system "pretty names" that we officialy support
+# An array of operating system "pretty names" that we officially support
 # We can loop through the array at any time to see if it matches a value
 #SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
@@ -166,11 +166,13 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_DHCP_CONFIG_FILE}"
 "${PIHOLE_WILDCARD_CONFIG_FILE}"
 "${WEB_SERVER_CONFIG_FILE}"
+"${WEB_SERVER_CUSTOM_CONFIG_FILE}"
 "${PIHOLE_INSTALL_LOG_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
 "${PIHOLE_LOGROTATE_FILE}"
 "${PIHOLE_SETUP_VARS_FILE}"
+"${PIHOLE_FTL_CONF_FILE}"
 "${PIHOLE_COMMAND}"
 "${PIHOLE_COLTABLE_FILE}"
 "${FTL_PID}"
@@ -296,11 +298,15 @@ compare_local_version_to_git_version() {
                 log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
             fi
 
+            # Print the repo upstreams
+            remotes=$(git remote -v)
+            log_write "${INFO} Remotes: ${remotes//$'\n'/'\n             '}"
+
             # If the repo is on the master branch, they are on the stable codebase
             if [[ "${remote_branch}" == "master" ]]; then
                 # so the color of the text is green
                 log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
-            # If it is any other branch, they are in a developement branch
+            # If it is any other branch, they are in a development branch
             else
                 # So show that in yellow, signifying it's something to take a look at, but not a critical error
                 log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
@@ -309,7 +315,7 @@ compare_local_version_to_git_version() {
             log_write "${INFO} Commit: ${remote_commit}"
             # if `local_status` is non-null, then the repo is not clean, display details here
             if [[ ${local_status} ]]; then
-              #Replace new lines in the status with 12 spaces to make the output cleaner
+              # Replace new lines in the status with 12 spaces to make the output cleaner
               log_write "${INFO} Status: ${local_status//$'\n'/'\n            '}"
               local local_diff
               local_diff=$(git diff)
@@ -357,7 +363,7 @@ check_component_versions() {
 
 get_program_version() {
     local program_name="${1}"
-    # Create a loval variable so this function can be safely reused
+    # Create a local variable so this function can be safely reused
     local program_version
     echo_current_diagnostic "${program_name} version"
     # Evalutate the program we are checking, if it is any of the ones below, show the version
@@ -387,53 +393,53 @@ check_critical_program_versions() {
     get_program_version "php"
 }
 
-is_os_supported() {
-    local os_to_check="${1}"
-    # Strip just the base name of the system using sed
-    # shellcheck disable=SC2001
-    the_os=$(echo "${os_to_check}" | sed 's/ .*//')
-    # If the variable is one of our supported OSes,
-    case "${the_os}" in
-        # Print it in green
-        "Raspbian") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "Ubuntu") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "Fedora") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "Debian") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        "CentOS") log_write "${TICK} ${COL_GREEN}${os_to_check}${COL_NC}";;
-        # If not, show it in red and link to our software requirements page
-        *) log_write "${CROSS} ${COL_RED}${os_to_check}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})";
-    esac
-}
+os_check() {
+    # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
+    # and determines whether or not the script is running on one of those systems
+    local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version
+    remote_os_domain="versions.pi-hole.net"
+    valid_os=false
+    valid_version=false
 
-get_distro_attributes() {
-    # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
-    # Store the distro info in an array and make it global since the OS won't change,
-    # but we'll keep it within the function for better unit testing
-    local distro_info
-    #shellcheck disable=SC2016
-    IFS=$'\r\n' command eval 'distro_info=( $(cat /etc/*release) )'
+    detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
+    detected_os="${detected_os_pretty%% *}"
+    detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
 
-    # Set a named variable for better readability
-    local distro_attribute
-    # For each line found in an /etc/*release file,
-    for distro_attribute in "${distro_info[@]}"; do
-        # store the key in a variable
-        local pretty_name_key
-        pretty_name_key=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f1)
-        # we need just the OS PRETTY_NAME,
-        if [[ "${pretty_name_key}" == "PRETTY_NAME" ]]; then
-            # so save in in a variable when we find it
-            PRETTY_NAME_VALUE=$(echo "${distro_attribute}" | grep "PRETTY_NAME" | cut -d '=' -f2- | tr -d '"')
-            # then pass it as an argument that checks if the OS is supported
-            is_os_supported "${PRETTY_NAME_VALUE}"
-        else
-            # Since we only need the pretty name, we can just skip over anything that is not a match
-            :
+    IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"')
+
+    for i in "${supportedOS[@]}"
+    do
+        os_part=$(echo "$i" | cut -d '=' -f1)
+        versions_part=$(echo "$i" | cut -d '=' -f2-)
+
+        if [[ "${detected_os}" =~ ${os_part} ]]; then
+          valid_os=true
+          IFS="," read -r -a supportedVer <<<"${versions_part}"
+          for x in "${supportedVer[@]}"
+          do
+            if [[ "${detected_version}" =~ $x ]];then
+              valid_version=true
+              break
+            fi
+          done
+          break
         fi
     done
-    # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+
+    # Display findings back to the user
+    if [ "$valid_os" = true ]; then
+        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os}${COL_NC}"
+
+        if [ "$valid_version" = true ]; then
+            log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
+        else
+            log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
+            log_write "${CROSS} Error: ${COL_RED}${detected_os} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+        fi
+    else
+        log_write "${CROSS} Distro:  ${COL_RED}${detected_os}${COL_NC}"
+        log_write "${CROSS} Error: ${COL_RED}${detected_os} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+    fi
 }
 
 diagnose_operating_system() {
@@ -445,7 +451,7 @@ diagnose_operating_system() {
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
         # display the attributes to the user from the function made earlier
-        get_distro_attributes
+        os_check
     else
         # If it doesn't exist, it's not a system we currently support and link to FAQ
         log_write "${CROSS} ${COL_RED}${error_msg}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})"
@@ -747,7 +753,7 @@ check_x_headers() {
     # Do it for the dashboard as well, as the header is different than above
     local dashboard
     dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
-    # Store what the X-Header shoud be in variables for comparision later
+    # Store what the X-Header shoud be in variables for comparison later
     local block_page_working
     block_page_working="X-Pi-hole: A black hole for Internet advertisements."
     local dashboard_working
@@ -818,7 +824,7 @@ dig_at() {
 
     # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
     if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
-        # If it can, show sucess
+        # If it can, show success
         log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC (${local_address})"
     else
         # Otherwise, show a failure
@@ -969,7 +975,7 @@ check_name_resolution() {
 # This function can check a directory exists
 # Pi-hole has files in several places, so we will reuse this function
 dir_check() {
-    # Set the first argument passed to tihs function as a named variable for better readability
+    # Set the first argument passed to this function as a named variable for better readability
     local directory="${1}"
     # Display the current test that is running
     echo_current_diagnostic "contents of ${COL_CYAN}${directory}${COL_NC}"
@@ -987,14 +993,14 @@ dir_check() {
 }
 
 list_files_in_dir() {
-    # Set the first argument passed to tihs function as a named variable for better readability
+    # Set the first argument passed to this function as a named variable for better readability
     local dir_to_parse="${1}"
     # Store the files found in an array
     mapfile -t files_found < <(ls "${dir_to_parse}")
     # For each file in the array,
     for each_file in "${files_found[@]}"; do
         if [[ -d "${dir_to_parse}/${each_file}" ]]; then
-            # If it's a directoy, do nothing
+            # If it's a directory, do nothing
             :
         elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
@@ -1107,22 +1113,19 @@ show_db_entries() {
 }
 
 show_groups() {
-    show_db_entries "Groups" "SELECT id,name,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 50 7 19 19 50"
+    show_db_entries "Groups" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,name,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 7 50 19 19 50"
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT id,address,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist" "4 100 7 19 19 50"
-    show_db_entries "Adlist groups" "SELECT * FROM adlist_by_group" "4 4"
+    show_db_entries "Adlists" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids,address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "4 7 12 100 19 19 50"
 }
 
 show_domainlist() {
-    show_db_entries "Domainlist (0/1 = exact/regex whitelist, 2/3 = exact/regex blacklist)" "SELECT id,type,domain,enabled,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist" "4 4 100 7 19 19 50"
-    show_db_entries "Domainlist groups" "SELECT * FROM domainlist_by_group" "10 10"
+    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,CASE type WHEN '0' THEN '0   ' WHEN '1' THEN ' 1  ' WHEN '2' THEN '  2 ' WHEN '3' THEN '   3' ELSE type END type,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "4 4 7 12 100 19 19 50"
 }
 
 show_clients() {
-    show_db_entries "Clients" "SELECT id,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client" "4 100 19 19 50"
-    show_db_entries "Client groups" "SELECT * FROM client_by_group" "10 10"
+    show_db_entries "Clients" "SELECT id,GROUP_CONCAT(client_by_group.group_id) group_ids,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client LEFT JOIN client_by_group ON client.id = client_by_group.client_id GROUP BY id;" "4 12 100 19 19 50"
 }
 
 analyze_gravity_list() {
@@ -1190,7 +1193,7 @@ analyze_pihole_log() {
                 # So first check if there are domains in the log that should be obfuscated
                 if [[ -n ${line_to_obfuscate} ]]; then
                     # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
-                    # so we substitue the domain for the placeholder value
+                    # so we substitute the domain for the placeholder value
                     obfuscated_line=$(echo "${line_to_obfuscate}" | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
                     log_write "   ${obfuscated_line}"
                 else
@@ -1212,6 +1215,11 @@ tricorder_use_nc_or_curl() {
         log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
         # transmit he log via TLS and store the token returned in a variable
         tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER})
+        if [ -z "${tricorder_token}" ]; then
+         # curl failed, fallback to nc
+         log_write "    * ${COL_GREEN}curl${COL_NC} failed, falling back to ${COL_YELLOW}netcat${COL_NC} for transmission."
+         tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+        fi
     # Otherwise,
     else
         # use net cat
@@ -1238,7 +1246,7 @@ upload_to_tricorder() {
     log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
     log_write "    * For more information, see: ${TRICORDER_CONTEST}"
     log_write "    * If available, we'll use openssl to upload the log, otherwise it will fall back to netcat."
-    # If pihole -d is running automatically (usually throught the dashboard)
+    # If pihole -d is running automatically (usually through the dashboard)
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
@@ -1254,7 +1262,7 @@ upload_to_tricorder() {
             # If they say yes, run our function for uploading the log
             [yY][eE][sS]|[yY]) tricorder_use_nc_or_curl;;
             # If they choose no, just exit out of the script
-            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.";exit;
+            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
         esac
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token

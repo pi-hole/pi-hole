@@ -14,5 +14,5 @@ def test_scripts_pass_shellcheck():
                   "shellcheck -x \"$file\" -e SC1090,SC1091; "
                   "done;")
     results = run_local(shellcheck)
-    print results.stdout
+    print(results.stdout)
     assert '' == results.stdout
