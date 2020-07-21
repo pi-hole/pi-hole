@@ -116,7 +116,7 @@ for var in "$@"; do
         "--reconfigure" ) reconfigure=true;;
         "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
-        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false INSTALL_WEB_INTERFACE=false;;
+        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
     esac
 done
 
@@ -2072,16 +2072,14 @@ validate_setupVars () {
             exit 1
         fi
     done
-    # INSTALL_WEB_SERVER must be set to true if INSTALL_WEB_INTERFACE is set to true
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]] && [[ "${INSTALL_WEB_SERVER}" == false ]]; then
-        echo "You can install the Web Server without the web interface, but you cannot install the web interface without the web server."
+    # INSTALL_WEB_INTERFACE must be set to true if INSTALL_WEB_SERVER is set to true
+    if [[ "${INSTALL_WEB_INTERFACE}" == false ]] && [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+        echo "You can install the Web interface without the web server, but you cannot install the web server without the web interface."
         echo "INSTALL_WEB_SERVER is set to ${INSTALL_WEB_SERVER} and INSTALL_WEB_INTERFACE is set to ${INSTALL_WEB_INTERFACE}."
         exit 1
     fi
     # Regex patterns to match
-    address="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
     addressMask="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|[1-2][0-9]|3[0-2]))$"
-    addressPort="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(#([1-9][0-9]|[1-9]([0-9]){3}))?$"
     addressReverse="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}in-addr\.arpa$"
     # Validate the IPv4 address and subnet mask
     if [[ ! ${IPV4_ADDRESS} =~ ${addressMask} ]] ; then
@@ -2091,14 +2089,14 @@ validate_setupVars () {
         echo "IPv4 ${IPV4_ADDRESS}"
     fi
     # Validate the DNS_1 IP addresses
-    if [[ ! "${PIHOLE_DNS_1}" =~ ${addressPort} ]]; then
+    if ! valid_ip "${PIHOLE_DNS_1}" ; then
         echo "${PIHOLE_DNS_1} is not a valid address"
         exit 1
     else
         echo "DNS1 ${PIHOLE_DNS_1}"
     fi
     # Validate the DNS_2 IP addresses
-    if [[ ! "${PIHOLE_DNS_2}" =~ ${addressPort} ]]; then
+    if ! valid_ip "${PIHOLE_DNS_2}" ; then
         echo "${PIHOLE_DNS_2} is not a valid address"
         exit 1
     else
@@ -2114,7 +2112,7 @@ validate_setupVars () {
             exit 1
         fi
     # Validate Conditional Forwarding settings
-    if [[ "${CONDITIONAL_FORWARDING_IP}" =~ ${address} ]]; then
+    if ! valid_ip "${CONDITIONAL_FORWARDING_IP}" ; then
             echo "CONDITIONAL_FORWARDING_IP is ${CONDITIONAL_FORWARDING_IP}"
     elif [[ -z "${CONDITIONAL_FORWARDING_IP}" ]]; then
             echo "CONDITIONAL_FORWARDING_IP is not set"
