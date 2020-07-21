@@ -2014,9 +2014,7 @@ validate_setupVars () {
         exit 1
     fi
     # Regex patterns to match
-    address="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
     addressMask="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|[1-2][0-9]|3[0-2]))$"
-    addressPort="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(#([1-9][0-9]|[1-9]([0-9]){3}))?$"
     addressReverse="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}in-addr\.arpa$"
     # Validate the IPv4 address and subnet mask
     if [[ ! ${IPV4_ADDRESS} =~ ${addressMask} ]] ; then
@@ -2026,14 +2024,14 @@ validate_setupVars () {
         echo "IPv4 ${IPV4_ADDRESS}"
     fi
     # Validate the DNS_1 IP addresses
-    if [[ ! "${PIHOLE_DNS_1}" =~ ${addressPort} ]]; then
+    if ! valid_ip "${PIHOLE_DNS_1}" ; then
         echo "${PIHOLE_DNS_1} is not a valid address"
         exit 1
     else
         echo "DNS1 ${PIHOLE_DNS_1}"
     fi
     # Validate the DNS_2 IP addresses
-    if [[ ! "${PIHOLE_DNS_2}" =~ ${addressPort} ]]; then
+    if ! valid_ip "${PIHOLE_DNS_2}" ; then
         echo "${PIHOLE_DNS_2} is not a valid address"
         exit 1
     else
@@ -2049,7 +2047,7 @@ validate_setupVars () {
             exit 1
         fi
     # Validate Conditional Forwarding settings
-    if [[ "${CONDITIONAL_FORWARDING_IP}" =~ ${address} ]]; then
+    if ! valid_ip "${CONDITIONAL_FORWARDING_IP}" ; then
             echo "CONDITIONAL_FORWARDING_IP is ${CONDITIONAL_FORWARDING_IP}"
     elif [[ -z "${CONDITIONAL_FORWARDING_IP}" ]]; then
             echo "CONDITIONAL_FORWARDING_IP is not set"
