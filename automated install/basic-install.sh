@@ -116,7 +116,7 @@ for var in "$@"; do
         "--reconfigure" ) reconfigure=true;;
         "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
-        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false INSTALL_WEB_INTERFACE=false;;
+        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
     esac
 done
 
@@ -2007,9 +2007,9 @@ validate_setupVars () {
             exit 1
         fi
     done
-    # INSTALL_WEB_SERVER must be set to true if INSTALL_WEB_INTERFACE is set to true
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]] && [[ "${INSTALL_WEB_SERVER}" == false ]]; then
-        echo "You can install the Web Server without the web interface, but you cannot install the web interface without the web server."
+    # INSTALL_WEB_INTERFACE must be set to true if INSTALL_WEB_SERVER is set to true
+    if [[ "${INSTALL_WEB_INTERFACE}" == false ]] && [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+        echo "You can install the Web interface without the web server, but you cannot install the web server without the web interface."
         echo "INSTALL_WEB_SERVER is set to ${INSTALL_WEB_SERVER} and INSTALL_WEB_INTERFACE is set to ${INSTALL_WEB_INTERFACE}."
         exit 1
     fi
