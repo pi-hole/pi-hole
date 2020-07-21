@@ -1885,13 +1885,13 @@ create_pihole_user() {
     fi
 }
 
-# replaceAddCreateRename takes three varialbles
+# updateVarsFile takes three varialbles
 # 1 - the name of the local variable that represents the new value
 # 2 - the name of the variable in the target file
 # 3 - the path and name of the target file to modify
-replaceAddCreateRename() {
+updateVarsFile() {
     local theValue="${!1}"
-    local newVariable="${2}"
+    local fileVariable="${2}"
     local theFile="${3}"
     # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
     if [[ ! -s "theFile" ]] ; then
@@ -1899,42 +1899,14 @@ replaceAddCreateRename() {
     fi
     # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
     sed -i '
-        /^[#]*[ \t]*'"${newVariable}"'=/ {
+        /^[#]*[ \t]*'"${fileVariable}"'=/ {
             h
             s/=[^#]*\(.*\)/='"${theValue}"'\1/
             s/'"${theValue}"'#/'"${theValue}"' #/}
             ${
                 x
             /^$/{
-                s//'"${newVariable}"'='"${theValue}"'/
-                H
-                }
-                x
-            }
-        ' "${theFile}"
-}
-
-# replaceAddCreate takes two varialbles
-# 1 - the name of the local variable that represents the new value
-# 2 - the path and name of the target file to modify
-replaceAddCreate() {
-    local theVariable="${1}"
-    local theValue="${!1}"
-    local theFile="${2}"
-    # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
-    if [[ ! -s "${theFile}" ]] ; then
-       (umask 022 ; echo >> "${theFile}")
-    fi
-    # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
-    sed -i '
-        /^[#]*[ \t]*'"${theVariable}"'=/ {
-            h
-            s/=[^#]*\(.*\)/='"${theValue}"'\1/
-            s/'"${theValue}"'#/'"${theValue}"' #/}
-            ${
-                x
-            /^$/{
-                s//'"${theVariable}"'='"${theValue}"'/
+                s//'"${fileVariable}"'='"${theValue}"'/
                 H
                 }
                 x
@@ -1944,7 +1916,7 @@ replaceAddCreate() {
     #                                                    # Using ";" allows it to be written on one line.
     #                                                    # It's broke out here for documentation.
     #     sed -i '                                              # 
-    #         /^[#]*[ \t]*'"${theVariable}"'=/ {                # <-- looks for indentation and/or a comment before the variable followed by "="
+    #         /^[#]*[ \t]*'"${fileVariable}"'=/ {                # <-- looks for indentation and/or a comment before the variable followed by "="
     #              h                                            # h command copies the pattern buffer into the hold buffer. pattern buffer is unchanged.
     #              s/=[^#]*\(.*\)/='"${theValue}"'\1/           # <-- looks for a comment after the value, updates the value without losing the comment.
     #              s/'"${theValue}"'#/'"${theValue}"' #/        # <-- looks for the value followed by inline comment with no space and adds a space between the value and #.
@@ -1952,7 +1924,7 @@ replaceAddCreate() {
     #         ${                                                #
     #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
     #         /^$/{                                             #
-    #              s//'"${theVariable}"'='"${theValue}"'/       # <-- Appends the variable and value if it's not found.
+    #              s//'"${fileVariable}"'='"${theValue}"'/       # <-- Appends the variable and value if it's not found.
     #              H                                            # H command appends lines to the hold buffer with a \n between them.
     #              }                                            #
     #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
@@ -1979,14 +1951,14 @@ finalExports() {
     updatedVars=(PIHOLE_INTERFACE IPV6_ADDRESS IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2 QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE DNS_CACHE_SIZE)
     # Update setupVars.conf with new settings
     for var in "${updatedVars[@]}"; do
-        replaceAddCreate "${var}" "${setupVars}"
+        updateVarsFile "${var}" "${var}" "${setupVars}"
     done
     # echo the information to the user
     for var in "${updatedVars[@]}"; do
         echo "${var}=${!var}"
     done    
     # Set the privacy level
-    replaceAddCreateRename PRIVACY_LEVEL PRIVACYLEVEL "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    updateVarsFile PRIVACY_LEVEL PRIVACYLEVEL "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
     set -e      # exit on non-zero 
 
     # Bring in the current settings and the functions to manipulate them
@@ -2038,7 +2010,7 @@ accountForRefactor() {
         if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
             webserver_installed=true
         fi
-        replaceAddCreateRename INSTALL_WEB_SERVER webserver_installed "${setupVars}"
+        updateVarsFile INSTALL_WEB_SERVER webserver_installed "${setupVars}"
     fi
 }
 
