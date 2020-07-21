@@ -7,8 +7,8 @@
 # ; *  There must be a blank line at the end of the file.
 # ; *  Options set during or after installation will be appended to the last line.
 # ;
-# ; *  To create a random Web GUI password, delete "WEBPASSWORD=".  If it is left as is, no password will
-# ;    be required to login.  The password can be changed after installation with 'pihole -a -p'
+# ; *  To create a random Web GUI password, leave "WEBPASSWORD=" commented out.  Setting WEBPASSWORD= to be empty will
+# ;    disable passwords to login.  The password can be changed after installation with 'pihole -a -p'
 # ;
 
 PIHOLE_INTERFACE=ens160
@@ -19,7 +19,7 @@ QUERY_LOGGING=true
 INSTALL_WEB_SERVER=true
 INSTALL_WEB_INTERFACE=true
 LIGHTTPD_ENABLED=true
-WEBPASSWORD=
+# ; WEBPASSWORD=
 TEMPERATUREUNIT=F
 WEBUIBOXEDLAYOUT=boxed
 BLOCKING_ENABLED=true
