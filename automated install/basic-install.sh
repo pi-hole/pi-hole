@@ -218,7 +218,7 @@ os_check() {
             printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
             printf "\\n"
             printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
-            printf "             'PIHOLE_SKIP_OS_CHECK=true curl -sSL https://install.pi-hole.net | sudo -E bash'\\n"
+            printf "             'curl -sSL https://install.pi-hole.net | PIHOLE_SKIP_OS_CHECK=true sudo -E bash'\\n"
             printf "\\n"
             printf "           If you are seeing this message after having run pihole -up:\\n"
             printf "             'PIHOLE_SKIP_OS_CHECK=true sudo -E pihole -r'\\n"
