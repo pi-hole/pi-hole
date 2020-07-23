@@ -70,7 +70,7 @@ PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
-="${PI_HOLE_CONFIG_DIR}/custom.list"
+customDNSfile="${PI_HOLE_CONFIG_DIR}/custom.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=${IPV4_ADDRESS}
