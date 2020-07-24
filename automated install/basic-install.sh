@@ -70,7 +70,6 @@ PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 useUpdateVars=false
 
 adlistFile="/etc/pihole/adlists.list"
-customDNSfile="${PI_HOLE_CONFIG_DIR}/custom.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
 # this script can run
 IPV4_ADDRESS=${IPV4_ADDRESS}
@@ -1477,6 +1476,15 @@ installConfigs() {
             return 1
         fi
     fi
+
+    # Install empty custom.list file if it does not exist
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
+        if ! install -o root -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
+            printf "  %bError: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            return 1
+        fi
+    fi
+    
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1811,15 +1819,6 @@ installPiholeWeb() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
-# Creates custom DNS file if it does not exist
-installCustomDNSfile() {
-
-    if [[ ! -e "${customDNSfile}" ]]; then
-        touch "${customDNSfile}"
-        chmod 644 "${customDNSfile}"
-    fi
-
-}
 
 # Installs a cron file
 installCron() {
@@ -2047,9 +2046,6 @@ installPihole() {
 
     # install a man page entry for pihole
     install_manpage
-
-    # install custom DNS file if it does not exist
-    installCustomDNSfile
 
     # Update setupvars.conf with any variables that may or may not have been changed during the install
     finalExports
