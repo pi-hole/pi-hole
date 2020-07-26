@@ -1476,6 +1476,15 @@ installConfigs() {
             return 1
         fi
     fi
+
+    # Install empty custom.list file if it does not exist
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
+        if ! install -o root -m 644 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
+            printf "  %bError: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            return 1
+        fi
+    fi
+
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
