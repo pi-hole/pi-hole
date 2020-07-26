@@ -1484,7 +1484,7 @@ installConfigs() {
             return 1
         fi
     fi
-    
+
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1818,7 +1818,6 @@ installPiholeWeb() {
     chmod 0440 /etc/sudoers.d/pihole
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
-
 
 # Installs a cron file
 installCron() {
