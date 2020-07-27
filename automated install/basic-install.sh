@@ -188,7 +188,7 @@ os_check() {
         detected_os="${detected_os_pretty%% *}"
         detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
 
-        IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"')
+        IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
 
         for i in "${supportedOS[@]}"
         do
