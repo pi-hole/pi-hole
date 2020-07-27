@@ -190,24 +190,29 @@ os_check() {
 
         IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
 
-        for i in "${supportedOS[@]}"
-        do
-            os_part=$(echo "$i" | cut -d '=' -f1)
-            versions_part=$(echo "$i" | cut -d '=' -f2-)
+        if [ -z "$supportedOS" ]; then
+            printf "  %b %bRetrieval of supported OS failed. Please contact support. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+        else
+          for i in "${supportedOS[@]}"
+          do
+              os_part=$(echo "$i" | cut -d '=' -f1)
+              versions_part=$(echo "$i" | cut -d '=' -f2-)
 
-            if [[ "${detected_os}" =~ ${os_part} ]]; then
-            valid_os=true
-            IFS="," read -r -a supportedVer <<<"${versions_part}"
-            for x in "${supportedVer[@]}"
-            do
-                if [[ "${detected_version}" =~ $x ]];then
-                valid_version=true
+              if [[ "${detected_os}" =~ ${os_part} ]]; then
+                valid_os=true
+                IFS="," read -r -a supportedVer <<<"${versions_part}"
+                for x in "${supportedVer[@]}"
+                do
+                  if [[ "${detected_version}" =~ $x ]];then
+                    valid_version=true
+                    break
+                  fi
+                done
                 break
-                fi
+              fi
             done
-            break
-            fi
-        done
+          fi
 
         if [ "$valid_os" = true ] && [ "$valid_version" = true ]; then
             display_warning=false
