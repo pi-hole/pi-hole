@@ -190,7 +190,7 @@ os_check() {
 
         IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
 
-        if [ -z "$supportedOS" ]; then
+        if [ ${#supportedOS[@]} -eq 0 ]; then
             printf "  %b %bRetrieval of supported OS failed. Please contact support. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
         else
