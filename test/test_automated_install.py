@@ -561,3 +561,17 @@ def test_validate_ip_invalid_letters(Pihole):
     ''')
 
     assert output.rc == 1
+
+def test_os_check_pases(Pihole):
+    ''' Confirms OS meets the requirements '''
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
+    detectOS = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    os_check
+    ''')
+    expected_stdout = 'Supported OS detected'
+    assert expected_stdout in detectOS.stdout
