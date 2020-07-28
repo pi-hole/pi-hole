@@ -1,4 +1,4 @@
-FROM buildpack-deps:jessie-scm
+FROM buildpack-deps:buster-scm
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
