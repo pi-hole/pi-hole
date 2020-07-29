@@ -562,7 +562,7 @@ def test_validate_ip_invalid_letters(Pihole):
 
     assert output.rc == 1
 
-def test_os_check_pases(Pihole):
+def test_os_check_passes(Pihole):
     ''' Confirms OS meets the requirements '''
     Pihole.run('''
     source /opt/pihole/basic-install.sh
