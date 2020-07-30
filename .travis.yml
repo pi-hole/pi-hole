@@ -1,5 +1,5 @@
 import:
-  - source: pi-hole/pi-hole:/shared-configs:core.yml@main
+  - source: pi-hole/.github:/build-configs/core.yml@main
     if: branch = master
-  - source: pi-hole/pi-hole:/shared-configs:core.yml@main
+  - source: pi-hole/.github:/build-configs/core.yml@main
     if: branch != master
