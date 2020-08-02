@@ -305,7 +305,7 @@ setHeader();
       </p>
     </div>
     <div class="aboutLink">
-      <a class="linkPH" href="https://github.com/pi-hole/pi-hole/wiki/What-is-Pi-hole%3F-A-simple-explanation"><?php //About PH ?></a>
+      <a class="linkPH" href="https://docs.pi-hole.net/"><?php //About PH ?></a>
       <?php if (!empty($svEmail)) echo '<a class="linkEmail" href="mailto:'.$svEmail.'"></a>'; ?>
     </div>
   </div>
