@@ -336,7 +336,7 @@ gravity_DownloadBlocklists() {
     return 1
   fi
 
-  local url domain agent cmd_ext str target
+  local url domain agent cmd_ext str target compression
   echo ""
 
   # Prepare new gravity database
@@ -355,6 +355,16 @@ gravity_DownloadBlocklists() {
 
   target="$(mktemp -p "/tmp" --suffix=".gravity")"
 
+  # Use compression to reduce the amount of data that is transfered
+  # between the Pi-hole and the ad list provider. Use this feature
+  # only if it is supported by the locally available version of curl
+  if curl -V | grep -q "Features:.* libz"; then
+    compression="--compressed"
+    echo -e "  ${INFO} Using libz compression\n"
+  else
+      compression=""
+      echo -e "  ${INFO} Libz compression not available\n"
+    fi
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
@@ -381,7 +391,7 @@ gravity_DownloadBlocklists() {
     if [[ "${url}" =~ ${regex} ]]; then
         echo -e "  ${CROSS} Invalid Target"
     else
-       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
+       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
     fi
     echo ""
   done
@@ -456,8 +466,8 @@ parseList() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}"
-  local heisenbergCompensator="" patternBuffer str httpCode success="" compression
+  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}" compression="${7}"
+  local heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
   patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
@@ -504,15 +514,6 @@ gravity_DownloadBlocklistFromUrl() {
     echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
-  fi
-
-  # Use compression to reduce the amount of data that is transfered
-  # between the Pi-hole and the ad list provider. Use this feature
-  # only if it is supported by the locally available version of curl
-  if curl -V | grep -q "Features:.* libz"; then
-    compression="--compressed"
-  else
-    compression=""
   fi
 
   # shellcheck disable=SC2086
