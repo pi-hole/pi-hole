@@ -21,6 +21,10 @@
 # instead of continuing the installation with something broken
 set -e
 
+# Set PATH to a usual default to assure that all basic commands are available.
+# When using "su" an uncomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
+export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
 # This allows us to make a change in one place that can propagate to all instances of the variable
@@ -1490,6 +1494,15 @@ installConfigs() {
             return 1
         fi
     fi
+
+    # Install empty custom.list file if it does not exist
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
+        if ! install -o root -m 644 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
+            printf "  %bError: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            return 1
+        fi
+    fi
+
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,

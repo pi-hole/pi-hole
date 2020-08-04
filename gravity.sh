@@ -334,7 +334,7 @@ gravity_DownloadBlocklists() {
     return 1
   fi
 
-  local url domain agent cmd_ext str target
+  local url domain agent cmd_ext str target compression
   echo ""
 
   # Prepare new gravity database
@@ -353,13 +353,24 @@ gravity_DownloadBlocklists() {
 
   target="$(mktemp -p "/tmp" --suffix=".gravity")"
 
+  # Use compression to reduce the amount of data that is transfered
+  # between the Pi-hole and the ad list provider. Use this feature
+  # only if it is supported by the locally available version of curl
+  if curl -V | grep -q "Features:.* libz"; then
+    compression="--compressed"
+    echo -e "  ${INFO} Using libz compression\n"
+  else
+      compression=""
+      echo -e "  ${INFO} Libz compression not available\n"
+    fi
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
     domain="${sourceDomains[$i]}"
+    id="${sourceIDs[$i]}"
 
     # Save the file as list.#.domain
-    saveLocation="${piholeDir}/list.${i}.${domain}.${domainsExtension}"
+    saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
@@ -378,7 +389,7 @@ gravity_DownloadBlocklists() {
     if [[ "${url}" =~ ${regex} ]]; then
         echo -e "  ${CROSS} Invalid Target"
     else
-       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
+       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
     fi
     echo ""
   done
@@ -453,7 +464,7 @@ parseList() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}"
+  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}" compression="${7}"
   local heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
@@ -502,8 +513,9 @@ gravity_DownloadBlocklistFromUrl() {
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
   fi
+
   # shellcheck disable=SC2086
-  httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+  httpCode=$(curl -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
   case $url in
     # Did we "download" a local file?
