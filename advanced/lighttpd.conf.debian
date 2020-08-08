@@ -95,17 +95,17 @@ $HTTP["url"] =~ "^/admin/" {
         "X-Permitted-Cross-Domain-Policies" => "none",
         "Referrer-Policy" => "same-origin"
     )
-}
 
-# Block . files from being served, such as .git, .github, .gitignore
-$HTTP["url"] =~ "^/admin/\.(.*)" {
-    url.access-deny = ("")
-}
+    # Block . files from being served, such as .git, .github, .gitignore
+    $HTTP["url"] =~ "^/admin/\." {
+        url.access-deny = ("")
+    }
 
-# allow teleporter and API qr code iframe on settings page
-$HTTP["url"] =~ "/(teleporter|api_token)\.php$" {
-    $HTTP["referer"] =~ "/admin/settings\.php" {
-        setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
+    # allow teleporter and API qr code iframe on settings page
+    $HTTP["url"] =~ "/(teleporter|api_token)\.php$" {
+        $HTTP["referer"] =~ "/admin/settings\.php" {
+            setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
+        }
     }
 }
 
