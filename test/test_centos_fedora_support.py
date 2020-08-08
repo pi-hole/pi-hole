@@ -123,7 +123,7 @@ def test_enable_epel_repository_centos(Pihole):
     assert epel_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos8'), ])
 def test_php_upgrade_default_optout_centos(Pihole):
     '''
     confirms the default behavior to opt-out of installing PHP7 from REMI
@@ -139,7 +139,7 @@ def test_php_upgrade_default_optout_centos(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos8'), ])
 def test_php_upgrade_user_optout_centos(Pihole):
     '''
     confirms installer behavior when user opt-out of installing PHP7 from REMI
@@ -158,7 +158,7 @@ def test_php_upgrade_user_optout_centos(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos8'), ])
 def test_php_upgrade_user_optin_centos(Pihole):
     '''
     confirms installer behavior when user opt-in to installing PHP7 from REMI
@@ -181,7 +181,7 @@ def test_php_upgrade_user_optin_centos(Pihole):
     assert remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos8'), ])
 def test_php_version_lt_7_detected_upgrade_default_optout_centos(Pihole):
     '''
     confirms the default behavior to opt-out of upgrading to PHP7 from REMI
