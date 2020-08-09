@@ -238,7 +238,7 @@ def test_php_upgrade_user_optin_skipped_centos_gte_8(Pihole):
                                     '(https://rpms.remirepo.net)')
     assert unexpected_stdout not in distro_check.stdout
     unexpected_stdout = tick_box + (' Remi\'s RPM repository has '
-                                  'been enabled for PHP7')
+                                    'been enabled for PHP7')
     assert unexpected_stdout not in distro_check.stdout
     remi_package = Pihole.package('remi-release')
     assert not remi_package.is_installed
