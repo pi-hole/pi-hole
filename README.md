@@ -1,6 +1,6 @@
 ## This project is part of
 
-https://github.com/arevindh/AdminLTE
+https://github.com/arevindh/pihole-speedtest
 
 ## About the project
 
@@ -15,15 +15,9 @@ What does this mod have in extra ?
 3. Detailed speedtest results page.
 4. Ability to schedule speedtest interval.
 
-# By me a coffee 
+## Wiki
 
-Buy me a ☕️ if you like my projects :)
-
-https://www.buymeacoffee.com/itsmesid
-
-[Install Instructions](https://github.com/arevindh/pihole-speedtest/wiki/Installing-Speedtest-Mod)
-
-[Update Instructions](https://github.com/arevindh/pihole-speedtest/wiki/Updating--Speedtest-Mod)
+Wiki is available here https://github.com/arevindh/pihole-speedtest/wiki
 
 ## Disclaimer
 
