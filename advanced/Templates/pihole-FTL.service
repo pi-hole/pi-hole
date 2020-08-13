@@ -12,19 +12,8 @@
 FTLUSER=pihole
 PIDFILE=/run/pihole-FTL.pid
 
-get_pid() {
-    # First, try to obtain PID from PIDFILE
-    if [ -s "${PIDFILE}" ]; then
-        cat "${PIDFILE}"
-        return
-    fi
-
-    # If the PIDFILE is empty or not available, obtain the PID using pidof
-    pidof "pihole-FTL" | awk '{print $(NF)}'
-}
-
 is_running() {
-    ps "$(get_pid)" > /dev/null 2>&1
+    pgrep -o "pihole-FTL" > /dev/null 2>&1
 }
 
 
@@ -63,7 +52,7 @@ start() {
 # Stop the service
 stop() {
   if is_running; then
-    kill "$(get_pid)"
+    pkill -o pihole-FTL
     for i in {1..5}; do
       if ! is_running; then
         break
@@ -76,7 +65,7 @@ stop() {
 
     if is_running; then
       echo "Not stopped; may still be shutting down or shutdown may have failed, killing now"
-      kill -9 "$(get_pid)"
+      pkill -o -9 pihole-FTL
       exit 1
     else
       echo "Stopped"
