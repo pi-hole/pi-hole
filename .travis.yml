@@ -1,12 +1,5 @@
-sudo: required
-services:
-  - docker
-language: python
-python:
-  - "3.6"
-install:
-  - pip install -r requirements.txt
-
-script:
-  # tox.ini handles setup, ordering of docker build first, and then run tests
-  - tox
+import:
+  - source: pi-hole/.github:/build-configs/core.yml@main
+    if: branch = master
+  - source: pi-hole/.github:/build-configs/core.yml@latest
+    if: branch != master
