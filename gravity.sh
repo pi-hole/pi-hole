@@ -43,8 +43,6 @@ optimize_database=false
 
 domainsExtension="domains"
 
-resolver="pihole-FTL"
-
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
 if [[ -f "${setupVars}" ]];then
@@ -284,7 +282,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine error output message
-  if pidof ${resolver} &> /dev/null; then
+  if pgrep pihole-FTL &> /dev/null; then
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   else
     echo -e "  ${CROSS} DNS service is not running"
@@ -758,7 +756,7 @@ gravity_Cleanup() {
   fi
 
   # Only restart DNS service if offline
-  if ! pidof ${resolver} &> /dev/null; then
+  if ! pgrep pihole-FTL &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
     dnsWasOffline=true
   fi

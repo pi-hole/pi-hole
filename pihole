@@ -20,8 +20,6 @@ PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
-resolver="pihole-FTL"
-
 webpageFunc() {
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
   main "$@"
@@ -107,19 +105,19 @@ restartDNS() {
   # Determine if we should reload or restart
   if [[ "${svcOption}" =~ "reload-lists" ]]; then
     # Reloading of the lists has been requested
-    # Note: This will NOT re-read any *.conf files
+    # Note 1: This will NOT re-read any *.conf files
     # Note 2: We cannot use killall here as it does
     #         not know about real-time signals
-    svc="kill -SIGRTMIN $(pidof ${resolver})"
+    svc="pkill -RTMIN pihole-FTL"
     str="Reloading DNS lists"
   elif [[ "${svcOption}" =~ "reload" ]]; then
     # Reloading of the DNS cache has been requested
     # Note: This will NOT re-read any *.conf files
-    svc="killall -s SIGHUP ${resolver}"
+    svc="pkill -HUP pihole-FTL"
     str="Flushing DNS cache"
   else
     # A full restart has been requested
-    svc="service ${resolver} restart"
+    svc="service pihole-FTL restart"
     str="Restarting DNS server"
   fi
 

@@ -179,57 +179,69 @@ is_command() {
 }
 
 os_check() {
-    # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
-    # and determines whether or not the script is running on one of those systems
-    local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version display_warning
-    remote_os_domain="versions.pi-hole.net"
-    valid_os=false
-    valid_version=false
-    display_warning=true
+    if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
+        # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
+        # and determines whether or not the script is running on one of those systems
+        local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version display_warning
+        remote_os_domain="versions.pi-hole.net"
+        valid_os=false
+        valid_version=false
+        display_warning=true
 
-    detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
-    detected_os="${detected_os_pretty%% *}"
-    detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
+        detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
+        detected_os="${detected_os_pretty%% *}"
+        detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
 
-    IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"')
+        IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
 
-    for i in "${supportedOS[@]}"
-    do
-        os_part=$(echo "$i" | cut -d '=' -f1)
-        versions_part=$(echo "$i" | cut -d '=' -f2-)
-
-        if [[ "${detected_os}" =~ ${os_part} ]]; then
-          valid_os=true
-          IFS="," read -r -a supportedVer <<<"${versions_part}"
-          for x in "${supportedVer[@]}"
+        if [ ${#supportedOS[@]} -eq 0 ]; then
+            printf "  %b %bRetrieval of supported OS failed. Please contact support. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+        else
+          for i in "${supportedOS[@]}"
           do
-            if [[ "${detected_version}" =~ $x ]];then
-              valid_version=true
-              break
-            fi
-          done
-          break
+              os_part=$(echo "$i" | cut -d '=' -f1)
+              versions_part=$(echo "$i" | cut -d '=' -f2-)
+
+              if [[ "${detected_os}" =~ ${os_part} ]]; then
+                valid_os=true
+                IFS="," read -r -a supportedVer <<<"${versions_part}"
+                for x in "${supportedVer[@]}"
+                do
+                  if [[ "${detected_version}" =~ $x ]];then
+                    valid_version=true
+                    break
+                  fi
+                done
+                break
+              fi
+            done
+          fi
+
+        if [ "$valid_os" = true ] && [ "$valid_version" = true ]; then
+            display_warning=false
         fi
-    done
 
-    if [ "$valid_os" = true ] && [ "$valid_version" = true ]; then
-        display_warning=false
-    fi
+        if [ "$display_warning" = true ]; then
+            printf "  %b %bUnsupported OS detected: %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os_pretty}" "${COL_NC}"
+            printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
+            printf "\\n"
+            printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
+            printf "             'curl -sSL https://install.pi-hole.net | PIHOLE_SKIP_OS_CHECK=true sudo -E bash'\\n"
+            printf "\\n"
+            printf "           If you are seeing this message after having run pihole -up:\\n"
+            printf "             'PIHOLE_SKIP_OS_CHECK=true sudo -E pihole -r'\\n"
+            printf "           (In this case, your previous run of pihole -up will have already updated the local repository)\\n"
+            printf "\\n"
+            printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "      https://discourse.pi-hole.net/c/bugs-problems-issues/community-help/\\n"
+            exit 1
 
-    if [ "$display_warning" = true ] && [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
-        printf "  %b %bUnsupported OS detected%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
-        printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
-        printf "\\n"
-        printf "      This check can be skipped by setting the environment variable %bPIHOLE_SKIP_OS_CHECK%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
-        printf "      e.g: export PIHOLE_SKIP_OS_CHECK=true\\n"
-        printf "      By setting this variable to true you acknowledge there may be issues with Pi-hole during or after the install\\n"
-        printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        printf "      https://discourse.pi-hole.net/c/bugs-problems-issues/community-help/\\n"
-        exit 1
-    elif [ "$display_warning" = true ] && [ "$PIHOLE_SKIP_OS_CHECK" = true ]; then
-        printf "  %b %bUnsupported OS detected%b. PIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
+        else
+            printf "  %b %bSupported OS detected%b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        fi
     else
-        printf "  %b %bSupported OS detected%b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %bPIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
 }
 
@@ -1043,8 +1055,10 @@ valid_ip6() {
     local ipv6elem="[0-9a-fA-F]{1,4}"
     # CIDR for IPv6 is 1- 128 bit
     local v6cidr="(\\/([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])){0,1}"
+    # optional port number starting '#' with range of 1-65536
+    local portelem="(#([1-9]|[1-8][0-9]|9[0-9]|[1-8][0-9]{2}|9[0-8][0-9]|99[0-9]|[1-8][0-9]{3}|9[0-8][0-9]{2}|99[0-8][0-9]|999[0-9]|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-6]))?"
     # build a full regex string from the above parts
-    local regex="^(((${ipv6elem}))((:${ipv6elem}))*::((${ipv6elem}))*((:${ipv6elem}))*|((${ipv6elem}))((:${ipv6elem})){7})${v6cidr}$"
+    local regex="^(((${ipv6elem}))*((:${ipv6elem}))*::((${ipv6elem}))*((:${ipv6elem}))*|((${ipv6elem}))((:${ipv6elem})){7})${v6cidr}${portelem}$"
 
     [[ ${ip} =~ ${regex} ]]
 
