@@ -182,15 +182,11 @@ os_check() {
     if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
         # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
         # and determines whether or not the script is running on one of those systems
-        local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version display_warning
+        local remote_os_domain valid_os valid_version detected_os detected_version display_warning
         remote_os_domain="versions.pi-hole.net"
-        valid_os=false
-        valid_version=false
-        display_warning=true
 
-        detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
-        detected_os="${detected_os_pretty%% *}"
-        detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
+        detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+        detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
         IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
 
@@ -198,17 +194,17 @@ os_check() {
             printf "  %b %bRetrieval of supported OS failed. Please contact support. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
         else
-          for i in "${supportedOS[@]}"
+          for distro_and_versions in "${supportedOS[@]}"
           do
-              os_part=$(echo "$i" | cut -d '=' -f1)
-              versions_part=$(echo "$i" | cut -d '=' -f2-)
+              distro_part="${distro_and_versions%%=*}"
+              versions_part="${distro_and_versions##*=}"
 
-              if [[ "${detected_os}" =~ ${os_part} ]]; then
+              if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
                 valid_os=true
                 IFS="," read -r -a supportedVer <<<"${versions_part}"
-                for x in "${supportedVer[@]}"
+                for version in "${supportedVer[@]}"
                 do
-                  if [[ "${detected_version}" =~ $x ]];then
+                  if [[ "${detected_version}" =~ $version ]]; then
                     valid_version=true
                     break
                   fi
@@ -222,7 +218,7 @@ os_check() {
             display_warning=false
         fi
 
-        if [ "$display_warning" = true ]; then
+        if [ "$display_warning" != false ]; then
             printf "  %b %bUnsupported OS detected: %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os_pretty}" "${COL_NC}"
             printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
             printf "\\n"
