@@ -194,25 +194,25 @@ os_check() {
             printf "  %b %bRetrieval of supported OS failed. Please contact support. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
         else
-          for distro_and_versions in "${supportedOS[@]}"
-          do
-              distro_part="${distro_and_versions%%=*}"
-              versions_part="${distro_and_versions##*=}"
+            for distro_and_versions in "${supportedOS[@]}"
+            do
+                distro_part="${distro_and_versions%%=*}"
+                versions_part="${distro_and_versions##*=}"
 
-              if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
-                valid_os=true
-                IFS="," read -r -a supportedVer <<<"${versions_part}"
-                for version in "${supportedVer[@]}"
-                do
-                  if [[ "${detected_version}" =~ $version ]]; then
-                    valid_version=true
+                if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
+                    valid_os=true
+                    IFS="," read -r -a supportedVer <<<"${versions_part}"
+                    for version in "${supportedVer[@]}"
+                    do
+                        if [[ "${detected_version}" =~ $version ]]; then
+                            valid_version=true
+                            break
+                        fi
+                    done
                     break
-                  fi
-                done
-                break
-              fi
+                fi
             done
-          fi
+        fi
 
         if [ "$valid_os" = true ] && [ "$valid_version" = true ]; then
             display_warning=false
