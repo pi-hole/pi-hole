@@ -219,7 +219,7 @@ os_check() {
         fi
 
         if [ "$display_warning" != false ]; then
-            printf "  %b %bUnsupported OS detected: %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os_pretty}" "${COL_NC}"
+            printf "  %b %bUnsupported OS detected: %s %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
             printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
             printf "\\n"
             printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"

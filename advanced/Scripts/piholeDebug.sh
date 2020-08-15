@@ -425,17 +425,17 @@ os_check() {
 
     # Display findings back to the user
     if [ "$valid_os" = true ]; then
-        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os}${COL_NC}"
+        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
 
         if [ "$valid_version" = true ]; then
             log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
         else
             log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
-            log_write "${CROSS} Error: ${COL_RED}${detected_os} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+            log_write "${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
         fi
     else
-        log_write "${CROSS} Distro:  ${COL_RED}${detected_os}${COL_NC}"
-        log_write "${CROSS} Error: ${COL_RED}${detected_os} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+        log_write "${CROSS} Distro:  ${COL_RED}${detected_os^}${COL_NC}"
+        log_write "${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
     fi
 }
 
