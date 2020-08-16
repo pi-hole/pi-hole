@@ -72,11 +72,11 @@ if ($serverName === "pi.hole"
             <meta charset='utf-8'>
             $viewPort
             <title>● $serverName</title>
-            <link rel='stylesheet' href='pihole/blockingpage.css'>
-            <link rel='shortcut icon' href='admin/img/favicons/favicon.ico' type='image/x-icon'>
+            <link rel='stylesheet' href='/pihole/blockingpage.css'>
+            <link rel='shortcut icon' href='/admin/img/favicons/favicon.ico' type='image/x-icon'>
         </head>
         <body id='splashpage'>
-            <img src='admin/img/logo.svg' alt='Pi-hole logo' width='256' height='377'>
+            <img src='/admin/img/logo.svg' alt='Pi-hole logo' width='256' height='377'>
             <br>
             <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
             <a href='/admin'>Did you mean to go to the admin panel?</a>
@@ -262,10 +262,10 @@ setHeader();
   <?php echo $viewPort; ?>
   <meta name="robots" content="noindex,nofollow">
   <meta http-equiv="x-dns-prefetch-control" content="off">
-  <link rel="stylesheet" href="pihole/blockingpage.css">
-  <link rel="shortcut icon" href="admin/img/favicons/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/pihole/blockingpage.css">
+  <link rel="shortcut icon" href="/admin/img/favicons/favicon.ico" type="image/x-icon">
   <title>● <?php $serverName ?></title>
-  <script src="admin/scripts/vendor/jquery.min.js"></script>
+  <script src="/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
       <?php
