@@ -46,7 +46,7 @@ $viewPort = '<meta name="viewport" content="width=device-width, initial-scale=1"
 // Set response header
 function setHeader($type = "x") {
     header("X-Pi-hole: A black hole for Internet advertisements.");
-    if (isset($type) && $type === "js") header("Content-Type: application/javascript");
+    if ($type === "js") header("Content-Type: application/javascript");
 }
 
 // Determine block page type
