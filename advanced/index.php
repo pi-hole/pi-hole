@@ -55,7 +55,16 @@ if ($serverName === "pi.hole"
     // Redirect to Web Interface
     exit(header("Location: /admin"));
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
-    // Set Splash Page output
+    // When directly browsing via IP or authorized hostname
+    // Render splash/landing page based off presence of $landPage file
+    // If $landPage file is present
+    if (is_file(getcwd()."/$landPage")) {
+        //Unset variables so as to not be included in $landPage
+        unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
+        include $landPage;
+        exit();
+    }
+    // If $landPage file was not present, Set Splash Page output
     $splashPage = "
     <!doctype html>
     <html lang='en'>
@@ -74,15 +83,7 @@ if ($serverName === "pi.hole"
         </body>
     </html>
     ";
-
-    // Set splash/landing page based off presence of $landPage
-    $renderPage = is_file(getcwd()."/$landPage") ? include $landPage : "$splashPage";
-
-    // Unset variables so as to not be included in $landPage
-    unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
-
-    // Render splash/landing page when directly browsing via IP or authorized hostname
-    exit($renderPage);
+    exit($splashPage);
 } elseif ($currentUrlExt === "js") {
     // Serve Pi-hole JavaScript for blocked domains requesting JS
     exit(setHeader("js").'var x = "Pi-hole: A black hole for Internet advertisements."');
