@@ -35,7 +35,7 @@ if (!empty($_SERVER["FQDN"])) {
 }
 
 // Set which extension types render as Block Page (Including "" for index.ext)
-$validExtTypes = array("asp", "htm", "html", "php", "rss", "xml", "");
+$validExtTypes = ["asp", "htm", "html", "php", "rss", "xml", ""];
 
 // Get extension of current URL
 $currentUrlExt = pathinfo($_SERVER["REQUEST_URI"], PATHINFO_EXTENSION);
@@ -143,7 +143,7 @@ try {
 
 // Get all adlist addresses
 $adlistResults = $db->query("SELECT address FROM vw_adlist");
-$adlistsUrls = array();
+$adlistsUrls = [];
 while ($row = $adlistResults->fetchArray()) {
     array_push($adlistsUrls, $row[0]);
 }
@@ -175,7 +175,7 @@ function queryAds($serverName) {
         // Define Exceptions
         if (strpos($queryAds[0], "No exact results") !== FALSE) {
             // Return "none" into $queryAds array
-            return array("0" => "none");
+            return ["0" => "none"];
         } else if ($queryTime >= ini_get("default_socket_timeout")) {
             // Connection Timeout
             throw new Exception ("Connection timeout (".ini_get("default_socket_timeout")."s)");
@@ -186,7 +186,7 @@ function queryAds($serverName) {
         return $queryAds;
     } catch (Exception $e) {
         // Return exception as array
-        return array("0" => "error", "1" => $e->getMessage());
+        return ["0" => "error", "1" => $e->getMessage()];
     }
 }
 
@@ -210,14 +210,14 @@ foreach ($queryAds as $str) {
 // Determine if domain has been blacklisted, whitelisted, wildcarded or CNAME blocked
 if (strpos($queryAds[0], "blacklist") !== FALSE) {
     $notableFlagClass = "blacklist";
-    $adlistsUrls = array("π" => substr($queryAds[0], 2));
+    $adlistsUrls = ["π" => substr($queryAds[0], 2)];
 } elseif (strpos($queryAds[0], "whitelist") !== FALSE) {
     $notableFlagClass = "noblock";
-    $adlistsUrls = array("π" => substr($queryAds[0], 2));
+    $adlistsUrls = ["π" => substr($queryAds[0], 2)];
     $wlInfo = "recentwl";
 } elseif (strpos($queryAds[0], "wildcard") !== FALSE) {
     $notableFlagClass = "wildcard";
-    $adlistsUrls = array("π" => substr($queryAds[0], 2));
+    $adlistsUrls = ["π" => substr($queryAds[0], 2)];
 } elseif ($queryAds[0] === "none") {
     $featuredTotal = "0";
     $notableFlagClass = "noblock";
