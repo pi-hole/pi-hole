@@ -264,7 +264,7 @@ setHeader();
   <meta http-equiv="x-dns-prefetch-control" content="off">
   <link rel="stylesheet" href="/pihole/blockingpage.css">
   <link rel="shortcut icon" href="/admin/img/favicons/favicon.ico" type="image/x-icon">
-  <title>● <?php $serverName ?></title>
+  <title>● <?php echo $serverName ?></title>
   <script src="/admin/scripts/vendor/jquery.min.js"></script>
   <script>
     window.onload = function () {
@@ -317,41 +317,46 @@ setHeader();
 </header>
 
 <main>
-  <div id="bpOutput" class="<?php $wlOutputClass ?>"><?php $wlOutput ?></div>
+  <div id="bpOutput" class="<?php echo $wlOutputClass ?>"><?php echo $wlOutput ?></div>
   <div id="bpBlock">
-    <p class="blockMsg"><?php $serverName ?></p>
+    <p class="blockMsg"><?php echo $serverName ?></p>
   </div>
   <?php if(isset($notableFlagClass)) { ?>
     <div id="bpFlag">
-        <p class="flagMsg <?php $notableFlagClass ?>"></p>
+        <p class="flagMsg <?php echo $notableFlagClass ?>"></p>
     </div>
   <?php } ?>
-  <div id="bpHelpTxt"><?php $bpAskAdmin ?></div>
+  <div id="bpHelpTxt"><?php echo $bpAskAdmin ?></div>
   <div id="bpButtons" class="buttons">
     <a id="bpBack" onclick="javascript:history.back()" href="about:home"></a>
     <?php if ($featuredTotal > 0) echo '<label id="bpInfo" for="bpMoreToggle"></label>'; ?>
   </div>
   <input id="bpMoreToggle" type="checkbox">
   <div id="bpMoreInfo">
-    <span id="bpFoundIn"><span><?php $featuredTotal ?></span><?php $adlistsCount ?></span>
+    <span id="bpFoundIn"><span><?php echo $featuredTotal ?></span><?php echo $adlistsCount ?></span>
     <pre id='bpQueryOutput'><?php if ($featuredTotal > 0) foreach ($queryResults as $num => $value) { echo "<span>[$num]:</span>$adlistsUrls[$num]\n"; } ?></pre>
 
     <form id="bpWLButtons" class="buttons">
-      <input id="bpWLDomain" type="text" value="<?php $serverName ?>" disabled>
+      <input id="bpWLDomain" type="text" value="<?php echo $serverName ?>" disabled>
       <input id="bpWLPassword" type="password" placeholder="JavaScript disabled" disabled>
       <button id="bpWhitelist" type="button" disabled></button>
     </form>
   </div>
 </main>
 
-<footer><span><?php date("l g:i A, F dS"); ?>.</span> Pi-hole <?php $phVersion ?> (<?php gethostname()."/".$_SERVER["SERVER_ADDR"]; if (isset($execTime)) printf("/%.2fs", $execTime); ?>)</footer>
+<footer><span><?php date("l g:i A, F dS"); ?>.</span> Pi-hole <?php echo $phVersion ?> (<?php 
+  echo gethostname()."/".$_SERVER["SERVER_ADDR"];
+  if (isset($execTime)) {
+      printf("/%.2fs", $execTime);
+   }
+    ?>)</footer>
 </div>
 
 <script>
   function add() {
     $("#bpOutput").removeClass("hidden error exception");
     $("#bpOutput").addClass("add");
-    var domain = "<?php $serverName ?>";
+    var domain = "<?php echo $serverName ?>";
     var pw = $("#bpWLPassword");
     if(domain.length === 0) {
       return;
