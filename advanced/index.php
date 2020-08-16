@@ -345,10 +345,10 @@ setHeader();
 </main>
 
 <footer><span><?php echo date("l g:i A, F dS"); ?>.</span> Pi-hole <?php echo $phVersion ?> (<?php
-  echo gethostname()."/".$_SERVER["SERVER_ADDR"];
-  if (isset($execTime)) {
-    printf("/%.2fs", $execTime);
-  }
+echo gethostname()."/".$_SERVER["SERVER_ADDR"];
+if (isset($execTime)) {
+  printf("/%.2fs", $execTime);
+}
 ?>)</footer>
 </div>
 
