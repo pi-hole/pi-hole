@@ -297,10 +297,10 @@ if is_command apt-get ; then
         # Prefer the php metapackage if it's there
         if apt-cache show php > /dev/null 2>&1; then
             phpVer="php"
-        # Else error if we find the php5 package
+        # Else fall back on the php5 package if it's there
         elif apt-cache show php5 > /dev/null 2>&1; then
-            printf "  %b Aborting installation: Only PHP5 packages were found in APT repository. PHP5 no longer receives security patches. Please upgrade to PHP7. \\n" "${CROSS}"
-            exit 1
+            phpVer="php5"
+            printf "  %b WARNING: Only PHP5 packages were found in APT repository. PHP5 no longer receives security patches. It is recommended you upgrade to PHP7.\\n" "${INFO}"
         # Else print error and exit
         else
             printf "  %b Aborting installation: No PHP packages were found in APT repository.\\n" "${CROSS}"
