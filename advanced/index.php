@@ -175,7 +175,7 @@ function queryAds($serverName) {
         // Define Exceptions
         if (strpos($queryAds[0], "No exact results") !== FALSE) {
             // Return "none" into $queryAds array
-            return ["0" => "none"];
+            return [0 => "none"];
         } else if ($queryTime >= ini_get("default_socket_timeout")) {
             // Connection Timeout
             throw new Exception ("Connection timeout (".ini_get("default_socket_timeout")."s)");
@@ -186,7 +186,7 @@ function queryAds($serverName) {
         return $queryAds;
     } catch (Exception $e) {
         // Return exception as array
-        return ["0" => "error", "1" => $e->getMessage()];
+        return [0 => "error", 1 => $e->getMessage()];
     }
 }
 
