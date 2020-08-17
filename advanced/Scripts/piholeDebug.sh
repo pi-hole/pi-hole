@@ -396,49 +396,46 @@ check_critical_program_versions() {
 os_check() {
     # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
     # and determines whether or not the script is running on one of those systems
-    local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version
+    local remote_os_domain valid_os valid_version detected_os detected_version
     remote_os_domain="versions.pi-hole.net"
-    valid_os=false
-    valid_version=false
 
-    detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
-    detected_os="${detected_os_pretty%% *}"
-    detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
+    detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+    detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-    IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"')
+    IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
 
-    for i in "${supportedOS[@]}"
+    for distro_and_versions in "${supportedOS[@]}"
     do
-        os_part=$(echo "$i" | cut -d '=' -f1)
-        versions_part=$(echo "$i" | cut -d '=' -f2-)
+        distro_part="${distro_and_versions%%=*}"
+        versions_part="${distro_and_versions##*=}"
 
-        if [[ "${detected_os}" =~ ${os_part} ]]; then
-          valid_os=true
-          IFS="," read -r -a supportedVer <<<"${versions_part}"
-          for x in "${supportedVer[@]}"
-          do
-            if [[ "${detected_version}" =~ $x ]];then
-              valid_version=true
-              break
-            fi
-          done
-          break
+        if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
+            valid_os=true
+            IFS="," read -r -a supportedVer <<<"${versions_part}"
+            for version in "${supportedVer[@]}"
+            do
+                if [[ "${detected_version}" =~ $version ]]; then
+                    valid_version=true
+                    break
+                fi
+            done
+            break
         fi
     done
 
     # Display findings back to the user
     if [ "$valid_os" = true ]; then
-        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os}${COL_NC}"
+        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
 
         if [ "$valid_version" = true ]; then
             log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
         else
             log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
-            log_write "${CROSS} Error: ${COL_RED}${detected_os} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+            log_write "${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
         fi
     else
-        log_write "${CROSS} Distro:  ${COL_RED}${detected_os}${COL_NC}"
-        log_write "${CROSS} Error: ${COL_RED}${detected_os} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+        log_write "${CROSS} Distro:  ${COL_RED}${detected_os^}${COL_NC}"
+        log_write "${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
     fi
 }
 
