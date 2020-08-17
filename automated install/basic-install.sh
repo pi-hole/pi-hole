@@ -192,10 +192,12 @@ os_check() {
         detected_os="${detected_os_pretty%% *}"
         detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
 
-        IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
+        supported_os_query=$(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net) || supported_os_query_rc=$?
+        IFS=" " read -r -a supportedOS < <(echo "$supported_os_query" | tr -d '"')
 
-        if [ ${#supportedOS[@]} -eq 0 ]; then
-            printf "  %b %bRetrieval of supported OS failed. Please contact support. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+        # supportedOS may be empty in case of a SERVFAIL or contain an error message in case of a connection timeout
+        if [ ${#supportedOS[@]} -eq 0 ] || [ -n "${supported_os_query_rc}" ]; then
+            printf "  %b %bError: Unable to determine if OS is supported: %s %s. Please contact support.%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os}" "${detected_version}" "${COL_NC}"
             exit 1
         else
           for i in "${supportedOS[@]}"
