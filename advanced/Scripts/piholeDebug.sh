@@ -406,7 +406,7 @@ os_check() {
     #Get the return code of the previous command (last line)
     digReturnCode="${cmdResult##*$'\n'}"
 
-    # Dig returned 0 code, so get the actual response, and loop through it to determine if the detected variables above are valid
+    # Extract dig response
     response="${cmdResult%%$'\n'*}"
 
     IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
