@@ -396,14 +396,20 @@ check_critical_program_versions() {
 os_check() {
     # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
     # and determines whether or not the script is running on one of those systems
-    local remote_os_domain valid_os valid_version detected_os detected_version
+    local remote_os_domain valid_os valid_version detected_os detected_version cmdResult digReturnCode response
     remote_os_domain="versions.pi-hole.net"
 
     detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
     detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-    IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
+    cmdResult="$(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net 2>&1; echo $?)"
+    #Get the return code of the previous command (last line)
+    digReturnCode="${cmdResult##*$'\n'}"
 
+    # Extract dig response
+    response="${cmdResult%%$'\n'*}"
+
+    IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
     for distro_and_versions in "${supportedOS[@]}"
     do
         distro_part="${distro_and_versions%%=*}"
@@ -423,7 +429,9 @@ os_check() {
         fi
     done
 
-    # Display findings back to the user
+    log_write "${INFO} dig return code:  ${digReturnCode}"
+    log_write "${INFO} dig response:  ${response}"
+
     if [ "$valid_os" = true ]; then
         log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
 
