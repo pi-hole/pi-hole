@@ -231,12 +231,16 @@ os_check() {
             if [ "$valid_response" = false ]; then
 
                 if [ "${digReturnCode}" -eq 0 ]; then
-                    errStr="dig suceeded, but response was blank. Please contact Support"
+                    errStr="dig succeeded, but response was blank. Please contact support"
                 else
                     errStr="dig failed with return code ${digReturnCode}"
                 fi
                 printf "  %b %bRetrieval of supported OS list failed. %s. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${errStr}" "${COL_NC}"
                 printf "      %bUnable to determine if the detected OS (%s %s) is supported%b\\n" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
+                printf "      Possible causes for this include:\\n"
+                printf "        - Firewall blocking certain DNS lookups from Pi-hole device\\n"
+                printf "        - ns1.pi-hole.net being blocked (required to obtain TXT record from versions.pi-hole.net containing supported operating systems)\\n"
+                printf "        - Other internet connectivity issues\\n"
             else
                 printf "  %b %bUnsupported OS detected: %s %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
                 printf "      If you are seeing this message and you do have a supported OS, please contact support.\\n"
