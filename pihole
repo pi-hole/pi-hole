@@ -254,9 +254,9 @@ Example: 'pihole logging on'
 Specify whether the Pi-hole log should be used
 
 Options:
-  on                  Enable the Pi-hole log at /var/log/pihole.log
-  off                 Disable and flush the Pi-hole log at /var/log/pihole.log
-  off noflush         Disable the Pi-hole log at /var/log/pihole.log"
+  on                  Enable the Pi-hole log at /var/log/pihole/pihole.log
+  off                 Disable and flush the Pi-hole log at /var/log/pihole/pihole.log
+  off noflush         Disable the Pi-hole log at /var/log/pihole/pihole.log"
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
@@ -382,7 +382,7 @@ tailFunc() {
   # Color blocklist/blacklist/wildcard entries as red
   # Color A/AAAA/DHCP strings as white
   # Color everything else as gray
-  tail -f /var/log/pihole.log | grep --line-buffered "${1}" | sed -E \
+  tail -f /var/log/pihole/pihole.log | grep --line-buffered "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
     -e "s,(.*(blacklisted |gravity blocked ).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
