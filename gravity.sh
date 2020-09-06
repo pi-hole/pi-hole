@@ -714,6 +714,21 @@ gravity_Trap() {
   trap '{ echo -e "\\n\\n  ${INFO} ${COL_LIGHT_RED}User-abort detected${COL_NC}"; gravity_Cleanup "error"; }' INT
 }
 
+gravity_Optimize() {
+  str="Optimizing domains database"
+  echo -ne "  ${INFO} ${str}..."
+  # Run VACUUM command on database to optimize it
+  output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
+    error="error"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
+}
+
 # Clean up after Gravity upon exit or cancellation
 gravity_Cleanup() {
   local error="${1:-}"
@@ -739,21 +754,6 @@ gravity_Cleanup() {
   fi
 
   echo -e "${OVER}  ${TICK} ${str}"
-
-  if ${optimize_database} ; then
-    str="Optimizing domains database"
-    echo -ne "  ${INFO} ${str}..."
-    # Run VACUUM command on database to optimize it
-    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
-    status="$?"
-
-    if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
-      error="error"
-    else
-      echo -e "${OVER}  ${TICK} ${str}"
-    fi
-  fi
 
   # Only restart DNS service if offline
   if ! pgrep pihole-FTL &> /dev/null; then
@@ -830,6 +830,11 @@ chmod g+w "${piholeDir}" "${gravityDBfile}"
 
 # Compute numbers to be displayed
 gravity_ShowCount
+
+# Optimize gravity database if requested
+if ${optimize_database} ; then
+  gravity_Optimize
+fi
 
 # Determine if DNS has been restarted by this instance of gravity
 if [[ -z "${dnsWasOffline:-}" ]]; then
