@@ -24,7 +24,7 @@ unset($setupVars);
 $landPage = "../landing.php";
 
 // Define array for hostnames to be accepted as self address for splash page
-$authorizedHosts = [];
+$authorizedHosts = [ "localhost" ];
 if (!empty($_SERVER["FQDN"])) {
     // If setenv.add-environment = ("fqdn" => "true") is configured in lighttpd,
     // append $serverName to $authorizedHosts
