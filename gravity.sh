@@ -39,7 +39,6 @@ gravityDBfile="${piholeDir}/gravity.db"
 gravityTEMPfile="${piholeDir}/gravity_temp.db"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
-optimize_database=false
 
 domainsExtension="domains"
 
@@ -740,21 +739,6 @@ gravity_Cleanup() {
 
   echo -e "${OVER}  ${TICK} ${str}"
 
-  if ${optimize_database} ; then
-    str="Optimizing domains database"
-    echo -ne "  ${INFO} ${str}..."
-    # Run VACUUM command on database to optimize it
-    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
-    status="$?"
-
-    if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
-      error="error"
-    else
-      echo -e "${OVER}  ${TICK} ${str}"
-    fi
-  fi
-
   # Only restart DNS service if offline
   if ! pgrep pihole-FTL &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
@@ -781,7 +765,6 @@ Options:
 for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
-    "-o" | "--optimize" ) optimize_database=true;;
     "-r" | "--recreate" ) recreate_database=true;;
     "-h" | "--help" ) helpFunc;;
   esac
