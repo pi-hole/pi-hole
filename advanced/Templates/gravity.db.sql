@@ -32,7 +32,7 @@ CREATE TABLE adlist
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	comment TEXT,
-	date_updated INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int))
+	date_updated INTEGER
 );
 
 CREATE TABLE adlist_by_group
@@ -86,9 +86,9 @@ CREATE TABLE client_by_group
 	PRIMARY KEY (client_id, group_id)
 );
 
-CREATE TRIGGER tr_adlist_update AFTER UPDATE ON adlist
+CREATE TRIGGER tr_adlist_update AFTER UPDATE OF address,enabled,comment ON adlist
     BEGIN
-      UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
+      UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
     END;
 
 CREATE TRIGGER tr_client_update AFTER UPDATE ON client
