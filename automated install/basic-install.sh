@@ -1402,6 +1402,15 @@ version_check_dnsmasq() {
             #
             sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
         fi
+        # If the user does not want to enable logging,
+        if [[ "${QUERY_LOGGING}" == false ]] ; then
+            # Disable it by commenting out the directive in the DNS config file
+            sed -i 's/^log-queries/#log-queries/' "${dnsmasq_pihole_01_location}"
+        # Otherwise,
+        else
+            # enable it by uncommenting the directive in the DNS config file
+            sed -i 's/^#log-queries/log-queries/' "${dnsmasq_pihole_01_location}"
+        fi
     fi
 
     #
