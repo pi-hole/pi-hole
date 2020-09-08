@@ -1382,24 +1382,26 @@ version_check_dnsmasq() {
         install -d -m 755 "/etc/dnsmasq.d"
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    install -D -m 644 -T "${dnsmasq_pihole_01_snippet}" "${dnsmasq_pihole_01_location}"
-    printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
-    # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
-    # First, swap in the interface to listen on
-    sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_location}"
-    if [[ "${PIHOLE_DNS_1}" != "" ]]; then
-        # Then swap in the primary DNS server
-        sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_location}"
-    else
-        #
-        sed -i '/^server=@DNS1@/d' "${dnsmasq_pihole_01_location}"
-    fi
-    if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-        # Then swap in the primary DNS server
-        sed -i "s/@DNS2@/$PIHOLE_DNS_2/" "${dnsmasq_pihole_01_location}"
-    else
-        #
-        sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
+    if [[ ! -f "${dnsmasq_pihole_01_location}"  ]];then
+        install -D -m 644 -T "${dnsmasq_pihole_01_snippet}" "${dnsmasq_pihole_01_location}"
+        printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
+        # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
+        # First, swap in the interface to listen on
+        sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_location}"
+        if [[ "${PIHOLE_DNS_1}" != "" ]]; then
+             # Then swap in the primary DNS server
+            sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_location}"
+        else
+             #
+             sed -i '/^server=@DNS1@/d' "${dnsmasq_pihole_01_location}"
+        fi
+        if [[ "${PIHOLE_DNS_2}" != "" ]]; then
+            # Then swap in the primary DNS server
+            sed -i "s/@DNS2@/$PIHOLE_DNS_2/" "${dnsmasq_pihole_01_location}"
+        else
+            #
+            sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
+        fi
     fi
 
     #
