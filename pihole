@@ -20,6 +20,12 @@ PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
+dnsmasq_log=$(awk 'match($0, /log-facility=(.*)/, a) {print a[1]}' /etc/dnsmasq.d/01-pihole.conf)
+if [ -z "$dnsmasq_log" ]; then
+  # If no config set, use default log location.
+  dnsmasq_log=/var/log/pihole.log
+fi
+
 webpageFunc() {
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
   main "$@"
@@ -220,9 +226,9 @@ Example: 'pihole logging on'
 Specify whether the Pi-hole log should be used
 
 Options:
-  on                  Enable the Pi-hole log at /var/log/pihole.log
-  off                 Disable and flush the Pi-hole log at /var/log/pihole.log
-  off noflush         Disable the Pi-hole log at /var/log/pihole.log"
+  on                  Enable the Pi-hole log at ${dnsmasq_log}
+  off                 Disable and flush the Pi-hole log at ${dnsmasq_log}
+  off noflush         Disable the Pi-hole log at ${dnsmasq_log}"
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
@@ -335,7 +341,7 @@ tailFunc() {
   # Color blocklist/blacklist/wildcard entries as red
   # Color A/AAAA/DHCP strings as white
   # Color everything else as gray
-  tail -f /var/log/pihole.log | sed -E \
+  tail -f ${dnsmasq_log} | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
     -e "s,(.*(blacklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \

@@ -25,8 +25,15 @@ if [ -z "$DBFILE" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
+# Find out dnsmasq log file.
+dnsmasq_log=$(awk 'match($0, /log-facility=(.*)/, a) {print a[1]}' /etc/dnsmasq.d/01-pihole.conf)
+if [ -z "$dnsmasq_log" ]; then
+  # If no config set, use default log location.
+  dnsmasq_log=/var/log/pihole.log
+fi
+
 if [[ "$@" != *"quiet"* ]]; then
-    echo -ne "  ${INFO} Flushing /var/log/pihole.log ..."
+    echo -ne "  ${INFO} Flushing ${dnsmasq_log} ..."
 fi
 if [[ "$@" == *"once"* ]]; then
     # Nightly logrotation
@@ -39,9 +46,9 @@ if [[ "$@" == *"once"* ]]; then
         # Note that moving the file is not an option, as
         # dnsmasq would happily continue writing into the
         # moved file (it will have the same file handler)
-        cp -p /var/log/pihole.log /var/log/pihole.log.1
-        echo " " > /var/log/pihole.log
-        chmod 644 /var/log/pihole.log
+        cp ${dnsmasq_log} ${dnsmasq_log}.1
+        echo " " > ${dnsmasq_log}
+        chmod 644 ${dnsmasq_log}
     fi
 else
     # Manual flushing
@@ -51,10 +58,10 @@ else
         /usr/sbin/logrotate --force /etc/pihole/logrotate
     else
         # Flush both pihole.log and pihole.log.1 (if existing)
-        echo " " > /var/log/pihole.log
-        if [ -f /var/log/pihole.log.1 ]; then
-            echo " " > /var/log/pihole.log.1
-            chmod 644 /var/log/pihole.log.1
+        echo " " > ${dnsmasq_log}
+        if [ -f ${dnsmasq_log}.1 ]; then
+            echo " " > ${dnsmasq_log}.1
+            chmod 644 ${dnsmasq_log}.1
         fi
     fi
     # Delete most recent 24 hours from FTL's database, leave even older data intact (don't wipe out all history)
@@ -65,6 +72,6 @@ else
 fi
 
 if [[ "$@" != *"quiet"* ]]; then
-    echo -e "${OVER}  ${TICK} Flushed /var/log/pihole.log"
+    echo -e "${OVER}  ${TICK} Flushed ${dnsmasq_log}"
     echo -e "  ${TICK} Deleted ${deleted} queries from database"
 fi
