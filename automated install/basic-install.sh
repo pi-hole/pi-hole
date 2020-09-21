@@ -111,7 +111,6 @@ c=$(( c < 70 ? 70 : c ))
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
-skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 INSTALL_WEB_SERVER=true
@@ -119,7 +118,6 @@ INSTALL_WEB_SERVER=true
 for var in "$@"; do
     case "$var" in
         "--reconfigure" ) reconfigure=true;;
-        "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
         "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
     esac
@@ -685,53 +683,6 @@ welcomeDialogs() {
     whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." "${r}" "${c}"
-}
-
-# We need to make sure there is enough space before installing, so there is a function to check this
-verifyFreeDiskSpace() {
-    # 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
-    # - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
-    local str="Disk space check"
-    # Required space in KB
-    local required_free_kilobytes=51200
-    # Calculate existing free space on this machine
-    local existing_free_kilobytes
-    existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
-
-    # If the existing space is not an integer,
-    if ! [[ "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
-        # show an error that we can't determine the free space
-        printf "  %b %s\\n" "${CROSS}" "${str}"
-        printf "  %b Unknown free disk space! \\n" "${INFO}"
-        printf "      We were unable to determine available free disk space on this system.\\n"
-        printf "      You may override this check, however, it is not recommended.\\n"
-        printf "      The option '%b--i_do_not_follow_recommendations%b' can override this.\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        printf "      e.g: curl -sSL https://install.pi-hole.net | bash /dev/stdin %b<option>%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # exit with an error code
-        exit 1
-    # If there is insufficient free disk space,
-    elif [[ "${existing_free_kilobytes}" -lt "${required_free_kilobytes}" ]]; then
-        # show an error message
-        printf "  %b %s\\n" "${CROSS}" "${str}"
-        printf "  %b Your system disk appears to only have %s KB free\\n" "${INFO}" "${existing_free_kilobytes}"
-        printf "      It is recommended to have a minimum of %s KB to run the Pi-hole\\n" "${required_free_kilobytes}"
-        # if the vcgencmd command exists,
-        if is_command vcgencmd ; then
-            # it's probably a Raspbian install, so show a message about expanding the filesystem
-            printf "      If this is a new install you may need to expand your disk\\n"
-            printf "      Run 'sudo raspi-config', and choose the 'expand file system' option\\n"
-            printf "      After rebooting, run this installation again\\n"
-            printf "      e.g: curl -sSL https://install.pi-hole.net | bash\\n"
-        fi
-        # Show there is not enough free space
-        printf "\\n      %bInsufficient free space, exiting...%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # and exit with an error
-        exit 1
-    # Otherwise,
-    else
-        # Show that we're running a disk space check
-        printf "  %b %s\\n" "${TICK}" "${str}"
-    fi
 }
 
 # A function that let's the user pick an interface to use with Pi-hole
@@ -2693,13 +2644,6 @@ main() {
     fi
 
     # Start the installer
-    # Verify there is enough disk space for the install
-    if [[ "${skipSpaceCheck}" == true ]]; then
-        printf "  %b Skipping free disk space verification\\n" "${INFO}"
-    else
-        verifyFreeDiskSpace
-    fi
-
     # Notify user of package availability
     notify_package_updates_available
 
