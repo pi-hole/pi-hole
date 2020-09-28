@@ -1313,8 +1313,6 @@ installDefaultBlocklists() {
     fi
     appendToListsFile StevenBlack
     appendToListsFile MalwareDom
-    appendToListsFile DisconTrack
-    appendToListsFile DisconAd
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1381,10 +1379,10 @@ version_check_dnsmasq() {
         #
         sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
     fi
-	
+
 	# Set the cache size
 	sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" ${dnsmasq_pihole_01_location}
-   
+
     #
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
 
