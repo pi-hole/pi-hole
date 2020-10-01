@@ -23,6 +23,7 @@ domList=()
 
 typeId=""
 comment=""
+groupname="Default"
 declare -i domaincount
 domaincount=0
 
@@ -75,6 +76,7 @@ Example: 'pihole -${param} site.com', or 'pihole -${param} site1.com site2.com'
 ${listname^} one or more domains
 
 Options:
+  -g, --group         Filter options by group - must come first
   -d, --delmode       Remove domain(s) from the ${listname}
   -nr, --noreload     Update ${listname} without reloading the DNS server
   -q, --quiet         Make output less verbose
@@ -106,6 +108,14 @@ ValidateDomain() {
     fi
 
     domaincount=$((domaincount+1))
+}
+
+GetGroupId() {
+    group="${1}"
+
+    id="$(sqlite3 "${gravityDBfile}" "SELECT id FROM \`group\` WHERE name = '${group}';")"
+
+    echo "${id}"
 }
 
 ProcessDomainList() {
@@ -193,12 +203,13 @@ Displaylist() {
     local count num_pipes domain enabled status nicedate requestedListname
 
     requestedListname="$(GetListnameFromTypeId "${typeId}")"
-    data="$(sqlite3 "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM domainlist WHERE type = ${typeId};" 2> /dev/null)"
+    groupNumber="$(GetGroupId "${groupname}")"
+    data="$(sqlite3 "${gravityDBfile}" "SELECT domain,dl.enabled,dl.date_modified FROM domainlist dl left join domainlist_by_group dlg on dl.id = dlg.domainlist_id left join \`group\` g on g.id = dlg.group_id WHERE type = ${typeId} and g.id = ${groupNumber};" 2> /dev/null)"
 
     if [[ -z $data ]]; then
         echo -e "Not showing empty list"
     else
-        echo -e "Displaying ${requestedListname}:"
+        echo -e "Displaying ${requestedListname} for group ${groupname}:"
         count=1
         while IFS= read -r line
         do
@@ -255,6 +266,7 @@ while (( "$#" )); do
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
         "-l" | "--list"      ) Displaylist;;
+        "-g" | "--group"     ) groupname="${2}"; shift;;
         "--nuke"             ) NukeList;;
         "--web"              ) web=true;;
         "--comment"          ) GetComment "${2}"; shift;;
