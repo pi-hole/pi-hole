@@ -1117,6 +1117,21 @@ show_db_entries() {
     IFS="$OLD_IFS"
 }
 
+check_dhcp_servers() {
+    echo_current_diagnostic "Discovering active DHCP servers (takes 10 seconds)"
+
+    OLD_IFS="$IFS"
+    IFS=$'\n'
+    local entries=()
+    mapfile -t entries < <(pihole-FTL dhcp-discover)
+
+    for line in "${entries[@]}"; do
+        log_write "   ${line}"
+    done
+
+    IFS="$OLD_IFS"
+}
+
 show_groups() {
     show_db_entries "Groups" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,name,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,description FROM \"group\"" "4 7 50 19 19 50"
 }
@@ -1308,6 +1323,7 @@ check_selinux
 processor_check
 check_networking
 check_name_resolution
+check_dhcp_servers
 process_status
 parse_setup_vars
 check_x_headers
