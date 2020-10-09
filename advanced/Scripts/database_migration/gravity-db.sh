@@ -114,6 +114,6 @@ upgrade_gravityDB(){
 		# Add column date_updated to alist table
 		echo -e "  ${INFO} Upgrading gravity database from version 12 to 13"
 		sqlite3 "${database}" < "${scriptPath}/12_to_13.sql"
-		version=12
+		version=13
 	fi
 }
