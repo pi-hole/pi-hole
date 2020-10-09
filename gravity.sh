@@ -206,6 +206,17 @@ database_table_from_file() {
     echo -e "  ${CROSS} Unable to remove ${tmpFile}"
 }
 
+# Update timestamp of last update of this list. We store this in the "old" database as all values in the new database will later be overwritten
+database_adlist_updated() {
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET date_updated = (cast(strftime('%%s', 'now') as int)) WHERE id = %i;\\n" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update timestamp of adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+}
+
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
   # Create database file only if not present
@@ -554,6 +565,8 @@ gravity_DownloadBlocklistFromUrl() {
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
+      # Update date_updated field in gravity database table
+      database_adlist_updated "${adlistID}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
