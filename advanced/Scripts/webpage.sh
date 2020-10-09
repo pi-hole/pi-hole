@@ -514,7 +514,7 @@ SpeedtestMode(){
 SetCronTab()
 {
   # Remove OLD
-  crontab -l > crontab.tmp
+  crontab -l > crontab.tmp || true
 
   if [[ "$1" == "0" ]]; then
       sed -i '/speedtest/d' crontab.tmp
