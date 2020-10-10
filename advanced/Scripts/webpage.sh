@@ -167,9 +167,11 @@ ProcessDNSSettings() {
     fi
 
     delete_dnsmasq_setting "domain-needed"
+    delete_dnsmasq_setting "expand-hosts"
 
     if [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
         add_dnsmasq_setting "domain-needed"
+        add_dnsmasq_setting "expand-hosts"
     fi
 
     delete_dnsmasq_setting "bogus-priv"
@@ -370,6 +372,7 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
 
     if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
+        echo "local=/${PIHOLE_DOMAIN}/" >> "${dhcpconfig}"
     fi
 
     # Sourced from setupVars
