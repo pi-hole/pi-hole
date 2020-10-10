@@ -372,7 +372,9 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
 
     if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
-        echo "local=/${PIHOLE_DOMAIN}/" >> "${dhcpconfig}"
+        if  [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
+          echo "local=/${PIHOLE_DOMAIN}/" >> "${dhcpconfig}"
+        fi
     fi
 
     # Sourced from setupVars
