@@ -48,6 +48,7 @@ FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-p
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
+FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
 FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
@@ -490,6 +491,58 @@ check_selinux() {
         esac
     else
         log_write "${INFO} ${COL_GREEN}SELinux not detected${COL_NC}";
+    fi
+}
+
+check_firewalld() {
+    # FirewallD ships by default on Fedora/CentOS/RHEL and enabled upon clean install
+    # FirewallD is not configured by the installer and is the responsibility of the user
+    echo_current_diagnostic "FirewallD"
+    # Check if FirewallD service is enabled
+    if command -v systemctl &> /dev/null; then
+        # get its status via systemctl
+        local firewalld_status
+        firewalld_status=$(systemctl is-active firewalld)
+        log_write "${INFO} ${COL_GREEN}Firewalld service ${firewalld_status}${COL_NC}";
+        if [ "${firewalld_status}" == "active" ]; then
+            # test common required service ports
+            local firewalld_enabled_services
+            firewalld_enabled_services=$(firewall-cmd --list-services)
+            local firewalld_expected_services=("http" "dns" "dhcp" "dhcpv6")
+            for i in "${firewalld_expected_services[@]}"; do
+                if [[ "${firewalld_enabled_services}" =~ ${i} ]]; then
+                    log_write "${TICK} ${COL_GREEN}  Allow Service: ${i}${COL_NC}";
+                else
+                    log_write "${CROSS} ${COL_RED}  Allow Service: ${i}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+                fi
+            done
+            # check for custom FTL FirewallD zone
+            local firewalld_zones
+            firewalld_zones=$(firewall-cmd --get-zones)
+            if [[ "${firewalld_zones}" =~ "ftl" ]]; then
+                log_write "${TICK} ${COL_GREEN}FTL Custom Zone Detected${COL_NC}";
+                # check FTL custom zone interface: lo
+                local firewalld_ftl_zone_interfaces
+                firewalld_ftl_zone_interfaces=$(firewall-cmd --zone=ftl --list-interfaces)
+                if [[ "${firewalld_ftl_zone_interfaces}" =~ "lo" ]]; then
+                    log_write "${TICK} ${COL_GREEN}  Local Interface Detected${COL_NC}";
+                else
+                    log_write "${CROSS} ${COL_RED}  Local Interface Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+                fi
+                # check FTL custom zone port: 4711
+                local firewalld_ftl_zone_ports
+                firewalld_ftl_zone_ports=$(firewall-cmd --zone=ftl --list-ports)
+                if [[ "${firewalld_ftl_zone_ports}" =~ "4711/tcp" ]]; then
+                    log_write "${TICK} ${COL_GREEN}  FTL Port 4711/tcp Detected${COL_NC}";
+                else
+                    log_write "${CROSS} ${COL_RED}  FTL Port 4711/tcp Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+                fi
+            else
+                log_write "${CROSS} ${COL_RED}FTL Custom Zone Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+            fi
+        fi
+    else
+        log_write "${TICK} ${COL_GREEN}Firewalld service not detected${COL_NC}";
     fi
 }
 
@@ -1320,6 +1373,7 @@ check_component_versions
 check_critical_program_versions
 diagnose_operating_system
 check_selinux
+check_firewalld
 processor_check
 check_networking
 check_name_resolution
