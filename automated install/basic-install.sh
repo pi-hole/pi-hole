@@ -1211,7 +1211,6 @@ setPrivacyLevel() {
         "1" "Hide domains" off
         "2" "Hide domains and clients" off
         "3" "Anonymous mode" off
-        "4" "Disabled statistics" off
     )
 
     # Get the user's choice
