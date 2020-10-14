@@ -24,7 +24,7 @@ unset($setupVars);
 $landPage = "../landing.php";
 
 // Define array for hostnames to be accepted as self address for splash page
-$authorizedHosts = [];
+$authorizedHosts = array();
 if (!empty($_SERVER["FQDN"])) {
     // If setenv.add-environment = ("fqdn" => "true") is configured in lighttpd,
     // append $serverName to $authorizedHosts
@@ -35,7 +35,7 @@ if (!empty($_SERVER["FQDN"])) {
 }
 
 // Set which extension types render as Block Page (Including "" for index.ext)
-$validExtTypes = ["asp", "htm", "html", "php", "rss", "xml", ""];
+$validExtTypes = array("asp", "htm", "html", "php", "rss", "xml", "");
 
 // Get extension of current URL
 $currentUrlExt = pathinfo($_SERVER["REQUEST_URI"], PATHINFO_EXTENSION);
@@ -144,7 +144,7 @@ try {
 
 // Get all adlist addresses
 $adlistResults = $db->query("SELECT address FROM vw_adlist");
-$adlistsUrls = [];
+$adlistsUrls = array();
 while ($row = $adlistResults->fetchArray()) {
     array_push($adlistsUrls, $row[0]);
 }
@@ -176,7 +176,7 @@ function queryAds($serverName) {
         // Define Exceptions
         if (strpos($queryAds[0], "No exact results") !== FALSE) {
             // Return "none" into $queryAds array
-            return [0 => "none"];
+            return array(0 => "none");
         } else if ($queryTime >= ini_get("default_socket_timeout")) {
             // Connection Timeout
             throw new Exception ("Connection timeout (".ini_get("default_socket_timeout")."s)");
@@ -187,7 +187,7 @@ function queryAds($serverName) {
         return $queryAds;
     } catch (Exception $e) {
         // Return exception as array
-        return [0 => "error", 1 => $e->getMessage()];
+        return array(0 => "error", 1 => $e->getMessage());
     }
 }
 
@@ -211,14 +211,14 @@ foreach ($queryAds as $str) {
 // Determine if domain has been blacklisted, whitelisted, wildcarded or CNAME blocked
 if (strpos($queryAds[0], "blacklist") !== FALSE) {
     $notableFlagClass = "blacklist";
-    $adlistsUrls = ["π" => substr($queryAds[0], 2)];
+    $adlistsUrls = array("π" => substr($queryAds[0], 2));
 } elseif (strpos($queryAds[0], "whitelist") !== FALSE) {
     $notableFlagClass = "noblock";
-    $adlistsUrls = ["π" => substr($queryAds[0], 2)];
+    $adlistsUrls = array("π" => substr($queryAds[0], 2));
     $wlInfo = "recentwl";
 } elseif (strpos($queryAds[0], "wildcard") !== FALSE) {
     $notableFlagClass = "wildcard";
-    $adlistsUrls = ["π" => substr($queryAds[0], 2)];
+    $adlistsUrls = array("π" => substr($queryAds[0], 2));
 } elseif ($queryAds[0] === "none") {
     $featuredTotal = "0";
     $notableFlagClass = "noblock";
