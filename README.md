@@ -146,6 +146,7 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 1. `http://pi.hole/admin/` (when using Pi-hole as your DNS server)
 2. `http://<IP_ADDPRESS_OF_YOUR_PI_HOLE>/admin/`
 3. `http://pi.hole/` (when using Pi-hole as your DNS server)
+## how to install pihole ?
 
 ## Faster-than-light Engine
 
