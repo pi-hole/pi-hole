@@ -48,6 +48,7 @@ FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-p
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
+FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
 FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
@@ -396,49 +397,54 @@ check_critical_program_versions() {
 os_check() {
     # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
     # and determines whether or not the script is running on one of those systems
-    local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version
+    local remote_os_domain valid_os valid_version detected_os detected_version cmdResult digReturnCode response
     remote_os_domain="versions.pi-hole.net"
-    valid_os=false
-    valid_version=false
 
-    detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
-    detected_os="${detected_os_pretty%% *}"
-    detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
+    detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+    detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-    IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} | tr -d '"')
+    cmdResult="$(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net 2>&1; echo $?)"
+    #Get the return code of the previous command (last line)
+    digReturnCode="${cmdResult##*$'\n'}"
 
-    for i in "${supportedOS[@]}"
+    # Extract dig response
+    response="${cmdResult%%$'\n'*}"
+
+    IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
+    for distro_and_versions in "${supportedOS[@]}"
     do
-        os_part=$(echo "$i" | cut -d '=' -f1)
-        versions_part=$(echo "$i" | cut -d '=' -f2-)
+        distro_part="${distro_and_versions%%=*}"
+        versions_part="${distro_and_versions##*=}"
 
-        if [[ "${detected_os}" =~ ${os_part} ]]; then
-          valid_os=true
-          IFS="," read -r -a supportedVer <<<"${versions_part}"
-          for x in "${supportedVer[@]}"
-          do
-            if [[ "${detected_version}" =~ $x ]];then
-              valid_version=true
-              break
-            fi
-          done
-          break
+        if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
+            valid_os=true
+            IFS="," read -r -a supportedVer <<<"${versions_part}"
+            for version in "${supportedVer[@]}"
+            do
+                if [[ "${detected_version}" =~ $version ]]; then
+                    valid_version=true
+                    break
+                fi
+            done
+            break
         fi
     done
 
-    # Display findings back to the user
+    log_write "${INFO} dig return code:  ${digReturnCode}"
+    log_write "${INFO} dig response:  ${response}"
+
     if [ "$valid_os" = true ]; then
-        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os}${COL_NC}"
+        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
 
         if [ "$valid_version" = true ]; then
             log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
         else
             log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
-            log_write "${CROSS} Error: ${COL_RED}${detected_os} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+            log_write "${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
         fi
     else
-        log_write "${CROSS} Distro:  ${COL_RED}${detected_os}${COL_NC}"
-        log_write "${CROSS} Error: ${COL_RED}${detected_os} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+        log_write "${CROSS} Distro:  ${COL_RED}${detected_os^}${COL_NC}"
+        log_write "${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
     fi
 }
 
@@ -485,6 +491,58 @@ check_selinux() {
         esac
     else
         log_write "${INFO} ${COL_GREEN}SELinux not detected${COL_NC}";
+    fi
+}
+
+check_firewalld() {
+    # FirewallD ships by default on Fedora/CentOS/RHEL and enabled upon clean install
+    # FirewallD is not configured by the installer and is the responsibility of the user
+    echo_current_diagnostic "FirewallD"
+    # Check if FirewallD service is enabled
+    if command -v systemctl &> /dev/null; then
+        # get its status via systemctl
+        local firewalld_status
+        firewalld_status=$(systemctl is-active firewalld)
+        log_write "${INFO} ${COL_GREEN}Firewalld service ${firewalld_status}${COL_NC}";
+        if [ "${firewalld_status}" == "active" ]; then
+            # test common required service ports
+            local firewalld_enabled_services
+            firewalld_enabled_services=$(firewall-cmd --list-services)
+            local firewalld_expected_services=("http" "dns" "dhcp" "dhcpv6")
+            for i in "${firewalld_expected_services[@]}"; do
+                if [[ "${firewalld_enabled_services}" =~ ${i} ]]; then
+                    log_write "${TICK} ${COL_GREEN}  Allow Service: ${i}${COL_NC}";
+                else
+                    log_write "${CROSS} ${COL_RED}  Allow Service: ${i}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+                fi
+            done
+            # check for custom FTL FirewallD zone
+            local firewalld_zones
+            firewalld_zones=$(firewall-cmd --get-zones)
+            if [[ "${firewalld_zones}" =~ "ftl" ]]; then
+                log_write "${TICK} ${COL_GREEN}FTL Custom Zone Detected${COL_NC}";
+                # check FTL custom zone interface: lo
+                local firewalld_ftl_zone_interfaces
+                firewalld_ftl_zone_interfaces=$(firewall-cmd --zone=ftl --list-interfaces)
+                if [[ "${firewalld_ftl_zone_interfaces}" =~ "lo" ]]; then
+                    log_write "${TICK} ${COL_GREEN}  Local Interface Detected${COL_NC}";
+                else
+                    log_write "${CROSS} ${COL_RED}  Local Interface Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+                fi
+                # check FTL custom zone port: 4711
+                local firewalld_ftl_zone_ports
+                firewalld_ftl_zone_ports=$(firewall-cmd --zone=ftl --list-ports)
+                if [[ "${firewalld_ftl_zone_ports}" =~ "4711/tcp" ]]; then
+                    log_write "${TICK} ${COL_GREEN}  FTL Port 4711/tcp Detected${COL_NC}";
+                else
+                    log_write "${CROSS} ${COL_RED}  FTL Port 4711/tcp Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+                fi
+            else
+                log_write "${CROSS} ${COL_RED}FTL Custom Zone Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
+            fi
+        fi
+    else
+        log_write "${TICK} ${COL_GREEN}Firewalld service not detected${COL_NC}";
     fi
 }
 
@@ -1021,8 +1079,8 @@ list_files_in_dir() {
                     log_write "\\n${COL_GREEN}$(ls -ld "${dir_to_parse}"/"${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
                     case "${dir_to_parse}/${each_file}" in
-                        # If it's Web server error log, just give the first 25 lines
-                        "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") make_array_from_file "${dir_to_parse}/${each_file}" 25
+                        # If it's Web server error log, give the first and last 25 lines
+                        "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") head_tail_log "${dir_to_parse}/${each_file}" 25
                             ;;
                         # Same for the FTL log
                         "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
@@ -1104,6 +1162,21 @@ show_db_entries() {
             -cmd ".width ${widths}" \
             "${query}"\
     )
+
+    for line in "${entries[@]}"; do
+        log_write "   ${line}"
+    done
+
+    IFS="$OLD_IFS"
+}
+
+check_dhcp_servers() {
+    echo_current_diagnostic "Discovering active DHCP servers (takes 10 seconds)"
+
+    OLD_IFS="$IFS"
+    IFS=$'\n'
+    local entries=()
+    mapfile -t entries < <(pihole-FTL dhcp-discover)
 
     for line in "${entries[@]}"; do
         log_write "   ${line}"
@@ -1300,9 +1373,11 @@ check_component_versions
 check_critical_program_versions
 diagnose_operating_system
 check_selinux
+check_firewalld
 processor_check
 check_networking
 check_name_resolution
+check_dhcp_servers
 process_status
 parse_setup_vars
 check_x_headers

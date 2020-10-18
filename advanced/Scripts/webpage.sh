@@ -44,7 +44,7 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-  -l, privacylevel    Set privacy level (0 = lowest, 4 = highest)"
+  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)"
     exit 0
 }
 
@@ -633,8 +633,8 @@ clearAudit()
 }
 
 SetPrivacyLevel() {
-    # Set privacy level. Minimum is 0, maximum is 4
-    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 4 ]; then
+    # Set privacy level. Minimum is 0, maximum is 3
+    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
         changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
         pihole restartdns reload-lists
     fi
