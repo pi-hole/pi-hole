@@ -2394,7 +2394,7 @@ get_binary_name() {
 
     local l_binary
 
-    local str="Detecting architecture"
+    local str="Detecting processor"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the machine is arm or aarch
     if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
@@ -2407,48 +2407,58 @@ get_binary_name() {
         lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
         #
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
-            printf "%b  %b Detected ARM-aarch64 architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
             l_binary="pihole-FTL-aarch64-linux-gnu"
         #
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
-            #
-            if [[ "${rev}" -gt 6 ]]; then
-                printf "%b  %b Detected ARM-hf architecture (armv7+)\\n" "${OVER}" "${TICK}"
+            # Hard-float available: Use gnueabihf binaries
+            # If ARMv8 or higher is found (e.g., BCM2837 as found in Raspberry Pi Model 3B)
+            if [[ "${rev}" -gt 7 ]]; then
+                printf "%b  %b Detected ARMv8 (or newer) processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabihf"
-            # Otherwise,
+                l_binary="pihole-FTL-armv8-linux-gnueabihf"
+            # Otherwise, if ARMv7 is found (e.g., BCM2836 as found in Raspberry Pi Model 2)
+            elif [[ "${rev}" -eq 7 ]]; then
+                printf "%b  %b Detected ARMv7 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
+                # set the binary to be used
+                l_binary="pihole-FTL-armv7-linux-gnueabihf"
+            # Otherwise, use the ARMv6 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
             else
-                printf "%b  %b Detected ARM-hf architecture (armv6 or lower) Using ARM binary\\n" "${OVER}" "${TICK}"
+                printf "%b  %b Detected ARMv6 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-armv6-linux-gnueabihf"
             fi
         else
-            if [[ -f "/.dockerenv" ]]; then
-                printf "%b  %b Detected ARM architecture in docker\\n" "${OVER}" "${TICK}"
+            # No hard-float support found: Use gnueabi binaries
+            # Use the ARMv4-compliant binary only if we detected an ARMv4T core
+            if [[ "${rev}" -eq 4 ]]; then
+                printf "%b  %b Detected ARMv4 processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-armel-native"
+                l_binary="pihole-FTL-armv4-linux-gnueabi"
+            # Otherwise, use the ARMv5 binary. To date (end of 2020), all modern ARM processors
+            # are backwards-compatible to the ARMv5
             else
-                printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
+                printf "%b  %b Detected ARMv5 (or newer) processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-armv5-linux-gnueabi"
             fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
-        # This gives the architecture of packages dpkg installs (for example, "i386")
+        # This gives the processor of packages dpkg installs (for example, "i386")
         local dpkgarch
-        dpkgarch=$(dpkg --print-architecture 2> /dev/null || true)
+        dpkgarch=$(dpkg --print-processor 2> /dev/null || true)
 
         # Special case: This is a 32 bit OS, installed on a 64 bit machine
-        # -> change machine architecture to download the 32 bit executable
+        # -> change machine processor to download the 32 bit executable
         # We only check this for Debian-based systems as this has been an issue
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
-            printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-linux-x86_32"
         else
             # 64bit
-            printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected x86_64 processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
             l_binary="pihole-FTL-linux-x86_64"
         fi
@@ -2456,10 +2466,10 @@ get_binary_name() {
         # Something else - we try to use 32bit executable and warn the user
         if [[ ! "${machine}" == "i686" ]]; then
             printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %b %bNot able to detect architecture (unknown: %s), trying 32bit executable%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${machine}" "${COL_NC}"
+            printf "  %b %bNot able to detect processor (unknown: %s), trying x86 (32bit) executable%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${machine}" "${COL_NC}"
             printf "  %b Contact Pi-hole Support if you experience issues (e.g: FTL not running)\\n" "${INFO}"
         else
-            printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
         fi
         l_binary="pihole-FTL-linux-x86_32"
     fi
