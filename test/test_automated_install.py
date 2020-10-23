@@ -563,6 +563,24 @@ def test_validate_ip_invalid_letters(Pihole):
     assert output.rc == 1
 
 
+def test_os_check_fails(Pihole):
+    ''' Confirms install fails on unsupported OS '''
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    cat <<EOT > /etc/os-release
+    ID=UnsupportedOS
+    VERSION_ID="2"
+    EOT
+    ''')
+    detectOS = Pihole.run('''t
+    source /opt/pihole/basic-install.sh
+    os_check
+    ''')
+    expected_stdout = 'Unsupported OS detected: UnsupportedOS'
+    assert expected_stdout in detectOS.stdout
+
 def test_os_check_passes(Pihole):
     ''' Confirms OS meets the requirements '''
     Pihole.run('''
