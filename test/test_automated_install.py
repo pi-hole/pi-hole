@@ -581,6 +581,7 @@ def test_os_check_fails(Pihole):
     expected_stdout = 'Unsupported OS detected: UnsupportedOS'
     assert expected_stdout in detectOS.stdout
 
+
 def test_os_check_passes(Pihole):
     ''' Confirms OS meets the requirements '''
     Pihole.run('''
