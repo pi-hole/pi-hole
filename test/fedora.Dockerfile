@@ -1,4 +1,4 @@
-FROM fedora:32
+FROM fedora:31
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
