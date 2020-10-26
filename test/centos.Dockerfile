@@ -1,4 +1,4 @@
-FROM centos:7
+FROM centos:8
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
