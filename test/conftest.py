@@ -69,7 +69,7 @@ def args(request):
     return '-t -d'
 
 
-@pytest.fixture(params=['debian', 'debian_9', 'debian_10', 'centos7', 'centos', 'fedora', 'ubuntu_16', 'ubuntu_18'])
+@pytest.fixture(params=['debian', 'debian_9', 'debian_10', 'centos7', 'centos', 'fedora', 'fedora_31', 'fedora_32', 'ubuntu_16', 'ubuntu_18', 'ubuntu_20'])
 def tag(request):
     '''
     consumed by image to make the test matrix

@@ -14,10 +14,11 @@ run_local = testinfra.get_backend(
     ('test/centos7.Dockerfile', 'pytest_pihole:centos7'),
     ('test/centos.Dockerfile', 'pytest_pihole:centos'),
     ('test/fedora.Dockerfile', 'pytest_pihole:fedora'),
-    ('test/fedora_28.Dockerfile', 'pytest_pihole:fedora_28'),
-    ('test/fedora_29.Dockerfile', 'pytest_pihole:fedora_29'),
+    ('test/fedora_31.Dockerfile', 'pytest_pihole:fedora_31'),
+    ('test/fedora_32.Dockerfile', 'pytest_pihole:fedora_32'),
     ('test/ubuntu_16.Dockerfile', 'pytest_pihole:ubuntu_16'),
     ('test/ubuntu_18.Dockerfile', 'pytest_pihole:ubuntu_18'),
+    ('test/ubuntu_20.Dockerfile', 'pytest_pihole:ubuntu_20'),
 ])
 # mark as 'build_stage' so we can ensure images are built first when tests
 # are executed in parallel. (not required when tests are executed serially)
