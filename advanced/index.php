@@ -57,10 +57,10 @@ if ($serverName === "pi.hole"
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
     // When directly browsing via IP or authorized hostname
     // Render splash/landing page based off presence of $landPage file
+    // Unset variables so as to not be included in $landPage or $splashPage
+    unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
     // If $landPage file is present
     if (is_file(getcwd()."/$landPage")) {
-        //Unset variables so as to not be included in $landPage
-        unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
         include $landPage;
         exit();
     }
