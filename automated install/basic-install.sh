@@ -2613,7 +2613,7 @@ main() {
     # Otherwise,
     else
         # They do not have enough privileges, so let the user know
-        printf "  %b %s\\n" "${CROSS}" "${str}"
+        printf "  %b %s\\n" "${INFO}" "${str}"
         printf "  %b %bScript called with non-root privileges%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
         printf "      The Pi-hole requires elevated privileges to install and run\\n"
         printf "      Please check the installer for any concerns regarding this requirement\\n"
