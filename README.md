@@ -162,4 +162,4 @@ Some of the statistics you can integrate include:
 - Queries cached
 - Unique clients
 
-The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). You can out find [more details over here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
+The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). You can find out [more details over here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
