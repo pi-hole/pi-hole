@@ -418,7 +418,7 @@ Whitelist/Blacklist Options:
 
 Debugging Options:
   -d, debug           Start a debugging session
-                        Add '-a' to enable automated debugging
+                        Add '-a' to automatically upload the log to tricorder.pi-hole.net
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
   -t, tail            View the live output of the Pi-hole log
