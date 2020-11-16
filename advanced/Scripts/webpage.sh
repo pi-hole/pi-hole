@@ -364,6 +364,7 @@ ProcessDHCPSettings() {
 ###############################################################################
 dhcp-authoritative
 dhcp-range=${DHCP_START},${DHCP_END},${leasetime}
+dhcp-option=option:dns-server,0.0.0.0,0.0.0.0,0.0.0.0
 dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 #quiet-dhcp
