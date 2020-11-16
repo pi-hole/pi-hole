@@ -88,7 +88,7 @@ def test_epel_and_remi_not_installed_fedora(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
 def test_release_supported_version_check_centos(Pihole):
     '''
     confirms installer exits on unsupported releases of CentOS
@@ -105,7 +105,7 @@ def test_release_supported_version_check_centos(Pihole):
     assert expected_stdout in distro_check.stdout
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
 def test_enable_epel_repository_centos(Pihole):
     '''
     confirms the EPEL package repository is enabled when installed on CentOS
@@ -123,8 +123,8 @@ def test_enable_epel_repository_centos(Pihole):
     assert epel_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
-def test_php_upgrade_default_optout_centos(Pihole):
+@pytest.mark.parametrize("tag", [('centos7'), ])
+def test_php_upgrade_default_optout_centos_eq_7(Pihole):
     '''
     confirms the default behavior to opt-out of installing PHP7 from REMI
     '''
@@ -140,7 +140,25 @@ def test_php_upgrade_default_optout_centos(Pihole):
 
 
 @pytest.mark.parametrize("tag", [('centos'), ])
-def test_php_upgrade_user_optout_centos(Pihole):
+def test_php_upgrade_default_continue_centos_gte_8(Pihole):
+    '''
+    confirms the latest version of CentOS continues / does not optout
+    (should trigger on CentOS7 only)
+    '''
+    distro_check = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    ''')
+    unexpected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS.'
+                                    ' Deprecated PHP may be in use.')
+    assert unexpected_stdout not in distro_check.stdout
+    # ensure remi was not installed on latest CentOS
+    remi_package = Pihole.package('remi-release')
+    assert not remi_package.is_installed
+
+
+@pytest.mark.parametrize("tag", [('centos7'), ])
+def test_php_upgrade_user_optout_centos_eq_7(Pihole):
     '''
     confirms installer behavior when user opt-out of installing PHP7 from REMI
     (php not currently installed)
@@ -159,7 +177,28 @@ def test_php_upgrade_user_optout_centos(Pihole):
 
 
 @pytest.mark.parametrize("tag", [('centos'), ])
-def test_php_upgrade_user_optin_centos(Pihole):
+def test_php_upgrade_user_optout_skipped_centos_gte_8(Pihole):
+    '''
+    confirms installer skips user opt-out of installing PHP7 from REMI on
+    latest CentOS (should trigger on CentOS7 only)
+    (php not currently installed)
+    '''
+    # Whiptail dialog returns Cancel for user prompt
+    mock_command('whiptail', {'*': ('', '1')}, Pihole)
+    distro_check = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    ''')
+    unexpected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS.'
+                                    ' Deprecated PHP may be in use.')
+    assert unexpected_stdout not in distro_check.stdout
+    # ensure remi was not installed on latest CentOS
+    remi_package = Pihole.package('remi-release')
+    assert not remi_package.is_installed
+
+
+@pytest.mark.parametrize("tag", [('centos7'), ])
+def test_php_upgrade_user_optin_centos_eq_7(Pihole):
     '''
     confirms installer behavior when user opt-in to installing PHP7 from REMI
     (php not currently installed)
@@ -182,6 +221,30 @@ def test_php_upgrade_user_optin_centos(Pihole):
 
 
 @pytest.mark.parametrize("tag", [('centos'), ])
+def test_php_upgrade_user_optin_skipped_centos_gte_8(Pihole):
+    '''
+    confirms installer skips user opt-in to installing PHP7 from REMI on
+    latest CentOS (should trigger on CentOS7 only)
+    (php not currently installed)
+    '''
+    # Whiptail dialog returns Continue for user prompt
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    distro_check = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    ''')
+    assert 'opt-out' not in distro_check.stdout
+    unexpected_stdout = info_box + (' Enabling Remi\'s RPM repository '
+                                    '(https://rpms.remirepo.net)')
+    assert unexpected_stdout not in distro_check.stdout
+    unexpected_stdout = tick_box + (' Remi\'s RPM repository has '
+                                    'been enabled for PHP7')
+    assert unexpected_stdout not in distro_check.stdout
+    remi_package = Pihole.package('remi-release')
+    assert not remi_package.is_installed
+
+
+@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
 def test_php_version_lt_7_detected_upgrade_default_optout_centos(Pihole):
     '''
     confirms the default behavior to opt-out of upgrading to PHP7 from REMI
@@ -204,7 +267,7 @@ def test_php_version_lt_7_detected_upgrade_default_optout_centos(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
 def test_php_version_lt_7_detected_upgrade_user_optout_centos(Pihole):
     '''
     confirms installer behavior when user opt-out to upgrade to PHP7 via REMI
@@ -229,7 +292,7 @@ def test_php_version_lt_7_detected_upgrade_user_optout_centos(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
 def test_php_version_lt_7_detected_upgrade_user_optin_centos(Pihole):
     '''
     confirms installer behavior when user opt-in to upgrade to PHP7 via REMI

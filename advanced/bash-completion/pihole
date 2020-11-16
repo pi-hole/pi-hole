@@ -56,11 +56,11 @@ _pihole() {
 		;;
 		"privacylevel")
 			if ( [[ "$prev2" == "admin" ]] || [[ "$prev2" == "-a" ]] ); then
-				opts_privacy="0 1 2 3 4"
+				opts_privacy="0 1 2 3"
 				COMPREPLY=( $(compgen -W "${opts_privacy}" -- ${cur}) )
-			else 
+			else
 				return 1
-			fi	
+			fi
 		;;
 		"core"|"admin"|"ftl")
 			if [[ "$prev2" == "checkout" ]]; then

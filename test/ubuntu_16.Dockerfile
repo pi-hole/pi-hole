@@ -1,4 +1,4 @@
-FROM fedora:31
+FROM buildpack-deps:xenial-scm
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
