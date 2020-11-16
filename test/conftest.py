@@ -70,12 +70,10 @@ def args(request):
 
 
 @pytest.fixture(params=[
-    'debian',
     'debian_9',
     'debian_10',
-    'centos7',
-    'centos',
-    'fedora',
+    'centos_7',
+    'centos_8',
     'fedora_31',
     'fedora_32',
     'ubuntu_16',

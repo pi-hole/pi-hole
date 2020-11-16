@@ -23,7 +23,7 @@ def mock_selinux_config(state, Pihole):
     '''.format(state=state.lower()))
 
 
-@pytest.mark.parametrize("tag", [('centos'), ('fedora'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ('fedora_31'), ('fedora_32'), ])
 def test_selinux_enforcing_exit(Pihole):
     '''
     confirms installer prompts to exit when SELinux is Enforcing by default
@@ -40,7 +40,7 @@ def test_selinux_enforcing_exit(Pihole):
     assert check_selinux.rc == 1
 
 
-@pytest.mark.parametrize("tag", [('centos'), ('fedora'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ('fedora_31'), ('fedora_32'), ])
 def test_selinux_permissive(Pihole):
     '''
     confirms installer continues when SELinux is Permissive
@@ -55,7 +55,7 @@ def test_selinux_permissive(Pihole):
     assert check_selinux.rc == 0
 
 
-@pytest.mark.parametrize("tag", [('centos'), ('fedora'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ('fedora_31'), ('fedora_32'), ])
 def test_selinux_disabled(Pihole):
     '''
     confirms installer continues when SELinux is Disabled
@@ -70,7 +70,7 @@ def test_selinux_disabled(Pihole):
     assert check_selinux.rc == 0
 
 
-@pytest.mark.parametrize("tag", [('fedora'), ])
+@pytest.mark.parametrize("tag", [('fedora_31'), ('fedora_32'), ])
 def test_epel_and_remi_not_installed_fedora(Pihole):
     '''
     confirms installer does not attempt to install EPEL/REMI repositories
@@ -88,7 +88,7 @@ def test_epel_and_remi_not_installed_fedora(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ])
 def test_release_supported_version_check_centos(Pihole):
     '''
     confirms installer exits on unsupported releases of CentOS
@@ -105,7 +105,7 @@ def test_release_supported_version_check_centos(Pihole):
     assert expected_stdout in distro_check.stdout
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ])
 def test_enable_epel_repository_centos(Pihole):
     '''
     confirms the EPEL package repository is enabled when installed on CentOS
@@ -123,7 +123,7 @@ def test_enable_epel_repository_centos(Pihole):
     assert epel_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ])
 def test_php_upgrade_default_optout_centos_eq_7(Pihole):
     '''
     confirms the default behavior to opt-out of installing PHP7 from REMI
@@ -139,7 +139,7 @@ def test_php_upgrade_default_optout_centos_eq_7(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_8'), ])
 def test_php_upgrade_default_continue_centos_gte_8(Pihole):
     '''
     confirms the latest version of CentOS continues / does not optout
@@ -157,7 +157,7 @@ def test_php_upgrade_default_continue_centos_gte_8(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ])
 def test_php_upgrade_user_optout_centos_eq_7(Pihole):
     '''
     confirms installer behavior when user opt-out of installing PHP7 from REMI
@@ -176,7 +176,7 @@ def test_php_upgrade_user_optout_centos_eq_7(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_8'), ])
 def test_php_upgrade_user_optout_skipped_centos_gte_8(Pihole):
     '''
     confirms installer skips user opt-out of installing PHP7 from REMI on
@@ -197,7 +197,7 @@ def test_php_upgrade_user_optout_skipped_centos_gte_8(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ])
 def test_php_upgrade_user_optin_centos_eq_7(Pihole):
     '''
     confirms installer behavior when user opt-in to installing PHP7 from REMI
@@ -220,7 +220,7 @@ def test_php_upgrade_user_optin_centos_eq_7(Pihole):
     assert remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_8'), ])
 def test_php_upgrade_user_optin_skipped_centos_gte_8(Pihole):
     '''
     confirms installer skips user opt-in to installing PHP7 from REMI on
@@ -244,7 +244,7 @@ def test_php_upgrade_user_optin_skipped_centos_gte_8(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ])
 def test_php_version_lt_7_detected_upgrade_default_optout_centos(Pihole):
     '''
     confirms the default behavior to opt-out of upgrading to PHP7 from REMI
@@ -267,7 +267,7 @@ def test_php_version_lt_7_detected_upgrade_default_optout_centos(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ])
 def test_php_version_lt_7_detected_upgrade_user_optout_centos(Pihole):
     '''
     confirms installer behavior when user opt-out to upgrade to PHP7 via REMI
@@ -292,7 +292,7 @@ def test_php_version_lt_7_detected_upgrade_user_optout_centos(Pihole):
     assert not remi_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos7'), ('centos'), ])
+@pytest.mark.parametrize("tag", [('centos_7'), ('centos_8'), ])
 def test_php_version_lt_7_detected_upgrade_user_optin_centos(Pihole):
     '''
     confirms installer behavior when user opt-in to upgrade to PHP7 via REMI
