@@ -1059,28 +1059,44 @@ list_files_in_dir() {
     for each_file in "${files_found[@]}"; do
         # Print all files we find in the analyzed folders
         log_write "${COL_GREEN}$(ls -ldh "${dir_to_parse}"/"${each_file}")${COL_NC}"
-        # Then, parse the file's content into an array so each line can be analyzed if need be
-        for i in "${!REQUIRED_FILES[@]}"; do
-            if [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
-                # Print content of all files in $DNSMASQ_D_DIRECTORY
-                make_array_from_file "${dir_to_parse}/${each_file}"; log_write ""
-            elif [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
-                # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
-                case "${dir_to_parse}/${each_file}" in
-                    # If it's Web server error log, give the first and last 25 lines
-                    "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") head_tail_log "${dir_to_parse}/${each_file}" 25
-                        ;;
-                    # Same for the FTL log (but give 35 lines)
-                    "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
-                        ;;
-                    # Print this file line-by-line
-                    *) make_array_from_file "${dir_to_parse}/${each_file}"; log_write ""
-                        ;;
-                esac
-            # else: Do nto print content of any other files
-            fi
-        done
+        if [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
+            # Print content of all files in $DNSMASQ_D_DIRECTORY
+            make_array_from_file "${dir_to_parse}/${each_file}"; log_write ""
+        else
+            # Check if the file is among the relevant files. If so, print some content
+            for i in "${!REQUIRED_FILES[@]}"; do
+                if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
+                    # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
+                    case "${dir_to_parse}/${each_file}" in
+                        # If it's Web server error log, give the first and last 25 lines
+                        "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") head_tail_log "${dir_to_parse}/${each_file}" 25
+                            ;;
+                        # Same for the dnsmasq log (35 lines)
+                        "${PIHOLE_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
+                            ;;
+                        # Same for the FTL log (35 lines)
+                        "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
+                            ;;
+                        # Print this file line-by-line
+                        *) make_array_from_file "${dir_to_parse}/${each_file}"; log_write ""
+                            ;;
+                    esac
+                # else: Do nto print content of any other files
+                fi
+            done
+        fi
     done
+}
+
+list_dnsmasq_conf_file() {
+    # Display the current test that is running
+    echo_current_diagnostic "contents of ${COL_CYAN}${DNSMASQ_CONFIG_FILE}${COL_NC}"
+    # Print file path and size
+    log_write "${COL_GREEN}$(ls -ldh "${DNSMASQ_CONFIG_FILE}")${COL_NC}"
+    # Print content
+    make_array_from_file "${DNSMASQ_CONFIG_FILE}";
+    # Add new line
+    log_write ""
 }
 
 show_content_of_files_in_dir() {
@@ -1095,7 +1111,7 @@ show_content_of_files_in_dir() {
 show_content_of_pihole_files() {
     # Show the content of the files in each of Pi-hole's folders
     show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
-    show_content_of_files_in_dir "${DNSMASQ_CONFIG_FILE}"
+    list_dnsmasq_conf_file
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
