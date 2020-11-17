@@ -1057,43 +1057,25 @@ list_files_in_dir() {
     mapfile -t files_found < <(ls "${dir_to_parse}")
     # For each file in the array,
     for each_file in "${files_found[@]}"; do
-        if [[ -d "${dir_to_parse}/${each_file}" ]]; then
-            # If it's a directory, do nothing
-            :
-        elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_SETUP_VARS_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
-            :
-        elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
-            # SHM file - we do not want to see the content, but we want to see the files and their sizes
-            log_write "$(ls -ld "${dir_to_parse}"/"${each_file}")"
-        else
-            # Then, parse the file's content into an array so each line can be analyzed if need be
-            for i in "${!REQUIRED_FILES[@]}"; do
-                if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
-                    # display the filename
-                    log_write "\\n${COL_GREEN}$(ls -ld "${dir_to_parse}"/"${each_file}")${COL_NC}"
-                    # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
-                    case "${dir_to_parse}/${each_file}" in
-                        # If it's Web server error log, give the first and last 25 lines
-                        "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") head_tail_log "${dir_to_parse}/${each_file}" 25
-                            ;;
-                        # Same for the FTL log
-                        "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
-                            ;;
-                        # parse the file into an array in case we ever need to analyze it line-by-line
-                        *) make_array_from_file "${dir_to_parse}/${each_file}";
-                    esac
-                else
-                    # Otherwise, do nothing since it's not a file needed for Pi-hole so we don't care about it
-                    :
-                fi
-            done
-        fi
+        # Print all files we find in the analyzed folders
+        log_write "${COL_GREEN}$(ls -ldh "${dir_to_parse}"/"${each_file}")${COL_NC}"
+        # Then, parse the file's content into an array so each line can be analyzed if need be
+        for i in "${!REQUIRED_FILES[@]}"; do
+            if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
+                # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
+                case "${dir_to_parse}/${each_file}" in
+                    # If it's Web server error log, give the first and last 25 lines
+                    "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") head_tail_log "${dir_to_parse}/${each_file}" 25
+                        ;;
+                    # Same for the FTL log (but give 35 lines)
+                    "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
+                        ;;
+                    # parse the file into an array in case we ever need to analyze it line-by-line
+                    *) make_array_from_file "${dir_to_parse}/${each_file}"; log_write ""
+                        ;;
+                esac
+            fi
+        done
     done
 }
 
