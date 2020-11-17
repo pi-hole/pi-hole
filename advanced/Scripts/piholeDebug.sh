@@ -1061,7 +1061,10 @@ list_files_in_dir() {
         log_write "${COL_GREEN}$(ls -ldh "${dir_to_parse}"/"${each_file}")${COL_NC}"
         # Then, parse the file's content into an array so each line can be analyzed if need be
         for i in "${!REQUIRED_FILES[@]}"; do
-            if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
+            if [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
+                # Print content of all files in $DNSMASQ_D_DIRECTORY
+                make_array_from_file "${dir_to_parse}/${each_file}"; log_write ""
+            elif [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
                 # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
                 case "${dir_to_parse}/${each_file}" in
                     # If it's Web server error log, give the first and last 25 lines
@@ -1070,10 +1073,11 @@ list_files_in_dir() {
                     # Same for the FTL log (but give 35 lines)
                     "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
                         ;;
-                    # parse the file into an array in case we ever need to analyze it line-by-line
+                    # Print this file line-by-line
                     *) make_array_from_file "${dir_to_parse}/${each_file}"; log_write ""
                         ;;
                 esac
+            # else: Do nto print content of any other files
             fi
         done
     done
