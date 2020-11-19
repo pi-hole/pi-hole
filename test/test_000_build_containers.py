@@ -8,12 +8,10 @@ run_local = testinfra.get_backend(
 
 
 @pytest.mark.parametrize("image,tag", [
-    ('test/debian.Dockerfile', 'pytest_pihole:debian'),
     ('test/debian_9.Dockerfile', 'pytest_pihole:debian_9'),
     ('test/debian_10.Dockerfile', 'pytest_pihole:debian_10'),
-    ('test/centos7.Dockerfile', 'pytest_pihole:centos7'),
-    ('test/centos.Dockerfile', 'pytest_pihole:centos'),
-    ('test/fedora.Dockerfile', 'pytest_pihole:fedora'),
+    ('test/centos_7.Dockerfile', 'pytest_pihole:centos_7'),
+    ('test/centos_8.Dockerfile', 'pytest_pihole:centos_8'),
     ('test/fedora_31.Dockerfile', 'pytest_pihole:fedora_31'),
     ('test/fedora_32.Dockerfile', 'pytest_pihole:fedora_32'),
     ('test/ubuntu_16.Dockerfile', 'pytest_pihole:ubuntu_16'),
