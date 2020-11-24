@@ -946,7 +946,7 @@ process_status(){
     done
 }
 
-pihole-FTL_full_status(){
+ftl_full_status(){
     # if using systemd print the full status of pihole-FTL
     echo_current_diagnostic "Pi-hole-FTL full status"
     local FTL_status
@@ -1389,7 +1389,7 @@ check_networking
 check_name_resolution
 check_dhcp_servers
 process_status
-pihole-FTL_full_status
+ftl_full_status
 parse_setup_vars
 check_x_headers
 analyze_gravity_list
