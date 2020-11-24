@@ -953,6 +953,8 @@ ftl_full_status(){
     if command -v systemctl &> /dev/null; then
       FTL_status=$(systemctl status --full --no-pager pihole-FTL.service)
       log_write "   ${FTL_status}"
+    else
+      log_write "${INFO} systemctl:  command not found"
     fi
 }
 
