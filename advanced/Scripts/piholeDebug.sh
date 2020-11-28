@@ -125,6 +125,8 @@ get_ftl_conf_value() {
 
 PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "GRAVITYDB" "${PIHOLE_DIRECTORY}/gravity.db")"
 
+PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "DBFILE" "${PIHOLE_DIRECTORY}/pihole-FTL.db")"
+
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
 
@@ -1170,6 +1172,31 @@ show_db_entries() {
     IFS="$OLD_IFS"
 }
 
+show_FTL_db_entries() {
+    local title="${1}"
+    local query="${2}"
+    local widths="${3}"
+
+    echo_current_diagnostic "${title}"
+
+    OLD_IFS="$IFS"
+    IFS=$'\r\n'
+    local entries=()
+    mapfile -t entries < <(\
+        sqlite3 "${PIHOLE_FTL_DB_FILE}" \
+            -cmd ".headers on" \
+            -cmd ".mode column" \
+            -cmd ".width ${widths}" \
+            "${query}"\
+    )
+
+    for line in "${entries[@]}"; do
+        log_write "   ${line}"
+    done
+
+    IFS="$OLD_IFS"
+}
+
 check_dhcp_servers() {
     echo_current_diagnostic "Discovering active DHCP servers (takes 10 seconds)"
 
@@ -1199,6 +1226,10 @@ show_domainlist() {
 
 show_clients() {
     show_db_entries "Clients" "SELECT id,GROUP_CONCAT(client_by_group.group_id) group_ids,ip,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM client LEFT JOIN client_by_group ON client.id = client_by_group.client_id GROUP BY id;" "4 12 100 19 19 50"
+}
+
+show_messages() {
+    show_FTL_db_entries "Pi-hole diagnosis messages" "SELECT id,datetime(timestamp,'unixepoch','localtime') timestamp,type,message,blob1,blob2,blob3,blob4,blob5 FROM message;" "4 19 20 60 20 20 20 20 20"
 }
 
 analyze_gravity_list() {
@@ -1387,6 +1418,7 @@ show_domainlist
 show_clients
 show_adlists
 show_content_of_pihole_files
+show_messages
 parse_locale
 analyze_pihole_log
 copy_to_debug_log
