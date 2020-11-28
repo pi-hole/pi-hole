@@ -948,6 +948,18 @@ process_status(){
     done
 }
 
+ftl_full_status(){
+    # if using systemd print the full status of pihole-FTL
+    echo_current_diagnostic "Pi-hole-FTL full status"
+    local FTL_status
+    if command -v systemctl &> /dev/null; then
+      FTL_status=$(systemctl status --full --no-pager pihole-FTL.service)
+      log_write "   ${FTL_status}"
+    else
+      log_write "${INFO} systemctl:  command not found"
+    fi
+}
+
 make_array_from_file() {
     local filename="${1}"
     # The second argument can put a limit on how many line should be read from the file
@@ -1410,6 +1422,7 @@ check_networking
 check_name_resolution
 check_dhcp_servers
 process_status
+ftl_full_status
 parse_setup_vars
 check_x_headers
 analyze_gravity_list
