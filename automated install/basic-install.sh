@@ -21,6 +21,10 @@
 # instead of continuing the installation with something broken
 set -e
 
+# Set PATH to a usual default to assure that all basic commands are available.
+# When using "su" an uncomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
+export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
 # This allows us to make a change in one place that can propagate to all instances of the variable
@@ -31,13 +35,13 @@ set -e
 # List of supported DNS servers
 DNS_SERVERS=$(cat << EOM
 Google (ECS);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
-OpenDNS (ECS);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
+OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
 DNS.WATCH;84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
 Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
 Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
-Quad9 (filtered + ECS);9.9.9.11;149.112.112.11;2620:fe::11;
+Quad9 (filtered + ECS);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
 Cloudflare;1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
@@ -67,7 +71,9 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
-useUpdateVars=false
+if [ -z "$useUpdateVars" ]; then
+  useUpdateVars=false
+fi
 
 adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
@@ -78,6 +84,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
 PRIVACY_LEVEL=0
+CACHE_SIZE=10000
 
 if [ -z "${USER}" ]; then
   USER="$(id -un)"
@@ -106,7 +113,6 @@ c=$(( c < 70 ? 70 : c ))
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
-skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 INSTALL_WEB_SERVER=true
@@ -114,7 +120,6 @@ INSTALL_WEB_SERVER=true
 for var in "$@"; do
     case "$var" in
         "--reconfigure" ) reconfigure=true;;
-        "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
         "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
     esac
@@ -178,59 +183,85 @@ os_check() {
     if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
         # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
         # and determines whether or not the script is running on one of those systems
-        local remote_os_domain valid_os valid_version detected_os_pretty detected_os detected_version display_warning
+        local remote_os_domain valid_os valid_version valid_response detected_os detected_version display_warning cmdResult digReturnCode response
         remote_os_domain="versions.pi-hole.net"
-        valid_os=false
-        valid_version=false
-        display_warning=true
 
-        detected_os_pretty=$(cat /etc/*release | grep PRETTY_NAME | cut -d '=' -f2- | tr -d '"')
-        detected_os="${detected_os_pretty%% *}"
-        detected_version=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f2- | tr -d '"')
+        detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+        detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-        IFS=" " read -r -a supportedOS < <(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net | tr -d '"')
+        cmdResult="$(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net 2>&1; echo $?)"
+        #Get the return code of the previous command (last line)
+        digReturnCode="${cmdResult##*$'\n'}"
 
-        if [ ${#supportedOS[@]} -eq 0 ]; then
-            printf "  %b %bRetrieval of supported OS failed. Please contact support. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
-            exit 1
+        if [ ! "${digReturnCode}" == "0" ]; then
+            valid_response=false
         else
-          for i in "${supportedOS[@]}"
-          do
-              os_part=$(echo "$i" | cut -d '=' -f1)
-              versions_part=$(echo "$i" | cut -d '=' -f2-)
+            # Dig returned 0 code, so get the actual response, and loop through it to determine if the detected variables above are valid
+            response="${cmdResult%%$'\n'*}"
+            # If the value of ${result} is a single 0, then this is the return code, not the response. Response is blank
+            if [ "${response}" == 0 ]; then
+                valid_response=false
+            fi
 
-              if [[ "${detected_os}" =~ ${os_part} ]]; then
-                valid_os=true
-                IFS="," read -r -a supportedVer <<<"${versions_part}"
-                for x in "${supportedVer[@]}"
-                do
-                  if [[ "${detected_version}" =~ $x ]];then
-                    valid_version=true
+            IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
+            for distro_and_versions in "${supportedOS[@]}"
+            do
+                distro_part="${distro_and_versions%%=*}"
+                versions_part="${distro_and_versions##*=}"
+
+                if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
+                    valid_os=true
+                    IFS="," read -r -a supportedVer <<<"${versions_part}"
+                    for version in "${supportedVer[@]}"
+                    do
+                        if [[ "${detected_version}" =~ $version ]]; then
+                            valid_version=true
+                            break
+                        fi
+                    done
                     break
-                  fi
-                done
-                break
-              fi
+                fi
             done
-          fi
+        fi
 
-        if [ "$valid_os" = true ] && [ "$valid_version" = true ]; then
+        if [ "$valid_os" = true ] && [ "$valid_version" = true ] && [ ! "$valid_response" = false ]; then
             display_warning=false
         fi
 
-        if [ "$display_warning" = true ]; then
-            printf "  %b %bUnsupported OS detected: %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os_pretty}" "${COL_NC}"
-            printf "      https://docs.pi-hole.net/main/prerequesites/#supported-operating-systems\\n"
+        if [ "$display_warning" != false ]; then
+            if [ "$valid_response" = false ]; then
+
+                if [ "${digReturnCode}" -eq 0 ]; then
+                    errStr="dig succeeded, but response was blank. Please contact support"
+                else
+                    errStr="dig failed with return code ${digReturnCode}"
+                fi
+                printf "  %b %bRetrieval of supported OS list failed. %s. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${errStr}" "${COL_NC}"
+                printf "      %bUnable to determine if the detected OS (%s %s) is supported%b\\n" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
+                printf "      Possible causes for this include:\\n"
+                printf "        - Firewall blocking certain DNS lookups from Pi-hole device\\n"
+                printf "        - ns1.pi-hole.net being blocked (required to obtain TXT record from versions.pi-hole.net containing supported operating systems)\\n"
+                printf "        - Other internet connectivity issues\\n"
+            else
+                printf "  %b %bUnsupported OS detected: %s %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
+                printf "      If you are seeing this message and you do have a supported OS, please contact support.\\n"
+            fi
+            printf "\\n"
+            printf "      %bhttps://docs.pi-hole.net/main/prerequesites/#supported-operating-systems%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "\\n"
+            printf "      If you wish to attempt to continue anyway, you can try one of the following commands to skip this check:\\n"
             printf "\\n"
             printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
-            printf "             'curl -sSL https://install.pi-hole.net | PIHOLE_SKIP_OS_CHECK=true sudo -E bash'\\n"
+            printf "             %bcurl -sSL https://install.pi-hole.net | PIHOLE_SKIP_OS_CHECK=true sudo -E bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
             printf "\\n"
             printf "           If you are seeing this message after having run pihole -up:\\n"
-            printf "             'PIHOLE_SKIP_OS_CHECK=true sudo -E pihole -r'\\n"
+            printf "             %bPIHOLE_SKIP_OS_CHECK=true sudo -E pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
             printf "           (In this case, your previous run of pihole -up will have already updated the local repository)\\n"
             printf "\\n"
+            printf "      It is possible that the installation will still fail at this stage due to an unsupported configuration.\\n"
             printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            printf "      https://discourse.pi-hole.net/c/bugs-problems-issues/community-help/\\n"
+            printf "      %bhttps://discourse.pi-hole.net/c/bugs-problems-issues/community-help/%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "\\n"
             exit 1
 
         else
@@ -325,7 +356,7 @@ if is_command apt-get ; then
     PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # The Web dashboard has some that also need to be installed
     # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-json" "${phpVer}-intl")
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
@@ -654,53 +685,6 @@ welcomeDialogs() {
     whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
 In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." "${r}" "${c}"
-}
-
-# We need to make sure there is enough space before installing, so there is a function to check this
-verifyFreeDiskSpace() {
-    # 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
-    # - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
-    local str="Disk space check"
-    # Required space in KB
-    local required_free_kilobytes=51200
-    # Calculate existing free space on this machine
-    local existing_free_kilobytes
-    existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
-
-    # If the existing space is not an integer,
-    if ! [[ "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
-        # show an error that we can't determine the free space
-        printf "  %b %s\\n" "${CROSS}" "${str}"
-        printf "  %b Unknown free disk space! \\n" "${INFO}"
-        printf "      We were unable to determine available free disk space on this system.\\n"
-        printf "      You may override this check, however, it is not recommended.\\n"
-        printf "      The option '%b--i_do_not_follow_recommendations%b' can override this.\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        printf "      e.g: curl -sSL https://install.pi-hole.net | bash /dev/stdin %b<option>%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # exit with an error code
-        exit 1
-    # If there is insufficient free disk space,
-    elif [[ "${existing_free_kilobytes}" -lt "${required_free_kilobytes}" ]]; then
-        # show an error message
-        printf "  %b %s\\n" "${CROSS}" "${str}"
-        printf "  %b Your system disk appears to only have %s KB free\\n" "${INFO}" "${existing_free_kilobytes}"
-        printf "      It is recommended to have a minimum of %s KB to run the Pi-hole\\n" "${required_free_kilobytes}"
-        # if the vcgencmd command exists,
-        if is_command vcgencmd ; then
-            # it's probably a Raspbian install, so show a message about expanding the filesystem
-            printf "      If this is a new install you may need to expand your disk\\n"
-            printf "      Run 'sudo raspi-config', and choose the 'expand file system' option\\n"
-            printf "      After rebooting, run this installation again\\n"
-            printf "      e.g: curl -sSL https://install.pi-hole.net | bash\\n"
-        fi
-        # Show there is not enough free space
-        printf "\\n      %bInsufficient free space, exiting...%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # and exit with an error
-        exit 1
-    # Otherwise,
-    else
-        # Show that we're running a disk space check
-        printf "  %b %s\\n" "${TICK}" "${str}"
-    fi
 }
 
 # A function that let's the user pick an interface to use with Pi-hole
@@ -1229,7 +1213,6 @@ setPrivacyLevel() {
         "1" "Hide domains" off
         "2" "Hide domains and clients" off
         "3" "Anonymous mode" off
-        "4" "Disabled statistics" off
     )
 
     # Get the user's choice
@@ -1262,13 +1245,18 @@ setAdminFlag() {
             printf "  %b Web Interface Off\\n" "${INFO}"
             # or false
             INSTALL_WEB_INTERFACE=false
+            # Deselect the web server as well, since it is obsolete then
+            INSTALL_WEB_SERVER=false
             ;;
     esac
 
-    # Request user to install web server, if --disable-install-webserver has not been used (INSTALL_WEB_SERVER=true is default).
+    # Request user to install web server, if it has not been deselected before (INSTALL_WEB_SERVER=true is default).
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd)?\\n\\nNB: If you disable this, and, do not have an existing webserver installed, the web interface will not function." "${r}" "${c}" 6)
-        # with the default being enabled
+        # Get list of required PHP modules, excluding base package (common) and handler (cgi)
+        local i php_modules
+        for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
+        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd) and required PHP modules?\\n\\nNB: If you disable this, and, do not have an existing web server and required PHP modules (${php_modules# }) installed, the web interface will not function. Additionally the web server user needs to be member of the \"pihole\" group for full functionality." "${r}" "${c}" 6)
+        # Enable as default and recommended option
         WebChooseOptions=("On (Recommended)" "" on
             Off "" off)
         WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
@@ -1302,9 +1290,7 @@ chooseBlocklists() {
 
     # In a variable, show the choices available; exit if Cancel is selected
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
-    # create empty adlist file if no list was selected
-    : > "${adlistFile}"
-    # For each choice available
+    # For each choice available,
     for choice in ${choices}
     do
         appendToListsFile "${choice}"
@@ -1333,8 +1319,6 @@ installDefaultBlocklists() {
     fi
     appendToListsFile StevenBlack
     appendToListsFile MalwareDom
-    appendToListsFile DisconTrack
-    appendToListsFile DisconAd
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1401,6 +1385,9 @@ version_check_dnsmasq() {
         #
         sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
     fi
+
+	# Set the cache size
+	sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" ${dnsmasq_pihole_01_location}
 
     #
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
@@ -1490,6 +1477,15 @@ installConfigs() {
             return 1
         fi
     fi
+
+    # Install empty custom.list file if it does not exist
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
+        if ! install -o root -m 644 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
+            printf "  %bError: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            return 1
+        fi
+    fi
+
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1917,7 +1913,7 @@ finalExports() {
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
+        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;' "${setupVars}"
     fi
     # echo the information to the user
     {
@@ -1930,6 +1926,7 @@ finalExports() {
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
+    echo "CACHE_SIZE=${CACHE_SIZE}"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
 
@@ -2004,9 +2001,9 @@ installPihole() {
             # Set the owner and permissions
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
             chmod 0775 ${webroot}
-            # Repair permissions if /var/www/html is not world readable
+            # Repair permissions if webroot is not world readable
             chmod a+rx /var/www
-            chmod a+rx /var/www/html
+            chmod a+rx ${webroot}
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
             usermod -a -G pihole ${LIGHTTPD_USER}
@@ -2091,8 +2088,13 @@ checkSelinux() {
     if [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -z "${PIHOLE_SELINUX}" ]]; then
         printf "  Pi-hole does not provide an SELinux policy as the required changes modify the security of your system.\\n"
         printf "  Please refer to https://wiki.centos.org/HowTos/SELinux if SELinux is required for your deployment.\\n"
+        printf "      This check can be skipped by setting the environment variable %bPIHOLE_SELINUX%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "      e.g: export PIHOLE_SELINUX=true\\n"
+        printf "      By setting this variable to true you acknowledge there may be issues with Pi-hole during or after the install\\n"
         printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}";
         exit 1;
+    elif [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -n "${PIHOLE_SELINUX}" ]]; then
+        printf "  %b %bSELinux Enforcing detected%b. PIHOLE_SELINUX env variable set - installer will continue\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
     fi
 }
 
@@ -2394,7 +2396,7 @@ get_binary_name() {
 
     local l_binary
 
-    local str="Detecting architecture"
+    local str="Detecting processor"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the machine is arm or aarch
     if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
@@ -2407,48 +2409,58 @@ get_binary_name() {
         lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
         #
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
-            printf "%b  %b Detected ARM-aarch64 architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
             l_binary="pihole-FTL-aarch64-linux-gnu"
         #
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
-            #
-            if [[ "${rev}" -gt 6 ]]; then
-                printf "%b  %b Detected ARM-hf architecture (armv7+)\\n" "${OVER}" "${TICK}"
+            # Hard-float available: Use gnueabihf binaries
+            # If ARMv8 or higher is found (e.g., BCM2837 as found in Raspberry Pi Model 3B)
+            if [[ "${rev}" -gt 7 ]]; then
+                printf "%b  %b Detected ARMv8 (or newer) processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabihf"
-            # Otherwise,
+                l_binary="pihole-FTL-armv8-linux-gnueabihf"
+            # Otherwise, if ARMv7 is found (e.g., BCM2836 as found in Raspberry Pi Model 2)
+            elif [[ "${rev}" -eq 7 ]]; then
+                printf "%b  %b Detected ARMv7 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
+                # set the binary to be used
+                l_binary="pihole-FTL-armv7-linux-gnueabihf"
+            # Otherwise, use the ARMv6 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
             else
-                printf "%b  %b Detected ARM-hf architecture (armv6 or lower) Using ARM binary\\n" "${OVER}" "${TICK}"
+                printf "%b  %b Detected ARMv6 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-armv6-linux-gnueabihf"
             fi
         else
-            if [[ -f "/.dockerenv" ]]; then
-                printf "%b  %b Detected ARM architecture in docker\\n" "${OVER}" "${TICK}"
+            # No hard-float support found: Use gnueabi binaries
+            # Use the ARMv4-compliant binary only if we detected an ARMv4T core
+            if [[ "${rev}" -eq 4 ]]; then
+                printf "%b  %b Detected ARMv4 processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-armel-native"
+                l_binary="pihole-FTL-armv4-linux-gnueabi"
+            # Otherwise, use the ARMv5 binary. To date (end of 2020), all modern ARM processors
+            # are backwards-compatible to the ARMv5
             else
-                printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
+                printf "%b  %b Detected ARMv5 (or newer) processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-armv5-linux-gnueabi"
             fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
-        # This gives the architecture of packages dpkg installs (for example, "i386")
+        # This gives the processor of packages dpkg installs (for example, "i386")
         local dpkgarch
-        dpkgarch=$(dpkg --print-architecture 2> /dev/null || true)
+        dpkgarch=$(dpkg --print-processor 2> /dev/null || true)
 
         # Special case: This is a 32 bit OS, installed on a 64 bit machine
-        # -> change machine architecture to download the 32 bit executable
+        # -> change machine processor to download the 32 bit executable
         # We only check this for Debian-based systems as this has been an issue
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
-            printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-linux-x86_32"
         else
             # 64bit
-            printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected x86_64 processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
             l_binary="pihole-FTL-linux-x86_64"
         fi
@@ -2456,10 +2468,10 @@ get_binary_name() {
         # Something else - we try to use 32bit executable and warn the user
         if [[ ! "${machine}" == "i686" ]]; then
             printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %b %bNot able to detect architecture (unknown: %s), trying 32bit executable%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${machine}" "${COL_NC}"
+            printf "  %b %bNot able to detect processor (unknown: %s), trying x86 (32bit) executable%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${machine}" "${COL_NC}"
             printf "  %b Contact Pi-hole Support if you experience issues (e.g: FTL not running)\\n" "${INFO}"
         else
-            printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
         fi
         l_binary="pihole-FTL-linux-x86_32"
     fi
@@ -2603,7 +2615,7 @@ main() {
     # Otherwise,
     else
         # They do not have enough privileges, so let the user know
-        printf "  %b %s\\n" "${CROSS}" "${str}"
+        printf "  %b %s\\n" "${INFO}" "${str}"
         printf "  %b %bScript called with non-root privileges%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
         printf "      The Pi-hole requires elevated privileges to install and run\\n"
         printf "      Please check the installer for any concerns regarding this requirement\\n"
@@ -2613,8 +2625,16 @@ main() {
         # If the sudo command exists,
         if is_command sudo ; then
             printf "%b  %b Sudo utility check\\n" "${OVER}"  "${TICK}"
-            # Download the install script and run it with admin rights
-            exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
+
+            # when run via curl piping
+            if [[ "$0" == "bash" ]]; then
+                # Download the install script and run it with admin rights
+                exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
+            else
+                # when run via calling local bash script
+                exec sudo bash "$0" "$@"
+            fi
+
             exit $?
         # Otherwise,
         else
@@ -2646,13 +2666,6 @@ main() {
     fi
 
     # Start the installer
-    # Verify there is enough disk space for the install
-    if [[ "${skipSpaceCheck}" == true ]]; then
-        printf "  %b Skipping free disk space verification\\n" "${INFO}"
-    else
-        verifyFreeDiskSpace
-    fi
-
     # Notify user of package availability
     notify_package_updates_available
 

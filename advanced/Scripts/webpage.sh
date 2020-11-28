@@ -44,7 +44,7 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-  -l, privacylevel    Set privacy level (0 = lowest, 4 = highest)"
+  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)"
     exit 0
 }
 
@@ -167,9 +167,11 @@ ProcessDNSSettings() {
     fi
 
     delete_dnsmasq_setting "domain-needed"
+    delete_dnsmasq_setting "expand-hosts"
 
     if [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
         add_dnsmasq_setting "domain-needed"
+        add_dnsmasq_setting "expand-hosts"
     fi
 
     delete_dnsmasq_setting "bogus-priv"
@@ -224,17 +226,20 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         REV_SERVER_TARGET="${CONDITIONAL_FORWARDING_IP}"
         add_setting "REV_SERVER_TARGET" "${REV_SERVER_TARGET}"
 
+        REV_SERVER_CIDR="${CONDITIONAL_FORWARDING_REVERSE}"
+        if [ -z "${REV_SERVER_CIDR}" ]; then
+            # Convert existing input to /24 subnet (preserves legacy behavior)
+            # This sed converts "192.168.1.2" to "192.168.1.0/24"
+            # shellcheck disable=2001
+            REV_SERVER_CIDR="$(sed "s+\\.[0-9]*$+\\.0/24+" <<< "${REV_SERVER_TARGET}")"
+        fi
+        add_setting "REV_SERVER_CIDR" "${REV_SERVER_CIDR}"
+
         # Remove obsolete settings from setupVars.conf
         delete_setting "CONDITIONAL_FORWARDING"
         delete_setting "CONDITIONAL_FORWARDING_REVERSE"
         delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
         delete_setting "CONDITIONAL_FORWARDING_IP"
-
-        # Convert existing input to /24 subnet (preserves legacy behavior)
-        # This sed converts "192.168.1.2" to "192.168.1.0/24"
-        # shellcheck disable=2001
-        REV_SERVER_CIDR="$(sed "s+\\.[0-9]*$+\\.0/24+" <<< "${REV_SERVER_TARGET}")"
-        add_setting "REV_SERVER_CIDR" "${REV_SERVER_CIDR}"
     fi
 
     if [[ "${REV_SERVER}" == true ]]; then
@@ -370,6 +375,9 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
 
     if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
+        if  [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
+          echo "local=/${PIHOLE_DOMAIN}/" >> "${dhcpconfig}"
+        fi
     fi
 
     # Sourced from setupVars
@@ -633,8 +641,8 @@ clearAudit()
 }
 
 SetPrivacyLevel() {
-    # Set privacy level. Minimum is 0, maximum is 4
-    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 4 ]; then
+    # Set privacy level. Minimum is 0, maximum is 3
+    if [ "${args[2]}" -ge 0 ] && [ "${args[2]}" -le 3 ]; then
         changeFTLsetting "PRIVACYLEVEL" "${args[2]}"
         pihole restartdns reload-lists
     fi

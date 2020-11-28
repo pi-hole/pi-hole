@@ -3,3 +3,4 @@ linters:
     shell: bash
   phpcs:
   flake8:
+    max-line-length: 120
