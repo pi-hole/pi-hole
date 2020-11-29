@@ -23,7 +23,6 @@ def mock_selinux_config(state, Pihole):
     '''.format(state=state.lower()))
 
 
-@pytest.mark.parametrize("tag", [('fedora_31'), ('fedora_32'), ])
 def test_selinux_enforcing_exit(Pihole):
     '''
     confirms installer prompts to exit when SELinux is Enforcing by default
@@ -40,7 +39,6 @@ def test_selinux_enforcing_exit(Pihole):
     assert check_selinux.rc == 1
 
 
-@pytest.mark.parametrize("tag", [('fedora_31'), ('fedora_32'), ])
 def test_selinux_permissive(Pihole):
     '''
     confirms installer continues when SELinux is Permissive
@@ -55,7 +53,6 @@ def test_selinux_permissive(Pihole):
     assert check_selinux.rc == 0
 
 
-@pytest.mark.parametrize("tag", [('fedora_31'), ('fedora_32'), ])
 def test_selinux_disabled(Pihole):
     '''
     confirms installer continues when SELinux is Disabled
@@ -70,7 +67,6 @@ def test_selinux_disabled(Pihole):
     assert check_selinux.rc == 0
 
 
-@pytest.mark.parametrize("tag", [('fedora_31'), ('fedora_32'), ])
 def test_epel_and_remi_not_installed_fedora(Pihole):
     '''
     confirms installer does not attempt to install EPEL/REMI repositories
