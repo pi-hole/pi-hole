@@ -13,6 +13,11 @@ jobs:
         python-version: [3.7]
 
     steps:
+    - name: How Many cores does daddy long legs have?
+      run: |
+        echo "*************************************************"
+        lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)'
+        echo "*************************************************"
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
