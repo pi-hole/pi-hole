@@ -6,18 +6,13 @@ on:
       - 'new/github-actions-test'
 
 jobs:
-  build:
+  debian:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.7]
 
-    steps:
-    - name: How Many cores does daddy long legs have?
-      run: |
-        echo "*************************************************"
-        lscpu | egrep 'Model name|Socket|Thread|NUMA|CPU\(s\)'
-        echo "*************************************************"
+    steps:  
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
@@ -26,4 +21,52 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
     - name: Test with tox
-      run: tox
+      run: tox -c test/debian
+  ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+
+    steps:  
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    - name: Test with tox
+      run: tox -c test/ubuntu
+  centos:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+
+    steps:  
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    - name: Test with tox
+      run: tox -c test/centos
+  fedora:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7]
+
+    steps:  
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+    - name: Test with tox
+      run: tox -c test/fedora
