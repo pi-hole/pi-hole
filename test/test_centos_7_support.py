@@ -99,7 +99,6 @@ def test_enable_epel_repository_centos(Pihole):
     assert epel_package.is_installed
 
 
-@pytest.mark.parametrize("tag", [('centos_7'), ])
 def test_php_upgrade_default_optout_centos_eq_7(Pihole):
     '''
     confirms the default behavior to opt-out of installing PHP7 from REMI
