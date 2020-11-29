@@ -393,7 +393,7 @@ elif is_command rpm ; then
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig bind-utils)
-    PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap)
+    PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
