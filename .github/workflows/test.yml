@@ -9,7 +9,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 5
       matrix:
         python-version: [3.7]
 
@@ -22,4 +21,4 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
     - name: Test with tox
-      run: tox --parallel auto
+      run: tox
