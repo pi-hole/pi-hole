@@ -70,7 +70,7 @@ def args(request):
 
 
 @pytest.fixture(params=[
-    'ubuntu_20'
+    'test_container'
 ])
 def tag(request):
     '''

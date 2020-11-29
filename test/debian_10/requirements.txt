@@ -1,6 +1,0 @@
-docker-compose==1.23.2
-pytest==4.3.0
-pytest-xdist==1.26.1
-pytest-cov==2.6.1
-testinfra==1.19.0
-tox==3.7.0
