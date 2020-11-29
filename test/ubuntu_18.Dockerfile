@@ -1,4 +1,4 @@
-FROM fedora:30
+FROM buildpack-deps:bionic-scm
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
