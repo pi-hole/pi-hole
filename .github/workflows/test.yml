@@ -6,67 +6,20 @@ on:
       - 'new/github-actions-test'
 
 jobs:
-  debian:
+  tox-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7]
-
+        distro: [debian, ubuntu, centos, fedora]        
+    env:
+      DISTRO: ${{matrix.distro}}      
     steps:  
     - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.7
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.7
     - name: Install dependencies
       run: pip install -r requirements.txt
     - name: Test with tox
-      run: tox -c test/debian
-  ubuntu:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.7]
-
-    steps:  
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    - name: Test with tox
-      run: tox -c test/ubuntu
-  centos:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.7]
-
-    steps:  
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    - name: Test with tox
-      run: tox -c test/centos
-  fedora:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.7]
-
-    steps:  
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    - name: Test with tox
-      run: tox -c test/fedora
+      run: tox -c test/${DISTRO}
