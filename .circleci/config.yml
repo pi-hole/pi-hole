@@ -1,6 +1,4 @@
 version: 2.1
-orbs:
-  python: circleci/python@1.2.1
 
 .distro-test: &distro-test
   docker:
