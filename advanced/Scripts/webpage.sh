@@ -246,6 +246,9 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
                 4   )   REV_SERVER_CIDR="${arrRev[1]}.${arrRev[0]}.0.0/16";;
                 3   )   REV_SERVER_CIDR="${arrRev[0]}.0.0.0/8";; 
             esac
+        else
+          # Set REV_SERVER_CIDR to whatever value it was set to
+          REV_SERVER_CIDR="$CONDITIONAL_FORWARDING_REVERSE"
         fi
         
         # If REV_SERVER_CIDR is not converted by the above, then use the REV_SERVER_TARGET variable to derive it
