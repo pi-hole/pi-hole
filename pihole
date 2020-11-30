@@ -249,16 +249,47 @@ Options:
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
+analyze_ports() {
+  # FTL is listening at least on at least one port when this
+  # function is getting called
+  echo -e "  ${TICK} DNS service is listening"
+  # Check individual address family/protocol combinations
+  # For a healthy Pi-hole, they should all be up (nothing printed)
+  if grep -q "IPv4.*UDP" <<< "${1}"; then
+      echo -e "     ${TICK} UDP (IPv4)"
+  else
+      echo -e "     ${CROSS} UDP (IPv4)"
+  fi
+  if grep -q "IPv4.*TCP" <<< "${1}"; then
+      echo -e "     ${TICK} TCP (IPv4)"
+  else
+      echo -e "     ${CROSS} TCP (IPv4)"
+  fi
+  if grep -q "IPv6.*UDP" <<< "${1}"; then
+      echo -e "     ${TICK} UDP (IPv6)"
+  else
+      echo -e "     ${CROSS} UDP (IPv6)"
+  fi
+  if grep -q "IPv6.*TCP" <<< "${1}"; then
+      echo -e "     ${TICK} TCP (IPv6)"
+  else
+      echo -e "     ${CROSS} TCP (IPv6)"
+  fi
+  echo ""
+}
+
 statusFunc() {
-  # Determine if service is running on port 53 (Cr: https://superuser.com/a/806331)
-  if (echo > /dev/tcp/127.0.0.1/53) >/dev/null 2>&1; then
+  # Determine if there is a pihole service is listening on port 53
+  local listening
+  listening="$(lsof -Pni:53)"
+  if grep -q "pihole" <<< "${listening}"; then
     if [[ "${1}" != "web" ]]; then
-      echo -e "  ${TICK} DNS service is running"
+      analyze_ports "${listening}"
     fi
   else
     case "${1}" in
       "web") echo "-1";;
-      *) echo -e "  ${CROSS} DNS service is NOT running";;
+      *) echo -e "  ${CROSS} DNS service is NOT listening";;
     esac
     return 0
   fi
@@ -268,13 +299,13 @@ statusFunc() {
     # A config is commented out
     case "${1}" in
       "web") echo 0;;
-      *) echo -e "  ${CROSS} Pi-hole blocking is Disabled";;
+      *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
     esac
   elif grep -q "BLOCKING_ENABLED=true" /etc/pihole/setupVars.conf;  then
     # Configs are set
     case "${1}" in
       "web") echo 1;;
-      *) echo -e "  ${TICK} Pi-hole blocking is Enabled";;
+      *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
     esac
   else
     # No configs were found
@@ -387,7 +418,7 @@ Whitelist/Blacklist Options:
 
 Debugging Options:
   -d, debug           Start a debugging session
-                        Add '-a' to enable automated debugging
+                        Add '-a' to automatically upload the log to tricorder.pi-hole.net
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
   -t, tail            View the live output of the Pi-hole log
