@@ -232,7 +232,7 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         REV_SERVER_TARGET="${CONDITIONAL_FORWARDING_IP}"
         add_setting "REV_SERVER_TARGET" "${REV_SERVER_TARGET}"
 
-        #Convert CONDITIONAL_FORWARDING_REVERSE if neccasery e.g:
+        #Convert CONDITIONAL_FORWARDING_REVERSE if necessary e.g:
         #          1.1.168.192.in-addr.arpa to 192.168.1.1/32
         #          1.168.192.in-addr.arpa to 192.168.1.0/24
         #          168.192.in-addr.arpa to 192.168.0.0/16
