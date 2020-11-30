@@ -217,6 +217,7 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 
     if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
         # Convert legacy "conditional forwarding" to rev-server configuration
+        # Remove any existing REV_SERVER settings
         delete_setting "REV_SERVER"
         delete_setting "REV_SERVER_DOMAIN"
         delete_setting "REV_SERVER_TARGET"
@@ -231,6 +232,11 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         REV_SERVER_TARGET="${CONDITIONAL_FORWARDING_IP}"
         add_setting "REV_SERVER_TARGET" "${REV_SERVER_TARGET}"
 
+        #Convert CONDITIONAL_FORWARDING_REVERSE if neccasery e.g:
+        #          1.1.168.192.in-addr.arpa to 192.168.1.1/32
+        #          1.168.192.in-addr.arpa to 192.168.1.0/24
+        #          168.192.in-addr.arpa to 192.168.0.0/16
+        #          192.in-addr.arpa to 192.0.0.0/8
         search="in-addr.arpa"
         if [[ "$CONDITIONAL_FORWARDING_REVERSE" == *"$search" ]];then
             arrRev=(${CONDITIONAL_FORWARDING_REVERSE//./ })        
@@ -241,7 +247,8 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
                 3   )   REV_SERVER_CIDR="${arrRev[0]}.0.0.0/8";; 
             esac
         fi
-       
+        
+        # If REV_SERVER_CIDR is not converted by the above, then use the REV_SERVER_TARGET variable to derive it
         if [ -z "${REV_SERVER_CIDR}" ]; then
             # Convert existing input to /24 subnet (preserves legacy behavior)
             # This sed converts "192.168.1.2" to "192.168.1.0/24"
