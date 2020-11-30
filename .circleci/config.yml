@@ -1,0 +1,23 @@
+version: 2.1
+orbs:
+  python: circleci/python@1.2.1
+
+.distro-test: &distro-test
+  docker:
+    - image: cimg/python:3.7
+  steps:
+    - checkout
+    - run: pip install -r requirements.txt
+    - run: tox -c test/tox.${DISTRO}.ini 
+
+jobs:
+  debian_9:
+    <<: *distro-test
+    environment:
+      DISTRO: "debian_9"
+
+workflows:
+  version: 2.1
+  build:
+    jobs:
+      - debian_9
