@@ -1,7 +1,5 @@
-import pytest
 from .conftest import (
     tick_box,
-    info_box,
     cross_box,
     mock_command,
 )
@@ -51,6 +49,7 @@ def test_selinux_permissive(Pihole):
     expected_stdout = tick_box + ' Current SELinux: Permissive'
     assert expected_stdout in check_selinux.stdout
     assert check_selinux.rc == 0
+
 
 def test_selinux_disabled(Pihole):
     '''

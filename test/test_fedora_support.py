@@ -1,12 +1,3 @@
-import pytest
-from .conftest import (
-    tick_box,
-    info_box,
-    cross_box,
-    mock_command,
-)
-
-
 def test_epel_and_remi_not_installed_fedora(Pihole):
     '''
     confirms installer does not attempt to install EPEL/REMI repositories

@@ -1,8 +1,6 @@
-import pytest
 from .conftest import (
     tick_box,
     info_box,
-    cross_box,
     mock_command,
 )
 
