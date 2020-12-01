@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [debian_9, debian_10, ubuntu_16, ubuntu_18, ubuntu_20, centos_7, centos_8, fedora_31, fedora_32]        
+        distro: [debian_9, debian_10, ubuntu_16, ubuntu_18, ubuntu_20, centos_7, centos_8, fedora_31, fedora_32]
     env:
-      DISTRO: ${{matrix.distro}}     
-    steps:  
+      DISTRO: ${{matrix.distro}}
+    steps:
     - uses: actions/checkout@v1
     - name: Set up Python 3.7
       uses: actions/setup-python@v2
