@@ -253,6 +253,13 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
     # This follows https://support.mozilla.org/en-US/kb/configuring-networks-disable-dns-over-https
     # (sourced 7th September 2019)
     add_dnsmasq_setting "server=/use-application-dns.net/"
+
+    # We need to process DHCP settings here as well to account for possible
+    # changes in the non-FQDN forwarding. This cannot be done in 01-pihole.conf
+    # as we don't want to delete all local=/.../ lines so it's much safer to
+    # simply rewrite the entire corresponding config file (which is what the
+    # DHCP settings subroutie is doing)
+    ProcessDHCPSettings
 }
 
 SetDNSServers() {
@@ -375,6 +382,11 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
 
     if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
         echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
+
+        # When there is a Pi-hole domain set and "Never forward non-FQDNs" is
+        # ticked, we add `local=/domain/` to tell FTL that this domain is purely
+        # local and FTL may answer queries from /etc/hosts or DHCP but should
+        # never forward queries on that domain to any upstream servers
         if  [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
           echo "local=/${PIHOLE_DOMAIN}/" >> "${dhcpconfig}"
         fi
