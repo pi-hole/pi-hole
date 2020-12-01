@@ -70,15 +70,7 @@ def args(request):
 
 
 @pytest.fixture(params=[
-    'debian_9',
-    'debian_10',
-    'centos_7',
-    'centos_8',
-    'fedora_31',
-    'fedora_32',
-    'ubuntu_16',
-    'ubuntu_18',
-    'ubuntu_20'
+    'test_container'
 ])
 def tag(request):
     '''
