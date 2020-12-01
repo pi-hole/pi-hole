@@ -1,4 +1,4 @@
-.TH "Pihole-FTL" "8" "pihole-FTL" "Pi-hole" "June 2018"
+.TH "Pihole-FTL" "8" "pihole-FTL" "Pi-hole" "November 2020"
 .SH "NAME"
 pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
 .br
@@ -26,9 +26,9 @@ pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
 .br
 \fBpihole-FTL regex-test str rgx\fR
 .br
-\fBpihole-FTL --lua\fR
+\fBpihole-FTL lua\fR
 .br
-\fBpihole-FTL --luac\fR
+\fBpihole-FTL luac\fR
 .br
 \fBpihole-FTL dhcp-discover\fR
 .br
@@ -115,19 +115,19 @@ Command line arguments
     Test str against regular expression given by rgx
 .br
 
-\fB--lua\fR
+\fBlua\fR
 .br
-    Don't start FTL, start the embedded Lua interpreter
+    Start the embedded Lua interpreter
 .br
 
-\fB--luac\fR
+\fBluac\fR
 .br
-    Don't start FTL, execute the embedded Lua compiler
+    Execute the embedded Lua compiler
 .br
 
 \fBdhcp-discover\fR
 .br
-    Don't start FTL, discover DHCP servers in the local network
+    Discover DHCP servers in the local network
 .br
 
 \fB--\fR  (options)
