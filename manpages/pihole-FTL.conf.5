@@ -111,6 +111,17 @@ For each setting the option shown first is the default.
     E.g. IPv6 clients without a hostname will be compared via MAC address to known clients.
 .br
 
+\fB\fBREFRESH_HOSTNAMES=IPV4|ALL|NONE\fR
+.br
+    Change how (and if) hourly PTR requests are made to check for changes in client and upstream server hostnames:
+.br
+    IPV4 - Do the hourly PTR lookups only for IPv4 addresses resolving issues in networks with many short-lived PE IPv6 addresses.
+.br
+    ALL  - Do the hourly PTR lookups for all addresses. This can create a lot of PTR queries in networks with many IPv6 addresses.
+.br
+    NONE - Don't do hourly PTR lookups. Look up hostnames once (when first seeing a client) and never again. Future hostname changes may be missed.
+.br
+
 \fBMAXNETAGE=365\fR
 .br
     IP addresses (and associated host names) older than the specified number of days are removed.
