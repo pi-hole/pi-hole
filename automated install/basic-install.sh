@@ -529,6 +529,8 @@ make_repo() {
     # If the directory exists,
     if [[ -d "${directory}" ]]; then
         # Return with a 1 to exit the installer. We don't want to overwrite what could already be here in case it is not ours
+        str="Unable to clone ${remoteRepo} into ${directory}"
+        printf "%b  %b%s\\n" "${OVER}" "${CROSS}" "${str}"
         return 1
     fi
     # Clone the repo and return the return code from this command
