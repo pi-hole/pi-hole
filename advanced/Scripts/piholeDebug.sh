@@ -560,7 +560,7 @@ processor_check() {
     else
         # Check if the architecture is currently supported for FTL
         case "${PROCESSOR}" in
-            "amd64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
+            "amd64" | "x86_64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
                 ;;
             "armv6l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
                 ;;
