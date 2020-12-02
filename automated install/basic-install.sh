@@ -528,8 +528,8 @@ make_repo() {
     printf "  %b %s..." "${INFO}" "${str}"
     # If the directory exists,
     if [[ -d "${directory}" ]]; then
-        # delete everything in it so git can clone into it
-        rm -rf "${directory}"
+        # Return with a 1 to exit the installer. We don't want to overwrite what could already be here in case it is not ours
+        return 1
     fi
     # Clone the repo and return the return code from this command
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
