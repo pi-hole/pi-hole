@@ -1,5 +1,0 @@
-import:
-  - source: pi-hole/.github:/build-configs/core.yml@main
-    if: branch = master
-  - source: pi-hole/.github:/build-configs/core.yml@latest
-    if: branch != master
