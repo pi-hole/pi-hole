@@ -560,7 +560,7 @@ processor_check() {
     else
         # Check if the architecture is currently supported for FTL
         case "${PROCESSOR}" in
-            "amd64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
+            "amd64" | "x86_64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
                 ;;
             "armv6l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
                 ;;
@@ -977,7 +977,7 @@ make_array_from_file() {
         # Otherwise, read the file line by line
         while IFS= read -r line;do
             # Othwerise, strip out comments and blank lines
-            new_line=$(echo "${line}" | sed -e 's/#.*$//' -e '/^$/d')
+            new_line=$(echo "${line}" | sed -e 's/^\s*#.*$//' -e '/^$/d')
             # If the line still has content (a non-zero value)
             if [[ -n "${new_line}" ]]; then
                 # Put it into the array

@@ -1,0 +1,25 @@
+name: Test Supported Distributions
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  distro-test:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        distro: [debian_9, debian_10, ubuntu_16, ubuntu_18, ubuntu_20, centos_7, centos_8, fedora_31, fedora_32]
+    env:
+      DISTRO: ${{matrix.distro}}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: pip install -r test/requirements.txt
+    - name: Test with tox
+      run: tox -c test/tox.${DISTRO}.ini
