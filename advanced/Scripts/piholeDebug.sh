@@ -371,9 +371,9 @@ get_program_version() {
     echo_current_diagnostic "${program_name} version"
     # Evalutate the program we are checking, if it is any of the ones below, show the version
     case "${program_name}" in
-        "lighttpd") program_version="$(${program_name} -v |& head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
+        "lighttpd") program_version="$(${program_name} -v 2> /dev/null | head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
                     ;;
-        "php") program_version="$(${program_name} -v |& head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
+        "php") program_version="$(${program_name} -v 2> /dev/null | head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
                 ;;
         # If a match is not found, show an error
         *) echo "Unrecognized program";
