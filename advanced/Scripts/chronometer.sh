@@ -228,8 +228,14 @@ get_sys_stats() {
         mapfile -t ph_ver_raw < <(pihole -v -c 2> /dev/null | sed -n 's/^.* v/v/p')
         if [[ -n "${ph_ver_raw[0]}" ]]; then
             ph_core_ver="${ph_ver_raw[0]}"
-            ph_lte_ver="${ph_ver_raw[1]}"
-            ph_ftl_ver="${ph_ver_raw[2]}"
+            if [[ ${#ph_ver_raw[@]} -eq 2 ]]; then
+                # AdminLTE not installed
+                ph_lte_ver="n.a."
+                ph_ftl_ver="${ph_ver_raw[1]}"
+            else
+                ph_lte_ver="${ph_ver_raw[1]}"
+                ph_ftl_ver="${ph_ver_raw[2]}"
+            fi
         else
             ph_core_ver="-1"
         fi
