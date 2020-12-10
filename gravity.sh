@@ -39,11 +39,8 @@ gravityDBfile="${piholeDir}/gravity.db"
 gravityTEMPfile="${piholeDir}/gravity_temp.db"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
-optimize_database=false
 
 domainsExtension="domains"
-
-resolver="pihole-FTL"
 
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
@@ -179,7 +176,7 @@ database_table_from_file() {
         echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
       elif [[ "${table}" == "adlist" ]]; then
         # Adlist table format
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"," >> "${tmpFile}"
       else
         # White-, black-, and regexlist table format
         echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
@@ -207,6 +204,17 @@ database_table_from_file() {
   # Delete tmpFile
   rm "${tmpFile}" > /dev/null 2>&1 || \
     echo -e "  ${CROSS} Unable to remove ${tmpFile}"
+}
+
+# Update timestamp of last update of this list. We store this in the "old" database as all values in the new database will later be overwritten
+database_adlist_updated() {
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET date_updated = (cast(strftime('%%s', 'now') as int)) WHERE id = %i;\\n" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update timestamp of adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
 }
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
@@ -284,7 +292,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine error output message
-  if pidof ${resolver} &> /dev/null; then
+  if pgrep pihole-FTL &> /dev/null; then
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   else
     echo -e "  ${CROSS} DNS service is not running"
@@ -336,7 +344,7 @@ gravity_DownloadBlocklists() {
     return 1
   fi
 
-  local url domain agent cmd_ext str target
+  local url domain agent cmd_ext str target compression
   echo ""
 
   # Prepare new gravity database
@@ -355,6 +363,16 @@ gravity_DownloadBlocklists() {
 
   target="$(mktemp -p "/tmp" --suffix=".gravity")"
 
+  # Use compression to reduce the amount of data that is transfered
+  # between the Pi-hole and the ad list provider. Use this feature
+  # only if it is supported by the locally available version of curl
+  if curl -V | grep -q "Features:.* libz"; then
+    compression="--compressed"
+    echo -e "  ${INFO} Using libz compression\n"
+  else
+      compression=""
+      echo -e "  ${INFO} Libz compression not available\n"
+    fi
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
@@ -381,7 +399,7 @@ gravity_DownloadBlocklists() {
     if [[ "${url}" =~ ${regex} ]]; then
         echo -e "  ${CROSS} Invalid Target"
     else
-       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
+       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
     fi
     echo ""
   done
@@ -456,7 +474,7 @@ parseList() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}"
+  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}" compression="${7}"
   local heisenbergCompensator="" patternBuffer str httpCode success=""
 
   # Create temp file to store content on disk instead of RAM
@@ -505,8 +523,9 @@ gravity_DownloadBlocklistFromUrl() {
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
   fi
+
   # shellcheck disable=SC2086
-  httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+  httpCode=$(curl -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
   case $url in
     # Did we "download" a local file?
@@ -546,6 +565,8 @@ gravity_DownloadBlocklistFromUrl() {
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
+      # Update date_updated field in gravity database table
+      database_adlist_updated "${adlistID}"
     else
       # Fall back to previously cached list if $patternBuffer is empty
       echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
@@ -731,23 +752,8 @@ gravity_Cleanup() {
 
   echo -e "${OVER}  ${TICK} ${str}"
 
-  if ${optimize_database} ; then
-    str="Optimizing domains database"
-    echo -ne "  ${INFO} ${str}..."
-    # Run VACUUM command on database to optimize it
-    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
-    status="$?"
-
-    if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
-      error="error"
-    else
-      echo -e "${OVER}  ${TICK} ${str}"
-    fi
-  fi
-
   # Only restart DNS service if offline
-  if ! pidof ${resolver} &> /dev/null; then
+  if ! pgrep pihole-FTL &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
     dnsWasOffline=true
   fi
@@ -772,7 +778,6 @@ Options:
 for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
-    "-o" | "--optimize" ) optimize_database=true;;
     "-r" | "--recreate" ) recreate_database=true;;
     "-h" | "--help" ) helpFunc;;
   esac
