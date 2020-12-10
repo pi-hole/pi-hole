@@ -83,6 +83,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 # By default, query logging is enabled and the dashboard is set to be installed
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
+INSTALL_WEB_SERVER=true
 PRIVACY_LEVEL=0
 CACHE_SIZE=10000
 
@@ -115,7 +116,6 @@ c=$(( c < 70 ? 70 : c ))
 # The runUnattended flag is one example of this
 reconfigure=false
 runUnattended=false
-INSTALL_WEB_SERVER=true
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
@@ -1897,7 +1897,53 @@ create_pihole_user() {
     fi
 }
 
-#
+# updateVarsFile takes three varialbles
+# 1 - the name of the local variable that represents the new value
+# 2 - the name of the variable in the target file
+# 3 - the path and name of the target file to modify
+updateVarsFile() {
+    local theValue="${!1}"
+    local fileVariable="${2}"
+    local theFile="${3}"
+    # If the file does not exist and is not larger than 0 bytes, create it with 644 permisions or add 1 byte. sed cannot work on empty files
+    if [[ ! -s "theFile" ]] ; then
+       (umask 022 ; echo >> "${theFile}")
+    fi
+    # Replace the value of a variable or add it to a target file if it is not present, preserving indentation and comments.
+    sed -i '
+        /^[#]*[ \t]*'"${fileVariable}"'=/ {
+            h
+            s/=[^#]*\(.*\)/='"${theValue}"'\1/
+            s/'"${theValue}"'#/'"${theValue}"' #/}
+            ${
+                x
+            /^$/{
+                s//'"${fileVariable}"'='"${theValue}"'/
+                H
+                }
+                x
+            }
+        ' "${theFile}"
+    #                                                    # The following is the same as the one line verion above.
+    #                                                    # Using ";" allows it to be written on one line.
+    #                                                    # It's broke out here for documentation.
+    #     sed -i '                                              #
+    #         /^[#]*[ \t]*'"${fileVariable}"'=/ {                # <-- looks for indentation and/or a comment before the variable followed by "="
+    #              h                                            # h command copies the pattern buffer into the hold buffer. pattern buffer is unchanged.
+    #              s/=[^#]*\(.*\)/='"${theValue}"'\1/           # <-- looks for a comment after the value, updates the value without losing the comment.
+    #              s/'"${theValue}"'#/'"${theValue}"' #/        # <-- looks for the value followed by inline comment with no space and adds a space between the value and #.
+    #         }                                                 #
+    #         ${                                                #
+    #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         /^$/{                                             #
+    #              s//'"${fileVariable}"'='"${theValue}"'/       # <-- Appends the variable and value if it's not found.
+    #              H                                            # H command appends lines to the hold buffer with a \n between them.
+    #              }                                            #
+    #              x                                            # x command exchanges the hold buffer and the pattern buffer.  Both are changed.
+    #         }                                                 #
+    #     ' ${theFile}                                          # <-- File to be modified.
+}
+
 finalExports() {
     # If the Web interface is not set to be installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
@@ -1912,32 +1958,22 @@ finalExports() {
         fi
     fi
 
-    # If the setup variable file exists,
-    if [[ -e "${setupVars}" ]]; then
-        # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;' "${setupVars}"
-    fi
+    set +e      # set -e will cause the loop to exit early
+    # Updated settings
+    updatedVars=(PIHOLE_INTERFACE IPV6_ADDRESS IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2 QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE DNS_CACHE_SIZE)
+    # Update setupVars.conf with new settings
+    for var in "${updatedVars[@]}"; do
+        updateVarsFile "${var}" "${var}" "${setupVars}"
+    done
     # echo the information to the user
-    {
-    echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-    echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-    echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
-    echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
-    echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
-    echo "QUERY_LOGGING=${QUERY_LOGGING}"
-    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
-    echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-    echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
-    echo "CACHE_SIZE=${CACHE_SIZE}"
-    }>> "${setupVars}"
-    chmod 644 "${setupVars}"
-
+    for var in "${updatedVars[@]}"; do
+        echo "${var}=${!var}"
+    done
     # Set the privacy level
-    sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
-    echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    updateVarsFile PRIVACY_LEVEL PRIVACYLEVEL "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    set -e      # exit on non-zero
 
     # Bring in the current settings and the functions to manipulate them
-    source "${setupVars}"
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
     # Look for DNS server settings which would have to be reapplied
@@ -1986,8 +2022,102 @@ accountForRefactor() {
         if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
             webserver_installed=true
         fi
-        echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
+        updateVarsFile INSTALL_WEB_SERVER webserver_installed "${setupVars}"
     fi
+}
+
+# A function that validates the pihole_setupVars.conf required for unattended installation and updates.
+validate_setupVars () {
+    printf "  Validating setupVars.conf\\n"
+    echo ""
+    # Replace any crlf with nl if they exists in the source file
+    sed -i 's/\r//'  ${setupVars}
+    # Does setupVars contain the minimume variables?
+    local requiredVars=(PIHOLE_INTERFACE IPV4_ADDRESS PIHOLE_DNS_1 PIHOLE_DNS_2)
+    # Variables with true or false as the only options
+    local optionalVarsTF=(QUERY_LOGGING INSTALL_WEB_SERVER INSTALL_WEB_INTERFACE BLOCKING_ENABLED DNS_FQDN_REQUIRED DNS_BOGUS_PRIV DNSSEC CONDITIONAL_FORWARDING)
+    source ${setupVars}
+    for var in "${requiredVars[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            echo "${var} is not set"
+            exit 1
+        else
+            echo "${var} is ${!var}"
+        fi
+    done
+    for i in "${optionalVarsTF[@]}"; do
+        if [[ "${!var}" == "true" ]] || [[ "${!var}" == "false" ]]; then
+            echo "${var} is ${!var}"
+        elif [[ -z "${!var}" ]]; then
+            echo "${var} is not set"
+        else
+            echo "${var} is ${!var}"
+            echo "If ${var} is set in setupVars.conf, valid options are: true or false."
+            exit 1
+        fi
+    done
+    # INSTALL_WEB_INTERFACE must be set to true if INSTALL_WEB_SERVER is set to true
+    if [[ "${INSTALL_WEB_INTERFACE}" == false ]] && [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+        echo "You can install the Web interface without the web server, but you cannot install the web server without the web interface."
+        echo "INSTALL_WEB_SERVER is set to ${INSTALL_WEB_SERVER} and INSTALL_WEB_INTERFACE is set to ${INSTALL_WEB_INTERFACE}."
+        exit 1
+    fi
+    # Regex patterns to match
+    addressMask="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\/([1-9]|[1-2][0-9]|3[0-2]))$"
+    addressReverse="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}in-addr\.arpa$"
+    # Validate the IPv4 address and subnet mask
+    if [[ ! ${IPV4_ADDRESS} =~ ${addressMask} ]] ; then
+        echo "${IPV4_ADDRESS} is not a valid address or it is missing the subnet mask"
+        exit 1
+    else
+        echo "IPv4 ${IPV4_ADDRESS}"
+    fi
+    # Validate the DNS_1 IP addresses
+    if ! valid_ip "${PIHOLE_DNS_1}" ; then
+        echo "${PIHOLE_DNS_1} is not a valid address"
+        exit 1
+    else
+        echo "DNS1 ${PIHOLE_DNS_1}"
+    fi
+    # Validate the DNS_2 IP addresses
+    if ! valid_ip "${PIHOLE_DNS_2}" ; then
+        echo "${PIHOLE_DNS_2} is not a valid address"
+        exit 1
+    else
+        echo "DNS2 ${PIHOLE_DNS_2}"
+    fi
+    # Validate Web UI Layout
+    if [[ "${WEBUIBOXEDLAYOUT}" == "boxed" ]] || [[ "${WEBUIBOXEDLAYOUT}" == "traditional" ]]; then
+            echo "WEBUIBOXEDLAYOUT is ${WEBUIBOXEDLAYOUT}"
+        elif [[ -z "${WEBUIBOXEDLAYOUT}" ]]; then
+            echo "WEBUIBOXEDLAYOUT is not set"
+        else
+            echo "WEBUIBOXEDLAYOUT valid options are: boxed or traditional."
+            exit 1
+        fi
+    # Validate Conditional Forwarding settings
+    if ! valid_ip "${CONDITIONAL_FORWARDING_IP}" ; then
+            echo "CONDITIONAL_FORWARDING_IP is ${CONDITIONAL_FORWARDING_IP}"
+    elif [[ -z "${CONDITIONAL_FORWARDING_IP}" ]]; then
+            echo "CONDITIONAL_FORWARDING_IP is not set"
+    else
+            echo "${CONDITIONAL_FORWARDING_IP} is not a valid IP Address"
+            exit 1
+        fi
+    if [[ "${CONDITIONAL_FORWARDING_REVERSE}" =~ ${addressReverse} ]]; then
+            echo "CONDITIONAL_FORWARDING_REVERSE is ${CONDITIONAL_FORWARDING_REVERSE}"
+    elif [[ -z "${CONDITIONAL_FORWARDING_REVERSE}" ]]; then
+            echo "CONDITIONAL_FORWARDING_REVERSE is not set"
+    else
+            echo "${CONDITIONAL_FORWARDING_REVERSE} is not a valid reverse address"
+            exit 1
+    fi
+    # LIGHTTPD_ENABLED should not be written to the setupVars.conf file.  It's a temporary variable and not used for installation or updates.
+    sed -i '/LIGHTTPD_ENABLED=/ d' "${setupVars}"
+    # DNSMASQ_LISTENING is not used during setup or updates.
+    sed -i '/DNSMASQ_LISTENING=/ d' "${setupVars}"
+    # Ensure setupVars ends with a newline
+    sed -i -e '$a\ ' "${setupVars}"
 }
 
 # Install base files and web interface
@@ -2021,8 +2151,12 @@ installPihole() {
         fi
     fi
     # For updates and unattended install.
-    if [[ "${useUpdateVars}" == true ]]; then
-        accountForRefactor
+    if [[ "${runUnattended}" == true ]]; then
+        if [[ -f "${setupVars}" ]]; then
+            chmod 644 "${setupVars}"
+            accountForRefactor
+            validate_setupVars
+        fi
     fi
     # Install base files and web interface
     if ! installScripts; then
