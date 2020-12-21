@@ -1287,8 +1287,7 @@ chooseBlocklists() {
     # Let user select (or not) blocklists via a checklist
     cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 5)
     # In an array, show the options available (all off by default):
-    options=(StevenBlack "StevenBlack's Unified Hosts List" on
-        MalwareDom "MalwareDomains" on)
+    options=(StevenBlack "StevenBlack's Unified Hosts List" on)
 
     # In a variable, show the choices available; exit if Cancel is selected
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
@@ -1307,7 +1306,6 @@ chooseBlocklists() {
 appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
-        MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
     esac
 }
 
@@ -1320,7 +1318,6 @@ installDefaultBlocklists() {
         return;
     fi
     appendToListsFile StevenBlack
-    appendToListsFile MalwareDom
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
