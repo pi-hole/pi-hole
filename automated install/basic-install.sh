@@ -2451,7 +2451,7 @@ get_binary_name() {
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the processor of packages dpkg installs (for example, "i386")
         local dpkgarch
-        dpkgarch=$(dpkg --print-processor 2> /dev/null || true)
+        dpkgarch=$(dpkg --print-processor 2> /dev/null || dpkg --print-architecture 2> /dev/null)
 
         # Special case: This is a 32 bit OS, installed on a 64 bit machine
         # -> change machine processor to download the 32 bit executable
