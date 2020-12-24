@@ -1,4 +1,4 @@
-.TH "Pihole-FTL" "8" "pihole-FTL" "Pi-hole" "June 2018"
+.TH "Pihole-FTL" "8" "pihole-FTL" "Pi-hole" "November 2020"
 .SH "NAME"
 pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
 .br
@@ -10,7 +10,7 @@ pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
 .br
 \fBpihole-FTL test\fR
 .br
-\fBpihole-FTL -v\fR
+\fBpihole-FTL -v|-vv\fR
 .br
 \fBpihole-FTL -t\fR
 .br
@@ -21,6 +21,16 @@ pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
 \fBpihole-FTL -h\fR
 .br
 \fBpihole-FTL dnsmasq-test\fR
+.br
+\fBpihole-FTL regex-test str\fR
+.br
+\fBpihole-FTL regex-test str rgx\fR
+.br
+\fBpihole-FTL lua\fR
+.br
+\fBpihole-FTL luac\fR
+.br
+\fBpihole-FTL dhcp-discover\fR
 .br
 \fBpihole-FTL --\fR (\fBoptions\fR)
 .br
@@ -65,6 +75,11 @@ Command line arguments
     Don't start FTL, show only version
 .br
 
+\fB-vv\fR
+.br
+    Don't start FTL, show verbose version information of embedded applications
+.br
+
 \fB-t, tag\fR
 .br
     Don't start FTL, show only git tag
@@ -88,6 +103,31 @@ Command line arguments
 \fBdnsmasq-test\fR
 .br
     Test resolver config file syntax
+.br
+
+\fBregex-test str\fR
+.br
+    Test str against all regular expressions in the database
+.br
+
+\fBregex-test str rgx\fR
+.br
+    Test str against regular expression given by rgx
+.br
+
+\fBlua\fR
+.br
+    Start the embedded Lua interpreter
+.br
+
+\fBluac\fR
+.br
+    Execute the embedded Lua compiler
+.br
+
+\fBdhcp-discover\fR
+.br
+    Discover DHCP servers in the local network
 .br
 
 \fB--\fR  (options)
