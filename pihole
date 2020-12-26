@@ -70,7 +70,7 @@ reconfigurePiholeFunc() {
 }
 
 updateGravityFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@"
+  "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@" | tee /var/log/pihole_updateGravity.log
   exit $?
 }
 
