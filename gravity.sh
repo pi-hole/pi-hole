@@ -217,6 +217,48 @@ database_adlist_updated() {
   fi
 }
 
+# Check if a column with name ${2} exists in gravity table with name ${1}
+gravity_column_exists() {
+  output=$( { printf ".timeout 30000\\nSELECT EXISTS(SELECT * FROM pragma_table_info('%s') WHERE name='%s');\\n" "${1}" "${2}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  if [[ "${output}" == "1" ]]; then
+    return 0 # Bash 0 is success
+  fi
+
+  return 1 # Bash non-0 is failure
+}
+
+# Update number of domain on this list. We store this in the "old" database as all values in the new database will later be overwritten
+database_adlist_number() {
+  # Only try to set number of domains when this field exists in the gravity database
+  if ! gravity_column_exists "adlist" "number"; then
+    return;
+  fi
+
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${total_num}" "${invalid_num}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update number of domains in adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+}
+
+# Update status of this list. We store this in the "old" database as all values in the new database will later be overwritten
+database_adlist_status() {
+  # Only try to set the status when this field exists in the gravity database
+  if ! gravity_column_exists "adlist" "status"; then
+    return;
+  fi
+
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET status = %i WHERE id = %i;\\n" "${2}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update status of adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+}
+
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
 migrate_to_database() {
   # Create database file only if not present
@@ -439,6 +481,7 @@ gravity_DownloadBlocklists() {
 }
 
 total_num=0
+invalid_num=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
   # This sed does the following things:
@@ -456,11 +499,11 @@ parseList() {
   num_target_lines="$(grep -c "^" "${target}")"
   num_correct_lines="$(( num_target_lines-total_num ))"
   total_num="$num_target_lines"
-  num_invalid="$(( num_lines-num_correct_lines ))"
-  if [[ "${num_invalid}" -eq 0 ]]; then
-    echo "  ${INFO} Received ${num_lines} domains"
+  invalid_num="$(( num_lines-num_correct_lines ))"
+  if [[ "${invalid_num}" -eq 0 ]]; then
+    echo "  ${INFO} Analyzed ${num_lines} domains"
   else
-    echo "  ${INFO} Received ${num_lines} domains, ${num_invalid} domains invalid!"
+    echo "  ${INFO} Analyzed ${num_lines} domains, ${invalid_num} domains invalid!"
   fi
 
   # Display sample of invalid lines if we found some
@@ -554,31 +597,48 @@ gravity_DownloadBlocklistFromUrl() {
       esac;;
   esac
 
+  local done="false"
   # Determine if the blocklist was downloaded and saved correctly
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
+      database_adlist_status "${adlistID}" "2"
+      database_adlist_number "${adlistID}"
+      done="true"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
-      # Update date_updated field in gravity database table
+      # Update gravity database table
+      database_adlist_status "${adlistID}" "1"
       database_adlist_updated "${adlistID}"
+      database_adlist_number "${adlistID}"
+      done="true"
     else
       # Fall back to previously cached list if $patternBuffer is empty
-      echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
+      echo -e "  ${INFO} Received empty file"
     fi
-  else
+  fi
+
+  # Do we need to fall back to a cached list (if available)?
+  if [[ "${done}" != "true" ]]; then
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
+      database_adlist_number "${adlistID}"
+      database_adlist_status "${adlistID}" "3"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
+      # Total number == -1 means there was no cached list that could have been used
+      total_num=-1
+      invalid_num=0
+      database_adlist_number "${adlistID}"
+      database_adlist_status "${adlistID}" "4"
     fi
   fi
 }
