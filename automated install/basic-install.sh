@@ -473,7 +473,10 @@ update_repo() {
     git stash --all --quiet &> /dev/null || true # Okay for stash failure
     git clean --quiet --force -d || true # Okay for already clean directory
     # Pull the latest commits
-    git pull --quiet &> /dev/null || return $?
+    if ! git branch | grep --quiet -E '^[*] [(]HEAD detached at pull/[[:digit:]]+/merge[)]$'; then
+        # if tests are run with Github Actions, pulling changes will not be possible because of 'detached HEAD' state
+        git pull --quiet &> /dev/null || return $?
+    fi
     # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
