@@ -513,8 +513,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
     assert 0 == installWeb.rc
-    testFTL = Pihole.run('pihole-FTL test')
-    assert 0 == testFTL.rc
     piholeuser = 'pihole'
     webuser = ''
     user = re.findall(
