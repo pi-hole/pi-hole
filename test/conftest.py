@@ -100,7 +100,7 @@ def mock_command(script, args, container):
     in unit tests
     '''
     full_script_path = '/usr/local/bin/{}'.format(script)
-    mock_script = dedent('''\
+    mock_script = dedent(r'''\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1" in'''.format(script=script))
@@ -127,7 +127,7 @@ def mock_command_run(script, args, container):
     in unit tests
     '''
     full_script_path = '/usr/local/bin/{}'.format(script)
-    mock_script = dedent('''\
+    mock_script = dedent(r'''\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1 \$2" in'''.format(script=script))
@@ -154,7 +154,7 @@ def mock_command_2(script, args, container):
     in unit tests
     '''
     full_script_path = '/usr/local/bin/{}'.format(script)
-    mock_script = dedent('''\
+    mock_script = dedent(r'''\
     #!/bin/bash -e
     echo "\$0 \$@" >> /var/log/{script}
     case "\$1 \$2" in'''.format(script=script))

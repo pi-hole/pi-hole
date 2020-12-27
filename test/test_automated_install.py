@@ -140,8 +140,8 @@ def get_directories_recursive(Pihole, directory):
     ls = Pihole.run('ls -d {}'.format(directory + '/*/'))
     directories = list(filter(bool, ls.stdout.splitlines()))
     dirs = directories
-    for dir in directories:
-        dir_rec = get_directories_recursive(Pihole, dir)
+    for dirval in directories:
+        dir_rec = get_directories_recursive(Pihole, dirval)
         if isinstance(dir_rec, str):
             dirs.extend([dir_rec])
         else:
@@ -513,6 +513,8 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     ''')
     assert 0 == installWeb.rc
+    testFTL = Pihole.run('pihole-FTL test')
+    assert 0 == testFTL.rc
     piholeuser = 'pihole'
     webuser = ''
     user = re.findall(
