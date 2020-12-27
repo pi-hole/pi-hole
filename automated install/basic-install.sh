@@ -473,7 +473,7 @@ update_repo() {
     git stash --all --quiet &> /dev/null || true # Okay for stash failure
     git clean --quiet --force -d || true # Okay for already clean directory
     # Pull the latest commits
-    if ! git branch | grep --quiet -E '^[*] [(]HEAD detached at pull/[[:digit:]]+/merge[)]$'; then
+    if ! git branch | grep --quiet -E '^[*] [(](HEAD detached at|detached from) pull/[[:digit:]]+/merge[)]$'; then
         # if tests are run with Github Actions, pulling changes will not be possible because of 'detached HEAD' state
         git pull --quiet &> /dev/null || return $?
     fi
