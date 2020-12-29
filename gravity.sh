@@ -514,6 +514,27 @@ parseList() {
     done <<< "${incorrect_lines}"
   fi
 }
+compareLists() {
+  local adlistID="${1}" target="${2}" result
+
+  # Verify checksum when an older checksum exists
+  if [[ -s "${target}.sha1" ]]; then
+    if ! sha1sum --check --status --strict "${target}.sha1"; then
+      # The list changed upstream, we need to update the checksum
+      sha1sum "${target}" > "${target}.sha1"
+      echo "  ${INFO} List has been updated"
+      database_adlist_status "${adlistID}" "1"
+    else
+      echo "  ${INFO} List stayed unchanged"
+      database_adlist_status "${adlistID}" "2"
+    fi
+  else
+    # No checksum available, create one for comparing on the next run
+    sha1sum "${target}" > "${target}.sha1"
+    # We assume here it was changed upstream
+    database_adlist_status "${adlistID}" "1"
+  fi
+}
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
@@ -612,8 +633,9 @@ gravity_DownloadBlocklistFromUrl() {
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
-      # Update gravity database table
-      database_adlist_status "${adlistID}" "1"
+      # Compare lists, are they identical?
+      compareLists "${adlistID}" "${saveLocation}"
+      # Update gravity database table (status is set in compareLists)
       database_adlist_updated "${adlistID}"
       database_adlist_number "${adlistID}"
       done="true"
