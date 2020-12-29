@@ -234,7 +234,7 @@ database_adlist_number() {
     return;
   fi
 
-  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${total_num}" "${invalid_num}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${num_lines}" "${num_invalid}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -481,7 +481,8 @@ gravity_DownloadBlocklists() {
 }
 
 total_num=0
-invalid_num=0
+num_lines=0
+num_invalid=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
   # This sed does the following things:
@@ -492,18 +493,18 @@ parseList() {
   # Find (up to) five domains containing invalid characters (see above)
   incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
 
-  local num_lines num_target_lines num_correct_lines num_invalid
+  local num_target_lines num_correct_lines num_invalid
   # Get number of lines in source file
   num_lines="$(grep -c "^" "${src}")"
   # Get number of lines in destination file
   num_target_lines="$(grep -c "^" "${target}")"
   num_correct_lines="$(( num_target_lines-total_num ))"
   total_num="$num_target_lines"
-  invalid_num="$(( num_lines-num_correct_lines ))"
-  if [[ "${invalid_num}" -eq 0 ]]; then
+  num_invalid="$(( num_lines-num_correct_lines ))"
+  if [[ "${num_invalid}" -eq 0 ]]; then
     echo "  ${INFO} Analyzed ${num_lines} domains"
   else
-    echo "  ${INFO} Analyzed ${num_lines} domains, ${invalid_num} domains invalid!"
+    echo "  ${INFO} Analyzed ${num_lines} domains, ${num_invalid} domains invalid!"
   fi
 
   # Display sample of invalid lines if we found some
@@ -515,7 +516,7 @@ parseList() {
   fi
 }
 compareLists() {
-  local adlistID="${1}" target="${2}" result
+  local adlistID="${1}" target="${2}"
 
   # Verify checksum when an older checksum exists
   if [[ -s "${target}.sha1" ]]; then
@@ -659,9 +660,9 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_status "${adlistID}" "3"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
-      # Total number == -1 means there was no cached list that could have been used
-      total_num=-1
-      invalid_num=0
+      # Manually reset these two numbers because we do not call parseList here
+      num_lines=0
+      num_invalid=0
       database_adlist_number "${adlistID}"
       database_adlist_status "${adlistID}" "4"
     fi
