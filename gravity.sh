@@ -524,6 +524,7 @@ compareLists() {
       sha1sum "${target}" > "${target}.sha1"
       echo "  ${INFO} List has been updated"
       database_adlist_status "${adlistID}" "1"
+      database_adlist_updated "${adlistID}"
     else
       echo "  ${INFO} List stayed unchanged"
       database_adlist_status "${adlistID}" "2"
@@ -531,8 +532,10 @@ compareLists() {
   else
     # No checksum available, create one for comparing on the next run
     sha1sum "${target}" > "${target}.sha1"
+    echo "  ${INFO} This list is new"
     # We assume here it was changed upstream
     database_adlist_status "${adlistID}" "1"
+    database_adlist_updated "${adlistID}"
   fi
 }
 
@@ -635,8 +638,8 @@ gravity_DownloadBlocklistFromUrl() {
       parseList "${adlistID}" "${saveLocation}" "${target}"
       # Compare lists, are they identical?
       compareLists "${adlistID}" "${saveLocation}"
-      # Update gravity database table (status is set in compareLists)
-      database_adlist_updated "${adlistID}"
+      # Update gravity database table (status and updated timestamp are set in
+      # compareLists)
       database_adlist_number "${adlistID}"
       done="true"
     else
