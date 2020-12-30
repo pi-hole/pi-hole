@@ -26,6 +26,9 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 PH_TEST="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
+# ensure_newline()
+source "utils.sh"
+
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
     source ${coltable}
