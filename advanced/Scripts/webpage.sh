@@ -49,6 +49,7 @@ Options:
 }
 
 add_setting() {
+    ensure_newline "${setupVars}"
     echo "${1}=${2}" >> "${setupVars}"
 }
 
@@ -62,6 +63,7 @@ change_setting() {
 }
 
 addFTLsetting() {
+    ensure_newline "${FTLconf}"
     echo "${1}=${2}" >> "${FTLconf}"
 }
 
@@ -75,6 +77,7 @@ changeFTLsetting() {
 }
 
 add_dnsmasq_setting() {
+    ensure_newline "${dnsmasqconfig}"
     if [[ "${2}" != "" ]]; then
         echo "${1}=${2}" >> "${dnsmasqconfig}"
     else
@@ -146,6 +149,7 @@ SetWebPassword() {
 ProcessDNSSettings() {
     source "${setupVars}"
 
+    ensure_newline "${dnsmasqconfig}"
     delete_dnsmasq_setting "server"
 
     COUNTER=1
@@ -392,6 +396,7 @@ ProcessDHCPSettings() {
     fi
 
     # Write settings to file
+    # We do not need to ensure a newline here as the entire file is re-written
     echo "###############################################################################
 #  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
 #            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
@@ -545,6 +550,7 @@ AddDHCPStaticAddress() {
     ip="${args[3]}"
     host="${args[4]}"
 
+    ensure_newline "${dhcpstaticconfig}"
     if [[ "${ip}" == "noip" ]]; then
         # Static host name
         echo "dhcp-host=${mac},${host}" >> "${dhcpstaticconfig}"
@@ -689,6 +695,7 @@ AddCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
+    ensure_newline "${dnscustomfile}"
 	echo "${ip} ${host}" >> "${dnscustomfile}"
 
     # Restart dnsmasq to load new custom DNS entries
@@ -711,6 +718,7 @@ AddCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
+    ensure_newline "${dnscustomcnamefile}"
     echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
 
     # Restart dnsmasq to load new custom CNAME records
