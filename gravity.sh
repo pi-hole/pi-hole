@@ -533,7 +533,6 @@ compareLists() {
   else
     # No checksum available, create one for comparing on the next run
     sha1sum "${target}" > "${target}.sha1"
-    echo "  ${INFO} This list is new"
     # We assume here it was changed upstream
     database_adlist_status "${adlistID}" "1"
     database_adlist_updated "${adlistID}"
