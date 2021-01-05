@@ -18,12 +18,16 @@ setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
+# shellcheck source=./advanced/Scripts/COL_TABLE
 source "${colfile}"
 
 # ensure_newline()
-source "utils.sh"
+readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source=./advanced/Scripts/utils.sh
+source "${utilsfile}"
 
 webpageFunc() {
+  # shellcheck source=./advanced/Scripts/webpage.sh
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
   main "$@"
   exit 0
@@ -40,9 +44,13 @@ debugFunc() {
 
   # Pull off the `debug` leaving passed call augmentation flags in $1
   shift
+  # We do not want to be warned about implicit concatenation of array in [[ ]]
+  # as this is exactly what we want here
+  # shellcheck disable=SC2199
   if [[ "$@" == *"-a"* ]]; then
     automated="true"
   fi
+  # shellcheck disable=SC2199
   if [[ "$@" == *"-w"* ]]; then
     web="true"
   fi
@@ -157,7 +165,7 @@ Time:
       echo -e "  ${INFO} Blocking already disabled, nothing to do"
       exit 0
     fi
-    if [[ $# > 1 ]]; then
+    if [[ $# -gt 1 ]]; then
       local error=false
       if [[ "${2}" == *"s" ]]; then
         tt=${2%"s"}
@@ -165,7 +173,7 @@ Time:
           local str="Disabling blocking for ${tt} seconds"
           echo -e "  ${INFO} ${str}..."
           local str="Blocking will be re-enabled in ${tt} seconds"
-          nohup "${PI_HOLE_SCRIPT_DIR}"/pihole-reenable.sh ${tt} </dev/null &>/dev/null &
+          nohup "${PI_HOLE_SCRIPT_DIR}/pihole-reenable.sh" "${tt}" </dev/null &>/dev/null &
         else
           local error=true
         fi
@@ -175,8 +183,8 @@ Time:
           local str="Disabling blocking for ${tt} minutes"
           echo -e "  ${INFO} ${str}..."
           local str="Blocking will be re-enabled in ${tt} minutes"
-          tt=$((${tt}*60))
-          nohup "${PI_HOLE_SCRIPT_DIR}"/pihole-reenable.sh ${tt} </dev/null &>/dev/null &
+          tt=$((tt*60))
+          nohup "${PI_HOLE_SCRIPT_DIR}/pihole-reenable.sh" "${tt}" </dev/null &>/dev/null &
         else
           local error=true
         fi
@@ -325,7 +333,8 @@ statusFunc() {
 
 tailFunc() {
   # Warn user if Pi-hole's logging is disabled
-  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
+  local logging_enabled
+  logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
   if [[ "${logging_enabled}" == "0" ]]; then
     # No "log-queries" lines are found.
     # Commented out lines (such as "#log-queries") are ignored
@@ -366,6 +375,7 @@ Branches:
     exit 0
   fi
 
+  # shellcheck source=./advanced/Scripts/piholeCheckout.sh
   source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
   shift
   checkout "$@"

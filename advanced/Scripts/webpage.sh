@@ -22,16 +22,21 @@ readonly gravityDBfile="/etc/pihole/gravity.db"
 
 # Source install script for ${setupVars}, ${PI_HOLE_BIN_DIR} and valid_ip()
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+setupVars=""
+DHCP_IPv6=false
 # shellcheck disable=SC2034  # used in basic-install
 PH_TEST="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # ensure_newline()
-source "utils.sh"
+readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source=./utils.sh
+source "${utilsfile}"
 
-coltable="/opt/pihole/COL_TABLE"
+readonly coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 if [[ -f ${coltable} ]]; then
-    source ${coltable}
+  # shellcheck source=./COL_TABLE
+  source "${coltable}"
 fi
 
 helpFunc() {
