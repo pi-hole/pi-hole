@@ -243,13 +243,13 @@ Displaylist() {
 
 NukeList() {
     count=$(sqlite3 "${gravityDBfile}" "SELECT COUNT(1) FROM domainlist WHERE type = ${typeId};")
-    listname="$(GetListnameFromTypeId "${typeId}")"    
+    listname="$(GetListnameFromTypeId "${typeId}")"
     if [ "$count" -gt 0 ];then
         sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeId};"
         echo "  ${TICK} Removed ${count} domain(s) from the ${listname}"
     else
         echo "  ${INFO} ${listname} already empty. Nothing to do!"
-    fi    
+    fi
     exit 0;
 }
 
