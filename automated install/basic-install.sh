@@ -85,6 +85,8 @@ QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
 PRIVACY_LEVEL=0
 CACHE_SIZE=10000
+# Placeholder variable for the list of available APT packages to be parsed subsequently
+APT_PACKAGE_LIST=""
 
 if [ -z "${USER}" ]; then
   USER="$(id -un)"
@@ -177,6 +179,19 @@ is_command() {
     local check_command="$1"
 
     command -v "${check_command}" >/dev/null 2>&1
+}
+
+is_apt_package(){
+    # Checks whether a package, or one that provides it, is available in
+    # the installed APT repository lists.
+    local check_package=$1
+
+    # Obtain the list of available packages once
+    if [[ -z $APT_PACKAGE_LIST ]]; then
+        APT_PACKAGE_LIST=$(apt-cache dumpavail | grep -E '^P(ackage|rovides):')
+    fi
+
+    grep -qE " $check_package(,|$)" <<< "$APT_PACKAGE_LIST"
 }
 
 os_check() {
@@ -303,10 +318,10 @@ if is_command apt-get ; then
     # Update package cache. This is required already here to assure apt-cache calls have package lists available.
     update_package_cache || exit 1
     # Debian 7 doesn't have iproute2 so check if it's available first
-    if apt-cache show iproute2 > /dev/null 2>&1; then
+    if is_apt_package iproute2; then
         iproute_pkg="iproute2"
     # Otherwise, check if iproute is available
-    elif apt-cache show iproute > /dev/null 2>&1; then
+    elif is_apt_package iproute; then
         iproute_pkg="iproute"
     # Else print error and exit
     else
@@ -326,10 +341,10 @@ if is_command apt-get ; then
     # Check if installed php is v 7.0, or newer to determine packages to install
     if [[ "$phpInsNewer" != true ]]; then
         # Prefer the php metapackage if it's there
-        if apt-cache show php > /dev/null 2>&1; then
+        if is_apt_package php; then
             phpVer="php"
         # Else fall back on the php5 package if it's there
-        elif apt-cache show php5 > /dev/null 2>&1; then
+        elif is_apt_package php5; then
             phpVer="php5"
         # Else print error and exit
         else
@@ -341,9 +356,9 @@ if is_command apt-get ; then
         phpVer="php$phpInsMajor.$phpInsMinor"
     fi
     # We also need the correct version for `php-sqlite` (which differs across distros)
-    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
+    if is_apt_package "${phpVer}-sqlite3"; then
         phpSqlite="sqlite3"
-    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
+    elif is_apt_package "${phpVer}-sqlite"; then
         phpSqlite="sqlite"
     else
         printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
@@ -408,7 +423,7 @@ elif is_command rpm ; then
         SUPPORTED_CENTOS_VERSION=7
         SUPPORTED_CENTOS_PHP_VERSION=7
         # Check current CentOS major release version
-        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.)' /etc/redhat-release)
+        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
         # Check if CentOS version is supported
         if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
             printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
@@ -1285,10 +1300,9 @@ chooseBlocklists() {
         mv "${adlistFile}" "${adlistFile}.old"
     fi
     # Let user select (or not) blocklists via a checklist
-    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 5)
+    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestion below, and/or add your own after installation\\n\\nTo deselect the suggested list, use spacebar" "${r}" "${c}" 5)
     # In an array, show the options available (all off by default):
-    options=(StevenBlack "StevenBlack's Unified Hosts List" on
-        MalwareDom "MalwareDomains" on)
+    options=(StevenBlack "StevenBlack's Unified Hosts List" on)
 
     # In a variable, show the choices available; exit if Cancel is selected
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
@@ -1307,7 +1321,6 @@ chooseBlocklists() {
 appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
-        MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
     esac
 }
 
@@ -1320,7 +1333,6 @@ installDefaultBlocklists() {
         return;
     fi
     appendToListsFile StevenBlack
-    appendToListsFile MalwareDom
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -2543,7 +2555,7 @@ FTLcheckUpdate() {
             FTLversion=$(/usr/bin/pihole-FTL tag)
             local FTLlatesttag
 
-            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
+            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
