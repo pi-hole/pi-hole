@@ -363,7 +363,7 @@ gravity_DownloadBlocklists() {
 
   target="$(mktemp -p "/tmp" --suffix=".gravity")"
 
-  # Use compression to reduce the amount of data that is transfered
+  # Use compression to reduce the amount of data that is transferred
   # between the Pi-hole and the ad list provider. Use this feature
   # only if it is supported by the locally available version of curl
   if curl -V | grep -q "Features:.* libz"; then
@@ -595,7 +595,7 @@ gravity_ParseFileIntoDomains() {
   # Determine if we are parsing a consolidated list
   #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
-    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contiguous
+    # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
     # 1) Remove carriage returns
