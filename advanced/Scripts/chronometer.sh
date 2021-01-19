@@ -559,7 +559,7 @@ Calculates stats and displays to an LCD
 Options:
   -j, --json          Output stats as JSON formatted string
   -r, --refresh       Set update frequency (in seconds)
-  -e, --exit          Output stats and exit witout refreshing
+  -e, --exit          Output stats and exit without refreshing
   -h, --help          Display this help text"
   fi
 

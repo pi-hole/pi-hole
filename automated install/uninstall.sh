@@ -31,7 +31,7 @@ else
     else
         echo -e "  ${CROSS} ${str}
             Script called with non-root privileges
-            The Pi-hole requires elevated privleges to uninstall"
+            The Pi-hole requires elevated privileges to uninstall"
         exit 1
     fi
 fi
