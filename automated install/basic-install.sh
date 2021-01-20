@@ -85,8 +85,6 @@ QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
 PRIVACY_LEVEL=0
 CACHE_SIZE=10000
-# Placeholder variable for the list of available APT packages to be parsed subsequently
-APT_PACKAGE_LIST=""
 
 if [ -z "${USER}" ]; then
   USER="$(id -un)"
@@ -179,19 +177,6 @@ is_command() {
     local check_command="$1"
 
     command -v "${check_command}" >/dev/null 2>&1
-}
-
-is_apt_package(){
-    # Checks whether a package, or one that provides it, is available in
-    # the installed APT repository lists.
-    local check_package=$1
-
-    # Obtain the list of available packages once
-    if [[ -z $APT_PACKAGE_LIST ]]; then
-        APT_PACKAGE_LIST=$(apt-cache dumpavail | grep -E '^P(ackage|rovides):')
-    fi
-
-    grep -qE " $check_package(,|$)" <<< "$APT_PACKAGE_LIST"
 }
 
 os_check() {
@@ -318,10 +303,10 @@ if is_command apt-get ; then
     # Update package cache. This is required already here to assure apt-cache calls have package lists available.
     update_package_cache || exit 1
     # Debian 7 doesn't have iproute2 so check if it's available first
-    if is_apt_package iproute2; then
+    if apt-cache show iproute2 > /dev/null 2>&1; then
         iproute_pkg="iproute2"
     # Otherwise, check if iproute is available
-    elif is_apt_package iproute; then
+    elif apt-cache show iproute > /dev/null 2>&1; then
         iproute_pkg="iproute"
     # Else print error and exit
     else
@@ -341,10 +326,10 @@ if is_command apt-get ; then
     # Check if installed php is v 7.0, or newer to determine packages to install
     if [[ "$phpInsNewer" != true ]]; then
         # Prefer the php metapackage if it's there
-        if is_apt_package php; then
+        if apt-cache show php > /dev/null 2>&1; then
             phpVer="php"
         # Else fall back on the php5 package if it's there
-        elif is_apt_package php5; then
+        elif apt-cache show php5 > /dev/null 2>&1; then
             phpVer="php5"
         # Else print error and exit
         else
@@ -356,9 +341,9 @@ if is_command apt-get ; then
         phpVer="php$phpInsMajor.$phpInsMinor"
     fi
     # We also need the correct version for `php-sqlite` (which differs across distros)
-    if is_apt_package "${phpVer}-sqlite3"; then
+    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
         phpSqlite="sqlite3"
-    elif is_apt_package "${phpVer}-sqlite"; then
+    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
         phpSqlite="sqlite"
     else
         printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
