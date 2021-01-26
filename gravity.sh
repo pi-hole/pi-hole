@@ -88,7 +88,7 @@ gravity_swap_databases() {
   str="Building tree"
   echo -ne "  ${INFO} ${str}..."
 
-  # The index is intentionally not UNIQUE as prro quality adlists may contain domains more than once
+  # The index is intentionally not UNIQUE as poor quality adlists may contain domains more than once
   output=$( { sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
   status="$?"
 
