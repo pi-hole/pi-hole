@@ -695,7 +695,7 @@ ping_gateway() {
     # Check if we are using IPv4 or IPv6
     # Find the default gateway using IPv4 or IPv6
     local gateway
-    gateway="$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3)"
+    gateway="$(ip -"${protocol}" route | grep default | grep ${PIHOLE_INTERFACE} | cut -d ' ' -f 3)"
 
     # If the gateway variable has a value (meaning a gateway was found),
     if [[ -n "${gateway}" ]]; then
