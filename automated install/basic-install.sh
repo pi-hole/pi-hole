@@ -672,7 +672,7 @@ find_IPv4_information() {
 # Get available interfaces that are UP
 get_available_interfaces() {
     # There may be more than one so it's all stored in a variable
-    availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+    availableInterfaces=$(ip --oneline link show up | grep -v " lo\:" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 # A function for displaying the dialogs the user sees when first running the installer
