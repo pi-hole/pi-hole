@@ -32,7 +32,10 @@ CREATE TABLE adlist
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	comment TEXT,
-	date_updated INTEGER
+	date_updated INTEGER,
+	number INTEGER NOT NULL DEFAULT 0,
+	invalid_domains INTEGER NOT NULL DEFAULT 0,
+	status INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE adlist_by_group
@@ -54,7 +57,7 @@ CREATE TABLE info
 	value TEXT NOT NULL
 );
 
-INSERT INTO "info" VALUES('version','13');
+INSERT INTO "info" VALUES('version','14');
 
 CREATE TABLE domain_audit
 (
