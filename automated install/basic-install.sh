@@ -50,9 +50,6 @@ EOM
 installLogLoc=/etc/pihole/install.log
 # This is an important file as it contains information specific to the machine it's being installed on
 setupVars=/etc/pihole/setupVars.conf
-# Pi-hole uses lighttpd as a Web server, and this is the config file for it
-# shellcheck disable=SC2034
-lighttpdConfig=/etc/lighttpd/lighttpd.conf
 # This is a file used for the colorized output
 coltable=/opt/pihole/COL_TABLE
 
@@ -321,14 +318,6 @@ if is_command apt-get ; then
     # Pi-hole itself has several dependencies that also need to be installed
     PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
 
-
-    # # The Web server user,
-    # LIGHTTPD_USER="www-data"
-    # # group,
-    # LIGHTTPD_GROUP="www-data"
-    # # and config file
-    # LIGHTTPD_CFG="lighttpd.conf.debian"
-
     # A function to check...
     test_dpkg_lock() {
         # An iterator used for counting loop iterations
@@ -361,9 +350,6 @@ elif is_command rpm ; then
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig bind-utils)
     PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
 
-    # LIGHTTPD_USER="lighttpd"
-    # LIGHTTPD_GROUP="lighttpd"
-    # LIGHTTPD_CFG="lighttpd.conf.fedora"
     # If the host OS is Fedora,
     if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
