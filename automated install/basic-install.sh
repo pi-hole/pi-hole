@@ -118,13 +118,11 @@ c=$(( c < 70 ? 70 : c ))
 # The runUnattended flag is one example of this
 reconfigure=false
 runUnattended=false
-INSTALL_WEB_SERVER=true
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
         "--reconfigure" ) reconfigure=true;;
         "--unattended" ) runUnattended=true;;
-        "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
     esac
 done
 
@@ -316,75 +314,35 @@ if is_command apt-get ; then
         printf "  %b Aborting installation: iproute2 and iproute packages were not found in APT repository.\\n" "${CROSS}"
         exit 1
     fi
-    # Check for and determine version number (major and minor) of current php install
-    if is_command php ; then
-        printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
-        printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
-        printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
-        # Is installed php version 7.0 or greater
-        if [ "${phpInsMajor}" -ge 7 ]; then
-            phpInsNewer=true
-        fi
-    fi
-    # Several other packages depend on the version of PHP. If PHP is not installed, or an insufficient version,
-    # those packages should fall back to the default (latest?)
-    if [[ "$phpInsNewer" != true ]]; then
-        # Prefer the php metapackage if it's there
-        if apt-cache show php > /dev/null 2>&1; then
-            phpVer="php"
-        # Else fall back on the php5 package if it's there
-        elif apt-cache show php5 > /dev/null 2>&1; then
-            phpVer="php5"
-        # Else print error and exit
-        else
-            printf "  %b Aborting installation: No PHP packages were found in APT repository.\\n" "${CROSS}"
-            exit 1
-        fi
-    else
-        # Else, PHP is already installed at a version beyond v7.0, so the additional packages
-        # should match version with the current PHP version.
-        phpVer="php$phpInsMajor.$phpInsMinor"
-    fi
-    # We also need the correct version for `php-sqlite` (which differs across distros)
-    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
-        phpSqlite="sqlite3"
-    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
-        phpSqlite="sqlite"
-    else
-        printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
-        exit 1
-    fi
-    # Packages required to run this install script (stored as an array)
-    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail dnsutils)
-    # Packages required to run Pi-hole (stored as an array)
-    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
-    # Packages required for the Web admin interface (stored as an array)
-    # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
-    # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
-    if [[ "${phpInsNewer}" != true || "${phpInsMajor}" -lt 8 ]]; then
-        PIHOLE_WEB_DEPS+=("${phpVer}-json")
-    fi
-    # The Web server user,
-    LIGHTTPD_USER="www-data"
-    # group,
-    LIGHTTPD_GROUP="www-data"
-    # and config file
-    LIGHTTPD_CFG="lighttpd.conf.debian"
 
-    # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
+    # Since our install script is so large, we need several other programs to successfully get a machine provisioned
+    # These programs are stored in an array so they can be looped through later
+    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail dnsutils)
+    # Pi-hole itself has several dependencies that also need to be installed
+    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+
+
+    # # The Web server user,
+    # LIGHTTPD_USER="www-data"
+    # # group,
+    # LIGHTTPD_GROUP="www-data"
+    # # and config file
+    # LIGHTTPD_CFG="lighttpd.conf.debian"
+
+    # A function to check...
     test_dpkg_lock() {
+        # An iterator used for counting loop iterations
         i=0
         # fuser is a program to show which processes use the named files, sockets, or filesystems
-        # So while the lock is held,
-        while fuser /var/lib/dpkg/lock >/dev/null 2>&1
-        do
-            # we wait half a second,
+        # So while the command is true
+        while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+            # Wait half a second
             sleep 0.5
-            # increase the iterator,
+            # and increase the iterator
             ((i=i+1))
         done
-        # and then report success once dpkg is unlocked.
+        # Always return success, since we only return if there is no
+        # lock (anymore)
         return 0
     }
 
@@ -402,19 +360,18 @@ elif is_command rpm ; then
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig bind-utils)
     PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
-    PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
+
+    # LIGHTTPD_USER="lighttpd"
+    # LIGHTTPD_GROUP="lighttpd"
+    # LIGHTTPD_CFG="lighttpd.conf.fedora"
     # If the host OS is Fedora,
     if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
         : # continue
     # or if host OS is CentOS,
     elif grep -qiE 'centos|scientific' /etc/redhat-release; then
-        # Pi-Hole currently supports CentOS 7+ with PHP7+
+        # Pi-Hole currently supports CentOS 7+
         SUPPORTED_CENTOS_VERSION=7
-        SUPPORTED_CENTOS_PHP_VERSION=7
         # Check current CentOS major release version
         CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
         # Check if CentOS version is supported
@@ -424,21 +381,8 @@ elif is_command rpm ; then
             # exit the installer
             exit
         fi
-        # php-json is not required on CentOS 7 as it is already compiled into php
-        # verifiy via `php -m | grep json`
-        if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
-            # create a temporary array as arrays are not designed for use as mutable data structures
-            CENTOS7_PIHOLE_WEB_DEPS=()
-            for i in "${!PIHOLE_WEB_DEPS[@]}"; do
-                if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
-                    CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
-                fi
-            done
-            # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
-            PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
-            unset CENTOS7_PIHOLE_WEB_DEPS
-        fi
         # CentOS requires the EPEL repository to gain access to Fedora packages
+        #TODO : help from @bcambl
         EPEL_PKG="epel-release"
         rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
         if [[ $rc -ne 0 ]]; then
@@ -446,45 +390,12 @@ elif is_command rpm ; then
             "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
             printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
         fi
-
-        # The default php on CentOS 7.x is 5.4 which is EOL
-        # Check if the version of PHP available via installed repositories is >= to PHP 7
-        AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
-        if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
-            # Since PHP 7 is available by default, install via default PHP package names
-            : # do nothing as PHP is current
-        else
-            REMI_PKG="remi-release"
-            REMI_REPO="remi-php72"
-            rpm -q ${REMI_PKG} &> /dev/null || rc=$?
-        if [[ $rc -ne 0 ]]; then
-            # The PHP version available via default repositories is older than version 7
-            if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
-                # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
-                printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
-                : # continue with unsupported php version
-            else
-                printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-                "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-                # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-                "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-                yum-config-manager --enable ${REMI_REPO} &> /dev/null
-                printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
-                # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
-                if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
-                    printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
-                else
-                    printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
-                    exit 1
-                fi
-            fi
-        fi
-    fi
     else
         # Warn user of unsupported version of Fedora or CentOS
+        #TODO: probably need help from @bcambl!
         if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
             printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-            exit
+            exit # exit the installer
         else
             printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
         fi
@@ -1254,35 +1165,8 @@ setAdminFlag() {
             printf "  %b Web Interface Off\\n" "${INFO}"
             # or false
             INSTALL_WEB_INTERFACE=false
-            # Deselect the web server as well, since it is obsolete then
-            INSTALL_WEB_SERVER=false
             ;;
     esac
-
-    # If the user wants to install the Web admin interface (i.e. it has not been deselected above)
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        # Get list of required PHP modules, excluding base package (common) and handler (cgi)
-        local i php_modules
-        for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
-        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd) and required PHP modules?\\n\\nNB: If you disable this, and, do not have an existing web server and required PHP modules (${php_modules# }) installed, the web interface will not function. Additionally the web server user needs to be member of the \"pihole\" group for full functionality." "${r}" "${c}" 6)
-        # Enable as default and recommended option
-        WebChooseOptions=("On (Recommended)" "" on
-            Off "" off)
-        WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
-        # Depending on their choice
-        case ${WebChoices} in
-            "On (Recommended)")
-                printf "  %b Web Server On\\n" "${INFO}"
-                # set it to true, as clearly seen below.
-                INSTALL_WEB_SERVER=true
-                ;;
-            Off)
-                printf "  %b Web Server Off\\n" "${INFO}"
-                # or false
-                INSTALL_WEB_SERVER=false
-                ;;
-        esac
-    fi
 }
 
 # A function to display a list of example blocklists for users to select
@@ -1486,34 +1370,34 @@ installConfigs() {
         fi
     fi
 
-    # If the user chose to install the dashboard,
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        # and if the Web server conf directory does not exist,
-        if [[ ! -d "/etc/lighttpd" ]]; then
-            # make it and set the owners
-            install -d -m 755 -o "${USER}" -g root /etc/lighttpd
-        # Otherwise, if the config file already exists
-        elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
-            # back up the original
-            mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-        fi
-        # and copy in the config file Pi-hole needs
-        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
-        # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
-        touch /etc/lighttpd/external.conf
-        chmod 644 /etc/lighttpd/external.conf
-        # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-        if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
-            sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
-        fi
-        # Make the directories if they do not exist and set the owners
-        mkdir -p /run/lighttpd
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
-        mkdir -p /var/cache/lighttpd/compress
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
-        mkdir -p /var/cache/lighttpd/uploads
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
-    fi
+    # # If the user chose to install the dashboard,
+    # if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+    #     # and if the Web server conf directory does not exist,
+    #     if [[ ! -d "/etc/lighttpd" ]]; then
+    #         # make it and set the owners
+    #         install -d -m 755 -o "${USER}" -g root /etc/lighttpd
+    #     # Otherwise, if the config file already exists
+    #     elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
+    #         # back up the original
+    #         mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+    #     fi
+    #     # and copy in the config file Pi-hole needs
+    #     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+    #     # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
+    #     touch /etc/lighttpd/external.conf
+    #     chmod 644 /etc/lighttpd/external.conf
+    #     # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
+    #     if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
+    #         sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
+    #     fi
+    #     # Make the directories if they do not exist and set the owners
+    #     mkdir -p /run/lighttpd
+    #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
+    #     mkdir -p /var/cache/lighttpd/compress
+    #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+    #     mkdir -p /var/cache/lighttpd/uploads
+    #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
+    # fi
 }
 
 install_manpage() {
@@ -1764,58 +1648,6 @@ install_dependent_packages() {
     return 0
 }
 
-# Install the Web interface dashboard
-installPiholeWeb() {
-    printf "\\n  %b Installing blocking page...\\n" "${INFO}"
-
-    local str="Creating directory for blocking page, and copying files"
-    printf "  %b %s..." "${INFO}" "${str}"
-    # Install the directory,
-    install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
-    # and the blockpage
-    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
-
-    # Remove superseded file
-    if [[ -e "${PI_HOLE_BLOCKPAGE_DIR}/index.js" ]]; then
-        rm "${PI_HOLE_BLOCKPAGE_DIR}/index.js"
-    fi
-
-    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-
-    local str="Backing up index.lighttpd.html"
-    printf "  %b %s..." "${INFO}" "${str}"
-    # If the default index file exists,
-    if [[ -f "${webroot}/index.lighttpd.html" ]]; then
-        # back it up
-        mv ${webroot}/index.lighttpd.html ${webroot}/index.lighttpd.orig
-        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-    else
-        # Otherwise, don't do anything
-        printf "%b  %b %s\\n" "${OVER}" "${INFO}" "${str}"
-        printf "      No default index.lighttpd.html file found... not backing up\\n"
-    fi
-
-    # Install Sudoers file
-    local str="Installing sudoer file"
-    printf "\\n  %b %s..." "${INFO}" "${str}"
-    # Make the .d directory if it doesn't exist,
-    install -d -m 755 /etc/sudoers.d/
-    # and copy in the pihole sudoers file
-    install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
-    # Add lighttpd user (OS dependent) to sudoers file
-    echo "${LIGHTTPD_USER} ALL=NOPASSWD: ${PI_HOLE_BIN_DIR}/pihole" >> /etc/sudoers.d/pihole
-
-    # If the Web server user is lighttpd,
-    if [[ "$LIGHTTPD_USER" == "lighttpd" ]]; then
-        # Allow executing pihole via sudo with Fedora
-        # Usually /usr/local/bin ${PI_HOLE_BIN_DIR} is not permitted as directory for sudoable programs
-        echo "Defaults secure_path = /sbin:/bin:/usr/sbin:/usr/bin:${PI_HOLE_BIN_DIR}" >> /etc/sudoers.d/pihole
-    fi
-    # Set the strict permissions on the file
-    chmod 0440 /etc/sudoers.d/pihole
-    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-}
-
 # Installs a cron file
 installCron() {
     # Install the cron job
@@ -1891,25 +1723,29 @@ create_pihole_user() {
     fi
 }
 
-# This function saves any changes to the setup variables into the setupvars.conf file for future runs
+#
 finalExports() {
-    # If the Web interface is not set to be installed,
-    if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
-        # and if there is not an IPv4 address,
-        if [[ "${IPV4_ADDRESS}" ]]; then
-            # there is no block page, so set IPv4 to 0.0.0.0 (all IP addresses)
-            IPV4_ADDRESS="0.0.0.0"
-        fi
-        if [[ "${IPV6_ADDRESS}" ]]; then
-            # and IPv6 to ::/0
-            IPV6_ADDRESS="::/0"
-        fi
-    fi
+
+    #TODO: The following is only for lighttpd when block page is installed.. we have discussed determining this within FTL
+    #TODO: talk to @DL6ER
+
+    # # If the Web interface is not set to be installed,
+    # if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
+    #     # and if there is not an IPv4 address,
+    #     if [[ "${IPV4_ADDRESS}" ]]; then
+    #         # there is no block page, so set IPv4 to 0.0.0.0 (all IP addresses)
+    #         IPV4_ADDRESS="0.0.0.0"
+    #     fi
+    #     if [[ "${IPV6_ADDRESS}" ]]; then
+    #         # and IPv6 to ::/0
+    #         IPV6_ADDRESS="::/0"
+    #     fi
+    # fi
 
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;' "${setupVars}"
+        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_INTERFACE/d;/CACHE_SIZE/d;' "${setupVars}"
     fi
     # echo the information to the user
     {
@@ -1919,9 +1755,7 @@ finalExports() {
     echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
     echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
     echo "QUERY_LOGGING=${QUERY_LOGGING}"
-    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-    echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     echo "CACHE_SIZE=${CACHE_SIZE}"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
@@ -1981,14 +1815,15 @@ accountForRefactor() {
     sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' "${setupVars}"
     sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' "${setupVars}"
     sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' "${setupVars}"
-    # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
-    if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
-        local webserver_installed=false
-        if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
-            webserver_installed=true
-        fi
-        echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
-    fi
+    # # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
+    # if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
+    #     local webserver_installed=false
+    #     if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
+    #         webserver_installed=true
+    #     fi
+    #     echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
+    # fi
+    #TODO: Use this to tidy things up?
 }
 
 # Install base files and web interface
@@ -2000,26 +1835,26 @@ installPihole() {
             install -d -m 0755 ${webroot}
         fi
 
-        if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-            # Set the owner and permissions
-            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
-            chmod 0775 ${webroot}
-            # Repair permissions if webroot is not world readable
-            chmod a+rx /var/www
-            chmod a+rx ${webroot}
-            # Give lighttpd access to the pihole group so the web interface can
-            # manage the gravity.db database
-            usermod -a -G pihole ${LIGHTTPD_USER}
-            # If the lighttpd command is executable,
-            if is_command lighty-enable-mod ; then
-                # enable fastcgi and fastcgi-php
-                lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-            else
-                # Otherwise, show info about installing them
-                printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
-                printf "      Please ensure fastcgi is enabled if you experience issues\\n"
-            fi
-        fi
+        # if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+        #     # Set the owner and permissions
+        #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
+        #     chmod 0775 ${webroot}
+        #     # Repair permissions if webroot is not world readable
+        #     chmod a+rx /var/www
+        #     chmod a+rx ${webroot}
+        #     # Give lighttpd access to the pihole group so the web interface can
+        #     # manage the gravity.db database
+        #     usermod -a -G pihole ${LIGHTTPD_USER}
+        #     # If the lighttpd command is executable,
+        #     if is_command lighty-enable-mod ; then
+        #         # enable fastcgi and fastcgi-php
+        #         lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
+        #     else
+        #         # Otherwise, show info about installing them
+        #         printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
+        #         printf "      Please ensure fastcgi is enabled if you experience issues\\n"
+        #     fi
+        # fi
     fi
     # For updates and unattended install.
     if [[ "${useUpdateVars}" == true ]]; then
@@ -2034,11 +1869,6 @@ installPihole() {
     if ! installConfigs; then
         printf "  %b Failure in dependent config copy function.\\n" "${CROSS}"
         exit 1
-    fi
-    # If the user wants to install the dashboard,
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        # do so
-        installPiholeWeb
     fi
     # Install the cron file
     installCron
@@ -2712,25 +2542,10 @@ main() {
 
     # Install the Core dependencies
     local dep_install_list=("${PIHOLE_DEPS[@]}")
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        # And, if the setting says so, install the Web admin interface dependencies
-        dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
-    fi
 
     install_dependent_packages "${dep_install_list[@]}"
     unset dep_install_list
 
-    # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
-    # has chosen to install the web interface, else the LIGHTTPD_ENABLED check will fail
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        enable_service lighttpd
-    fi
-    # Determine if lighttpd is correctly enabled
-    if check_service_active "lighttpd"; then
-        LIGHTTPD_ENABLED=true
-    else
-        LIGHTTPD_ENABLED=false
-    fi
     # Create the pihole user
     create_pihole_user
 
@@ -2770,16 +2585,6 @@ main() {
     # so this change needs to be made after installation is complete,
     # but before starting or resarting the dnsmasq or ftl services
     disable_resolved_stublistener
-
-    # If the Web server was installed,
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        if [[ "${LIGHTTPD_ENABLED}" == true ]]; then
-            restart_service lighttpd
-            enable_service lighttpd
-        else
-            printf "  %b Lighttpd is disabled, skipping service restart\\n" "${INFO}"
-        fi
-    fi
 
     printf "  %b Restarting services...\\n" "${INFO}"
     # Start services

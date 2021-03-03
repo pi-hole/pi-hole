@@ -72,8 +72,8 @@ PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
 RUN_DIRECTORY="/run"
 LOG_DIRECTORY="/var/log"
-WEB_SERVER_LOG_DIRECTORY="${LOG_DIRECTORY}/lighttpd"
-WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
+#WEB_SERVER_LOG_DIRECTORY="${LOG_DIRECTORY}/lighttpd" #TODO: FTL access log?
+#WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd" #TODO: web server config?
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
 #BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
@@ -87,8 +87,8 @@ PIHOLE_DNS_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/01-pihole.conf"
 PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
 PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 
-WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
-WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
+#WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
+#WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
@@ -138,15 +138,15 @@ PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
 PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log")"
 
-PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
-PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
+# PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log" #TODO: FTL access log?
+# PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log" #TODO: FTL Error log?
 
 # An array of operating system "pretty names" that we officially support
 # We can loop through the array at any time to see if it matches a value
 #SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
 
 # Store Pi-hole's processes in an array for easy use and parsing
-PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
+PIHOLE_PROCESSES=( "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
 #REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
@@ -168,8 +168,8 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_DNS_CONFIG_FILE}"
 "${PIHOLE_DHCP_CONFIG_FILE}"
 "${PIHOLE_WILDCARD_CONFIG_FILE}"
-"${WEB_SERVER_CONFIG_FILE}"
-"${WEB_SERVER_CUSTOM_CONFIG_FILE}"
+#"${WEB_SERVER_CONFIG_FILE}"
+#"${WEB_SERVER_CUSTOM_CONFIG_FILE}"
 "${PIHOLE_INSTALL_LOG_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
@@ -371,39 +371,6 @@ check_component_versions() {
     compare_local_version_to_git_version "${WEB_GIT_DIRECTORY}" "Web"
     # Check the FTL version
     check_ftl_version
-}
-
-
-get_program_version() {
-    local program_name="${1}"
-    # Create a local variable so this function can be safely reused
-    local program_version
-    echo_current_diagnostic "${program_name} version"
-    # Evaluate the program we are checking, if it is any of the ones below, show the version
-    case "${program_name}" in
-        "lighttpd") program_version="$(${program_name} -v 2> /dev/null | head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
-                    ;;
-        "php") program_version="$(${program_name} -v 2> /dev/null | head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
-                ;;
-        # If a match is not found, show an error
-        *) echo "Unrecognized program";
-    esac
-    # If the program does not have a version (the variable is empty)
-    if [[ -z "${program_version}" ]]; then
-        # Display and error
-        log_write "${CROSS} ${COL_RED}${program_name} version could not be detected.${COL_NC}"
-    else
-        # Otherwise, display the version
-        log_write "${INFO} ${program_version}"
-    fi
-}
-
-# These are the most critical dependencies of Pi-hole, so we check for them
-# and their versions, using the functions above.
-check_critical_program_versions() {
-    # Use the function created earlier and bundle them into one function that checks all the version numbers
-    get_program_version "lighttpd"
-    get_program_version "php"
 }
 
 os_check() {
@@ -758,10 +725,10 @@ compare_port_to_service_assigned() {
 
 check_required_ports() {
     echo_current_diagnostic "Ports in use"
-    # Since Pi-hole needs 53, 80, and 4711, check what they are being used by
+    # Since Pi-hole needs 53 and 4711, check what they are being used by
     # so we can detect any issues
     local resolver="pihole-FTL"
-    local web_server="lighttpd"
+    local web_server="pihole-FTL"
     local ftl="pihole-FTL"
     # Create an array for these ports in use
     ports_in_use=()
@@ -1423,7 +1390,6 @@ initialize_debug
 # available to the other functions
 source_setup_variables
 check_component_versions
-check_critical_program_versions
 diagnose_operating_system
 check_selinux
 check_firewalld
