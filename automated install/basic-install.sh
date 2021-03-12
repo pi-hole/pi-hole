@@ -356,29 +356,20 @@ elif is_command rpm ; then
         : # continue
     # or if host OS is CentOS,
     elif grep -qiE 'centos|scientific' /etc/redhat-release; then
-        # Pi-Hole currently supports CentOS 7+
-        SUPPORTED_CENTOS_VERSION=7
-        # Check current CentOS major release version
+        # CentOS 7 requires the EPEL repository for the following package(s): libidn2
         CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-        # Check if CentOS version is supported
-        if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-            printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
-            printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
-            # exit the installer
-            exit
-        fi
-        # CentOS requires the EPEL repository to gain access to Fedora packages
-        #TODO : help from @bcambl
-        EPEL_PKG="epel-release"
-        rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
-        if [[ $rc -ne 0 ]]; then
-            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-            "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+        if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
+            printf "  %b CentOS 7 requires EPEL Repository.\\n" "${INFO}"
+            EPEL_PKG="epel-release"
+            rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
+            if [[ $rc -ne 0 ]]; then
+                printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+                "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+                printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+            fi
         fi
     else
-        # Warn user of unsupported version of Fedora or CentOS
-        #TODO: probably need help from @bcambl!
+        # Warn user of unsupported version of Fedora or CentOS but allow advanced users to manually continue via whiptail prompt.
         if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
             printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
             exit # exit the installer
