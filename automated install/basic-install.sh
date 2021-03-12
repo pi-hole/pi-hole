@@ -370,7 +370,7 @@ elif is_command rpm ; then
         fi
     else
         # Warn user of unsupported version of Fedora or CentOS but allow advanced users to manually continue via whiptail prompt.
-        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
+        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n" "${r}" "${c}"; then
             printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
             exit # exit the installer
         else
