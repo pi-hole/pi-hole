@@ -351,7 +351,7 @@ elif is_command rpm ; then
     PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
 
     # If the host OS is Fedora,
-    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+    if grep -qiE 'fedora' /etc/redhat-release; then
         # all required packages should be available by default with the latest fedora release
         : # continue
     # or if host OS is CentOS,
@@ -369,13 +369,7 @@ elif is_command rpm ; then
             fi
         fi
     else
-        # Warn user of unsupported version of Fedora or CentOS but allow advanced users to manually continue via whiptail prompt.
-        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n" "${r}" "${c}"; then
-            printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-            exit # exit the installer
-        else
-            printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
-        fi
+        printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
     fi
 
 # If neither apt-get or yum/dnf package managers were found
