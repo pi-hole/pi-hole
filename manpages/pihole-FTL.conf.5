@@ -7,6 +7,8 @@ pihole-FTL.conf - FTL's config file
 
 /etc/pihole/pihole-FTL.conf will be read by \fBpihole-FTL(8)\fR on startup.
 .br
+Comments may start with ';' or '#' (anywhere in a line), but as the Pi-hole web front-end currently relies on the PHP 'parse-ini-file' routine to read this file, use ';' unless you do not plan on installing the web interface.
+.br
 For each setting the option shown first is the default.
 .br
 
