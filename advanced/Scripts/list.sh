@@ -112,7 +112,7 @@ ProcessDomainList() {
     for dom in "${domList[@]}"; do
         # Format domain into regex filter if requested
         if [[ "${wildcard}" == true ]]; then
-            dom="(^|\\.)${dom//\./\\.}$"
+            dom="(\\.|^)${dom//\./\\.}$"
         fi
 
         # Logic: If addmode then add to desired list and remove from the other;
