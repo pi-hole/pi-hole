@@ -71,15 +71,17 @@ if ($serverName === "pi.hole"
         <head>
             <meta charset='utf-8'>
             $viewPort
+            <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>● $serverName</title>
             <link rel='stylesheet' href='pihole/blockingpage.css'>
             <link rel='shortcut icon' href='admin/img/favicons/favicon.ico' type='image/x-icon'>
         </head>
         <body id='splashpage'>
-            <img src='admin/img/logo.svg' alt='Pi-hole logo' width='256' height='377'>
-            <br>
-            <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
-            <a href='/admin'>Did you mean to go to the admin panel?</a>
+            <div id="pihole_card">
+              <img src='admin/img/logo.svg' alt='Pi-hole logo id="pihole_logo_splash" />
+              <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
+              <a href='/admin'>Did you mean to go to the admin panel?</a>
+            </div>
         </body>
     </html>
     ";
