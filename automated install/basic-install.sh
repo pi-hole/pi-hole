@@ -1018,9 +1018,9 @@ valid_ip() {
     local stat=1
 
     # Regex matching one IPv4 component, i.e. an integer from 0 to 255.
-    local ipv4elem="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)";
+    local ipv4elem="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[0-9]{1,2})";
     # Regex matching an optional port beginning with # matching optional port number starting '#' with range of 1 to 65536
-    local portelem="(#([1-9]|[1-8][0-9]|9[0-9]|[1-8][0-9]{2}|9[0-8][0-9]|99[0-9]|[1-8][0-9]{3}|9[0-8][0-9]{2}|99[0-8][0-9]|999[0-9]|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-6]))?"
+    local portelem="(:(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[0-9]{1,4}))?";
     # Build a full IPv4 regex from the above subexpressions
     local regex="^${ipv4elem}\.${ipv4elem}\.${ipv4elem}\.${ipv4elem}${portelem}$"
 
