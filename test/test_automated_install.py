@@ -555,6 +555,14 @@ def test_validate_ip(Pihole):
     test_address('8.8.8.8:65535')
     test_address('8.8.8.8:65536', False)
     test_address('8.8.8.8:-1', False)
+    test_address('00.0.0.0', False)
+    test_address('010.0.0.0', False)
+    test_address('001.0.0.0', False)
+    test_address('0.0.0.0:00', False)
+    test_address('0.0.0.0:01', False)
+    test_address('0.0.0.0:001', False)
+    test_address('0.0.0.0:0001', False)
+    test_address('0.0.0.0:00001', False)
 
 
 def test_os_check_fails(Pihole):
