@@ -35,8 +35,9 @@ localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
-gravityDBfile="${piholeDir}/gravity.db"
-gravityTEMPfile="${piholeDir}/gravity_temp.db"
+gravityDBfile_default="${piholeDir}/gravity.db"
+# GRAVITYDB may be overwritten by source pihole-FTL.conf below
+GRAVITYDB="${gravityDBfile_default}"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
@@ -67,6 +68,11 @@ pihole_FTL="${piholeDir}/pihole-FTL.conf"
 if [[ -f "${pihole_FTL}" ]]; then
   source "${pihole_FTL}"
 fi
+
+# Set this only after sourcing pihole-FTL.conf as the gravity database path may
+# have changed
+gravityDBfile="${GRAVITYDB}"
+gravityTEMPfile="${GRAVITYDB}_temp"
 
 if [[ -z "${BLOCKINGMODE}" ]] ; then
   BLOCKINGMODE="NULL"
@@ -358,6 +364,10 @@ gravity_CheckDNSResolutionAvailable() {
 # Retrieve blocklist URLs and parse domains from adlist.list
 gravity_DownloadBlocklists() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
+
+  if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
+    echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
+  fi
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
