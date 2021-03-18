@@ -11,7 +11,16 @@
 # Globals
 basename=pihole
 piholeDir=/etc/"${basename}"
-gravityDBfile="${piholeDir}/gravity.db"
+GRAVITYDB="${piholeDir}/gravity.db"
+# Source pihole-FTL from install script
+pihole_FTL="${piholeDir}/pihole-FTL.conf"
+if [[ -f "${pihole_FTL}" ]]; then
+  source "${pihole_FTL}"
+fi
+
+# Set this only after sourcing pihole-FTL.conf as the gravity database path may
+# have changed
+gravityDBfile="${GRAVITYDB}"
 
 reload=false
 addmode=true
