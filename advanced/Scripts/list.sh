@@ -9,8 +9,7 @@
 # Please see LICENSE file for your rights under this license.
 
 # Globals
-basename=pihole
-piholeDir=/etc/"${basename}"
+piholeDir="/etc/pihole"
 GRAVITYDB="${piholeDir}/gravity.db"
 # Source pihole-FTL from install script
 pihole_FTL="${piholeDir}/pihole-FTL.conf"
