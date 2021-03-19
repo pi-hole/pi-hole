@@ -23,7 +23,7 @@ fi
 # have changed
 gravityDBfile="${GRAVITYDB}"
 
-canReload=true
+noReloadRequested=false
 addmode=true
 verbose=true
 wildcard=false
@@ -269,7 +269,7 @@ while (( "$#" )); do
         "--white-wild" | "white-wild" ) typeId=2; wildcard=true;;
         "--wild" | "wildcard" ) typeId=3; wildcard=true;;
         "--regex" | "regex"   ) typeId=3;;
-        "-nr"| "--noreload"  ) canReload=false;;
+        "-nr"| "--noreload"  ) noReloadRequested=true;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
@@ -295,6 +295,6 @@ if $web; then
 echo "DONE"
 fi
 
-if [[ ${reload} == true ]] && [[ ${canReload} == true ]]; then
+if [[ ${reload} == true ]] && [[ ${noReloadRequested} == false ]]; then
     pihole restartdns reload-lists
 fi
