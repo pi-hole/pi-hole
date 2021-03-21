@@ -84,6 +84,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
+WEBPORT=8080
 PRIVACY_LEVEL=0
 CACHE_SIZE=10000
 
@@ -1131,6 +1132,13 @@ setAdminFlag() {
             printf "  %b Web Interface On\\n" "${INFO}"
             # Set it to true
             INSTALL_WEB_INTERFACE=true
+
+            #Web port
+            # Ask for the IPv4 address
+            WEBPORT=$(whiptail --backtitle "Setting web interface port" --title "Web Port" --inputbox "By default, pihole-FTL listens for http traffic on port 8080. If you wish to change the port, you may do so now. You can also do it later by editing /etc/pihole/pihole-FTL.conf" "${r}" "${c}" "${WEBPORT}" 3>&1 1>&2 2>&3) || \
+            # Canceling IPv4 settings window
+            { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+            printf "  %b The Web interface will be accessible on port: %s\\n" "${INFO}" "${WEBPORT}"
             ;;
         Off)
             printf "  %b Web Interface Off\\n" "${INFO}"
