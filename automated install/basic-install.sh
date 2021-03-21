@@ -1714,6 +1714,10 @@ finalExports() {
     sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
     echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
 
+    # Set the web port
+    sed -i '/WEBPORT/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    echo "WEBPORT=${WEBPORT}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
@@ -1868,7 +1872,7 @@ displayFinalMessage() {
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Store a message in a variable and display it
-        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
+        additional="View the web interface at http://pi.hole:${WEBPORT}/admin or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin
 
 Your Admin Webpage login password is ${pwstring}"
    fi
@@ -2541,7 +2545,7 @@ main() {
     if [[ "${useUpdateVars}" == false ]]; then
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            printf "  %b View the web interface at http://pi.hole/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
+            printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
         fi
         # Explain to the user how to use Pi-hole as their DNS server
         printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
