@@ -1340,35 +1340,6 @@ installConfigs() {
             return 1
         fi
     fi
-
-    # # If the user chose to install the dashboard,
-    # if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-    #     # and if the Web server conf directory does not exist,
-    #     if [[ ! -d "/etc/lighttpd" ]]; then
-    #         # make it and set the owners
-    #         install -d -m 755 -o "${USER}" -g root /etc/lighttpd
-    #     # Otherwise, if the config file already exists
-    #     elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
-    #         # back up the original
-    #         mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
-    #     fi
-    #     # and copy in the config file Pi-hole needs
-    #     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
-    #     # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
-    #     touch /etc/lighttpd/external.conf
-    #     chmod 644 /etc/lighttpd/external.conf
-    #     # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-    #     if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
-    #         sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
-    #     fi
-    #     # Make the directories if they do not exist and set the owners
-    #     mkdir -p /run/lighttpd
-    #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
-    #     mkdir -p /var/cache/lighttpd/compress
-    #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
-    #     mkdir -p /var/cache/lighttpd/uploads
-    #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
-    # fi
 }
 
 install_manpage() {
@@ -1786,14 +1757,6 @@ accountForRefactor() {
     sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' "${setupVars}"
     sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' "${setupVars}"
     sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' "${setupVars}"
-    # # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
-    # if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
-    #     local webserver_installed=false
-    #     if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
-    #         webserver_installed=true
-    #     fi
-    #     echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
-    # fi
     #TODO: Use this to tidy things up?
 }
 
@@ -1805,27 +1768,6 @@ installPihole() {
             # make the Web directory if necessary
             install -d -m 0755 ${webroot}
         fi
-
-        # if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        #     # Set the owner and permissions
-        #     chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
-        #     chmod 0775 ${webroot}
-        #     # Repair permissions if webroot is not world readable
-        #     chmod a+rx /var/www
-        #     chmod a+rx ${webroot}
-        #     # Give lighttpd access to the pihole group so the web interface can
-        #     # manage the gravity.db database
-        #     usermod -a -G pihole ${LIGHTTPD_USER}
-        #     # If the lighttpd command is executable,
-        #     if is_command lighty-enable-mod ; then
-        #         # enable fastcgi and fastcgi-php
-        #         lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-        #     else
-        #         # Otherwise, show info about installing them
-        #         printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
-        #         printf "      Please ensure fastcgi is enabled if you experience issues\\n"
-        #     fi
-        # fi
     fi
     # For updates and unattended install.
     if [[ "${useUpdateVars}" == true ]]; then
