@@ -463,7 +463,7 @@ esac
 # Must be root to use this tool
 if [[ ! $EUID -eq 0 ]];then
   if [[ -x "$(command -v sudo)" ]]; then
-    exec sudo bash "$0" "$@"
+    exec sudo "$0" "$@"
     exit $?
   else
     echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
