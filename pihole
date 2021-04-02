@@ -16,7 +16,7 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # error due to modifying a readonly variable.
 setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
-readonly FTL_PID="/run/pihole-FTL.pid"
+readonly FTL_PID_FILE="/run/pihole-FTL.pid"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
@@ -103,9 +103,9 @@ versionFunc() {
 getFTLPID() {
   local pid
 
-  if [ -s "${FTL_PID}" ]; then
+  if [ -s "${FTL_PID_FILE}" ]; then
     # -s: FILE exists and has a size greater than zero
-    pid="$(<"$FTL_PID")"
+    pid="$(<"$FTL_PID_FILE")"
     # Verify that the value read from the file is numeric
     if [[ "$pid" =~ [^[:digit:]] ]]; then
       # If no, unset the variable so we use pgrep in the next step
