@@ -108,25 +108,14 @@ getFTLPID() {
     pid="$(<"$FTL_PID_FILE")"
     # Verify that the value read from the file is numeric
     if [[ "$pid" =~ [^[:digit:]] ]]; then
-      # If no, unset the variable so we use pgrep in the next step
+      # Exploit prevention: unset the variable if there is malicious content
       pid=
     fi
   fi
 
-  # If no PID file is available, try to get a PID from pgrep
-  if [ -z "$pid" ]; then
-    # Use --oldest to get the main process of FTL (all TCP workers are created
-    # after the main process has been started)
-    pid="$(pgrep --oldest pihole-FTL)"
-  fi
-
-  # If we still have no PID, FTL is not running, substitute negative PID to
-  # signal this to the caller
-  if [ -z "$pid" ]; then
-    pid="-1"
-  fi
-
-  echo "$pid"
+  # If FTL is not running, or the PID file contains malicious stuff, substitute
+  # negative PID to signal this to the caller
+  echo "${pid:=-1}"
 }
 
 restartDNS() {
