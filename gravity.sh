@@ -104,6 +104,23 @@ gravity_swap_databases() {
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 
+  # Deleting the canary domain from the gravity table is fast after having created the INDEX above
+  # This prevens Firefox from automatically switching over to DNS-over-HTTPS
+  # This follows https://support.mozilla.org/en-US/kb/configuring-networks-disable-dns-over-https
+  # (sourced 7th September 2019)
+  str="Post-processing gravity table"
+  echo -ne "  ${INFO} ${str}..."
+
+  output=$( { sqlite3 "${gravityTEMPfile}" "DELETE FROM gravity WHERE domain = 'use-application-dns.net'"; } 2>&1 )
+  status="$?"
+
+  # We still continue on error here, it is not fatal
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to post-process gravity table in ${gravityTEMPfile}\\n  ${output}"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
+  fi
+
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
