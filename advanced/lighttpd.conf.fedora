@@ -36,7 +36,7 @@ server.username             = "lighttpd"
 server.groupname            = "lighttpd"
 server.port                 = 80
 accesslog.filename          = "/var/log/lighttpd/access.log"
-accesslog.format            = "%{%s}t|%V|%r|%s|%b"
+accesslog.format            = "%h %V %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\""
 
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
 url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )
