@@ -35,8 +35,9 @@ localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
-gravityDBfile="${piholeDir}/gravity.db"
-gravityTEMPfile="${piholeDir}/gravity_temp.db"
+gravityDBfile_default="${piholeDir}/gravity.db"
+# GRAVITYDB may be overwritten by source pihole-FTL.conf below
+GRAVITYDB="${gravityDBfile_default}"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
@@ -68,6 +69,11 @@ if [[ -f "${pihole_FTL}" ]]; then
   source "${pihole_FTL}"
 fi
 
+# Set this only after sourcing pihole-FTL.conf as the gravity database path may
+# have changed
+gravityDBfile="${GRAVITYDB}"
+gravityTEMPfile="${GRAVITYDB}_temp"
+
 if [[ -z "${BLOCKINGMODE}" ]] ; then
   BLOCKINGMODE="NULL"
 fi
@@ -84,7 +90,7 @@ generate_gravity_database() {
 
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
-  local str
+  local str copyGravity
   str="Building tree"
   echo -ne "  ${INFO} ${str}..."
 
@@ -101,7 +107,14 @@ gravity_swap_databases() {
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
-  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
+  # Gravity copying SQL script
+  copyGravity="$(cat "${gravityDBcopy}")"
+  if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
+    # Replace default gravity script location by custom location
+    copyGravity="${copyGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
+  fi
+
+  output=$( { sqlite3 "${gravityTEMPfile}" <<< "${copyGravity}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -358,6 +371,10 @@ gravity_CheckDNSResolutionAvailable() {
 # Retrieve blocklist URLs and parse domains from adlist.list
 gravity_DownloadBlocklists() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
+
+  if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
+    echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
+  fi
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
