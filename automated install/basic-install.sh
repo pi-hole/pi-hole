@@ -999,9 +999,14 @@ setStaticIPv4() {
     # If an ifcfg config does not exists for the interface name, search for one based on the connection name via network manager
     if is_command nmcli && nmcli general status &> /dev/null; then
         CONNECTION_NAME=$(nmcli dev show "${PIHOLE_INTERFACE}" | grep 'GENERAL.CONNECTION' | cut -d: -f2 | sed 's/^System//' | xargs | tr ' ' '_')
-        if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}" ]];then
-            # If it exists, then we can configure using IFCFG
-            IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
+        IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
+        if [[ -f "${IFCFG_FILE}" ]];then
+            # If it exists,
+            setIFCFG "${IFCFG_FILE}"
+            return 0
+        else
+            printf "  %b Warning: sysconfig network script not found. Creating ${IFCFG_FILE}\\n" "${INFO}"
+            touch "${IFCFG_FILE}"
             setIFCFG "${IFCFG_FILE}"
             return 0
         fi
