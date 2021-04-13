@@ -299,23 +299,12 @@ if is_command apt-get ; then
             printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
         fi
     fi
-    # Update package cache. This is required already here to assure apt-cache calls have package lists available.
+    # Update package cache
     update_package_cache || exit 1
-    # Debian 7 doesn't have iproute2 so check if it's available first
-    if apt-cache show iproute2 > /dev/null 2>&1; then
-        iproute_pkg="iproute2"
-    # Otherwise, check if iproute is available
-    elif apt-cache show iproute > /dev/null 2>&1; then
-        iproute_pkg="iproute"
-    # Else print error and exit
-    else
-        printf "  %b Aborting installation: iproute2 and iproute packages were not found in APT repository.\\n" "${CROSS}"
-        exit 1
-    fi
 
     # Since our install script is so large, we need several other programs to successfully get a machine provisioned
     # These programs are stored in an array so they can be looped through later
-    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail dnsutils)
+    INSTALLER_DEPS=(dhcpcd5 git iproute2 whiptail dnsutils)
     # Pi-hole itself has several dependencies that also need to be installed
     PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
 
@@ -1485,9 +1474,6 @@ disable_resolved_stublistener() {
 }
 
 update_package_cache() {
-    # Running apt-get update/upgrade with minimal output can cause some issues with
-    # requiring user input (e.g password for phpmyadmin see #218)
-
     # Update package cache on apt based OSes. Do this every time since
     # it's quick and packages can be updated at any time.
 
@@ -1565,6 +1551,8 @@ install_dependent_packages() {
         # If there's anything to install, install everything in the list.
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
+            # Running apt-get install with minimal output can cause some issues with
+            # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
             printf '%*s\n' "$columns" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
