@@ -108,7 +108,7 @@ getFTLPID() {
     pid="$(<"$FTL_PID_FILE")"
     # Exploit prevention: unset the variable if there is malicious content
     # Verify that the value read from the file is numeric
-    [[ "$pid" =~ [^[:digit:]] ]] && pid=
+    [[ "$pid" =~ [^[:digit:]] ]] && unset pid
   fi
 
   # If FTL is not running, or the PID file contains malicious stuff, substitute
