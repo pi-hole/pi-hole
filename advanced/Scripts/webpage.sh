@@ -238,18 +238,18 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         #          168.192.in-addr.arpa to 192.168.0.0/16
         #          192.in-addr.arpa to 192.0.0.0/8
         if [[ "${CONDITIONAL_FORWARDING_REVERSE}" == *"in-addr.arpa" ]];then
-            arrRev=("${CONDITIONAL_FORWARDING_REVERSE//./ }")        
-            case ${#arrRev[@]} in 
+            arrRev=("${CONDITIONAL_FORWARDING_REVERSE//./ }")
+            case ${#arrRev[@]} in
                 6   )   REV_SERVER_CIDR="${arrRev[3]}.${arrRev[2]}.${arrRev[1]}.${arrRev[0]}/32";;
                 5   )   REV_SERVER_CIDR="${arrRev[2]}.${arrRev[1]}.${arrRev[0]}.0/24";;
                 4   )   REV_SERVER_CIDR="${arrRev[1]}.${arrRev[0]}.0.0/16";;
-                3   )   REV_SERVER_CIDR="${arrRev[0]}.0.0.0/8";; 
+                3   )   REV_SERVER_CIDR="${arrRev[0]}.0.0.0/8";;
             esac
         else
           # Set REV_SERVER_CIDR to whatever value it was set to
           REV_SERVER_CIDR="${CONDITIONAL_FORWARDING_REVERSE}"
         fi
-        
+
         # If REV_SERVER_CIDR is not converted by the above, then use the REV_SERVER_TARGET variable to derive it
         if [ -z "${REV_SERVER_CIDR}" ]; then
             # Convert existing input to /24 subnet (preserves legacy behavior)
@@ -564,7 +564,13 @@ AddDHCPStaticAddress() {
 
 RemoveDHCPStaticAddress() {
     mac="${args[2]}"
-    sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
+    if [[ "$mac" =~ ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$ ]]; then
+        sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
+    else
+        echo "  ${CROSS} Invalid Mac Passed!"
+        exit 1
+    fi
+
 }
 
 SetAdminEmail() {
@@ -636,8 +642,11 @@ Interfaces:
 
 Teleporter() {
     local datetimestamp
+    local host
     datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
-    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-teleporter_${datetimestamp}.tar.gz"
+    host=$(hostname)
+    host="${host//./_}"
+    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
 }
 
 checkDomain()
@@ -705,7 +714,13 @@ RemoveCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
-    sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+
+    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+        sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+    else
+        echo -e "  ${CROSS} Invalid IP has been passed"
+        exit 1
+    fi
 
     # Restart dnsmasq to update removed custom DNS entries
     RestartDNS
@@ -716,6 +731,7 @@ AddCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
+
     echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
 
     # Restart dnsmasq to load new custom CNAME records
@@ -727,7 +743,20 @@ RemoveCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
-    sed -i "/cname=${domain},${target}/d" "${dnscustomcnamefile}"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validDomain}" ]]; then
+            sed -i "/cname=${validDomain},${validTarget}/d" "${dnscustomcnamefile}"
+        else
+            echo "  ${CROSS} Invalid Target Passed!"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
 
     # Restart dnsmasq to update removed custom CNAME records
     RestartDNS

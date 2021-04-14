@@ -1,5 +1,7 @@
 <!-- markdownlint-configure-file { "MD004": { "style": "consistent" } } -->
 <!-- markdownlint-disable MD033 -->
+#
+
 <p align="center">
     <a href="https://pi-hole.net/">
         <img src="https://pi-hole.github.io/graphics/Vortex/Vortex_with_Wordmark.svg" width="150" height="260" alt="Pi-hole">
@@ -8,8 +10,6 @@
     <strong>Network-wide ad blocking via your own Linux hardware</strong>
 </p>
 <!-- markdownlint-enable MD033 -->
-
-#
 
 The Pi-hole® is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) that protects your devices from unwanted content, without installing any client-side software.
 
@@ -25,8 +25,6 @@ The Pi-hole® is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) th
 - **Free**: open source software which helps ensure _you_ are the sole person in control of your privacy
 
 -----
-
-Master [![Build Status](https://travis-ci.com/pi-hole/pi-hole.svg?branch=master)](https://travis-ci.com/pi-hole/pi-hole) Development [![Build Status](https://travis-ci.com/pi-hole/pi-hole.svg?branch=development)](https://travis-ci.com/pi-hole/pi-hole)
 
 ## One-Step Automated Install
 
@@ -71,16 +69,18 @@ Make no mistake: **your support is absolutely vital to help keep us innovating!*
 
 ### [Donations](https://pi-hole.net/donate)
 
-Sending a donation using our Sponsor Button is **extremely helpful** in offsetting a portion of our monthly expenses:
+Sending a donation using our Sponsor Button is **extremely helpful** in offsetting a portion of our monthly expenses and rewarding our dedicated development team:
 
 ### Alternative support
 
 If you'd rather not donate (_which is okay!_), there are other ways you can help support us:
 
-- [Patreon](https://patreon.com/pihole) _Become a patron for rewards_
+- [GitHub Sponsors](https://github.com/sponsors/pi-hole/)
+- [Patreon](https://patreon.com/pihole)
+- [Hetzner Cloud](https://hetzner.cloud/?ref=7aceisRX3AzA) _affiliate link_
 - [Digital Ocean](https://www.digitalocean.com/?refcode=344d234950e1) _affiliate link_
 - [Stickermule](https://www.stickermule.com/unlock?ref_id=9127301701&utm_medium=link&utm_source=invite) _earn a $10 credit after your first purchase_
-- [Amazon](http://www.amazon.com/exec/obidos/redirect-home/pihole09-20) _affiliate link_
+- [Amazon US](http://www.amazon.com/exec/obidos/redirect-home/pihole09-20) _affiliate link_
 - Spreading the word about our software, and how you have benefited from it
 
 ### Contributing via GitHub
@@ -95,7 +95,9 @@ You'll find that the [install script](https://github.com/pi-hole/pi-hole/blob/ma
 
 ## Getting in touch with us
 
-While we are primarily reachable on our [Discourse User Forum](https://discourse.pi-hole.net/), we can also be found on a variety of social media outlets. **Please be sure to check the FAQ's** before starting a new discussion, as we do not have the spare time to reply to every request for assistance.
+While we are primarily reachable on our [Discourse User Forum](https://discourse.pi-hole.net/), we can also be found on a variety of social media outlets.
+
+**Please be sure to check the FAQ's** before starting a new discussion. Many user questions already have answers and can be solved without any additional assistance.
 
 - [Frequently Asked Questions](https://discourse.pi-hole.net/c/faqs)
 - [Feature Requests](https://discourse.pi-hole.net/c/feature-requests?order=votes)
@@ -106,11 +108,26 @@ While we are primarily reachable on our [Discourse User Forum](https://discourse
 
 ## Breakdown of Features
 
+### [Faster-than-light Engine](https://github.com/pi-hole/ftl)
+
+[FTLDNS](https://github.com/pi-hole/ftl) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
+
+Some of the statistics you can integrate include:
+
+- Total number of domains being blocked
+- Total number of DNS queries today
+- Total number of ads blocked today
+- Percentage of ads blocked
+- Unique domains
+- Queries forwarded (to your chosen upstream DNS server)
+- Queries cached
+- Unique clients
+
+The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). You can find out [more details over here](https://discourse.pi-hole.net/t/pi-hole-api/1863).
+
 ### The Command Line Interface
 
 The [pihole](https://docs.pi-hole.net/core/pihole-command/) command has all the functionality necessary to be able to fully administer the Pi-hole, without the need of the Web Interface. It's fast, user-friendly, and auditable by anyone with an understanding of `bash`.
-
-![Pi-hole Blacklist Demo](https://pi-hole.github.io/graphics/Screenshots/blacklist-cli.gif)
 
 Some notable features include:
 
@@ -128,8 +145,6 @@ You can read our [Core Feature Breakdown](https://docs.pi-hole.net/core/pihole-c
 
 This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
 
-![Pi-hole Dashboard](https://pi-hole.github.io/graphics/Screenshots/pihole-dashboard.png)
-
 Some notable features include:
 
 - Mobile friendly interface
@@ -145,21 +160,3 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 
 1. `http://pi.hole/admin/` (when using Pi-hole as your DNS server)
 2. `http://<IP_ADDPRESS_OF_YOUR_PI_HOLE>/admin/`
-3. `http://pi.hole/` (when using Pi-hole as your DNS server)
-
-## Faster-than-light Engine
-
-FTLDNS is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
-
-Some of the statistics you can integrate include:
-
-- Total number of domains being blocked
-- Total number of DNS queries today
-- Total number of ads blocked today
-- Percentage of ads blocked
-- Unique domains
-- Queries forwarded (to your chosen upstream DNS server)
-- Queries cached
-- Unique clients
-
-The API can be accessed via [`telnet`](https://github.com/pi-hole/FTL), the Web (`admin/api.php`) and Command Line (`pihole -c -j`). You can find out [more details over here](https://discourse.pi-hole.net/t/pi-hole-api/1863).

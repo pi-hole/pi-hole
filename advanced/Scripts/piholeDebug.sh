@@ -244,7 +244,7 @@ initialize_debug() {
     log_write "${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initialized."
 }
 
-# This is a function for visually displaying the curent test that is being run.
+# This is a function for visually displaying the current test that is being run.
 # Accepts one variable: the name of what is being diagnosed
 # Colors do not show in the dasboard, but the icons do: [i], [✓], and [✗]
 echo_current_diagnostic() {
@@ -379,7 +379,7 @@ get_program_version() {
     # Create a local variable so this function can be safely reused
     local program_version
     echo_current_diagnostic "${program_name} version"
-    # Evalutate the program we are checking, if it is any of the ones below, show the version
+    # Evaluate the program we are checking, if it is any of the ones below, show the version
     case "${program_name}" in
         "lighttpd") program_version="$(${program_name} -v 2> /dev/null | head -n1 | cut -d '/' -f2 | cut -d ' ' -f1)"
                     ;;
@@ -641,7 +641,7 @@ detect_ip_addresses() {
     # First argument should be a 4 or a 6
     local protocol=${1}
     # Use ip to show the addresses for the chosen protocol
-    # Store the values in an arry so they can be looped through
+    # Store the values in an array so they can be looped through
     # Get the lines that are in the file(s) and store them in an array for parsing later
     mapfile -t ip_addr_list < <(ip -"${protocol}" addr show dev "${PIHOLE_INTERFACE}" | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')
 
@@ -695,7 +695,7 @@ ping_gateway() {
     # Check if we are using IPv4 or IPv6
     # Find the default gateway using IPv4 or IPv6
     local gateway
-    gateway="$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3)"
+    gateway="$(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3)"
 
     # If the gateway variable has a value (meaning a gateway was found),
     if [[ -n "${gateway}" ]]; then
@@ -823,7 +823,7 @@ check_x_headers() {
     # Do it for the dashboard as well, as the header is different than above
     local dashboard
     dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
-    # Store what the X-Header shoud be in variables for comparison later
+    # Store what the X-Header should be in variables for comparison later
     local block_page_working
     block_page_working="X-Pi-hole: A black hole for Internet advertisements."
     local dashboard_working
@@ -842,12 +842,12 @@ check_x_headers() {
         log_write "${COL_RED}${full_curl_output_block_page}${COL_NC}"
     fi
 
-    # Same logic applies to the dashbord as above, if the X-Header matches what a working system shoud have,
+    # Same logic applies to the dashboard as above, if the X-Header matches what a working system should have,
     if [[ $dashboard == "$dashboard_working" ]]; then
         # then we can show a success
         log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
     else
-        # Othewise, it's a failure since the X-Headers either don't exist or have been modified in some way
+        # Otherwise, it's a failure since the X-Headers either don't exist or have been modified in some way
         log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
         log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
     fi
@@ -877,7 +877,7 @@ dig_at() {
         local pihole_address="${IP}"
         local remote_address="2001:4860:4860::8888"
         local record_type="AAAA"
-    # Othwerwise, it should be 4
+    # Otherwise, it should be 4
     else
         # so use the IPv4 values
         local local_address="127.0.0.1"
@@ -911,7 +911,7 @@ dig_at() {
         # show a success
         log_write "${TICK} ${random_url} ${COL_GREEN}is ${pihole_dig}${COL_NC} via ${COL_CYAN}Pi-hole${COL_NC} (${pihole_address})"
     else
-        # Othewise, show a failure
+        # Otherwise, show a failure
         log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_RED}Pi-hole${COL_NC} (${pihole_address})"
     fi
 
@@ -1044,7 +1044,7 @@ parse_file() {
 }
 
 check_name_resolution() {
-    # Check name resoltion from localhost, Pi-hole's IP, and Google's name severs
+    # Check name resolution from localhost, Pi-hole's IP, and Google's name severs
     # using the function we created earlier
     dig_at 4 "${IPV4_ADDRESS%/*}"
     # If IPv6 enabled,
