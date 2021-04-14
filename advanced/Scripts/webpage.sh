@@ -564,7 +564,13 @@ AddDHCPStaticAddress() {
 
 RemoveDHCPStaticAddress() {
     mac="${args[2]}"
-    sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
+    if [[ "$mac" =~ ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$ ]]; then
+        sed -i "/dhcp-host=${mac}.*/d" "${dhcpstaticconfig}"
+    else
+        echo "  ${CROSS} Invalid Mac Passed!"
+        exit 1
+    fi
+
 }
 
 SetAdminEmail() {
@@ -708,7 +714,13 @@ RemoveCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
-    sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+
+    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+        sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+    else
+        echo -e "  ${CROSS} Invalid IP has been passed"
+        exit 1
+    fi
 
     # Restart dnsmasq to update removed custom DNS entries
     RestartDNS
@@ -719,6 +731,7 @@ AddCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
+
     echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
 
     # Restart dnsmasq to load new custom CNAME records
@@ -730,7 +743,20 @@ RemoveCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
-    sed -i "/cname=${domain},${target}/d" "${dnscustomcnamefile}"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validDomain}" ]]; then
+            sed -i "/cname=${validDomain},${validTarget}/d" "${dnscustomcnamefile}"
+        else
+            echo "  ${CROSS} Invalid Target Passed!"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
 
     # Restart dnsmasq to update removed custom CNAME records
     RestartDNS
