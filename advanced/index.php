@@ -78,7 +78,7 @@ if ($serverName === "pi.hole"
         </head>
         <body id='splashpage'>
             <div id="pihole_card">
-              <img src='admin/img/logo.svg' alt='Pi-hole logo id="pihole_logo_splash" />
+              <img src='admin/img/logo.svg' alt='Pi-hole logo' id="pihole_logo_splash" />
               <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
               <a href='/admin'>Did you mean to go to the admin panel?</a>
             </div>
