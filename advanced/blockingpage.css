@@ -145,7 +145,17 @@ body {
 }
 
 /* User is greeted with a splash page when browsing to Pi-hole IP address */
-#splashpage { background: #222; color: rgba(255, 255, 255, 0.7); text-align: center; }
+#splashpage {
+  background: #222;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #splashpage img { margin: 5px; width: 256px; }
 #splashpage b { color: inherit; }
 
@@ -194,6 +204,26 @@ header #bpAlt label {
 [type="checkbox"][id$="Toggle"]:checked ~ #bpAbout,
 [type="checkbox"][id$="Toggle"]:checked ~ #bpMoreInfo {
   display: block;
+}
+
+html, body {
+    height: 100%;
+}
+
+#pihole_card {
+    width: 400px;
+    height: auto;
+    max-width: 400px;
+}
+
+    #pihole_card p, #pihole_card a {
+        font-size: 13pt;
+        text-align: center;
+    }
+
+#pihole_logo_splash {
+    height: auto;
+    width: 100%;
 }
 
 /* Click anywhere else on screen to hide #bpAbout */
@@ -382,12 +412,44 @@ footer {
 
 /* Responsive Content */
 @media only screen and (max-width: 500px) {
-  h1 a { font-size: 1.8rem; min-width: 170px; }
-  footer span::before { content: "Generated "; }
-  footer span { display: block; }
+  h1 a {
+        font-size: 1.8rem;
+        min-width: 170px;
+    }
+
+    footer span::before {
+        content: "Generated ";
+    }
+
+    footer span {
+        display: block;
+    }
 }
 
 @media only screen and (min-width: 1251px) {
-  #bpWrapper, footer { border-radius: 0 0 5px 5px; }
-  #bpAbout { border-right-width: 1px; }
+  #bpWrapper, footer {
+        border-radius: 0 0 5px 5px;
+    }
+
+    #bpAbout {
+        border-right-width: 1px;
+    }
+}
+
+@media only screen and (max-width: 400px) {
+    #pihole_card {
+        width: 100%;
+        height: auto;
+    }
+
+        #pihole_card p, #pihole_card a {
+            font-size: 100%;
+        }
+}
+
+@media only screen and (max-width: 256px) {
+    #pihole_logo_splash {
+        width: 90% !important;
+        height: auto;
+    }
 }

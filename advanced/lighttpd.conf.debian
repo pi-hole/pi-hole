@@ -81,6 +81,10 @@ mimetype.assign = (
     ".woff2" => "font/woff2"
 )
 
+# Add user chosen options held in external file
+# This uses include_shell instead of an include wildcard for compatibility
+include_shell "cat external.conf 2>/dev/null"
+
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
 
@@ -109,7 +113,3 @@ $HTTP["url"] =~ "^/admin/\.(.*)" {
 
 # Default expire header
 expire.url = ( "" => "access plus 0 seconds" )
-
-# Add user chosen options held in external file
-# This uses include_shell instead of an include wildcard for compatibility
-include_shell "cat external.conf 2>/dev/null"

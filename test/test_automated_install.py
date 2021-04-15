@@ -524,43 +524,45 @@ def test_IPv6_ULA_GUA_test(Pihole):
     assert expected_stdout in detectPlatform.stdout
 
 
-def test_validate_ip_valid(Pihole):
+def test_validate_ip(Pihole):
     '''
-    Given a valid IP address, valid_ip returns success
-    '''
-
-    output = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    valid_ip "192.168.1.1"
-    ''')
-
-    assert output.rc == 0
-
-
-def test_validate_ip_invalid_octet(Pihole):
-    '''
-    Given an invalid IP address (large octet), valid_ip returns an error
+    Tests valid_ip for various IP addresses
     '''
 
-    output = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    valid_ip "1092.168.1.1"
-    ''')
+    def test_address(addr, success=True):
+        output = Pihole.run('''
+        source /opt/pihole/basic-install.sh
+        valid_ip "{addr}"
+        '''.format(addr=addr))
 
-    assert output.rc == 1
+        assert output.rc == 0 if success else 1
 
-
-def test_validate_ip_invalid_letters(Pihole):
-    '''
-    Given an invalid IP address (contains letters), valid_ip returns an error
-    '''
-
-    output = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    valid_ip "not an IP"
-    ''')
-
-    assert output.rc == 1
+    test_address('192.168.1.1')
+    test_address('127.0.0.1')
+    test_address('255.255.255.255')
+    test_address('255.255.255.256', False)
+    test_address('255.255.256.255', False)
+    test_address('255.256.255.255', False)
+    test_address('256.255.255.255', False)
+    test_address('1092.168.1.1', False)
+    test_address('not an IP', False)
+    test_address('8.8.8.8#', False)
+    test_address('8.8.8.8#0')
+    test_address('8.8.8.8#1')
+    test_address('8.8.8.8#42')
+    test_address('8.8.8.8#888')
+    test_address('8.8.8.8#1337')
+    test_address('8.8.8.8#65535')
+    test_address('8.8.8.8#65536', False)
+    test_address('8.8.8.8#-1', False)
+    test_address('00.0.0.0', False)
+    test_address('010.0.0.0', False)
+    test_address('001.0.0.0', False)
+    test_address('0.0.0.0#00', False)
+    test_address('0.0.0.0#01', False)
+    test_address('0.0.0.0#001', False)
+    test_address('0.0.0.0#0001', False)
+    test_address('0.0.0.0#00001', False)
 
 
 def test_os_check_fails(Pihole):
