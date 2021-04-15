@@ -186,12 +186,12 @@ os_check() {
         # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
         # and determines whether or not the script is running on one of those systems
         local remote_os_domain valid_os valid_version valid_response detected_os detected_version display_warning cmdResult digReturnCode response
-        remote_os_domain="versions.pi-hole.net"
+        remote_os_domain=${OS_CHECK_DOMAIN_NAME:-"versions.pi-hole.net"}
 
         detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
         detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-        cmdResult="$(dig +short -t txt ${remote_os_domain} @ns1.pi-hole.net 2>&1; echo $?)"
+        cmdResult="$(dig +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
         # Gets the return code of the previous command (last line)
         digReturnCode="${cmdResult##*$'\n'}"
 
