@@ -1,5 +1,5 @@
 Raspbian=9,10
 Ubuntu=16,18,20
 Debian=9,10
-Fedora=31,32
+Fedora=32,33
 CentOS=7,8

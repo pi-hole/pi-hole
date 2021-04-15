@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -9,9 +11,17 @@
 # Please see LICENSE file for your rights under this license.
 
 # Globals
-basename=pihole
-piholeDir=/etc/"${basename}"
-gravityDBfile="${piholeDir}/gravity.db"
+piholeDir="/etc/pihole"
+GRAVITYDB="${piholeDir}/gravity.db"
+# Source pihole-FTL from install script
+pihole_FTL="${piholeDir}/pihole-FTL.conf"
+if [[ -f "${pihole_FTL}" ]]; then
+  source "${pihole_FTL}"
+fi
+
+# Set this only after sourcing pihole-FTL.conf as the gravity database path may
+# have changed
+gravityDBfile="${GRAVITYDB}"
 
 reload=false
 addmode=true
@@ -112,7 +122,7 @@ ProcessDomainList() {
     for dom in "${domList[@]}"; do
         # Format domain into regex filter if requested
         if [[ "${wildcard}" == true ]]; then
-            dom="(^|\\.)${dom//\./\\.}$"
+            dom="(\\.|^)${dom//\./\\.}$"
         fi
 
         # Logic: If addmode then add to desired list and remove from the other;
