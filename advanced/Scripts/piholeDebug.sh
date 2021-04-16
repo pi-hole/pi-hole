@@ -863,8 +863,9 @@ dig_at() {
     # Set more local variables
     # We need to test name resolution locally, via Pi-hole, and via a public resolver
     local local_dig
-    local pihole_dig
     local remote_dig
+    local interfaces
+    local addresses
     # Use a static domain that we know has IPv4 and IPv6 to avoid false positives
     # Sometimes the randomly chosen domains don't use IPv6, or something else is wrong with them
     local remote_url="doubleclick.com"
@@ -891,15 +892,6 @@ dig_at() {
     local random_url
     random_url=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
 
-    # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
-    if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
-        # If it can, show success
-        log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC at ${COL_CYAN}${local_address}${CON_NC}"
-    else
-        # Otherwise, show a failure
-        log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_RED}localhost${COL_NC} at ${COL_CYAN}${local_address}${CON_NC}"
-    fi
-
     # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
     # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
     # just asing itself locally
@@ -918,7 +910,7 @@ dig_at() {
     #          Removes interface index
     #     s/: <.*//g;
     #          Removes everything after the interface name
-    local interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/: <.*//g;")"
+    interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/: <.*//g;")"
 
     while IFS= read -r iface ; do
         # Get addresses of current interface
@@ -929,10 +921,10 @@ dig_at() {
         #          Removes all leading whitespace as well as the "inet " or "inet6 " string
         #     s/\/.*$//g;
         #          Removes CIDR and everything thereafter (e.g., scope properties)
-        local addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
+        addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
         while IFS= read -r local_address ; do
             # Check if Pi-hole can use itself to block a domain
-            if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
+            if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
                 # If it can, show success
                 log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
             else
@@ -944,7 +936,7 @@ dig_at() {
 
     # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
     # We are using the static remote_url here instead of a random one because we know it works with IPv4 and IPv6
-    if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
+    if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @"${remote_address}" +short "${record_type}" | head -n1); then
         # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
         log_write "${TICK} ${remote_url} ${COL_GREEN}is ${remote_dig}${COL_NC} via ${COL_CYAN}a remote, public DNS server${COL_NC} (${remote_address})"
     else
@@ -1059,7 +1051,7 @@ parse_file() {
     local file_lines
     # For each line in the file,
     for file_lines in "${file_info[@]}"; do
-        if [[ ! -z "${file_lines}" ]]; then
+        if [[ -n "${file_lines}" ]]; then
             # don't include the Web password hash
             [[ "${file_lines}" =~ ^\#.*$  || ! "${file_lines}" || "${file_lines}" == "WEBPASSWORD="* ]] && continue
             # otherwise, display the lines of the file
