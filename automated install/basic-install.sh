@@ -360,7 +360,11 @@ if is_command apt-get ; then
     PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # Packages required for the Web admin interface (stored as an array)
     # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-json" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
+    if [[ "${phpInsNewer}" != true || "${phpInsMajor}" -lt 8 ]]; then
+        PIHOLE_WEB_DEPS+=("${phpVer}-json")
+    fi
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
