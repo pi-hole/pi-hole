@@ -153,7 +153,7 @@ versionOutput() {
     if [[ -n "$current" ]] && [[ -n "$latest" ]]; then
         output="${1^} version is $branch$current (Latest: $latest)"
     elif [[ -n "$current" ]] && [[ -z "$latest" ]]; then
-        output="Current ${1^} version is $branch$current."
+        output="Current ${1^} version is $branch$current"
     elif [[ -z "$current" ]] && [[ -n "$latest" ]]; then
         output="Latest ${1^} version is $latest"
     elif [[ "$curHash" == "N/A" ]] || [[ "$latHash" == "N/A" ]]; then
