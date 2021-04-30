@@ -72,7 +72,7 @@ fi
 
 removeAndPurge() {
     # Purge dependencies
-    echo ""
+    echo -e "  ${INFO} ${COL_YELLOW}We strongly recommend leaving packages installed you are unsure about, as usually required system packages are among them!${COL_NC}"
     for i in "${DEPS[@]}"; do
         if package_check "${i}" > /dev/null; then
             while true; do
@@ -206,11 +206,6 @@ removeNoPurge() {
 }
 
 ######### SCRIPT ###########
-if command -v vcgencmd &> /dev/null; then
-    echo -e "  ${INFO} All dependencies are safe to remove on Raspbian"
-else
-    echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
-fi
 while true; do
     echo -e "  ${INFO} ${COL_YELLOW}The following dependencies may have been added by the Pi-hole install:"
     echo -n "    "
@@ -218,10 +213,10 @@ while true; do
         echo -n "${i} "
     done
     echo "${COL_NC}"
-    read -rp "  ${QST} Do you wish to go through each dependency for removal? (Choosing No will leave all dependencies installed) [Y/n] " yn
+    read -rp "  ${QST} Do you wish to go through each dependency for removal? (Recommended is \"No\" unless you're certain which package you no longer need) [y/N] " yn
     case ${yn} in
         [Yy]* ) removeAndPurge; break;;
         [Nn]* ) removeNoPurge; break;;
-        * ) removeAndPurge; break;;
+        * ) removeNoPurge; break;;
     esac
 done
