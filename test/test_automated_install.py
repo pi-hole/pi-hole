@@ -106,31 +106,6 @@ def test_selinux_not_detected(Pihole):
     assert check_selinux.rc == 0
 
 
-def test_installPiholeWeb_fresh_install_no_errors(Pihole):
-    '''
-    confirms all web page assets from Core repo are installed on a fresh build
-    '''
-    installWeb = Pihole.run('''
-    source /opt/pihole/basic-install.sh
-    installPiholeWeb
-    ''')
-    expected_stdout = info_box + ' Installing blocking page...'
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = tick_box + (' Creating directory for blocking page, '
-                                  'and copying files')
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = info_box + ' Backing up index.lighttpd.html'
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = ('No default index.lighttpd.html file found... '
-                       'not backing up')
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = tick_box + ' Installing sudoer file'
-    assert expected_stdout in installWeb.stdout
-    web_directory = Pihole.run('ls -r /var/www/html/pihole').stdout
-    assert 'index.php' in web_directory
-    assert 'blockingpage.css' in web_directory
-
-
 def test_update_package_cache_success_no_errors(Pihole):
     '''
     confirms package cache was updated without any errors
