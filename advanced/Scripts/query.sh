@@ -13,6 +13,7 @@
 # Globals
 piholeDir="/etc/pihole"
 GRAVITYDB="${piholeDir}/gravity.db"
+DBFILE="${piholeDir}/pihole-FTL.db"
 options="$*"
 all=""
 exact=""
@@ -27,6 +28,8 @@ fi
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
+gravityOLDfile="$(dirname -- "${gravityDBfile}")/gravity_old.db"
+ftlDBfile="${DBFILE}"
 
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
@@ -58,12 +61,68 @@ scanList(){
     esac
 }
 
+# function to count new domain entries since last gravity run
+CountNewDomains() {
+  newdomainentries=$(
+    sqlite3 "${gravityDBfile}" << EOSQL
+      ATTACH '${gravityOLDfile}' AS old;
+      SELECT count(DISTINCT domain) FROM gravity WHERE domain NOT IN (SELECT domain FROM old.gravity);
+EOSQL
+      )
+  echo -e "  ${INFO} ${newdomainentries} new domain(s) found."
+  exit 0
+}
+
+# function to find blocked entries in the FTL database,
+# present (new) in the latest (active) gravity database,
+# and NOT present in the old gravity database.
+FindNewBlockedDomains() {
+  # Check if the OLD database exists.
+  if [[ ! -f "${gravityOLDfile}" ]]; then
+    echo -e "  ${CROSS}  Old database ${gravityOLDfile} doesn't exist."
+    exit 1
+  else
+    # Check if the current database is more recent.
+    if [[ $(sqlite3 "${gravityOLDfile}" "SELECT value FROM info \
+              WHERE property IS 'updated';") \
+        > \
+          $(sqlite3 "${gravityDBfile}" "SELECT value FROM info \
+              WHERE property IS 'updated';") ]]; then
+      echo -e "  ${CROSS}  Old database ${gravityOLDfile} is more recent."
+      exit 1
+    fi
+    #Run the query
+    mapfile -t resultarray < <( sqlite3 -separator ' ' "${ftlDBfile}" << EOSQL
+      ATTACH '${gravityDBfile}' AS new;
+      ATTACH '${gravityOLDfile}' AS old;
+      SELECT DISTINCT queries.domain, '(' || adlist.address || ')' FROM queries
+      JOIN gravity ON new.gravity.domain = queries.domain
+      JOIN adlist ON adlist.id = new.gravity.adlist_id
+      WHERE queries.domain NOT IN (SELECT domain FROM old.gravity)
+      AND queries.domain IN (SELECT domain FROM new.gravity)
+      AND queries.status IN (1,9)
+      AND timestamp > (SELECT value FROM new.info WHERE property = 'updated');
+EOSQL
+      )
+    if [ "${#resultarray[@]}" -eq 0 ]; then
+      echo -e "  ${INFO} No new domains have been blocked yet."
+    else
+      for (( j=0; j<"${#resultarray[@]}"; j++ )); do
+        echo -e "  ${INFO} Blocked: ${resultarray[j]})"
+      done
+    fi
+  fi
+  exit 0
+}
+
 if [[ "${options}" == "-h" ]] || [[ "${options}" == "--help" ]]; then
     echo "Usage: pihole -q [option] <domain>
 Example: 'pihole -q -exact domain.com'
 Query the adlists for a specified domain
 
 Options:
+  -blocked            List blocked domains since last gravity run
+  -countnew           Count new domain enties since last gravity run
   -exact              Search the block lists for exact domain matches
   -all                Return all query matches within a block list
   -h, --help          Show this help dialog"
@@ -78,6 +137,10 @@ else
     if [[ "${options}" == *"-exact"* ]]; then
         exact="exact"; matchType="exact ${matchType}"
     fi
+    # Count new domain enties since last gravity run
+    [[ "${options}" == *"-countnew"* ]] && CountNewDomains
+    # List blocked domains since last gravity run
+    [[ "${options}" == *"-blocked"* ]] && FindNewBlockedDomains
 fi
 
 # Strip valid options, leaving only the domain and invalid options
