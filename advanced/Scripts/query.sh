@@ -64,9 +64,9 @@ scanList(){
 # function to count new domain entries since last gravity run
 CountNewDomains() {
   newdomainentries=$(
-    sqlite3 "/etc/pihole/gravity.db" << EOSQL
-      ATTACH '/etc/pihole/gravity_old.db' AS db2;
-      SELECT count(DISTINCT domain) FROM gravity WHERE domain NOT IN (SELECT domain FROM db2.gravity);
+    sqlite3 "${gravityDBfile}" << EOSQL
+      ATTACH '${gravityOLDfile}' AS old;
+      SELECT count(DISTINCT domain) FROM gravity WHERE domain NOT IN (SELECT domain FROM old.gravity);
 EOSQL
       )
   echo -e "  ${INFO} ${newdomainentries} new domain(s) found."
