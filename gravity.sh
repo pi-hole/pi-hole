@@ -73,6 +73,7 @@ fi
 # have changed
 gravityDBfile="${GRAVITYDB}"
 gravityTEMPfile="${GRAVITYDB}_temp"
+gravityOLDfile="$(dirname -- "${gravityDBfile}")/gravity_old.db"
 
 if [[ -z "${BLOCKINGMODE}" ]] ; then
   BLOCKINGMODE="NULL"
@@ -123,8 +124,24 @@ gravity_swap_databases() {
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 
-  # Swap databases and remove old database
-  rm "${gravityDBfile}"
+  if [[ -z "${KEEPOLDGRAVITY}" ]] ; then
+    KEEPOLDGRAVITY="true"
+  fi
+
+  # Swap databases and remove or conditionally rename old database
+  # Number of available blocks on disk
+  availableBlocks=$(stat -f --format "%a" $(dirname -- "${gravityDBfile}"))
+  # Number of blocks, used by gravity.db
+  gravityBlocks=$(stat --format "%b" ${gravityDBfile})
+  # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
+  # Better be safe than sorry...
+  # The variable KEEPOLDGRAVITY in /etc/pihole-FTL.conf can be used to disable this feature.
+  if [ ${availableBlocks} -gt $(expr ${gravityBlocks} \* 2) ] && [ -f "${gravityDBfile}" ] && ${KEEPOLDGRAVITY,,}; then
+    echo -e "  ${TICK} The old database remains available."
+    mv "${gravityDBfile}" "${gravityOLDfile}"
+  else
+    rm "${gravityDBfile}"
+fi
   mv "${gravityTEMPfile}" "${gravityDBfile}"
 }
 
@@ -872,12 +889,44 @@ gravity_Cleanup() {
   fi
 }
 
+switch_database() {
+  if [[ -f "${gravityOLDfile}" ]]; then
+    gravityOLDversion=$(pihole-FTL "${gravityOLDfile}" "SELECT value FROM info WHERE property IS 'version';")
+    echo -e "  ${TICK}  ${gravityOLDfile} exists."
+  else
+    echo -e "  ${CROSS}  Cannot switch database, ${gravityOLDfile} doesn't exist."
+    exit 1
+  fi
+  if [[ -f "${gravityDBfile}" ]]; then
+    echo -e "  ${TICK}  ${gravityDBfile} exists."
+    if [[ ${gravityOLDversion} -eq $(pihole-FTL "${gravityDBfile}" "SELECT value FROM info WHERE property IS 'version';") ]]; then
+      echo -e "  ${INFO}  Switching database."
+      echo "         current database, updated $(date -d @$(pihole-FTL "${gravityDBfile}" "SELECT value FROM info WHERE property IS 'updated';"))"
+      oldDBdate=$(pihole-FTL "${gravityOLDfile}" "SELECT value FROM info WHERE property IS 'updated';")
+      echo "         old database, updated $(date -d @${oldDBdate})"
+      mv "${gravityOLDfile}" "$(dirname -- "${gravityOLDfile}")/gravity_mv.db"
+      mv "${gravityDBfile}" "${gravityOLDfile}"
+      mv "$(dirname -- "${gravityOLDfile}")/gravity_mv.db" "${gravityDBfile}"
+      "${PIHOLE_COMMAND}" restartdns
+      echo -e "  ${INFO}  database, dated $(date -d @${oldDBdate}) now active"
+      exit 0
+    else
+      echo -e "  ${CROSS}  Cannot switch database, different database version."
+      exit 1
+    fi
+  else
+    echo -e "  ${CROSS}  Cannot switch database, ${gravityDBfile} doesn't exist."
+     exit 1
+  fi
+}
+
 helpFunc() {
   echo "Usage: pihole -g
 Update domains from blocklists specified in adlists.list
 
 Options:
   -f, --force          Force the download of all specified blocklists
+  -s, --switch         Switch to old database
   -h, --help           Show this help dialog"
   exit 0
 }
@@ -886,9 +935,15 @@ for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
     "-r" | "--recreate" ) recreate_database=true;;
+    "-s" | "--switch" ) switch_database;;
     "-h" | "--help" ) helpFunc;;
   esac
 done
+
+# Remove OLD (backup) gravity file, if it exists and the command isn't "-s" Or "--switch"
+if [[ -f "${gravityOLDfile}" ]]; then
+  rm "${gravityOLDfile}" 
+fi
 
 # Trap Ctrl-C
 gravity_Trap
