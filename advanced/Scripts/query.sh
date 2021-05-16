@@ -63,13 +63,14 @@ scanList(){
 
 # function to count new domain entries since last gravity run
 CountNewDomains() {
+  printf %s "  ${INFO} Running query, please be patient..."
   newdomainentries=$(
     sqlite3 "${gravityDBfile}" << EOSQL
       ATTACH '${gravityOLDfile}' AS old;
       SELECT count(DISTINCT domain) FROM gravity WHERE domain NOT IN (SELECT domain FROM old.gravity);
 EOSQL
       )
-  echo -e "  ${INFO} ${newdomainentries} new domain(s) found."
+  printf '\r%s\n' "$(tput el)  ${INFO} ${newdomainentries} new domain(s) found."
   exit 0
 }
 
@@ -91,8 +92,9 @@ FindNewBlockedDomains() {
       echo -e "  ${CROSS}  Old database ${gravityOLDfile} is more recent."
       exit 1
     fi
-    #Run the query
-    mapfile -t resultarray < <( sqlite3 -separator ' ' "${ftlDBfile}" << EOSQL
+    # Run the queries
+    # Find the status 1 queries first
+    mapfile -t domainarray < <( sqlite3 "${ftlDBfile}" << EOSQL
       ATTACH '${gravityDBfile}' AS new;
       ATTACH '${gravityOLDfile}' AS old;
       SELECT DISTINCT queries.domain, '(' || adlist.address || ')' FROM queries
@@ -100,16 +102,40 @@ FindNewBlockedDomains() {
       JOIN adlist ON adlist.id = new.gravity.adlist_id
       WHERE queries.domain NOT IN (SELECT domain FROM old.gravity)
       AND queries.domain IN (SELECT domain FROM new.gravity)
-      AND queries.status IN (1,9)
+      AND queries.status IN (1)
       AND timestamp > (SELECT value FROM new.info WHERE property = 'updated');
 EOSQL
       )
-    if [ "${#resultarray[@]}" -eq 0 ]; then
-      echo -e "  ${INFO} No new domains have been blocked yet."
-    else
-      for (( j=0; j<"${#resultarray[@]}"; j++ )); do
-        echo -e "  ${INFO} Blocked: ${resultarray[j]}"
+    if [ ! "${#domainarray[@]}" -eq 0 ]; then
+      for (( j=0; j<"${#domainarray[@]}"; j++ )); do
+        IFS='|'
+        read -r domain urllist <<< "${domainarray[j]}"
+          echo -e "  ${INFO} Blocked: ${domain} ${urllist}"
       done
+    fi
+    # Now find the CNAME matches (status 9)
+    mapfile -t cnamearray < <( sqlite3 "${ftlDBfile}" << EOSQL
+      ATTACH '${gravityDBfile}' AS new;
+      ATTACH '${gravityOLDfile}' AS old;
+      SELECT DISTINCT queries.domain, '(' || adlist.address || ')', queries.additional_info FROM queries
+      JOIN gravity ON new.gravity.domain = queries.additional_info
+      JOIN adlist ON adlist.id = new.gravity.adlist_id
+      WHERE queries.additional_info NOT IN (SELECT domain FROM old.gravity)
+      AND queries.additional_info IN (SELECT domain FROM new.gravity)
+      AND queries.status IN (9)
+      AND timestamp > (SELECT value FROM new.info WHERE property = 'updated');
+EOSQL
+      )
+    if [ ! "${#cnamearray[@]}" -eq 0 ]; then
+      for (( j=0; j<"${#cnamearray[@]}"; j++ )); do
+        IFS='|'
+        read -r domain urllist additional_info <<< "${cnamearray[j]}"
+          echo -e "  ${INFO} Blocked: ${domain}. (${COL_BLUE}CNAME${COL_NC})"
+          echo -e "        Domain: ${additional_info} ${urllist}"
+      done
+    fi
+    if [[ "${#domainarray[@]}" -eq 0 && "${#cnamearray[@]}" -eq 0 ]]; then
+      echo -e "  ${INFO} No new domains have been blocked yet."
     fi
   fi
   exit 0
