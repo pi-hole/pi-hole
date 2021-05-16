@@ -108,7 +108,7 @@ EOSQL
       echo -e "  ${INFO} No new domains have been blocked yet."
     else
       for (( j=0; j<"${#resultarray[@]}"; j++ )); do
-        echo -e "  ${INFO} Blocked: ${resultarray[j]})"
+        echo -e "  ${INFO} Blocked: ${resultarray[j]}"
       done
     fi
   fi
