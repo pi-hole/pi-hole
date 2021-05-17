@@ -64,6 +64,7 @@ scanList(){
 # function to count new domain entries since last gravity run
 CountNewDomains() {
   printf %s "  ${INFO} Running query, please be patient..."
+  # store query result (count) in variable
   newdomainentries=$(
     sqlite3 "${gravityDBfile}" << EOSQL
       ATTACH '${gravityOLDfile}' AS old;
@@ -71,6 +72,40 @@ CountNewDomains() {
 EOSQL
       )
   printf '\r%s\n' "$(tput el)  ${INFO} ${newdomainentries} new domain(s) found."
+  exit 0
+}
+
+# function to list new domain entries since last gravity run
+ListNewDomains() {
+  if [ -z "${all}" ]; then
+    QueryLimit="Limit 100"
+  fi
+  printf %s "  ${INFO} Running query, please be patient..."
+  # store query result (list) in array
+  # order by adlist.address makes the query slower, but the result is more useful
+  mapfile -t newdomainarray < <( sqlite3 "${gravityDBfile}" << EOSQL
+      ATTACH '${gravityOLDfile}' AS old;
+      SELECT domain, '' || adlist.address || '' FROM gravity
+      JOIN adlist ON adlist.id = gravity.adlist_id	  
+      WHERE domain NOT IN (SELECT domain FROM old.gravity)
+      ORDER BY adlist.address ${QueryLimit};
+EOSQL
+      )
+  if [ "${#newdomainarray[*]}" -eq 0 ]; then
+    printf '\r%s\n' "$(tput el)  ${INFO} No new domains have been found."
+    exit 0
+  else
+    printf '\r%s\n' "$(tput el)  ${INFO} ${#newdomainarray[*]} new domain(s) found."
+  fi
+  for (( j=0; j<"${#newdomainarray[@]}"; j++ )); do
+    IFS='|'
+    read -r domain urllist <<< "${newdomainarray[j]}"
+    echo -e "  ${domain} (${COL_GREEN}${urllist}${COL_NC})"
+  done
+  if [[ -z "${all}" ]] && [[ "${#newdomainarray[*]}" -ge 100 ]]; then
+    echo -e "  ${INFO} Over 100 new domains found.
+        This can be overridden using the -all option"
+  fi
   exit 0
 }
 
@@ -93,11 +128,12 @@ FindNewBlockedDomains() {
       exit 1
     fi
     # Run the queries
+    printf %s "  ${INFO} Running queries, please be patient..."
     # Find the status 1 queries first
     mapfile -t domainarray < <( sqlite3 "${ftlDBfile}" << EOSQL
       ATTACH '${gravityDBfile}' AS new;
       ATTACH '${gravityOLDfile}' AS old;
-      SELECT DISTINCT queries.domain, '(' || adlist.address || ')' FROM queries
+      SELECT DISTINCT queries.domain, '' || adlist.address || '' FROM queries
       JOIN gravity ON new.gravity.domain = queries.domain
       JOIN adlist ON adlist.id = new.gravity.adlist_id
       WHERE queries.domain NOT IN (SELECT domain FROM old.gravity)
@@ -110,14 +146,14 @@ EOSQL
       for (( j=0; j<"${#domainarray[@]}"; j++ )); do
         IFS='|'
         read -r domain urllist <<< "${domainarray[j]}"
-          echo -e "  ${INFO} Blocked: ${domain} ${urllist}"
+        printf '\r%s\n' "$(tput el)  ${INFO} Blocked: ${domain} (${COL_GREEN}${urllist}${COL_NC})"
       done
     fi
     # Now find the CNAME matches (status 9)
     mapfile -t cnamearray < <( sqlite3 "${ftlDBfile}" << EOSQL
       ATTACH '${gravityDBfile}' AS new;
       ATTACH '${gravityOLDfile}' AS old;
-      SELECT DISTINCT queries.domain, '(' || adlist.address || ')', queries.additional_info FROM queries
+      SELECT DISTINCT queries.domain, '' || adlist.address || '', queries.additional_info FROM queries
       JOIN gravity ON new.gravity.domain = queries.additional_info
       JOIN adlist ON adlist.id = new.gravity.adlist_id
       WHERE queries.additional_info NOT IN (SELECT domain FROM old.gravity)
@@ -130,12 +166,12 @@ EOSQL
       for (( j=0; j<"${#cnamearray[@]}"; j++ )); do
         IFS='|'
         read -r domain urllist additional_info <<< "${cnamearray[j]}"
-          echo -e "  ${INFO} Blocked: ${domain}. (${COL_BLUE}CNAME${COL_NC})"
-          echo -e "        Domain: ${additional_info} ${urllist}"
+        printf '\r%s\n' "$(tput el)  ${INFO} Blocked: ${domain}. (${COL_BLUE}CNAME${COL_NC})"
+        echo -e "        Domain: ${additional_info} (${COL_GREEN}${urllist}${COL_NC})"
       done
     fi
     if [[ "${#domainarray[@]}" -eq 0 && "${#cnamearray[@]}" -eq 0 ]]; then
-      echo -e "  ${INFO} No new domains have been blocked yet."
+      printf '\r%s\n' "$(tput el)  ${INFO} No new domains have been blocked yet."
     fi
   fi
   exit 0
@@ -149,6 +185,7 @@ Query the adlists for a specified domain
 Options:
   -blocked            List blocked domains since last gravity run
   -countnew           Count new domain enties since last gravity run
+  -listnew            List new domain entries since last gravity run
   -exact              Search the block lists for exact domain matches
   -all                Return all query matches within a block list
   -h, --help          Show this help dialog"
@@ -165,6 +202,8 @@ else
     fi
     # Count new domain enties since last gravity run
     [[ "${options}" == *"-countnew"* ]] && CountNewDomains
+    # List new domain enties since last gravity run
+    [[ "${options}" == *"-listnew"* ]] && ListNewDomains
     # List blocked domains since last gravity run
     [[ "${options}" == *"-blocked"* ]] && FindNewBlockedDomains
 fi
