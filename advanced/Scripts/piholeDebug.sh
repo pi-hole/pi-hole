@@ -1321,27 +1321,34 @@ obfuscated_pihole_log() {
 }
 
 analyze_pihole_log() {
-    echo_current_diagnostic "Pi-hole log"
-    local pihole_log_head=()
-    local pihole_log_tail=()
-    local pihole_log_permissions
+  echo_current_diagnostic "Pi-hole log"
+  local pihole_log_head=()
+  local pihole_log_tail=()
+  local pihole_log_permissions
 
-    # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
-    # Get the lines that are in the file(s) and store them in an array for parsing later
-    IFS=$'\r\n'
-    pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
-    log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
-    mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
-    log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
-    obfuscated_pihole_log "${pihole_log_head[@]}"
-    log_write ""
-    mapfile -t pihole_log_tail < <(tail -n 20 ${PIHOLE_LOG})
-    log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_LOG})------${COL_NC}"
-    obfuscated_pihole_log "${pihole_log_tail[@]}"
-    log_write ""
-    # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
+  if [[ "${logging_enabled}" == "0" ]]; then
+      # No "log-queries" lines are found.
+      # Commented out lines (such as "#log-queries") are ignored
+      log_write "${INFO} Query logging is disabled"
+  else
+      # Put the current Internal Field Separator into another variable so it can be restored later
+      OLD_IFS="$IFS"
+      # Get the lines that are in the file(s) and store them in an array for parsing later
+      IFS=$'\r\n'
+      pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
+      log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
+      mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
+      log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
+      obfuscated_pihole_log "${pihole_log_head[@]}"
+      log_write ""
+      mapfile -t pihole_log_tail < <(tail -n 20 ${PIHOLE_LOG})
+      log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_LOG})------${COL_NC}"
+      obfuscated_pihole_log "${pihole_log_tail[@]}"
+      log_write ""
+      # Set the IFS back to what it was
+      IFS="$OLD_IFS"
+  fi
 }
 
 tricorder_use_nc_or_curl() {
