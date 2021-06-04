@@ -1325,8 +1325,9 @@ analyze_pihole_log() {
   local pihole_log_head=()
   local pihole_log_tail=()
   local pihole_log_permissions
+  local logging_enabled
 
-  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
+  logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
   if [[ "${logging_enabled}" == "0" ]]; then
       # Inform user that logging has been disabled and pihole.log does not contain queries
       log_write "${INFO} Query logging is disabled"
