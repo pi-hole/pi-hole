@@ -28,7 +28,8 @@ fi
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
-gravityOLDfile="$(dirname -- "${gravityDBfile}")/gravity_old.db"
+gravityDIR="$(dirname -- "${gravityDBfile}")"
+gravityOLDfile="${gravityDIR}/gravity_old.db"
 ftlDBfile="${DBFILE}"
 
 colfile="/opt/pihole/COL_TABLE"
