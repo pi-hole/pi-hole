@@ -906,7 +906,7 @@ switch_database() {
       echo "         old database, updated $(date -d @"${oldDBdate}")"
       mv "${gravityOLDfile}" "$(dirname -- "${gravityOLDfile}")/gravity_mv.db"
       mv "${gravityDBfile}" "${gravityOLDfile}"
-      mv "$(dirname -- "${gravityOLDfile}")/gravity_mv.db" "${gravityDBfile}"
+      mv "${gravityDIR}/gravity_mv.db" "${gravityDBfile}"
       "${PIHOLE_COMMAND}" restartdns
       echo -e "  ${INFO}  database, dated $(date -d @"${oldDBdate}") now active"
       exit 0
