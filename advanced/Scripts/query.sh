@@ -78,7 +78,6 @@ EOSQL
 # function to list new domain entries since last gravity run
 ListNewDomains() {
   QueryLimit=""
-  QueryLimit=""
   if [ -z "${all}" ]; then
     QueryLimit="Limit 100"
   fi
