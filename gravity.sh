@@ -135,7 +135,7 @@ gravity_swap_databases() {
   gravityBlocks=$(stat --format "%b" ${gravityDBfile})
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
-  # The variable KEEPOLDGRAVITY in /etc/pihole-FTL.conf can be used to disable this feature.
+  # The variable KEEPOLDGRAVITY in /etc/pihole/pihole-FTL.conf can be used to disable this feature.
   if [ "${availableBlocks}" -gt "$(("${gravityBlocks}" * 2))" ] && [ -f "${gravityDBfile}" ] && ${KEEPOLDGRAVITY,,}; then
     echo -e "  ${TICK} The old database remains available."
     mv "${gravityDBfile}" "${gravityOLDfile}"
