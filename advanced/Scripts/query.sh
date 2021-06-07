@@ -70,7 +70,7 @@ CountNewDomains() {
       ATTACH '${gravityOLDfile}' AS old;
       SELECT count(DISTINCT domain) FROM gravity WHERE domain NOT IN (SELECT domain FROM old.gravity);
 EOSQL
-      )
+      )"
   printf '\r%s\n' "$(tput el)  ${INFO} ${newdomainentries} new domain(s) found."
   exit 0
 }
