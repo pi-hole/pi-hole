@@ -904,7 +904,7 @@ switch_database() {
       echo "         current database, updated $(date -d @"$(pihole-FTL "${gravityDBfile}" "SELECT value FROM info WHERE property IS 'updated';")")"
       oldDBdate=$(pihole-FTL "${gravityOLDfile}" "SELECT value FROM info WHERE property IS 'updated';")
       echo "         old database, updated $(date -d @"${oldDBdate}")"
-      mv "${gravityOLDfile}" "$(dirname -- "${gravityOLDfile}")/gravity_mv.db"
+      mv "${gravityOLDfile}" "${gravityDIR}/gravity_mv.db"
       mv "${gravityDBfile}" "${gravityOLDfile}"
       mv "${gravityDIR}/gravity_mv.db" "${gravityDBfile}"
       "${PIHOLE_COMMAND}" restartdns
