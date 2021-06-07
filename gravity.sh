@@ -938,7 +938,7 @@ for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
     "-r" | "--recreate" ) recreate_database=true;;
-    "-s" | "--switch" ) if ${KEEPOLDGRAVITY,,}; then switch_database;;
+    "-s" | "--switch" ) if ${KEEPOLDGRAVITY,,}; then switch_database; fi ;;
     "-h" | "--help" ) helpFunc;;
   esac
 done
