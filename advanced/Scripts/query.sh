@@ -86,7 +86,7 @@ ListNewDomains() {
   mapfile -t newdomainarray < <( sqlite3 "${gravityDBfile}" << EOSQL
       ATTACH '${gravityOLDfile}' AS old;
       SELECT domain, '' || adlist.address || '' FROM gravity
-      JOIN adlist ON adlist.id = gravity.adlist_id	  
+      JOIN adlist ON adlist.id = gravity.adlist_id
       WHERE domain NOT IN (SELECT domain FROM old.gravity)
       ORDER BY adlist.address ${QueryLimit};
 EOSQL
