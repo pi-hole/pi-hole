@@ -73,7 +73,8 @@ fi
 # have changed
 gravityDBfile="${GRAVITYDB}"
 gravityTEMPfile="${GRAVITYDB}_temp"
-gravityOLDfile="$(dirname -- "${gravityDBfile}")/gravity_old.db"
+gravityDIR="$(dirname -- "${gravityDBfile}")"
+gravityOLDfile="${gravityDIR}/gravity_old.db"
 
 if [[ -z "${BLOCKINGMODE}" ]] ; then
   BLOCKINGMODE="NULL"
@@ -130,7 +131,7 @@ gravity_swap_databases() {
 
   # Swap databases and remove or conditionally rename old database
   # Number of available blocks on disk
-  availableBlocks=$(stat -f --format "%a" "$(dirname -- "${gravityDBfile}")")
+  availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
   # Number of blocks, used by gravity.db
   gravityBlocks=$(stat --format "%b" ${gravityDBfile})
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
