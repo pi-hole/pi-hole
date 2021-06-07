@@ -206,7 +206,7 @@ else
     # List new domain enties since last gravity run
     [[ "${options}" == *"-listnew"* ]] && ListNewDomains
     # List blocked domains since last gravity run
-    [[ "${options}" == *"-blocked"* ]] && FindNewBlockedDomains
+    [[ "${options}" == *"-blockednew"* ]] && FindNewBlockedDomains
 fi
 
 # Strip valid options, leaving only the domain and invalid options
