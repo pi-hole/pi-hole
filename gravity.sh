@@ -57,6 +57,11 @@ if [[ -f "${setupVars}" ]];then
     echo -e "  ${COL_LIGHT_RED}No IP addresses found! Please run 'pihole -r' to reconfigure${COL_NC}"
     exit 1
   fi
+
+  # The variable KEEPOLDGRAVITY in /etc/pihole/setupVars.conf must be used to enable this feature.
+  if [[ -z "${KEEPOLDGRAVITY}" ]] ; then
+    KEEPOLDGRAVITY="false"
+  fi
 else
   echo -e "  ${COL_LIGHT_RED}Installation Failure: ${setupVars} does not exist! ${COL_NC}
   Please run 'pihole -r', and choose the 'reconfigure' option to fix."
@@ -125,10 +130,6 @@ gravity_swap_databases() {
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 
-  if [[ -z "${KEEPOLDGRAVITY}" ]] ; then
-    KEEPOLDGRAVITY="true"
-  fi
-
   # Swap databases and remove or conditionally rename old database
   # Number of available blocks on disk
   availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
@@ -136,8 +137,7 @@ gravity_swap_databases() {
   gravityBlocks=$(stat --format "%b" ${gravityDBfile})
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
-  # The variable KEEPOLDGRAVITY in /etc/pihole/pihole-FTL.conf can be used to disable this feature.
-  if [ "${availableBlocks}" -gt "$(("${gravityBlocks}" * 2))" ] && [ -f "${gravityDBfile}" ] && ${KEEPOLDGRAVITY,,}; then
+  if [ "${availableBlocks}" -gt "$(("${gravityBlocks}" * 2))" ] && [ -f "${gravityDBfile}" ]; then
     echo -e "  ${TICK} The old database remains available."
     mv "${gravityDBfile}" "${gravityOLDfile}"
   else
@@ -926,9 +926,11 @@ helpFunc() {
 Update domains from blocklists specified in adlists.list
 
 Options:
-  -f, --force          Force the download of all specified blocklists
-  -s, --switch         Switch to old database
-  -h, --help           Show this help dialog"
+  -f, --force          Force the download of all specified blocklists"
+  if ${KEEPOLDGRAVITY,,}; then
+	echo "  -s, --switch         Switch to old database"
+  fi
+  echo "    -h, --help           Show this help dialog"
   exit 0
 }
 
@@ -936,7 +938,7 @@ for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
     "-r" | "--recreate" ) recreate_database=true;;
-    "-s" | "--switch" ) switch_database;;
+    "-s" | "--switch" ) if ${KEEPOLDGRAVITY,,}; then switch_database;;
     "-h" | "--help" ) helpFunc;;
   esac
 done

@@ -25,6 +25,17 @@ if [[ -f "${pihole_FTL}" ]]; then
   source "${pihole_FTL}"
 fi
 
+# Source setupVars from install script
+setupVars="${piholeDir}/setupVars.conf"
+if [[ -f "${setupVars}" ]];then
+  source "${setupVars}"
+
+  # The variable KEEPOLDGRAVITY in /etc/pihole/setupVars.conf must be used to enable additional query features (countnew, listnew, blockednew).
+  if [[ -z "${KEEPOLDGRAVITY}" ]] ; then
+    KEEPOLDGRAVITY="false"
+  fi
+fi
+
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
@@ -62,8 +73,28 @@ scanList(){
     esac
 }
 
+CheckDatabaseDates() {
+  # Check if the OLD database exists.
+  if [[ ! -f "${gravityOLDfile}" ]]; then
+    echo -e "  ${CROSS}  Old database ${gravityOLDfile} doesn't exist."
+    exit 1
+  else
+    # Check if the current database is more recent.
+    if [[ $(sqlite3 "${gravityOLDfile}" "SELECT value FROM info \
+              WHERE property IS 'updated';") \
+        > \
+          $(sqlite3 "${gravityDBfile}" "SELECT value FROM info \
+              WHERE property IS 'updated';") ]]; then
+      echo -e "  ${CROSS}  Old database ${gravityOLDfile} is more recent."
+      exit 1
+    fi
+  fi
+}
+
 # function to count new domain entries since last gravity run
 CountNewDomains() {
+  # Execute only if the most recent database is active
+  CheckDatabaseDates
   printf %s "  ${INFO} Running query, please be patient..."
   # store query result (count) in variable
   newdomainentries="$(
@@ -78,6 +109,8 @@ EOSQL
 
 # function to list new domain entries since last gravity run
 ListNewDomains() {
+  # Execute only if the most recent database is active
+  CheckDatabaseDates
   QueryLimit=""
   if [ -z "${all}" ]; then
     QueryLimit="Limit 100"
@@ -115,80 +148,69 @@ EOSQL
 # present (new) in the latest (active) gravity database,
 # and NOT present in the old gravity database.
 FindNewBlockedDomains() {
-  # Check if the OLD database exists.
-  if [[ ! -f "${gravityOLDfile}" ]]; then
-    echo -e "  ${CROSS}  Old database ${gravityOLDfile} doesn't exist."
-    exit 1
-  else
-    # Check if the current database is more recent.
-    if [[ $(sqlite3 "${gravityOLDfile}" "SELECT value FROM info \
-              WHERE property IS 'updated';") \
-        > \
-          $(sqlite3 "${gravityDBfile}" "SELECT value FROM info \
-              WHERE property IS 'updated';") ]]; then
-      echo -e "  ${CROSS}  Old database ${gravityOLDfile} is more recent."
-      exit 1
-    fi
-    # Run the queries
-    printf %s "  ${INFO} Running queries, please be patient..."
-    # Find the status 1 queries first
-    mapfile -t domainarray < <( sqlite3 "${ftlDBfile}" << EOSQL
-      ATTACH '${gravityDBfile}' AS new;
-      ATTACH '${gravityOLDfile}' AS old;
-      SELECT DISTINCT queries.domain, '' || adlist.address || '' FROM queries
-      JOIN gravity ON new.gravity.domain = queries.domain
-      JOIN adlist ON adlist.id = new.gravity.adlist_id
-      WHERE queries.domain NOT IN (SELECT domain FROM old.gravity)
-      AND queries.domain IN (SELECT domain FROM new.gravity)
-      AND queries.status IN (1)
-      AND timestamp > (SELECT value FROM new.info WHERE property = 'updated');
+  # Execute only if the most recent database is active
+  CheckDatabaseDates
+  # Run the queries
+  printf %s "  ${INFO} Running queries, please be patient..."
+  # Find the status 1 queries first
+  mapfile -t domainarray < <( sqlite3 "${ftlDBfile}" << EOSQL
+    ATTACH '${gravityDBfile}' AS new;
+    ATTACH '${gravityOLDfile}' AS old;
+    SELECT DISTINCT queries.domain, '' || adlist.address || '' FROM queries
+    JOIN gravity ON new.gravity.domain = queries.domain
+    JOIN adlist ON adlist.id = new.gravity.adlist_id
+    WHERE queries.domain NOT IN (SELECT domain FROM old.gravity)
+    AND queries.domain IN (SELECT domain FROM new.gravity)
+    AND queries.status IN (1)
+    AND timestamp > (SELECT value FROM new.info WHERE property = 'updated');
 EOSQL
-      )
-    if [ ! "${#domainarray[@]}" -eq 0 ]; then
-      for (( j=0; j<"${#domainarray[@]}"; j++ )); do
-        IFS='|'
-        read -r domain urllist <<< "${domainarray[j]}"
-        printf '\r%s\n' "$(tput el)  ${INFO} Blocked: ${domain} (${COL_GREEN}${urllist}${COL_NC})"
-      done
-    fi
-    # Now find the CNAME matches (status 9)
-    mapfile -t cnamearray < <( sqlite3 "${ftlDBfile}" << EOSQL
-      ATTACH '${gravityDBfile}' AS new;
-      ATTACH '${gravityOLDfile}' AS old;
-      SELECT DISTINCT queries.domain, '' || adlist.address || '', queries.additional_info FROM queries
-      JOIN gravity ON new.gravity.domain = queries.additional_info
-      JOIN adlist ON adlist.id = new.gravity.adlist_id
-      WHERE queries.additional_info NOT IN (SELECT domain FROM old.gravity)
-      AND queries.additional_info IN (SELECT domain FROM new.gravity)
-      AND queries.status IN (9)
-      AND timestamp > (SELECT value FROM new.info WHERE property = 'updated');
+    )
+  if [ ! "${#domainarray[@]}" -eq 0 ]; then
+    for (( j=0; j<"${#domainarray[@]}"; j++ )); do
+      IFS='|'
+      read -r domain urllist <<< "${domainarray[j]}"
+      printf '\r%s\n' "$(tput el)  ${INFO} Blocked: ${domain} (${COL_GREEN}${urllist}${COL_NC})"
+    done
+  fi
+  # Now find the CNAME matches (status 9)
+  mapfile -t cnamearray < <( sqlite3 "${ftlDBfile}" << EOSQL
+    ATTACH '${gravityDBfile}' AS new;
+    ATTACH '${gravityOLDfile}' AS old;
+    SELECT DISTINCT queries.domain, '' || adlist.address || '', queries.additional_info FROM queries
+    JOIN gravity ON new.gravity.domain = queries.additional_info
+    JOIN adlist ON adlist.id = new.gravity.adlist_id
+    WHERE queries.additional_info NOT IN (SELECT domain FROM old.gravity)
+    AND queries.additional_info IN (SELECT domain FROM new.gravity)
+    AND queries.status IN (9)
+    AND timestamp > (SELECT value FROM new.info WHERE property = 'updated');
 EOSQL
-      )
-    if [ ! "${#cnamearray[@]}" -eq 0 ]; then
-      for (( j=0; j<"${#cnamearray[@]}"; j++ )); do
-        IFS='|'
-        read -r domain urllist additional_info <<< "${cnamearray[j]}"
-        printf '\r%s\n' "$(tput el)  ${INFO} Blocked: ${domain}. (${COL_BLUE}CNAME${COL_NC})"
-        echo -e "        Domain: ${additional_info} (${COL_GREEN}${urllist}${COL_NC})"
-      done
-    fi
-    if [[ "${#domainarray[@]}" -eq 0 && "${#cnamearray[@]}" -eq 0 ]]; then
-      printf '\r%s\n' "$(tput el)  ${INFO} No new domains have been blocked yet."
-    fi
+    )
+  if [ ! "${#cnamearray[@]}" -eq 0 ]; then
+    for (( j=0; j<"${#cnamearray[@]}"; j++ )); do
+      IFS='|'
+      read -r domain urllist additional_info <<< "${cnamearray[j]}"
+      printf '\r%s\n' "$(tput el)  ${INFO} Blocked: ${domain}. (${COL_BLUE}CNAME${COL_NC})"
+      echo -e "        Domain: ${additional_info} (${COL_GREEN}${urllist}${COL_NC})"
+    done
+  fi
+  if [[ "${#domainarray[@]}" -eq 0 && "${#cnamearray[@]}" -eq 0 ]]; then
+    printf '\r%s\n' "$(tput el)  ${INFO} No new domains have been blocked yet."
   fi
   exit 0
 }
 
 if [[ "${options}" == "-h" ]] || [[ "${options}" == "--help" ]]; then
-    echo "Usage: pihole -q [option] <domain>
+  echo "Usage: pihole -q [option] <domain>
 Example: 'pihole -q -exact domain.com'
 Query the adlists for a specified domain
 
-Options:
-  -blockednew         List blocked domains since last gravity run
+Options:"
+  if ${KEEPOLDGRAVITY,,}; then
+    echo "  -blockednew         List blocked domains since last gravity run
   -countnew           Count new domain enties since last gravity run
-  -listnew            List new domain entries since last gravity run
-  -exact              Search the block lists for exact domain matches
+  -listnew            List new domain entries since last gravity run"
+  fi
+  echo "  -exact              Search the block lists for exact domain matches
   -all                Return all query matches within a block list
   -h, --help          Show this help dialog"
   exit 0
@@ -202,12 +224,14 @@ else
     if [[ "${options}" == *"-exact"* ]]; then
         exact="exact"; matchType="exact ${matchType}"
     fi
-    # Count new domain enties since last gravity run
-    [[ "${options}" == *"-countnew"* ]] && CountNewDomains
-    # List new domain enties since last gravity run
-    [[ "${options}" == *"-listnew"* ]] && ListNewDomains
-    # List blocked domains since last gravity run
-    [[ "${options}" == *"-blockednew"* ]] && FindNewBlockedDomains
+    if ${KEEPOLDGRAVITY,,}; then
+      # Count new domain enties since last gravity run
+      [[ "${options}" == *"-countnew"* ]] && CountNewDomains
+      # List new domain enties since last gravity run
+      [[ "${options}" == *"-listnew"* ]] && ListNewDomains
+      # List blocked domains since last gravity run
+      [[ "${options}" == *"-blockednew"* ]] && FindNewBlockedDomains
+    fi
 fi
 
 # Strip valid options, leaving only the domain and invalid options
