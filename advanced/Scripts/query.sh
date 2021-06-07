@@ -65,7 +65,7 @@ scanList(){
 CountNewDomains() {
   printf %s "  ${INFO} Running query, please be patient..."
   # store query result (count) in variable
-  newdomainentries=$(
+  newdomainentries="$(
     sqlite3 "${gravityDBfile}" << EOSQL
       ATTACH '${gravityOLDfile}' AS old;
       SELECT count(DISTINCT domain) FROM gravity WHERE domain NOT IN (SELECT domain FROM old.gravity);
