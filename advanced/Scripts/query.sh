@@ -184,7 +184,7 @@ Example: 'pihole -q -exact domain.com'
 Query the adlists for a specified domain
 
 Options:
-  -blocked            List blocked domains since last gravity run
+  -blockednew         List blocked domains since last gravity run
   -countnew           Count new domain enties since last gravity run
   -listnew            List new domain entries since last gravity run
   -exact              Search the block lists for exact domain matches
