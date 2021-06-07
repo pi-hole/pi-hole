@@ -105,7 +105,7 @@ EOSQL
   done
   if [[ -z "${all}" ]] && [[ "${#newdomainarray[*]}" -ge 100 ]]; then
     echo -e "  ${INFO} Over 100 new domains found.
-        This can be overridden using the -all option"
+        If you want to see them all, append \"-all\" to the command"
   fi
   exit 0
 }
