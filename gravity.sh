@@ -930,7 +930,7 @@ Options:
   if ${KEEPOLDGRAVITY,,}; then
 	echo "  -s, --switch         Switch to old database"
   fi
-  echo "    -h, --help           Show this help dialog"
+  echo "  -h, --help           Show this help dialog"
   exit 0
 }
 
