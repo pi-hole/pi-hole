@@ -1954,7 +1954,7 @@ installLogrotate() {
         return 2
     fi
     # Copy the file over from the local repo
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate ${target}
+    install -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1963,7 +1963,7 @@ installLogrotate() {
     # the local properties of the /var/log directory
     logusergroup="$(stat -c '%U %G' /var/log)"
     # If there is a usergroup for log rotation,
-    if [[ ! -z "${logusergroup}" ]]; then
+    if [[ -n "${logusergroup}" ]]; then
         # replace the line in the logrotate script with that usergroup.
         sed -i "s/# su #/su ${logusergroup}/g;" ${target}
     fi
