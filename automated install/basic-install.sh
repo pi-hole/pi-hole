@@ -1944,9 +1944,17 @@ finalExports() {
 # Install the logrotate script
 installLogrotate() {
     local str="Installing latest logrotate script"
+    local target=/etc/pihole/logrotate
+
     printf "\\n  %b %s..." "${INFO}" "${str}"
+    if [[ -f ${target} ]]; then
+        printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
+        # Return value isn't that important, using 2 to indicate that it's not a fatal error but
+        # the function did not complete. 
+        return 2
+    fi
     # Copy the file over from the local repo
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
+    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate ${target}
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1957,7 +1965,7 @@ installLogrotate() {
     # If there is a usergroup for log rotation,
     if [[ ! -z "${logusergroup}" ]]; then
         # replace the line in the logrotate script with that usergroup.
-        sed -i "s/# su #/su ${logusergroup}/g;" /etc/pihole/logrotate
+        sed -i "s/# su #/su ${logusergroup}/g;" ${target}
     fi
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
