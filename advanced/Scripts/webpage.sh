@@ -438,6 +438,19 @@ ra-param=*,0,0
     fi
 }
 
+EnableDHCPSeeded() {
+  case "${args[2]}" in
+    "-s")
+      source "${setupVars}";
+      change_setting "DHCP_ACTIVE" "true";
+      echo EnableDHCP blah "$DHCP_ACTIVE" "$DHCP_START" "$DHCP_END" "$DHCP_ROUTER" "$DHCP_LEASETIME" "$PIHOLE_DOMAIN" "$DHCP_IPv6" "$DHCP_rapid_commit";
+    ;;
+    *)
+      echo EnableDHCP;
+    ;;
+    esac;
+}
+
 EnableDHCP() {
     change_setting "DHCP_ACTIVE" "true"
     change_setting "DHCP_START" "${args[2]}"
@@ -777,7 +790,7 @@ main() {
         "reboot"              ) Reboot;;
         "restartdns"          ) RestartDNS;;
         "setquerylog"         ) SetQueryLogOptions;;
-        "enabledhcp"          ) EnableDHCP;;
+        "enabledhcp"          ) EnableDHCPSeeded "$@";;
         "disabledhcp"         ) DisableDHCP;;
         "layout"              ) SetWebUILayout;;
         "theme"               ) SetWebUITheme;;
