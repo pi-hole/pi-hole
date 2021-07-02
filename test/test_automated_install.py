@@ -608,7 +608,7 @@ def test_package_manager_has_installer_deps(Pihole):
     install_dependent_packages ${INSTALLER_DEPS[@]}
     ''')
 
-    assert 'No package' not in output.stdout #centos7 still exits 0...
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
     assert output.rc == 0
 
 
@@ -621,7 +621,7 @@ def test_package_manager_has_pihole_deps(Pihole):
     install_dependent_packages ${PIHOLE_DEPS[@]}
     ''')
 
-    assert 'No package' not in output.stdout #centos7 still exits 0...
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
     assert output.rc == 0
 
 
@@ -634,6 +634,5 @@ def test_package_manager_has_web_deps(Pihole):
     install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
     ''')
 
-    assert 'No package' not in output.stdout #centos7 still exits 0...
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
     assert output.rc == 0
-
