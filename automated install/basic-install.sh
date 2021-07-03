@@ -357,10 +357,14 @@ if is_command apt-get ; then
     # Packages required to run this install script (stored as an array)
     INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail dnsutils)
     # Packages required to run Pi-hole (stored as an array)
-    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # Packages required for the Web admin interface (stored as an array)
     # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-json" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
+    if [[ "${phpInsNewer}" != true || "${phpInsMajor}" -lt 8 ]]; then
+        PIHOLE_WEB_DEPS+=("${phpVer}-json")
+    fi
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
@@ -1940,9 +1944,17 @@ finalExports() {
 # Install the logrotate script
 installLogrotate() {
     local str="Installing latest logrotate script"
+    local target=/etc/pihole/logrotate
+
     printf "\\n  %b %s..." "${INFO}" "${str}"
+    if [[ -f ${target} ]]; then
+        printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
+        # Return value isn't that important, using 2 to indicate that it's not a fatal error but
+        # the function did not complete. 
+        return 2
+    fi
     # Copy the file over from the local repo
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
+    install -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1951,9 +1963,9 @@ installLogrotate() {
     # the local properties of the /var/log directory
     logusergroup="$(stat -c '%U %G' /var/log)"
     # If there is a usergroup for log rotation,
-    if [[ ! -z "${logusergroup}" ]]; then
+    if [[ -n "${logusergroup}" ]]; then
         # replace the line in the logrotate script with that usergroup.
-        sed -i "s/# su #/su ${logusergroup}/g;" /etc/pihole/logrotate
+        sed -i "s/# su #/su ${logusergroup}/g;" ${target}
     fi
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
