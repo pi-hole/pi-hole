@@ -426,7 +426,7 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
         echo "#quiet-dhcp6
 #enable-ra
 dhcp-option=option6:dns-server,[::]
-dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
+dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,64,3600
 ra-param=*,0,0
 " >> "${dhcpconfig}"
     fi
@@ -716,7 +716,7 @@ RemoveCustomDNSAddress() {
     host="${args[3]}"
 
     if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-        sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
     else
         echo -e "  ${CROSS} Invalid IP has been passed"
         exit 1
@@ -748,7 +748,7 @@ RemoveCustomCNAMERecord() {
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
         if [[ -n "${validDomain}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}/d" "${dnscustomcnamefile}"
+            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
         else
             echo "  ${CROSS} Invalid Target Passed!"
             exit 1
