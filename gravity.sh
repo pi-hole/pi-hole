@@ -73,6 +73,8 @@ fi
 # have changed
 gravityDBfile="${GRAVITYDB}"
 gravityTEMPfile="${GRAVITYDB}_temp"
+gravityDIR="$(dirname -- "${gravityDBfile}")"
+gravityOLDfile="${gravityDIR}/gravity_old.db"
 
 if [[ -z "${BLOCKINGMODE}" ]] ; then
   BLOCKINGMODE="NULL"
@@ -123,8 +125,19 @@ gravity_swap_databases() {
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 
-  # Swap databases and remove old database
-  rm "${gravityDBfile}"
+  # Swap databases and remove or conditionally rename old database
+  # Number of available blocks on disk
+  availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
+  # Number of blocks, used by gravity.db
+  gravityBlocks=$(stat --format "%b" ${gravityDBfile})
+  # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
+  # Better be safe than sorry...
+  if [ "${availableBlocks}" -gt "$(("${gravityBlocks}" * 2))" ] && [ -f "${gravityDBfile}" ]; then
+    echo -e "  ${TICK} The old database remains available."
+    mv "${gravityDBfile}" "${gravityOLDfile}"
+  else
+    rm "${gravityDBfile}"
+  fi
   mv "${gravityTEMPfile}" "${gravityDBfile}"
 }
 
@@ -889,6 +902,11 @@ for var in "$@"; do
     "-h" | "--help" ) helpFunc;;
   esac
 done
+
+# Remove OLD (backup) gravity file, if it exists
+if [[ -f "${gravityOLDfile}" ]]; then
+  rm "${gravityOLDfile}"
+fi
 
 # Trap Ctrl-C
 gravity_Trap
