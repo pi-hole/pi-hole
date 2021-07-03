@@ -597,3 +597,42 @@ def test_os_check_passes(Pihole):
     ''')
     expected_stdout = 'Supported OS detected'
     assert expected_stdout in detectOS.stdout
+
+
+def test_package_manager_has_installer_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for the installer'''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
+
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0
+
+
+def test_package_manager_has_pihole_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for Pi-hole '''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${PIHOLE_DEPS[@]}
+    ''')
+
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0
+
+
+def test_package_manager_has_web_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for web '''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    distro_check
+    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
+    ''')
+
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0
