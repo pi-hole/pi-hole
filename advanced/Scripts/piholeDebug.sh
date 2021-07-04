@@ -1281,56 +1281,74 @@ analyze_gravity_list() {
     IFS="$OLD_IFS"
 }
 
+obfuscated_pihole_log() {
+  local pihole_log=("$@")
+  local line
+  local error_to_check_for
+  local line_to_obfuscate
+  local obfuscated_line
+  for line in "${pihole_log[@]}"; do
+      # A common error in the pihole.log is when there is a non-hosts formatted file
+      # that the DNS server is attempting to read.  Since it's not formatted
+      # correctly, there will be an entry for "bad address at line n"
+      # So we can check for that here and highlight it in red so the user can see it easily
+      error_to_check_for=$(echo "${line}" | grep 'bad address at')
+      # Some users may not want to have the domains they visit sent to us
+      # To that end, we check for lines in the log that would contain a domain name
+      line_to_obfuscate=$(echo "${line}" | grep ': query\|: forwarded\|: reply')
+      # If the variable contains a value, it found an error in the log
+      if [[ -n ${error_to_check_for} ]]; then
+          # So we can print it in red to make it visible to the user
+          log_write "   ${CROSS} ${COL_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
+      else
+          # If the variable does not a value (the current default behavior), so do not obfuscate anything
+          if [[ -z ${OBFUSCATE} ]]; then
+              log_write "   ${line}"
+          # Othwerise, a flag was passed to this command to obfuscate domains in the log
+          else
+              # So first check if there are domains in the log that should be obfuscated
+              if [[ -n ${line_to_obfuscate} ]]; then
+                  # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
+                  # so we substitute the domain for the placeholder value
+                  obfuscated_line=$(echo "${line_to_obfuscate}" | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
+                  log_write "   ${obfuscated_line}"
+              else
+                  log_write "   ${line}"
+              fi
+          fi
+      fi
+  done
+}
+
 analyze_pihole_log() {
-    echo_current_diagnostic "Pi-hole log"
-    local head_line
-    # Put the current Internal Field Separator into another variable so it can be restored later
-    OLD_IFS="$IFS"
-    # Get the lines that are in the file(s) and store them in an array for parsing later
-    IFS=$'\r\n'
-    local pihole_log_permissions
-    pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
-    log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
-    local pihole_log_head=()
-    mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
-    log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
-    local error_to_check_for
-    local line_to_obfuscate
-    local obfuscated_line
-    for head_line in "${pihole_log_head[@]}"; do
-        # A common error in the pihole.log is when there is a non-hosts formatted file
-        # that the DNS server is attempting to read.  Since it's not formatted
-        # correctly, there will be an entry for "bad address at line n"
-        # So we can check for that here and highlight it in red so the user can see it easily
-        error_to_check_for=$(echo "${head_line}" | grep 'bad address at')
-        # Some users may not want to have the domains they visit sent to us
-        # To that end, we check for lines in the log that would contain a domain name
-        line_to_obfuscate=$(echo "${head_line}" | grep ': query\|: forwarded\|: reply')
-        # If the variable contains a value, it found an error in the log
-        if [[ -n ${error_to_check_for} ]]; then
-            # So we can print it in red to make it visible to the user
-            log_write "   ${CROSS} ${COL_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
-        else
-            # If the variable does not a value (the current default behavior), so do not obfuscate anything
-            if [[ -z ${OBFUSCATE} ]]; then
-                log_write "   ${head_line}"
-            # Othwerise, a flag was passed to this command to obfuscate domains in the log
-            else
-                # So first check if there are domains in the log that should be obfuscated
-                if [[ -n ${line_to_obfuscate} ]]; then
-                    # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
-                    # so we substitute the domain for the placeholder value
-                    obfuscated_line=$(echo "${line_to_obfuscate}" | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
-                    log_write "   ${obfuscated_line}"
-                else
-                    log_write "   ${head_line}"
-                fi
-            fi
-        fi
-    done
-    log_write ""
-    # Set the IFS back to what it was
-    IFS="$OLD_IFS"
+  echo_current_diagnostic "Pi-hole log"
+  local pihole_log_head=()
+  local pihole_log_tail=()
+  local pihole_log_permissions
+  local logging_enabled
+
+  logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
+  if [[ "${logging_enabled}" == "0" ]]; then
+      # Inform user that logging has been disabled and pihole.log does not contain queries
+      log_write "${INFO} Query logging is disabled"
+      log_write ""
+  fi
+  # Put the current Internal Field Separator into another variable so it can be restored later
+  OLD_IFS="$IFS"
+  # Get the lines that are in the file(s) and store them in an array for parsing later
+  IFS=$'\r\n'
+  pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
+  log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
+  mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
+  log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
+  obfuscated_pihole_log "${pihole_log_head[@]}"
+  log_write ""
+  mapfile -t pihole_log_tail < <(tail -n 20 ${PIHOLE_LOG})
+  log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_LOG})------${COL_NC}"
+  obfuscated_pihole_log "${pihole_log_tail[@]}"
+  log_write ""
+  # Set the IFS back to what it was
+  IFS="$OLD_IFS"
 }
 
 tricorder_use_nc_or_curl() {
