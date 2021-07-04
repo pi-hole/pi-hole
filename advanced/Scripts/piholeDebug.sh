@@ -1299,7 +1299,7 @@ obfuscated_pihole_log() {
       # If the variable contains a value, it found an error in the log
       if [[ -n ${error_to_check_for} ]]; then
           # So we can print it in red to make it visible to the user
-          log_write "   ${CROSS} ${COL_RED}${head_line}${COL_NC} (${FAQ_BAD_ADDRESS})"
+          log_write "   ${CROSS} ${COL_RED}${line}${COL_NC} (${FAQ_BAD_ADDRESS})"
       else
           # If the variable does not a value (the current default behavior), so do not obfuscate anything
           if [[ -z ${OBFUSCATE} ]]; then
