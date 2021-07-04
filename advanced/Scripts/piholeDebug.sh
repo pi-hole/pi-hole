@@ -859,13 +859,13 @@ dig_at() {
 
     # Store the arguments as variables with names
     local protocol="${1}"
-    local IP="${2}"
     echo_current_diagnostic "Name resolution (IPv${protocol}) using a random blocked domain and a known ad-serving domain"
     # Set more local variables
     # We need to test name resolution locally, via Pi-hole, and via a public resolver
     local local_dig
-    local pihole_dig
     local remote_dig
+    local interfaces
+    local addresses
     # Use a static domain that we know has IPv4 and IPv6 to avoid false positives
     # Sometimes the randomly chosen domains don't use IPv6, or something else is wrong with them
     local remote_url="doubleclick.com"
@@ -874,15 +874,15 @@ dig_at() {
     if [[ ${protocol} == "6" ]]; then
         # Set the IPv6 variables and record type
         local local_address="::1"
-        local pihole_address="${IP}"
         local remote_address="2001:4860:4860::8888"
+        local sed_selector="inet6"
         local record_type="AAAA"
     # Otherwise, it should be 4
     else
         # so use the IPv4 values
         local local_address="127.0.0.1"
-        local pihole_address="${IP}"
         local remote_address="8.8.8.8"
+        local sed_selector="inet"
         local record_type="A"
     fi
 
@@ -892,32 +892,51 @@ dig_at() {
     local random_url
     random_url=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
 
-    # First, do a dig on localhost to see if Pi-hole can use itself to block a domain
-    if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @${local_address} +short "${record_type}"); then
-        # If it can, show success
-        log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} via ${COL_CYAN}localhost$COL_NC (${local_address})"
-    else
-        # Otherwise, show a failure
-        log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_RED}localhost${COL_NC} (${local_address})"
-    fi
-
     # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
     # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
     # just asing itself locally
-    # The default timeouts and tries are reduced in case the DNS server isn't working, so the user isn't waiting for too long
+    # The default timeouts and tries are reduced in case the DNS server isn't working, so the user isn't
+    # waiting for too long
+    #
+    # Turn off history expansion such that the "!" in the sed command cannot do silly things
+    set +H
+    # Get interfaces
+    # sed logic breakdown:
+    #     / master /d;
+    #          Removes all interfaces that are slaves of others (e.g. virtual docker interfaces)
+    #     /UP/!d;
+    #          Removes all interfaces which are not UP
+    #     s/^[0-9]*: //g;
+    #          Removes interface index
+    #     s/: <.*//g;
+    #          Removes everything after the interface name
+    interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/: <.*//g;")"
 
-    # If Pi-hole can dig itself from it's IP (not the loopback address)
-    if pihole_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${pihole_address}" +short "${record_type}"); then
-        # show a success
-        log_write "${TICK} ${random_url} ${COL_GREEN}is ${pihole_dig}${COL_NC} via ${COL_CYAN}Pi-hole${COL_NC} (${pihole_address})"
-    else
-        # Otherwise, show a failure
-        log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} via ${COL_RED}Pi-hole${COL_NC} (${pihole_address})"
-    fi
+    while IFS= read -r iface ; do
+        # Get addresses of current interface
+        # sed logic breakdown:
+        #     /inet(|6) /!d;
+        #          Removes all lines from ip a that do not contain either "inet " or "inet6 "
+        #     s/^.*inet(|6) //g;
+        #          Removes all leading whitespace as well as the "inet " or "inet6 " string
+        #     s/\/.*$//g;
+        #          Removes CIDR and everything thereafter (e.g., scope properties)
+        addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
+        while IFS= read -r local_address ; do
+            # Check if Pi-hole can use itself to block a domain
+            if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
+                # If it can, show success
+                log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
+            else
+                # Otherwise, show a failure
+                log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
+            fi
+        done <<< "${addresses}"
+    done <<< "${interfaces}"
 
     # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
     # We are using the static remote_url here instead of a random one because we know it works with IPv4 and IPv6
-    if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @${remote_address} +short "${record_type}" | head -n1); then
+    if remote_dig=$(dig +tries=1 +time=2 -"${protocol}" "${remote_url}" @"${remote_address}" +short "${record_type}" | head -n1); then
         # If successful, the real IP of the domain will be returned instead of Pi-hole's IP
         log_write "${TICK} ${remote_url} ${COL_GREEN}is ${remote_dig}${COL_NC} via ${COL_CYAN}a remote, public DNS server${COL_NC} (${remote_address})"
     else
@@ -1032,7 +1051,7 @@ parse_file() {
     local file_lines
     # For each line in the file,
     for file_lines in "${file_info[@]}"; do
-        if [[ ! -z "${file_lines}" ]]; then
+        if [[ -n "${file_lines}" ]]; then
             # don't include the Web password hash
             [[ "${file_lines}" =~ ^\#.*$  || ! "${file_lines}" || "${file_lines}" == "WEBPASSWORD="* ]] && continue
             # otherwise, display the lines of the file
@@ -1046,12 +1065,8 @@ parse_file() {
 check_name_resolution() {
     # Check name resolution from localhost, Pi-hole's IP, and Google's name severs
     # using the function we created earlier
-    dig_at 4 "${IPV4_ADDRESS%/*}"
-    # If IPv6 enabled,
-    if [[ "${IPV6_ADDRESS}" ]]; then
-        # check resolution
-        dig_at 6 "${IPV6_ADDRESS%/*}"
-    fi
+    dig_at 4
+    dig_at 6
 }
 
 # This function can check a directory exists

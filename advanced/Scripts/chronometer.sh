@@ -498,10 +498,6 @@ chronoFunc() {
         printFunc " RAM usage: " "$ram_perc%" "$ram_info"
         printFunc " HDD usage: " "$disk_perc" "$disk_info"
 
-        if [[ "$scr_lines" -gt 17 ]] && [[ "$chrono_width" != "small" ]]; then
-            printFunc "  LAN addr: " "${IPV4_ADDRESS/\/*/}" "$lan_info"
-        fi
-
         if [[ "$DHCP_ACTIVE" == "true" ]]; then
             printFunc "DHCP usage: " "$ph_dhcp_percent%" "$dhcp_info"
         fi

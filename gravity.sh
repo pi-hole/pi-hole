@@ -47,16 +47,6 @@ domainsExtension="domains"
 setupVars="${piholeDir}/setupVars.conf"
 if [[ -f "${setupVars}" ]];then
   source "${setupVars}"
-
-  # Remove CIDR mask from IPv4/6 addresses
-  IPV4_ADDRESS="${IPV4_ADDRESS%/*}"
-  IPV6_ADDRESS="${IPV6_ADDRESS%/*}"
-
-  # Determine if IPv4/6 addresses exist
-  if [[ -z "${IPV4_ADDRESS}" ]] && [[ -z "${IPV6_ADDRESS}" ]]; then
-    echo -e "  ${COL_LIGHT_RED}No IP addresses found! Please run 'pihole -r' to reconfigure${COL_NC}"
-    exit 1
-  fi
 else
   echo -e "  ${COL_LIGHT_RED}Installation Failure: ${setupVars} does not exist! ${COL_NC}
   Please run 'pihole -r', and choose the 'reconfigure' option to fix."
@@ -577,7 +567,7 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}" compression="${7}"
-  local heisenbergCompensator="" patternBuffer str httpCode success=""
+  local heisenbergCompensator="" patternBuffer str httpCode success="" ip
 
   # Create temp file to store content on disk instead of RAM
   patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
@@ -595,7 +585,10 @@ gravity_DownloadBlocklistFromUrl() {
   blocked=false
   case $BLOCKINGMODE in
     "IP-NODATA-AAAA"|"IP")
-        if [[ $(dig "${domain}" +short | grep "${IPV4_ADDRESS}" -c) -ge 1 ]]; then
+        # Get IP address of this domain
+        ip="$(dig "${domain}" +short)"
+        # Check if this IP matches any IP of the system
+        if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<< "$(ip a)") -gt 0 ]]; then
           blocked=true
         fi;;
     "NXDOMAIN")
@@ -798,42 +791,11 @@ gravity_ShowCount() {
   gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
 }
 
-# Parse list of domains into hosts format
-gravity_ParseDomainsIntoHosts() {
-  awk -v ipv4="$IPV4_ADDRESS" -v ipv6="$IPV6_ADDRESS" '{
-    # Remove windows CR line endings
-    sub(/\r$/, "")
-    # Parse each line as "ipaddr domain"
-    if(ipv6 && ipv4) {
-      print ipv4" "$0"\n"ipv6" "$0
-    } else if(!ipv6) {
-      print ipv4" "$0
-    } else {
-      print ipv6" "$0
-    }
-  }' >> "${2}" < "${1}"
-}
-
 # Create "localhost" entries into hosts format
 gravity_generateLocalList() {
-  local hostname
-
-  if [[ -s "/etc/hostname" ]]; then
-    hostname=$(< "/etc/hostname")
-  elif command -v hostname &> /dev/null; then
-    hostname=$(hostname -f)
-  else
-    echo -e "  ${CROSS} Unable to determine fully qualified domain name of host"
-    return 0
-  fi
-
-  echo -e "${hostname}\\npi.hole" > "${localList}.tmp"
-
   # Empty $localList if it already exists, otherwise, create it
-  : > "${localList}"
+  echo "### Do not modify this file, it will be overwritten by pihole -g" > "${localList}"
   chmod 644 "${localList}"
-
-  gravity_ParseDomainsIntoHosts "${localList}.tmp" "${localList}"
 
   # Add additional LAN hosts provided by OpenVPN (if available)
   if [[ -f "${VPNList}" ]]; then

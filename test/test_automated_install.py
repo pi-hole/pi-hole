@@ -45,8 +45,6 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
         # Currently debug test function only
         echo "Outputting sourced variables"
         echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-        echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-        echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
         echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
         echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
     }
