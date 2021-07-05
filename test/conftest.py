@@ -8,8 +8,6 @@ check_output = testinfra.get_backend(
 
 SETUPVARS = {
     'PIHOLE_INTERFACE': 'eth99',
-    'IPV4_ADDRESS': '1.1.1.1',
-    'IPV6_ADDRESS': 'FE80::240:D0FF:FE48:4672',
     'PIHOLE_DNS_1': '4.2.2.1',
     'PIHOLE_DNS_2': '4.2.2.2'
 }

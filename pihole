@@ -363,16 +363,13 @@ tailFunc() {
   fi
   echo -e "  ${INFO} Press Ctrl-C to exit"
 
-  # Retrieve IPv4/6 addresses
-  source /etc/pihole/setupVars.conf
-
   # Strip date from each line
   # Color blocklist/blacklist/wildcard entries as red
   # Color A/AAAA/DHCP strings as white
   # Color everything else as gray
-  tail -f /var/log/pihole.log | sed -E \
+  tail -f /var/log/pihole.log | grep --line-buffered "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
-    -e "s,(.*(blacklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(blacklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0
@@ -456,7 +453,10 @@ Debugging Options:
                         Add '-a' to automatically upload the log to tricorder.pi-hole.net
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
-  -t, tail            View the live output of the Pi-hole log
+  -t, tail [arg]      View the live output of the Pi-hole log.
+                      Add an optional argument to filter the log
+                      (regular expressions are supported)
+
 
 Options:
   -a, admin           Web interface options
@@ -530,7 +530,7 @@ case "${1}" in
   "status"                      ) statusFunc "$2";;
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
-  "-t" | "tail"                 ) tailFunc;;
+  "-t" | "tail"                 ) tailFunc "$2";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;

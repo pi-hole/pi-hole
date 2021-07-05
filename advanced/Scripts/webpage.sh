@@ -273,11 +273,6 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         fi
     fi
 
-    # Prevent Firefox from automatically switching over to DNS-over-HTTPS
-    # This follows https://support.mozilla.org/en-US/kb/configuring-networks-disable-dns-over-https
-    # (sourced 7th September 2019)
-    add_dnsmasq_setting "server=/use-application-dns.net/"
-
     # We need to process DHCP settings here as well to account for possible
     # changes in the non-FQDN forwarding. This cannot be done in 01-pihole.conf
     # as we don't want to delete all local=/.../ lines so it's much safer to
@@ -716,7 +711,7 @@ RemoveCustomDNSAddress() {
     host="${args[3]}"
 
     if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-        sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
     else
         echo -e "  ${CROSS} Invalid IP has been passed"
         exit 1
@@ -747,7 +742,7 @@ RemoveCustomCNAMERecord() {
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
         if [[ -n "${validDomain}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}/d" "${dnscustomcnamefile}"
+            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
         else
             echo "  ${CROSS} Invalid Target Passed!"
             exit 1
