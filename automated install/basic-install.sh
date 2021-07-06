@@ -181,6 +181,10 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+apt_package_exists() {
+    apt-cache show "$1" > /dev/null 2>&1
+}
+
 os_check() {
     if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
         # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
@@ -306,10 +310,10 @@ if is_command apt-get ; then
     # Update package cache. This is required already here to assure apt-cache calls have package lists available.
     update_package_cache || exit 1
     # Debian 7 doesn't have iproute2 so check if it's available first
-    if apt-cache show iproute2 > /dev/null 2>&1; then
+    if apt_package_exists iproute2; then
         iproute_pkg="iproute2"
     # Otherwise, check if iproute is available
-    elif apt-cache show iproute > /dev/null 2>&1; then
+    elif apt_package_exists iproute; then
         iproute_pkg="iproute"
     # Else print error and exit
     else
@@ -330,10 +334,10 @@ if is_command apt-get ; then
     # those packages should fall back to the default (latest?)
     if [[ "$phpInsNewer" != true ]]; then
         # Prefer the php metapackage if it's there
-        if apt-cache show php > /dev/null 2>&1; then
+        if apt_package_exists php; then
             phpVer="php"
         # Else fall back on the php5 package if it's there
-        elif apt-cache show php5 > /dev/null 2>&1; then
+        elif apt_package_exists php5; then
             phpVer="php5"
         # Else print error and exit
         else
@@ -346,9 +350,9 @@ if is_command apt-get ; then
         phpVer="php$phpInsMajor.$phpInsMinor"
     fi
     # We also need the correct version for `php-sqlite` (which differs across distros)
-    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
+    if apt_package_exists "${phpVer}-sqlite3"; then
         phpSqlite="sqlite3"
-    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
+    elif apt_package_exists "${phpVer}-sqlite"; then
         phpSqlite="sqlite"
     else
         printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
@@ -364,6 +368,10 @@ if is_command apt-get ; then
     # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
     if [[ "${phpInsNewer}" != true || "${phpInsMajor}" -lt 8 ]]; then
         PIHOLE_WEB_DEPS+=("${phpVer}-json")
+    fi
+    if apt_package_exists lighttpd-mod-deflate; then
+        # Debian 11 (bullseye) no longer includes mod-deflate by default with lighttpd
+        PIHOLE_WEB_DEPS+=(lighttpd-mod-deflate)
     fi
     # The Web server user,
     LIGHTTPD_USER="www-data"
@@ -1950,7 +1958,7 @@ installLogrotate() {
     if [[ -f ${target} ]]; then
         printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
         # Return value isn't that important, using 2 to indicate that it's not a fatal error but
-        # the function did not complete. 
+        # the function did not complete.
         return 2
     fi
     # Copy the file over from the local repo
