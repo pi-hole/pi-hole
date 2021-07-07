@@ -21,7 +21,6 @@ server.modules = (
     "mod_expire",
     "mod_fastcgi",
     "mod_accesslog",
-    "mod_compress",
     "mod_redirect",
     "mod_setenv",
     "mod_rewrite"
@@ -41,26 +40,6 @@ accesslog.format            = "%{%s}t|%V|%r|%s|%b"
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
 url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )
 static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
-
-compress.cache-dir = "/var/cache/lighttpd/compress/"
-compress.filetype  = (
-    "application/json",
-    "application/vnd.ms-fontobject",
-    "application/xml",
-    "font/eot",
-    "font/opentype",
-    "font/otf",
-    "font/ttf",
-    "image/bmp",
-    "image/svg+xml",
-    "image/vnd.microsoft.icon",
-    "image/x-icon",
-    "text/css",
-    "text/html",
-    "text/javascript",
-    "text/plain",
-    "text/xml"
-)
 
 mimetype.assign = (
     ".ico"   => "image/x-icon",
