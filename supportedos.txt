@@ -1,5 +1,0 @@
-Raspbian=9,10
-Ubuntu=16,18,20,21
-Debian=9,10,11
-Fedora=32,33
-CentOS=7,8
