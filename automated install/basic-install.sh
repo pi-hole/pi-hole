@@ -94,24 +94,9 @@ if [ -z "${USER}" ]; then
   USER="$(id -un)"
 fi
 
-
-# Check if we are running on a real terminal and find the rows and columns
-# If there is no real terminal, we will default to 80x24
-if [ -t 0 ] ; then
-  screen_size=$(stty size)
-else
-  screen_size="24 80"
-fi
-# Determine terminal rows and columns by parsing screen_size
-printf -v rows '%d' "${screen_size%% *}"
-printf -v columns '%d' "${screen_size##* }"
-
-# Divide by two so the dialogs take up half of the screen, which looks nice.
-r=$(( rows / 2 ))
-c=$(( columns / 2 ))
-# Unless the screen is tiny
-r=$(( r < 20 ? 20 : r ))
-c=$(( c < 70 ? 70 : c ))
+# whiptail dialog dimensions: 20 rows and 70 chars width assures to fit on small screens and is known to hold all content.
+r=20
+c=70
 
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
@@ -2050,7 +2035,7 @@ update_dialogs() {
         strAdd="You will be updated to the latest version."
     fi
     opt2a="Reconfigure"
-    opt2b="This will reset your Pi-hole and allow you to enter new settings."
+    opt2b="Resets Pi-hole and allows re-selecting settings."
 
     # Display the information to the user
     UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\\n\\nWe have detected an existing install.\\n\\nPlease choose from the following options: \\n($strAdd)" "${r}" "${c}" 2 \
