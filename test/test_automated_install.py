@@ -622,7 +622,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
                 'curl -s --head "{}" | ' +
                 'head -n 1 | ' +
                 'grep "HTTP/1.[01] [23].." > /dev/null')
-            digcommand = r"dig A +short {} @127.0.0.1"
+            digcommand = r"dig A +short {} @127.0.0.1 | head -n 1"
             pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
                 testpage = "http://" + page + "/admin/"
