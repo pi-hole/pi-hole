@@ -355,15 +355,6 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
         actual_rc = Pihole.run(check_man).rc
         assert exit_status_success == actual_rc
     # check not readable sudoers file
-    # TODO: directory may be readable?
-    # check_sudo = test_cmd.format(
-    #     'x', '/etc/sudoers.d/', piholeuser)
-    # actual_rc = Pihole.run(check_sudo).rc
-    # assert exit_status_success != actual_rc
-    # check_sudo = test_cmd.format(
-    #     'r', '/etc/sudoers.d/', piholeuser)
-    # actual_rc = Pihole.run(check_sudo).rc
-    # assert exit_status_success != actual_rc
     check_sudo = test_cmd.format(
         'r', '/etc/sudoers.d/pihole', piholeuser)
     actual_rc = Pihole.run(check_sudo).rc
@@ -401,7 +392,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     confirms all web page assets from Core repo are readable
     by $LIGHTTPD_USER on a fresh build
     '''
-    # TODO: also add IP address from setupVars?
     piholeWebpage = [
         "127.0.0.1",
         "pi.hole"
@@ -427,7 +417,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         chown {usergroup} "{compress}"
         mkdir -p "{uploads}"
         chown {usergroup} "{uploads}"
-        # TODO: changing these permissions might be wrong
         chmod 0777 /var
         chmod 0777 /var/cache
         chmod 0777 "{cache}"
@@ -548,7 +537,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
     # check files that need a running FTL to be created
     # readable and writeable pihole-FTL.db
-    # TODO: is created by FTL and if downloading fails this fails too?
     check_FTLconf = test_cmd.format(
         'r', '/etc/pihole/pihole-FTL.db', piholeuser)
     actual_rc = Pihole.run(check_FTLconf).rc
@@ -595,7 +583,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         for file in files:
             check_pihole = test_cmd.format('r', file, webuser)
             actual_rc = Pihole.run(check_pihole).rc
-    # TODO: which other files have to be checked?
     # check web interface files
     # change nameserver to pi-hole
     # setting nameserver in /etc/resolv.conf to pi-hole does
@@ -608,10 +595,6 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
         m = re.match(r"(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})", address)
         return bool(m)
     if installWebInterface is True:
-        # TODO: login into admin interface?
-        passwordcommand = 'grep "WEBPASSWORD" -c "/etc/pihole/setupVars.conf"'
-        passwd = Pihole.run(passwordcommand)
-        webpassword = passwd.stdout.strip()
         check_pihole = test_cmd.format('r', webroot + '/pihole', webuser)
         actual_rc = Pihole.run(check_pihole).rc
         assert exit_status_success == actual_rc
