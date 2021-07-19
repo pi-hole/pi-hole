@@ -625,11 +625,11 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
             digcommand = r"dig A +short {} @127.0.0.1"
             pagecontent = 'curl --verbose -L "{}"'
             for page in piholeWebpage:
-                testpage = "http://" + page + "/admin"
+                testpage = "http://" + page + "/admin/"
                 resolvesuccess = True
                 if is_ip(page) is False:
                     dig = Pihole.run(digcommand.format(page))
-                    testpage = "http://" + dig.stdout.strip() + "/admin"
+                    testpage = "http://" + dig.stdout.strip() + "/admin/"
                     resolvesuccess = dig.rc == 0
                 if resolvesuccess or pihole_is_ns:
                     # check HTTP status of blockpage
