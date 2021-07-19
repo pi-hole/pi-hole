@@ -394,7 +394,7 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     '''
     piholeWebpage = [
         "127.0.0.1",
-        "pi.hole"
+        # "pi.hole"
     ]
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
