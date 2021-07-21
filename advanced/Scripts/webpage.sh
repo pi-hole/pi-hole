@@ -44,7 +44,8 @@ Options:
   -e, email           Set an administrative contact address for the Block Page
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
-  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)"
+  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)
+  -t, teleporter      Backup configuration as an archive"
     exit 0
 }
 
