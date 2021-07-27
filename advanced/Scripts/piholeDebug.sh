@@ -1109,7 +1109,7 @@ list_files_in_dir() {
             :
         elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
             # SHM file - we do not want to see the content, but we want to see the files and their sizes
-            log_write "$(ls -ld "${dir_to_parse}"/"${each_file}")"
+            log_write "$(ls -lhd "${dir_to_parse}"/"${each_file}")"
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
