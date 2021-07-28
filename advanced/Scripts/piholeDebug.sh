@@ -165,9 +165,6 @@ PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
-"${PIHOLE_DNS_CONFIG_FILE}"
-"${PIHOLE_DHCP_CONFIG_FILE}"
-"${PIHOLE_WILDCARD_CONFIG_FILE}"
 "${WEB_SERVER_CONFIG_FILE}"
 "${WEB_SERVER_CUSTOM_CONFIG_FILE}"
 "${PIHOLE_INSTALL_LOG_FILE}"
