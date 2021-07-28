@@ -1110,6 +1110,10 @@ list_files_in_dir() {
         elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
             # SHM file - we do not want to see the content, but we want to see the files and their sizes
             log_write "$(ls -lhd "${dir_to_parse}"/"${each_file}")"
+        elif [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
+            # in case of the dnsmasq directory inlcuede all files in the debug output
+            log_write "\\n${COL_GREEN}$(ls -ld "${dir_to_parse}"/"${each_file}")${COL_NC}"
+            make_array_from_file "${dir_to_parse}/${each_file}"
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
