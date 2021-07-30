@@ -2042,11 +2042,10 @@ installPihole() {
     fi
     # Install the cron file
     installCron
+
     # Install the logrotate file
-    if ! installLogrotate; then
-        printf "  %b Failure in logrotate installation function.\\n" "${CROSS}"
-        # This isn't fatal, no need to exit.    
-    fi
+    installLogrotate || true
+
     # Check if dnsmasq is present. If so, disable it and back up any possible
     # config file
     disable_dnsmasq
