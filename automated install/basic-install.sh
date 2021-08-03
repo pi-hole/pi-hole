@@ -354,10 +354,12 @@ if is_command apt-get ; then
         printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
         exit 1
     fi
+    # Packages required to perfom the os_check (stored as an array)
+    OS_CHECK_DEPS=(grep dnsutils)
     # Packages required to run this install script (stored as an array)
-    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail dnsutils)
+    INSTALLER_DEPS=(git "${iproute_pkg}" whiptail)
     # Packages required to run Pi-hole (stored as an array)
-    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+    PIHOLE_DEPS=(dhcpcd5 cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # Packages required for the Web admin interface (stored as an array)
     # It's useful to separate this from Pi-hole, since the two repos are also setup separately
     PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
@@ -400,7 +402,8 @@ elif is_command rpm ; then
     # These variable names match the ones in the Debian family. See above for an explanation of what they are for.
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig bind-utils)
+    OS_CHECK_DEPS=(grep bind-utils)
+    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
     PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
@@ -1950,7 +1953,7 @@ installLogrotate() {
     if [[ -f ${target} ]]; then
         printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
         # Return value isn't that important, using 2 to indicate that it's not a fatal error but
-        # the function did not complete. 
+        # the function did not complete.
         return 2
     fi
     # Copy the file over from the local repo
@@ -2664,11 +2667,14 @@ main() {
     # Notify user of package availability
     notify_package_updates_available
 
-    # Install packages used by this installation script
-    install_dependent_packages "${INSTALLER_DEPS[@]}"
+    # Install packages necessary to perform os_check
+    install_dependent_packages "${OS_CHECK_DEPS[@]}"
 
     # Check that the installed OS is officially supported - display warning if not
     os_check
+
+    # Install packages used by this installation script
+    install_dependent_packages "${INSTALLER_DEPS[@]}"
 
     # Check if SELinux is Enforcing
     checkSelinux
