@@ -568,6 +568,7 @@ def test_os_check_fails(Pihole):
     Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    install_dependent_packages ${OS_CHECK_DEPS[@]}
     install_dependent_packages ${INSTALLER_DEPS[@]}
     cat <<EOT > /etc/os-release
     ID=UnsupportedOS
@@ -587,6 +588,7 @@ def test_os_check_passes(Pihole):
     Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    install_dependent_packages ${OS_CHECK_DEPS[@]}
     install_dependent_packages ${INSTALLER_DEPS[@]}
     ''')
     detectOS = Pihole.run('''
