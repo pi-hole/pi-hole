@@ -922,16 +922,20 @@ dig_at() {
         #     s/\/.*$//g;
         #          Removes CIDR and everything thereafter (e.g., scope properties)
         addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
-        while IFS= read -r local_address ; do
-            # Check if Pi-hole can use itself to block a domain
-            if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
-                # If it can, show success
-                log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
-            else
-                # Otherwise, show a failure
-                log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
-            fi
-        done <<< "${addresses}"
+        if [ -n "${addresses}" ]; then
+          while IFS= read -r local_address ; do
+              # Check if Pi-hole can use itself to block a domain
+              if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
+                  # If it can, show success
+                  log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
+              else
+                  # Otherwise, show a failure
+                  log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
+              fi
+          done <<< "${addresses}"
+        else
+          log_write "${TICK} No IPv${protocol} address available on ${COL_CYAN}${iface}${COL_NC}"
+        fi
     done <<< "${interfaces}"
 
     # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
