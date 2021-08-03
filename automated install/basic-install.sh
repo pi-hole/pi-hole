@@ -1696,20 +1696,7 @@ notify_package_updates_available() {
     fi
 }
 
-# This counter is outside of install_dependent_packages so that it can count the number of times the function is called.
-counter=0
-
 install_dependent_packages() {
-    # Local, named variables should be used here, especially for an iterator
-    # Add one to the counter
-    counter=$((counter+1))
-    if [[ "${counter}" == 1 ]]; then
-        # On the first loop, print a special message
-        printf "  %b Installer Dependency checks...\\n" "${INFO}"
-    else
-        # On all subsequent loops, print a generic message.
-        printf "  %b Main Dependency checks...\\n" "${INFO}"
-    fi
 
     # Install packages passed in via argument array
     # No spinner - conflicts with set -e
@@ -2650,12 +2637,14 @@ main() {
     notify_package_updates_available
 
     # Install packages necessary to perform os_check
+    printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
     install_dependent_packages "${OS_CHECK_DEPS[@]}"
 
     # Check that the installed OS is officially supported - display warning if not
     os_check
 
     # Install packages used by this installation script
+    printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
     install_dependent_packages "${INSTALLER_DEPS[@]}"
 
     # Check if SELinux is Enforcing
@@ -2722,6 +2711,8 @@ main() {
         dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
     fi
 
+    # Install packages used by the actual software
+    printf "  %b Checking for / installing Required dependencies for Pi-hole software...\\n" "${INFO}"
     install_dependent_packages "${dep_install_list[@]}"
     unset dep_install_list
 
