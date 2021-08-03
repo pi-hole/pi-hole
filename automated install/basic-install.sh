@@ -288,21 +288,6 @@ if is_command apt-get ; then
     PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-    # Some distros vary slightly so these fixes for dependencies may apply
-    # on Ubuntu 18.04.1 LTS we need to add the universe repository to gain access to dhcpcd5
-    APT_SOURCES="/etc/apt/sources.list"
-    if awk 'BEGIN{a=1;b=0}/bionic main/{a=0}/bionic.*universe/{b=1}END{exit a + b}' ${APT_SOURCES}; then
-        if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5" "${r}" "${c}"; then
-            printf "  %b Aborting installation: Dependencies could not be installed.\\n" "${CROSS}"
-            exit 1
-        else
-            printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
-            cp -p ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
-            printf "  %b Backed up current configuration to %s\\n" "${TICK}" "${APT_SOURCES}.backup"
-            add-apt-repository universe
-            printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
-        fi
-    fi
     # Update package cache. This is required already here to assure apt-cache calls have package lists available.
     update_package_cache || exit 1
     # Debian 7 doesn't have iproute2 so check if it's available first
@@ -359,7 +344,7 @@ if is_command apt-get ; then
     # Packages required to run this install script (stored as an array)
     INSTALLER_DEPS=(git "${iproute_pkg}" whiptail)
     # Packages required to run Pi-hole (stored as an array)
-    PIHOLE_DEPS=(dhcpcd5 cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # Packages required for the Web admin interface (stored as an array)
     # It's useful to separate this from Pi-hole, since the two repos are also setup separately
     PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
@@ -695,9 +680,17 @@ welcomeDialogs() {
     whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" "${r}" "${c}"
 
     # Explain the need for a static address
-    whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+    if whiptail --defaultno --backtitle "Initiating network interface" --title "Static IP Needed" --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
-In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." "${r}" "${c}"
+IMPORTANT: If you have not already done so, you must ensure that this device has a static IP. Either through DHCP reservation, or by manually assigning one. Depending on your operating system, there are many ways to achieve this.
+
+Choose yes to indicate that you have understood this message, and wish to continue" "${r}" "${c}"; then
+#Nothing to do, continue
+  echo
+else
+  printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+  exit 1
+fi
 }
 
 # A function that lets the user pick an interface to use with Pi-hole
@@ -850,8 +843,6 @@ use4andor6() {
     if [[ "${useIPv4}" ]]; then
         # Run our function to get the information we need
         find_IPv4_information
-        getStaticIPv4Settings
-        setStaticIPv4
     fi
     # If IPv6 is to be used,
     if [[ "${useIPv6}" ]]; then
@@ -868,159 +859,6 @@ use4andor6() {
         # and exit with an error
         exit 1
     fi
-}
-
-getStaticIPv4Settings() {
-    # Local, named variables
-    local ipSettingsCorrect
-    # Ask if the user wants to use DHCP settings as their static IP
-    # This is useful for users that are using DHCP reservations; then we can just use the information gathered via our functions
-    if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
-          IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" "${r}" "${c}"; then
-        # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
-        whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
-If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
-It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." "${r}" "${c}"
-    # Nothing else to do since the variables are already set above
-    else
-    # Otherwise, we need to ask the user to input their desired settings.
-    # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
-    # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-    until [[ "${ipSettingsCorrect}" = True ]]; do
-
-        # Ask for the IPv4 address
-        IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" "${r}" "${c}" "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
-        # Canceling IPv4 settings window
-        { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-        printf "  %b Your static IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
-
-        # Ask for the gateway
-        IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" "${r}" "${c}" "${IPv4gw}" 3>&1 1>&2 2>&3) || \
-        # Canceling gateway settings window
-        { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-        printf "  %b Your static IPv4 gateway: %s\\n" "${INFO}" "${IPv4gw}"
-
-        # Give the user a chance to review their settings before moving on
-        if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-            IP address: ${IPV4_ADDRESS}
-            Gateway:    ${IPv4gw}" "${r}" "${c}"; then
-                # After that's done, the loop ends and we move on
-                ipSettingsCorrect=True
-        else
-            # If the settings are wrong, the loop continues
-            ipSettingsCorrect=False
-        fi
-    done
-    # End the if statement for DHCP vs. static
-    fi
-}
-
-# Configure networking via dhcpcd
-setDHCPCD() {
-    # Check if the IP is already in the file
-    if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
-        printf "  %b Static IP already configured\\n" "${INFO}"
-    # If it's not,
-    else
-        # we can append these lines to dhcpcd.conf to enable a static IP
-        echo "interface ${PIHOLE_INTERFACE}
-        static ip_address=${IPV4_ADDRESS}
-        static routers=${IPv4gw}
-        static domain_name_servers=${PIHOLE_DNS_1} ${PIHOLE_DNS_2}" | tee -a /etc/dhcpcd.conf >/dev/null
-        # Then use the ip command to immediately set the new address
-        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-        # Also give a warning that the user may need to reboot their system
-        printf "  %b Set IP address to %s\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
-        printf "  %b You may need to restart after the install is complete\\n" "${INFO}"
-    fi
-}
-
-# Configure networking ifcfg-xxxx file found at /etc/sysconfig/network-scripts/
-# This function requires the full path of an ifcfg file passed as an argument
-setIFCFG() {
-    # Local, named variables
-    local IFCFG_FILE
-    local IPADDR
-    local CIDR
-    IFCFG_FILE=$1
-    printf -v IPADDR "%s" "${IPV4_ADDRESS%%/*}"
-    # Check if the desired IP is already set
-    if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
-        printf "  %b Static IP already configured\\n" "${INFO}"
-    else
-        # Otherwise, put the IP in variables without the CIDR notation
-        printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
-        # Backup existing interface configuration:
-        cp -p "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
-        # Build Interface configuration file using the GLOBAL variables we have
-        {
-        echo "# Configured via Pi-hole installer"
-        echo "DEVICE=$PIHOLE_INTERFACE"
-        echo "BOOTPROTO=none"
-        echo "ONBOOT=yes"
-        echo "IPADDR=$IPADDR"
-        echo "PREFIX=$CIDR"
-        echo "GATEWAY=$IPv4gw"
-        echo "DNS1=$PIHOLE_DNS_1"
-        echo "DNS2=$PIHOLE_DNS_2"
-        echo "USERCTL=no"
-        }> "${IFCFG_FILE}"
-        chmod 644 "${IFCFG_FILE}"
-        chown root:root "${IFCFG_FILE}"
-        # Use ip to immediately set the new address
-        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-        # If NetworkMangler command line interface exists and ready to mangle,
-        if is_command nmcli && nmcli general status &> /dev/null; then
-            # Tell NetworkManagler to read our new sysconfig file
-            nmcli con load "${IFCFG_FILE}" > /dev/null
-        fi
-        # Show a warning that the user may need to restart
-        printf "  %b Set IP address to %s\\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%%/*}"
-    fi
-}
-
-setStaticIPv4() {
-    # Local, named variables
-    local IFCFG_FILE
-    local CONNECTION_NAME
-
-    # If a static interface is already configured, we are done.
-    if [[ -r "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}" ]]; then
-        if grep -q '^BOOTPROTO=.static.' "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}"; then
-            return 0
-        fi
-    fi
-    # For the Debian family, if dhcpcd.conf exists then we can just configure using DHCPD.
-    if [[ -f "/etc/dhcpcd.conf" ]]; then
-        setDHCPCD
-        return 0
-    fi
-    # If a DHCPCD config file was not found, check for an ifcfg config file based on the interface name
-    if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
-        # If it exists, then we can configure using IFCFG
-        IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
-        setIFCFG "${IFCFG_FILE}"
-        return 0
-    fi
-    # If an ifcfg config does not exists for the interface name, search for one based on the connection name via network manager
-    if is_command nmcli && nmcli general status &> /dev/null; then
-        CONNECTION_NAME=$(nmcli dev show "${PIHOLE_INTERFACE}" | grep 'GENERAL.CONNECTION' | cut -d: -f2 | sed 's/^System//' | xargs | tr ' ' '_')
-        IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
-        if [[ -f "${IFCFG_FILE}" ]];then
-            # If it exists,
-            setIFCFG "${IFCFG_FILE}"
-            return 0
-        else
-            printf "  %b Warning: sysconfig network script not found. Creating ${IFCFG_FILE}\\n" "${INFO}"
-            touch "${IFCFG_FILE}"
-            setIFCFG "${IFCFG_FILE}"
-            return 0
-        fi
-    fi
-    # If previous conditions failed, show an error and exit
-    printf "  %b Warning: Unable to locate configuration file to set static IPv4 address\\n" "${INFO}"
-    exit 1
 }
 
 # Check an IP address to see if it is a valid one
@@ -2118,8 +1956,9 @@ Your Admin Webpage login password is ${pwstring}"
 IPv4:	${IPV4_ADDRESS%/*}
 IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
-If you set a new IP address, you should restart the Pi.
+If you have not done so already, the above IP should be set to static. Depending on your operating system, there are many ways to do this.
 
+If you do not plan to use Pi-hole as your DHCP Server, too, you could ensure the above IP stays the same via DHCP reservation on your router.
 The install log is in /etc/pihole.
 
 ${additional}" "${r}" "${c}"
@@ -2815,7 +2654,8 @@ main() {
         printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
         [[ -n "${IPV4_ADDRESS%/*}" ]] && printf "  %b Pi-hole DNS (IPv4): %s\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
         [[ -n "${IPV6_ADDRESS}" ]] && printf "  %b Pi-hole DNS (IPv6): %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-        printf "  %b If you set a new IP address, please restart the server running the Pi-hole\\n" "${INFO}"
+        printf "  %b If you have not done so already, the above IP should be set to static. Depending on your operating system, there are many ways to do this.\\n" "${INFO}"
+        printf "  %b If you do not plan to use Pi-hole as your DHCP Server, too, you could ensure the above IP stays the same via DHCP reservation on your router.\\n" "${INFO}"
         INSTALL_TYPE="Installation"
     else
         INSTALL_TYPE="Update"
