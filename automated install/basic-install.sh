@@ -2643,8 +2643,35 @@ main() {
         fi
     fi
 
-    # Check for supported distribution
+    # Check for supported package managers so that we may install dependencies
     package_manager_detect
+
+    # Notify user of package availability
+    notify_package_updates_available
+
+    # Install packages necessary to perform os_check
+    install_dependent_packages "${OS_CHECK_DEPS[@]}"
+
+    # Check that the installed OS is officially supported - display warning if not
+    os_check
+
+    # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    local binary
+    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+    local theRest
+    theRest="${funcOutput%pihole-FTL*}" # Print the rest of get_binary_name's output to display (cut out from first instance of "pihole-FTL")
+    if ! FTLdetect "${binary}" "${theRest}"; then
+        printf "  %b FTL Engine not installed\\n" "${CROSS}"
+        exit 1
+    fi
+
+    # Install packages used by this installation script
+    install_dependent_packages "${INSTALLER_DEPS[@]}"
+
+    # Check if SELinux is Enforcing
+    checkSelinux
 
     # If the setup variable file exists,
     if [[ -f "${setupVars}" ]]; then
@@ -2660,22 +2687,6 @@ main() {
             update_dialogs
         fi
     fi
-
-    # Start the installer
-    # Notify user of package availability
-    notify_package_updates_available
-
-    # Install packages necessary to perform os_check
-    install_dependent_packages "${OS_CHECK_DEPS[@]}"
-
-    # Check that the installed OS is officially supported - display warning if not
-    os_check
-
-    # Install packages used by this installation script
-    install_dependent_packages "${INSTALLER_DEPS[@]}"
-
-    # Check if SELinux is Enforcing
-    checkSelinux
 
     if [[ "${useUpdateVars}" == false ]]; then
         # Display welcome dialogs
@@ -2739,18 +2750,6 @@ main() {
     fi
     # Create the pihole user
     create_pihole_user
-
-    # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
-    local funcOutput
-    funcOutput=$(get_binary_name) #Store output of get_binary_name here
-    local binary
-    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
-    local theRest
-    theRest="${funcOutput%pihole-FTL*}" # Print the rest of get_binary_name's output to display (cut out from first instance of "pihole-FTL")
-    if ! FTLdetect "${binary}" "${theRest}"; then
-        printf "  %b FTL Engine not installed\\n" "${CROSS}"
-        exit 1
-    fi
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
