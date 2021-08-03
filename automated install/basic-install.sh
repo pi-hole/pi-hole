@@ -276,7 +276,7 @@ os_check() {
 }
 
 # Compatibility
-distro_check() {
+package_manager_detect() {
 # If apt-get is installed, then we know it's part of the Debian family
 if is_command apt-get ; then
     # Set some global variables here
@@ -1950,7 +1950,7 @@ installLogrotate() {
     if [[ -f ${target} ]]; then
         printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
         # Return value isn't that important, using 2 to indicate that it's not a fatal error but
-        # the function did not complete. 
+        # the function did not complete.
         return 2
     fi
     # Copy the file over from the local repo
@@ -2641,7 +2641,7 @@ main() {
     fi
 
     # Check for supported distribution
-    distro_check
+    package_manager_detect
 
     # If the setup variable file exists,
     if [[ -f "${setupVars}" ]]; then

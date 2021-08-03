@@ -13,29 +13,29 @@ def test_release_supported_version_check_centos(Pihole):
     '''
     # modify /etc/redhat-release to mock an unsupported CentOS release
     Pihole.run('echo "CentOS Linux release 6.9" > /etc/redhat-release')
-    distro_check = Pihole.run('''
+    package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     ''')
     expected_stdout = cross_box + (' CentOS 6 is not supported.')
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
     expected_stdout = 'Please update to CentOS release 7 or later'
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
 
 
 def test_enable_epel_repository_centos(Pihole):
     '''
     confirms the EPEL package repository is enabled when installed on CentOS
     '''
-    distro_check = Pihole.run('''
+    package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     ''')
     expected_stdout = info_box + (' Enabling EPEL package repository '
                                   '(https://fedoraproject.org/wiki/EPEL)')
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
     expected_stdout = tick_box + ' Installed epel-release'
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
     epel_package = Pihole.package('epel-release')
     assert epel_package.is_installed
 
@@ -51,13 +51,13 @@ def test_php_version_lt_7_detected_upgrade_default_optout_centos(Pihole):
     default_centos_php_version = php_package.version.split('.')[0]
     if int(default_centos_php_version) >= 7:  # PHP7 is supported/recommended
         pytest.skip("Test deprecated . Detected default PHP version >= 7")
-    distro_check = Pihole.run('''
+    package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     ''')
     expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
                                   'Deprecated PHP may be in use.')
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
     remi_package = Pihole.package('remi-release')
     assert not remi_package.is_installed
 
@@ -75,13 +75,13 @@ def test_php_version_lt_7_detected_upgrade_user_optout_centos(Pihole):
         pytest.skip("Test deprecated . Detected default PHP version >= 7")
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '1')}, Pihole)
-    distro_check = Pihole.run('''
+    package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     ''')
     expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
                                   'Deprecated PHP may be in use.')
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
     remi_package = Pihole.package('remi-release')
     assert not remi_package.is_installed
 
@@ -99,20 +99,20 @@ def test_php_version_lt_7_detected_upgrade_user_optin_centos(Pihole):
         pytest.skip("Test deprecated . Detected default PHP version >= 7")
     # Whiptail dialog returns Continue for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
-    distro_check = Pihole.run('''
+    package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     install_dependent_packages PIHOLE_WEB_DEPS[@]
     ''')
     expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
                                   'Deprecated PHP may be in use.')
-    assert expected_stdout not in distro_check.stdout
+    assert expected_stdout not in package_manager_detect.stdout
     expected_stdout = info_box + (' Enabling Remi\'s RPM repository '
                                   '(https://rpms.remirepo.net)')
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
     expected_stdout = tick_box + (' Remi\'s RPM repository has '
                                   'been enabled for PHP7')
-    assert expected_stdout in distro_check.stdout
+    assert expected_stdout in package_manager_detect.stdout
     remi_package = Pihole.package('remi-release')
     assert remi_package.is_installed
     updated_php_package = Pihole.package('php')
