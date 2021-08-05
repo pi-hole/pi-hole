@@ -26,7 +26,7 @@
 #          parameter "quiet": don't print messages
 00 00   * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole flush once quiet
 
-@reboot root /usr/sbin/logrotate /etc/pihole/logrotate
+@reboot root /usr/sbin/logrotate --state /var/lib/logrotate/pihole /etc/pihole/logrotate
 
 # Pi-hole: Grab local version and branch every 10 minutes
 */10 *  * * *   root    PATH="$PATH:/usr/sbin:/usr/local/bin/" pihole updatechecker local
