@@ -276,7 +276,7 @@ os_check() {
 }
 
 # Compatibility
-distro_check() {
+package_manager_detect() {
 # If apt-get is installed, then we know it's part of the Debian family
 if is_command apt-get ; then
     # Set some global variables here
@@ -288,21 +288,6 @@ if is_command apt-get ; then
     PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-    # Some distros vary slightly so these fixes for dependencies may apply
-    # on Ubuntu 18.04.1 LTS we need to add the universe repository to gain access to dhcpcd5
-    APT_SOURCES="/etc/apt/sources.list"
-    if awk 'BEGIN{a=1;b=0}/bionic main/{a=0}/bionic.*universe/{b=1}END{exit a + b}' ${APT_SOURCES}; then
-        if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5" "${r}" "${c}"; then
-            printf "  %b Aborting installation: Dependencies could not be installed.\\n" "${CROSS}"
-            exit 1
-        else
-            printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
-            cp -p ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
-            printf "  %b Backed up current configuration to %s\\n" "${TICK}" "${APT_SOURCES}.backup"
-            add-apt-repository universe
-            printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
-        fi
-    fi
     # Update package cache. This is required already here to assure apt-cache calls have package lists available.
     update_package_cache || exit 1
     # Debian 7 doesn't have iproute2 so check if it's available first
@@ -354,8 +339,10 @@ if is_command apt-get ; then
         printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
         exit 1
     fi
+    # Packages required to perfom the os_check (stored as an array)
+    OS_CHECK_DEPS=(grep dnsutils)
     # Packages required to run this install script (stored as an array)
-    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail dnsutils)
+    INSTALLER_DEPS=(git "${iproute_pkg}" whiptail)
     # Packages required to run Pi-hole (stored as an array)
     PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # Packages required for the Web admin interface (stored as an array)
@@ -400,7 +387,8 @@ elif is_command rpm ; then
     # These variable names match the ones in the Debian family. See above for an explanation of what they are for.
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig bind-utils)
+    OS_CHECK_DEPS=(grep bind-utils)
+    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
     PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
@@ -692,9 +680,17 @@ welcomeDialogs() {
     whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" "${r}" "${c}"
 
     # Explain the need for a static address
-    whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+    if whiptail --defaultno --backtitle "Initiating network interface" --title "Static IP Needed" --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
-In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." "${r}" "${c}"
+IMPORTANT: If you have not already done so, you must ensure that this device has a static IP. Either through DHCP reservation, or by manually assigning one. Depending on your operating system, there are many ways to achieve this.
+
+Choose yes to indicate that you have understood this message, and wish to continue" "${r}" "${c}"; then
+#Nothing to do, continue
+  echo
+else
+  printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+  exit 1
+fi
 }
 
 # A function that lets the user pick an interface to use with Pi-hole
@@ -847,8 +843,11 @@ use4andor6() {
     if [[ "${useIPv4}" ]]; then
         # Run our function to get the information we need
         find_IPv4_information
-        getStaticIPv4Settings
-        setStaticIPv4
+        if [[ -f "/etc/dhcpcd.conf" ]]; then
+            # configure networking via dhcpcd
+            getStaticIPv4Settings
+            setDHCPCD
+        fi
     fi
     # If IPv6 is to be used,
     if [[ "${useIPv6}" ]]; then
@@ -931,93 +930,6 @@ setDHCPCD() {
         printf "  %b Set IP address to %s\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
         printf "  %b You may need to restart after the install is complete\\n" "${INFO}"
     fi
-}
-
-# Configure networking ifcfg-xxxx file found at /etc/sysconfig/network-scripts/
-# This function requires the full path of an ifcfg file passed as an argument
-setIFCFG() {
-    # Local, named variables
-    local IFCFG_FILE
-    local IPADDR
-    local CIDR
-    IFCFG_FILE=$1
-    printf -v IPADDR "%s" "${IPV4_ADDRESS%%/*}"
-    # Check if the desired IP is already set
-    if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
-        printf "  %b Static IP already configured\\n" "${INFO}"
-    else
-        # Otherwise, put the IP in variables without the CIDR notation
-        printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
-        # Backup existing interface configuration:
-        cp -p "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
-        # Build Interface configuration file using the GLOBAL variables we have
-        {
-        echo "# Configured via Pi-hole installer"
-        echo "DEVICE=$PIHOLE_INTERFACE"
-        echo "BOOTPROTO=none"
-        echo "ONBOOT=yes"
-        echo "IPADDR=$IPADDR"
-        echo "PREFIX=$CIDR"
-        echo "GATEWAY=$IPv4gw"
-        echo "DNS1=$PIHOLE_DNS_1"
-        echo "DNS2=$PIHOLE_DNS_2"
-        echo "USERCTL=no"
-        }> "${IFCFG_FILE}"
-        chmod 644 "${IFCFG_FILE}"
-        chown root:root "${IFCFG_FILE}"
-        # Use ip to immediately set the new address
-        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-        # If NetworkMangler command line interface exists and ready to mangle,
-        if is_command nmcli && nmcli general status &> /dev/null; then
-            # Tell NetworkManagler to read our new sysconfig file
-            nmcli con load "${IFCFG_FILE}" > /dev/null
-        fi
-        # Show a warning that the user may need to restart
-        printf "  %b Set IP address to %s\\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%%/*}"
-    fi
-}
-
-setStaticIPv4() {
-    # Local, named variables
-    local IFCFG_FILE
-    local CONNECTION_NAME
-
-    # If a static interface is already configured, we are done.
-    if [[ -r "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}" ]]; then
-        if grep -q '^BOOTPROTO=.static.' "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}"; then
-            return 0
-        fi
-    fi
-    # For the Debian family, if dhcpcd.conf exists then we can just configure using DHCPD.
-    if [[ -f "/etc/dhcpcd.conf" ]]; then
-        setDHCPCD
-        return 0
-    fi
-    # If a DHCPCD config file was not found, check for an ifcfg config file based on the interface name
-    if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
-        # If it exists, then we can configure using IFCFG
-        IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
-        setIFCFG "${IFCFG_FILE}"
-        return 0
-    fi
-    # If an ifcfg config does not exists for the interface name, search for one based on the connection name via network manager
-    if is_command nmcli && nmcli general status &> /dev/null; then
-        CONNECTION_NAME=$(nmcli dev show "${PIHOLE_INTERFACE}" | grep 'GENERAL.CONNECTION' | cut -d: -f2 | sed 's/^System//' | xargs | tr ' ' '_')
-        IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
-        if [[ -f "${IFCFG_FILE}" ]];then
-            # If it exists,
-            setIFCFG "${IFCFG_FILE}"
-            return 0
-        else
-            printf "  %b Warning: sysconfig network script not found. Creating ${IFCFG_FILE}\\n" "${INFO}"
-            touch "${IFCFG_FILE}"
-            setIFCFG "${IFCFG_FILE}"
-            return 0
-        fi
-    fi
-    # If previous conditions failed, show an error and exit
-    printf "  %b Warning: Unable to locate configuration file to set static IPv4 address\\n" "${INFO}"
-    exit 1
 }
 
 # Check an IP address to see if it is a valid one
@@ -1693,20 +1605,7 @@ notify_package_updates_available() {
     fi
 }
 
-# This counter is outside of install_dependent_packages so that it can count the number of times the function is called.
-counter=0
-
 install_dependent_packages() {
-    # Local, named variables should be used here, especially for an iterator
-    # Add one to the counter
-    counter=$((counter+1))
-    if [[ "${counter}" == 1 ]]; then
-        # On the first loop, print a special message
-        printf "  %b Installer Dependency checks...\\n" "${INFO}"
-    else
-        # On all subsequent loops, print a generic message.
-        printf "  %b Main Dependency checks...\\n" "${INFO}"
-    fi
 
     # Install packages passed in via argument array
     # No spinner - conflicts with set -e
@@ -1950,7 +1849,7 @@ installLogrotate() {
     if [[ -f ${target} ]]; then
         printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
         # Return value isn't that important, using 2 to indicate that it's not a fatal error but
-        # the function did not complete. 
+        # the function did not complete.
         return 2
     fi
     # Copy the file over from the local repo
@@ -2130,7 +2029,7 @@ Your Admin Webpage login password is ${pwstring}"
 IPv4:	${IPV4_ADDRESS%/*}
 IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
-If you set a new IP address, you should restart the Pi.
+If you have not done so already, the above IP should be set to static.
 
 The install log is in /etc/pihole.
 
@@ -2336,8 +2235,6 @@ FTLinstall() {
 
             # Before stopping FTL, we download the macvendor database
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
-            chmod 644 "${PI_HOLE_CONFIG_DIR}/macvendor.db"
-            chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/macvendor.db"
 
             # Stop pihole-FTL service if available
             stop_service pihole-FTL &> /dev/null
@@ -2642,8 +2539,25 @@ main() {
         fi
     fi
 
-    # Check for supported distribution
-    distro_check
+    # Check for supported package managers so that we may install dependencies
+    package_manager_detect
+
+    # Notify user of package availability
+    notify_package_updates_available
+
+    # Install packages necessary to perform os_check
+    printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
+    install_dependent_packages "${OS_CHECK_DEPS[@]}"
+
+    # Check that the installed OS is officially supported - display warning if not
+    os_check
+
+    # Install packages used by this installation script
+    printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
+    install_dependent_packages "${INSTALLER_DEPS[@]}"
+
+    # Check if SELinux is Enforcing
+    checkSelinux
 
     # If the setup variable file exists,
     if [[ -f "${setupVars}" ]]; then
@@ -2659,19 +2573,6 @@ main() {
             update_dialogs
         fi
     fi
-
-    # Start the installer
-    # Notify user of package availability
-    notify_package_updates_available
-
-    # Install packages used by this installation script
-    install_dependent_packages "${INSTALLER_DEPS[@]}"
-
-    # Check that the installed OS is officially supported - display warning if not
-    os_check
-
-    # Check if SELinux is Enforcing
-    checkSelinux
 
     if [[ "${useUpdateVars}" == false ]]; then
         # Display welcome dialogs
@@ -2719,6 +2620,8 @@ main() {
         dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
     fi
 
+    # Install packages used by the actual software
+    printf "  %b Checking for / installing Required dependencies for Pi-hole software...\\n" "${INFO}"
     install_dependent_packages "${dep_install_list[@]}"
     unset dep_install_list
 
@@ -2823,7 +2726,7 @@ main() {
         printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
         [[ -n "${IPV4_ADDRESS%/*}" ]] && printf "  %b Pi-hole DNS (IPv4): %s\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
         [[ -n "${IPV6_ADDRESS}" ]] && printf "  %b Pi-hole DNS (IPv6): %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-        printf "  %b If you set a new IP address, please restart the server running the Pi-hole\\n" "${INFO}"
+        printf "  %b If you have not done so already, the above IP should be set to static.\\n" "${INFO}"
         INSTALL_TYPE="Installation"
     else
         INSTALL_TYPE="Update"
