@@ -11,6 +11,11 @@
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
+# In case we're running at the same time as a system logrotate, use a
+# separate logrotate state file to prevent stepping on each other's
+# toes.
+STATEFILE="/var/lib/logrotate/pihole"
+
 # Determine database location
 # Obtain DBFILE=... setting from pihole-FTL.db
 # Constructed to return nothing when
@@ -32,7 +37,7 @@ if [[ "$@" == *"once"* ]]; then
     # Nightly logrotation
     if command -v /usr/sbin/logrotate >/dev/null; then
         # Logrotate once
-        /usr/sbin/logrotate --force /etc/pihole/logrotate
+        /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
     else
         # Copy pihole.log over to pihole.log.1
         # and empty out pihole.log
@@ -47,8 +52,8 @@ else
     # Manual flushing
     if command -v /usr/sbin/logrotate >/dev/null; then
         # Logrotate twice to move all data out of sight of FTL
-        /usr/sbin/logrotate --force /etc/pihole/logrotate; sleep 3
-        /usr/sbin/logrotate --force /etc/pihole/logrotate
+        /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate; sleep 3
+        /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
     else
         # Flush both pihole.log and pihole.log.1 (if existing)
         echo " " > /var/log/pihole.log
