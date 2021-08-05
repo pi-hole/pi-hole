@@ -369,7 +369,7 @@ tailFunc() {
   # Color everything else as gray
   tail -f /var/log/pihole.log | grep --line-buffered "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
-    -e "s,(.*(blacklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(blacklisted |gravity blocked ).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0

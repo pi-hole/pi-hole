@@ -1,4 +1,4 @@
-FROM centos:7
+FROM buildpack-deps:bullseye-scm
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
