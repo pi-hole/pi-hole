@@ -56,11 +56,6 @@ FAQ_BAD_ADDRESS="${COL_CYAN}https://discourse.pi-hole.net/t/why-do-i-see-bad-add
 
 # Other URLs we may use
 FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
-TRICORDER_CONTEST="${COL_CYAN}https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/${COL_NC}"
-
-# Port numbers used for uploading the debug log
-TRICORDER_NC_PORT_NUMBER=9999
-TRICORDER_SSL_PORT_NUMBER=9998
 
 # Directories required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
@@ -1370,25 +1365,14 @@ analyze_pihole_log() {
   IFS="$OLD_IFS"
 }
 
-tricorder_use_nc_or_curl() {
-    # Users can submit their debug logs using nc (unencrypted) or curl (encrypted) if available
-    # Check for curl first since encryption is a good thing
-    if command -v curl &> /dev/null; then
-        # If the command exists,
-        log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
-        # transmit he log via TLS and store the token returned in a variable
-        tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER})
-        if [ -z "${tricorder_token}" ]; then
-         # curl failed, fallback to nc
-         log_write "    * ${COL_GREEN}curl${COL_NC} failed, falling back to ${COL_YELLOW}netcat${COL_NC} for transmission."
-         tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
-        fi
-    # Otherwise,
-    else
-        # use net cat
-        log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-        # Save the token returned by our server in a variable
-        tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+curl_to_tricorder() {
+    # Users can submit their debug logs using curl (encrypted)
+    log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
+    # transmit he log via TLS and store the token returned in a variable
+    tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net)
+    if [ -z "${tricorder_token}" ]; then
+        # curl failed, fallback to nc
+        log_write "    * ${COL_GREEN}curl${COL_NC} failed, contact Pi-hole support for assistance."
     fi
 }
 
@@ -1407,14 +1391,13 @@ upload_to_tricorder() {
 
     # Provide information on what they should do with their token
     log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-    log_write "    * For more information, see: ${TRICORDER_CONTEST}"
-    log_write "    * If available, we'll use openssl to upload the log, otherwise it will fall back to netcat."
+
     # If pihole -d is running automatically (usually through the dashboard)
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
         # and then decide again which tool to use to submit it
-        tricorder_use_nc_or_curl
+        curl_to_tricorder
         # If we're not running in automated mode,
     else
         echo ""
@@ -1423,7 +1406,7 @@ upload_to_tricorder() {
         read -r -p "[?] Would you like to upload the log? [y/N] " response
         case ${response} in
             # If they say yes, run our function for uploading the log
-            [yY][eE][sS]|[yY]) tricorder_use_nc_or_curl;;
+            [yY][eE][sS]|[yY]) curl_to_tricorder;;
             # If they choose no, just exit out of the script
             *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
         esac
@@ -1437,12 +1420,13 @@ upload_to_tricorder() {
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write "${TICK} Your debug token is: ${COL_GREEN}${tricorder_token}${COL_NC}"
+        log_write "${INFO}${COL_RED} Logs are deleted 48 hours after upload.${COL_NC}"
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write ""
         log_write "   * Provide the token above to the Pi-hole team for assistance at"
         log_write "   * ${FORUMS_URL}"
-        log_write "   * Your log will self-destruct on our server after ${COL_RED}48 hours${COL_NC}."
+
     # If no token was generated
     else
         # Show an error and some help instructions
