@@ -600,38 +600,6 @@ parse_locale() {
     parse_file "${pihole_locale}"
 }
 
-does_ip_match_setup_vars() {
-    # Check for IPv4 or 6
-    local protocol="${1}"
-    # IP address to check for
-    local ip_address="${2}"
-    # See what IP is in the setupVars.conf file
-    local setup_vars_ip
-    setup_vars_ip=$(< ${PIHOLE_SETUP_VARS_FILE} grep IPV"${protocol}"_ADDRESS | cut -d '=' -f2)
-    # If it's an IPv6 address
-    if [[ "${protocol}" == "6" ]]; then
-        # Strip off the / (CIDR notation)
-        if [[ "${ip_address%/*}" == "${setup_vars_ip%/*}" ]]; then
-            # if it matches, show it in green
-            log_write "   ${COL_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
-        else
-            # otherwise show it in red with an FAQ URL
-            log_write "   ${COL_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
-        fi
-
-    else
-        # if the protocol isn't 6, it's 4 so no need to strip the CIDR notation
-        # since it exists in the setupVars.conf that way
-        if [[ "${ip_address}" == "${setup_vars_ip}" ]]; then
-            # show in green if it matches
-            log_write "   ${COL_GREEN}${ip_address}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
-        else
-            # otherwise show it in red
-            log_write "   ${COL_RED}${ip_address}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
-        fi
-    fi
-}
-
 detect_ip_addresses() {
     # First argument should be a 4 or a 6
     local protocol=${1}
@@ -648,8 +616,7 @@ detect_ip_addresses() {
         log_write "${TICK} IPv${protocol} address(es) bound to the ${PIHOLE_INTERFACE} interface:"
         # Since there may be more than one IP address, store them in an array
         for i in "${!ip_addr_list[@]}"; do
-            # For each one in the list, print it out
-            does_ip_match_setup_vars "${protocol}" "${ip_addr_list[$i]}"
+            log_write "    ${ip_addr_list[$i]}"
         done
         # Print a blank line just for formatting
         log_write ""
@@ -657,13 +624,6 @@ detect_ip_addresses() {
         # If there are no IPs detected, explain that the protocol is not configured
         log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\\n"
         return 1
-    fi
-    # If the protocol is v6
-    if [[ "${protocol}" == "6" ]]; then
-        # let the user know that as long as there is one green address, things should be ok
-        log_write "   ^ Please note that you may have more than one IP address listed."
-        log_write "   As long as one of them is green, and it matches what is in ${PIHOLE_SETUP_VARS_FILE}, there is no need for concern.\\n"
-        log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it.\\n"
     fi
 }
 
