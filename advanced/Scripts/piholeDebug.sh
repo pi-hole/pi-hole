@@ -230,6 +230,7 @@ copy_to_debug_log() {
 }
 
 initialize_debug() {
+    local system_uptime
     # Clear the screen so the debug log is readable
     clear
     show_disclaimer
@@ -237,6 +238,9 @@ initialize_debug() {
     log_write "${COL_PURPLE}*** [ INITIALIZING ]${COL_NC}"
     # Timestamp the start of the log
     log_write "${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initialized."
+    # Uptime of the system
+    system_uptime=$(uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/){if ($9=="min") {d=$6;m=$8} else {d=$6;h=$8;m=$9}} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
+    log_write "${INFO} System is running for ${system_uptime}"
 }
 
 # This is a function for visually displaying the current test that is being run.
