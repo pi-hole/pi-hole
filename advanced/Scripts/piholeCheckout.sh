@@ -168,7 +168,7 @@ checkout() {
         local path
         local oldbranch
         path="${2}/${binary}"
-        oldbranch=$(pihole-FTL -b)
+        oldbranch="$(pihole-FTL -b)"
 
         if check_download_exists "$path"; then
             echo "  ${TICK} Branch ${2} exists"
