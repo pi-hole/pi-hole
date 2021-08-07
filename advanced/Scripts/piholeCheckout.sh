@@ -166,12 +166,15 @@ checkout() {
         checkout_pull_branch "${webInterfaceDir}" "${2}"
     elif [[ "${1}" == "ftl" ]] ; then
         local path
+        local oldbranch
         path="${2}/${binary}"
+        oldbranch="$(pihole-FTL -b)"
 
         if check_download_exists "$path"; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
             chmod 644 /etc/pihole/ftlbranch
+            echo -e "  ${INFO} Switching to branch: \"${2}\" from \"${oldbranch}\""
             FTLinstall "${binary}"
             restart_service pihole-FTL
             enable_service pihole-FTL
