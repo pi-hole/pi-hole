@@ -242,7 +242,7 @@ Time:
     echo "BLOCKING_ENABLED=true" >> "${setupVars}"
   fi
 
-  restartDNS reload
+  restartDNS reload-lists
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
