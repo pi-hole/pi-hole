@@ -1,0 +1,24 @@
+name: Mark stale issues and pull requests
+
+on:
+  schedule:
+  - cron: '30 * * * *'
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+    - uses: actions/stale@v3
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        debug: true
+        days-before-stale: 30
+        days-before-close: 5
+        stale-issue-message: 'Stale issue message'
+        stale-issue-label: 'Submitter Attention Required'
+        exempt-issue-labels: 'pinned, Fixed in next release'
+        exempt-all-issue-assignees: true
