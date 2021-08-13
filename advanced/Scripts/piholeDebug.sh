@@ -618,7 +618,7 @@ detect_ip_addresses() {
         # Local iterator
         local i
         # Display the protocol and interface
-        log_write "${TICK} IPv${protocol} address(es) bound to the ${PIHOLE_INTERFACE} interface:"
+        log_write "${TICK} IPv${protocol} address(es) available to the ${PIHOLE_INTERFACE} interface:"
         # Since there may be more than one IP address, store them in an array
         for i in "${!ip_addr_list[@]}"; do
             log_write "    ${ip_addr_list[$i]}"
