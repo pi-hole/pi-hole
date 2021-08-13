@@ -56,11 +56,6 @@ FAQ_BAD_ADDRESS="${COL_CYAN}https://discourse.pi-hole.net/t/why-do-i-see-bad-add
 
 # Other URLs we may use
 FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
-TRICORDER_CONTEST="${COL_CYAN}https://pi-hole.net/2016/11/07/crack-our-medical-tricorder-win-a-raspberry-pi-3/${COL_NC}"
-
-# Port numbers used for uploading the debug log
-TRICORDER_NC_PORT_NUMBER=9999
-TRICORDER_SSL_PORT_NUMBER=9998
 
 # Directories required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
@@ -235,6 +230,7 @@ copy_to_debug_log() {
 }
 
 initialize_debug() {
+    local system_uptime
     # Clear the screen so the debug log is readable
     clear
     show_disclaimer
@@ -242,6 +238,10 @@ initialize_debug() {
     log_write "${COL_PURPLE}*** [ INITIALIZING ]${COL_NC}"
     # Timestamp the start of the log
     log_write "${INFO} $(date "+%Y-%m-%d:%H:%M:%S") debug log has been initialized."
+    # Uptime of the system
+    # credits to https://stackoverflow.com/questions/28353409/bash-format-uptime-to-show-days-hours-minutes
+    system_uptime=$(uptime | awk -F'( |,|:)+' '{if ($7=="min") m=$6; else {if ($7~/^day/){if ($9=="min") {d=$6;m=$8} else {d=$6;h=$8;m=$9}} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
+    log_write "${INFO} System has been running for ${system_uptime}"
 }
 
 # This is a function for visually displaying the current test that is being run.
@@ -605,38 +605,6 @@ parse_locale() {
     parse_file "${pihole_locale}"
 }
 
-does_ip_match_setup_vars() {
-    # Check for IPv4 or 6
-    local protocol="${1}"
-    # IP address to check for
-    local ip_address="${2}"
-    # See what IP is in the setupVars.conf file
-    local setup_vars_ip
-    setup_vars_ip=$(< ${PIHOLE_SETUP_VARS_FILE} grep IPV"${protocol}"_ADDRESS | cut -d '=' -f2)
-    # If it's an IPv6 address
-    if [[ "${protocol}" == "6" ]]; then
-        # Strip off the / (CIDR notation)
-        if [[ "${ip_address%/*}" == "${setup_vars_ip%/*}" ]]; then
-            # if it matches, show it in green
-            log_write "   ${COL_GREEN}${ip_address%/*}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
-        else
-            # otherwise show it in red with an FAQ URL
-            log_write "   ${COL_RED}${ip_address%/*}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
-        fi
-
-    else
-        # if the protocol isn't 6, it's 4 so no need to strip the CIDR notation
-        # since it exists in the setupVars.conf that way
-        if [[ "${ip_address}" == "${setup_vars_ip}" ]]; then
-            # show in green if it matches
-            log_write "   ${COL_GREEN}${ip_address}${COL_NC} matches the IP found in ${PIHOLE_SETUP_VARS_FILE}"
-        else
-            # otherwise show it in red
-            log_write "   ${COL_RED}${ip_address}${COL_NC} does not match the IP found in ${PIHOLE_SETUP_VARS_FILE} (${FAQ_ULA})"
-        fi
-    fi
-}
-
 detect_ip_addresses() {
     # First argument should be a 4 or a 6
     local protocol=${1}
@@ -653,8 +621,7 @@ detect_ip_addresses() {
         log_write "${TICK} IPv${protocol} address(es) bound to the ${PIHOLE_INTERFACE} interface:"
         # Since there may be more than one IP address, store them in an array
         for i in "${!ip_addr_list[@]}"; do
-            # For each one in the list, print it out
-            does_ip_match_setup_vars "${protocol}" "${ip_addr_list[$i]}"
+            log_write "    ${ip_addr_list[$i]}"
         done
         # Print a blank line just for formatting
         log_write ""
@@ -662,13 +629,6 @@ detect_ip_addresses() {
         # If there are no IPs detected, explain that the protocol is not configured
         log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\\n"
         return 1
-    fi
-    # If the protocol is v6
-    if [[ "${protocol}" == "6" ]]; then
-        # let the user know that as long as there is one green address, things should be ok
-        log_write "   ^ Please note that you may have more than one IP address listed."
-        log_write "   As long as one of them is green, and it matches what is in ${PIHOLE_SETUP_VARS_FILE}, there is no need for concern.\\n"
-        log_write "   The link to the FAQ is for an issue that sometimes occurs when the IPv6 address changes, which is why we check for it.\\n"
     fi
 }
 
@@ -922,16 +882,20 @@ dig_at() {
         #     s/\/.*$//g;
         #          Removes CIDR and everything thereafter (e.g., scope properties)
         addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
-        while IFS= read -r local_address ; do
-            # Check if Pi-hole can use itself to block a domain
-            if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
-                # If it can, show success
-                log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
-            else
-                # Otherwise, show a failure
-                log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
-            fi
-        done <<< "${addresses}"
+        if [ -n "${addresses}" ]; then
+          while IFS= read -r local_address ; do
+              # Check if Pi-hole can use itself to block a domain
+              if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
+                  # If it can, show success
+                  log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
+              else
+                  # Otherwise, show a failure
+                  log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
+              fi
+          done <<< "${addresses}"
+        else
+          log_write "${TICK} No IPv${protocol} address available on ${COL_CYAN}${iface}${COL_NC}"
+        fi
     done <<< "${interfaces}"
 
     # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
@@ -1109,7 +1073,7 @@ list_files_in_dir() {
             :
         elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
             # SHM file - we do not want to see the content, but we want to see the files and their sizes
-            log_write "$(ls -ld "${dir_to_parse}"/"${each_file}")"
+            log_write "$(ls -lhd "${dir_to_parse}"/"${each_file}")"
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
@@ -1254,11 +1218,11 @@ show_groups() {
 }
 
 show_adlists() {
-    show_db_entries "Adlists" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids,address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "4 7 12 100 19 19 50"
+    show_db_entries "Adlists" "SELECT id,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(adlist_by_group.group_id) group_ids,address,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM adlist LEFT JOIN adlist_by_group ON adlist.id = adlist_by_group.adlist_id GROUP BY id;" "5 7 12 100 19 19 50"
 }
 
 show_domainlist() {
-    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,CASE type WHEN '0' THEN '0   ' WHEN '1' THEN ' 1  ' WHEN '2' THEN '  2 ' WHEN '3' THEN '   3' ELSE type END type,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "4 4 7 12 100 19 19 50"
+    show_db_entries "Domainlist (0/1 = exact white-/blacklist, 2/3 = regex white-/blacklist)" "SELECT id,CASE type WHEN '0' THEN '0   ' WHEN '1' THEN ' 1  ' WHEN '2' THEN '  2 ' WHEN '3' THEN '   3' ELSE type END type,CASE enabled WHEN '0' THEN '   0' WHEN '1' THEN '      1' ELSE enabled END enabled,GROUP_CONCAT(domainlist_by_group.group_id) group_ids,domain,datetime(date_added,'unixepoch','localtime') date_added,datetime(date_modified,'unixepoch','localtime') date_modified,comment FROM domainlist LEFT JOIN domainlist_by_group ON domainlist.id = domainlist_by_group.domainlist_id GROUP BY id;" "5 4 7 12 100 19 19 50"
 }
 
 show_clients() {
@@ -1366,25 +1330,14 @@ analyze_pihole_log() {
   IFS="$OLD_IFS"
 }
 
-tricorder_use_nc_or_curl() {
-    # Users can submit their debug logs using nc (unencrypted) or curl (encrypted) if available
-    # Check for curl first since encryption is a good thing
-    if command -v curl &> /dev/null; then
-        # If the command exists,
-        log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
-        # transmit he log via TLS and store the token returned in a variable
-        tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net:${TRICORDER_SSL_PORT_NUMBER})
-        if [ -z "${tricorder_token}" ]; then
-         # curl failed, fallback to nc
-         log_write "    * ${COL_GREEN}curl${COL_NC} failed, falling back to ${COL_YELLOW}netcat${COL_NC} for transmission."
-         tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
-        fi
-    # Otherwise,
-    else
-        # use net cat
-        log_write "${INFO} Using ${COL_YELLOW}netcat${COL_NC} for transmission."
-        # Save the token returned by our server in a variable
-        tricorder_token=$(< ${PIHOLE_DEBUG_LOG} nc tricorder.pi-hole.net ${TRICORDER_NC_PORT_NUMBER})
+curl_to_tricorder() {
+    # Users can submit their debug logs using curl (encrypted)
+    log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
+    # transmit he log via TLS and store the token returned in a variable
+    tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net)
+    if [ -z "${tricorder_token}" ]; then
+        # curl failed, fallback to nc
+        log_write "    * ${COL_GREEN}curl${COL_NC} failed, contact Pi-hole support for assistance."
     fi
 }
 
@@ -1403,14 +1356,13 @@ upload_to_tricorder() {
 
     # Provide information on what they should do with their token
     log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
-    log_write "    * For more information, see: ${TRICORDER_CONTEST}"
-    log_write "    * If available, we'll use openssl to upload the log, otherwise it will fall back to netcat."
+
     # If pihole -d is running automatically (usually through the dashboard)
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
         # and then decide again which tool to use to submit it
-        tricorder_use_nc_or_curl
+        curl_to_tricorder
         # If we're not running in automated mode,
     else
         echo ""
@@ -1419,7 +1371,7 @@ upload_to_tricorder() {
         read -r -p "[?] Would you like to upload the log? [y/N] " response
         case ${response} in
             # If they say yes, run our function for uploading the log
-            [yY][eE][sS]|[yY]) tricorder_use_nc_or_curl;;
+            [yY][eE][sS]|[yY]) curl_to_tricorder;;
             # If they choose no, just exit out of the script
             *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
         esac
@@ -1433,12 +1385,13 @@ upload_to_tricorder() {
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write "${TICK} Your debug token is: ${COL_GREEN}${tricorder_token}${COL_NC}"
+        log_write "${INFO}${COL_RED} Logs are deleted 48 hours after upload.${COL_NC}"
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write "${COL_PURPLE}***********************************${COL_NC}"
         log_write ""
         log_write "   * Provide the token above to the Pi-hole team for assistance at"
         log_write "   * ${FORUMS_URL}"
-        log_write "   * Your log will self-destruct on our server after ${COL_RED}48 hours${COL_NC}."
+
     # If no token was generated
     else
         # Show an error and some help instructions
