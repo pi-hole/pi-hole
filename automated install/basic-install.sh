@@ -449,8 +449,8 @@ elif is_command rpm ; then
             # The PHP version available via default repositories is older than version 7
             printf "  %b PHP 7 Update (recommended)\\n" "${INFO}"
             printf "  %b PHP 7.x is recommended for both security and language features.\\n" "${INFO}"
-            printf "  %b Would you like to install PHP7 via Remi's RPM repository?\\n" ${INFO}"
-            printf "  %b See: https://rpms.remirepo.net for more information\\n" ${INFO}"
+            printf "  %b Would you like to install PHP7 via Remi's RPM repository?\\n" ""${INFO}"
+            printf "  %b See: https://rpms.remirepo.net for more information\\n" "${INFO}"
             read -r -p "  Do you whish to install PHP7? [y/N] " response
             case "${response}" in
                 [yY][eE][sS]|[yY])
@@ -480,8 +480,8 @@ elif is_command rpm ; then
         # Warn user of unsupported version of Fedora or CentOS
         printf "  %b Unsupported RPM based distribution\\n" "${INFO}"
         printf "  %b Would you like to continue installation on an unsupported RPM based distribution?\\n\\n" "${INFO}"
-        printf "  %b Please ensure the following packages have been installed manually:\\n\\n" ${INFO}"
-        printf "  %b - lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+\\" ${INFO}"
+        printf "  %b Please ensure the following packages have been installed manually:\\n\\n" "${INFO}"
+        printf "  %b - lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+\\" "${INFO}"
         read -r -p "  Do you whish to proceed with the installaton [y/N] " response
         case "${response}" in
             [yY][eE][sS]|[yY])
