@@ -362,7 +362,7 @@ if is_command apt-get ; then
 
 # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
 elif is_command rpm ; then
-    # Then check if dnf or yum is the package manager
+    # Then check if dnf or yum is the package man=dfsdfager
     if is_command dnf ; then
         PKG_MANAGER="dnf"
     else
@@ -379,89 +379,6 @@ elif is_command rpm ; then
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
-    # If the host OS is Fedora,
-    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-        # all required packages should be available by default with the latest fedora release
-        : # continue
-    # or if host OS is CentOS,
-    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
-        # Pi-Hole currently supports CentOS 7+ with PHP7+
-        SUPPORTED_CENTOS_VERSION=7
-        SUPPORTED_CENTOS_PHP_VERSION=7
-        # Check current CentOS major release version
-        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-        # Check if CentOS version is supported
-        if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-            printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
-            printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
-            # exit the installer
-            exit
-        fi
-        # php-json is not required on CentOS 7 as it is already compiled into php
-        # verifiy via `php -m | grep json`
-        if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
-            # create a temporary array as arrays are not designed for use as mutable data structures
-            CENTOS7_PIHOLE_WEB_DEPS=()
-            for i in "${!PIHOLE_WEB_DEPS[@]}"; do
-                if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
-                    CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
-                fi
-            done
-            # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
-            PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
-            unset CENTOS7_PIHOLE_WEB_DEPS
-        fi
-        # CentOS requires the EPEL repository to gain access to Fedora packages
-        EPEL_PKG="epel-release"
-        rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
-        if [[ $rc -ne 0 ]]; then
-            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-            "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
-        fi
-
-        # The default php on CentOS 7.x is 5.4 which is EOL
-        # Check if the version of PHP available via installed repositories is >= to PHP 7
-        AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
-        if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
-            # Since PHP 7 is available by default, install via default PHP package names
-            : # do nothing as PHP is current
-        else
-            REMI_PKG="remi-release"
-            REMI_REPO="remi-php72"
-            rpm -q ${REMI_PKG} &> /dev/null || rc=$?
-        if [[ $rc -ne 0 ]]; then
-            # The PHP version available via default repositories is older than version 7
-            if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
-                # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
-                printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
-                : # continue with unsupported php version
-            else
-                printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-                "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-                # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-                "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-                yum-config-manager --enable ${REMI_REPO} &> /dev/null
-                printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
-                # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
-                if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
-                    printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
-                else
-                    printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
-                    exit 1
-                fi
-            fi
-        fi
-    fi
-    else
-        # Warn user of unsupported version of Fedora or CentOS
-        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
-            printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-            exit
-        else
-            printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
-        fi
-    fi
 
 # If neither apt-get or yum/dnf package managers were found
 else
@@ -469,6 +386,92 @@ else
     printf "  %b OS distribution not supported\\n" "${CROSS}"
     # so exit the installer
     exit
+fi
+}
+
+select_rpm_php(){
+# If the host OS is Fedora,
+if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+    # all required packages should be available by default with the latest fedora release
+    : # continue
+# or if host OS is CentOS,
+elif grep -qiE 'centos|scientific' /etc/redhat-release; then
+    # Pi-Hole currently supports CentOS 7+ with PHP7+
+    SUPPORTED_CENTOS_VERSION=7
+    SUPPORTED_CENTOS_PHP_VERSION=7
+    # Check current CentOS major release version
+    CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+    # Check if CentOS version is supported
+    if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
+        printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
+        printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
+        # exit the installer
+        exit
+    fi
+    # php-json is not required on CentOS 7 as it is already compiled into php
+    # verifiy via `php -m | grep json`
+    if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
+        # create a temporary array as arrays are not designed for use as mutable data structures
+        CENTOS7_PIHOLE_WEB_DEPS=()
+        for i in "${!PIHOLE_WEB_DEPS[@]}"; do
+            if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
+                CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
+            fi
+        done
+        # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
+        PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
+        unset CENTOS7_PIHOLE_WEB_DEPS
+    fi
+    # CentOS requires the EPEL repository to gain access to Fedora packages
+    EPEL_PKG="epel-release"
+    rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+        "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+        printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+    fi
+
+    # The default php on CentOS 7.x is 5.4 which is EOL
+    # Check if the version of PHP available via installed repositories is >= to PHP 7
+    AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
+    if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
+        # Since PHP 7 is available by default, install via default PHP package names
+        : # do nothing as PHP is current
+    else
+        REMI_PKG="remi-release"
+        REMI_REPO="remi-php72"
+        rpm -q ${REMI_PKG} &> /dev/null || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        # The PHP version available via default repositories is older than version 7
+        if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
+            # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+            printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
+            : # continue with unsupported php version
+        else
+            printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
+            "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+            # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+            "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+            yum-config-manager --enable ${REMI_REPO} &> /dev/null
+            printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
+            # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+            if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+            else
+                printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
+                exit 1
+            fi
+        fi
+    fi
+fi
+else
+    # Warn user of unsupported version of Fedora or CentOS
+    if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
+        printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
+        exit
+    else
+        printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
+    fi
 fi
 }
 
@@ -2537,7 +2540,7 @@ main() {
     notify_package_updates_available
 
     # Install packages necessary to perform os_check
-    printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
+    printf "  %b Checking for / installing Required dependencies for OS Check ...\\n" "${INFO}"
     install_dependent_packages "${OS_CHECK_DEPS[@]}"
 
     # Check that the installed OS is officially supported - display warning if not
@@ -2546,6 +2549,11 @@ main() {
     # Install packages used by this installation script
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
     install_dependent_packages "${INSTALLER_DEPS[@]}"
+
+    #In case of RPM based distro, select the proper PHP version
+    if [[ "$PKG_MANAGER" == "yum" || "$PKG_MANAGER" == "dnf" ]] ; then
+      select_rpm_php
+    fi
 
     # Check if SELinux is Enforcing
     checkSelinux
@@ -2638,7 +2646,7 @@ main() {
     local theRest
     theRest="${funcOutput%pihole-FTL*}" # Print the rest of get_binary_name's output to display (cut out from first instance of "pihole-FTL")
     if ! FTLdetect "${binary}" "${theRest}"; then
-        printf "  %b FTL Engine not installed\\n" "${CROSS}"
+        printf "  %b FRed Hat family OSTL Engine not installed\\n" "${CROSS}"
         exit 1
     fi
 
