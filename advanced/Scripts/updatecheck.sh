@@ -53,10 +53,8 @@ if [[ "$2" == "remote" ]]; then
     echo -n "${GITHUB_CORE_VERSION}" > "${GITHUB_VERSION_FILE}"
     chmod 644 "${GITHUB_VERSION_FILE}"
 
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -s 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
-        echo -n " ${GITHUB_WEB_VERSION}" >> "${GITHUB_VERSION_FILE}"
-    fi
+    GITHUB_WEB_VERSION="$(json_extract tag_name "$(curl -s 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null)")"
+    echo -n " ${GITHUB_WEB_VERSION}" >> "${GITHUB_VERSION_FILE}"
 
     GITHUB_FTL_VERSION="$(json_extract tag_name "$(curl -s 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null)")"
     echo -n " ${GITHUB_FTL_VERSION}" >> "${GITHUB_VERSION_FILE}"
