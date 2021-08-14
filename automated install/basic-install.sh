@@ -377,7 +377,7 @@ if is_command apt-get ; then
 
 # If apt-get is not found, check for rpm to see if it's a Red Hat family OS
 elif is_command rpm ; then
-    # Then check if dnf or yum is the package man=dfsdfager
+    # Then check if dnf or yum is the package manager
     if is_command dnf ; then
         PKG_MANAGER="dnf"
     else
