@@ -477,16 +477,14 @@ elif grep -qiE 'centos|scientific' /etc/redhat-release; then
                 exit 1
             fi
         fi
-    fi
-fi
-else
-    # Warn user of unsupported version of Fedora or CentOS
+    fi    # Warn user of unsupported version of Fedora or CentOS
     if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
         printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
         exit
     else
         printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
     fi
+fi
 fi
 }
 
