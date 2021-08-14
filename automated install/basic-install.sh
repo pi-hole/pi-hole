@@ -2549,7 +2549,7 @@ main() {
     notify_package_updates_available
 
     # Install packages necessary to perform os_check
-    printf "  %b Checking for / installing Required dependencies for OS Check ...\\n" "${INFO}"
+    printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
     install_dependent_packages "${OS_CHECK_DEPS[@]}"
 
     # Check that the installed OS is officially supported - display warning if not
@@ -2655,7 +2655,7 @@ main() {
     local theRest
     theRest="${funcOutput%pihole-FTL*}" # Print the rest of get_binary_name's output to display (cut out from first instance of "pihole-FTL")
     if ! FTLdetect "${binary}" "${theRest}"; then
-        printf "  %b FRed Hat family OSTL Engine not installed\\n" "${CROSS}"
+        printf "  %b FTL Engine not installed\\n" "${CROSS}"
         exit 1
     fi
 
