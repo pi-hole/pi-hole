@@ -449,7 +449,7 @@ elif is_command rpm ; then
             # The PHP version available via default repositories is older than version 7
             printf "  %b PHP 7 Update (recommended)\\n" "${INFO}"
             printf "  %b PHP 7.x is recommended for both security and language features.\\n" "${INFO}"
-            printf "  %b Would you like to install PHP7 via Remi's RPM repository?\\n" ""${INFO}"
+            printf "  %b Would you like to install PHP7 via Remi's RPM repository?\\n" "${INFO}"
             printf "  %b See: https://rpms.remirepo.net for more information\\n" "${INFO}"
             read -r -p "  Do you whish to install PHP7? [y/N] " response
             case "${response}" in
