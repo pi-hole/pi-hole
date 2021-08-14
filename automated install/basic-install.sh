@@ -447,35 +447,51 @@ elif is_command rpm ; then
             rpm -q ${REMI_PKG} &> /dev/null || rc=$?
         if [[ $rc -ne 0 ]]; then
             # The PHP version available via default repositories is older than version 7
-            if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
-                # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
-                printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
-                : # continue with unsupported php version
-            else
-                printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-                "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-                # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-                "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-                yum-config-manager --enable ${REMI_REPO} &> /dev/null
-                printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
-                # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
-                if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
-                    printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
-                else
-                    printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
-                    exit 1
-                fi
-            fi
+            printf "  %b PHP 7 Update (recommended)\\n" "${INFO}"
+            printf "  %b PHP 7.x is recommended for both security and language features.\\n" "${INFO}"
+            printf "  %b Would you like to install PHP7 via Remi's RPM repository?\\n" ${INFO}"
+            printf "  %b See: https://rpms.remirepo.net for more information\\n" ${INFO}"
+            read -r -p "  Do you whish to install PHP7? [y/N] " response
+            case "${response}" in
+                [yY][eE][sS]|[yY])
+                    printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
+                    "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+                    # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+                    "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+                    yum-config-manager --enable ${REMI_REPO} &> /dev/null
+                    printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
+                    # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+                    if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                        printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+                    else
+                        printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
+                        exit 1
+                    fi
+                    ;;
+                *)
+                    # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+                    printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
+                    : # continue with unsupported php version
+                    ;;
+            esac
         fi
     fi
     else
         # Warn user of unsupported version of Fedora or CentOS
-        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
-            printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-            exit
-        else
-            printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
-        fi
+        printf "  %b Unsupported RPM based distribution\\n" "${INFO}"
+        printf "  %b Would you like to continue installation on an unsupported RPM based distribution?\\n\\n" "${INFO}"
+        printf "  %b Please ensure the following packages have been installed manually:\\n\\n" ${INFO}"
+        printf "  %b - lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+\\" ${INFO}"
+        read -r -p "  Do you whish to proceed with the installaton [y/N] " response
+        case "${response}" in
+            [yY][eE][sS]|[yY])
+                printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
+                ;;
+            *)
+                printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
+                exit
+                ;;
+          esac
     fi
 
 # If neither apt-get or yum/dnf package managers were found
