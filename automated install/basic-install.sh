@@ -1249,6 +1249,8 @@ version_check_dnsmasq() {
     local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
     local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
     local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
+    local dnsmasq_rfc6761_06_config="${PI_HOLE_LOCAL_REPO}/advanced/06-rfc6761.conf"
+    local dnsmasq_rfc6761_06_location="/etc/dnsmasq.d/06-rfc6761.conf"
 
     # If the dnsmasq config file exists
     if [[ -f "${dnsmasq_conf}" ]]; then
@@ -1284,7 +1286,7 @@ version_check_dnsmasq() {
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
     install -D -m 644 -T "${dnsmasq_pihole_01_snippet}" "${dnsmasq_pihole_01_location}"
-    printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
+    printf "%b  %b Copied 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
     # First, swap in the interface to listen on,
     sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_location}"
@@ -1315,6 +1317,10 @@ version_check_dnsmasq() {
         # Otherwise, enable it by uncommenting the directive in the DNS config file
         sed -i 's/^#log-queries/log-queries/' "${dnsmasq_pihole_01_location}"
     fi
+
+    printf "  %b Copying 06-rfc6761.conf to /etc/dnsmasq.d/06-rfc6761.conf..." "${INFO}"
+    install -D -m 644 -T "${dnsmasq_rfc6761_06_config}" "${dnsmasq_rfc6761_06_location}"
+    printf "%b  %b Copied 06-rfc6761.conf to /etc/dnsmasq.d/06-rfc6761.conf\\n" "${OVER}"  "${TICK}"
 }
 
 # Clean an existing installation to prepare for upgrade/reinstall
