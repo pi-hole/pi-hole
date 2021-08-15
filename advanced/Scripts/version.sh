@@ -179,6 +179,7 @@ versionOutput() {
         output="Latest ${1^} hash is $latHash"
     else
         errorOutput
+        return 1
     fi
 
     [[ -n "$output" ]] && echo "  $output"
