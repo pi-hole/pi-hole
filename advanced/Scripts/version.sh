@@ -91,11 +91,19 @@ getRemoteVersion(){
     #If the above file exists, then we can read from that. Prevents overuse of GitHub API
     if [[ -f "$cachedVersions" ]]; then
         IFS=' ' read -r -a arrCache < "$cachedVersions"
-        case $daemon in
-          "pi-hole"   )  echo "${arrCache[0]}";;
-          "AdminLTE"  )  echo "${arrCache[1]}";;
-          "FTL"       )  echo "${arrCache[2]}";;
-        esac
+
+        if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+            case $daemon in
+                "pi-hole"   )  echo "${arrCache[0]}";;
+                "AdminLTE"  )  echo "${arrCache[1]}";;
+                "FTL"       )  echo "${arrCache[2]}";;
+            esac
+        else
+            case $daemon in
+                "pi-hole"   )  echo "${arrCache[0]}";;
+                "FTL"       )  echo "${arrCache[1]}";;
+            esac
+	fi
 
         return 0
     fi
@@ -140,6 +148,11 @@ getLocalBranch(){
 }
 
 versionOutput() {
+    [[ "$1" == "AdminLTE" ]] && [[ "${INSTALL_WEB_INTERFACE}" != true ]] && {
+        echo "  WebAdmin not installed"
+        return 1
+    }
+
     [[ "$1" == "pi-hole" ]] && GITDIR=$COREGITDIR
     [[ "$1" == "AdminLTE" ]] && GITDIR=$WEBGITDIR
     [[ "$1" == "FTL" ]] && GITDIR="FTL"
