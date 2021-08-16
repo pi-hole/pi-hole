@@ -1247,10 +1247,10 @@ version_check_dnsmasq() {
     local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
     local dnsmasq_pihole_id_string2="# Dnsmasq config for Pi-hole's FTLDNS"
     local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
-    local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
-    local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
-    local dnsmasq_rfc6761_06_config="${PI_HOLE_LOCAL_REPO}/advanced/06-rfc6761.conf"
-    local dnsmasq_rfc6761_06_location="/etc/dnsmasq.d/06-rfc6761.conf"
+    local dnsmasq_pihole_01_source="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
+    local dnsmasq_pihole_01_target="/etc/dnsmasq.d/01-pihole.conf"
+    local dnsmasq_rfc6761_06_source="${PI_HOLE_LOCAL_REPO}/advanced/06-rfc6761.conf"
+    local dnsmasq_rfc6761_06_target="/etc/dnsmasq.d/06-rfc6761.conf"
 
     # If the dnsmasq config file exists
     if [[ -f "${dnsmasq_conf}" ]]; then
@@ -1279,48 +1279,48 @@ version_check_dnsmasq() {
         printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
     fi
 
-    printf "  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..." "${INFO}"
+    printf "  %b Installing %s..." "${INFO}" "${dnsmasq_pihole_01_target}"
     # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
     if [[ ! -d "/etc/dnsmasq.d"  ]];then
         install -d -m 755 "/etc/dnsmasq.d"
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    install -D -m 644 -T "${dnsmasq_pihole_01_snippet}" "${dnsmasq_pihole_01_location}"
-    printf "%b  %b Copied 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
+    install -D -m 644 -T "${dnsmasq_pihole_01_source}" "${dnsmasq_pihole_01_target}"
+    printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_pihole_01_target}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
     # First, swap in the interface to listen on,
-    sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_location}"
+    sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_target}"
     if [[ "${PIHOLE_DNS_1}" != "" ]]; then
         # then swap in the primary DNS server.
-        sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_location}"
+        sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_target}"
     else
         # Otherwise, remove the line which sets DNS1.
-        sed -i '/^server=@DNS1@/d' "${dnsmasq_pihole_01_location}"
+        sed -i '/^server=@DNS1@/d' "${dnsmasq_pihole_01_target}"
     fi
     # Ditto if DNS2 is not empty
     if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-        sed -i "s/@DNS2@/$PIHOLE_DNS_2/" "${dnsmasq_pihole_01_location}"
+        sed -i "s/@DNS2@/$PIHOLE_DNS_2/" "${dnsmasq_pihole_01_target}"
     else
-        sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
+        sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_target}"
     fi
 
 	# Set the cache size
-	sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" ${dnsmasq_pihole_01_location}
+	sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" "${dnsmasq_pihole_01_target}"
 
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
 
     # If the user does not want to enable logging,
     if [[ "${QUERY_LOGGING}" == false ]] ; then
         # disable it by commenting out the directive in the DNS config file
-        sed -i 's/^log-queries/#log-queries/' "${dnsmasq_pihole_01_location}"
+        sed -i 's/^log-queries/#log-queries/' "${dnsmasq_pihole_01_target}"
     else
         # Otherwise, enable it by uncommenting the directive in the DNS config file
-        sed -i 's/^#log-queries/log-queries/' "${dnsmasq_pihole_01_location}"
+        sed -i 's/^#log-queries/log-queries/' "${dnsmasq_pihole_01_target}"
     fi
 
-    printf "  %b Copying 06-rfc6761.conf to /etc/dnsmasq.d/06-rfc6761.conf..." "${INFO}"
-    install -D -m 644 -T "${dnsmasq_rfc6761_06_config}" "${dnsmasq_rfc6761_06_location}"
-    printf "%b  %b Copied 06-rfc6761.conf to /etc/dnsmasq.d/06-rfc6761.conf\\n" "${OVER}"  "${TICK}"
+    printf "  %b Installing %s..." "${INFO}" "${dnsmasq_rfc6761_06_source}"
+    install -D -m 644 -T "${dnsmasq_rfc6761_06_source}" "${dnsmasq_rfc6761_06_target}"
+    printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_rfc6761_06_target}"
 }
 
 # Clean an existing installation to prepare for upgrade/reinstall
