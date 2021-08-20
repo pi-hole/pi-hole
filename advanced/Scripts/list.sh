@@ -295,6 +295,6 @@ if $web; then
 echo "DONE"
 fi
 
-if [[ ${reload} == true ]] && [[ ${noReloadRequested} == false ]]; then
+if [[ ${reload} == true && ${noReloadRequested} == false ]]; then
     pihole restartdns reload-lists
 fi
