@@ -848,6 +848,42 @@ gravity_Cleanup() {
   fi
 }
 
+database_recovery() {
+  str="Checking integrity of existing gravity database"
+  echo -ne "  ${INFO} ${str}..."
+  if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA integrity_check" 2>&1)"; then
+    echo -e "${OVER}  ${TICK} ${str} - no errors found"
+  else
+    echo -e "${OVER}  ${CROSS} ${str} - errors found:"
+    while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
+  fi
+
+  str="Checking foreign keys of existing gravity database"
+  echo -ne "  ${INFO} ${str}..."
+  if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"; then
+    echo -e "${OVER}  ${TICK} ${str} - no errors found"
+  else
+    echo -e "${OVER}  ${CROSS} ${str} - errors found:"
+    while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
+  fi
+
+  str="Trying to recover existing gravity database"
+  echo -ne "  ${INFO} ${str}..."
+  # We have to remove any possibly existing recovery database or this will fail
+  rm -f "${gravityDBfile}.recovered" > /dev/null 2>&1
+  if result="$(pihole-FTL sqlite3 "${gravityDBfile}" ".recover" | pihole-FTL sqlite3 "${gravityDBfile}.recovered" 2>&1)"; then
+    echo -e "${OVER}  ${TICK} ${str} - success"
+    mv "${gravityDBfile}" "${gravityDBfile}.old"
+    mv "${gravityDBfile}.recovered" "${gravityDBfile}"
+  else
+    echo -e "${OVER}  ${CROSS} ${str} - the following errors happened:"
+    while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
+    echo -e "  ${CROSS} Recovery failed. Try \"pihole -r recreate\" instead."
+    exit 1
+  fi
+  echo ""
+}
+
 helpFunc() {
   echo "Usage: pihole -g
 Update domains from blocklists specified in adlists.list
@@ -858,10 +894,30 @@ Options:
   exit 0
 }
 
+repairSelector() {
+  case "$1" in
+    "recover") recover_database=true;;
+    "recreate") recreate_database=true;;
+    *) echo "Usage: pihole -g -r {recover,recreate}
+Attempt to repair gravity database
+
+Available options:
+  pihole -g -r recover    Try to recover a damaged gravity database file.
+                          Pi-hole tries to restore as much as possible
+                          from a corrupted gravity database.
+  pihole -g -r recreate   Create a new gravity database file from scratch.
+                          This will remove your existing gravity database
+                          and create a new file from scratch. If you still
+                          have the migration backup created when migrating
+                          to Pi-hole v5.0, Pi-hole will import these files."
+    exit 0;;
+  esac
+}
+
 for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
-    "-r" | "--recreate" ) recreate_database=true;;
+    "-r" | "--repair" ) repairSelector "$3";;
     "-h" | "--help" ) helpFunc;;
   esac
 done
@@ -875,13 +931,17 @@ fi
 gravity_Trap
 
 if [[ "${recreate_database:-}" == true ]]; then
-  str="Restoring from migration backup"
+  str="Recreating gravity database from migration backup"
   echo -ne "${INFO} ${str}..."
   rm "${gravityDBfile}"
   pushd "${piholeDir}" > /dev/null || exit
   cp migration_backup/* .
   popd > /dev/null || exit
   echo -e "${OVER}  ${TICK} ${str}"
+fi
+
+if [[ "${recover_database:-}" == true ]]; then
+  database_recovery
 fi
 
 # Move possibly existing legacy files to the gravity database
