@@ -54,7 +54,7 @@ add_setting() {
 }
 
 delete_setting() {
-    sed -i "/${1}/d" "${setupVars}"
+    sed -i "/^${1}/d" "${setupVars}"
 }
 
 change_setting() {
@@ -67,7 +67,7 @@ addFTLsetting() {
 }
 
 deleteFTLsetting() {
-    sed -i "/${1}/d" "${FTLconf}"
+    sed -i "/^${1}/d" "${FTLconf}"
 }
 
 changeFTLsetting() {
@@ -84,7 +84,7 @@ add_dnsmasq_setting() {
 }
 
 delete_dnsmasq_setting() {
-    sed -i "/${1}/d" "${dnsmasqconfig}"
+    sed -i "/^${1}/d" "${dnsmasqconfig}"
 }
 
 SetTemperatureUnit() {
@@ -266,6 +266,8 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         delete_setting "CONDITIONAL_FORWARDING_DOMAIN"
         delete_setting "CONDITIONAL_FORWARDING_IP"
     fi
+
+    delete_dnsmasq_setting "rev-server"
 
     if [[ "${REV_SERVER}" == true ]]; then
         add_dnsmasq_setting "rev-server=${REV_SERVER_CIDR},${REV_SERVER_TARGET}"
