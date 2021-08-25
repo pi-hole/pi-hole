@@ -361,6 +361,14 @@ if is_command apt-get ; then
     # Packages required for the Web admin interface (stored as an array)
     # It's useful to separate this from Pi-hole, since the two repos are also setup separately
     PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-json" "${phpVer}-intl")
+    # add some lighttpd packages for Debian 11
+    OS_VARIANT=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+    if [[ $OS_VARIANT = "debian" ]]; then
+        DEBIAN_VERSION=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
+        if [[ $DEBIAN_VERSION = "11" ]]; then
+            PIHOLE_WEB_DEPS+=(lighttpd-mod-deflate)
+        fi
+    fi
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
