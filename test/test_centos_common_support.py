@@ -16,6 +16,7 @@ def test_release_supported_version_check_centos(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     ''')
     expected_stdout = cross_box + (' CentOS 6 is not supported.')
     assert expected_stdout in package_manager_detect.stdout
@@ -30,6 +31,7 @@ def test_enable_epel_repository_centos(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     ''')
     expected_stdout = info_box + (' Enabling EPEL package repository '
                                   '(https://fedoraproject.org/wiki/EPEL)')
@@ -54,6 +56,7 @@ def test_php_version_lt_7_detected_upgrade_default_optout_centos(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     ''')
     expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
                                   'Deprecated PHP may be in use.')
@@ -78,6 +81,7 @@ def test_php_version_lt_7_detected_upgrade_user_optout_centos(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     ''')
     expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
                                   'Deprecated PHP may be in use.')
@@ -102,6 +106,7 @@ def test_php_version_lt_7_detected_upgrade_user_optin_centos(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     install_dependent_packages PIHOLE_WEB_DEPS[@]
     ''')
     expected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS. '
