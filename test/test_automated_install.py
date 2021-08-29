@@ -618,6 +618,7 @@ def test_package_manager_has_pihole_deps(Pihole):
     output = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     install_dependent_packages ${PIHOLE_DEPS[@]}
     ''')
 
@@ -631,6 +632,7 @@ def test_package_manager_has_web_deps(Pihole):
     output = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
     ''')
 
