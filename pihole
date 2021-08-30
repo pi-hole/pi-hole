@@ -405,9 +405,9 @@ tricorderFunc() {
     exit 1
   fi
 
-  tricorder_token="$(curl --silent --upload-file "-" https://tricorder.pi-hole.net/upload < /dev/stdin)"
+  tricorder_token="$(curl --no-progress-meter --upload-file "-" https://tricorder.pi-hole.net/upload < /dev/stdin)"
   if [ -z "${tricorder_token}" ]; then
-        echo -e "${CROSS} uploading failed failed, contact Pi-hole support for assistance."
+        echo -e "${CROSS} uploading failed, contact Pi-hole support for assistance."
         exit 1
   fi
   echo "Upload successful, your token is: ${COL_BLUE}${tricorder_token}${COL_NC}"
