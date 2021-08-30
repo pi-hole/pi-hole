@@ -1334,7 +1334,7 @@ curl_to_tricorder() {
     # Users can submit their debug logs using curl (encrypted)
     log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
     # transmit he log via TLS and store the token returned in a variable
-    tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net)
+    tricorder_token="$(curl --no-progress-meter --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net)"
     if [ -z "${tricorder_token}" ]; then
         log_write "    * ${COL_GREEN}curl${COL_NC} failed, contact Pi-hole support for assistance."
     fi
