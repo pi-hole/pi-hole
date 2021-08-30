@@ -399,34 +399,19 @@ Branches:
 }
 
 tricorderFunc() {
+  local tricorder_token
   if [[ ! -p "/dev/stdin" ]]; then
     echo -e "  ${INFO} Please do not call Tricorder directly"
     exit 1
   fi
 
-  if ! (echo > /dev/tcp/tricorder.pi-hole.net/9998) >/dev/null 2>&1; then
-    echo -e "  ${CROSS} Unable to connect to Pi-hole's Tricorder server"
-    exit 1
+  tricorder_token="$(curl --no-progress-meter --upload-file "-" https://tricorder.pi-hole.net/upload < /dev/stdin)"
+  if [ -z "${tricorder_token}" ]; then
+        echo -e "${CROSS} uploading failed, contact Pi-hole support for assistance."
+        exit 1
   fi
-
-  if command -v openssl &> /dev/null; then
-    openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
-    exit "$?"
-  else
-    echo -e "  ${INFO} ${COL_YELLOW}Security Notice${COL_NC}: ${COL_WHITE}openssl${COL_NC} is not installed
-       Your debug log will be transmitted unencrypted via plain-text
-       There is a possibility that this could be intercepted by a third party
-       If you wish to cancel, press Ctrl-C to exit within 10 seconds"
-    secs="10"
-    while [[ "$secs" -gt "0" ]]; do
-       echo -ne "."
-       sleep 1
-       : $((secs--))
-    done
-    echo " "
-    nc tricorder.pi-hole.net 9999 < /dev/stdin
-    exit "$?"
-  fi
+  echo "Upload successful, your token is: ${COL_BLUE}${tricorder_token}${COL_NC}"
+  exit 0
 }
 
 updateCheckFunc() {
