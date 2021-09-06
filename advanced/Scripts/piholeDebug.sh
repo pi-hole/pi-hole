@@ -138,6 +138,7 @@ PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
 PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 
 RESOLVCONF="${ETC}/resolv.conf"
+DNSMASQ_CONF="${ETC}/dnsmasq.conf"
 
 # An array of operating system "pretty names" that we officially support
 # We can loop through the array at any time to see if it matches a value
@@ -184,7 +185,8 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_FTL_LOG}"
 "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}"
 "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}"
-"${RESOLVCONF}")
+"${RESOLVCONF}"
+"${DNSMASQ_CONF}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
