@@ -1338,10 +1338,15 @@ analyze_pihole_log() {
 curl_to_tricorder() {
     # Users can submit their debug logs using curl (encrypted)
     log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
-    # transmit he log via TLS and store the token returned in a variable
-    tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net)
-    if [ -z "${tricorder_token}" ]; then
+    # transmit the log via TLS and store the token returned in a variable
+    tricorder_token=$(curl --silent --fail --show-error --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net 2>&1)
+    if [[ "${tricorder_token}" != "https://tricorder.pi-hole.net/"* ]]; then
         log_write "    * ${COL_GREEN}curl${COL_NC} failed, contact Pi-hole support for assistance."
+        # Log curl error (if available)
+        if [ -n "${tricorder_token}" ]; then
+            log_write "    * Error message: ${COL_RED}${tricorder_token}${COL_NC}\\n"
+            tricorder_token=""
+        fi
     fi
 }
 
@@ -1386,15 +1391,14 @@ upload_to_tricorder() {
         # Again, try to make this visually striking so the user realizes they need to do something with this information
         # Namely, provide the Pi-hole devs with the token
         log_write ""
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}\\n"
         log_write "${TICK} Your debug token is: ${COL_GREEN}${tricorder_token}${COL_NC}"
-        log_write "${INFO}${COL_RED} Logs are deleted 48 hours after upload.${COL_NC}"
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
+        log_write "${INFO}${COL_RED} Logs are deleted 48 hours after upload.${COL_NC}\\n"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}"
         log_write ""
-        log_write "   * Provide the token above to the Pi-hole team for assistance at"
-        log_write "   * ${FORUMS_URL}"
+        log_write "   * Provide the token above to the Pi-hole team for assistance at ${FORUMS_URL}"
 
     # If no token was generated
     else
