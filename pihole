@@ -409,7 +409,7 @@ tricorderFunc() {
   if [[ "${tricorder_token}" != "https://tricorder.pi-hole.net/"* ]]; then
       echo -e "${CROSS} uploading failed, contact Pi-hole support for assistance."
       # Log curl error (if available)
-      if [ ! -z "${tricorder_token}" ]; then
+      if [ -n "${tricorder_token}" ]; then
           echo -e "${INFO} Error message: ${COL_RED}${tricorder_token}${COL_NC}\\n"
           tricorder_token=""
       fi
