@@ -50,6 +50,8 @@ sudo bash basic-install.sh
 wget -O basic-install.sh https://install.pi-hole.net
 sudo bash basic-install.sh
 ```
+### Method 3: Using Docker to deploy Pi-hole
+Please refer to the [Pi-hole docker repo](https://github.com/pi-hole/docker-pi-hole) to use the Official Docker Images.
 
 ## [Post-install: Make your network take advantage of Pi-hole](https://docs.pi-hole.net/main/post-install/)
 

@@ -42,8 +42,8 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # setupVars set in basic-install.sh
 source "${setupVars}"
 
-# distro_check() sourced from basic-install.sh
-distro_check
+# package_manager_detect() sourced from basic-install.sh
+package_manager_detect
 
 # Install packages used by the Pi-hole
 DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
@@ -113,7 +113,7 @@ removeNoPurge() {
         fi
     fi
     echo -e "${OVER}  ${TICK} Removed Web Interface"
- 
+
     # Attempt to preserve backwards compatibility with older versions
     # to guarantee no additional changes were made to /etc/crontab after
     # the installation of pihole, /etc/crontab.pihole should be permanently
@@ -145,6 +145,7 @@ removeNoPurge() {
 
     ${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
     ${SUDO} rm -f /etc/dnsmasq.d/01-pihole.conf &> /dev/null
+    ${SUDO} rm -f /etc/dnsmasq.d/06-rfc6761.conf &> /dev/null
     ${SUDO} rm -rf /var/log/*pihole* &> /dev/null
     ${SUDO} rm -rf /etc/pihole/ &> /dev/null
     ${SUDO} rm -rf /etc/.pihole/ &> /dev/null
@@ -206,11 +207,7 @@ removeNoPurge() {
 }
 
 ######### SCRIPT ###########
-if command -v vcgencmd &> /dev/null; then
-    echo -e "  ${INFO} All dependencies are safe to remove on Raspbian"
-else
-    echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
-fi
+echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
 while true; do
     echo -e "  ${INFO} ${COL_YELLOW}The following dependencies may have been added by the Pi-hole install:"
     echo -n "    "
