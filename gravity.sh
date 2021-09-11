@@ -858,7 +858,9 @@ database_recovery() {
     echo -ne "  ${INFO} ${str}..."
     if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"; then
       echo -e "${OVER}  ${TICK} ${str} - no errors found"
-      return
+      if [[ $1 != "force" ]]; then
+        return
+      fi
     else
       echo -e "${OVER}  ${CROSS} ${str} - errors found:"
       while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
@@ -942,7 +944,7 @@ if [[ "${recreate_database:-}" == true ]]; then
 fi
 
 if [[ "${recover_database:-}" == true ]]; then
-  database_recovery
+  database_recovery "$4"
 fi
 
 # Move possibly existing legacy files to the gravity database
