@@ -853,15 +853,16 @@ database_recovery() {
   echo -ne "  ${INFO} ${str}..."
   if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA integrity_check" 2>&1)"; then
     echo -e "${OVER}  ${TICK} ${str} - no errors found"
-  else
-    echo -e "${OVER}  ${CROSS} ${str} - errors found:"
-    while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
-  fi
 
-  str="Checking foreign keys of existing gravity database"
-  echo -ne "  ${INFO} ${str}..."
-  if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"; then
-    echo -e "${OVER}  ${TICK} ${str} - no errors found"
+    str="Checking foreign keys of existing gravity database"
+    echo -ne "  ${INFO} ${str}..."
+    if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"; then
+      echo -e "${OVER}  ${TICK} ${str} - no errors found"
+      return
+    else
+      echo -e "${OVER}  ${CROSS} ${str} - errors found:"
+      while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
+    fi
   else
     echo -e "${OVER}  ${CROSS} ${str} - errors found:"
     while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
