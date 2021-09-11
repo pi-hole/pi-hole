@@ -73,14 +73,11 @@ HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
 #BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
 SHM_DIRECTORY="/dev/shm"
+ETC="/etc"
 
 # Files required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
 PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
-
-PIHOLE_DNS_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/01-pihole.conf"
-PIHOLE_DHCP_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/02-pihole-dhcp.conf"
-PIHOLE_WILDCARD_CONFIG_FILE="${DNSMASQ_D_DIRECTORY}/03-wildcard.conf"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
 WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
@@ -136,6 +133,9 @@ PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log"
 PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
 PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
 
+RESOLVCONF="${ETC}/resolv.conf"
+DNSMASQ_CONF="${ETC}/dnsmasq.conf"
+
 # An array of operating system "pretty names" that we officially support
 # We can loop through the array at any time to see if it matches a value
 #SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
@@ -160,9 +160,6 @@ PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
-"${PIHOLE_DNS_CONFIG_FILE}"
-"${PIHOLE_DHCP_CONFIG_FILE}"
-"${PIHOLE_WILDCARD_CONFIG_FILE}"
 "${WEB_SERVER_CONFIG_FILE}"
 "${WEB_SERVER_CUSTOM_CONFIG_FILE}"
 "${PIHOLE_INSTALL_LOG_FILE}"
@@ -180,7 +177,9 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_DEBUG_LOG}"
 "${PIHOLE_FTL_LOG}"
 "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}"
-"${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}")
+"${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}"
+"${RESOLVCONF}"
+"${DNSMASQ_CONF}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
@@ -1074,12 +1073,16 @@ list_files_in_dir() {
         elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
             # SHM file - we do not want to see the content, but we want to see the files and their sizes
             log_write "$(ls -lhd "${dir_to_parse}"/"${each_file}")"
+        elif [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
+            # in case of the dnsmasq directory inlcuede all files in the debug output
+            log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
+            make_array_from_file "${dir_to_parse}/${each_file}"
         else
             # Then, parse the file's content into an array so each line can be analyzed if need be
             for i in "${!REQUIRED_FILES[@]}"; do
                 if [[ "${dir_to_parse}/${each_file}" == "${REQUIRED_FILES[$i]}" ]]; then
                     # display the filename
-                    log_write "\\n${COL_GREEN}$(ls -ld "${dir_to_parse}"/"${each_file}")${COL_NC}"
+                    log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
                     case "${dir_to_parse}/${each_file}" in
                         # If it's Web server error log, give the first and last 25 lines
@@ -1118,6 +1121,7 @@ show_content_of_pihole_files() {
     show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"
     show_content_of_files_in_dir "${SHM_DIRECTORY}"
+    show_content_of_files_in_dir "${ETC}"
 }
 
 head_tail_log() {
@@ -1333,11 +1337,15 @@ analyze_pihole_log() {
 curl_to_tricorder() {
     # Users can submit their debug logs using curl (encrypted)
     log_write "    * Using ${COL_GREEN}curl${COL_NC} for transmission."
-    # transmit he log via TLS and store the token returned in a variable
-    tricorder_token=$(curl --silent --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net)
-    if [ -z "${tricorder_token}" ]; then
-        # curl failed, fallback to nc
+    # transmit the log via TLS and store the token returned in a variable
+    tricorder_token=$(curl --silent --fail --show-error --upload-file ${PIHOLE_DEBUG_LOG} https://tricorder.pi-hole.net 2>&1)
+    if [[ "${tricorder_token}" != "https://tricorder.pi-hole.net/"* ]]; then
         log_write "    * ${COL_GREEN}curl${COL_NC} failed, contact Pi-hole support for assistance."
+        # Log curl error (if available)
+        if [ -n "${tricorder_token}" ]; then
+            log_write "    * Error message: ${COL_RED}${tricorder_token}${COL_NC}\\n"
+            tricorder_token=""
+        fi
     fi
 }
 
@@ -1382,15 +1390,14 @@ upload_to_tricorder() {
         # Again, try to make this visually striking so the user realizes they need to do something with this information
         # Namely, provide the Pi-hole devs with the token
         log_write ""
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}\\n"
         log_write "${TICK} Your debug token is: ${COL_GREEN}${tricorder_token}${COL_NC}"
-        log_write "${INFO}${COL_RED} Logs are deleted 48 hours after upload.${COL_NC}"
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
-        log_write "${COL_PURPLE}***********************************${COL_NC}"
+        log_write "${INFO}${COL_RED} Logs are deleted 48 hours after upload.${COL_NC}\\n"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}"
+        log_write "${COL_PURPLE}*****************************************************************${COL_NC}"
         log_write ""
-        log_write "   * Provide the token above to the Pi-hole team for assistance at"
-        log_write "   * ${FORUMS_URL}"
+        log_write "   * Provide the token above to the Pi-hole team for assistance at ${FORUMS_URL}"
 
     # If no token was generated
     else
