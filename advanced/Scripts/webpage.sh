@@ -271,12 +271,17 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
 
     if [[ "${REV_SERVER}" == true ]]; then
         add_dnsmasq_setting "rev-server=${REV_SERVER_CIDR},${REV_SERVER_TARGET}"
-        # Forward unqualified names to the CF target
-        add_dnsmasq_setting "server=//${REV_SERVER_TARGET}"
         if [ -n "${REV_SERVER_DOMAIN}" ]; then
             # Forward local domain names to the CF target, too
             add_dnsmasq_setting "server=/${REV_SERVER_DOMAIN}/${REV_SERVER_TARGET}"
         fi
+
+        if [[ "${DNS_FQDN_REQUIRED}" != true ]]; then
+            # Forward unqualified names to the CF target only when the "never
+            # forward non-FQDN" option is unticked
+            add_dnsmasq_setting "server=//${REV_SERVER_TARGET}"
+        fi
+
     fi
 
     # We need to process DHCP settings here as well to account for possible
