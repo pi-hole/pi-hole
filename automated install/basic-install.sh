@@ -1814,6 +1814,8 @@ finalExports() {
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     echo "CACHE_SIZE=${CACHE_SIZE}"
+    echo "DNS_FQDN_REQUIRED=true"
+    echo "DNS_BOGUS_PRIV=true"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
 
