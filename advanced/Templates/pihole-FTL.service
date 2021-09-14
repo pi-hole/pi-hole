@@ -24,7 +24,9 @@ start() {
     touch /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases
     # Ensure that permissions are set so that pihole-FTL can edit all necessary files
     chown pihole:pihole /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases /run/pihole /etc/pihole
-    chmod 0644 /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases /etc/pihole/macvendor.db
+    chmod 0644 /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases
+    # Ensure that permissions are set so that pihole-FTL can edit the files. We ignore errors as the file may not (yet) exist
+    chmod -f 0644/etc/pihole/macvendor.db
     # Chown database files to the user FTL runs as. We ignore errors as the files may not (yet) exist
     chown -f pihole:pihole /etc/pihole/pihole-FTL.db /etc/pihole/gravity.db /etc/pihole/macvendor.db
     # Chown database file persmissions so that the pihole group (web interface) can edit the file. We ignore errors as the files may not (yet) exist
