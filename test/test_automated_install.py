@@ -18,13 +18,13 @@ def test_supported_operating_system(Pihole):
     # break supported package managers to emulate an unsupported distribution
     Pihole.run('rm -rf /usr/bin/apt-get')
     Pihole.run('rm -rf /usr/bin/rpm')
-    distro_check = Pihole.run('''
+    package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     ''')
     expected_stdout = cross_box + ' OS distribution not supported'
-    assert expected_stdout in distro_check.stdout
-    # assert distro_check.rc == 1
+    assert expected_stdout in package_manager_detect.stdout
+    # assert package_manager_detect.rc == 1
 
 
 def test_setupVars_are_sourced_to_global_scope(Pihole):
@@ -45,8 +45,6 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
         # Currently debug test function only
         echo "Outputting sourced variables"
         echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-        echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-        echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
         echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
         echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
     }
@@ -137,7 +135,7 @@ def test_update_package_cache_success_no_errors(Pihole):
     '''
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     update_package_cache
     ''')
     expected_stdout = tick_box + ' Update local cache of available packages'
@@ -152,7 +150,7 @@ def test_update_package_cache_failure_no_errors(Pihole):
     mock_command('apt-get', {'update': ('', '1')}, Pihole)
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     update_package_cache
     ''')
     expected_stdout = cross_box + ' Update local cache of available packages'
@@ -359,7 +357,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
     Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     install_dependent_packages ${INSTALLER_DEPS[@]}
     ''')
     download_binary = Pihole.run('''
@@ -569,7 +567,8 @@ def test_os_check_fails(Pihole):
     ''' Confirms install fails on unsupported OS '''
     Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
+    install_dependent_packages ${OS_CHECK_DEPS[@]}
     install_dependent_packages ${INSTALLER_DEPS[@]}
     cat <<EOT > /etc/os-release
     ID=UnsupportedOS
@@ -588,7 +587,8 @@ def test_os_check_passes(Pihole):
     ''' Confirms OS meets the requirements '''
     Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
+    install_dependent_packages ${OS_CHECK_DEPS[@]}
     install_dependent_packages ${INSTALLER_DEPS[@]}
     ''')
     detectOS = Pihole.run('''
@@ -597,3 +597,42 @@ def test_os_check_passes(Pihole):
     ''')
     expected_stdout = 'Supported OS detected'
     assert expected_stdout in detectOS.stdout
+
+
+def test_package_manager_has_installer_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for the installer'''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    package_manager_detect
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
+
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0
+
+
+def test_package_manager_has_pihole_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for Pi-hole '''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    package_manager_detect
+    install_dependent_packages ${PIHOLE_DEPS[@]}
+    ''')
+
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0
+
+
+def test_package_manager_has_web_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for web '''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    output = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    package_manager_detect
+    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
+    ''')
+
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0

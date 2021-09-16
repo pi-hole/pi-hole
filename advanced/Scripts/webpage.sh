@@ -48,13 +48,14 @@ Options:
   -i, interface       Specify dnsmasq's interface listening behavior
                         Add '-h' for more info on interface usage
   -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
-                      use -sn to prevent logging to results list
+                        use -sn to prevent logging to results list
   -sd                 Set speedtest display range
   -sn                 Run speedtest now
-  -sm		      Speedtest Mode
+  -sm		          Speedtest Mode
   -sc                 Clear speedtest data
   -ss                 Set custom server
-  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)"
+  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)
+  -t, teleporter      Backup configuration as an archive"
     exit 0
 }
 
@@ -63,7 +64,7 @@ add_setting() {
 }
 
 delete_setting() {
-    sed -i "/${1}/d" "${setupVars}"
+    sed -i "/^${1}/d" "${setupVars}"
 }
 
 change_setting() {
@@ -76,7 +77,7 @@ addFTLsetting() {
 }
 
 deleteFTLsetting() {
-    sed -i "/${1}/d" "${FTLconf}"
+    sed -i "/^${1}/d" "${FTLconf}"
 }
 
 changeFTLsetting() {
@@ -93,7 +94,7 @@ add_dnsmasq_setting() {
 }
 
 delete_dnsmasq_setting() {
-    sed -i "/${1}/d" "${dnsmasqconfig}"
+    sed -i "/^${1}/d" "${dnsmasqconfig}"
 }
 
 SetTemperatureUnit() {
@@ -276,17 +277,22 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         delete_setting "CONDITIONAL_FORWARDING_IP"
     fi
 
+    delete_dnsmasq_setting "rev-server"
+
     if [[ "${REV_SERVER}" == true ]]; then
         add_dnsmasq_setting "rev-server=${REV_SERVER_CIDR},${REV_SERVER_TARGET}"
         if [ -n "${REV_SERVER_DOMAIN}" ]; then
+            # Forward local domain names to the CF target, too
             add_dnsmasq_setting "server=/${REV_SERVER_DOMAIN}/${REV_SERVER_TARGET}"
         fi
-    fi
 
-    # Prevent Firefox from automatically switching over to DNS-over-HTTPS
-    # This follows https://support.mozilla.org/en-US/kb/configuring-networks-disable-dns-over-https
-    # (sourced 7th September 2019)
-    add_dnsmasq_setting "server=/use-application-dns.net/"
+        if [[ "${DNS_FQDN_REQUIRED}" != true ]]; then
+            # Forward unqualified names to the CF target only when the "never
+            # forward non-FQDN" option is unticked
+            add_dnsmasq_setting "server=//${REV_SERVER_TARGET}"
+        fi
+
+    fi
 
     # We need to process DHCP settings here as well to account for possible
     # changes in the non-FQDN forwarding. This cannot be done in 01-pihole.conf
@@ -436,7 +442,7 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
         echo "#quiet-dhcp6
 #enable-ra
 dhcp-option=option6:dns-server,[::]
-dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,${leasetime}
+dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,64,3600
 ra-param=*,0,0
 " >> "${dhcpconfig}"
     fi
@@ -822,7 +828,7 @@ RemoveCustomDNSAddress() {
     host="${args[3]}"
 
     if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-        sed -i "/${ip} ${host}/d" "${dnscustomfile}"
+        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
     else
         echo -e "  ${CROSS} Invalid IP has been passed"
         exit 1
@@ -854,7 +860,7 @@ RemoveCustomCNAMERecord() {
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
         if [[ -n "${validDomain}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}/d" "${dnscustomcnamefile}"
+            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
         else
             echo "  ${CROSS} Invalid Target Passed!"
             exit 1
