@@ -58,8 +58,15 @@ delete_setting() {
 }
 
 change_setting() {
-    delete_setting "${1}"
-    add_setting "${1}" "${2}"
+    # Ensure the deleteFTLsetting call succeeds before adding the new setting's value.
+    # On failure, print the error but allow the script to continue.
+    success=true
+    deleteFTLsetting "${1}" || success=false
+    if [ "${success}" == true ]; then
+        addFTLsetting "${1}" "${2}"
+    else
+        echo "Failed to delete ${1} setting in ${FTLconf}! This setting will remain unchanged."
+    fi
 }
 
 addFTLsetting() {
