@@ -58,15 +58,8 @@ delete_setting() {
 }
 
 change_setting() {
-    # Ensure the deleteFTLsetting call succeeds before adding the new setting's value.
-    # On failure, print the error but allow the script to continue.
-    success=true
-    deleteFTLsetting "${1}" || success=false
-    if [ "${success}" == true ]; then
-        addFTLsetting "${1}" "${2}"
-    else
-        echo "Failed to delete ${1} setting in ${FTLconf}! This setting will remain unchanged."
-    fi
+    delete_setting "${1}"
+    add_setting "${1}" "${2}"
 }
 
 addFTLsetting() {
@@ -74,12 +67,17 @@ addFTLsetting() {
 }
 
 deleteFTLsetting() {
-    sed -i "/^${1}/d" "${FTLconf}"
+    sed -i "/^${1}/d" "${FTLconf}" &> /dev/null
 }
 
 changeFTLsetting() {
-    deleteFTLsetting "${1}"
-    addFTLsetting "${1}" "${2}"
+    # Ensure the deleteFTLsetting call succeeds before adding the new setting's value.
+    # On failure, print the error but allow the script to continue.
+    if deleteFTLsetting "${1}"; then
+        addFTLsetting "${1}" "${2}"
+    else
+        echo "Failed to delete ${1} setting in ${FTLconf}! This setting will remain unchanged."
+    fi
 }
 
 add_dnsmasq_setting() {
