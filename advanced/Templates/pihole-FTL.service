@@ -29,7 +29,7 @@ start() {
     chmod -f 0644 /etc/pihole/macvendor.db
     # Chown database files to the user FTL runs as. We ignore errors as the files may not (yet) exist
     chown -f pihole:pihole /etc/pihole/pihole-FTL.db /etc/pihole/gravity.db /etc/pihole/macvendor.db
-    # Chown database file persmissions so that the pihole group (web interface) can edit the file. We ignore errors as the files may not (yet) exist
+    # Chown database file permissions so that the pihole group (web interface) can edit the file. We ignore errors as the files may not (yet) exist
     chmod -f 0664 /etc/pihole/pihole-FTL.db
     if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip "/usr/bin/pihole-FTL"; then
       su -s /bin/sh -c "/usr/bin/pihole-FTL" pihole
