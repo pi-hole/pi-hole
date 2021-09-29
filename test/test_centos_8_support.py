@@ -13,6 +13,7 @@ def test_php_upgrade_default_continue_centos_gte_8(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     ''')
     unexpected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS.'
                                     ' Deprecated PHP may be in use.')
@@ -33,6 +34,7 @@ def test_php_upgrade_user_optout_skipped_centos_gte_8(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     ''')
     unexpected_stdout = info_box + (' User opt-out of PHP 7 upgrade on CentOS.'
                                     ' Deprecated PHP may be in use.')
@@ -53,6 +55,7 @@ def test_php_upgrade_user_optin_skipped_centos_gte_8(Pihole):
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    select_rpm_php
     ''')
     assert 'opt-out' not in package_manager_detect.stdout
     unexpected_stdout = info_box + (' Enabling Remi\'s RPM repository '
