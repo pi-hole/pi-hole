@@ -77,7 +77,7 @@ changeFTLsetting() {
     if error=$(deleteFTLsetting "${1}" 2>&1); then
         addFTLsetting "${1}" "${2}"
     else
-        echo -e "Failed to delete ${1} setting in ${FTLconf}! This setting will remain unchanged.\n- $error"
+        echo -e "Failed to delete ${1} setting in ${FTLconf}! This setting will remain unchanged.\n- ${error}"
     fi
 }
 
