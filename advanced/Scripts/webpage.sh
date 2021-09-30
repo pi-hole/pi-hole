@@ -67,16 +67,17 @@ addFTLsetting() {
 }
 
 deleteFTLsetting() {
-    sed -i "/^${1}/d" "${FTLconf}" &> /dev/null
+    sed -i "/^${1}/d" "${FTLconf}"
 }
 
 changeFTLsetting() {
     # Ensure the deleteFTLsetting call succeeds before adding the new setting's value.
     # On failure, print the error but allow the script to continue.
-    if deleteFTLsetting "${1}"; then
+    local error
+    if error=$(deleteFTLsetting "${1}" 2>&1); then
         addFTLsetting "${1}" "${2}"
     else
-        echo "Failed to delete ${1} setting in ${FTLconf}! This setting will remain unchanged."
+        echo -e "Failed to delete ${1} setting in ${FTLconf}! This setting will remain unchanged.\n- $error"
     fi
 }
 
