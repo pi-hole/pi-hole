@@ -273,66 +273,25 @@ if is_command apt-get ; then
     PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-    # Update package cache. This is required already here to assure apt-cache calls have package lists available.
+    # Update package cache
     update_package_cache || exit 1
-    # Debian 7 doesn't have iproute2 so check if it's available first
-    if apt-cache show iproute2 > /dev/null 2>&1; then
-        iproute_pkg="iproute2"
-    # Otherwise, check if iproute is available
-    elif apt-cache show iproute > /dev/null 2>&1; then
-        iproute_pkg="iproute"
-    # Else print error and exit
-    else
-        printf "  %b Aborting installation: iproute2 and iproute packages were not found in APT repository.\\n" "${CROSS}"
-        exit 1
-    fi
     # Check for and determine version number (major and minor) of current php install
+    local phpVer="php"
     if is_command php ; then
         printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
         printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
         printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
-        # Is installed php version 7.0 or greater
-        if [ "${phpInsMajor}" -ge 7 ]; then
-            phpInsNewer=true
-        fi
-    fi
-    # Several other packages depend on the version of PHP. If PHP is not installed, or an insufficient version,
-    # those packages should fall back to the default (latest?)
-    if [[ "$phpInsNewer" != true ]]; then
-        # Prefer the php metapackage if it's there
-        if apt-cache show php > /dev/null 2>&1; then
-            phpVer="php"
-        # Else fall back on the php5 package if it's there
-        elif apt-cache show php5 > /dev/null 2>&1; then
-            phpVer="php5"
-        # Else print error and exit
-        else
-            printf "  %b Aborting installation: No PHP packages were found in APT repository.\\n" "${CROSS}"
-            exit 1
-        fi
-    else
-        # Else, PHP is already installed at a version beyond v7.0, so the additional packages
-        # should match version with the current PHP version.
         phpVer="php$phpInsMajor.$phpInsMinor"
-    fi
-    # We also need the correct version for `php-sqlite` (which differs across distros)
-    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
-        phpSqlite="sqlite3"
-    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
-        phpSqlite="sqlite"
-    else
-        printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
-        exit 1
     fi
     # Packages required to perfom the os_check (stored as an array)
     OS_CHECK_DEPS=(grep dnsutils)
     # Packages required to run this install script (stored as an array)
-    INSTALLER_DEPS=(git "${iproute_pkg}" whiptail ca-certificates)
+    INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
     # Packages required to run Pi-hole (stored as an array)
     PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # Packages required for the Web admin interface (stored as an array)
     # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
     # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
     if [[ "${phpInsNewer}" != true || "${phpInsMajor}" -lt 8 ]]; then
         PIHOLE_WEB_DEPS+=("${phpVer}-json")
@@ -1555,9 +1514,6 @@ disable_resolved_stublistener() {
 }
 
 update_package_cache() {
-    # Running apt-get update/upgrade with minimal output can cause some issues with
-    # requiring user input (e.g password for phpmyadmin see #218)
-
     # Update package cache on apt based OSes. Do this every time since
     # it's quick and packages can be updated at any time.
 
@@ -1622,6 +1578,8 @@ install_dependent_packages() {
         # If there's anything to install, install everything in the list.
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
+            # Running apt-get install with minimal output can cause some issues with
+            # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
             printf '%*s\n' "$columns" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
