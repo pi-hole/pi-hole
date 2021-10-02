@@ -717,9 +717,8 @@ testIPv6() {
     fi
 }
 
-# A dialog for showing the user about IPv6 blocking
-useIPv6dialog() {
-    # Determine the IPv6 address used for blocking
+find_IPv6_information() {
+    # Detects IPv6 address used for communication to WAN addresses.
     IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
 
     # For each address in the array above, determine the type of IPv6 address it is
@@ -739,76 +738,34 @@ useIPv6dialog() {
         # set the IPv6 address to the ULA address
         IPV6_ADDRESS="${ULA_ADDRESS}"
         # Show this info to the user
-        printf "  %b Found IPv6 ULA address, using it for blocking IPv6 ads\\n" "${INFO}"
+        printf "  %b Found IPv6 ULA address\\n" "${INFO}"
     # Otherwise, if the GUA_ADDRESS has a value,
     elif [[ ! -z "${GUA_ADDRESS}" ]]; then
         # Let the user know
-        printf "  %b Found IPv6 GUA address, using it for blocking IPv6 ads\\n" "${INFO}"
+        printf "  %b Found IPv6 GUA address\\n" "${INFO}"
         # And assign it to the global variable
         IPV6_ADDRESS="${GUA_ADDRESS}"
     # If none of those work,
     else
-        # explain that IPv6 blocking will not be used
-        printf "  %b Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled\\n" "${INFO}"
+        printf "  %b Unable to find IPv6 ULA/GUA address\\n" "${INFO}"
         # So set the variable to be empty
         IPV6_ADDRESS=""
     fi
-
-    # If the IPV6_ADDRESS contains a value
-    if [[ ! -z "${IPV6_ADDRESS}" ]]; then
-        # Display that IPv6 is supported and will be used
-        whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." "${r}" "${c}"
-    fi
 }
 
-# A function to check if we should use IPv4 and/or IPv6 for blocking ads
-use4andor6() {
-    # Named local variables
-    local useIPv4
-    local useIPv6
-    # Let user choose IPv4 and/or IPv6 via a checklist
-    cmd=(whiptail --separate-output --checklist "Select Protocols (press space to toggle selection)" "${r}" "${c}" 2)
-    # In an array, show the options available:
-    # IPv4 (on by default)
-    options=(IPv4 "Block ads over IPv4" on
-    # or IPv6 (on by default if available)
-    IPv6 "Block ads over IPv6" on)
-    # In a variable, show the choices available; exit if Cancel is selected
-    choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-    # For each choice available,
-    for choice in ${choices}
-    do
-        # Set the values to true
-        case ${choice} in
-        IPv4  )   useIPv4=true;;
-        IPv6  )   useIPv6=true;;
-        esac
-    done
-    # If IPv4 is to be used,
-    if [[ "${useIPv4}" ]]; then
-        # Run our function to get the information we need
-        find_IPv4_information
-        if [[ -f "/etc/dhcpcd.conf" ]]; then
+# A function to collect IPv4 and IPv6 information of the device
+collect_v4andv6_information() {
+    find_IPv4_information
+    # Echo the information to the user
+    printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+    # if `dhcpcd` is used offer to set this as static IP for the device
+    if [[ -f "/etc/dhcpcd.conf" ]]; then
             # configure networking via dhcpcd
             getStaticIPv4Settings
             setDHCPCD
-        fi
     fi
-    # If IPv6 is to be used,
-    if [[ "${useIPv6}" ]]; then
-        # Run our function to get this information
-        useIPv6dialog
-    fi
-    # Echo the information to the user
-    printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+    find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-    # If neither protocol is selected,
-    if [[ ! "${useIPv4}" ]] && [[ ! "${useIPv6}" ]]; then
-        # Show an error in red
-        printf "  %bError: Neither IPv4 or IPv6 selected%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # and exit with an error
-        exit 1
-    fi
 }
 
 getStaticIPv4Settings() {
@@ -2544,8 +2501,8 @@ main() {
         setDNS
         # Give the user a choice of blocklists to include in their install. Or not.
         chooseBlocklists
-        # Let the user decide if they want to block ads over IPv4 and/or IPv6
-        use4andor6
+        # find IPv4 and IPv6 information of the device
+        collect_v4andv6_information
         # Let the user decide if they want the web interface to be installed automatically
         setAdminFlag
         # Let the user decide if they want query logging enabled...
