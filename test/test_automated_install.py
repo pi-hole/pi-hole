@@ -421,10 +421,9 @@ def test_IPv6_only_link_local(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = ('Unable to find IPv6 ULA/GUA address, '
-                       'IPv6 adblocking will not be enabled')
+    expected_stdout = ('Unable to find IPv6 ULA/GUA address')
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -468,9 +467,9 @@ def test_IPv6_only_GUA(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 GUA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 GUA address'
     assert expected_stdout in detectPlatform.stdout
 
 
