@@ -1774,15 +1774,15 @@ finalExports() {
     echo "CACHE_SIZE=${CACHE_SIZE}"
     }>> "${setupVars}"
 
-    # if this runs the first time set the varibale to true otherwiese keep the old value
-    if ! grep -q '^DNS_FQDN_REQUIRED=' ${setupVars}; then
+    # if this runs the first time (variable not set yet) set the varibale to true otherwiese keep the old value
+    if [[ ! -v DNS_FQDN_REQUIRED ]]; then
       echo "DNS_FQDN_REQUIRED=true" >> "${setupVars}"
     else
       echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED}" >> "${setupVars}"
     fi
 
-    # if this runs the first time set the varibale to true otherwiese keep the old value
-    if ! grep -q '^DNS_BOGUS_PRIV=' ${setupVars}; then
+    # if this runs the first time (variable not set yet) set the varibale to true otherwiese keep the old value
+    if [[ ! -v DNS_BOGUS_PRIV ]]; then
       echo "DNS_BOGUS_PRIV=true" >> "${setupVars}"
     else
       echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV}" >> "${setupVars}"
