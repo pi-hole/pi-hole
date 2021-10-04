@@ -262,10 +262,10 @@ os_check() {
 
 # Compatibility
 package_manager_detect() {
-# If apt-get is installed, then we know it's part of the Debian family
+# First check to see if apt-get is installed.
 if is_command apt-get ; then
     # Set some global variables here
-    # We don't set them earlier since the family might be Red Hat, so these values would be different
+    # We don't set them earlier since the installed package manager might be rpm, so these values would be different
     PKG_MANAGER="apt-get"
     # A variable to store the command used to update the package cache
     UPDATE_PKG_CACHE="${PKG_MANAGER} update"
@@ -319,7 +319,7 @@ if is_command apt-get ; then
         return 0
     }
 
-# If apt-get is not found, check for rpm to see if it's a Red Hat family OS
+# If apt-get is not found, check for rpm.
 elif is_command rpm ; then
     # Then check if dnf or yum is the package manager
     if is_command dnf ; then
@@ -328,7 +328,7 @@ elif is_command rpm ; then
         PKG_MANAGER="yum"
     fi
 
-    # These variable names match the ones in the Debian family. See above for an explanation of what they are for.
+    # These variable names match the ones for apt-get. See above for an explanation of what they are for.
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     OS_CHECK_DEPS=(grep bind-utils)
@@ -341,8 +341,8 @@ elif is_command rpm ; then
 
 # If neither apt-get or yum/dnf package managers were found
 else
-    # it's not an OS we can support,
-    printf "  %b OS distribution not supported\\n" "${CROSS}"
+    # we cannot install required packages
+    printf "  %b No supported package manager found\\n" "${CROSS}"
     # so exit the installer
     exit
 fi

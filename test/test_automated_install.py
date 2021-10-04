@@ -11,18 +11,18 @@ from .conftest import (
 )
 
 
-def test_supported_operating_system(Pihole):
+def test_supported_package_manager(Pihole):
     '''
-    confirm installer exists on unsupported distribution
+    confirm installer exits when no supported package manager found
     '''
-    # break supported package managers to emulate an unsupported distribution
+    # break supported package managers
     Pihole.run('rm -rf /usr/bin/apt-get')
     Pihole.run('rm -rf /usr/bin/rpm')
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
     ''')
-    expected_stdout = cross_box + ' OS distribution not supported'
+    expected_stdout = cross_box + ' No supported package manager found'
     assert expected_stdout in package_manager_detect.stdout
     # assert package_manager_detect.rc == 1
 
