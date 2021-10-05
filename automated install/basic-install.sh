@@ -1772,14 +1772,9 @@ finalExports() {
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     echo "CACHE_SIZE=${CACHE_SIZE}"
+    echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
+    echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
     }>> "${setupVars}"
-
-    # if this runs the first time (variable not set yet) set the varibale to true otherwiese keep the old value
-     echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}" >> "${setupVars}"
-
-    # if this runs the first time (variable not set yet) set the varibale to true otherwiese keep the old value
-    echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}" >> "${setupVars}"
-
     chmod 644 "${setupVars}"
 
     # Set the privacy level
