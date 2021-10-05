@@ -74,7 +74,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
-PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
+PI_HOLE_404_DIR="${webroot}/pihole"
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
 fi
@@ -1623,18 +1623,18 @@ install_dependent_packages() {
 
 # Install the Web interface dashboard
 installPiholeWeb() {
-    printf "\\n  %b Installing blocking page...\\n" "${INFO}"
+    printf "\\n  %b Installing 404 page...\\n" "${INFO}"
 
-    local str="Creating directory for blocking page, and copying files"
+    local str="Creating directory for 404 page, and copying files"
     printf "  %b %s..." "${INFO}" "${str}"
-    # Install the directory,
-    install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
-    # and the blockpage
-    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
+    # Install the directory
+    install -d -m 0755 ${PI_HOLE_404_DIR}
+    # and the 404 handler
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/index.php ${PI_HOLE_404_DIR}/
 
     # Remove superseded file
-    if [[ -e "${PI_HOLE_BLOCKPAGE_DIR}/index.js" ]]; then
-        rm "${PI_HOLE_BLOCKPAGE_DIR}/index.js"
+    if [[ -e "${PI_HOLE_404_DIR}/index.js" ]]; then
+        rm "${PI_HOLE_404_DIR}/index.js"
     fi
 
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
