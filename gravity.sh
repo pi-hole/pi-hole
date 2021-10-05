@@ -35,30 +35,18 @@ localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
-gravityDBfile="${piholeDir}/gravity.db"
-gravityTEMPfile="${piholeDir}/gravity_temp.db"
+gravityDBfile_default="${piholeDir}/gravity.db"
+# GRAVITYDB may be overwritten by source pihole-FTL.conf below
+GRAVITYDB="${gravityDBfile_default}"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
-optimize_database=false
 
 domainsExtension="domains"
-
-resolver="pihole-FTL"
 
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
 if [[ -f "${setupVars}" ]];then
   source "${setupVars}"
-
-  # Remove CIDR mask from IPv4/6 addresses
-  IPV4_ADDRESS="${IPV4_ADDRESS%/*}"
-  IPV6_ADDRESS="${IPV6_ADDRESS%/*}"
-
-  # Determine if IPv4/6 addresses exist
-  if [[ -z "${IPV4_ADDRESS}" ]] && [[ -z "${IPV6_ADDRESS}" ]]; then
-    echo -e "  ${COL_LIGHT_RED}No IP addresses found! Please run 'pihole -r' to reconfigure${COL_NC}"
-    exit 1
-  fi
 else
   echo -e "  ${COL_LIGHT_RED}Installation Failure: ${setupVars} does not exist! ${COL_NC}
   Please run 'pihole -r', and choose the 'reconfigure' option to fix."
@@ -70,6 +58,13 @@ pihole_FTL="${piholeDir}/pihole-FTL.conf"
 if [[ -f "${pihole_FTL}" ]]; then
   source "${pihole_FTL}"
 fi
+
+# Set this only after sourcing pihole-FTL.conf as the gravity database path may
+# have changed
+gravityDBfile="${GRAVITYDB}"
+gravityTEMPfile="${GRAVITYDB}_temp"
+gravityDIR="$(dirname -- "${gravityDBfile}")"
+gravityOLDfile="${gravityDIR}/gravity_old.db"
 
 if [[ -z "${BLOCKINGMODE}" ]] ; then
   BLOCKINGMODE="NULL"
@@ -87,11 +82,11 @@ generate_gravity_database() {
 
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
-  local str
+  local str copyGravity
   str="Building tree"
   echo -ne "  ${INFO} ${str}..."
 
-  # The index is intentionally not UNIQUE as prro quality adlists may contain domains more than once
+  # The index is intentionally not UNIQUE as poor quality adlists may contain domains more than once
   output=$( { sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
   status="$?"
 
@@ -104,7 +99,14 @@ gravity_swap_databases() {
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
-  output=$( { sqlite3 "${gravityTEMPfile}" < "${gravityDBcopy}"; } 2>&1 )
+  # Gravity copying SQL script
+  copyGravity="$(cat "${gravityDBcopy}")"
+  if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
+    # Replace default gravity script location by custom location
+    copyGravity="${copyGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
+  fi
+
+  output=$( { sqlite3 "${gravityTEMPfile}" <<< "${copyGravity}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -113,8 +115,19 @@ gravity_swap_databases() {
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 
-  # Swap databases and remove old database
-  rm "${gravityDBfile}"
+  # Swap databases and remove or conditionally rename old database
+  # Number of available blocks on disk
+  availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
+  # Number of blocks, used by gravity.db
+  gravityBlocks=$(stat --format "%b" ${gravityDBfile})
+  # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
+  # Better be safe than sorry...
+  if [ "${availableBlocks}" -gt "$((gravityBlocks * 2))" ] && [ -f "${gravityDBfile}" ]; then
+    echo -e "  ${TICK} The old database remains available."
+    mv "${gravityDBfile}" "${gravityOLDfile}"
+  else
+    rm "${gravityDBfile}"
+  fi
   mv "${gravityTEMPfile}" "${gravityDBfile}"
 }
 
@@ -179,7 +192,7 @@ database_table_from_file() {
         echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
       elif [[ "${table}" == "adlist" ]]; then
         # Adlist table format
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\",,0,0,0" >> "${tmpFile}"
       else
         # White-, black-, and regexlist table format
         echo "${rowid},${type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${source}\"" >> "${tmpFile}"
@@ -207,6 +220,59 @@ database_table_from_file() {
   # Delete tmpFile
   rm "${tmpFile}" > /dev/null 2>&1 || \
     echo -e "  ${CROSS} Unable to remove ${tmpFile}"
+}
+
+# Update timestamp of last update of this list. We store this in the "old" database as all values in the new database will later be overwritten
+database_adlist_updated() {
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET date_updated = (cast(strftime('%%s', 'now') as int)) WHERE id = %i;\\n" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update timestamp of adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+}
+
+# Check if a column with name ${2} exists in gravity table with name ${1}
+gravity_column_exists() {
+  output=$( { printf ".timeout 30000\\nSELECT EXISTS(SELECT * FROM pragma_table_info('%s') WHERE name='%s');\\n" "${1}" "${2}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  if [[ "${output}" == "1" ]]; then
+    return 0 # Bash 0 is success
+  fi
+
+  return 1 # Bash non-0 is failure
+}
+
+# Update number of domain on this list. We store this in the "old" database as all values in the new database will later be overwritten
+database_adlist_number() {
+  # Only try to set number of domains when this field exists in the gravity database
+  if ! gravity_column_exists "adlist" "number"; then
+    return;
+  fi
+
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${num_lines}" "${num_invalid}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update number of domains in adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
+}
+
+# Update status of this list. We store this in the "old" database as all values in the new database will later be overwritten
+database_adlist_status() {
+  # Only try to set the status when this field exists in the gravity database
+  if ! gravity_column_exists "adlist" "status"; then
+    return;
+  fi
+
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET status = %i WHERE id = %i;\\n" "${2}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update status of adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    gravity_Cleanup "error"
+  fi
 }
 
 # Migrate pre-v5.0 list files to database-based Pi-hole versions
@@ -284,7 +350,7 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
   # Determine error output message
-  if pidof ${resolver} &> /dev/null; then
+  if pgrep pihole-FTL &> /dev/null; then
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   else
     echo -e "  ${CROSS} DNS service is not running"
@@ -308,6 +374,10 @@ gravity_CheckDNSResolutionAvailable() {
 # Retrieve blocklist URLs and parse domains from adlist.list
 gravity_DownloadBlocklists() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
+
+  if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
+    echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
+  fi
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, sqlite3 stores boolean values as 0 (false) or 1 (true)
@@ -336,7 +406,7 @@ gravity_DownloadBlocklists() {
     return 1
   fi
 
-  local url domain agent cmd_ext str target
+  local url domain agent cmd_ext str target compression
   echo ""
 
   # Prepare new gravity database
@@ -355,13 +425,24 @@ gravity_DownloadBlocklists() {
 
   target="$(mktemp -p "/tmp" --suffix=".gravity")"
 
+  # Use compression to reduce the amount of data that is transferred
+  # between the Pi-hole and the ad list provider. Use this feature
+  # only if it is supported by the locally available version of curl
+  if curl -V | grep -q "Features:.* libz"; then
+    compression="--compressed"
+    echo -e "  ${INFO} Using libz compression\n"
+  else
+      compression=""
+      echo -e "  ${INFO} Libz compression not available\n"
+    fi
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
     domain="${sourceDomains[$i]}"
+    id="${sourceIDs[$i]}"
 
     # Save the file as list.#.domain
-    saveLocation="${piholeDir}/list.${i}.${domain}.${domainsExtension}"
+    saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
@@ -374,13 +455,18 @@ gravity_DownloadBlocklists() {
     esac
 
     echo -e "  ${INFO} Target: ${url}"
-    local regex
+    local regex check_url
     # Check for characters NOT allowed in URLs
     regex="[^a-zA-Z0-9:/?&%=~._()-;]"
-    if [[ "${url}" =~ ${regex} ]]; then
+
+    # this will remove first @ that is after schema and before domain
+    # \1 is optional schema, \2 is userinfo
+    check_url="$( sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<< "$url" )"
+
+    if [[ "${check_url}" =~ ${regex} ]]; then
         echo -e "  ${CROSS} Invalid Target"
     else
-       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}"
+       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
     fi
     echo ""
   done
@@ -420,6 +506,8 @@ gravity_DownloadBlocklists() {
 }
 
 total_num=0
+num_lines=0
+num_invalid=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
   # This sed does the following things:
@@ -430,7 +518,7 @@ parseList() {
   # Find (up to) five domains containing invalid characters (see above)
   incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
 
-  local num_lines num_target_lines num_correct_lines num_invalid
+  local num_target_lines num_correct_lines num_invalid
   # Get number of lines in source file
   num_lines="$(grep -c "^" "${src}")"
   # Get number of lines in destination file
@@ -439,9 +527,9 @@ parseList() {
   total_num="$num_target_lines"
   num_invalid="$(( num_lines-num_correct_lines ))"
   if [[ "${num_invalid}" -eq 0 ]]; then
-    echo "  ${INFO} Received ${num_lines} domains"
+    echo "  ${INFO} Analyzed ${num_lines} domains"
   else
-    echo "  ${INFO} Received ${num_lines} domains, ${num_invalid} domains invalid!"
+    echo "  ${INFO} Analyzed ${num_lines} domains, ${num_invalid} domains invalid!"
   fi
 
   # Display sample of invalid lines if we found some
@@ -452,11 +540,34 @@ parseList() {
     done <<< "${incorrect_lines}"
   fi
 }
+compareLists() {
+  local adlistID="${1}" target="${2}"
+
+  # Verify checksum when an older checksum exists
+  if [[ -s "${target}.sha1" ]]; then
+    if ! sha1sum --check --status --strict "${target}.sha1"; then
+      # The list changed upstream, we need to update the checksum
+      sha1sum "${target}" > "${target}.sha1"
+      echo "  ${INFO} List has been updated"
+      database_adlist_status "${adlistID}" "1"
+      database_adlist_updated "${adlistID}"
+    else
+      echo "  ${INFO} List stayed unchanged"
+      database_adlist_status "${adlistID}" "2"
+    fi
+  else
+    # No checksum available, create one for comparing on the next run
+    sha1sum "${target}" > "${target}.sha1"
+    # We assume here it was changed upstream
+    database_adlist_status "${adlistID}" "1"
+    database_adlist_updated "${adlistID}"
+  fi
+}
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}"
-  local heisenbergCompensator="" patternBuffer str httpCode success=""
+  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}" compression="${7}"
+  local heisenbergCompensator="" patternBuffer str httpCode success="" ip
 
   # Create temp file to store content on disk instead of RAM
   patternBuffer=$(mktemp -p "/tmp" --suffix=".phgpb")
@@ -474,7 +585,10 @@ gravity_DownloadBlocklistFromUrl() {
   blocked=false
   case $BLOCKINGMODE in
     "IP-NODATA-AAAA"|"IP")
-        if [[ $(dig "${domain}" +short | grep "${IPV4_ADDRESS}" -c) -ge 1 ]]; then
+        # Get IP address of this domain
+        ip="$(dig "${domain}" +short)"
+        # Check if this IP matches any IP of the system
+        if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<< "$(ip a)") -gt 0 ]]; then
           blocked=true
         fi;;
     "NXDOMAIN")
@@ -504,8 +618,9 @@ gravity_DownloadBlocklistFromUrl() {
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
   fi
+
   # shellcheck disable=SC2086
-  httpCode=$(curl -s -L ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+  httpCode=$(curl -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
   case $url in
     # Did we "download" a local file?
@@ -534,29 +649,49 @@ gravity_DownloadBlocklistFromUrl() {
       esac;;
   esac
 
+  local done="false"
   # Determine if the blocklist was downloaded and saved correctly
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
+      database_adlist_status "${adlistID}" "2"
+      database_adlist_number "${adlistID}"
+      done="true"
     # Check if $patternbuffer is a non-zero length file
     elif [[ -s "${patternBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
       gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
+      # Compare lists, are they identical?
+      compareLists "${adlistID}" "${saveLocation}"
+      # Update gravity database table (status and updated timestamp are set in
+      # compareLists)
+      database_adlist_number "${adlistID}"
+      done="true"
     else
       # Fall back to previously cached list if $patternBuffer is empty
-      echo -e "  ${INFO} Received empty file: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
+      echo -e "  ${INFO} Received empty file"
     fi
-  else
+  fi
+
+  # Do we need to fall back to a cached list (if available)?
+  if [[ "${done}" != "true" ]]; then
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
+      database_adlist_number "${adlistID}"
+      database_adlist_status "${adlistID}" "3"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
+      # Manually reset these two numbers because we do not call parseList here
+      num_lines=0
+      num_invalid=0
+      database_adlist_number "${adlistID}"
+      database_adlist_status "${adlistID}" "4"
     fi
   fi
 }
@@ -568,7 +703,7 @@ gravity_ParseFileIntoDomains() {
   # Determine if we are parsing a consolidated list
   #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
-    # Most of the lists downloaded are already in hosts file format but the spacing/formating is not contiguous
+    # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
     # This helps with that and makes it easier to read
     # It also helps with debugging so each stage of the script can be researched more in depth
     # 1) Remove carriage returns
@@ -656,42 +791,11 @@ gravity_ShowCount() {
   gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
 }
 
-# Parse list of domains into hosts format
-gravity_ParseDomainsIntoHosts() {
-  awk -v ipv4="$IPV4_ADDRESS" -v ipv6="$IPV6_ADDRESS" '{
-    # Remove windows CR line endings
-    sub(/\r$/, "")
-    # Parse each line as "ipaddr domain"
-    if(ipv6 && ipv4) {
-      print ipv4" "$0"\n"ipv6" "$0
-    } else if(!ipv6) {
-      print ipv4" "$0
-    } else {
-      print ipv6" "$0
-    }
-  }' >> "${2}" < "${1}"
-}
-
 # Create "localhost" entries into hosts format
 gravity_generateLocalList() {
-  local hostname
-
-  if [[ -s "/etc/hostname" ]]; then
-    hostname=$(< "/etc/hostname")
-  elif command -v hostname &> /dev/null; then
-    hostname=$(hostname -f)
-  else
-    echo -e "  ${CROSS} Unable to determine fully qualified domain name of host"
-    return 0
-  fi
-
-  echo -e "${hostname}\\npi.hole" > "${localList}.tmp"
-
   # Empty $localList if it already exists, otherwise, create it
-  : > "${localList}"
+  echo "### Do not modify this file, it will be overwritten by pihole -g" > "${localList}"
   chmod 644 "${localList}"
-
-  gravity_ParseDomainsIntoHosts "${localList}.tmp" "${localList}"
 
   # Add additional LAN hosts provided by OpenVPN (if available)
   if [[ -f "${VPNList}" ]]; then
@@ -730,23 +834,8 @@ gravity_Cleanup() {
 
   echo -e "${OVER}  ${TICK} ${str}"
 
-  if ${optimize_database} ; then
-    str="Optimizing domains database"
-    echo -ne "  ${INFO} ${str}..."
-    # Run VACUUM command on database to optimize it
-    output=$( { sqlite3 "${gravityDBfile}" "VACUUM;"; } 2>&1 )
-    status="$?"
-
-    if [[ "${status}" -ne 0 ]]; then
-      echo -e "\\n  ${CROSS} Unable to optimize gravity database ${gravityDBfile}\\n  ${output}"
-      error="error"
-    else
-      echo -e "${OVER}  ${TICK} ${str}"
-    fi
-  fi
-
   # Only restart DNS service if offline
-  if ! pidof ${resolver} &> /dev/null; then
+  if ! pgrep pihole-FTL &> /dev/null; then
     "${PIHOLE_COMMAND}" restartdns
     dnsWasOffline=true
   fi
@@ -771,11 +860,15 @@ Options:
 for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
-    "-o" | "--optimize" ) optimize_database=true;;
     "-r" | "--recreate" ) recreate_database=true;;
     "-h" | "--help" ) helpFunc;;
   esac
 done
+
+# Remove OLD (backup) gravity file, if it exists
+if [[ -f "${gravityOLDfile}" ]]; then
+  rm "${gravityOLDfile}"
+fi
 
 # Trap Ctrl-C
 gravity_Trap

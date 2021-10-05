@@ -56,7 +56,7 @@ Available commands and options:
 
 \fB-w, whitelist\fR [options] [<domain1> <domain2 ...>]
 .br
-    Adds or removes specified domain or domains tho the Whitelist
+    Adds or removes specified domain or domains to the Whitelist
 .br
 
 \fB-b, blacklist\fR [options] [<domain1> <domain2 ...>]
@@ -139,7 +139,7 @@ Available commands and options:
       -i, interface     Specify dnsmasq's interface listening behavior
 .br
       -l, privacylevel  <level> Set privacy level
-                        (0 = lowest, 4 = highest)
+                        (0 = lowest, 3 = highest)
 .br
 
 \fB-c, chronometer\fR	[options]
@@ -153,7 +153,7 @@ Available commands and options:
 .br
       -r, --refresh     Set update frequency (in seconds)
 .br
-      -e, --exit        Output stats and exit witout refreshing
+      -e, --exit        Output stats and exit without refreshing
 .br
 
 \fB-g, updateGravity\fR
@@ -257,14 +257,14 @@ Available commands and options:
 
 \fBrestartdns\fR [options]
 .br
-    Full restart Pi-hole subsystems
+    Full restart Pi-hole subsystems. Without any options (see below) a full restart causes config file parsing and history re-reading
 .br
 
     (restart options):
 .br
-      reload            Updates the lists and flushes DNS cache
+      reload            Updates the lists (incl. HOSTS files) and flushes DNS cache. Does not reparse config files
 .br
-      reload-lists      Updates the lists WITHOUT flushing the DNS cache
+      reload-lists      Updates the lists (excl. HOSTS files) WITHOUT flushing the DNS cache. Does not reparse config files
 .br
 
 \fBcheckout\fR [repo] [branch]

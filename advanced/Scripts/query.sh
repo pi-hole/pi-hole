@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2018 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -11,12 +12,21 @@
 
 # Globals
 piholeDir="/etc/pihole"
-gravityDBfile="${piholeDir}/gravity.db"
+GRAVITYDB="${piholeDir}/gravity.db"
 options="$*"
 all=""
 exact=""
 blockpage=""
 matchType="match"
+# Source pihole-FTL from install script
+pihole_FTL="${piholeDir}/pihole-FTL.conf"
+if [[ -f "${pihole_FTL}" ]]; then
+  source "${pihole_FTL}"
+fi
+
+# Set this only after sourcing pihole-FTL.conf as the gravity database path may
+# have changed
+gravityDBfile="${GRAVITYDB}"
 
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
@@ -29,7 +39,7 @@ scanList(){
     # Prevent grep from printing file path
     cd "$piholeDir" || exit 1
 
-    # Prevent grep -i matching slowly: http://bit.ly/2xFXtUX
+    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
     export LC_CTYPE=C
 
     # /dev/null forces filename to be printed when only one list has been generated

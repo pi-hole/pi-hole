@@ -21,6 +21,10 @@
 # instead of continuing the installation with something broken
 set -e
 
+# Append common folders to the PATH to ensure that all basic commands are available.
+# When using "su" an incomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
+export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
 # This allows us to make a change in one place that can propagate to all instances of the variable
@@ -31,13 +35,13 @@ set -e
 # List of supported DNS servers
 DNS_SERVERS=$(cat << EOM
 Google (ECS);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
-OpenDNS (ECS);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
+OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
 DNS.WATCH;84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
 Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
 Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
-Quad9 (filtered + ECS);9.9.9.11;149.112.112.11;2620:fe::11;
+Quad9 (filtered + ECS);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
 Cloudflare;1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
@@ -55,58 +59,48 @@ coltable=/opt/pihole/COL_TABLE
 # Root of the web server
 webroot="/var/www/html"
 
-# We store several other directories and
+
+# We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
+# AdminLTE is used to set up the Web admin interface.
+# Pi-hole contains various setup scripts and files which are critical to the installation.
+# Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
+# Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
 webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
 webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
-# These are the names of pi-holes files, stored in an array
+# List of pihole scripts, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 # This directory is where the Pi-hole scripts will be installed
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
-useUpdateVars=false
+if [ -z "$useUpdateVars" ]; then
+  useUpdateVars=false
+fi
 
 adlistFile="/etc/pihole/adlists.list"
-# Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until
-# this script can run
-IPV4_ADDRESS=""
-IPV6_ADDRESS=""
-# By default, query logging is enabled and the dashboard is set to be installed
+# Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
+IPV4_ADDRESS=${IPV4_ADDRESS}
+IPV6_ADDRESS=${IPV6_ADDRESS}
+# Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
 PRIVACY_LEVEL=0
+CACHE_SIZE=10000
 
 if [ -z "${USER}" ]; then
   USER="$(id -un)"
 fi
 
-
-# Check if we are running on a real terminal and find the rows and columns
-# If there is no real terminal, we will default to 80x24
-if [ -t 0 ] ; then
-  screen_size=$(stty size)
-else
-  screen_size="24 80"
-fi
-# Set rows variable to contain first number
-printf -v rows '%d' "${screen_size%% *}"
-# Set columns variable to contain second number
-printf -v columns '%d' "${screen_size##* }"
-
-# Divide by two so the dialogs take up half of the screen, which looks nice.
-r=$(( rows / 2 ))
-c=$(( columns / 2 ))
-# Unless the screen is tiny
-r=$(( r < 20 ? 20 : r ))
-c=$(( c < 70 ? 70 : c ))
+# whiptail dialog dimensions: 20 rows and 70 chars width assures to fit on small screens and is known to hold all content.
+r=20
+c=70
 
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
-skipSpaceCheck=false
 reconfigure=false
 runUnattended=false
 INSTALL_WEB_SERVER=true
@@ -114,7 +108,6 @@ INSTALL_WEB_SERVER=true
 for var in "$@"; do
     case "$var" in
         "--reconfigure" ) reconfigure=true;;
-        "--i_do_not_follow_recommendations" ) skipSpaceCheck=true;;
         "--unattended" ) runUnattended=true;;
         "--disable-install-webserver" ) INSTALL_WEB_SERVER=false;;
     esac
@@ -166,99 +159,143 @@ show_ascii_berry() {
 }
 
 is_command() {
-    # Checks for existence of string passed in as only function argument.
-    # Exit value of 0 when exists, 1 if not exists. Value is the result
-    # of the `command` shell built-in call.
+    # Checks to see if the given command (passed as a string argument) exists on the system.
+    # The function returns 0 (success) if the command exists, and 1 if it doesn't.
     local check_command="$1"
 
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+os_check() {
+    if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
+        # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
+        # and determines whether or not the script is running on one of those systems
+        local remote_os_domain valid_os valid_version valid_response detected_os detected_version display_warning cmdResult digReturnCode response
+        remote_os_domain=${OS_CHECK_DOMAIN_NAME:-"versions.pi-hole.net"}
+
+        detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+        detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
+
+        cmdResult="$(dig +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
+        # Gets the return code of the previous command (last line)
+        digReturnCode="${cmdResult##*$'\n'}"
+
+        if [ ! "${digReturnCode}" == "0" ]; then
+            valid_response=false
+        else
+            # Dig returned 0 (success), so get the actual response, and loop through it to determine if the detected variables above are valid
+            response="${cmdResult%%$'\n'*}"
+            # If the value of ${response} is a single 0, then this is the return code, not an actual response.
+            if [ "${response}" == 0 ]; then
+                valid_response=false
+            fi
+
+            IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
+            for distro_and_versions in "${supportedOS[@]}"
+            do
+                distro_part="${distro_and_versions%%=*}"
+                versions_part="${distro_and_versions##*=}"
+
+                # If the distro part is a (case-insensistive) substring of the computer OS
+                if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
+                    valid_os=true
+                    IFS="," read -r -a supportedVer <<<"${versions_part}"
+                    for version in "${supportedVer[@]}"
+                    do
+                        if [[ "${detected_version}" =~ $version ]]; then
+                            valid_version=true
+                            break
+                        fi
+                    done
+                    break
+                fi
+            done
+        fi
+
+        if [ "$valid_os" = true ] && [ "$valid_version" = true ] && [ ! "$valid_response" = false ]; then
+            display_warning=false
+        fi
+
+        if [ "$display_warning" != false ]; then
+            if [ "$valid_response" = false ]; then
+
+                if [ "${digReturnCode}" -eq 0 ]; then
+                    errStr="dig succeeded, but response was blank. Please contact support"
+                else
+                    errStr="dig failed with return code ${digReturnCode}"
+                fi
+                printf "  %b %bRetrieval of supported OS list failed. %s. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${errStr}" "${COL_NC}"
+                printf "      %bUnable to determine if the detected OS (%s %s) is supported%b\\n" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
+                printf "      Possible causes for this include:\\n"
+                printf "        - Firewall blocking certain DNS lookups from Pi-hole device\\n"
+                printf "        - ns1.pi-hole.net being blocked (required to obtain TXT record from versions.pi-hole.net containing supported operating systems)\\n"
+                printf "        - Other internet connectivity issues\\n"
+            else
+                printf "  %b %bUnsupported OS detected: %s %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
+                printf "      If you are seeing this message and you do have a supported OS, please contact support.\\n"
+            fi
+            printf "\\n"
+            printf "      %bhttps://docs.pi-hole.net/main/prerequesites/#supported-operating-systems%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "\\n"
+            printf "      If you wish to attempt to continue anyway, you can try one of the following commands to skip this check:\\n"
+            printf "\\n"
+            printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
+            printf "             %bcurl -sSL https://install.pi-hole.net | PIHOLE_SKIP_OS_CHECK=true sudo -E bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "\\n"
+            printf "           If you are seeing this message after having run pihole -up:\\n"
+            printf "             %bPIHOLE_SKIP_OS_CHECK=true sudo -E pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "           (In this case, your previous run of pihole -up will have already updated the local repository)\\n"
+            printf "\\n"
+            printf "      It is possible that the installation will still fail at this stage due to an unsupported configuration.\\n"
+            printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "      %bhttps://discourse.pi-hole.net/c/bugs-problems-issues/community-help/%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "\\n"
+            exit 1
+
+        else
+            printf "  %b %bSupported OS detected%b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        fi
+    else
+        printf "  %b %bPIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+    fi
+}
+
 # Compatibility
-distro_check() {
-# If apt-get is installed, then we know it's part of the Debian family
+package_manager_detect() {
+# First check to see if apt-get is installed.
 if is_command apt-get ; then
     # Set some global variables here
-    # We don't set them earlier since the family might be Red Hat, so these values would be different
+    # We don't set them earlier since the installed package manager might be rpm, so these values would be different
     PKG_MANAGER="apt-get"
     # A variable to store the command used to update the package cache
     UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-    # An array for something...
+    # The command we will use to actually install packages
     PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
-    # grep -c will return 1 retVal on 0 matches, block this throwing the set -e with an OR TRUE
+    # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-    # Some distros vary slightly so these fixes for dependencies may apply
-    # on Ubuntu 18.04.1 LTS we need to add the universe repository to gain access to dhcpcd5
-    APT_SOURCES="/etc/apt/sources.list"
-    if awk 'BEGIN{a=1;b=0}/bionic main/{a=0}/bionic.*universe/{b=1}END{exit a + b}' ${APT_SOURCES}; then
-        if ! whiptail --defaultno --title "Dependencies Require Update to Allowed Repositories" --yesno "Would you like to enable 'universe' repository?\\n\\nThis repository is required by the following packages:\\n\\n- dhcpcd5" "${r}" "${c}"; then
-            printf "  %b Aborting installation: Dependencies could not be installed.\\n" "${CROSS}"
-            exit 1 # exit the installer
-        else
-            printf "  %b Enabling universe package repository for Ubuntu Bionic\\n" "${INFO}"
-            cp -p ${APT_SOURCES} ${APT_SOURCES}.backup # Backup current repo list
-            printf "  %b Backed up current configuration to %s\\n" "${TICK}" "${APT_SOURCES}.backup"
-            add-apt-repository universe
-            printf "  %b Enabled %s\\n" "${TICK}" "'universe' repository"
-        fi
-    fi
-    # Update package cache. This is required already here to assure apt-cache calls have package lists available.
+    # Update package cache
     update_package_cache || exit 1
-    # Debian 7 doesn't have iproute2 so check if it's available first
-    if apt-cache show iproute2 > /dev/null 2>&1; then
-        iproute_pkg="iproute2"
-    # Otherwise, check if iproute is available
-    elif apt-cache show iproute > /dev/null 2>&1; then
-        iproute_pkg="iproute"
-    # Else print error and exit
-    else
-        printf "  %b Aborting installation: iproute2 and iproute packages were not found in APT repository.\\n" "${CROSS}"
-        exit 1
-    fi
     # Check for and determine version number (major and minor) of current php install
+    local phpVer="php"
     if is_command php ; then
         printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
         printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
         printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
-        # Is installed php version 7.0 or greater
-        if [ "${phpInsMajor}" -ge 7 ]; then
-            phpInsNewer=true
-        fi
-    fi
-    # Check if installed php is v 7.0, or newer to determine packages to install
-    if [[ "$phpInsNewer" != true ]]; then
-        # Prefer the php metapackage if it's there
-        if apt-cache show php > /dev/null 2>&1; then
-            phpVer="php"
-        # Else fall back on the php5 package if it's there
-        elif apt-cache show php5 > /dev/null 2>&1; then
-            phpVer="php5"
-        # Else print error and exit
-        else
-            printf "  %b Aborting installation: No PHP packages were found in APT repository.\\n" "${CROSS}"
-            exit 1
-        fi
-    else
-        # Newer php is installed, its common, cgi & sqlite counterparts are deps
         phpVer="php$phpInsMajor.$phpInsMinor"
     fi
-    # We also need the correct version for `php-sqlite` (which differs across distros)
-    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
-        phpSqlite="sqlite3"
-    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
-        phpSqlite="sqlite"
-    else
-        printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
-        exit 1
+    # Packages required to perfom the os_check (stored as an array)
+    OS_CHECK_DEPS=(grep dnsutils)
+    # Packages required to run this install script (stored as an array)
+    INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
+    # Packages required to run Pi-hole (stored as an array)
+    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+    # Packages required for the Web admin interface (stored as an array)
+    # It's useful to separate this from Pi-hole, since the two repos are also setup separately
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
+    # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
+    if [[ "${phpInsNewer}" != true || "${phpInsMajor}" -lt 8 ]]; then
+        PIHOLE_WEB_DEPS+=("${phpVer}-json")
     fi
-    # Since our install script is so large, we need several other programs to successfully get a machine provisioned
-    # These programs are stored in an array so they can be looped through later
-    INSTALLER_DEPS=(dhcpcd5 git "${iproute_pkg}" whiptail)
-    # Pi-hole itself has several dependencies that also need to be installed
-    PIHOLE_DEPS=(cron curl dnsutils iputils-ping lsof netcat psmisc sudo unzip wget idn2 sqlite3 libcap2-bin dns-root-data libcap2)
-    # The Web dashboard has some that also need to be installed
-    # It's useful to separate the two since our repos are also setup as "Core" code and "Web" code
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
     # The Web server user,
     LIGHTTPD_USER="www-data"
     # group,
@@ -266,24 +303,23 @@ if is_command apt-get ; then
     # and config file
     LIGHTTPD_CFG="lighttpd.conf.debian"
 
-    # A function to check...
+    # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
     test_dpkg_lock() {
-        # An iterator used for counting loop iterations
         i=0
         # fuser is a program to show which processes use the named files, sockets, or filesystems
-        # So while the command is true
-        while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-            # Wait half a second
+        # So while the lock is held,
+        while fuser /var/lib/dpkg/lock >/dev/null 2>&1
+        do
+            # we wait half a second,
             sleep 0.5
-            # and increase the iterator
+            # increase the iterator,
             ((i=i+1))
         done
-        # Always return success, since we only return if there is no
-        # lock (anymore)
+        # and then report success once dpkg is unlocked.
         return 0
     }
 
-# If apt-get is not found, check for rpm to see if it's a Red Hat family OS
+# If apt-get is not found, check for rpm.
 elif is_command rpm ; then
     # Then check if dnf or yum is the package manager
     if is_command dnf ; then
@@ -292,104 +328,107 @@ elif is_command rpm ; then
         PKG_MANAGER="yum"
     fi
 
+    # These variable names match the ones for apt-get. See above for an explanation of what they are for.
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig)
-    PIHOLE_DEPS=(bind-utils cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap)
+    OS_CHECK_DEPS=(grep bind-utils)
+    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
+    PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
     LIGHTTPD_CFG="lighttpd.conf.fedora"
-    # If the host OS is Fedora,
-    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-        # all required packages should be available by default with the latest fedora release
-        : # continue
-    # or if host OS is CentOS,
-    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
-        # Pi-Hole currently supports CentOS 7+ with PHP7+
-        SUPPORTED_CENTOS_VERSION=7
-        SUPPORTED_CENTOS_PHP_VERSION=7
-        # Check current CentOS major release version
-        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.)' /etc/redhat-release)
-        # Check if CentOS version is supported
-        if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-            printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
-            printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
-            # exit the installer
-            exit
-        fi
-        # php-json is not required on CentOS 7 as it is already compiled into php
-        # verifiy via `php -m | grep json`
-        if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
-            # create a temporary array as arrays are not designed for use as mutable data structures
-            CENTOS7_PIHOLE_WEB_DEPS=()
-            for i in "${!PIHOLE_WEB_DEPS[@]}"; do
-                if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
-                    CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
-                fi
-            done
-            # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
-            PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
-            unset CENTOS7_PIHOLE_WEB_DEPS
-        fi
-        # CentOS requires the EPEL repository to gain access to Fedora packages
-        EPEL_PKG="epel-release"
-        rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
-        if [[ $rc -ne 0 ]]; then
-            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-            "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
-        fi
-
-        # The default php on CentOS 7.x is 5.4 which is EOL
-        # Check if the version of PHP available via installed repositories is >= to PHP 7
-        AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
-        if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
-            # Since PHP 7 is available by default, install via default PHP package names
-            : # do nothing as PHP is current
-        else
-            REMI_PKG="remi-release"
-            REMI_REPO="remi-php72"
-            rpm -q ${REMI_PKG} &> /dev/null || rc=$?
-        if [[ $rc -ne 0 ]]; then
-            # The PHP version available via default repositories is older than version 7
-            if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
-                # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
-                printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
-                : # continue with unsupported php version
-            else
-                printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-                "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-                # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-                "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-                yum-config-manager --enable ${REMI_REPO} &> /dev/null
-                printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
-                # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
-                if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
-                    printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
-                else
-                    printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
-                    exit 1
-                fi
-            fi
-        fi
-    fi
-    else
-        # Warn user of unsupported version of Fedora or CentOS
-        if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
-            printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-            exit # exit the installer
-        else
-            printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
-        fi
-    fi
 
 # If neither apt-get or yum/dnf package managers were found
 else
-    # it's not an OS we can support,
-    printf "  %b OS distribution not supported\\n" "${CROSS}"
+    # we cannot install required packages
+    printf "  %b No supported package manager found\\n" "${CROSS}"
     # so exit the installer
     exit
+fi
+}
+
+select_rpm_php(){
+# If the host OS is Fedora,
+if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+    # all required packages should be available by default with the latest fedora release
+    : # continue
+# or if host OS is CentOS,
+elif grep -qiE 'centos|scientific' /etc/redhat-release; then
+    # Pi-Hole currently supports CentOS 7+ with PHP7+
+    SUPPORTED_CENTOS_VERSION=7
+    SUPPORTED_CENTOS_PHP_VERSION=7
+    # Check current CentOS major release version
+    CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+    # Check if CentOS version is supported
+    if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
+        printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
+        printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
+        # exit the installer
+        exit
+    fi
+    # php-json is not required on CentOS 7 as it is already compiled into php
+    # verifiy via `php -m | grep json`
+    if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
+        # create a temporary array as arrays are not designed for use as mutable data structures
+        CENTOS7_PIHOLE_WEB_DEPS=()
+        for i in "${!PIHOLE_WEB_DEPS[@]}"; do
+            if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
+                CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
+            fi
+        done
+        # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
+        PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
+        unset CENTOS7_PIHOLE_WEB_DEPS
+    fi
+    # CentOS requires the EPEL repository to gain access to Fedora packages
+    EPEL_PKG="epel-release"
+    rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+        "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+        printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+    fi
+
+    # The default php on CentOS 7.x is 5.4 which is EOL
+    # Check if the version of PHP available via installed repositories is >= to PHP 7
+    AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
+    if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
+        # Since PHP 7 is available by default, install via default PHP package names
+        : # do nothing as PHP is current
+    else
+        REMI_PKG="remi-release"
+        REMI_REPO="remi-php72"
+        rpm -q ${REMI_PKG} &> /dev/null || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        # The PHP version available via default repositories is older than version 7
+        if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
+            # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+            printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
+            : # continue with unsupported php version
+        else
+            printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
+            "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+            # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+            "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+            yum-config-manager --enable ${REMI_REPO} &> /dev/null
+            printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
+            # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+            if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+            else
+                printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
+                exit 1
+            fi
+        fi
+    fi    # Warn user of unsupported version of Fedora or CentOS
+    if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
+        printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
+        exit
+    else
+        printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
+    fi
+fi
 fi
 }
 
@@ -430,8 +469,10 @@ make_repo() {
     printf "  %b %s..." "${INFO}" "${str}"
     # If the directory exists,
     if [[ -d "${directory}" ]]; then
-        # delete everything in it so git can clone into it
-        rm -rf "${directory}"
+        # Return with a 1 to exit the installer. We don't want to overwrite what could already be here in case it is not ours
+        str="Unable to clone ${remoteRepo} into ${directory} : Directory already exists"
+        printf "%b  %b%s\\n" "${OVER}" "${CROSS}" "${str}"
+        return 1
     fi
     # Clone the repo and return the return code from this command
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
@@ -440,8 +481,9 @@ make_repo() {
     # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
-    if [[ "${curBranch}" == "master" ]]; then #If we're calling make_repo() then it should always be master, we may not need to check.
-         git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
+    if [[ "${curBranch}" == "master" ]]; then
+        # If we're calling make_repo() then it should always be master, we may not need to check.
+        git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
     fi
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -492,7 +534,7 @@ update_repo() {
     return 0
 }
 
-# A function that combines the functions previously made
+# A function that combines the previous git functions to update or clone a repo
 getGitFiles() {
     # Setup named variables for the git repos
     # We need the directory
@@ -516,9 +558,8 @@ getGitFiles() {
         # Attempt to make the repository, showing an error on failure
         make_repo "${directory}" "${remoteRepo}" || { printf "\\n  %bError: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
     fi
-    # echo a blank line
     echo ""
-    # and return success?
+    # Success via one of the two branches, as the commands would exit if they failed.
     return 0
 }
 
@@ -540,7 +581,7 @@ resetRepo() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Return to where we came from
     popd &> /dev/null || return 1
-    # Returning success anyway?
+    # Function succeeded, as "git reset" would have triggered a return earlier if it failed
     return 0
 }
 
@@ -584,62 +625,23 @@ welcomeDialogs() {
     whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "\\n\\nThis installer will transform your device into a network-wide ad blocker!" "${r}" "${c}"
 
     # Request that users donate if they enjoy the software since we all work on it in our free time
-    whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\\n\\nThe Pi-hole is free, but powered by your donations:  http://pi-hole.net/donate" "${r}" "${c}"
+    whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" "${r}" "${c}"
 
     # Explain the need for a static address
-    whiptail --msgbox --backtitle "Initiating network interface" --title "Static IP Needed" "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
+    if whiptail --defaultno --backtitle "Initiating network interface" --title "Static IP Needed" --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
 
-In the next section, you can choose to use your current network settings (DHCP) or to manually edit them." "${r}" "${c}"
+IMPORTANT: If you have not already done so, you must ensure that this device has a static IP. Either through DHCP reservation, or by manually assigning one. Depending on your operating system, there are many ways to achieve this.
+
+Choose yes to indicate that you have understood this message, and wish to continue" "${r}" "${c}"; then
+#Nothing to do, continue
+  echo
+else
+  printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+  exit 1
+fi
 }
 
-# We need to make sure there is enough space before installing, so there is a function to check this
-verifyFreeDiskSpace() {
-    # 50MB is the minimum space needed (45MB install (includes web admin bootstrap/jquery libraries etc) + 5MB one day of logs.)
-    # - Fourdee: Local ensures the variable is only created, and accessible within this function/void. Generally considered a "good" coding practice for non-global variables.
-    local str="Disk space check"
-    # Required space in KB
-    local required_free_kilobytes=51200
-    # Calculate existing free space on this machine
-    local existing_free_kilobytes
-    existing_free_kilobytes=$(df -Pk | grep -m1 '\/$' | awk '{print $4}')
-
-    # If the existing space is not an integer,
-    if ! [[ "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
-        # show an error that we can't determine the free space
-        printf "  %b %s\\n" "${CROSS}" "${str}"
-        printf "  %b Unknown free disk space! \\n" "${INFO}"
-        printf "      We were unable to determine available free disk space on this system.\\n"
-        printf "      You may override this check, however, it is not recommended.\\n"
-        printf "      The option '%b--i_do_not_follow_recommendations%b' can override this.\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        printf "      e.g: curl -L https://install.pi-hole.net | bash /dev/stdin %b<option>%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # exit with an error code
-        exit 1
-    # If there is insufficient free disk space,
-    elif [[ "${existing_free_kilobytes}" -lt "${required_free_kilobytes}" ]]; then
-        # show an error message
-        printf "  %b %s\\n" "${CROSS}" "${str}"
-        printf "  %b Your system disk appears to only have %s KB free\\n" "${INFO}" "${existing_free_kilobytes}"
-        printf "      It is recommended to have a minimum of %s KB to run the Pi-hole\\n" "${required_free_kilobytes}"
-        # if the vcgencmd command exists,
-        if is_command vcgencmd ; then
-            # it's probably a Raspbian install, so show a message about expanding the filesystem
-            printf "      If this is a new install you may need to expand your disk\\n"
-            printf "      Run 'sudo raspi-config', and choose the 'expand file system' option\\n"
-            printf "      After rebooting, run this installation again\\n"
-            printf "      e.g: curl -L https://install.pi-hole.net | bash\\n"
-        fi
-        # Show there is not enough free space
-        printf "\\n      %bInsufficient free space, exiting...%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # and exit with an error
-        exit 1
-    # Otherwise,
-    else
-        # Show that we're running a disk space check
-        printf "  %b %s\\n" "${TICK}" "${str}"
-    fi
-}
-
-# A function that let's the user pick an interface to use with Pi-hole
+# A function that lets the user pick an interface to use with Pi-hole
 chooseInterface() {
     # Turn the available interfaces into an array so it can be used with a whiptail dialog
     local interfacesArray=()
@@ -663,7 +665,7 @@ chooseInterface() {
     else
         # While reading through the available interfaces
         while read -r line; do
-            # use a variable to set the option as OFF to begin with
+            # Use a variable to set the option as OFF to begin with
             mode="OFF"
             # If it's the first loop,
             if [[ "${firstLoop}" -eq 1 ]]; then
@@ -697,9 +699,9 @@ chooseInterface() {
 testIPv6() {
     # first will contain fda2 (ULA)
     printf -v first "%s" "${1%%:*}"
-    # value1 will contain 253 which is the decimal value corresponding to 0xfd
+    # value1 will contain 253 which is the decimal value corresponding to 0xFD
     value1=$(( (0x$first)/256 ))
-    # will contain 162 which is the decimal value corresponding to 0xa2
+    # value2 will contain 162 which is the decimal value corresponding to 0xA2
     value2=$(( (0x$first)%256 ))
     # the ULA test is testing for fc00::/7 according to RFC 4193
     if (( (value1&254)==252 )); then
@@ -718,9 +720,8 @@ testIPv6() {
     fi
 }
 
-# A dialog for showing the user about IPv6 blocking
-useIPv6dialog() {
-    # Determine the IPv6 address used for blocking
+find_IPv6_information() {
+    # Detects IPv6 address used for communication to WAN addresses.
     IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
 
     # For each address in the array above, determine the type of IPv6 address it is
@@ -729,8 +730,9 @@ useIPv6dialog() {
         result=$(testIPv6 "$i")
         # If it's a ULA address, use it and store it as a global variable
         [[ "${result}" == "ULA" ]] && ULA_ADDRESS="${i%/*}"
-        # If it's a GUA address, we can still use it si store it as a global variable
+        # If it's a GUA address, use it and store it as a global variable
         [[ "${result}" == "GUA" ]] && GUA_ADDRESS="${i%/*}"
+        # Else if it's a Link-local address, we cannot use it, so just continue
     done
 
     # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
@@ -739,76 +741,36 @@ useIPv6dialog() {
         # set the IPv6 address to the ULA address
         IPV6_ADDRESS="${ULA_ADDRESS}"
         # Show this info to the user
-        printf "  %b Found IPv6 ULA address, using it for blocking IPv6 ads\\n" "${INFO}"
+        printf "  %b Found IPv6 ULA address\\n" "${INFO}"
     # Otherwise, if the GUA_ADDRESS has a value,
     elif [[ ! -z "${GUA_ADDRESS}" ]]; then
         # Let the user know
-        printf "  %b Found IPv6 GUA address, using it for blocking IPv6 ads\\n" "${INFO}"
+        printf "  %b Found IPv6 GUA address\\n" "${INFO}"
         # And assign it to the global variable
         IPV6_ADDRESS="${GUA_ADDRESS}"
     # If none of those work,
     else
-        # explain that IPv6 blocking will not be used
-        printf "  %b Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled\\n" "${INFO}"
+        printf "  %b Unable to find IPv6 ULA/GUA address\\n" "${INFO}"
         # So set the variable to be empty
         IPV6_ADDRESS=""
     fi
-
-    # If the IPV6_ADDRESS contains a value
-    if [[ ! -z "${IPV6_ADDRESS}" ]]; then
-        # Display that IPv6 is supported and will be used
-        whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." "${r}" "${c}"
-    fi
 }
 
-# A function to check if we should use IPv4 and/or IPv6 for blocking ads
-use4andor6() {
-    # Named local variables
-    local useIPv4
-    local useIPv6
-    # Let user choose IPv4 and/or IPv6 via a checklist
-    cmd=(whiptail --separate-output --checklist "Select Protocols (press space to toggle selection)" "${r}" "${c}" 2)
-    # In an array, show the options available:
-    # IPv4 (on by default)
-    options=(IPv4 "Block ads over IPv4" on
-    # or IPv6 (on by default if available)
-    IPv6 "Block ads over IPv6" on)
-    # In a variable, show the choices available; exit if Cancel is selected
-    choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-    # For each choice available,
-    for choice in ${choices}
-    do
-        # Set the values to true
-        case ${choice} in
-        IPv4  )   useIPv4=true;;
-        IPv6  )   useIPv6=true;;
-        esac
-    done
-    # If IPv4 is to be used,
-    if [[ "${useIPv4}" ]]; then
-        # Run our function to get the information we need
-        find_IPv4_information
-        getStaticIPv4Settings
-        setStaticIPv4
-    fi
-    # If IPv6 is to be used,
-    if [[ "${useIPv6}" ]]; then
-        # Run our function to get this information
-        useIPv6dialog
-    fi
+# A function to collect IPv4 and IPv6 information of the device
+collect_v4andv6_information() {
+    find_IPv4_information
     # Echo the information to the user
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
-    printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-    # If neither protocol is selected,
-    if [[ ! "${useIPv4}" ]] && [[ ! "${useIPv6}" ]]; then
-        # Show an error in red
-        printf "  %bError: Neither IPv4 or IPv6 selected%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # and exit with an error
-        exit 1
+    # if `dhcpcd` is used offer to set this as static IP for the device
+    if [[ -f "/etc/dhcpcd.conf" ]]; then
+            # configure networking via dhcpcd
+            getStaticIPv4Settings
+            setDHCPCD
     fi
+    find_IPv6_information
+    printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
 }
 
-#
 getStaticIPv4Settings() {
     # Local, named variables
     local ipSettingsCorrect
@@ -855,9 +817,9 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
     fi
 }
 
-# configure networking via dhcpcd
+# Configure networking via dhcpcd
 setDHCPCD() {
-    # check if the IP is already in the file
+    # Check if the IP is already in the file
     if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
         printf "  %b Static IP already configured\\n" "${INFO}"
     # If it's not,
@@ -875,113 +837,44 @@ setDHCPCD() {
     fi
 }
 
-# configure networking ifcfg-xxxx file found at /etc/sysconfig/network-scripts/
-# this function requires the full path of an ifcfg file passed as an argument
-setIFCFG() {
-    # Local, named variables
-    local IFCFG_FILE
-    local IPADDR
-    local CIDR
-    IFCFG_FILE=$1
-    printf -v IPADDR "%s" "${IPV4_ADDRESS%%/*}"
-    # check if the desired IP is already set
-    if grep -Eq "${IPADDR}(\\b|\\/)" "${IFCFG_FILE}"; then
-        printf "  %b Static IP already configured\\n" "${INFO}"
-    # Otherwise,
-    else
-        # Put the IP in variables without the CIDR notation
-        printf -v CIDR "%s" "${IPV4_ADDRESS##*/}"
-        # Backup existing interface configuration:
-        cp -p "${IFCFG_FILE}" "${IFCFG_FILE}".pihole.orig
-        # Build Interface configuration file using the GLOBAL variables we have
-        {
-        echo "# Configured via Pi-hole installer"
-        echo "DEVICE=$PIHOLE_INTERFACE"
-        echo "BOOTPROTO=none"
-        echo "ONBOOT=yes"
-        echo "IPADDR=$IPADDR"
-        echo "PREFIX=$CIDR"
-        echo "GATEWAY=$IPv4gw"
-        echo "DNS1=$PIHOLE_DNS_1"
-        echo "DNS2=$PIHOLE_DNS_2"
-        echo "USERCTL=no"
-        }> "${IFCFG_FILE}"
-        chmod 644 "${IFCFG_FILE}"
-        chown root:root "${IFCFG_FILE}"
-        # Use ip to immediately set the new address
-        ip addr replace dev "${PIHOLE_INTERFACE}" "${IPV4_ADDRESS}"
-        # If NetworkMangler command line interface exists and ready to mangle,
-        if is_command nmcli && nmcli general status &> /dev/null; then
-            # Tell NetworkManagler to read our new sysconfig file
-            nmcli con load "${IFCFG_FILE}" > /dev/null
-        fi
-        # Show a warning that the user may need to restart
-        printf "  %b Set IP address to %s\\n  You may need to restart after the install is complete\\n" "${TICK}" "${IPV4_ADDRESS%%/*}"
-    fi
-}
-
-setStaticIPv4() {
-    # Local, named variables
-    local IFCFG_FILE
-    local CONNECTION_NAME
-
-    # If a static interface is already configured, we are done.
-    if [[ -r "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}" ]]; then
-        if grep -q '^BOOTPROTO=.static.' "/etc/sysconfig/network/ifcfg-${PIHOLE_INTERFACE}"; then
-            return 0
-        fi
-    fi
-    # For the Debian family, if dhcpcd.conf exists,
-    if [[ -f "/etc/dhcpcd.conf" ]]; then
-        # configure networking via dhcpcd
-        setDHCPCD
-        return 0
-    fi
-    # If a DHCPCD config file was not found, check for an ifcfg config file based on interface name
-    if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}" ]];then
-        # If it exists,
-        IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${PIHOLE_INTERFACE}
-        setIFCFG "${IFCFG_FILE}"
-        return 0
-    fi
-    # if an ifcfg config does not exists for the interface name, try the connection name via network manager
-    if is_command nmcli && nmcli general status &> /dev/null; then
-        CONNECTION_NAME=$(nmcli dev show "${PIHOLE_INTERFACE}" | grep 'GENERAL.CONNECTION' | cut -d: -f2 | sed 's/^System//' | xargs | tr ' ' '_')
-        if [[ -f "/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}" ]];then
-            # If it exists,
-            IFCFG_FILE=/etc/sysconfig/network-scripts/ifcfg-${CONNECTION_NAME}
-            setIFCFG "${IFCFG_FILE}"
-            return 0
-        fi
-    fi
-    # If previous conditions failed, show an error and exit
-    printf "  %b Warning: Unable to locate configuration file to set static IPv4 address\\n" "${INFO}"
-    exit 1
-}
-
 # Check an IP address to see if it is a valid one
 valid_ip() {
     # Local, named variables
     local ip=${1}
     local stat=1
 
-    # If the IP matches the format xxx.xxx.xxx.xxx,
-    if [[ "${ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        # Save the old Internal Field Separator in a variable
-        OIFS=$IFS
-        # and set the new one to a dot (period)
-        IFS='.'
-        # Put the IP into an array
-        read -r -a ip <<< "${ip}"
-        # Restore the IFS to what it was
-        IFS=${OIFS}
-        ## Evaluate each octet by checking if it's less than or equal to 255 (the max for each octet)
-        [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 \
-        && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 ]]
-        # Save the exit code
-        stat=$?
-    fi
-    # Return the exit code
+    # Regex matching one IPv4 component, i.e. an integer from 0 to 255.
+    # See https://tools.ietf.org/html/rfc1340
+    local ipv4elem="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)";
+    # Regex matching an optional port (starting with '#') range of 1-65536
+    local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?";
+    # Build a full IPv4 regex from the above subexpressions
+    local regex="^${ipv4elem}\.${ipv4elem}\.${ipv4elem}\.${ipv4elem}${portelem}$"
+
+    # Evaluate the regex, and return the result
+    [[ $ip =~ ${regex} ]]
+
+    stat=$?
+    return "${stat}"
+}
+
+valid_ip6() {
+    local ip=${1}
+    local stat=1
+
+    # Regex matching one IPv6 element, i.e. a hex value from 0000 to FFFF
+    local ipv6elem="[0-9a-fA-F]{1,4}"
+    # Regex matching an IPv6 CIDR, i.e. 1 to 128
+    local v6cidr="(\\/([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])){0,1}"
+    # Regex matching an optional port (starting with '#') range of 1-65536
+    local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?";
+    # Build a full IPv6 regex from the above subexpressions
+    local regex="^(((${ipv6elem}))*((:${ipv6elem}))*::((${ipv6elem}))*((:${ipv6elem}))*|((${ipv6elem}))((:${ipv6elem})){7})${v6cidr}${portelem}$"
+
+    # Evaluate the regex, and return the result
+    [[ ${ip} =~ ${regex} ]]
+
+    stat=$?
     return "${stat}"
 }
 
@@ -993,7 +886,7 @@ setDNS() {
     # In an array, list the available upstream providers
     DNSChooseOptions=()
     local DNSServerCount=0
-    # Save the old Internal Field Separator in a variable
+    # Save the old Internal Field Separator in a variable,
     OIFS=$IFS
     # and set the new one to newline
     IFS=$'\n'
@@ -1014,23 +907,22 @@ setDNS() {
     # In a whiptail dialog, show the options
     DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
     "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
-    # exit if Cancel is selected
+    # Exit if the user selects "Cancel"
     { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
 
-    # Depending on the user's choice, set the GLOBAl variables to the IP of the respective provider
+    # Depending on the user's choice, set the GLOBAL variables to the IP of the respective provider
     if [[ "${DNSchoices}" == "Custom" ]]
     then
-        # Until the DNS settings are selected,
+        # Loop until we have a valid DNS setting
         until [[ "${DNSSettingsCorrect}" = True ]]; do
-            #
+            # Signal value, to be used if the user inputs an invalid IP address
             strInvalid="Invalid"
-            # If the first
             if [[ ! "${PIHOLE_DNS_1}" ]]; then
-                # and second upstream servers do not exist
                 if [[ ! "${PIHOLE_DNS_2}" ]]; then
+                    # If the first and second upstream servers do not exist, do not prepopulate an IP address
                     prePopulate=""
-                # Otherwise,
                 else
+                    # Otherwise, prepopulate the whiptail dialogue with the appropriate DNS value(s)
                     prePopulate=", ${PIHOLE_DNS_2}"
                 fi
             elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
@@ -1039,52 +931,48 @@ setDNS() {
                 prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
             fi
 
-            # Dialog for the user to enter custom upstream servers
+            # Prompt the user to enter custom upstream servers
             piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" "${r}" "${c}" "${prePopulate}" 3>&1 1>&2 2>&3) || \
             { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
             # Clean user input and replace whitespace with comma.
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
 
+            # Separate the user input into the two DNS values (separated by a comma)
             printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
             printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
 
-            # If the IP is valid,
+            # If the first DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_1="Invalid"
             if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
-                # store it in the variable so we can use it
                 PIHOLE_DNS_1=${strInvalid}
             fi
-            # Do the same for the secondary server
+            # If the second DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_2="Invalid"
             if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
                 PIHOLE_DNS_2=${strInvalid}
             fi
             # If either of the DNS servers are invalid,
             if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
-                # explain this to the user
+                # explain this to the user,
                 whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\\n\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
-                # and set the variables back to nothing
+                # set the variables back to nothing,
                 if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
                     PIHOLE_DNS_1=""
                 fi
                 if [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
                     PIHOLE_DNS_2=""
                 fi
-                # Since the settings will not work, stay in the loop
+                # and continue the loop.
                 DNSSettingsCorrect=False
-            # Otherwise,
             else
-                # Show the settings
+                # Otherwise, show the DNS setting to the user, and break the loop if they confirm them.
                 if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" "${r}" "${c}"); then
-                    # and break from the loop since the servers are valid
                     DNSSettingsCorrect=True
-                # Otherwise,
                 else
-                    # If the settings are wrong, the loop continues
                     DNSSettingsCorrect=False
                 fi
             fi
         done
     else
-        # Save the old Internal Field Separator in a variable
+        # Save the old Internal Field Separator in a variable,
         OIFS=$IFS
         # and set the new one to newline
         IFS=$'\n'
@@ -1123,16 +1011,16 @@ setLogging() {
     # Get the user's choice
     LogChoices=$("${LogToggleCommand[@]}" "${LogChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
     case ${LogChoices} in
-        # If it's on
+        # If it's on,
         "On (Recommended)")
             printf "  %b Logging On.\\n" "${INFO}"
-            # Set the GLOBAL variable to true so we know what they selected
+            # set the GLOBAL variable setting to true
             QUERY_LOGGING=true
             ;;
         # Otherwise, it's off,
         Off)
             printf "  %b Logging Off.\\n" "${INFO}"
-            # So set it to false
+            # set the GLOBAL variable setting to false
             QUERY_LOGGING=false
             ;;
     esac
@@ -1151,7 +1039,6 @@ setPrivacyLevel() {
         "1" "Hide domains" off
         "2" "Hide domains and clients" off
         "3" "Anonymous mode" off
-        "4" "Disabled statistics" off
     )
 
     # Get the user's choice
@@ -1184,13 +1071,18 @@ setAdminFlag() {
             printf "  %b Web Interface Off\\n" "${INFO}"
             # or false
             INSTALL_WEB_INTERFACE=false
+            # Deselect the web server as well, since it is obsolete then
+            INSTALL_WEB_SERVER=false
             ;;
     esac
 
-    # Request user to install web server, if --disable-install-webserver has not been used (INSTALL_WEB_SERVER=true is default).
+    # If the user wants to install the Web admin interface (i.e. it has not been deselected above)
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd)?\\n\\nNB: If you disable this, and, do not have an existing webserver installed, the web interface will not function." "${r}" "${c}" 6)
-        # with the default being enabled
+        # Get list of required PHP modules, excluding base package (common) and handler (cgi)
+        local i php_modules
+        for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
+        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd) and required PHP modules?\\n\\nNB: If you disable this, and, do not have an existing web server and required PHP modules (${php_modules# }) installed, the web interface will not function. Additionally the web server user needs to be member of the \"pihole\" group for full functionality." "${r}" "${c}" 6)
+        # Enable as default and recommended option
         WebChooseOptions=("On (Recommended)" "" on
             Off "" off)
         WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
@@ -1217,30 +1109,27 @@ chooseBlocklists() {
         mv "${adlistFile}" "${adlistFile}.old"
     fi
     # Let user select (or not) blocklists via a checklist
-    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestions below, and/or add your own after installation\\n\\nTo deselect any list, use the arrow keys and spacebar" "${r}" "${c}" 5)
+    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestion below, and/or add your own after installation\\n\\nTo deselect the suggested list, use spacebar" "${r}" "${c}" 5)
     # In an array, show the options available (all off by default):
-    options=(StevenBlack "StevenBlack's Unified Hosts List" on
-        MalwareDom "MalwareDomains" on)
+    options=(StevenBlack "StevenBlack's Unified Hosts List" on)
 
     # In a variable, show the choices available; exit if Cancel is selected
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
-    # create empty adlist file if no list was selected
-    : > "${adlistFile}"
-    # For each choice available
+    # Add all selected choices to the lists file
     for choice in ${choices}
     do
         appendToListsFile "${choice}"
     done
+    # Create an empty adList file with appropriate permissions.
+    touch "${adlistFile}"
     chmod 644 "${adlistFile}"
 }
 
 # Accept a string parameter, it must be one of the default lists
-# This function allow to not duplicate code in chooseBlocklists and
-# in installDefaultBlocklists
+# This function saves duplication between chooseBlocklists and installDefaultBlocklists
 appendToListsFile() {
     case $1 in
         StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
-        MalwareDom   )  echo "https://mirror1.malwaredomains.com/files/justdomains" >> "${adlistFile}";;
     esac
 }
 
@@ -1253,9 +1142,6 @@ installDefaultBlocklists() {
         return;
     fi
     appendToListsFile StevenBlack
-    appendToListsFile MalwareDom
-    appendToListsFile DisconTrack
-    appendToListsFile DisconAd
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1266,8 +1152,10 @@ version_check_dnsmasq() {
     local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
     local dnsmasq_pihole_id_string2="# Dnsmasq config for Pi-hole's FTLDNS"
     local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
-    local dnsmasq_pihole_01_snippet="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
-    local dnsmasq_pihole_01_location="/etc/dnsmasq.d/01-pihole.conf"
+    local dnsmasq_pihole_01_source="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
+    local dnsmasq_pihole_01_target="/etc/dnsmasq.d/01-pihole.conf"
+    local dnsmasq_rfc6761_06_source="${PI_HOLE_LOCAL_REPO}/advanced/06-rfc6761.conf"
+    local dnsmasq_rfc6761_06_target="/etc/dnsmasq.d/06-rfc6761.conf"
 
     # If the dnsmasq config file exists
     if [[ -f "${dnsmasq_conf}" ]]; then
@@ -1277,16 +1165,15 @@ version_check_dnsmasq() {
            grep -q "${dnsmasq_pihole_id_string2}" "${dnsmasq_conf}"; then
             printf " it is from a previous Pi-hole install.\\n"
             printf "  %b Backing up dnsmasq.conf to dnsmasq.conf.orig..." "${INFO}"
-            # so backup the original file
+            # so backup the original file,
             mv -f "${dnsmasq_conf}" "${dnsmasq_conf_orig}"
             printf "%b  %b Backing up dnsmasq.conf to dnsmasq.conf.orig...\\n" "${OVER}"  "${TICK}"
             printf "  %b Restoring default dnsmasq.conf..." "${INFO}"
             # and replace it with the default
             install -D -m 644 -T "${dnsmasq_original_config}" "${dnsmasq_conf}"
             printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
-        # Otherwise,
         else
-        # Don't to anything
+        # Otherwise, don't to anything
         printf " it is not a Pi-hole file, leaving alone!\\n"
         fi
     else
@@ -1297,44 +1184,48 @@ version_check_dnsmasq() {
         printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
     fi
 
-    printf "  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf..." "${INFO}"
+    printf "  %b Installing %s..." "${INFO}" "${dnsmasq_pihole_01_target}"
     # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
     if [[ ! -d "/etc/dnsmasq.d"  ]];then
         install -d -m 755 "/etc/dnsmasq.d"
     fi
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    install -D -m 644 -T "${dnsmasq_pihole_01_snippet}" "${dnsmasq_pihole_01_location}"
-    printf "%b  %b Copying 01-pihole.conf to /etc/dnsmasq.d/01-pihole.conf\\n" "${OVER}"  "${TICK}"
+    install -D -m 644 -T "${dnsmasq_pihole_01_source}" "${dnsmasq_pihole_01_target}"
+    printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_pihole_01_target}"
     # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
-    # First, swap in the interface to listen on
-    sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_location}"
+    # First, swap in the interface to listen on,
+    sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_target}"
     if [[ "${PIHOLE_DNS_1}" != "" ]]; then
-        # Then swap in the primary DNS server
-        sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_location}"
+        # then swap in the primary DNS server.
+        sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_target}"
     else
-        #
-        sed -i '/^server=@DNS1@/d' "${dnsmasq_pihole_01_location}"
+        # Otherwise, remove the line which sets DNS1.
+        sed -i '/^server=@DNS1@/d' "${dnsmasq_pihole_01_target}"
     fi
+    # Ditto if DNS2 is not empty
     if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-        # Then swap in the primary DNS server
-        sed -i "s/@DNS2@/$PIHOLE_DNS_2/" "${dnsmasq_pihole_01_location}"
+        sed -i "s/@DNS2@/$PIHOLE_DNS_2/" "${dnsmasq_pihole_01_target}"
     else
-        #
-        sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_location}"
+        sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_target}"
     fi
 
-    #
+	# Set the cache size
+	sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" "${dnsmasq_pihole_01_target}"
+
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
 
     # If the user does not want to enable logging,
     if [[ "${QUERY_LOGGING}" == false ]] ; then
-        # Disable it by commenting out the directive in the DNS config file
-        sed -i 's/^log-queries/#log-queries/' "${dnsmasq_pihole_01_location}"
-    # Otherwise,
+        # disable it by commenting out the directive in the DNS config file
+        sed -i 's/^log-queries/#log-queries/' "${dnsmasq_pihole_01_target}"
     else
-        # enable it by uncommenting the directive in the DNS config file
-        sed -i 's/^#log-queries/log-queries/' "${dnsmasq_pihole_01_location}"
+        # Otherwise, enable it by uncommenting the directive in the DNS config file
+        sed -i 's/^#log-queries/log-queries/' "${dnsmasq_pihole_01_target}"
     fi
+
+    printf "  %b Installing %s..." "${INFO}" "${dnsmasq_rfc6761_06_source}"
+    install -D -m 644 -T "${dnsmasq_rfc6761_06_source}" "${dnsmasq_rfc6761_06_target}"
+    printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_rfc6761_06_target}"
 }
 
 # Clean an existing installation to prepare for upgrade/reinstall
@@ -1342,14 +1233,13 @@ clean_existing() {
     # Local, named variables
     # ${1} Directory to clean
     local clean_directory="${1}"
-    # Make ${2} the new one?
+    # Pop the first argument, and shift all addresses down by one (i.e. ${2} becomes ${1})
     shift
-    # ${2} Array of files to remove
+    # Then, we can access all arguments ($@) without including the directory to clean
     local old_files=( "$@" )
 
-    # For each script found in the old files array
+    # Remove each script in the old_files array
     for script in "${old_files[@]}"; do
-        # Remove them
         rm -f "${clean_directory}/${script}.sh"
     done
 }
@@ -1382,9 +1272,8 @@ installScripts() {
         install -Dm644 ./advanced/bash-completion/pihole /etc/bash_completion.d/pihole
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 
-    # Otherwise,
     else
-        # Show an error and exit
+        # Otherwise, show an error and exit
         printf "%b  %b %s\\n" "${OVER}"  "${CROSS}" "${str}"
         printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
         return 1
@@ -1411,6 +1300,15 @@ installConfigs() {
             return 1
         fi
     fi
+
+    # Install empty custom.list file if it does not exist
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
+        if ! install -o root -m 644 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
+            printf "  %bError: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            return 1
+        fi
+    fi
+
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -1427,7 +1325,7 @@ installConfigs() {
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
         chmod 644 /etc/lighttpd/external.conf
-        # if there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
+        # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
         fi
@@ -1501,9 +1399,8 @@ restart_service() {
     if is_command systemctl ; then
         # use that to restart the service
         systemctl restart "${1}" &> /dev/null
-    # Otherwise,
     else
-        # fall back to the service command
+        # Otherwise, fall back to the service command
         service "${1}" restart &> /dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
@@ -1518,9 +1415,8 @@ enable_service() {
     if is_command systemctl ; then
         # use that to enable the service
         systemctl enable "${1}" &> /dev/null
-    # Otherwise,
     else
-        # use update-rc.d to accomplish this
+        #  Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" defaults &> /dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
@@ -1535,9 +1431,8 @@ disable_service() {
     if is_command systemctl ; then
         # use that to disable the service
         systemctl disable "${1}" &> /dev/null
-    # Otherwise,
     else
-        # use update-rc.d to accomplish this
+        # Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" disable &> /dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
@@ -1548,9 +1443,8 @@ check_service_active() {
     if is_command systemctl ; then
         # use that to check the status of the service
         systemctl is-enabled "${1}" &> /dev/null
-    # Otherwise,
     else
-        # fall back to service command
+        # Otherwise, fall back to service command
         service "${1}" status &> /dev/null
     fi
 }
@@ -1580,9 +1474,6 @@ disable_resolved_stublistener() {
 }
 
 update_package_cache() {
-    # Running apt-get update/upgrade with minimal output can cause some issues with
-    # requiring user input (e.g password for phpmyadmin see #218)
-
     # Update package cache on apt based OSes. Do this every time since
     # it's quick and packages can be updated at any time.
 
@@ -1592,11 +1483,10 @@ update_package_cache() {
     # Create a command from the package cache variable
     if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-    # Otherwise,
     else
-        # show an error and exit
+        # Otherwise, show an error and exit
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "${UPDATE_PKG_CACHE}" "${COL_NC}"
+        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
@@ -1623,21 +1513,7 @@ notify_package_updates_available() {
     fi
 }
 
-# What's this doing outside of a function in the middle of nowhere?
-counter=0
-
 install_dependent_packages() {
-    # Local, named variables should be used here, especially for an iterator
-    # Add one to the counter
-    counter=$((counter+1))
-    # If it equals 1,
-    if [[ "${counter}" == 1 ]]; then
-        #
-        printf "  %b Installer Dependency checks...\\n" "${INFO}"
-    else
-        #
-        printf "  %b Main Dependency checks...\\n" "${INFO}"
-    fi
 
     # Install packages passed in via argument array
     # No spinner - conflicts with set -e
@@ -1649,7 +1525,7 @@ install_dependent_packages() {
     # NOTE: We may be able to use this installArray in the future to create a list of package that were
     # installed by us, and remove only the installed packages, and not the entire list.
     if is_command apt-get ; then
-        # For each package,
+        # For each package, check if it's already installed (and if so, don't add it to the installArray)
         for i in "$@"; do
             printf "  %b Checking for %s..." "${INFO}" "${i}"
             if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
@@ -1659,8 +1535,11 @@ install_dependent_packages() {
                 installArray+=("${i}")
             fi
         done
+        # If there's anything to install, install everything in the list.
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
+            # Running apt-get install with minimal output can cause some issues with
+            # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
             printf '%*s\n' "$columns" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
@@ -1673,6 +1552,7 @@ install_dependent_packages() {
 
     # Install Fedora/CentOS packages
     for i in "$@"; do
+    # For each package, check if it's already installed (and if so, don't add it to the installArray)
         printf "  %b Checking for %s..." "${INFO}" "${i}"
         if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
             printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
@@ -1681,6 +1561,7 @@ install_dependent_packages() {
             installArray+=("${i}")
         fi
     done
+    # If there's anything to install, install everything in the list.
     if [[ "${#installArray[@]}" -gt 0 ]]; then
         printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
         printf '%*s\n' "$columns" '' | tr " " -;
@@ -1698,7 +1579,7 @@ installPiholeWeb() {
 
     local str="Creating directory for blocking page, and copying files"
     printf "  %b %s..." "${INFO}" "${str}"
-    # Install the directory
+    # Install the directory,
     install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
     # and the blockpage
     install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
@@ -1717,9 +1598,8 @@ installPiholeWeb() {
         # back it up
         mv ${webroot}/index.lighttpd.html ${webroot}/index.lighttpd.orig
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-    # Otherwise,
     else
-        # don't do anything
+        # Otherwise, don't do anything
         printf "%b  %b %s\\n" "${OVER}" "${INFO}" "${str}"
         printf "      No default index.lighttpd.html file found... not backing up\\n"
     fi
@@ -1727,7 +1607,7 @@ installPiholeWeb() {
     # Install Sudoers file
     local str="Installing sudoer file"
     printf "\\n  %b %s..." "${INFO}" "${str}"
-    # Make the .d directory if it doesn't exist
+    # Make the .d directory if it doesn't exist,
     install -d -m 755 /etc/sudoers.d/
     # and copy in the pihole sudoers file
     install -m 0640 ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.sudo /etc/sudoers.d/pihole
@@ -1771,11 +1651,11 @@ runGravity() {
 create_pihole_user() {
     local str="Checking for user 'pihole'"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If the user pihole exists,
+    # If the pihole user exists,
     if id -u pihole &> /dev/null; then
-        # if group exists
+        # and if the pihole group exists,
         if getent group pihole > /dev/null 2>&1; then
-            # just show a success
+            # succeed
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         else
             local str="Checking for group 'pihole'"
@@ -1796,14 +1676,14 @@ create_pihole_user() {
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             fi
         fi
-    # Otherwise,
     else
+        # If the pihole user doesn't exist,
         printf "%b  %b %s" "${OVER}" "${CROSS}" "${str}"
         local str="Creating user 'pihole'"
         printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-        # create her with the useradd command
+        # create her with the useradd command,
         if getent group pihole > /dev/null 2>&1; then
-            # add primary group pihole as it already exists
+            # then add her to the pihole group (as it already exists)
             if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
@@ -1820,7 +1700,7 @@ create_pihole_user() {
     fi
 }
 
-#
+# This function saves any changes to the setup variables into the setupvars.conf file for future runs
 finalExports() {
     # If the Web interface is not set to be installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
@@ -1838,7 +1718,7 @@ finalExports() {
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1/d;/PIHOLE_DNS_2/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;' "${setupVars}"
+        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;' "${setupVars}"
     fi
     # echo the information to the user
     {
@@ -1851,6 +1731,9 @@ finalExports() {
     echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
+    echo "CACHE_SIZE=${CACHE_SIZE}"
+    echo "DNS_FQDN_REQUIRED=true"
+    echo "DNS_BOGUS_PRIV=true"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
 
@@ -1871,11 +1754,18 @@ finalExports() {
 
 # Install the logrotate script
 installLogrotate() {
-
     local str="Installing latest logrotate script"
+    local target=/etc/pihole/logrotate
+
     printf "\\n  %b %s..." "${INFO}" "${str}"
+    if [[ -f ${target} ]]; then
+        printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
+        # Return value isn't that important, using 2 to indicate that it's not a fatal error but
+        # the function did not complete.
+        return 2
+    fi
     # Copy the file over from the local repo
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/Templates/logrotate /etc/pihole/logrotate
+    install -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -1883,10 +1773,10 @@ installLogrotate() {
     # customize the logrotate script here in order to reflect
     # the local properties of the /var/log directory
     logusergroup="$(stat -c '%U %G' /var/log)"
-    # If the variable has a value,
-    if [[ ! -z "${logusergroup}" ]]; then
-        #
-        sed -i "s/# su #/su ${logusergroup}/g;" /etc/pihole/logrotate
+    # If there is a usergroup for log rotation,
+    if [[ -n "${logusergroup}" ]]; then
+        # replace the line in the logrotate script with that usergroup.
+        sed -i "s/# su #/su ${logusergroup}/g;" ${target}
     fi
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1925,9 +1815,9 @@ installPihole() {
             # Set the owner and permissions
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
             chmod 0775 ${webroot}
-            # Repair permissions if /var/www/html is not world readable
+            # Repair permissions if webroot is not world readable
             chmod a+rx /var/www
-            chmod a+rx /var/www/html
+            chmod a+rx ${webroot}
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
             usermod -a -G pihole ${LIGHTTPD_USER}
@@ -1963,8 +1853,10 @@ installPihole() {
     fi
     # Install the cron file
     installCron
+
     # Install the logrotate file
-    installLogrotate
+    installLogrotate || true
+
     # Check if dnsmasq is present. If so, disable it and back up any possible
     # config file
     disable_dnsmasq
@@ -2012,22 +1904,27 @@ checkSelinux() {
     if [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -z "${PIHOLE_SELINUX}" ]]; then
         printf "  Pi-hole does not provide an SELinux policy as the required changes modify the security of your system.\\n"
         printf "  Please refer to https://wiki.centos.org/HowTos/SELinux if SELinux is required for your deployment.\\n"
+        printf "      This check can be skipped by setting the environment variable %bPIHOLE_SELINUX%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "      e.g: export PIHOLE_SELINUX=true\\n"
+        printf "      By setting this variable to true you acknowledge there may be issues with Pi-hole during or after the install\\n"
         printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}";
         exit 1;
+    elif [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -n "${PIHOLE_SELINUX}" ]]; then
+        printf "  %b %bSELinux Enforcing detected%b. PIHOLE_SELINUX env variable set - installer will continue\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
     fi
 }
 
 # Installation complete message with instructions for the user
 displayFinalMessage() {
-    # If
+    # If the number of arguments is > 0,
     if [[ "${#1}" -gt 0 ]] ; then
+        # set the password to the first argument.
         pwstring="$1"
-        # else, if the dashboard password in the setup variables exists,
     elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
-        # set a variable for evaluation later
+        # Else if the password exists from previous setup, we'll load it later
         pwstring="unchanged"
     else
-        # set a variable for evaluation later
+        # Else, inform the user that there is no set password.
         pwstring="NOT SET"
     fi
     # If the user wants to install the dashboard,
@@ -2044,7 +1941,7 @@ Your Admin Webpage login password is ${pwstring}"
 IPv4:	${IPV4_ADDRESS%/*}
 IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
-If you set a new IP address, you should restart the Pi.
+If you have not done so already, the above IP should be set to static.
 
 The install log is in /etc/pihole.
 
@@ -2058,15 +1955,14 @@ update_dialogs() {
         opt1a="Repair"
         opt1b="This will retain existing settings"
         strAdd="You will remain on the same version"
-    # Otherwise,
     else
-        # set some variables with different values
+        # Otherwise, set some variables with different values
         opt1a="Update"
         opt1b="This will retain existing settings."
         strAdd="You will be updated to the latest version."
     fi
     opt2a="Reconfigure"
-    opt2b="This will reset your Pi-hole and allow you to enter new settings."
+    opt2b="Resets Pi-hole and allows re-selecting settings."
 
     # Display the information to the user
     UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\\n\\nWe have detected an existing install.\\n\\nPlease choose from the following options: \\n($strAdd)" "${r}" "${c}" 2 \
@@ -2211,7 +2107,6 @@ clone_or_update_repos() {
 # Disable directive for SC2120 a value _can_ be passed to this function, but it is passed from an external script that sources this one
 # shellcheck disable=SC2120
 FTLinstall() {
-
     # Local, named variables
     local latesttag
     local str="Downloading and Installing FTL"
@@ -2242,9 +2137,8 @@ FTLinstall() {
         url="https://ftl.pi-hole.net/${ftlBranch}"
     fi
 
-    # If the download worked,
     if curl -sSL --fail "${url}/${binary}" -o "${binary}"; then
-        # get sha1 of the binary we just downloaded for verification.
+        # If the download worked, get sha1 of the binary we just downloaded for verification.
         curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
 
         # If we downloaded binary file (as opposed to text),
@@ -2253,8 +2147,6 @@ FTLinstall() {
 
             # Before stopping FTL, we download the macvendor database
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
-            chmod 644 "${PI_HOLE_CONFIG_DIR}/macvendor.db"
-            chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/macvendor.db"
 
             # Stop pihole-FTL service if available
             stop_service pihole-FTL &> /dev/null
@@ -2268,16 +2160,15 @@ FTLinstall() {
             # Installed the FTL service
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             return 0
-        # Otherwise,
         else
-            # the download failed, so just go back to the original directory
+            # Otherwise, the hash download failed, so print and exit.
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             printf "  %bError: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
             return 1
         fi
-    # Otherwise,
     else
+        # Otherwise, the download failed, so print and exit.
         popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # The URL could not be found
@@ -2315,61 +2206,67 @@ get_binary_name() {
 
     local l_binary
 
-    local str="Detecting architecture"
+    local str="Detecting processor"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the machine is arm or aarch
     if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
         # ARM
-        #
         local rev
         rev=$(uname -m | sed "s/[^0-9]//g;")
-        #
         local lib
         lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
-        #
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
-            printf "%b  %b Detected ARM-aarch64 architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
             l_binary="pihole-FTL-aarch64-linux-gnu"
-        #
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
-            #
-            if [[ "${rev}" -gt 6 ]]; then
-                printf "%b  %b Detected ARM-hf architecture (armv7+)\\n" "${OVER}" "${TICK}"
+            # Hard-float available: Use gnueabihf binaries
+            # If ARMv8 or higher is found (e.g., BCM2837 as found in Raspberry Pi Model 3B)
+            if [[ "${rev}" -gt 7 ]]; then
+                printf "%b  %b Detected ARMv8 (or newer) processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabihf"
-            # Otherwise,
+                l_binary="pihole-FTL-armv8-linux-gnueabihf"
+            elif [[ "${rev}" -eq 7 ]]; then
+                # Otherwise, if ARMv7 is found (e.g., BCM2836 as found in Raspberry Pi Model 2)
+                printf "%b  %b Detected ARMv7 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
+                # set the binary to be used
+                l_binary="pihole-FTL-armv7-linux-gnueabihf"
             else
-                printf "%b  %b Detected ARM-hf architecture (armv6 or lower) Using ARM binary\\n" "${OVER}" "${TICK}"
+                # Otherwise, use the ARMv6 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
+                printf "%b  %b Detected ARMv6 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-armv6-linux-gnueabihf"
             fi
         else
-            if [[ -f "/.dockerenv" ]]; then
-                printf "%b  %b Detected ARM architecture in docker\\n" "${OVER}" "${TICK}"
+            # No hard-float support found: Use gnueabi binaries
+            # Use the ARMv4-compliant binary only if we detected an ARMv4T core
+            if [[ "${rev}" -eq 4 ]]; then
+                printf "%b  %b Detected ARMv4 processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-armel-native"
+                l_binary="pihole-FTL-armv4-linux-gnueabi"
+            # Otherwise, use the ARMv5 binary. To date (end of 2020), all modern ARM processors
+            # are backwards-compatible to the ARMv5
             else
-                printf "%b  %b Detected ARM architecture\\n" "${OVER}" "${TICK}"
+                printf "%b  %b Detected ARMv5 (or newer) processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-arm-linux-gnueabi"
+                l_binary="pihole-FTL-armv5-linux-gnueabi"
             fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
-        # This gives the architecture of packages dpkg installs (for example, "i386")
+        # This gives the processor of packages dpkg installs (for example, "i386")
         local dpkgarch
-        dpkgarch=$(dpkg --print-architecture 2> /dev/null || true)
+        dpkgarch=$(dpkg --print-processor 2> /dev/null || dpkg --print-architecture 2> /dev/null)
 
         # Special case: This is a 32 bit OS, installed on a 64 bit machine
-        # -> change machine architecture to download the 32 bit executable
+        # -> change machine processor to download the 32 bit executable
         # We only check this for Debian-based systems as this has been an issue
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
-            printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-linux-x86_32"
         else
             # 64bit
-            printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected x86_64 processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
             l_binary="pihole-FTL-linux-x86_64"
         fi
@@ -2377,14 +2274,15 @@ get_binary_name() {
         # Something else - we try to use 32bit executable and warn the user
         if [[ ! "${machine}" == "i686" ]]; then
             printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %b %bNot able to detect architecture (unknown: %s), trying 32bit executable%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${machine}" "${COL_NC}"
+            printf "  %b %bNot able to detect processor (unknown: %s), trying x86 (32bit) executable%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${machine}" "${COL_NC}"
             printf "  %b Contact Pi-hole Support if you experience issues (e.g: FTL not running)\\n" "${INFO}"
         else
-            printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
+            printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
         fi
         l_binary="pihole-FTL-linux-x86_32"
     fi
 
+    # Returning a string value via echo
     echo ${l_binary}
 }
 
@@ -2450,7 +2348,7 @@ FTLcheckUpdate() {
             FTLversion=$(/usr/bin/pihole-FTL tag)
             local FTLlatesttag
 
-            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
+            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
@@ -2521,25 +2419,31 @@ main() {
         # Show the Pi-hole logo so people know it's genuine since the logo and name are trademarked
         show_ascii_berry
         make_temporary_log
-    # Otherwise,
     else
-        # They do not have enough privileges, so let the user know
-        printf "  %b %s\\n" "${CROSS}" "${str}"
+        # Otherwise, they do not have enough privileges, so let the user know
+        printf "  %b %s\\n" "${INFO}" "${str}"
         printf "  %b %bScript called with non-root privileges%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
         printf "      The Pi-hole requires elevated privileges to install and run\\n"
         printf "      Please check the installer for any concerns regarding this requirement\\n"
         printf "      Make sure to download this script from a trusted source\\n\\n"
         printf "  %b Sudo utility check" "${INFO}"
 
-        # If the sudo command exists,
+        # If the sudo command exists, try rerunning as admin
         if is_command sudo ; then
             printf "%b  %b Sudo utility check\\n" "${OVER}"  "${TICK}"
-            # Download the install script and run it with admin rights
-            exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
+
+            # when run via curl piping
+            if [[ "$0" == "bash" ]]; then
+                # Download the install script and run it with admin rights
+                exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
+            else
+                # when run via calling local bash script
+                exec sudo bash "$0" "$@"
+            fi
+
             exit $?
-        # Otherwise,
         else
-            # Let them know they need to run it as root
+            # Otherwise, tell the user they need to run the script as root, and bail
             printf "%b  %b Sudo utility check\\n" "${OVER}" "${CROSS}"
             printf "  %b Sudo is needed for the Web Interface to run pihole commands\\n\\n" "${INFO}"
             printf "  %b %bPlease re-run this installer as root${COL_NC}\\n" "${INFO}" "${COL_LIGHT_RED}"
@@ -2547,8 +2451,30 @@ main() {
         fi
     fi
 
-    # Check for supported distribution
-    distro_check
+    # Check for supported package managers so that we may install dependencies
+    package_manager_detect
+
+    # Notify user of package availability
+    notify_package_updates_available
+
+    # Install packages necessary to perform os_check
+    printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
+    install_dependent_packages "${OS_CHECK_DEPS[@]}"
+
+    # Check that the installed OS is officially supported - display warning if not
+    os_check
+
+    # Install packages used by this installation script
+    printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
+    install_dependent_packages "${INSTALLER_DEPS[@]}"
+
+    #In case of RPM based distro, select the proper PHP version
+    if [[ "$PKG_MANAGER" == "yum" || "$PKG_MANAGER" == "dnf" ]] ; then
+      select_rpm_php
+    fi
+
+    # Check if SELinux is Enforcing
+    checkSelinux
 
     # If the setup variable file exists,
     if [[ -f "${setupVars}" ]]; then
@@ -2559,29 +2485,11 @@ main() {
             useUpdateVars=true
             # also disable debconf-apt-progress dialogs
             export DEBIAN_FRONTEND="noninteractive"
-        # Otherwise,
         else
-            # show the available options (repair/reconfigure)
+            # If running attended, show the available options (repair/reconfigure)
             update_dialogs
         fi
     fi
-
-    # Start the installer
-    # Verify there is enough disk space for the install
-    if [[ "${skipSpaceCheck}" == true ]]; then
-        printf "  %b Skipping free disk space verification\\n" "${INFO}"
-    else
-        verifyFreeDiskSpace
-    fi
-
-    # Notify user of package availability
-    notify_package_updates_available
-
-    # Install packages used by this installation script
-    install_dependent_packages "${INSTALLER_DEPS[@]}"
-
-    # Check if SELinux is Enforcing
-    checkSelinux
 
     if [[ "${useUpdateVars}" == false ]]; then
         # Display welcome dialogs
@@ -2596,8 +2504,8 @@ main() {
         setDNS
         # Give the user a choice of blocklists to include in their install. Or not.
         chooseBlocklists
-        # Let the user decide if they want to block ads over IPv4 and/or IPv6
-        use4andor6
+        # find IPv4 and IPv6 information of the device
+        collect_v4andv6_information
         # Let the user decide if they want the web interface to be installed automatically
         setAdminFlag
         # Let the user decide if they want query logging enabled...
@@ -2619,21 +2527,23 @@ main() {
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
         fi
     fi
-    # Clone/Update the repos
+    # Download or update the scripts by updating the appropriate git repos
     clone_or_update_repos
 
     # Install the Core dependencies
     local dep_install_list=("${PIHOLE_DEPS[@]}")
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        # Install the Web dependencies
+        # And, if the setting says so, install the Web admin interface dependencies
         dep_install_list+=("${PIHOLE_WEB_DEPS[@]}")
     fi
 
+    # Install packages used by the actual software
+    printf "  %b Checking for / installing Required dependencies for Pi-hole software...\\n" "${INFO}"
     install_dependent_packages "${dep_install_list[@]}"
     unset dep_install_list
 
     # On some systems, lighttpd is not enabled on first install. We need to enable it here if the user
-    # has chosen to install the web interface, else the `LIGHTTPD_ENABLED` check will fail
+    # has chosen to install the web interface, else the LIGHTTPD_ENABLED check will fail
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         enable_service lighttpd
     fi
@@ -2685,7 +2595,6 @@ main() {
 
     # If the Web server was installed,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-
         if [[ "${LIGHTTPD_ENABLED}" == true ]]; then
             restart_service lighttpd
             enable_service lighttpd
@@ -2734,7 +2643,7 @@ main() {
         printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
         [[ -n "${IPV4_ADDRESS%/*}" ]] && printf "  %b Pi-hole DNS (IPv4): %s\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
         [[ -n "${IPV6_ADDRESS}" ]] && printf "  %b Pi-hole DNS (IPv6): %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-        printf "  %b If you set a new IP address, please restart the server running the Pi-hole\\n" "${INFO}"
+        printf "  %b If you have not done so already, the above IP should be set to static.\\n" "${INFO}"
         INSTALL_TYPE="Installation"
     else
         INSTALL_TYPE="Update"

@@ -16,11 +16,12 @@ CREATE TABLE domainlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	type INTEGER NOT NULL DEFAULT 0,
-	domain TEXT UNIQUE NOT NULL,
+	domain TEXT NOT NULL,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	comment TEXT,
+	UNIQUE(domain, type)
 );
 
 CREATE TABLE adlist
@@ -30,7 +31,11 @@ CREATE TABLE adlist
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+	comment TEXT,
+	date_updated INTEGER,
+	number INTEGER NOT NULL DEFAULT 0,
+	invalid_domains INTEGER NOT NULL DEFAULT 0,
+	status INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE adlist_by_group
@@ -52,7 +57,7 @@ CREATE TABLE info
 	value TEXT NOT NULL
 );
 
-INSERT INTO "info" VALUES('version','12');
+INSERT INTO "info" VALUES('version','14');
 
 CREATE TABLE domain_audit
 (
@@ -71,7 +76,7 @@ CREATE TABLE domainlist_by_group
 CREATE TABLE client
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	ip TEXT NOL NULL UNIQUE,
+	ip TEXT NOT NULL UNIQUE,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	comment TEXT
@@ -84,9 +89,9 @@ CREATE TABLE client_by_group
 	PRIMARY KEY (client_id, group_id)
 );
 
-CREATE TRIGGER tr_adlist_update AFTER UPDATE ON adlist
+CREATE TRIGGER tr_adlist_update AFTER UPDATE OF address,enabled,comment ON adlist
     BEGIN
-      UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE address = NEW.address;
+      UPDATE adlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE id = NEW.id;
     END;
 
 CREATE TRIGGER tr_client_update AFTER UPDATE ON client

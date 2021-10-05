@@ -13,6 +13,7 @@ LC_NUMERIC=C
 
 # Retrieve stats from FTL engine
 pihole-FTL() {
+    local ftl_port LINE
     ftl_port=$(cat /run/pihole-FTL.port 2> /dev/null)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
@@ -20,12 +21,13 @@ pihole-FTL() {
 
         # Test if connection is open
         if { "true" >&3; } 2> /dev/null; then
-            # Send command to FTL
-            echo -e ">$1" >&3
+            # Send command to FTL and ask to quit when finished
+            echo -e ">$1 >quit" >&3
 
-            # Read input
+            # Read input until we received an empty string and the connection is
+            # closed
             read -r -t 1 LINE <&3
-            until [[ ! $? ]] || [[ "$LINE" == *"EOM"* ]]; do
+            until [[ -z "${LINE}" ]] && [[ ! -t 3 ]]; do
                 echo "$LINE" >&1
                 read -r -t 1 LINE <&3
             done
@@ -153,7 +155,7 @@ get_init_stats() {
 
         sys_throttle_raw=$(vgt=$(sudo vcgencmd get_throttled); echo "${vgt##*x}")
 
-        # Active Throttle Notice: http://bit.ly/2gnunOo
+        # Active Throttle Notice: https://bit.ly/2gnunOo
         if [[ "$sys_throttle_raw" != "0" ]]; then
             case "$sys_throttle_raw" in
                 *0001) thr_type="${COL_YELLOW}Under Voltage";;
@@ -228,15 +230,21 @@ get_sys_stats() {
         mapfile -t ph_ver_raw < <(pihole -v -c 2> /dev/null | sed -n 's/^.* v/v/p')
         if [[ -n "${ph_ver_raw[0]}" ]]; then
             ph_core_ver="${ph_ver_raw[0]}"
-            ph_lte_ver="${ph_ver_raw[1]}"
-            ph_ftl_ver="${ph_ver_raw[2]}"
+            if [[ ${#ph_ver_raw[@]} -eq 2 ]]; then
+                # AdminLTE not installed
+                ph_lte_ver="(not installed)"
+                ph_ftl_ver="${ph_ver_raw[1]}"
+            else
+                ph_lte_ver="${ph_ver_raw[1]}"
+                ph_ftl_ver="${ph_ver_raw[2]}"
+            fi
         else
             ph_core_ver="-1"
         fi
 
         sys_name=$(hostname)
 
-        [[ -n "$TEMPERATUREUNIT" ]] && temp_unit="$TEMPERATUREUNIT" || temp_unit="c"
+        [[ -n "$TEMPERATUREUNIT" ]] && temp_unit="${TEMPERATUREUNIT^^}" || temp_unit="C"
 
         # Get storage stats for partition mounted on /
         read -r -a disk_raw <<< "$(df -B1 / 2> /dev/null | awk 'END{ print $3,$2,$5 }')"
@@ -490,10 +498,6 @@ chronoFunc() {
         printFunc " RAM usage: " "$ram_perc%" "$ram_info"
         printFunc " HDD usage: " "$disk_perc" "$disk_info"
 
-        if [[ "$scr_lines" -gt 17 ]] && [[ "$chrono_width" != "small" ]]; then
-            printFunc "  LAN addr: " "${IPV4_ADDRESS/\/*/}" "$lan_info"
-        fi
-
         if [[ "$DHCP_ACTIVE" == "true" ]]; then
             printFunc "DHCP usage: " "$ph_dhcp_percent%" "$dhcp_info"
         fi
@@ -551,7 +555,7 @@ Calculates stats and displays to an LCD
 Options:
   -j, --json          Output stats as JSON formatted string
   -r, --refresh       Set update frequency (in seconds)
-  -e, --exit          Output stats and exit witout refreshing
+  -e, --exit          Output stats and exit without refreshing
   -h, --help          Display this help text"
   fi
 

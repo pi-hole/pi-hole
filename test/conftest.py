@@ -8,8 +8,6 @@ check_output = testinfra.get_backend(
 
 SETUPVARS = {
     'PIHOLE_INTERFACE': 'eth99',
-    'IPV4_ADDRESS': '1.1.1.1',
-    'IPV6_ADDRESS': 'FE80::240:D0FF:FE48:4672',
     'PIHOLE_DNS_1': '4.2.2.1',
     'PIHOLE_DNS_2': '4.2.2.2'
 }
@@ -69,7 +67,9 @@ def args(request):
     return '-t -d --cap-add=ALL'
 
 
-@pytest.fixture(params=['debian', 'centos', 'fedora'])
+@pytest.fixture(params=[
+    'test_container'
+])
 def tag(request):
     '''
     consumed by image to make the test matrix

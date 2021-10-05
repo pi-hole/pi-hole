@@ -13,20 +13,20 @@ from .conftest import (
 )
 
 
-def test_supported_operating_system(Pihole):
+def test_supported_package_manager(Pihole):
     '''
-    confirm installer exists on unsupported distribution
+    confirm installer exits when no supported package manager found
     '''
-    # break supported package managers to emulate an unsupported distribution
+    # break supported package managers
     Pihole.run('rm -rf /usr/bin/apt-get')
     Pihole.run('rm -rf /usr/bin/rpm')
-    distro_check = Pihole.run('''
+    package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     ''')
-    expected_stdout = cross_box + ' OS distribution not supported'
-    assert expected_stdout in distro_check.stdout
-    # assert distro_check.rc == 1
+    expected_stdout = cross_box + ' No supported package manager found'
+    assert expected_stdout in package_manager_detect.stdout
+    # assert package_manager_detect.rc == 1
 
 
 def test_setupVars_are_sourced_to_global_scope(Pihole):
@@ -47,8 +47,6 @@ def test_setupVars_are_sourced_to_global_scope(Pihole):
         # Currently debug test function only
         echo "Outputting sourced variables"
         echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-        echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-        echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
         echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
         echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
     }
@@ -646,7 +644,7 @@ def test_update_package_cache_success_no_errors(Pihole):
     '''
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     update_package_cache
     ''')
     expected_stdout = tick_box + ' Update local cache of available packages'
@@ -661,7 +659,7 @@ def test_update_package_cache_failure_no_errors(Pihole):
     mock_command('apt-get', {'update': ('', '1')}, Pihole)
     updateCache = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     update_package_cache
     ''')
     expected_stdout = cross_box + ' Update local cache of available packages'
@@ -696,7 +694,55 @@ def test_FTL_detect_aarch64_no_errors(Pihole):
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + ' Detected ARM-aarch64 architecture'
+    expected_stdout = tick_box + ' Detected AArch64 (64 Bit ARM) processor'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
+    assert expected_stdout in detectPlatform.stdout
+
+
+def test_FTL_detect_armv4t_no_errors(Pihole):
+    '''
+    confirms only armv4t package is downloaded for FTL engine
+    '''
+    # mock uname to return armv4t platform
+    mock_command('uname', {'-m': ('armv4t', '0')}, Pihole)
+    # mock ldd to respond with ld-linux shared library
+    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux.so.3', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
+    ''')
+    expected_stdout = info_box + ' FTL Checks...'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + (' Detected ARMv4 processor')
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
+    assert expected_stdout in detectPlatform.stdout
+
+
+def test_FTL_detect_armv5te_no_errors(Pihole):
+    '''
+    confirms only armv5te package is downloaded for FTL engine
+    '''
+    # mock uname to return armv5te platform
+    mock_command('uname', {'-m': ('armv5te', '0')}, Pihole)
+    # mock ldd to respond with ld-linux shared library
+    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux.so.3', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
+    ''')
+    expected_stdout = info_box + ' FTL Checks...'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + (' Detected ARMv5 (or newer) processor')
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
@@ -708,7 +754,7 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     '''
     # mock uname to return armv6l platform
     mock_command('uname', {'-m': ('armv6l', '0')}, Pihole)
-    # mock ldd to respond with aarch64 shared library
+    # mock ldd to respond with ld-linux-armhf shared library
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
@@ -720,8 +766,8 @@ def test_FTL_detect_armv6l_no_errors(Pihole):
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (' Detected ARM-hf architecture '
-                                  '(armv6 or lower)')
+    expected_stdout = tick_box + (' Detected ARMv6 processor '
+                                  '(with hard-float support)')
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
@@ -733,7 +779,7 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     '''
     # mock uname to return armv7l platform
     mock_command('uname', {'-m': ('armv7l', '0')}, Pihole)
-    # mock ldd to respond with aarch64 shared library
+    # mock ldd to respond with ld-linux-armhf shared library
     mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
@@ -745,7 +791,32 @@ def test_FTL_detect_armv7l_no_errors(Pihole):
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + ' Detected ARM-hf architecture (armv7+)'
+    expected_stdout = tick_box + (' Detected ARMv7 processor '
+                                  '(with hard-float support)')
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Downloading and Installing FTL'
+    assert expected_stdout in detectPlatform.stdout
+
+
+def test_FTL_detect_armv8a_no_errors(Pihole):
+    '''
+    confirms only armv8a package is downloaded for FTL engine
+    '''
+    # mock uname to return armv8a platform
+    mock_command('uname', {'-m': ('armv8a', '0')}, Pihole)
+    # mock ldd to respond with ld-linux-armhf shared library
+    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, Pihole)
+    detectPlatform = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
+    ''')
+    expected_stdout = info_box + ' FTL Checks...'
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + ' Detected ARMv8 (or newer) processor'
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
@@ -765,7 +836,7 @@ def test_FTL_detect_x86_64_no_errors(Pihole):
     ''')
     expected_stdout = info_box + ' FTL Checks...'
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + ' Detected x86_64 architecture'
+    expected_stdout = tick_box + ' Detected x86_64 processor'
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + ' Downloading and Installing FTL'
     assert expected_stdout in detectPlatform.stdout
@@ -783,7 +854,7 @@ def test_FTL_detect_unknown_no_errors(Pihole):
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
     ''')
-    expected_stdout = 'Not able to detect architecture (unknown: mips)'
+    expected_stdout = 'Not able to detect processor (unknown: mips)'
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -795,7 +866,7 @@ def test_FTL_download_aarch64_no_errors(Pihole):
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
     Pihole.run('''
     source /opt/pihole/basic-install.sh
-    distro_check
+    package_manager_detect
     install_dependent_packages ${INSTALLER_DEPS[@]}
     ''')
     download_binary = Pihole.run('''
@@ -859,10 +930,9 @@ def test_IPv6_only_link_local(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = ('Unable to find IPv6 ULA/GUA address, '
-                       'IPv6 adblocking will not be enabled')
+    expected_stdout = ('Unable to find IPv6 ULA/GUA address')
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -883,9 +953,9 @@ def test_IPv6_only_ULA(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 ULA address'
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -906,9 +976,9 @@ def test_IPv6_only_GUA(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 GUA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 GUA address'
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -930,9 +1000,9 @@ def test_IPv6_GUA_ULA_test(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 ULA address'
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -954,46 +1024,125 @@ def test_IPv6_ULA_GUA_test(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 ULA address'
     assert expected_stdout in detectPlatform.stdout
 
 
-def test_validate_ip_valid(Pihole):
+def test_validate_ip(Pihole):
     '''
-    Given a valid IP address, valid_ip returns success
+    Tests valid_ip for various IP addresses
     '''
 
+    def test_address(addr, success=True):
+        output = Pihole.run('''
+        source /opt/pihole/basic-install.sh
+        valid_ip "{addr}"
+        '''.format(addr=addr))
+
+        assert output.rc == 0 if success else 1
+
+    test_address('192.168.1.1')
+    test_address('127.0.0.1')
+    test_address('255.255.255.255')
+    test_address('255.255.255.256', False)
+    test_address('255.255.256.255', False)
+    test_address('255.256.255.255', False)
+    test_address('256.255.255.255', False)
+    test_address('1092.168.1.1', False)
+    test_address('not an IP', False)
+    test_address('8.8.8.8#', False)
+    test_address('8.8.8.8#0')
+    test_address('8.8.8.8#1')
+    test_address('8.8.8.8#42')
+    test_address('8.8.8.8#888')
+    test_address('8.8.8.8#1337')
+    test_address('8.8.8.8#65535')
+    test_address('8.8.8.8#65536', False)
+    test_address('8.8.8.8#-1', False)
+    test_address('00.0.0.0', False)
+    test_address('010.0.0.0', False)
+    test_address('001.0.0.0', False)
+    test_address('0.0.0.0#00', False)
+    test_address('0.0.0.0#01', False)
+    test_address('0.0.0.0#001', False)
+    test_address('0.0.0.0#0001', False)
+    test_address('0.0.0.0#00001', False)
+
+
+def test_os_check_fails(Pihole):
+    ''' Confirms install fails on unsupported OS '''
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    package_manager_detect
+    install_dependent_packages ${OS_CHECK_DEPS[@]}
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    cat <<EOT > /etc/os-release
+    ID=UnsupportedOS
+    VERSION_ID="2"
+    EOT
+    ''')
+    detectOS = Pihole.run('''t
+    source /opt/pihole/basic-install.sh
+    os_check
+    ''')
+    expected_stdout = 'Unsupported OS detected: UnsupportedOS'
+    assert expected_stdout in detectOS.stdout
+
+
+def test_os_check_passes(Pihole):
+    ''' Confirms OS meets the requirements '''
+    Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    package_manager_detect
+    install_dependent_packages ${OS_CHECK_DEPS[@]}
+    install_dependent_packages ${INSTALLER_DEPS[@]}
+    ''')
+    detectOS = Pihole.run('''
+    source /opt/pihole/basic-install.sh
+    os_check
+    ''')
+    expected_stdout = 'Supported OS detected'
+    assert expected_stdout in detectOS.stdout
+
+
+def test_package_manager_has_installer_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for the installer'''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
     output = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    valid_ip "192.168.1.1"
+    package_manager_detect
+    install_dependent_packages ${INSTALLER_DEPS[@]}
     ''')
 
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
     assert output.rc == 0
 
 
-def test_validate_ip_invalid_octet(Pihole):
-    '''
-    Given an invalid IP address (large octet), valid_ip returns an error
-    '''
-
+def test_package_manager_has_pihole_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for Pi-hole '''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
     output = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    valid_ip "1092.168.1.1"
+    package_manager_detect
+    select_rpm_php
+    install_dependent_packages ${PIHOLE_DEPS[@]}
     ''')
 
-    assert output.rc == 1
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0
 
 
-def test_validate_ip_invalid_letters(Pihole):
-    '''
-    Given an invalid IP address (contains letters), valid_ip returns an error
-    '''
-
+def test_package_manager_has_web_deps(Pihole):
+    ''' Confirms OS is able to install the required packages for web '''
+    mock_command('whiptail', {'*': ('', '0')}, Pihole)
     output = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    valid_ip "not an IP"
+    package_manager_detect
+    select_rpm_php
+    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
     ''')
 
-    assert output.rc == 1
+    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert output.rc == 0
