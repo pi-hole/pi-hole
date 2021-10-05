@@ -47,14 +47,13 @@ EOM
 )
 
 # Location for final installation log storage
-installLogLoc=/etc/pihole/install.log
+installLogLoc="/etc/pihole/install.log"
 # This is an important file as it contains information specific to the machine it's being installed on
-setupVars=/etc/pihole/setupVars.conf
+setupVars="/etc/pihole/setupVars.conf"
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
-# shellcheck disable=SC2034
-lighttpdConfig=/etc/lighttpd/lighttpd.conf
+lighttpdConfig="/etc/lighttpd/lighttpd.conf"
 # This is a file used for the colorized output
-coltable=/opt/pihole/COL_TABLE
+coltable="/opt/pihole/COL_TABLE"
 
 # Root of the web server
 webroot="/var/www/html"
@@ -1313,18 +1312,18 @@ installConfigs() {
             # make it and set the owners
             install -d -m 755 -o "${USER}" -g root /etc/lighttpd
         # Otherwise, if the config file already exists
-        elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
+        elif [[ -f "${lighttpdConfig}" ]]; then
             # back up the original
-            mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+            mv "${lighttpdConfig}"{,.orig}
         fi
         # and copy in the config file Pi-hole needs
-        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
         chmod 644 /etc/lighttpd/external.conf
         # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
-            sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
+            sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' "${lighttpdConfig}"
         fi
         # Make the directories if they do not exist and set the owners
         mkdir -p /run/lighttpd
@@ -1892,7 +1891,7 @@ displayFinalMessage() {
     if [[ "${#1}" -gt 0 ]] ; then
         # set the password to the first argument.
         pwstring="$1"
-    elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
+    elif [[ $(grep 'WEBPASSWORD' -c "${setupVars}") -gt 0 ]]; then
         # Else if the password exists from previous setup, we'll load it later
         pwstring="unchanged"
     else
@@ -2550,7 +2549,7 @@ main() {
         # Add password to web UI if there is none
         pw=""
         # If no password is set,
-        if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
+        if [[ $(grep 'WEBPASSWORD' -c "${setupVars}") == 0 ]] ; then
             # generate a random password
             pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
             # shellcheck disable=SC1091
