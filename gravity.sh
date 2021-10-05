@@ -15,8 +15,6 @@ export LC_ALL=C
 
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
-regexconverter="/opt/pihole/wildcard_regex_converter.sh"
-source "${regexconverter}"
 # shellcheck disable=SC1091
 source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
