@@ -1778,27 +1778,6 @@ installLogrotate() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
-# At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
-# Refactoring of install script has changed the name of a couple of variables. Sort them out here.
-accountForRefactor() {
-    sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' "${setupVars}"
-    sed -i 's/IPv4_address/IPV4_ADDRESS/g' "${setupVars}"
-    sed -i 's/IPv4addr/IPV4_ADDRESS/g' "${setupVars}"
-    sed -i 's/IPv6_address/IPV6_ADDRESS/g' "${setupVars}"
-    sed -i 's/piholeIPv6/IPV6_ADDRESS/g' "${setupVars}"
-    sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' "${setupVars}"
-    sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' "${setupVars}"
-    sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' "${setupVars}"
-    # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
-    if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
-        local webserver_installed=false
-        if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
-            webserver_installed=true
-        fi
-        echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
-    fi
-}
-
 # Install base files and web interface
 installPihole() {
     # If the user wants to install the Web interface,
@@ -1828,10 +1807,6 @@ installPihole() {
                 printf "      Please ensure fastcgi is enabled if you experience issues\\n"
             fi
         fi
-    fi
-    # For updates and unattended install.
-    if [[ "${useUpdateVars}" == true ]]; then
-        accountForRefactor
     fi
     # Install base files and web interface
     if ! installScripts; then
