@@ -1238,10 +1238,10 @@ show_messages() {
 }
 
 analyze_gravity_list() {
-    echo_current_diagnostic "Gravity List and Database"
+    echo_current_diagnostic "Gravity Database"
 
     local gravity_permissions
-    gravity_permissions=$(ls -ld "${PIHOLE_GRAVITY_DB_FILE}")
+    gravity_permissions=$(ls -lhd "${PIHOLE_GRAVITY_DB_FILE}")
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
@@ -1320,7 +1320,7 @@ analyze_pihole_log() {
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
-  pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
+  pihole_log_permissions=$(ls -lhd "${PIHOLE_LOG}")
   log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
   mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
