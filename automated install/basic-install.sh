@@ -514,7 +514,7 @@ update_repo() {
     git stash --all --quiet &> /dev/null || true # Okay for stash failure
     git clean --quiet --force -d || true # Okay for already clean directory
     # Pull the latest commits
-    git pull --quiet &> /dev/null || return $?
+    git pull --no-rebase --quiet &> /dev/null || return $?
     # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
@@ -2028,7 +2028,7 @@ checkout_pull_branch() {
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
 
-    git_pull=$(git pull || return 1)
+    git_pull=$(git pull --no-rebase || return 1)
 
     if [[ "$git_pull" == *"up-to-date"* ]]; then
         printf "  %b %s\\n" "${INFO}" "${git_pull}"
