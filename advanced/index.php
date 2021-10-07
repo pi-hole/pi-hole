@@ -145,7 +145,7 @@ try {
 }
 
 // Get all adlist addresses
-$adlistResults = $db->query("SELECT address FROM vw_adlist");
+$adlistResults = $db->query("SELECT address FROM adlist WHERE enabled = 1");
 $adlistsUrls = array();
 while ($row = $adlistResults->fetchArray()) {
     array_push($adlistsUrls, $row[0]);
