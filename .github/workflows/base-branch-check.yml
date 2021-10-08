@@ -1,0 +1,25 @@
+name: Base Branch Checker
+
+on:
+  pull_request:
+    branches-ignore:
+      - development
+
+jobs:
+  base_branch_check:
+    runs-on: ubuntu-latest
+    name: Base Branch Check
+    steps:
+      - name: Comment PR
+        uses: thollander/actions-comment-pull-request@v1
+
+        with:
+          message: 'Hello -- It appears you have opened this Pull Request to the wrong branch.
+
+                    ### Technical Requirements
+
+                    - Please submit Pull Requests to the **`development` branch only**.
+
+                    - Before Submitting your Pull Request, merge `development` with your new branch and fix any conflicts.
+                    (Make sure you don''t break anything in `development`!)'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
