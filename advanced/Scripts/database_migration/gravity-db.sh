@@ -122,4 +122,10 @@ upgrade_gravityDB(){
 		sqlite3 "${database}" < "${scriptPath}/13_to_14.sql"
 		version=14
 	fi
+	if [[ "$version" == "14" ]]; then
+	# Changes the vw_adlist created in 5_to_6
+	echo -e "  ${INFO} Upgrading gravity database from version 14 to 15"
+	sqlite3 "${database}" < "${scriptPath}/14_to_15.sql"
+	version=15
+fi
 }
