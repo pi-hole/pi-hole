@@ -585,6 +585,13 @@ processor_check() {
     fi
 }
 
+disk_usage() {
+    local df
+    echo_current_diagnostic "Disk usage"
+    DF=$(df -h)
+    log_write "${DF}";
+}
+
 parse_setup_vars() {
     echo_current_diagnostic "Setup variables"
     # If the file exists,
@@ -1421,6 +1428,7 @@ diagnose_operating_system
 check_selinux
 check_firewalld
 processor_check
+disk_usage
 check_networking
 check_name_resolution
 check_dhcp_servers
