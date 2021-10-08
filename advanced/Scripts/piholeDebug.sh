@@ -586,7 +586,7 @@ processor_check() {
 }
 
 disk_usage() {
-    local df
+    local DF
     echo_current_diagnostic "Disk usage"
     DF=$(df -h)
     log_write "${DF}";
