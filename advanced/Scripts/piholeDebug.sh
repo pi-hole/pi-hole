@@ -782,11 +782,11 @@ check_networking() {
     # Runs through several of the functions made earlier; we just clump them
     # together since they are all related to the networking aspect of things
     echo_current_diagnostic "Networking"
+    check_required_ports
     detect_ip_addresses "4"
     detect_ip_addresses "6"
     ping_gateway "4"
     ping_gateway "6"
-    check_required_ports
 }
 
 check_x_headers() {
@@ -1133,16 +1133,23 @@ show_content_of_files_in_dir() {
     list_files_in_dir "${directory}"
 }
 
-show_content_of_pihole_files() {
+show_content_of_pihole_config_files() {
     # Show the content of the files in each of Pi-hole's folders
+    show_content_of_files_in_dir "${ETC}"
     show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
-    show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
-    show_content_of_files_in_dir "${LOG_DIRECTORY}"
+}
+
+show_content_of_shm_files (){
     show_content_of_files_in_dir "${SHM_DIRECTORY}"
-    show_content_of_files_in_dir "${ETC}"
+}
+
+show_content_of_pihole_log_files() {
+  show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
+  show_content_of_files_in_dir "${LOG_DIRECTORY}"
+  analyze_pihole_log
 }
 
 head_tail_log() {
@@ -1442,22 +1449,23 @@ diagnose_operating_system
 check_selinux
 check_firewalld
 processor_check
+parse_locale
 disk_usage
 check_networking
 check_name_resolution
 check_dhcp_servers
 process_status
 ftl_full_status
+show_messages
+show_content_of_shm_files
 parse_setup_vars
+show_content_of_pihole_config_files
 check_x_headers
 analyze_gravity_list
 show_groups
 show_domainlist
 show_clients
 show_adlists
-show_content_of_pihole_files
-show_messages
-parse_locale
-analyze_pihole_log
+show_content_of_pihole_log_files
 copy_to_debug_log
 upload_to_tricorder
