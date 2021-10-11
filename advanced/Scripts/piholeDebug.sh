@@ -586,10 +586,13 @@ processor_check() {
 }
 
 disk_usage() {
-    local DF
+    local file_system
     echo_current_diagnostic "Disk usage"
-    DF=$(df -h)
-    log_write "${DF}";
+    mapfile -t file_system < <(df -h)
+
+    for line in "${file_system[@]}"; do
+        log_write "   ${line}"
+    done
 }
 
 parse_setup_vars() {
