@@ -1135,8 +1135,8 @@ show_content_of_files_in_dir() {
 
 show_content_of_pihole_config_files() {
     # Show the content of the files in each of Pi-hole's folders
-    show_content_of_files_in_dir "${ETC}"
     show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
+    show_content_of_files_in_dir "${ETC}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
