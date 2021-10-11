@@ -1914,8 +1914,6 @@ IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
 If you have not done so already, the above IP should be set to static.
 
-The install log is in /etc/pihole.
-
 ${additional}" "${r}" "${c}"
 }
 
