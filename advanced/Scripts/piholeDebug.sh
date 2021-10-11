@@ -587,11 +587,22 @@ processor_check() {
 
 disk_usage() {
     local file_system
+    local hide
+
     echo_current_diagnostic "Disk usage"
     mapfile -t file_system < <(df -h)
 
+    # Some lines of df might contain sensitive information like usernames and passwords.
+    # E.g. curlftpfs filesystems (https://www.looklinux.com/mount-ftp-share-on-linux-using-curlftps/)
+    # We are not interested in those lines so we collect keyword, to remove them from the output
+    # Additinal keywords can be added, separated by "|"
+    hide="curlftpfs"
+
+    # only show those lines not containg a sensitive phrase
     for line in "${file_system[@]}"; do
+      if [[ ! $line =~ $hide ]]; then
         log_write "   ${line}"
+      fi
     done
 }
 
