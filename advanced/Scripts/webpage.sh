@@ -709,6 +709,7 @@ AddCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
+    reload="${args[4]}"
 
     if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
 	     echo "${ip} ${host}" >> "${dnscustomfile}"
@@ -717,8 +718,10 @@ AddCustomDNSAddress() {
          exit 1
      fi
 
-    # Restart dnsmasq to load new custom DNS entries
-    RestartDNS
+    # Restart dnsmasq to load new custom DNS entries only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
 }
 
 RemoveCustomDNSAddress() {
@@ -726,11 +729,14 @@ RemoveCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
+    reload="${args[4]}"
 
     sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
 
-    # Restart dnsmasq to update removed custom DNS entries
-    RestartDNS
+    # Restart dnsmasq to load new custom DNS entries only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
 }
 
 AddCustomCNAMERecord() {
@@ -738,6 +744,7 @@ AddCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
+    reload="${args[4]}"
 
     validDomain="$(checkDomain "${domain}")"
     if [[ -n "${validDomain}" ]]; then
@@ -752,8 +759,10 @@ AddCustomCNAMERecord() {
         echo "  ${CROSS} Invalid Domain passed!"
         exit 1
     fi
-    # Restart dnsmasq to load new custom CNAME records
-    RestartDNS
+    # Restart dnsmasq to load new custom CNAME records only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
 }
 
 RemoveCustomCNAMERecord() {
@@ -761,11 +770,14 @@ RemoveCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
+    reload="${args[4]}"
 
     sed -i "/cname=${domain},${target}$/d" "${dnscustomcnamefile}"
 
-    # Restart dnsmasq to update removed custom CNAME records
-    RestartDNS
+    # Restart dnsmasq to update removed custom CNAME records only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
 }
 
 main() {
