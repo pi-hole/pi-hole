@@ -782,7 +782,6 @@ check_networking() {
     # Runs through several of the functions made earlier; we just clump them
     # together since they are all related to the networking aspect of things
     echo_current_diagnostic "Networking"
-    check_required_ports
     detect_ip_addresses "4"
     detect_ip_addresses "6"
     ping_gateway "4"
@@ -1451,6 +1450,7 @@ check_firewalld
 processor_check
 parse_locale
 disk_usage
+check_required_ports
 check_networking
 check_name_resolution
 check_dhcp_servers
