@@ -709,7 +709,13 @@ AddCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
-	echo "${ip} ${host}" >> "${dnscustomfile}"
+
+    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+	     echo "${ip} ${host}" >> "${dnscustomfile}"
+     else
+         echo -e "  ${CROSS} Invalid IP has been passed"
+         exit 1
+     fi
 
     # Restart dnsmasq to load new custom DNS entries
     RestartDNS
@@ -721,12 +727,7 @@ RemoveCustomDNSAddress() {
     ip="${args[2]}"
     host="${args[3]}"
 
-    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
-    else
-        echo -e "  ${CROSS} Invalid IP has been passed"
-        exit 1
-    fi
+    sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
 
     # Restart dnsmasq to update removed custom DNS entries
     RestartDNS
@@ -738,8 +739,19 @@ AddCustomCNAMERecord() {
     domain="${args[2]}"
     target="${args[3]}"
 
-    echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
-
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+          echo "cname=${validDomain},${validTarget}" >> "${dnscustomcnamefile}"
+        else
+          echo "  ${CROSS} Invalid Target Passed!"
+          exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
     # Restart dnsmasq to load new custom CNAME records
     RestartDNS
 }
@@ -750,19 +762,7 @@ RemoveCustomCNAMERecord() {
     domain="${args[2]}"
     target="${args[3]}"
 
-    validDomain="$(checkDomain "${domain}")"
-    if [[ -n "${validDomain}" ]]; then
-        validTarget="$(checkDomain "${target}")"
-        if [[ -n "${validDomain}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
-        else
-            echo "  ${CROSS} Invalid Target Passed!"
-            exit 1
-        fi
-    else
-        echo "  ${CROSS} Invalid Domain passed!"
-        exit 1
-    fi
+    sed -i "/cname=${domain},${target}$/d" "${dnscustomcnamefile}"
 
     # Restart dnsmasq to update removed custom CNAME records
     RestartDNS
