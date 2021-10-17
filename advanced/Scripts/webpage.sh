@@ -731,7 +731,12 @@ RemoveCustomDNSAddress() {
     host="${args[3]}"
     reload="${args[4]}"
 
-    sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
+    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
+    else
+        echo -e "  ${CROSS} Invalid IP has been passed"
+        exit 1
+    fi
 
     # Restart dnsmasq to load new custom DNS entries only if reload is not false
     if [[ ! $reload == "false" ]]; then
@@ -772,7 +777,19 @@ RemoveCustomCNAMERecord() {
     target="${args[3]}"
     reload="${args[4]}"
 
-    sed -i "/cname=${domain},${target}$/d" "${dnscustomcnamefile}"
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
+        else
+          echo "  ${CROSS} Invalid Target Passed!"
+          exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
 
     # Restart dnsmasq to update removed custom CNAME records only if $reload not false
     if [[ ! $reload == "false" ]]; then
