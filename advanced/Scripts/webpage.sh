@@ -711,12 +711,18 @@ AddCustomDNSAddress() {
     host="${args[3]}"
     reload="${args[4]}"
 
-    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-	     echo "${ip} ${host}" >> "${dnscustomfile}"
-     else
-         echo -e "  ${CROSS} Invalid IP has been passed"
-         exit 1
-     fi
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            echo "${ip} ${validHost}" >> "${dnscustomfile}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
 
     # Restart dnsmasq to load new custom DNS entries only if $reload not false
     if [[ ! $reload == "false" ]]; then
@@ -731,11 +737,17 @@ RemoveCustomDNSAddress() {
     host="${args[3]}"
     reload="${args[4]}"
 
-    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
-    else
-        echo -e "  ${CROSS} Invalid IP has been passed"
-        exit 1
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            sed -i "/^${ip} ${validHost}$/d" "${dnscustomfile}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
+        else
+            echo "  ${CROSS} Invalid Domain passed!"
+            exit 1
     fi
 
     # Restart dnsmasq to load new custom DNS entries only if reload is not false
