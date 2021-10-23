@@ -709,54 +709,14 @@ AddCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
-	echo "${ip} ${host}" >> "${dnscustomfile}"
+    reload="${args[4]}"
 
-    # Restart dnsmasq to load new custom DNS entries
-    RestartDNS
-}
-
-RemoveCustomDNSAddress() {
-    echo -e "  ${TICK} Removing custom DNS entry..."
-
-    ip="${args[2]}"
-    host="${args[3]}"
-
-    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
-    else
-        echo -e "  ${CROSS} Invalid IP has been passed"
-        exit 1
-    fi
-
-    # Restart dnsmasq to update removed custom DNS entries
-    RestartDNS
-}
-
-AddCustomCNAMERecord() {
-    echo -e "  ${TICK} Adding custom CNAME record..."
-
-    domain="${args[2]}"
-    target="${args[3]}"
-
-    echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
-
-    # Restart dnsmasq to load new custom CNAME records
-    RestartDNS
-}
-
-RemoveCustomCNAMERecord() {
-    echo -e "  ${TICK} Removing custom CNAME record..."
-
-    domain="${args[2]}"
-    target="${args[3]}"
-
-    validDomain="$(checkDomain "${domain}")"
-    if [[ -n "${validDomain}" ]]; then
-        validTarget="$(checkDomain "${target}")"
-        if [[ -n "${validDomain}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            echo "${ip} ${validHost}" >> "${dnscustomfile}"
         else
-            echo "  ${CROSS} Invalid Target Passed!"
+            echo -e "  ${CROSS} Invalid IP has been passed"
             exit 1
         fi
     else
@@ -764,8 +724,89 @@ RemoveCustomCNAMERecord() {
         exit 1
     fi
 
-    # Restart dnsmasq to update removed custom CNAME records
-    RestartDNS
+    # Restart dnsmasq to load new custom DNS entries only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
+}
+
+RemoveCustomDNSAddress() {
+    echo -e "  ${TICK} Removing custom DNS entry..."
+
+    ip="${args[2]}"
+    host="${args[3]}"
+    reload="${args[4]}"
+
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            sed -i "/^${ip} ${validHost}$/d" "${dnscustomfile}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
+        else
+            echo "  ${CROSS} Invalid Domain passed!"
+            exit 1
+    fi
+
+    # Restart dnsmasq to load new custom DNS entries only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
+}
+
+AddCustomCNAMERecord() {
+    echo -e "  ${TICK} Adding custom CNAME record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    reload="${args[4]}"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+          echo "cname=${validDomain},${validTarget}" >> "${dnscustomcnamefile}"
+        else
+          echo "  ${CROSS} Invalid Target Passed!"
+          exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+    # Restart dnsmasq to load new custom CNAME records only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
+}
+
+RemoveCustomCNAMERecord() {
+    echo -e "  ${TICK} Removing custom CNAME record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    reload="${args[4]}"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
+        else
+          echo "  ${CROSS} Invalid Target Passed!"
+          exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    # Restart dnsmasq to update removed custom CNAME records only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+      RestartDNS
+    fi
 }
 
 main() {
