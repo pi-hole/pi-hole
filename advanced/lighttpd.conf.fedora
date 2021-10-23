@@ -93,5 +93,12 @@ $HTTP["url"] =~ "^/admin/\.(.*)" {
     url.access-deny = ("")
 }
 
+# allow teleporter iframe on settings page
+$HTTP["url"] =~ "/teleporter\.php$" {
+    $HTTP["referer"] =~ "/admin/settings\.php" {
+        setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
+    }
+}
+
 # Default expire header
 expire.url = ( "" => "access plus 0 seconds" )

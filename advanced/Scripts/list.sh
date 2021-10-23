@@ -23,7 +23,7 @@ fi
 # have changed
 gravityDBfile="${GRAVITYDB}"
 
-reload=false
+noReloadRequested=false
 addmode=true
 verbose=true
 wildcard=false
@@ -35,6 +35,7 @@ typeId=""
 comment=""
 declare -i domaincount
 domaincount=0
+reload=false
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
@@ -242,13 +243,13 @@ Displaylist() {
 
 NukeList() {
     count=$(sqlite3 "${gravityDBfile}" "SELECT COUNT(1) FROM domainlist WHERE type = ${typeId};")
-    listname="$(GetListnameFromTypeId "${typeId}")"    
+    listname="$(GetListnameFromTypeId "${typeId}")"
     if [ "$count" -gt 0 ];then
         sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeId};"
         echo "  ${TICK} Removed ${count} domain(s) from the ${listname}"
     else
         echo "  ${INFO} ${listname} already empty. Nothing to do!"
-    fi    
+    fi
     exit 0;
 }
 
@@ -268,7 +269,7 @@ while (( "$#" )); do
         "--white-wild" | "white-wild" ) typeId=2; wildcard=true;;
         "--wild" | "wildcard" ) typeId=3; wildcard=true;;
         "--regex" | "regex"   ) typeId=3;;
-        "-nr"| "--noreload"  ) reload=false;;
+        "-nr"| "--noreload"  ) noReloadRequested=true;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
@@ -294,6 +295,6 @@ if $web; then
 echo "DONE"
 fi
 
-if [[ "${reload}" != false ]]; then
+if [[ ${reload} == true && ${noReloadRequested} == false ]]; then
     pihole restartdns reload-lists
 fi

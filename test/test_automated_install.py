@@ -11,18 +11,18 @@ from .conftest import (
 )
 
 
-def test_supported_operating_system(Pihole):
+def test_supported_package_manager(Pihole):
     '''
-    confirm installer exists on unsupported distribution
+    confirm installer exits when no supported package manager found
     '''
-    # break supported package managers to emulate an unsupported distribution
+    # break supported package managers
     Pihole.run('rm -rf /usr/bin/apt-get')
     Pihole.run('rm -rf /usr/bin/rpm')
     package_manager_detect = Pihole.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
     ''')
-    expected_stdout = cross_box + ' OS distribution not supported'
+    expected_stdout = cross_box + ' No supported package manager found'
     assert expected_stdout in package_manager_detect.stdout
     # assert package_manager_detect.rc == 1
 
@@ -421,10 +421,9 @@ def test_IPv6_only_link_local(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = ('Unable to find IPv6 ULA/GUA address, '
-                       'IPv6 adblocking will not be enabled')
+    expected_stdout = ('Unable to find IPv6 ULA/GUA address')
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -445,9 +444,9 @@ def test_IPv6_only_ULA(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 ULA address'
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -468,9 +467,9 @@ def test_IPv6_only_GUA(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 GUA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 GUA address'
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -492,9 +491,9 @@ def test_IPv6_GUA_ULA_test(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 ULA address'
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -516,9 +515,9 @@ def test_IPv6_ULA_GUA_test(Pihole):
     )
     detectPlatform = Pihole.run('''
     source /opt/pihole/basic-install.sh
-    useIPv6dialog
+    find_IPv6_information
     ''')
-    expected_stdout = 'Found IPv6 ULA address, using it for blocking IPv6 ads'
+    expected_stdout = 'Found IPv6 ULA address'
     assert expected_stdout in detectPlatform.stdout
 
 
