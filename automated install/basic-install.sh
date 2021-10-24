@@ -34,27 +34,26 @@ export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
 # List of supported DNS servers
 DNS_SERVERS=$(cat << EOM
-Google (ECS);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+Google (ECS, DNSSEC);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
 OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
-DNS.WATCH;84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
+DNS.WATCH (DNSSEC);84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
 Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
 Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
-Quad9 (filtered + ECS);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
-Cloudflare;1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+Quad9 (filtered, ECS, DNSSEC);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
+Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
 # Location for final installation log storage
-installLogLoc=/etc/pihole/install.log
+installLogLoc="/etc/pihole/install.log"
 # This is an important file as it contains information specific to the machine it's being installed on
-setupVars=/etc/pihole/setupVars.conf
+setupVars="/etc/pihole/setupVars.conf"
 # Pi-hole uses lighttpd as a Web server, and this is the config file for it
-# shellcheck disable=SC2034
-lighttpdConfig=/etc/lighttpd/lighttpd.conf
+lighttpdConfig="/etc/lighttpd/lighttpd.conf"
 # This is a file used for the colorized output
-coltable=/opt/pihole/COL_TABLE
+coltable="/opt/pihole/COL_TABLE"
 
 # Root of the web server
 webroot="/var/www/html"
@@ -262,10 +261,10 @@ os_check() {
 
 # Compatibility
 package_manager_detect() {
-# If apt-get is installed, then we know it's part of the Debian family
+# First check to see if apt-get is installed.
 if is_command apt-get ; then
     # Set some global variables here
-    # We don't set them earlier since the family might be Red Hat, so these values would be different
+    # We don't set them earlier since the installed package manager might be rpm, so these values would be different
     PKG_MANAGER="apt-get"
     # A variable to store the command used to update the package cache
     UPDATE_PKG_CACHE="${PKG_MANAGER} update"
@@ -273,68 +272,27 @@ if is_command apt-get ; then
     PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
     PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-    # Update package cache. This is required already here to assure apt-cache calls have package lists available.
+    # Update package cache
     update_package_cache || exit 1
-    # Debian 7 doesn't have iproute2 so check if it's available first
-    if apt-cache show iproute2 > /dev/null 2>&1; then
-        iproute_pkg="iproute2"
-    # Otherwise, check if iproute is available
-    elif apt-cache show iproute > /dev/null 2>&1; then
-        iproute_pkg="iproute"
-    # Else print error and exit
-    else
-        printf "  %b Aborting installation: iproute2 and iproute packages were not found in APT repository.\\n" "${CROSS}"
-        exit 1
-    fi
     # Check for and determine version number (major and minor) of current php install
+    local phpVer="php"
     if is_command php ; then
         printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
         printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
         printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
-        # Is installed php version 7.0 or greater
-        if [ "${phpInsMajor}" -ge 7 ]; then
-            phpInsNewer=true
-        fi
-    fi
-    # Several other packages depend on the version of PHP. If PHP is not installed, or an insufficient version,
-    # those packages should fall back to the default (latest?)
-    if [[ "$phpInsNewer" != true ]]; then
-        # Prefer the php metapackage if it's there
-        if apt-cache show php > /dev/null 2>&1; then
-            phpVer="php"
-        # Else fall back on the php5 package if it's there
-        elif apt-cache show php5 > /dev/null 2>&1; then
-            phpVer="php5"
-        # Else print error and exit
-        else
-            printf "  %b Aborting installation: No PHP packages were found in APT repository.\\n" "${CROSS}"
-            exit 1
-        fi
-    else
-        # Else, PHP is already installed at a version beyond v7.0, so the additional packages
-        # should match version with the current PHP version.
         phpVer="php$phpInsMajor.$phpInsMinor"
-    fi
-    # We also need the correct version for `php-sqlite` (which differs across distros)
-    if apt-cache show "${phpVer}-sqlite3" > /dev/null 2>&1; then
-        phpSqlite="sqlite3"
-    elif apt-cache show "${phpVer}-sqlite" > /dev/null 2>&1; then
-        phpSqlite="sqlite"
-    else
-        printf "  %b Aborting installation: No SQLite PHP module was found in APT repository.\\n" "${CROSS}"
-        exit 1
     fi
     # Packages required to perfom the os_check (stored as an array)
     OS_CHECK_DEPS=(grep dnsutils)
     # Packages required to run this install script (stored as an array)
-    INSTALLER_DEPS=(git "${iproute_pkg}" whiptail ca-certificates)
+    INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
     # Packages required to run Pi-hole (stored as an array)
-    PIHOLE_DEPS=(cron curl iputils-ping lsof netcat psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+    PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
     # Packages required for the Web admin interface (stored as an array)
     # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-${phpSqlite}" "${phpVer}-xml" "${phpVer}-intl")
+    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
     # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
-    if [[ "${phpInsNewer}" != true || "${phpInsMajor}" -lt 8 ]]; then
+    if [[ -z "${phpInsMajor}" || "${phpInsMajor}" -lt 8 ]]; then
         PIHOLE_WEB_DEPS+=("${phpVer}-json")
     fi
     # The Web server user,
@@ -360,7 +318,7 @@ if is_command apt-get ; then
         return 0
     }
 
-# If apt-get is not found, check for rpm to see if it's a Red Hat family OS
+# If apt-get is not found, check for rpm.
 elif is_command rpm ; then
     # Then check if dnf or yum is the package manager
     if is_command dnf ; then
@@ -369,12 +327,12 @@ elif is_command rpm ; then
         PKG_MANAGER="yum"
     fi
 
-    # These variable names match the ones in the Debian family. See above for an explanation of what they are for.
+    # These variable names match the ones for apt-get. See above for an explanation of what they are for.
     PKG_INSTALL=("${PKG_MANAGER}" install -y)
     PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
     OS_CHECK_DEPS=(grep bind-utils)
     INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
-    PIHOLE_DEPS=(cronie curl findutils nmap-ncat sudo unzip libidn2 psmisc sqlite libcap lsof)
+    PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof)
     PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
     LIGHTTPD_USER="lighttpd"
     LIGHTTPD_GROUP="lighttpd"
@@ -382,8 +340,8 @@ elif is_command rpm ; then
 
 # If neither apt-get or yum/dnf package managers were found
 else
-    # it's not an OS we can support,
-    printf "  %b OS distribution not supported\\n" "${CROSS}"
+    # we cannot install required packages
+    printf "  %b No supported package manager found\\n" "${CROSS}"
     # so exit the installer
     exit
 fi
@@ -556,7 +514,7 @@ update_repo() {
     git stash --all --quiet &> /dev/null || true # Okay for stash failure
     git clean --quiet --force -d || true # Okay for already clean directory
     # Pull the latest commits
-    git pull --quiet &> /dev/null || return $?
+    git pull --no-rebase --quiet &> /dev/null || return $?
     # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
@@ -760,9 +718,8 @@ testIPv6() {
     fi
 }
 
-# A dialog for showing the user about IPv6 blocking
-useIPv6dialog() {
-    # Determine the IPv6 address used for blocking
+find_IPv6_information() {
+    # Detects IPv6 address used for communication to WAN addresses.
     IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
 
     # For each address in the array above, determine the type of IPv6 address it is
@@ -782,76 +739,34 @@ useIPv6dialog() {
         # set the IPv6 address to the ULA address
         IPV6_ADDRESS="${ULA_ADDRESS}"
         # Show this info to the user
-        printf "  %b Found IPv6 ULA address, using it for blocking IPv6 ads\\n" "${INFO}"
+        printf "  %b Found IPv6 ULA address\\n" "${INFO}"
     # Otherwise, if the GUA_ADDRESS has a value,
     elif [[ ! -z "${GUA_ADDRESS}" ]]; then
         # Let the user know
-        printf "  %b Found IPv6 GUA address, using it for blocking IPv6 ads\\n" "${INFO}"
+        printf "  %b Found IPv6 GUA address\\n" "${INFO}"
         # And assign it to the global variable
         IPV6_ADDRESS="${GUA_ADDRESS}"
     # If none of those work,
     else
-        # explain that IPv6 blocking will not be used
-        printf "  %b Unable to find IPv6 ULA/GUA address, IPv6 adblocking will not be enabled\\n" "${INFO}"
+        printf "  %b Unable to find IPv6 ULA/GUA address\\n" "${INFO}"
         # So set the variable to be empty
         IPV6_ADDRESS=""
     fi
-
-    # If the IPV6_ADDRESS contains a value
-    if [[ ! -z "${IPV6_ADDRESS}" ]]; then
-        # Display that IPv6 is supported and will be used
-        whiptail --msgbox --backtitle "IPv6..." --title "IPv6 Supported" "$IPV6_ADDRESS will be used to block ads." "${r}" "${c}"
-    fi
 }
 
-# A function to check if we should use IPv4 and/or IPv6 for blocking ads
-use4andor6() {
-    # Named local variables
-    local useIPv4
-    local useIPv6
-    # Let user choose IPv4 and/or IPv6 via a checklist
-    cmd=(whiptail --separate-output --checklist "Select Protocols (press space to toggle selection)" "${r}" "${c}" 2)
-    # In an array, show the options available:
-    # IPv4 (on by default)
-    options=(IPv4 "Block ads over IPv4" on
-    # or IPv6 (on by default if available)
-    IPv6 "Block ads over IPv6" on)
-    # In a variable, show the choices available; exit if Cancel is selected
-    choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-    # For each choice available,
-    for choice in ${choices}
-    do
-        # Set the values to true
-        case ${choice} in
-        IPv4  )   useIPv4=true;;
-        IPv6  )   useIPv6=true;;
-        esac
-    done
-    # If IPv4 is to be used,
-    if [[ "${useIPv4}" ]]; then
-        # Run our function to get the information we need
-        find_IPv4_information
-        if [[ -f "/etc/dhcpcd.conf" ]]; then
+# A function to collect IPv4 and IPv6 information of the device
+collect_v4andv6_information() {
+    find_IPv4_information
+    # Echo the information to the user
+    printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+    # if `dhcpcd` is used offer to set this as static IP for the device
+    if [[ -f "/etc/dhcpcd.conf" ]]; then
             # configure networking via dhcpcd
             getStaticIPv4Settings
             setDHCPCD
-        fi
     fi
-    # If IPv6 is to be used,
-    if [[ "${useIPv6}" ]]; then
-        # Run our function to get this information
-        useIPv6dialog
-    fi
-    # Echo the information to the user
-    printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+    find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
-    # If neither protocol is selected,
-    if [[ ! "${useIPv4}" ]] && [[ ! "${useIPv6}" ]]; then
-        # Show an error in red
-        printf "  %bError: Neither IPv4 or IPv6 selected%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        # and exit with an error
-        exit 1
-    fi
 }
 
 getStaticIPv4Settings() {
@@ -1399,18 +1314,18 @@ installConfigs() {
             # make it and set the owners
             install -d -m 755 -o "${USER}" -g root /etc/lighttpd
         # Otherwise, if the config file already exists
-        elif [[ -f "/etc/lighttpd/lighttpd.conf" ]]; then
+        elif [[ -f "${lighttpdConfig}" ]]; then
             # back up the original
-            mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.orig
+            mv "${lighttpdConfig}"{,.orig}
         fi
         # and copy in the config file Pi-hole needs
-        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} /etc/lighttpd/lighttpd.conf
+        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         touch /etc/lighttpd/external.conf
         chmod 644 /etc/lighttpd/external.conf
         # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
-            sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' /etc/lighttpd/lighttpd.conf
+            sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"pihole\/custom\.php"/' "${lighttpdConfig}"
         fi
         # Make the directories if they do not exist and set the owners
         mkdir -p /run/lighttpd
@@ -1557,9 +1472,6 @@ disable_resolved_stublistener() {
 }
 
 update_package_cache() {
-    # Running apt-get update/upgrade with minimal output can cause some issues with
-    # requiring user input (e.g password for phpmyadmin see #218)
-
     # Update package cache on apt based OSes. Do this every time since
     # it's quick and packages can be updated at any time.
 
@@ -1624,6 +1536,8 @@ install_dependent_packages() {
         # If there's anything to install, install everything in the list.
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
+            # Running apt-get install with minimal output can cause some issues with
+            # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
             printf '%*s\n' "$columns" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
@@ -1802,7 +1716,7 @@ finalExports() {
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;' "${setupVars}"
+        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;' "${setupVars}"
     fi
     # echo the information to the user
     {
@@ -1816,8 +1730,8 @@ finalExports() {
     echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
     echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
     echo "CACHE_SIZE=${CACHE_SIZE}"
-    echo "DNS_FQDN_REQUIRED=true"
-    echo "DNS_BOGUS_PRIV=true"
+    echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
+    echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
 
@@ -1865,27 +1779,6 @@ installLogrotate() {
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
-# At some point in the future this list can be pruned, for now we'll need it to ensure updates don't break.
-# Refactoring of install script has changed the name of a couple of variables. Sort them out here.
-accountForRefactor() {
-    sed -i 's/piholeInterface/PIHOLE_INTERFACE/g' "${setupVars}"
-    sed -i 's/IPv4_address/IPV4_ADDRESS/g' "${setupVars}"
-    sed -i 's/IPv4addr/IPV4_ADDRESS/g' "${setupVars}"
-    sed -i 's/IPv6_address/IPV6_ADDRESS/g' "${setupVars}"
-    sed -i 's/piholeIPv6/IPV6_ADDRESS/g' "${setupVars}"
-    sed -i 's/piholeDNS1/PIHOLE_DNS_1/g' "${setupVars}"
-    sed -i 's/piholeDNS2/PIHOLE_DNS_2/g' "${setupVars}"
-    sed -i 's/^INSTALL_WEB=/INSTALL_WEB_INTERFACE=/' "${setupVars}"
-    # Add 'INSTALL_WEB_SERVER', if its not been applied already: https://github.com/pi-hole/pi-hole/pull/2115
-    if ! grep -q '^INSTALL_WEB_SERVER=' ${setupVars}; then
-        local webserver_installed=false
-        if grep -q '^INSTALL_WEB_INTERFACE=true' ${setupVars}; then
-            webserver_installed=true
-        fi
-        echo -e "INSTALL_WEB_SERVER=$webserver_installed" >> "${setupVars}"
-    fi
-}
-
 # Install base files and web interface
 installPihole() {
     # If the user wants to install the Web interface,
@@ -1915,10 +1808,6 @@ installPihole() {
                 printf "      Please ensure fastcgi is enabled if you experience issues\\n"
             fi
         fi
-    fi
-    # For updates and unattended install.
-    if [[ "${useUpdateVars}" == true ]]; then
-        accountForRefactor
     fi
     # Install base files and web interface
     if ! installScripts; then
@@ -2004,7 +1893,7 @@ displayFinalMessage() {
     if [[ "${#1}" -gt 0 ]] ; then
         # set the password to the first argument.
         pwstring="$1"
-    elif [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) -gt 0 ]]; then
+    elif [[ $(grep 'WEBPASSWORD' -c "${setupVars}") -gt 0 ]]; then
         # Else if the password exists from previous setup, we'll load it later
         pwstring="unchanged"
     else
@@ -2026,8 +1915,6 @@ IPv4:	${IPV4_ADDRESS%/*}
 IPv6:	${IPV6_ADDRESS:-"Not Configured"}
 
 If you have not done so already, the above IP should be set to static.
-
-The install log is in /etc/pihole.
 
 ${additional}" "${r}" "${c}"
 }
@@ -2141,7 +2028,7 @@ checkout_pull_branch() {
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
 
-    git_pull=$(git pull || return 1)
+    git_pull=$(git pull --no-rebase || return 1)
 
     if [[ "$git_pull" == *"up-to-date"* ]]; then
         printf "  %b %s\\n" "${INFO}" "${git_pull}"
@@ -2588,8 +2475,8 @@ main() {
         setDNS
         # Give the user a choice of blocklists to include in their install. Or not.
         chooseBlocklists
-        # Let the user decide if they want to block ads over IPv4 and/or IPv6
-        use4andor6
+        # find IPv4 and IPv6 information of the device
+        collect_v4andv6_information
         # Let the user decide if they want the web interface to be installed automatically
         setAdminFlag
         # Let the user decide if they want query logging enabled...
@@ -2662,7 +2549,7 @@ main() {
         # Add password to web UI if there is none
         pw=""
         # If no password is set,
-        if [[ $(grep 'WEBPASSWORD' -c /etc/pihole/setupVars.conf) == 0 ]] ; then
+        if [[ $(grep 'WEBPASSWORD' -c "${setupVars}") == 0 ]] ; then
             # generate a random password
             pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
             # shellcheck disable=SC1091

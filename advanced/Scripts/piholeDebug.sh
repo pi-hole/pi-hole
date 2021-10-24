@@ -585,6 +585,27 @@ processor_check() {
     fi
 }
 
+disk_usage() {
+    local file_system
+    local hide
+
+    echo_current_diagnostic "Disk usage"
+    mapfile -t file_system < <(df -h)
+
+    # Some lines of df might contain sensitive information like usernames and passwords.
+    # E.g. curlftpfs filesystems (https://www.looklinux.com/mount-ftp-share-on-linux-using-curlftps/)
+    # We are not interested in those lines so we collect keyword, to remove them from the output
+    # Additinal keywords can be added, separated by "|"
+    hide="curlftpfs"
+
+    # only show those lines not containg a sensitive phrase
+    for line in "${file_system[@]}"; do
+      if [[ ! $line =~ $hide ]]; then
+        log_write "   ${line}"
+      fi
+    done
+}
+
 parse_setup_vars() {
     echo_current_diagnostic "Setup variables"
     # If the file exists,
@@ -1238,10 +1259,10 @@ show_messages() {
 }
 
 analyze_gravity_list() {
-    echo_current_diagnostic "Gravity List and Database"
+    echo_current_diagnostic "Gravity Database"
 
     local gravity_permissions
-    gravity_permissions=$(ls -ld "${PIHOLE_GRAVITY_DB_FILE}")
+    gravity_permissions=$(ls -lhd "${PIHOLE_GRAVITY_DB_FILE}")
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
@@ -1320,7 +1341,7 @@ analyze_pihole_log() {
   OLD_IFS="$IFS"
   # Get the lines that are in the file(s) and store them in an array for parsing later
   IFS=$'\r\n'
-  pihole_log_permissions=$(ls -ld "${PIHOLE_LOG}")
+  pihole_log_permissions=$(ls -lhd "${PIHOLE_LOG}")
   log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
   mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
   log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
@@ -1421,6 +1442,7 @@ diagnose_operating_system
 check_selinux
 check_firewalld
 processor_check
+disk_usage
 check_networking
 check_name_resolution
 check_dhcp_servers
