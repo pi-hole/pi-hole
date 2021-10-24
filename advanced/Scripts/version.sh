@@ -148,10 +148,10 @@ getLocalBranch(){
 }
 
 versionOutput() {
-    [[ "$1" == "AdminLTE" ]] && [[ "${INSTALL_WEB_INTERFACE}" != true ]] && {
+    if [[ "$1" == "AdminLTE" && "${INSTALL_WEB_INTERFACE}" != true ]]; then
         echo "  WebAdmin not installed"
         return 1
-    }
+    fi
 
     [[ "$1" == "pi-hole" ]] && GITDIR=$COREGITDIR
     [[ "$1" == "AdminLTE" ]] && GITDIR=$WEBGITDIR
