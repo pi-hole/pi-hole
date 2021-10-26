@@ -88,6 +88,7 @@ PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
 PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole-FTL.conf"
+PIHOLE_CUSTOM_HOSTS_FILE="${PIHOLE_DIRECTORY}/custom.list"
 
 # Read the value of an FTL config key. The value is printed to stdout.
 #
@@ -179,7 +180,8 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}"
 "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}"
 "${RESOLVCONF}"
-"${DNSMASQ_CONF}")
+"${DNSMASQ_CONF}"
+"${PIHOLE_CUSTOM_HOSTS_FILE}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
