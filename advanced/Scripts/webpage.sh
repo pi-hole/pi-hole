@@ -34,18 +34,45 @@ fi
 helpFunc() {
     echo "Usage: pihole -a [options]
 Example: pihole -a -p password
-Set options for the Admin Console
+Set options for the Admin Web Console
+Add '-h' after specific commands for more information on usage
 
 Options:
   -p, password        Set Admin Console password
   -c, celsius         Set Celsius as preferred temperature unit
   -f, fahrenheit      Set Fahrenheit as preferred temperature unit
   -k, kelvin          Set Kelvin as preferred temperature unit
-  -e, email           Set an administrative contact address for the Block Page
+  -e, email           Set an administrative contact address for the Block Page. Use -h for help
   -h, --help          Show this help dialog
-  -i, interface       Specify dnsmasq's interface listening behavior
+  -i, interface       Specify dnsmasq's interface listening behavior. Use -h for help
   -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)
-  -t, teleporter      Backup configuration as an archive"
+  -t, teleporter      Backup configuration as an archive
+  poweroff            Poweroff the sysetem
+  reboot              Reboot the sysetem
+  restartdns          Restarts Pi-hole
+  layout              Set the web GUI layout [boxed/traditional]
+  theme               Set the web GUI theme [default-light/default-dark/default-darker/default-auto]
+  adlist              Manipulate adlists. Use -h for help
+  audit               Adds a domain to the audit log. Seperate doamins by comma.
+  clearaudit          Remove all domains from the audit log.
+  addcustomdns        Adds an entry to the Local DNS Records. Use -h for help
+  removecustomdns     Removes an entry from the Local DNS Records. Use -h for help
+  addcustomcname      Adds a local CNAME. Use -h for help
+  removecustomcname   Removes a local CNAME. Use -h for help
+
+
+  enabledhcp          Enable the DHCP server. Use -h for help
+  disabledhcp         Disable the DHCP server
+  addstaticdhcp       Adds a static DHCP lease. Use -h for help
+  removestaticdhcp    Removes a static DHCP lease defind by [MAC]
+
+  The following settings will override their previous state.
+
+  setdns              Set Pihole's upstream DNS server. Comma-seperate individual server, use # to add specific port
+  setexcludedomains   Set domains to exclude from the web GUI dashboard's Top Domains. Comma-seperate individual domains
+  setexcludeclients   Set clients to exclude from the web GUI dashboard's Top Clients.Comma-seperate individual clients
+  setquerylog         Set which queries should be shown in the query log. Use -h for help"
+
     exit 0
 }
 
@@ -364,6 +391,15 @@ RestartDNS() {
 }
 
 SetQueryLogOptions() {
+
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a setquerylog [Value]
+        Set which queries should be shown in the query log.
+        Valures are [all/permittedonly/blockedonly/nothing]
+        "
+
+        exit 0
+  fi
     change_setting "API_QUERY_LOG_SHOW" "${args[2]}"
 }
 
@@ -445,6 +481,19 @@ ra-param=*,0,0
 }
 
 EnableDHCP() {
+
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a enabledhcp DHCP_START DHCP_END DHCP_ROUTER DHCP_LEASETIME PIHOLE_DOMAIN DHCP_IPv6 DHCP_rapid_commit
+        Set Pihole's built-in DHCP server.
+
+    DHCP_LEASETIME is in hours.  0 = infinite
+    DHCP_IPv6 [true/false]
+    DHCP_rapid_commit [true/false]"
+
+    exit 0
+fi
+
+
     change_setting "DHCP_ACTIVE" "true"
     change_setting "DHCP_START" "${args[2]}"
     change_setting "DHCP_END" "${args[3]}"
@@ -513,6 +562,18 @@ CustomizeAdLists() {
     local comment
     comment="${args[4]}"
 
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a adlist [action] [address]
+        Modify Pi-hole's adlists.
+
+Action:
+  add              Add an adlist. Append the optional argument [comment] to add an comment
+  del              Delete an adlist
+  enable           Enable an adlist
+  disbale          Disable an adlist"
+        exit 0
+  fi
+
     if CheckUrl "${address}"; then
         if [[ "${args[2]}" == "enable" ]]; then
             sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
@@ -532,29 +593,18 @@ CustomizeAdLists() {
     fi
 }
 
-SetPrivacyMode() {
-    if [[ "${args[2]}" == "true" ]]; then
-        change_setting "API_PRIVACY_MODE" "true"
-    else
-        change_setting "API_PRIVACY_MODE" "false"
-    fi
-}
-
-ResolutionSettings() {
-    typ="${args[2]}"
-    state="${args[3]}"
-
-    if [[ "${typ}" == "forward" ]]; then
-        change_setting "API_GET_UPSTREAM_DNS_HOSTNAME" "${state}"
-    elif [[ "${typ}" == "clients" ]]; then
-        change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
-    fi
-}
 
 AddDHCPStaticAddress() {
     mac="${args[2]}"
     ip="${args[3]}"
     host="${args[4]}"
+
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a addstaticdhcp [MAC] [IP] [HOSTNAME]
+        Set an static DHCP lease."
+    exit 0
+    fi
+
 
     if [[ "${ip}" == "noip" ]]; then
         # Static host name
@@ -711,6 +761,17 @@ AddCustomDNSAddress() {
     host="${args[3]}"
     reload="${args[4]}"
 
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a addcustomdns [IP] [HOSTNAME]
+        Add a Local DNS Record.
+        Optionally append 'false' to suppress restarting Pi-hole.
+        Note: added DNS records wont't have an effect until Pi-hole is
+        restarted.
+        "
+
+        exit 0
+  fi
+
     validHost="$(checkDomain "${host}")"
     if [[ -n "${validHost}" ]]; then
         if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
@@ -736,6 +797,17 @@ RemoveCustomDNSAddress() {
     ip="${args[2]}"
     host="${args[3]}"
     reload="${args[4]}"
+
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a removecustomdns [IP] [HOSTNAME]
+        Remove a Local DNS Record.
+        Optionally append 'false' to suppress restarting Pi-hole.
+        Note: added DNS records wont't have an effect until Pi-hole is
+        restarted.
+        "
+
+        exit 0
+  fi
 
     validHost="$(checkDomain "${host}")"
     if [[ -n "${validHost}" ]]; then
@@ -763,6 +835,17 @@ AddCustomCNAMERecord() {
     target="${args[3]}"
     reload="${args[4]}"
 
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a addcustomcname [DOMAIN] [TARGET]
+        Add a local CNAME record for Domain => Target
+        Optionally append 'false' to suppress restarting Pi-hole.
+        Note: added CNAME records wont't have an effect until Pi-hole is
+        restarted.
+        "
+
+        exit 0
+  fi
+
     validDomain="$(checkDomain "${domain}")"
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
@@ -788,6 +871,17 @@ RemoveCustomCNAMERecord() {
     domain="${args[2]}"
     target="${args[3]}"
     reload="${args[4]}"
+
+    if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
+        echo "Usage: pihole -a removecustomcname [DOMAIN] [TARGET]
+        Remove the local CNAME record for Domain => Target
+        Optionally append 'false' to suppress restarting Pi-hole.
+        Note: added CNAME records wont't have an effect until Pi-hole is
+        restarted.
+        "
+
+        exit 0
+  fi
 
     validDomain="$(checkDomain "${domain}")"
     if [[ -n "${validDomain}" ]]; then
@@ -829,8 +923,6 @@ main() {
         "layout"              ) SetWebUILayout;;
         "theme"               ) SetWebUITheme;;
         "-h" | "--help"       ) helpFunc;;
-        "privacymode"         ) SetPrivacyMode;;
-        "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
         "-e" | "email"        ) SetAdminEmail "$3";;
