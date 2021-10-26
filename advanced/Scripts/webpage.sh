@@ -53,24 +53,22 @@ Options:
   layout              Set the web GUI layout [boxed/traditional]
   theme               Set the web GUI theme [default-light/default-dark/default-darker/default-auto]
   adlist              Manipulate adlists. Use -h for help
-  audit               Adds a domain to the audit log. Seperate doamins by comma.
+  audit               Adds a domain to the audit log. Seperate doamins by comma
   clearaudit          Remove all domains from the audit log.
   addcustomdns        Adds an entry to the Local DNS Records. Use -h for help
   removecustomdns     Removes an entry from the Local DNS Records. Use -h for help
   addcustomcname      Adds a local CNAME. Use -h for help
   removecustomcname   Removes a local CNAME. Use -h for help
-
-
   enabledhcp          Enable the DHCP server. Use -h for help
   disabledhcp         Disable the DHCP server
   addstaticdhcp       Adds a static DHCP lease. Use -h for help
   removestaticdhcp    Removes a static DHCP lease defind by [MAC]
-
-  The following settings will override their previous state.
-
-  setdns              Set Pihole's upstream DNS server. Comma-seperate individual server, use # to add specific port
-  setexcludedomains   Set domains to exclude from the web GUI dashboard's Top Domains. Comma-seperate individual domains
-  setexcludeclients   Set clients to exclude from the web GUI dashboard's Top Clients.Comma-seperate individual clients
+  setdns              Set Pihole's upstream DNS server. Comma-seperate
+                      individual server, use # to add specific port
+  setexcludedomains   Set domains to exclude from the web GUI dashboard's Top Domains.
+                      Comma-seperate individual domains
+  setexcludeclients   Set clients to exclude from the web GUI dashboard's Top Clients.
+                      Comma-seperate individual clients
   setquerylog         Set which queries should be shown in the query log. Use -h for help"
 
     exit 0
@@ -917,25 +915,25 @@ main() {
         "poweroff"            ) Poweroff;;
         "reboot"              ) Reboot;;
         "restartdns"          ) RestartDNS;;
-        "setquerylog"         ) SetQueryLogOptions;;
-        "enabledhcp"          ) EnableDHCP;;
+        "setquerylog"         ) SetQueryLogOptions "$@";;
+        "enabledhcp"          ) EnableDHCP"$@";;
         "disabledhcp"         ) DisableDHCP;;
         "layout"              ) SetWebUILayout;;
         "theme"               ) SetWebUITheme;;
         "-h" | "--help"       ) helpFunc;;
-        "addstaticdhcp"       ) AddDHCPStaticAddress;;
+        "addstaticdhcp"       ) AddDHCPStaticAddress "$@";;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
         "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;
-        "adlist"              ) CustomizeAdLists;;
+        "adlist"              ) CustomizeAdLists "$@";;
         "audit"               ) addAudit "$@";;
         "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
-        "addcustomdns"        ) AddCustomDNSAddress;;
-        "removecustomdns"     ) RemoveCustomDNSAddress;;
-        "addcustomcname"      ) AddCustomCNAMERecord;;
-        "removecustomcname"   ) RemoveCustomCNAMERecord;;
+        "addcustomdns"        ) AddCustomDNSAddress "$@";;
+        "removecustomdns"     ) RemoveCustomDNSAddress "$@";;
+        "addcustomcname"      ) AddCustomCNAMERecord "$@";;
+        "removecustomcname"   ) RemoveCustomCNAMERecord "$@";;
         *                     ) helpFunc;;
     esac
 
