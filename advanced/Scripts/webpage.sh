@@ -47,8 +47,8 @@ Options:
   -i, interface       Specify dnsmasq's interface listening behavior. Use -h for help
   -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)
   -t, teleporter      Backup configuration as an archive
-  poweroff            Poweroff the sysetem
-  reboot              Reboot the sysetem
+  poweroff            Poweroff the system
+  reboot              Reboot the system
   restartdns          Restarts Pi-hole
   layout              Set the web GUI layout [boxed/traditional]
   theme               Set the web GUI theme [default-light/default-dark/default-darker/default-auto]
@@ -393,7 +393,7 @@ SetQueryLogOptions() {
     if [[ "$3" == "-h" ]] || [[ "$3" == "--help" ]]; then
         echo "Usage: pihole -a setquerylog [Value]
         Set which queries should be shown in the query log.
-        Valures are [all/permittedonly/blockedonly/nothing]
+        Values are [all/permittedonly/blockedonly/nothing]
         "
 
         exit 0
