@@ -775,9 +775,9 @@ getStaticIPv4Settings() {
     DHCPChoice=$(whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --menu --separate-output "Do you want to use your current network settings as a static address? \\n
           IP address:    ${IPV4_ADDRESS} \\n
           Gateway:       ${IPv4gw} \\n" "${r}" "${c}" 3\
-          "Yes" "Set static IP as shown above (recommended)" \
-          "Manual" "Manually enter IP adress now" \
-          "No" "Take care of static adress all by yourself" 3>&2 2>&1 1>&3) || \
+          "Yes" "Set static IP to the current address" \
+          "Manual" "Set static IP to a custom IP" \
+          "No" "Set static address manually later" 3>&2 2>&1 1>&3) || \
           { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
 
     case ${DHCPChoice} in
