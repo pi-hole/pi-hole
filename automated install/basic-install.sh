@@ -761,7 +761,6 @@ collect_v4andv6_information() {
     if [[ -f "/etc/dhcpcd.conf" ]]; then
             # configure networking via dhcpcd
             getStaticIPv4Settings
-            setDHCPCD
     fi
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
@@ -770,47 +769,59 @@ collect_v4andv6_information() {
 getStaticIPv4Settings() {
     # Local, named variables
     local ipSettingsCorrect
+    local DHCPChoice
     # Ask if the user wants to use DHCP settings as their static IP
     # This is useful for users that are using DHCP reservations; then we can just use the information gathered via our functions
-    if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
-          IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" "${r}" "${c}"; then
+    DHCPChoice=$(whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --menu --separate-output "Do you want to use your current network settings as a static address? \\n
+          IP address:    ${IPV4_ADDRESS} \\n
+          Gateway:       ${IPv4gw} \\n" "${r}" "${c}" 3\
+          "Yes" "Set static IP as shown above (recommended)" \
+          "Manual" "Manually enter IP adress now" \
+          "No" "Take care of static adress all by yourself" 3>&2 2>&1 1>&3) || \
+          { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+
+    case ${DHCPChoice} in
+        "Yes")
         # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
         whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
-If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
-It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." "${r}" "${c}"
-    # Nothing else to do since the variables are already set above
-    else
-    # Otherwise, we need to ask the user to input their desired settings.
-    # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
-    # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-    until [[ "${ipSettingsCorrect}" = True ]]; do
+        If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
+        It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." "${r}" "${c}"
+        # Nothing else to do since the variables are already set above
+        setDHCPCD
+        ;;
 
-        # Ask for the IPv4 address
-        IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" "${r}" "${c}" "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
-        # Canceling IPv4 settings window
-        { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-        printf "  %b Your static IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+        "Manual")
+        # Otherwise, we need to ask the user to input their desired settings.
+        # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
+        # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
+        until [[ "${ipSettingsCorrect}" = True ]]; do
 
-        # Ask for the gateway
-        IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" "${r}" "${c}" "${IPv4gw}" 3>&1 1>&2 2>&3) || \
-        # Canceling gateway settings window
-        { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-        printf "  %b Your static IPv4 gateway: %s\\n" "${INFO}" "${IPv4gw}"
+            # Ask for the IPv4 address
+            IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" "${r}" "${c}" "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
+            # Canceling IPv4 settings window
+            { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+            printf "  %b Your static IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
 
-        # Give the user a chance to review their settings before moving on
-        if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-            IP address: ${IPV4_ADDRESS}
-            Gateway:    ${IPv4gw}" "${r}" "${c}"; then
-                # After that's done, the loop ends and we move on
-                ipSettingsCorrect=True
-        else
-            # If the settings are wrong, the loop continues
-            ipSettingsCorrect=False
-        fi
-    done
-    # End the if statement for DHCP vs. static
-    fi
+            # Ask for the gateway
+            IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" "${r}" "${c}" "${IPv4gw}" 3>&1 1>&2 2>&3) || \
+            # Canceling gateway settings window
+            { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+            printf "  %b Your static IPv4 gateway: %s\\n" "${INFO}" "${IPv4gw}"
+
+            # Give the user a chance to review their settings before moving on
+            if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
+                IP address: ${IPV4_ADDRESS}
+                Gateway:    ${IPv4gw}" "${r}" "${c}"; then
+                    # After that's done, the loop ends and we move on
+                    ipSettingsCorrect=True
+                else
+                    # If the settings are wrong, the loop continues
+                    ipSettingsCorrect=False
+                fi
+            done
+        setDHCPCD
+        ;;
+    esac
 }
 
 # Configure networking via dhcpcd
@@ -2469,12 +2480,12 @@ main() {
         get_available_interfaces
         # Find interfaces and let the user choose one
         chooseInterface
+        # find IPv4 and IPv6 information of the device
+        collect_v4andv6_information
         # Decide what upstream DNS Servers to use
         setDNS
         # Give the user a choice of blocklists to include in their install. Or not.
         chooseBlocklists
-        # find IPv4 and IPv6 information of the device
-        collect_v4andv6_information
         # Let the user decide if they want the web interface to be installed automatically
         setAdminFlag
         # Let the user decide if they want query logging enabled...
