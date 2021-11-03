@@ -266,8 +266,13 @@ if is_command apt-get ; then
     # Set some global variables here
     # We don't set them earlier since the installed package manager might be rpm, so these values would be different
     PKG_MANAGER="apt-get"
-    # A variable to store the command used to update the package cache
-    UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+    # A variable to store the command used to update the package cache. If apt is available use this as we have seen it
+    # gives more user-friendly (interactive) advice, else fall-back to apt-get
+    if is_command apt ; then
+        UPDATE_PKG_CACHE="apt update"
+    else
+        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+    fi
     # The command we will use to actually install packages
     PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
