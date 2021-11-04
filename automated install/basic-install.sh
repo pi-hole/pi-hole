@@ -1481,8 +1481,14 @@ update_package_cache() {
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     else
         # Otherwise, show an error and exit
+
+        # In case we used apt-get and apt is also available, we use this as recommendation as we have seen it
+        # gives more user-friendly (interactive) advice
+        if [[ ${PKG_MANAGER} == "apt-get" ]] && is_command apt ; then
+            UPDATE_PKG_CACHE="apt update"
+        fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
+        printf "  %bError: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
