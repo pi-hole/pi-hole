@@ -266,13 +266,8 @@ if is_command apt-get ; then
     # Set some global variables here
     # We don't set them earlier since the installed package manager might be rpm, so these values would be different
     PKG_MANAGER="apt-get"
-    # A variable to store the command used to update the package cache. If apt is available use this as we have seen it
-    # gives more user-friendly (interactive) advice, else fall-back to apt-get
-    if is_command apt ; then
-        UPDATE_PKG_CACHE="apt update"
-    else
-        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-    fi
+    # A variable to store the command used to update the package cache
+    UPDATE_PKG_CACHE="${PKG_MANAGER} update"
     # The command we will use to actually install packages
     PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
     # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
@@ -1486,8 +1481,14 @@ update_package_cache() {
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     else
         # Otherwise, show an error and exit
+
+        # In case we used apt-get and apt is also available, we use this as recommendation as we have seen it
+        # gives more user-friendly (interactive) advice
+        if [[ ${PKG_MANAGER} == "apt-get" ]] && is_command apt ; then
+            UPDATE_PKG_CACHE="apt update"
+        fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
+        printf "  %bError: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
