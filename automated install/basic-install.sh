@@ -775,9 +775,9 @@ getStaticIPv4Settings() {
     DHCPChoice=$(whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --menu --separate-output "Do you want to use your current network settings as a static address? \\n
           IP address:    ${IPV4_ADDRESS} \\n
           Gateway:       ${IPv4gw} \\n" "${r}" "${c}" 3\
-          "Yes" "Set static IP to the current address" \
-          "Manual" "Set static IP to a custom IP" \
-          "No" "Set static address manually later" 3>&2 2>&1 1>&3) || \
+          "Yes" "Set static IP using current values" \
+          "No" "Set static IP using custom values" \
+          "Skip" "I will set a static IP later, or have already done so" 3>&2 2>&1 1>&3) || \
           { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
 
     case ${DHCPChoice} in
@@ -790,7 +790,7 @@ getStaticIPv4Settings() {
         setDHCPCD
         ;;
 
-        "Manual")
+        "No")
         # Otherwise, we need to ask the user to input their desired settings.
         # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
         # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
