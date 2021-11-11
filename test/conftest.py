@@ -121,6 +121,41 @@ def mock_command(script, args, container):
                                          scriptlog=script))
 
 
+def mock_command_passthrough(script, args, container):
+    '''
+    Per other mock_command* functions, allows intercepting of commands we don't want to run for real
+    in unit tests, however also allows only specific arguments to be mocked. Anything not defined will
+    be passed through to the actual command.
+
+    Example use-case: mocking `git pull` but still allowing `git clone` to work as intended
+    '''
+    orig_script_path = check_output('which {}'.format(script))
+    full_script_path = '/usr/local/bin/{}'.format(script)
+    mock_script = dedent(r'''\
+    #!/bin/bash -e
+    echo "\$0 \$@" >> /var/log/{script}
+    case "\$1" in'''.format(script=script))
+    for k, v in args.items():
+        case = dedent('''
+        {arg})
+        echo {res}
+        exit {retcode}
+        ;;'''.format(arg=k, res=v[0], retcode=v[1]))
+        mock_script += case
+    mock_script += dedent(r'''
+    *)
+    {orig_script_path} "\$@"
+    ;;'''.format(orig_script_path=orig_script_path))
+    mock_script += dedent('''
+    esac''')
+    container.run('''
+    cat <<EOF> {script}\n{content}\nEOF
+    chmod +x {script}
+    rm -f /var/log/{scriptlog}'''.format(script=full_script_path,
+                                         content=mock_script,
+                                         scriptlog=script))
+
+
 def mock_command_run(script, args, container):
     '''
     Allows for setup of commands we don't really want to have to run for real

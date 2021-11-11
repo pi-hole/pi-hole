@@ -9,6 +9,7 @@ from .conftest import (
     mock_command,
     mock_command_run,
     mock_command_2,
+    mock_command_passthrough,
     run_script
 )
 
@@ -153,6 +154,8 @@ def test_installPihole_fresh_install_readableFiles(Pihole):
     '''
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    # mock git pull
+    mock_command_passthrough('git', {'pull': ('', '0')}, Pihole)
     # mock systemctl to not start lighttpd and FTL
     mock_command_2(
         'systemctl',
@@ -396,6 +399,8 @@ def test_installPihole_fresh_install_readableBlockpage(Pihole, test_webpage):
     ]
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '0')}, Pihole)
+    # mock git pull
+    mock_command_passthrough('git', {'pull': ('', '0')}, Pihole)
     # mock systemctl to start lighttpd and FTL
     ligthttpdcommand = dedent(r'''\"\"
         echo 'starting lighttpd with {}'
