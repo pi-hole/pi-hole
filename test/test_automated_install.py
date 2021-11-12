@@ -72,7 +72,7 @@ def test_setupVars_saved_to_file(host):
     set_setup_vars = '\n'
     for k, v in SETUPVARS.items():
         set_setup_vars += "    {}={}\n".format(k, v)
-    host.run(set_setup_vars).stdout
+    host.run(set_setup_vars)
 
     script = dedent('''\
     set -e

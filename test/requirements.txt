@@ -2,5 +2,5 @@ docker-compose
 pytest
 pytest-xdist
 pytest-cov
-testinfra
+pytest-testinfra
 tox
