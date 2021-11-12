@@ -1,7 +1,7 @@
 import pytest
 import testinfra
+import testinfra.backend.docker
 import subprocess
-from testinfra.backend import base
 from textwrap import dedent
 
 
@@ -17,6 +17,20 @@ tick_box = "[\x1b[1;32m\u2713\x1b[0m]"
 cross_box = "[\x1b[1;31m\u2717\x1b[0m]"
 info_box = "[i]"
 
+# Monkeypatch sh to bash, if they ever support non hard code /bin/sh this can go away
+# https://github.com/pytest-dev/pytest-testinfra/blob/master/testinfra/backend/docker.py
+def run_bash(self, command, *args, **kwargs):
+    cmd = self.get_command(command, *args)
+    if self.user is not None:
+        out = self.run_local(
+            "docker exec -u %s %s /bin/bash -c %s", self.user, self.name, cmd
+        )
+    else:
+        out = self.run_local("docker exec %s /bin/bash -c %s", self.name, cmd)
+    out.command = self.encode(cmd)
+    return out
+
+testinfra.backend.docker.DockerBackend.run = run_bash
 
 @pytest.fixture
 def host():
@@ -27,12 +41,6 @@ def host():
 
     # return a testinfra connection to the container
     docker_host = testinfra.get_host("docker://" + docker_id)
-
-    # Can we override the host.run function here to use /bin/bash instead of /bin/sh?
-    # So far this works if I run "pytest -vv -n auto test/test_automated_install.py" locally
-    # but with the caveat that I manually changed "\home\adam\.local\lib\python3.8\site-packages\testinfra\backend\docker.py"
-    # to use /bin/bash instead of /bin/sh
-    # this is not ideal!
 
     yield docker_host
     # at the end of the test suite, destroy the container
