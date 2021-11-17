@@ -65,9 +65,9 @@ As a last resort, you can manually set each device to use Pi-hole as their DNS s
 
 ## Pi-hole is free but powered by your support
 
-There are many reoccurring costs involved with maintaining free, open source, and privacy-respecting software; expenses which [our volunteer developers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software and the importance of keeping it maintained.
+There are many reoccurring costs involved with maintaining free, open-source, and privacy-respecting software; expenses which [our volunteer developers](https://github.com/orgs/pi-hole/people) pitch in to cover out-of-pocket. This is just one example of how strongly we feel about our software and the importance of keeping it maintained.
 
-Make no mistake: **your support is absolutely vital to help keep us innovating!**
+Make no mistake: **your support is vital to help keep us innovating!**
 
 ### [Donations](https://pi-hole.net/donate)
 
@@ -112,13 +112,13 @@ While we are primarily reachable on our [Discourse User Forum](https://discourse
 
 ### [Faster-than-light Engine](https://github.com/pi-hole/ftl)
 
-[FTLDNS](https://github.com/pi-hole/ftl) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your own projects. As the name implies, FTLDNS does this all *very quickly*!
+[FTLDNS](https://github.com/pi-hole/ftl) is a lightweight, purpose-built daemon used to provide statistics needed for the Web Interface, and its API can be easily integrated into your projects. As the name implies, FTLDNS does this all *very quickly*!
 
 Some of the statistics you can integrate include:
 
 - Total number of domains being blocked
 - Total number of DNS queries today
-- Total number of ads blocked today
+- The total number of ads blocked today
 - Percentage of ads blocked
 - Unique domains
 - Queries forwarded (to your chosen upstream DNS server)
@@ -145,7 +145,7 @@ You can read our [Core Feature Breakdown](https://docs.pi-hole.net/core/pihole-c
 
 ### The Web Interface Dashboard
 
-This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
+This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curves!
 
 Some notable features include:
 
