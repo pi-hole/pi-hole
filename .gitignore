@@ -9,3 +9,4 @@ __pycache__
 *.egg-info
 .idea/
 *.iml
+.vscode/
