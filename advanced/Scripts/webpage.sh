@@ -532,25 +532,6 @@ CustomizeAdLists() {
     fi
 }
 
-SetPrivacyMode() {
-    if [[ "${args[2]}" == "true" ]]; then
-        change_setting "API_PRIVACY_MODE" "true"
-    else
-        change_setting "API_PRIVACY_MODE" "false"
-    fi
-}
-
-ResolutionSettings() {
-    typ="${args[2]}"
-    state="${args[3]}"
-
-    if [[ "${typ}" == "forward" ]]; then
-        change_setting "API_GET_UPSTREAM_DNS_HOSTNAME" "${state}"
-    elif [[ "${typ}" == "clients" ]]; then
-        change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
-    fi
-}
-
 AddDHCPStaticAddress() {
     mac="${args[2]}"
     ip="${args[3]}"
@@ -829,8 +810,6 @@ main() {
         "layout"              ) SetWebUILayout;;
         "theme"               ) SetWebUITheme;;
         "-h" | "--help"       ) helpFunc;;
-        "privacymode"         ) SetPrivacyMode;;
-        "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
         "-e" | "email"        ) SetAdminEmail "$3";;
