@@ -92,18 +92,11 @@ getRemoteVersion(){
     if [[ -f "$cachedVersions" ]]; then
         IFS=' ' read -r -a arrCache < "$cachedVersions"
 
-        if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            case $daemon in
-                "pi-hole"   )  echo "${arrCache[0]}";;
-                "AdminLTE"  )  echo "${arrCache[1]}";;
-                "FTL"       )  echo "${arrCache[2]}";;
-            esac
-        else
-            case $daemon in
-                "pi-hole"   )  echo "${arrCache[0]}";;
-                "FTL"       )  echo "${arrCache[1]}";;
-            esac
-	fi
+        case $daemon in
+            "pi-hole"   )  echo "${arrCache[0]}";;
+            "AdminLTE"  )  [[ "${INSTALL_WEB_INTERFACE}" == true ]] && echo "${arrCache[1]}";;
+            "FTL"       )  [[ "${INSTALL_WEB_INTERFACE}" == true ]] && echo "${arrCache[2]}" || echo "${arrCache[1]}";;
+        esac
 
         return 0
     fi
