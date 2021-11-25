@@ -76,7 +76,7 @@ PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 if [ -z "$useUpdateVars" ]; then
-  useUpdateVars=false
+    useUpdateVars=false
 fi
 
 adlistFile="/etc/pihole/adlists.list"
@@ -90,7 +90,7 @@ PRIVACY_LEVEL=0
 CACHE_SIZE=10000
 
 if [ -z "${USER}" ]; then
-  USER="$(id -un)"
+    USER="$(id -un)"
 fi
 
 # whiptail dialog dimensions: 20 rows and 70 chars width assures to fit on small screens and is known to hold all content.
@@ -133,7 +133,7 @@ fi
 # A simple function that just echoes out our logo in ASCII format
 # This lets users know that it is a Pi-hole, LLC product
 show_ascii_berry() {
-  echo -e "
+    echo -e "
         ${COL_LIGHT_GREEN}.;;,.
         .ccccc:,.
          :cccclll:.      ..,,
@@ -261,174 +261,174 @@ os_check() {
 
 # Compatibility
 package_manager_detect() {
-# First check to see if apt-get is installed.
-if is_command apt-get ; then
-    # Set some global variables here
-    # We don't set them earlier since the installed package manager might be rpm, so these values would be different
-    PKG_MANAGER="apt-get"
-    # A variable to store the command used to update the package cache
-    UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-    # The command we will use to actually install packages
-    PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
-    # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
-    PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-    # Update package cache
-    update_package_cache || exit 1
-    # Check for and determine version number (major and minor) of current php install
-    local phpVer="php"
-    if is_command php ; then
-        printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
-        printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
-        printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
-        phpVer="php$phpInsMajor.$phpInsMinor"
-    fi
-    # Packages required to perfom the os_check (stored as an array)
-    OS_CHECK_DEPS=(grep dnsutils)
-    # Packages required to run this install script (stored as an array)
-    INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
-    # Packages required to run Pi-hole (stored as an array)
-    PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
-    # Packages required for the Web admin interface (stored as an array)
-    # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
-    # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
-    if [[ -z "${phpInsMajor}" || "${phpInsMajor}" -lt 8 ]]; then
-        PIHOLE_WEB_DEPS+=("${phpVer}-json")
-    fi
-    # The Web server user,
-    LIGHTTPD_USER="www-data"
-    # group,
-    LIGHTTPD_GROUP="www-data"
-    # and config file
-    LIGHTTPD_CFG="lighttpd.conf.debian"
+    # First check to see if apt-get is installed.
+    if is_command apt-get ; then
+        # Set some global variables here
+        # We don't set them earlier since the installed package manager might be rpm, so these values would be different
+        PKG_MANAGER="apt-get"
+        # A variable to store the command used to update the package cache
+        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+        # The command we will use to actually install packages
+        PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
+        # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
+        PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+        # Update package cache
+        update_package_cache || exit 1
+        # Check for and determine version number (major and minor) of current php install
+        local phpVer="php"
+        if is_command php ; then
+            printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
+            printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
+            printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
+            phpVer="php$phpInsMajor.$phpInsMinor"
+        fi
+        # Packages required to perfom the os_check (stored as an array)
+        OS_CHECK_DEPS=(grep dnsutils)
+        # Packages required to run this install script (stored as an array)
+        INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
+        # Packages required to run Pi-hole (stored as an array)
+        PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+        # Packages required for the Web admin interface (stored as an array)
+        # It's useful to separate this from Pi-hole, since the two repos are also setup separately
+        PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
+        # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
+        if [[ -z "${phpInsMajor}" || "${phpInsMajor}" -lt 8 ]]; then
+            PIHOLE_WEB_DEPS+=("${phpVer}-json")
+        fi
+        # The Web server user,
+        LIGHTTPD_USER="www-data"
+        # group,
+        LIGHTTPD_GROUP="www-data"
+        # and config file
+        LIGHTTPD_CFG="lighttpd.conf.debian"
 
-    # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
-    test_dpkg_lock() {
-        i=0
-        # fuser is a program to show which processes use the named files, sockets, or filesystems
-        # So while the lock is held,
-        while fuser /var/lib/dpkg/lock >/dev/null 2>&1
-        do
-            # we wait half a second,
-            sleep 0.5
-            # increase the iterator,
-            ((i=i+1))
-        done
-        # and then report success once dpkg is unlocked.
-        return 0
-    }
+        # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
+        test_dpkg_lock() {
+            i=0
+            # fuser is a program to show which processes use the named files, sockets, or filesystems
+            # So while the lock is held,
+            while fuser /var/lib/dpkg/lock >/dev/null 2>&1
+            do
+                # we wait half a second,
+                sleep 0.5
+                # increase the iterator,
+                ((i=i+1))
+            done
+            # and then report success once dpkg is unlocked.
+            return 0
+        }
 
-# If apt-get is not found, check for rpm.
-elif is_command rpm ; then
-    # Then check if dnf or yum is the package manager
-    if is_command dnf ; then
-        PKG_MANAGER="dnf"
+    # If apt-get is not found, check for rpm.
+    elif is_command rpm ; then
+        # Then check if dnf or yum is the package manager
+        if is_command dnf ; then
+            PKG_MANAGER="dnf"
+        else
+            PKG_MANAGER="yum"
+        fi
+
+        # These variable names match the ones for apt-get. See above for an explanation of what they are for.
+        PKG_INSTALL=("${PKG_MANAGER}" install -y)
+        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
+        OS_CHECK_DEPS=(grep bind-utils)
+        INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
+        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof)
+        PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
+        LIGHTTPD_USER="lighttpd"
+        LIGHTTPD_GROUP="lighttpd"
+        LIGHTTPD_CFG="lighttpd.conf.fedora"
+
+    # If neither apt-get or yum/dnf package managers were found
     else
-        PKG_MANAGER="yum"
+        # we cannot install required packages
+        printf "  %b No supported package manager found\\n" "${CROSS}"
+        # so exit the installer
+        exit
     fi
-
-    # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-    PKG_INSTALL=("${PKG_MANAGER}" install -y)
-    PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    OS_CHECK_DEPS=(grep bind-utils)
-    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
-    PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof)
-    PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
-
-# If neither apt-get or yum/dnf package managers were found
-else
-    # we cannot install required packages
-    printf "  %b No supported package manager found\\n" "${CROSS}"
-    # so exit the installer
-    exit
-fi
 }
 
 select_rpm_php(){
-# If the host OS is Fedora,
-if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-    # all required packages should be available by default with the latest fedora release
-    : # continue
-# or if host OS is CentOS,
-elif grep -qiE 'centos|scientific' /etc/redhat-release; then
-    # Pi-Hole currently supports CentOS 7+ with PHP7+
-    SUPPORTED_CENTOS_VERSION=7
-    SUPPORTED_CENTOS_PHP_VERSION=7
-    # Check current CentOS major release version
-    CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-    # Check if CentOS version is supported
-    if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-        printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
-        printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
-        # exit the installer
-        exit
-    fi
-    # php-json is not required on CentOS 7 as it is already compiled into php
-    # verifiy via `php -m | grep json`
-    if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
-        # create a temporary array as arrays are not designed for use as mutable data structures
-        CENTOS7_PIHOLE_WEB_DEPS=()
-        for i in "${!PIHOLE_WEB_DEPS[@]}"; do
-            if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
-                CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
-            fi
-        done
-        # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
-        PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
-        unset CENTOS7_PIHOLE_WEB_DEPS
-    fi
-    # CentOS requires the EPEL repository to gain access to Fedora packages
-    EPEL_PKG="epel-release"
-    rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
-    if [[ $rc -ne 0 ]]; then
-        printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-        "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-        printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
-    fi
+    # If the host OS is Fedora,
+    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+        # all required packages should be available by default with the latest fedora release
+        : # continue
+    # or if host OS is CentOS,
+    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
+        # Pi-Hole currently supports CentOS 7+ with PHP7+
+        SUPPORTED_CENTOS_VERSION=7
+        SUPPORTED_CENTOS_PHP_VERSION=7
+        # Check current CentOS major release version
+        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+        # Check if CentOS version is supported
+        if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
+            printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
+            printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
+            # exit the installer
+            exit
+        fi
+        # php-json is not required on CentOS 7 as it is already compiled into php
+        # verifiy via `php -m | grep json`
+        if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
+            # create a temporary array as arrays are not designed for use as mutable data structures
+            CENTOS7_PIHOLE_WEB_DEPS=()
+            for i in "${!PIHOLE_WEB_DEPS[@]}"; do
+                if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
+                    CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
+                fi
+            done
+            # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
+            PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
+            unset CENTOS7_PIHOLE_WEB_DEPS
+        fi
+        # CentOS requires the EPEL repository to gain access to Fedora packages
+        EPEL_PKG="epel-release"
+        rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
+        if [[ $rc -ne 0 ]]; then
+            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+            "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+        fi
 
-    # The default php on CentOS 7.x is 5.4 which is EOL
-    # Check if the version of PHP available via installed repositories is >= to PHP 7
-    AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
-    if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
-        # Since PHP 7 is available by default, install via default PHP package names
-        : # do nothing as PHP is current
-    else
-        REMI_PKG="remi-release"
-        REMI_REPO="remi-php72"
-        rpm -q ${REMI_PKG} &> /dev/null || rc=$?
-    if [[ $rc -ne 0 ]]; then
-        # The PHP version available via default repositories is older than version 7
-        if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
-            # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
-            printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
-            : # continue with unsupported php version
+        # The default php on CentOS 7.x is 5.4 which is EOL
+        # Check if the version of PHP available via installed repositories is >= to PHP 7
+        AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
+        if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
+            # Since PHP 7 is available by default, install via default PHP package names
+            : # do nothing as PHP is current
         else
-            printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-            "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-            # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-            "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-            yum-config-manager --enable ${REMI_REPO} &> /dev/null
-            printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
-            # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
-            if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
-                printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+            REMI_PKG="remi-release"
+            REMI_REPO="remi-php72"
+            rpm -q ${REMI_PKG} &> /dev/null || rc=$?
+            if [[ $rc -ne 0 ]]; then
+                # The PHP version available via default repositories is older than version 7
+                if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
+                    # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+                    printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
+                    : # continue with unsupported php version
+                else
+                    printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
+                    "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+                    # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+                    "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+                    yum-config-manager --enable ${REMI_REPO} &> /dev/null
+                    printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
+                    # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+                    if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                        printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+                    else
+                        printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
+                        exit 1
+                    fi
+                fi
+            fi    # Warn user of unsupported version of Fedora or CentOS
+            if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
+                printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
+                exit
             else
-                printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
-                exit 1
+                printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
             fi
         fi
-    fi    # Warn user of unsupported version of Fedora or CentOS
-    if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
-        printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-        exit
-    else
-        printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
     fi
-fi
-fi
 }
 
 # A function for checking if a directory is a git repository
@@ -519,7 +519,7 @@ update_repo() {
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
-         git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
+        git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
     fi
     # Show a completion message
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -629,12 +629,12 @@ welcomeDialogs() {
 IMPORTANT: If you have not already done so, you must ensure that this device has a static IP. Either through DHCP reservation, or by manually assigning one. Depending on your operating system, there are many ways to achieve this.
 
 Choose yes to indicate that you have understood this message, and wish to continue" "${r}" "${c}"; then
-#Nothing to do, continue
-  echo
-else
-  printf "  %b Installer exited at static IP message.\\n" "${INFO}"
-  exit 1
-fi
+        #Nothing to do, continue
+        echo
+    else
+        printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+        exit 1
+    fi
 }
 
 # A function that lets the user pick an interface to use with Pi-hole
@@ -759,8 +759,8 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     # if `dhcpcd` is used offer to set this as static IP for the device
     if [[ -f "/etc/dhcpcd.conf" ]]; then
-            # configure networking via dhcpcd
-            getStaticIPv4Settings
+        # configure networking via dhcpcd
+        getStaticIPv4Settings
     fi
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
@@ -913,8 +913,8 @@ setDNS() {
     IFS=${OIFS}
     # In a whiptail dialog, show the options
     DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
-    "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
-    # Exit if the user selects "Cancel"
+        "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
+        # Exit if the user selects "Cancel"
     { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
 
     # Depending on the user's choice, set the GLOBAL variables to the IP of the respective provider
@@ -1180,8 +1180,8 @@ version_check_dnsmasq() {
             install -D -m 644 -T "${dnsmasq_original_config}" "${dnsmasq_conf}"
             printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
         else
-        # Otherwise, don't to anything
-        printf " it is not a Pi-hole file, leaving alone!\\n"
+            # Otherwise, don't to anything
+            printf " it is not a Pi-hole file, leaving alone!\\n"
         fi
     else
         # If a file cannot be found,
@@ -1216,8 +1216,8 @@ version_check_dnsmasq() {
         sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_target}"
     fi
 
-	# Set the cache size
-	sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" "${dnsmasq_pihole_01_target}"
+    # Set the cache size
+    sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" "${dnsmasq_pihole_01_target}"
 
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
 
@@ -1565,7 +1565,7 @@ install_dependent_packages() {
 
     # Install Fedora/CentOS packages
     for i in "$@"; do
-    # For each package, check if it's already installed (and if so, don't add it to the installArray)
+        # For each package, check if it's already installed (and if so, don't add it to the installArray)
         printf "  %b Checking for %s..." "${INFO}" "${i}"
         if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
             printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
@@ -1735,18 +1735,18 @@ finalExports() {
     fi
     # echo the information to the user
     {
-    echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-    echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-    echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
-    echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
-    echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
-    echo "QUERY_LOGGING=${QUERY_LOGGING}"
-    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
-    echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-    echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
-    echo "CACHE_SIZE=${CACHE_SIZE}"
-    echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
-    echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
+        echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
+        echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
+        echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
+        echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
+        echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
+        echo "QUERY_LOGGING=${QUERY_LOGGING}"
+        echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
+        echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
+        echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
+        echo "CACHE_SIZE=${CACHE_SIZE}"
+        echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
+        echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
 
@@ -1921,7 +1921,7 @@ displayFinalMessage() {
         additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
 Your Admin Webpage login password is ${pwstring}"
-   fi
+    fi
 
     # Final completion message to user
     whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
@@ -2456,7 +2456,7 @@ main() {
 
     #In case of RPM based distro, select the proper PHP version
     if [[ "$PKG_MANAGER" == "yum" || "$PKG_MANAGER" == "dnf" ]] ; then
-      select_rpm_php
+        select_rpm_php
     fi
 
     # Check if SELinux is Enforcing
