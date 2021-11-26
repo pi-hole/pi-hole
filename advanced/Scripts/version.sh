@@ -92,9 +92,9 @@ getRemoteVersion(){
     if [[ -f "$cachedVersions" ]]; then
         IFS=' ' read -r -a arrCache < "$cachedVersions"
         case $daemon in
-          "pi-hole"   )  echo "${arrCache[0]}";;
-          "AdminLTE"  )  echo "${arrCache[1]}";;
-          "FTL"       )  echo "${arrCache[2]}";;
+            "pi-hole"   )  echo "${arrCache[0]}";;
+            "AdminLTE"  )  echo "${arrCache[1]}";;
+            "FTL"       )  echo "${arrCache[2]}";;
         esac
 
         return 0
@@ -117,7 +117,7 @@ getLocalBranch(){
     local directory="${1}"
     local branch
 
-     # Local FTL btranch is stored in /etc/pihole/ftlbranch
+    # Local FTL btranch is stored in /etc/pihole/ftlbranch
     if [[ "$1" == "FTL" ]]; then
         branch="$(pihole-FTL branch)"
     else
