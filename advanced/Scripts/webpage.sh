@@ -54,7 +54,7 @@ add_setting() {
 }
 
 delete_setting() {
-    sed -i "/${1}/d" "${setupVars}"
+    sed -i "/^${1}/d" "${setupVars}"
 }
 
 change_setting() {
@@ -67,7 +67,7 @@ addFTLsetting() {
 }
 
 deleteFTLsetting() {
-    sed -i "/${1}/d" "${FTLconf}"
+    sed -i "/^${1}/d" "${FTLconf}"
 }
 
 changeFTLsetting() {
@@ -84,7 +84,7 @@ add_dnsmasq_setting() {
 }
 
 delete_dnsmasq_setting() {
-    sed -i "/${1}/d" "${dnsmasqconfig}"
+    sed -i "/^${1}/d" "${dnsmasqconfig}"
 }
 
 SetTemperatureUnit() {
@@ -122,14 +122,14 @@ SetWebPassword() {
         read -s -r -p "Enter New Password (Blank for no password): " PASSWORD
         echo ""
 
-    if [ "${PASSWORD}" == "" ]; then
-        change_setting "WEBPASSWORD" ""
-        echo -e "  ${TICK} Password Removed"
-        exit 0
-    fi
+        if [ "${PASSWORD}" == "" ]; then
+            change_setting "WEBPASSWORD" ""
+            echo -e "  ${TICK} Password Removed"
+            exit 0
+        fi
 
-    read -s -r -p "Confirm Password: " CONFIRM
-    echo ""
+        read -s -r -p "Confirm Password: " CONFIRM
+        echo ""
     fi
 
     if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
@@ -247,8 +247,8 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
                 3   )   REV_SERVER_CIDR="${arrRev[0]}.0.0.0/8";;
             esac
         else
-          # Set REV_SERVER_CIDR to whatever value it was set to
-          REV_SERVER_CIDR="${CONDITIONAL_FORWARDING_REVERSE}"
+            # Set REV_SERVER_CIDR to whatever value it was set to
+            REV_SERVER_CIDR="${CONDITIONAL_FORWARDING_REVERSE}"
         fi
 
         # If REV_SERVER_CIDR is not converted by the above, then use the REV_SERVER_TARGET variable to derive it
@@ -267,11 +267,21 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         delete_setting "CONDITIONAL_FORWARDING_IP"
     fi
 
+    delete_dnsmasq_setting "rev-server"
+
     if [[ "${REV_SERVER}" == true ]]; then
         add_dnsmasq_setting "rev-server=${REV_SERVER_CIDR},${REV_SERVER_TARGET}"
         if [ -n "${REV_SERVER_DOMAIN}" ]; then
+            # Forward local domain names to the CF target, too
             add_dnsmasq_setting "server=/${REV_SERVER_DOMAIN}/${REV_SERVER_TARGET}"
         fi
+
+        if [[ "${DNS_FQDN_REQUIRED}" != true ]]; then
+            # Forward unqualified names to the CF target only when the "never
+            # forward non-FQDN" option is unticked
+            add_dnsmasq_setting "server=//${REV_SERVER_TARGET}"
+        fi
+
     fi
 
     # We need to process DHCP settings here as well to account for possible
@@ -361,34 +371,34 @@ ProcessDHCPSettings() {
     source "${setupVars}"
 
     if [[ "${DHCP_ACTIVE}" == "true" ]]; then
-    interface="${PIHOLE_INTERFACE}"
+        interface="${PIHOLE_INTERFACE}"
 
-    # Use eth0 as fallback interface
-    if [ -z ${interface} ]; then
-        interface="eth0"
-    fi
+        # Use eth0 as fallback interface
+        if [ -z ${interface} ]; then
+            interface="eth0"
+        fi
 
-    if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
-        PIHOLE_DOMAIN="lan"
-        change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
-    fi
+        if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
+            PIHOLE_DOMAIN="lan"
+            change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
+        fi
 
-    if [[ "${DHCP_LEASETIME}" == "0" ]]; then
-        leasetime="infinite"
-    elif [[ "${DHCP_LEASETIME}" == "" ]]; then
-        leasetime="24"
-        change_setting "DHCP_LEASETIME" "${leasetime}"
-    elif [[ "${DHCP_LEASETIME}" == "24h" ]]; then
-        #Installation is affected by known bug, introduced in a previous version.
-        #This will automatically clean up setupVars.conf and remove the unnecessary "h"
-        leasetime="24"
-        change_setting "DHCP_LEASETIME" "${leasetime}"
-    else
-        leasetime="${DHCP_LEASETIME}h"
-    fi
+        if [[ "${DHCP_LEASETIME}" == "0" ]]; then
+            leasetime="infinite"
+        elif [[ "${DHCP_LEASETIME}" == "" ]]; then
+            leasetime="24"
+            change_setting "DHCP_LEASETIME" "${leasetime}"
+        elif [[ "${DHCP_LEASETIME}" == "24h" ]]; then
+            #Installation is affected by known bug, introduced in a previous version.
+            #This will automatically clean up setupVars.conf and remove the unnecessary "h"
+            leasetime="24"
+            change_setting "DHCP_LEASETIME" "${leasetime}"
+        else
+            leasetime="${DHCP_LEASETIME}h"
+        fi
 
-    # Write settings to file
-    echo "###############################################################################
+        # Write settings to file
+        echo "###############################################################################
 #  DHCP SERVER CONFIG FILE AUTOMATICALLY POPULATED BY PI-HOLE WEB INTERFACE.  #
 #            ANY CHANGES MADE TO THIS FILE WILL BE LOST ON CHANGE             #
 ###############################################################################
@@ -398,34 +408,34 @@ dhcp-option=option:router,${DHCP_ROUTER}
 dhcp-leasefile=/etc/pihole/dhcp.leases
 #quiet-dhcp
 " > "${dhcpconfig}"
-    chmod 644 "${dhcpconfig}"
+        chmod 644 "${dhcpconfig}"
 
-    if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
-        echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
+        if [[ "${PIHOLE_DOMAIN}" != "none" ]]; then
+            echo "domain=${PIHOLE_DOMAIN}" >> "${dhcpconfig}"
 
-        # When there is a Pi-hole domain set and "Never forward non-FQDNs" is
-        # ticked, we add `local=/domain/` to tell FTL that this domain is purely
-        # local and FTL may answer queries from /etc/hosts or DHCP but should
-        # never forward queries on that domain to any upstream servers
-        if  [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
-          echo "local=/${PIHOLE_DOMAIN}/" >> "${dhcpconfig}"
+            # When there is a Pi-hole domain set and "Never forward non-FQDNs" is
+            # ticked, we add `local=/domain/` to tell FTL that this domain is purely
+            # local and FTL may answer queries from /etc/hosts or DHCP but should
+            # never forward queries on that domain to any upstream servers
+            if  [[ "${DNS_FQDN_REQUIRED}" == true ]]; then
+                echo "local=/${PIHOLE_DOMAIN}/" >> "${dhcpconfig}"
+            fi
         fi
-    fi
 
-    # Sourced from setupVars
-    # shellcheck disable=SC2154
-    if [[ "${DHCP_rapid_commit}" == "true" ]]; then
-        echo "dhcp-rapid-commit" >> "${dhcpconfig}"
-    fi
+        # Sourced from setupVars
+        # shellcheck disable=SC2154
+        if [[ "${DHCP_rapid_commit}" == "true" ]]; then
+            echo "dhcp-rapid-commit" >> "${dhcpconfig}"
+        fi
 
-    if [[ "${DHCP_IPv6}" == "true" ]]; then
-        echo "#quiet-dhcp6
+        if [[ "${DHCP_IPv6}" == "true" ]]; then
+            echo "#quiet-dhcp6
 #enable-ra
 dhcp-option=option6:dns-server,[::]
 dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,64,3600
 ra-param=*,0,0
 " >> "${dhcpconfig}"
-    fi
+        fi
 
     else
         if [[ -f "${dhcpconfig}" ]]; then
@@ -522,25 +532,6 @@ CustomizeAdLists() {
     fi
 }
 
-SetPrivacyMode() {
-    if [[ "${args[2]}" == "true" ]]; then
-        change_setting "API_PRIVACY_MODE" "true"
-    else
-        change_setting "API_PRIVACY_MODE" "false"
-    fi
-}
-
-ResolutionSettings() {
-    typ="${args[2]}"
-    state="${args[3]}"
-
-    if [[ "${typ}" == "forward" ]]; then
-        change_setting "API_GET_UPSTREAM_DNS_HOSTNAME" "${state}"
-    elif [[ "${typ}" == "clients" ]]; then
-        change_setting "API_GET_CLIENT_HOSTNAME" "${state}"
-    fi
-}
-
 AddDHCPStaticAddress() {
     mac="${args[2]}"
     ip="${args[3]}"
@@ -614,7 +605,7 @@ Interfaces:
   single              Listen only on ${PIHOLE_INTERFACE} interface
   all                 Listen on all interfaces, permit all origins"
         exit 0
-  fi
+    fi
 
     if [[ "${args[2]}" == "all" ]]; then
         echo -e "  ${INFO} Listening on all interfaces, permitting all origins. Please use a firewall!"
@@ -663,18 +654,18 @@ addAudit()
     domains=""
     for domain in "$@"
     do
-      # Check domain to be added. Only continue if it is valid
-      validDomain="$(checkDomain "${domain}")"
-      if [[ -n "${validDomain}" ]]; then
-        # Put comma in between domains when there is
-        # more than one domains to be added
-        # SQL INSERT allows adding multiple rows at once using the format
-        ## INSERT INTO table (domain) VALUES ('abc.de'),('fgh.ij'),('klm.no'),('pqr.st');
-        if [[ -n "${domains}" ]]; then
-          domains="${domains},"
+        # Check domain to be added. Only continue if it is valid
+        validDomain="$(checkDomain "${domain}")"
+        if [[ -n "${validDomain}" ]]; then
+            # Put comma in between domains when there is
+            # more than one domains to be added
+            # SQL INSERT allows adding multiple rows at once using the format
+            ## INSERT INTO table (domain) VALUES ('abc.de'),('fgh.ij'),('klm.no'),('pqr.st');
+            if [[ -n "${domains}" ]]; then
+                domains="${domains},"
+            fi
+            domains="${domains}('${domain}')"
         fi
-        domains="${domains}('${domain}')"
-      fi
     done
     # Insert only the domain here. The date_added field will be
     # filled with its default value (date_added = current timestamp)
@@ -699,10 +690,25 @@ AddCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
-	echo "${ip} ${host}" >> "${dnscustomfile}"
+    reload="${args[4]}"
 
-    # Restart dnsmasq to load new custom DNS entries
-    RestartDNS
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            echo "${ip} ${validHost}" >> "${dnscustomfile}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    # Restart dnsmasq to load new custom DNS entries only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
 }
 
 RemoveCustomDNSAddress() {
@@ -710,16 +716,25 @@ RemoveCustomDNSAddress() {
 
     ip="${args[2]}"
     host="${args[3]}"
+    reload="${args[4]}"
 
-    if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-        sed -i "/^${ip} ${host}$/d" "${dnscustomfile}"
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            sed -i "/^${ip} ${validHost}$/d" "${dnscustomfile}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
     else
-        echo -e "  ${CROSS} Invalid IP has been passed"
+        echo "  ${CROSS} Invalid Domain passed!"
         exit 1
     fi
 
-    # Restart dnsmasq to update removed custom DNS entries
-    RestartDNS
+    # Restart dnsmasq to load new custom DNS entries only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
 }
 
 AddCustomCNAMERecord() {
@@ -727,11 +742,25 @@ AddCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
+    reload="${args[4]}"
 
-    echo "cname=${domain},${target}" >> "${dnscustomcnamefile}"
-
-    # Restart dnsmasq to load new custom CNAME records
-    RestartDNS
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+            echo "cname=${validDomain},${validTarget}" >> "${dnscustomcnamefile}"
+        else
+            echo "  ${CROSS} Invalid Target Passed!"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+    # Restart dnsmasq to load new custom CNAME records only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
 }
 
 RemoveCustomCNAMERecord() {
@@ -739,11 +768,12 @@ RemoveCustomCNAMERecord() {
 
     domain="${args[2]}"
     target="${args[3]}"
+    reload="${args[4]}"
 
     validDomain="$(checkDomain "${domain}")"
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
-        if [[ -n "${validDomain}" ]]; then
+        if [[ -n "${validTarget}" ]]; then
             sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
         else
             echo "  ${CROSS} Invalid Target Passed!"
@@ -754,8 +784,10 @@ RemoveCustomCNAMERecord() {
         exit 1
     fi
 
-    # Restart dnsmasq to update removed custom CNAME records
-    RestartDNS
+    # Restart dnsmasq to update removed custom CNAME records only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
 }
 
 main() {
@@ -778,8 +810,6 @@ main() {
         "layout"              ) SetWebUILayout;;
         "theme"               ) SetWebUITheme;;
         "-h" | "--help"       ) helpFunc;;
-        "privacymode"         ) SetPrivacyMode;;
-        "resolve"             ) ResolutionSettings;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
         "-e" | "email"        ) SetAdminEmail "$3";;

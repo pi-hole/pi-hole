@@ -18,8 +18,8 @@ py.test -vv -n auto -m "build_stage"
 py.test -vv -n auto -m "not build_stage"
 ```
 
-The build_stage tests have to run first to create the docker images, followed by the actual tests which utilize said images.  Unless you're changing your dockerfiles you shouldn't have to run the build_stage every time - but it's a good idea to rebuild at least once a day in case the base Docker images or packages change.
+The build_stage tests have to run first to create the docker images, followed by the actual tests which utilize said images. Unless you're changing your dockerfiles you shouldn't have to run the build_stage every time - but it's a good idea to rebuild at least once a day in case the base Docker images or packages change.
 
 # How do I debug python?
 
-Highly recommended: Setup PyCharm on a **Docker enabled** machine.  Having a python debugger like PyCharm changes your life if you've never used it :)
+Highly recommended: Setup PyCharm on a **Docker enabled** machine. Having a python debugger like PyCharm changes your life if you've never used it :)

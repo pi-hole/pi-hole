@@ -15,8 +15,6 @@ export LC_ALL=C
 
 coltable="/opt/pihole/COL_TABLE"
 source "${coltable}"
-regexconverter="/opt/pihole/wildcard_regex_converter.sh"
-source "${regexconverter}"
 # shellcheck disable=SC1091
 source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
@@ -122,7 +120,7 @@ gravity_swap_databases() {
   gravityBlocks=$(stat --format "%b" ${gravityDBfile})
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
-  if [ "${availableBlocks}" -gt "$(("${gravityBlocks}" * 2))" ] && [ -f "${gravityDBfile}" ]; then
+  if [ "${availableBlocks}" -gt "$((gravityBlocks * 2))" ] && [ -f "${gravityDBfile}" ]; then
     echo -e "  ${TICK} The old database remains available."
     mv "${gravityDBfile}" "${gravityOLDfile}"
   else
@@ -215,7 +213,7 @@ database_table_from_file() {
   # Move source file to backup directory, create directory if not existing
   mkdir -p "${backup_path}"
   mv "${source}" "${backup_file}" 2> /dev/null || \
-      echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
+    echo -e "  ${CROSS} Unable to backup ${source} to ${backup_path}"
 
   # Delete tmpFile
   rm "${tmpFile}" > /dev/null 2>&1 || \
@@ -432,9 +430,9 @@ gravity_DownloadBlocklists() {
     compression="--compressed"
     echo -e "  ${INFO} Using libz compression\n"
   else
-      compression=""
-      echo -e "  ${INFO} Libz compression not available\n"
-    fi
+    compression=""
+    echo -e "  ${INFO} Libz compression not available\n"
+  fi
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
@@ -464,9 +462,9 @@ gravity_DownloadBlocklists() {
     check_url="$( sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<< "$url" )"
 
     if [[ "${check_url}" =~ ${regex} ]]; then
-        echo -e "  ${CROSS} Invalid Target"
+      echo -e "  ${CROSS} Invalid Target"
     else
-       gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
+      gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
     fi
     echo ""
   done
@@ -585,28 +583,28 @@ gravity_DownloadBlocklistFromUrl() {
   blocked=false
   case $BLOCKINGMODE in
     "IP-NODATA-AAAA"|"IP")
-        # Get IP address of this domain
-        ip="$(dig "${domain}" +short)"
-        # Check if this IP matches any IP of the system
-        if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<< "$(ip a)") -gt 0 ]]; then
-          blocked=true
-        fi;;
+      # Get IP address of this domain
+      ip="$(dig "${domain}" +short)"
+      # Check if this IP matches any IP of the system
+      if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<< "$(ip a)") -gt 0 ]]; then
+        blocked=true
+      fi;;
     "NXDOMAIN")
-        if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
-          blocked=true
-        fi;;
+      if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
+        blocked=true
+      fi;;
     "NULL"|*)
-        if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
-          blocked=true
-        fi;;
-   esac
+      if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
+        blocked=true
+      fi;;
+  esac
 
   if [[ "${blocked}" == true ]]; then
     printf -v ip_addr "%s" "${PIHOLE_DNS_1%#*}"
     if [[ ${PIHOLE_DNS_1} != *"#"* ]]; then
-        port=53
+      port=53
     else
-        printf -v port "%s" "${PIHOLE_DNS_1#*#}"
+      printf -v port "%s" "${PIHOLE_DNS_1#*#}"
     fi
     ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
     if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
@@ -625,11 +623,11 @@ gravity_DownloadBlocklistFromUrl() {
   case $url in
     # Did we "download" a local file?
     "file"*)
-        if [[ -s "${patternBuffer}" ]]; then
-          echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
-        else
-          echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
-        fi;;
+      if [[ -s "${patternBuffer}" ]]; then
+        echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
+      else
+        echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
+      fi;;
     # Did we "download" a remote file?
     *)
       # Determine "Status:" output based on HTTP response

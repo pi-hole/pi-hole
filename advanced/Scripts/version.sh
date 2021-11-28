@@ -118,7 +118,7 @@ getLocalBranch(){
     local directory="${1}"
     local branch
 
-     # Local FTL btranch is stored in /etc/pihole/ftlbranch
+    # Local FTL btranch is stored in /etc/pihole/ftlbranch
     if [[ "$1" == "FTL" ]]; then
         branch="$(pihole-FTL branch)"
     else

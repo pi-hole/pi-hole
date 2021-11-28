@@ -95,6 +95,10 @@ main() {
     # shellcheck disable=1090,2154
     source "${setupVars}"
 
+    # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
+    package_manager_detect
+    install_dependent_packages "${INSTALLER_DEPS[@]}"
+
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!"
@@ -196,7 +200,7 @@ main() {
 
     if [[ "${FTL_update}" == true || "${core_update}" == true ]]; then
         ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
-        echo -e "${basicError}" && exit 1
+            echo -e "${basicError}" && exit 1
     fi
 
     if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
