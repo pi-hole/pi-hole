@@ -111,9 +111,21 @@ upgrade_gravityDB(){
 		version=12
 	fi
 	if [[ "$version" == "12" ]]; then
-		# Add column date_updated to alist table
+		# Add column date_updated to adlist table
 		echo -e "  ${INFO} Upgrading gravity database from version 12 to 13"
 		sqlite3 "${database}" < "${scriptPath}/12_to_13.sql"
 		version=13
 	fi
+	if [[ "$version" == "13" ]]; then
+		# Add columns number and status to adlist table
+		echo -e "  ${INFO} Upgrading gravity database from version 13 to 14"
+		sqlite3 "${database}" < "${scriptPath}/13_to_14.sql"
+		version=14
+	fi
+	if [[ "$version" == "14" ]]; then
+	# Changes the vw_adlist created in 5_to_6
+	echo -e "  ${INFO} Upgrading gravity database from version 14 to 15"
+	sqlite3 "${database}" < "${scriptPath}/14_to_15.sql"
+	version=15
+fi
 }

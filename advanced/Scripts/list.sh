@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -9,11 +11,19 @@
 # Please see LICENSE file for your rights under this license.
 
 # Globals
-basename=pihole
-piholeDir=/etc/"${basename}"
-gravityDBfile="${piholeDir}/gravity.db"
+piholeDir="/etc/pihole"
+GRAVITYDB="${piholeDir}/gravity.db"
+# Source pihole-FTL from install script
+pihole_FTL="${piholeDir}/pihole-FTL.conf"
+if [[ -f "${pihole_FTL}" ]]; then
+  source "${pihole_FTL}"
+fi
 
-reload=false
+# Set this only after sourcing pihole-FTL.conf as the gravity database path may
+# have changed
+gravityDBfile="${GRAVITYDB}"
+
+noReloadRequested=false
 addmode=true
 verbose=true
 wildcard=false
@@ -25,6 +35,7 @@ typeId=""
 comment=""
 declare -i domaincount
 domaincount=0
+reload=false
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
@@ -112,7 +123,7 @@ ProcessDomainList() {
     for dom in "${domList[@]}"; do
         # Format domain into regex filter if requested
         if [[ "${wildcard}" == true ]]; then
-            dom="(^|\\.)${dom//\./\\.}$"
+            dom="(\\.|^)${dom//\./\\.}$"
         fi
 
         # Logic: If addmode then add to desired list and remove from the other;
@@ -232,13 +243,13 @@ Displaylist() {
 
 NukeList() {
     count=$(sqlite3 "${gravityDBfile}" "SELECT COUNT(1) FROM domainlist WHERE type = ${typeId};")
-    listname="$(GetListnameFromTypeId "${typeId}")"    
+    listname="$(GetListnameFromTypeId "${typeId}")"
     if [ "$count" -gt 0 ];then
         sqlite3 "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeId};"
         echo "  ${TICK} Removed ${count} domain(s) from the ${listname}"
     else
         echo "  ${INFO} ${listname} already empty. Nothing to do!"
-    fi    
+    fi
     exit 0;
 }
 
@@ -258,7 +269,7 @@ while (( "$#" )); do
         "--white-wild" | "white-wild" ) typeId=2; wildcard=true;;
         "--wild" | "wildcard" ) typeId=3; wildcard=true;;
         "--regex" | "regex"   ) typeId=3;;
-        "-nr"| "--noreload"  ) reload=false;;
+        "-nr"| "--noreload"  ) noReloadRequested=true;;
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
@@ -284,6 +295,6 @@ if $web; then
 echo "DONE"
 fi
 
-if [[ "${reload}" != false ]]; then
+if [[ ${reload} == true && ${noReloadRequested} == false ]]; then
     pihole restartdns reload-lists
 fi
