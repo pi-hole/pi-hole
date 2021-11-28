@@ -1,14 +1,17 @@
-.TH "pihole-FTL.conf" "5" "pihole-FTL.conf" "pihole-FTL.conf" "November 2020"
+.TH "pihole-FTL.conf" "5" "November 2021" "pihole-FTL.conf" "November 2021"
 .SH "NAME"
 
-pihole-FTL.conf - FTL's config file
+pihole-FTL.conf \- FTL's config file
 .br
 .SH "DESCRIPTION"
 
 /etc/pihole/pihole-FTL.conf will be read by \fBpihole-FTL(8)\fR on startup.
-.br
-Comments may start with ';' or '#' (anywhere in a line), but as the Pi-hole web front-end currently relies on the PHP 'parse-ini-file' routine to read this file, use ';' unless you do not plan on installing the web interface.
-.br
+.HP
+.\" Warn the reader that bash-style comments must be preceded by a semicolon
+.\"   until the current (as of 2021) web interface is retired, since special
+.\"  characters such as # conflict with the PHP 'parse-ini-file' routine 
+Comments are allowed anywhere in a line. Comments should begin with a semicolon (';') if any use of the Pi-hole web interface is expected.
+.P
 For each setting the option shown first is the default.
 .br
 
