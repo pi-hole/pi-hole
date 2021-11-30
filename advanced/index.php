@@ -58,33 +58,33 @@ if ($serverName === "pi.hole"
     // When directly browsing via IP or authorized hostname
     // Render splash/landing page based off presence of $landPage file
     // Unset variables so as to not be included in $landPage or $splashPage
-    unset($serverName, $svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt, $viewPort);
+    unset($svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt);
     // If $landPage file is present
     if (is_file(getcwd()."/$landPage")) {
+        unset($serverName, $viewPort); // unset extra variables not to be included in $landpage
         include $landPage;
         exit();
     }
     // If $landPage file was not present, Set Splash Page output
-    $splashPage = "
+    $splashPage = <<<EOT
     <!doctype html>
     <html lang='en'>
         <head>
             <meta charset='utf-8'>
             $viewPort
-            <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>● $serverName</title>
-            <link rel='stylesheet' href='pihole/blockingpage.css'>
-            <link rel='shortcut icon' href='admin/img/favicons/favicon.ico' type='image/x-icon'>
+            <link rel='stylesheet' href='/pihole/blockingpage.css'>
+            <link rel='shortcut icon' href='/admin/img/favicons/favicon.ico' type='image/x-icon'>
         </head>
         <body id='splashpage'>
             <div id="pihole_card">
-              <img src='admin/img/logo.svg' alt='Pi-hole logo id="pihole_logo_splash" />
+              <img src='/admin/img/logo.svg' alt='Pi-hole logo' id="pihole_logo_splash" />
               <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
               <a href='/admin'>Did you mean to go to the admin panel?</a>
             </div>
         </body>
     </html>
-    ";
+EOT;
     exit($splashPage);
 } elseif ($currentUrlExt === "js") {
     // Serve Pi-hole JavaScript for blocked domains requesting JS

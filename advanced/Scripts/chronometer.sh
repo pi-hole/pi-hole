@@ -329,8 +329,8 @@ get_sys_stats() {
                 *) cpu_col="$COL_URG_RED";;
             esac
 
-        # $COL_NC$COL_DARK_GRAY is needed for $COL_URG_RED
-        cpu_temp_str=" @ $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
+            # $COL_NC$COL_DARK_GRAY is needed for $COL_URG_RED
+            cpu_temp_str=" @ $cpu_col$cpu_temp$COL_NC$COL_DARK_GRAY"
 
         elif [[ "$temp_unit" == "F" ]]; then
             cpu_temp=$(printf "%.0ff\\n" "$(calcFunc "($(< $temp_file) / 1000) * 9 / 5 + 32")")
@@ -445,7 +445,7 @@ get_strings() {
     lan_info="Gateway: $net_gateway"
     dhcp_info="$leased_str$ph_dhcp_num of $ph_dhcp_max"
 
-      ads_info="$total_str$ads_blocked_today of $dns_queries_today"
+    ads_info="$total_str$ads_blocked_today of $dns_queries_today"
     dns_info="$dns_count DNS servers"
 
     [[ "$recent_blocked" == "0" ]] && recent_blocked="${COL_LIGHT_RED}FTL offline${COL_NC}"
@@ -488,7 +488,7 @@ chronoFunc() {
             ${COL_LIGHT_RED}Press Ctrl-C to exit${COL_NC}
             ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
         else
-        echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc_ver_str\\n[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\\/ [0;1;36;96m_ [0;1;34;94m\\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_ver_str\\n[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m| [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_ver_str\\n ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
+            echo -e "[0;1;31;91m|¯[0;1;33;93m¯[0;1;32;92m¯[0;1;32;92m(¯[0;1;36;96m)[0;1;34;94m_[0;1;35;95m|[0;1;33;93m¯[0;1;31;91m|_  [0;1;32;92m__[0;1;36;96m_|[0;1;31;91m¯[0;1;34;94m|[0;1;35;95m__[0;1;31;91m_[0m$phc_ver_str\\n[0;1;33;93m| ¯[0;1;32;92m_[0;1;36;96m/¯[0;1;34;94m|[0;1;35;95m_[0;1;31;91m| [0;1;33;93m' [0;1;32;92m\\/ [0;1;36;96m_ [0;1;34;94m\\ [0;1;35;95m/ [0;1;31;91m-[0;1;33;93m_)[0m$lte_ver_str\\n[0;1;32;92m|_[0;1;36;96m| [0;1;34;94m|_[0;1;35;95m| [0;1;33;93m|_[0;1;32;92m||[0;1;36;96m_\\[0;1;34;94m__[0;1;35;95m_/[0;1;31;91m_\\[0;1;33;93m__[0;1;32;92m_|[0m$ftl_ver_str\\n ${COL_DARK_GRAY}$scr_line_str${COL_NC}"
         fi
 
         printFunc "  Hostname: " "$sys_name" "$host_info"
@@ -497,10 +497,6 @@ chronoFunc() {
         printFunc " CPU usage: " "$cpu_perc%" "$cpu_info"
         printFunc " RAM usage: " "$ram_perc%" "$ram_info"
         printFunc " HDD usage: " "$disk_perc" "$disk_info"
-
-        if [[ "$scr_lines" -gt 17 ]] && [[ "$chrono_width" != "small" ]]; then
-            printFunc "  LAN addr: " "${IPV4_ADDRESS/\/*/}" "$lan_info"
-        fi
 
         if [[ "$DHCP_ACTIVE" == "true" ]]; then
             printFunc "DHCP usage: " "$ph_dhcp_percent%" "$dhcp_info"

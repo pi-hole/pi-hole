@@ -21,7 +21,6 @@ server.modules = (
     "mod_expire",
     "mod_fastcgi",
     "mod_accesslog",
-    "mod_compress",
     "mod_redirect",
     "mod_setenv",
     "mod_rewrite"
@@ -41,26 +40,6 @@ accesslog.format            = "%{%s}t|%V|%r|%s|%b"
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
 url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )
 static-file.exclude-extensions = ( ".php", ".pl", ".fcgi" )
-
-compress.cache-dir = "/var/cache/lighttpd/compress/"
-compress.filetype  = (
-    "application/json",
-    "application/vnd.ms-fontobject",
-    "application/xml",
-    "font/eot",
-    "font/opentype",
-    "font/otf",
-    "font/ttf",
-    "image/bmp",
-    "image/svg+xml",
-    "image/vnd.microsoft.icon",
-    "image/x-icon",
-    "text/css",
-    "text/html",
-    "text/javascript",
-    "text/plain",
-    "text/xml"
-)
 
 mimetype.assign = (
     ".ico"   => "image/x-icon",
@@ -107,16 +86,18 @@ $HTTP["url"] =~ "^/admin/" {
         "X-Pi-hole" => "The Pi-hole Web interface is working!",
         "X-Frame-Options" => "DENY"
     )
-
-    $HTTP["url"] =~ "\.(eot|otf|tt[cf]|woff2?)$" {
-        # Allow Block Page access to local fonts
-        setenv.add-response-header = ( "Access-Control-Allow-Origin" => "*" )
-    }
 }
 
 # Block . files from being served, such as .git, .github, .gitignore
 $HTTP["url"] =~ "^/admin/\.(.*)" {
     url.access-deny = ("")
+}
+
+# allow teleporter iframe on settings page
+$HTTP["url"] =~ "/teleporter\.php$" {
+    $HTTP["referer"] =~ "/admin/settings\.php" {
+        setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
+    }
 }
 
 # Default expire header

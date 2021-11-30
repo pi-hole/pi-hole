@@ -16,6 +16,7 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # error due to modifying a readonly variable.
 setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
+readonly FTL_PID_FILE="/run/pihole-FTL.pid"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
@@ -98,8 +99,25 @@ versionFunc() {
   exit 0
 }
 
+# Get PID of main pihole-FTL process
+getFTLPID() {
+  local pid
+
+  if [ -s "${FTL_PID_FILE}" ]; then
+    # -s: FILE exists and has a size greater than zero
+    pid="$(<"$FTL_PID_FILE")"
+    # Exploit prevention: unset the variable if there is malicious content
+    # Verify that the value read from the file is numeric
+    [[ "$pid" =~ [^[:digit:]] ]] && unset pid
+  fi
+
+  # If FTL is not running, or the PID file contains malicious stuff, substitute
+  # negative PID to signal this to the caller
+  echo "${pid:=-1}"
+}
+
 restartDNS() {
-  local svcOption svc str output status
+  local svcOption svc str output status pid icon
   svcOption="${1:-restart}"
 
   # Determine if we should reload or restart
@@ -108,17 +126,34 @@ restartDNS() {
     # Note 1: This will NOT re-read any *.conf files
     # Note 2: We cannot use killall here as it does
     #         not know about real-time signals
-    svc="pkill -RTMIN pihole-FTL"
-    str="Reloading DNS lists"
+    pid="$(getFTLPID)"
+    if [[ "$pid" -eq "-1" ]]; then
+      svc="true"
+      str="FTL is not running"
+      icon="${INFO}"
+    else
+      svc="kill -RTMIN ${pid}"
+      str="Reloading DNS lists"
+      icon="${TICK}"
+    fi
   elif [[ "${svcOption}" =~ "reload" ]]; then
     # Reloading of the DNS cache has been requested
     # Note: This will NOT re-read any *.conf files
-    svc="pkill -HUP pihole-FTL"
-    str="Flushing DNS cache"
+    pid="$(getFTLPID)"
+    if [[ "$pid" -eq "-1" ]]; then
+      svc="true"
+      str="FTL is not running"
+      icon="${INFO}"
+    else
+      svc="kill -HUP ${pid}"
+      str="Flushing DNS cache"
+      icon="${TICK}"
+    fi
   else
     # A full restart has been requested
     svc="service pihole-FTL restart"
     str="Restarting DNS server"
+    icon="${TICK}"
   fi
 
   # Print output to Terminal, but not to Web Admin
@@ -128,7 +163,7 @@ restartDNS() {
   status="$?"
 
   if [[ "${status}" -eq 0 ]]; then
-    [[ -t 1 ]] && echo -e "${OVER}  ${TICK} ${str}"
+    [[ -t 1 ]] && echo -e "${OVER}  ${icon} ${str}"
     return 0
   else
     [[ ! -t 1 ]] && local OVER=""
@@ -207,7 +242,7 @@ Time:
     echo "BLOCKING_ENABLED=true" >> "${setupVars}"
   fi
 
-  restartDNS reload
+  restartDNS reload-lists
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -328,16 +363,13 @@ tailFunc() {
   fi
   echo -e "  ${INFO} Press Ctrl-C to exit"
 
-  # Retrieve IPv4/6 addresses
-  source /etc/pihole/setupVars.conf
-
   # Strip date from each line
   # Color blocklist/blacklist/wildcard entries as red
   # Color A/AAAA/DHCP strings as white
   # Color everything else as gray
-  tail -f /var/log/pihole.log | sed -E \
+  tail -f /var/log/pihole.log | grep --line-buffered "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
-    -e "s,(.*(blacklisted |gravity blocked ).* is (0.0.0.0|::|NXDOMAIN|${IPV4_ADDRESS%/*}|${IPV6_ADDRESS:-NULL}).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(blacklisted |gravity blocked ).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0
@@ -367,34 +399,24 @@ Branches:
 }
 
 tricorderFunc() {
+  local tricorder_token
   if [[ ! -p "/dev/stdin" ]]; then
     echo -e "  ${INFO} Please do not call Tricorder directly"
     exit 1
   fi
 
-  if ! (echo > /dev/tcp/tricorder.pi-hole.net/9998) >/dev/null 2>&1; then
-    echo -e "  ${CROSS} Unable to connect to Pi-hole's Tricorder server"
-    exit 1
+  tricorder_token=$(curl --silent --fail --show-error --upload-file "-" https://tricorder.pi-hole.net/upload < /dev/stdin 2>&1)
+  if [[ "${tricorder_token}" != "https://tricorder.pi-hole.net/"* ]]; then
+      echo -e "${CROSS} uploading failed, contact Pi-hole support for assistance."
+      # Log curl error (if available)
+      if [ -n "${tricorder_token}" ]; then
+          echo -e "${INFO} Error message: ${COL_RED}${tricorder_token}${COL_NC}\\n"
+          tricorder_token=""
+      fi
+      exit 1
   fi
-
-  if command -v openssl &> /dev/null; then
-    openssl s_client -quiet -connect tricorder.pi-hole.net:9998 2> /dev/null < /dev/stdin
-    exit "$?"
-  else
-    echo -e "  ${INFO} ${COL_YELLOW}Security Notice${COL_NC}: ${COL_WHITE}openssl${COL_NC} is not installed
-       Your debug log will be transmitted unencrypted via plain-text
-       There is a possibility that this could be intercepted by a third party
-       If you wish to cancel, press Ctrl-C to exit within 10 seconds"
-    secs="10"
-    while [[ "$secs" -gt "0" ]]; do
-       echo -ne "."
-       sleep 1
-       : $((secs--))
-    done
-    echo " "
-    nc tricorder.pi-hole.net 9999 < /dev/stdin
-    exit "$?"
-  fi
+  echo "Upload successful, your token is: ${COL_GREEN}${tricorder_token}${COL_NC}"
+  exit 0
 }
 
 updateCheckFunc() {
@@ -421,7 +443,10 @@ Debugging Options:
                         Add '-a' to automatically upload the log to tricorder.pi-hole.net
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
-  -t, tail            View the live output of the Pi-hole log
+  -t, tail [arg]      View the live output of the Pi-hole log.
+                      Add an optional argument to filter the log
+                      (regular expressions are supported)
+
 
 Options:
   -a, admin           Web interface options
@@ -495,7 +520,7 @@ case "${1}" in
   "status"                      ) statusFunc "$2";;
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
-  "-t" | "tail"                 ) tailFunc;;
+  "-t" | "tail"                 ) tailFunc "$2";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;

@@ -1,5 +1,5 @@
-FROM centos:7
-RUN yum install -y git
+FROM fedora:34
+RUN dnf install -y git
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
