@@ -1085,9 +1085,9 @@ def test_os_check_fails(host):
     install_dependent_packages ${OS_CHECK_DEPS[@]}
     install_dependent_packages ${INSTALLER_DEPS[@]}
     cat <<EOT > /etc/os-release
-    ID=UnsupportedOS
-    VERSION_ID="2"
-    EOT
+ID=UnsupportedOS
+VERSION_ID="2"
+EOT
     ''')
     detectOS = host.run('''t
     source /opt/pihole/basic-install.sh
