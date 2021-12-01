@@ -516,7 +516,7 @@ parseList() {
   # Find (up to) five domains containing invalid characters (see above)
   incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
 
-  local num_target_lines num_correct_lines num_invalid
+  local num_target_lines num_correct_lines
   # Get number of lines in source file
   num_lines="$(grep -c "^" "${src}")"
   # Get number of lines in destination file
