@@ -13,6 +13,10 @@ DEFAULT="-1"
 COREGITDIR="/etc/.pihole/"
 WEBGITDIR="/var/www/html/admin/"
 
+# Source the setupvars config file
+# shellcheck disable=SC1091
+source /etc/pihole/setupVars.conf
+
 getLocalVersion() {
     # FTL requires a different method
     if [[ "$1" == "FTL" ]]; then
@@ -91,10 +95,11 @@ getRemoteVersion(){
     #If the above file exists, then we can read from that. Prevents overuse of GitHub API
     if [[ -f "$cachedVersions" ]]; then
         IFS=' ' read -r -a arrCache < "$cachedVersions"
+
         case $daemon in
             "pi-hole"   )  echo "${arrCache[0]}";;
-            "AdminLTE"  )  echo "${arrCache[1]}";;
-            "FTL"       )  echo "${arrCache[2]}";;
+            "AdminLTE"  )  [[ "${INSTALL_WEB_INTERFACE}" == true ]] && echo "${arrCache[1]}";;
+            "FTL"       )  [[ "${INSTALL_WEB_INTERFACE}" == true ]] && echo "${arrCache[2]}" || echo "${arrCache[1]}";;
         esac
 
         return 0
@@ -140,6 +145,11 @@ getLocalBranch(){
 }
 
 versionOutput() {
+    if [[ "$1" == "AdminLTE" && "${INSTALL_WEB_INTERFACE}" != true ]]; then
+        echo "  WebAdmin not installed"
+        return 1
+    fi
+
     [[ "$1" == "pi-hole" ]] && GITDIR=$COREGITDIR
     [[ "$1" == "AdminLTE" ]] && GITDIR=$WEBGITDIR
     [[ "$1" == "FTL" ]] && GITDIR="FTL"
@@ -166,6 +176,7 @@ versionOutput() {
         output="Latest ${1^} hash is $latHash"
     else
         errorOutput
+        return 1
     fi
 
     [[ -n "$output" ]] && echo "  $output"
@@ -177,10 +188,6 @@ errorOutput() {
 }
 
 defaultOutput() {
-    # Source the setupvars config file
-    # shellcheck disable=SC1091
-    source /etc/pihole/setupVars.conf
-
     versionOutput "pi-hole" "$@"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
