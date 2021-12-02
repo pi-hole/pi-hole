@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017-2018 Pi-hole, LLC (https://pi-hole.net)
+# (c) 2017-2021 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -172,7 +172,7 @@ os_check() {
         local remote_os_domain valid_os valid_version valid_response detected_os detected_version display_warning cmdResult digReturnCode response
         remote_os_domain=${OS_CHECK_DOMAIN_NAME:-"versions.pi-hole.net"}
 
-        detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+        detected_os=$(grep '^ID=' /etc/os-release | cut -d '=' -f2 | tr -d '"')
         detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
         cmdResult="$(dig +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
@@ -856,7 +856,7 @@ valid_ip() {
     # Regex matching an optional port (starting with '#') range of 1-65536
     local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?";
     # Build a full IPv4 regex from the above subexpressions
-    local regex="^${ipv4elem}\.${ipv4elem}\.${ipv4elem}\.${ipv4elem}${portelem}$"
+    local regex="^${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}${portelem}$"
 
     # Evaluate the regex, and return the result
     [[ $ip =~ ${regex} ]]
@@ -1862,7 +1862,7 @@ checkSelinux() {
     local CURRENT_SELINUX
     local SELINUX_ENFORCING=0
     # Check for SELinux configuration file and getenforce command
-    if [[ -f /etc/selinux/config ]] && command -v getenforce &> /dev/null; then
+    if [[ -f /etc/selinux/config ]] && is_command getenforce; then
         # Check the default SELinux mode
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
@@ -2094,7 +2094,6 @@ clone_or_update_repos() {
 # shellcheck disable=SC2120
 FTLinstall() {
     # Local, named variables
-    local latesttag
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
 
@@ -2165,7 +2164,7 @@ FTLinstall() {
 
 disable_dnsmasq() {
     # dnsmasq can now be stopped and disabled if it exists
-    if which dnsmasq &> /dev/null; then
+    if is_command dnsmasq; then
         if check_service_active "dnsmasq";then
             printf "  %b FTL can now resolve DNS Queries without dnsmasq running separately\\n" "${INFO}"
             stop_service dnsmasq
@@ -2295,7 +2294,7 @@ FTLcheckUpdate() {
     local localSha1
 
     # if dnsmasq exists and is running at this point, force reinstall of FTL Binary
-    if which dnsmasq &> /dev/null; then
+    if is_command dnsmasq; then
         if check_service_active "dnsmasq";then
             return 0
         fi
