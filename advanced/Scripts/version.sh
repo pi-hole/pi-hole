@@ -13,6 +13,10 @@ DEFAULT="-1"
 COREGITDIR="/etc/.pihole/"
 WEBGITDIR="/var/www/html/admin/"
 
+# Source the setupvars config file
+# shellcheck disable=SC1091
+source /etc/pihole/setupVars.conf
+
 getLocalVersion() {
     # FTL requires a different method
     if [[ "$1" == "FTL" ]]; then
@@ -184,10 +188,6 @@ errorOutput() {
 }
 
 defaultOutput() {
-    # Source the setupvars config file
-    # shellcheck disable=SC1091
-    source /etc/pihole/setupVars.conf
-
     versionOutput "pi-hole" "$@"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
