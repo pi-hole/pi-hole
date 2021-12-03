@@ -248,7 +248,7 @@ database_adlist_number() {
     return;
   fi
 
-  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${num_lines}" "${num_invalid}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${num_source_lines}" "${num_invalid}" "${1}" | sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -503,8 +503,9 @@ gravity_DownloadBlocklists() {
   gravity_Blackbody=true
 }
 
-total_num=0
-num_lines=0
+# num_target_lines does increase for every correctly added domain in pareseList()
+num_target_lines=0
+num_source_lines=0
 num_invalid=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
@@ -516,18 +517,20 @@ parseList() {
   # Find (up to) five domains containing invalid characters (see above)
   incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
 
-  local num_target_lines num_correct_lines num_invalid
+  local num_target_lines_new num_correct_lines
   # Get number of lines in source file
-  num_lines="$(grep -c "^" "${src}")"
-  # Get number of lines in destination file
-  num_target_lines="$(grep -c "^" "${target}")"
-  num_correct_lines="$(( num_target_lines-total_num ))"
-  total_num="$num_target_lines"
-  num_invalid="$(( num_lines-num_correct_lines ))"
+  num_source_lines="$(grep -c "^" "${src}")"
+  # Get the new number of lines in destination file
+  num_target_lines_new="$(grep -c "^" "${target}")"
+  # Number of new correctly added lines
+  num_correct_lines="$(( num_target_lines_new-num_target_lines ))"
+  # Upate number of lines in target file
+  num_target_lines="$num_target_lines_new"
+  num_invalid="$(( num_source_lines-num_correct_lines ))"
   if [[ "${num_invalid}" -eq 0 ]]; then
-    echo "  ${INFO} Analyzed ${num_lines} domains"
+    echo "  ${INFO} Analyzed ${num_source_lines} domains"
   else
-    echo "  ${INFO} Analyzed ${num_lines} domains, ${num_invalid} domains invalid!"
+    echo "  ${INFO} Analyzed ${num_source_lines} domains, ${num_invalid} domains invalid!"
   fi
 
   # Display sample of invalid lines if we found some
@@ -686,7 +689,7 @@ gravity_DownloadBlocklistFromUrl() {
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
       # Manually reset these two numbers because we do not call parseList here
-      num_lines=0
+      num_source_lines=0
       num_invalid=0
       database_adlist_number "${adlistID}"
       database_adlist_status "${adlistID}" "4"
