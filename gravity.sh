@@ -596,6 +596,10 @@ gravity_DownloadBlocklistFromUrl() {
       if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
         blocked=true
       fi;;
+    "NODATA")
+      if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +noall +answer "${domain}" |awk '{print $5}') ]]; then
+         blocked=true
+      fi;;
     "NULL"|*)
       if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
         blocked=true
