@@ -71,8 +71,7 @@ reconfigurePiholeFunc() {
 }
 
 updateGravityFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@"
-  exit $?
+  exec "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@"
 }
 
 queryFunc() {
