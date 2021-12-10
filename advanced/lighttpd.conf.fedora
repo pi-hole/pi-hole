@@ -101,8 +101,10 @@ $HTTP["url"] =~ "/teleporter\.php$" {
 }
 
 # allow API qr code iframe on settings page
-$HTTP["url"] =~ "/admin/settings\.php$" {
-    setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
+$HTTP["url"] =~ "/api_token\.php$" {
+    $HTTP["referer"] =~ "/admin/settings\.php" {
+        setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
+    }
 }
 
 # Default expire header
