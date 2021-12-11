@@ -8,12 +8,20 @@ pihole-FTL.conf \- FTL's config file
 /etc/pihole/pihole-FTL.conf will be read by \fBpihole-FTL(8)\fR on startup.
 
 .SS "Comment lines"
-.\" Warn the reader that bash-style comments must be preceded by a semicolon
-.\"   until the current (as of 2021) web interface is retired, since special
+.\" Warn the reader that bash-style comments must be followed by a semicolon
+.\"   until the current (as of 2021) web interface is retired, since special#;
 .\"  characters such as '#' conflict with the PHP 'parse-ini-file' routine 
+.\"
+.\" 1. Any combination of '#' , ';', or nothing are accepted by the 'pihole-FTL' (C-based) binary itself
+.\" 2. 'gravity.sh', which is called by 'pihole updateGravity', requires the bash-style comment character '#'
+.\" 3. The 'parse-ini-file' function used when the Pi-hole web interface (version < 6.0) requires ';'
+.\"
+'\" Tl;dr: "pihole-FTL.conf is used for three different things: 
+'\"         FTL (C) the web interface (PHP) and gravity (bash). 
+'\"         While C accepts # and ; PHP only allows ; but bash only #."
 .\" 
 .\" This statement requires technical verification: 'Comments are allowed anywhere on a line.'
-Comment lines should begin with a semicolon (';') if any use of the Pi-hole web interface is expected.
+Lines to be ignored by pihole-FTL should each begin with a hash symbol followed by a semicolon ('#;').
 
 .SS "Option flags"
 For each setting the option shown first is the default.
