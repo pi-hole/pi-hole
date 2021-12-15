@@ -12,7 +12,7 @@ jobs:
       issues: write
 
     steps:
-    - uses: actions/stale@v3
+    - uses: actions/stale@v4
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         debug: true
