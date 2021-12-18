@@ -21,5 +21,5 @@ jobs:
                     - Please submit Pull Requests to the **`development` branch only**.
 
                     - Before Submitting your Pull Request, merge `development` with your new branch and fix any conflicts.
-                    (Make sure you don''t break anything in `development`!)'
+                    (Make sure you don't break anything in `development`!)'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
