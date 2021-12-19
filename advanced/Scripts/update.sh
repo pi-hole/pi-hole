@@ -35,6 +35,7 @@ source "/opt/pihole/COL_TABLE"
 
 GitCheckUpdateAvail() {
     local directory
+    local repo_name repo_url
     directory="${1}"
     curdir=$PWD
     cd "${directory}" || return
@@ -42,18 +43,33 @@ GitCheckUpdateAvail() {
     # Fetch latest changes in this repo
     git fetch --quiet origin
 
-    # @ alone is a shortcut for HEAD. Older versions of git
-    # need @{0}
-    LOCAL="$(git rev-parse "@{0}")"
+    # Check current branch. If it is master, then check for the latest available tag instead of latest commit.
+    curBranch=$(git rev-parse --abbrev-ref HEAD)
+    if [[ "${curBranch}" == "master" ]]; then
+        # get the latest local tag
+        LOCAL=$(git describe --abbrev=0 --tags)
+        # get remote repo_name and URL
+        repo_name="$(git config --get remote.origin.url |  awk -F '[/.]' '{ print $6}')"
+        repo_url="https://api.github.com/repos/pi-hole/${repo_name}/releases/latest"
+        # get the latest tag from remote
+        REMOTE="$(curl -s ${repo_url}  2> /dev/null |grep tag_name | awk 'BEGIN { FS = "\"" } ; { print $4}')"
 
-    # The suffix @{upstream} to a branchname
-    # (short form <branchname>@{u}) refers
-    # to the branch that the branch specified
-    # by branchname is set to build on top of#
-    # (configured with branch.<name>.remote and
-    # branch.<name>.merge). A missing branchname
-    # defaults to the current one.
-    REMOTE="$(git rev-parse "@{upstream}")"
+
+    else
+        # @ alone is a shortcut for HEAD. Older versions of git
+        # need @{0}
+        LOCAL="$(git rev-parse "@{0}")"
+
+        # The suffix @{upstream} to a branchname
+        # (short form <branchname>@{u}) refers
+        # to the branch that the branch specified
+        # by branchname is set to build on top of#
+        # (configured with branch.<name>.remote and
+        # branch.<name>.merge). A missing branchname
+        # defaults to the current one.
+        REMOTE="$(git rev-parse "@{upstream}")"
+    fi
+
 
     if [[ "${#LOCAL}" == 0 ]]; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Local revision could not be obtained, please contact Pi-hole Support"
