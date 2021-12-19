@@ -52,7 +52,7 @@ GitCheckUpdateAvail() {
         repo_name="$(git config --get remote.origin.url |  awk -F '[/.]' '{ print $6}')"
         repo_url="https://api.github.com/repos/pi-hole/${repo_name}/releases/latest"
         # get the latest tag from remote
-        REMOTE="$(curl -s ${repo_url}  2> /dev/null |grep tag_name | awk 'BEGIN { FS = "\"" } ; { print $4}')"
+        REMOTE="$(curl -s "${repo_url}"  2> /dev/null |grep tag_name | awk 'BEGIN { FS = "\"" } ; { print $4}')"
 
 
     else
