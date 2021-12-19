@@ -49,11 +49,10 @@ GitCheckUpdateAvail() {
         # get the latest local tag
         LOCAL=$(git describe --abbrev=0 --tags)
         # get remote repo_name and URL
-        repo_name="$(git config --get remote.origin.url |  awk -F '[/.]' '{ print $6}')"
+        repo_name="$(basename -s .git $(git remote get-url origin))"
         repo_url="https://api.github.com/repos/pi-hole/${repo_name}/releases/latest"
         # get the latest tag from remote
-        REMOTE="$(curl -s "${repo_url}"  2> /dev/null |grep tag_name | awk 'BEGIN { FS = "\"" } ; { print $4}')"
-
+        REMOTE=$(curl -s "${repo_url}"  2> /dev/null | grep tag_name | awk 'BEGIN { FS = "\"" } ; { print $4}')
 
     else
         # @ alone is a shortcut for HEAD. Older versions of git
