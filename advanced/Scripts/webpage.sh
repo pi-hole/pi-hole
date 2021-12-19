@@ -199,6 +199,8 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
     # Setup interface listening behavior of dnsmasq
     delete_dnsmasq_setting "interface"
     delete_dnsmasq_setting "local-service"
+    delete_dnsmasq_setting "except-interface"
+    delete_dnsmasq_setting "bind-interfaces"
 
     if [[ "${DNSMASQ_LISTENING}" == "all" ]]; then
         # Listen on all interfaces, permit all origins
@@ -207,6 +209,7 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         # Listen only on all interfaces, but only local subnets
         add_dnsmasq_setting "local-service"
     else
+        # Options "bind" and "single"
         # Listen only on one interface
         # Use eth0 as fallback interface if interface is missing in setupVars.conf
         if [ -z "${PIHOLE_INTERFACE}" ]; then
@@ -214,6 +217,11 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
         fi
 
         add_dnsmasq_setting "interface" "${PIHOLE_INTERFACE}"
+
+        if [[ "${DNSMASQ_LISTENING}" == "bind" ]]; then
+            # Really bind to interface
+            add_dnsmasq_setting "bind-interfaces"
+        fi
     fi
 
     if [[ "${CONDITIONAL_FORWARDING}" == true ]]; then
@@ -600,9 +608,10 @@ Example: 'pihole -a -i local'
 Specify dnsmasq's network interface listening behavior
 
 Interfaces:
-  local               Listen on all interfaces, but only allow queries from
-                      devices that are at most one hop away (local devices)
-  single              Listen only on ${PIHOLE_INTERFACE} interface
+  local               Only respond to queries from devices that
+                      are at most one hop away (local devices)
+  single              Respond only on interface ${PIHOLE_INTERFACE}
+  bind                Bind only on interface ${PIHOLE_INTERFACE}
   all                 Listen on all interfaces, permit all origins"
         exit 0
     fi
@@ -613,6 +622,9 @@ Interfaces:
     elif [[ "${args[2]}" == "local" ]]; then
         echo -e "  ${INFO} Listening on all interfaces, permitting origins from one hop away (LAN)"
         change_setting "DNSMASQ_LISTENING" "local"
+    elif [[ "${args[2]}" == "bind" ]]; then
+        echo -e "  ${INFO} Binding on interface ${PIHOLE_INTERFACE}"
+        change_setting "DNSMASQ_LISTENING" "bind"
     else
         echo -e "  ${INFO} Listening only on interface ${PIHOLE_INTERFACE}"
         change_setting "DNSMASQ_LISTENING" "single"
