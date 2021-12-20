@@ -75,7 +75,10 @@ fi
 
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
-  sqlite3 "${gravityDBFile}" < "${gravityDBschema}"
+  if ! sqlite3 "${gravityDBfile}" < "${gravityDBschema}"; then
+    echo -e "   ${CROSS} Unable to create ${gravityDBfile}"
+    return 1
+  fi
   chown pihole:pihole "${gravityDBfile}"
   chmod g+w "${piholeDir}" "${gravityDBfile}"
 }
@@ -281,7 +284,10 @@ migrate_to_database() {
   if [ ! -e "${gravityDBfile}" ]; then
     # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
-    generate_gravity_database
+    if ! generate_gravity_database; then
+      echo -e "   ${CROSS} Error creating new gravity database. Please contact support."
+      return 1
+    fi
 
     # Check if gravity database needs to be updated
     upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
@@ -887,7 +893,10 @@ if [[ "${recreate_database:-}" == true ]]; then
 fi
 
 # Move possibly existing legacy files to the gravity database
-migrate_to_database
+if ! migrate_to_database; then
+  echo -e "   ${CROSS} Unable to migrate to database. Please contact support."
+  exit 1
+fi
 
 if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
@@ -898,7 +907,7 @@ if [[ "${forceDelete:-}" == true ]]; then
 fi
 
 # Gravity downloads blocklists next
-if [[ ! gravity_CheckDNSResolutionAvailable ]]; then
+if ! gravity_CheckDNSResolutionAvailable; then
   echo -e "   ${CROSS} Can not complete gravity update, no DNS is available. Please contact support."
   exit 1
 fi
@@ -909,7 +918,10 @@ gravity_DownloadBlocklists
 gravity_generateLocalList
 
 # Migrate rest of the data from old to new database
-gravity_swap_databases
+if ! gravity_swap_databases; then
+  echo -e "   ${CROSS} Unable to create database. Please contact support."
+  exit 1
+fi
 
 # Update gravity timestamp
 update_gravity_timestamp
