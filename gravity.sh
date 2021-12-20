@@ -898,7 +898,11 @@ if [[ "${forceDelete:-}" == true ]]; then
 fi
 
 # Gravity downloads blocklists next
-gravity_CheckDNSResolutionAvailable
+if [[ ! gravity_CheckDNSResolutionAvailable ]]; then
+  echo -e "   ${CROSS} Can not complete gravity update, no DNS is available. Please contact support."
+  exit 1
+fi
+
 gravity_DownloadBlocklists
 
 # Create local.list
