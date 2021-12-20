@@ -75,7 +75,9 @@ fi
 
 # Generate new sqlite3 file from schema template
 generate_gravity_database() {
-  sqlite3 "${1}" < "${gravityDBschema}"
+  sqlite3 "${gravityDBFile}" < "${gravityDBschema}"
+  chown pihole:pihole "${gravityDBfile}"
+  chmod g+w "${piholeDir}" "${gravityDBfile}"
 }
 
 # Copy data from old to new database file and swap them
@@ -279,7 +281,7 @@ migrate_to_database() {
   if [ ! -e "${gravityDBfile}" ]; then
     # Create new database file - note that this will be created in version 1
     echo -e "  ${INFO} Creating new gravity database"
-    generate_gravity_database "${gravityDBfile}"
+    generate_gravity_database
 
     # Check if gravity database needs to be updated
     upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
