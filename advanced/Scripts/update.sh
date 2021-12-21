@@ -35,7 +35,7 @@ source "/opt/pihole/COL_TABLE"
 
 GitCheckUpdateAvail() {
     local directory
-    local repo_name repo_url
+    local curBranch
     directory="${1}"
     curdir=$PWD
     cd "${directory}" || return
@@ -47,12 +47,9 @@ GitCheckUpdateAvail() {
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
         # get the latest local tag
-        LOCAL=$(git describe --abbrev=0 --tags)
-        # get remote repo_name and URL
-        repo_name="$(basename -s .git "$(git remote get-url origin)")"
-        repo_url="https://api.github.com/repos/pi-hole/${repo_name}/releases/latest"
+        LOCAL=$(git describe --abbrev=0 --tags master)
         # get the latest tag from remote
-        REMOTE=$(curl -s "${repo_url}"  2> /dev/null | grep tag_name | awk 'BEGIN { FS = "\"" } ; { print $4}')
+        REMOTE=$(git describe --abbrev=0 --tags origin/master)
 
     else
         # @ alone is a shortcut for HEAD. Older versions of git
