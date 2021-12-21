@@ -41,7 +41,7 @@ GitCheckUpdateAvail() {
     cd "${directory}" || return
 
     # Fetch latest changes in this repo
-    git fetch --quiet origin
+    git fetch --tags --quiet origin
 
     # Check current branch. If it is master, then check for the latest available tag instead of latest commit.
     curBranch=$(git rev-parse --abbrev-ref HEAD)
