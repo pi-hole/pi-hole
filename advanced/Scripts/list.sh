@@ -92,7 +92,7 @@ Options:
   -h, --help          Show this help dialog
   -l, --list          Display all your ${listname}listed domains
   --nuke              Removes all entries in a list
-  --comment "text"    Add a comment to the domain. If adding multiple domains the same comment will be used for all"
+  --comment \"text\"    Add a comment to the domain. If adding multiple domains the same comment will be used for all"
 
   exit 0
 }
