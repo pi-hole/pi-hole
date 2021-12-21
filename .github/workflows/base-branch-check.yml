@@ -1,9 +1,9 @@
-name: Base Branch Checker
+name: Pull Requests
 
 on:
-  pull_request:
-    branches-ignore:
-      - development
+  pull_request_target: # By default, a workflow only runs when a pull_request_target's activity type is opened, synchronize, or reopened.
+    branches:
+      - master # Run only on master branch
 
 jobs:
   base_branch_check:
@@ -12,14 +12,7 @@ jobs:
     steps:
       - name: Comment PR
         uses: thollander/actions-comment-pull-request@v1
-
         with:
-          message: 'Hello -- It appears you have opened this Pull Request to the wrong branch.
-
-                    ### Technical Requirements
-
-                    - Please submit Pull Requests to the **`development` branch only**.
-
-                    - Before Submitting your Pull Request, merge `development` with your new branch and fix any conflicts.
-                    (Make sure you don't break anything in `development`!)'
+          message: >
+            Thank you very much for your contribution. An automated check has shown that you have opened your Pull Request to the `master` branch. As our project uses this branch for released code we ask you to submit any Pull Requests to the `development` branch instead. Note that, in most cases, you don't have to create a new pull request but can simply [change the base branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-base-branch-of-a-pull-request).
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
