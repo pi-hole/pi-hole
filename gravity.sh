@@ -851,6 +851,7 @@ gravity_Cleanup() {
 database_recovery() {
   local result
   local str="Checking integrity of existing gravity database"
+  local option="${1}"
   echo -ne "  ${INFO} ${str}..."
   if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA integrity_check" 2>&1)"; then
     echo -e "${OVER}  ${TICK} ${str} - no errors found"
@@ -859,7 +860,7 @@ database_recovery() {
     echo -ne "  ${INFO} ${str}..."
     if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"; then
       echo -e "${OVER}  ${TICK} ${str} - no errors found"
-      if [[ $1 != "force" ]]; then
+      if [[ "${option}" != "force" ]]; then
         return
       fi
     else
