@@ -849,7 +849,8 @@ gravity_Cleanup() {
 }
 
 database_recovery() {
-  str="Checking integrity of existing gravity database"
+  local result
+  local str="Checking integrity of existing gravity database"
   echo -ne "  ${INFO} ${str}..."
   if result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA integrity_check" 2>&1)"; then
     echo -e "${OVER}  ${TICK} ${str} - no errors found"
