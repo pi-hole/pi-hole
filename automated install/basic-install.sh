@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017-2018 Pi-hole, LLC (https://pi-hole.net)
+# (c) 2017-2021 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -76,7 +76,7 @@ PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
 if [ -z "$useUpdateVars" ]; then
-  useUpdateVars=false
+    useUpdateVars=false
 fi
 
 adlistFile="/etc/pihole/adlists.list"
@@ -90,7 +90,7 @@ PRIVACY_LEVEL=0
 CACHE_SIZE=10000
 
 if [ -z "${USER}" ]; then
-  USER="$(id -un)"
+    USER="$(id -un)"
 fi
 
 # whiptail dialog dimensions: 20 rows and 70 chars width assures to fit on small screens and is known to hold all content.
@@ -133,7 +133,7 @@ fi
 # A simple function that just echoes out our logo in ASCII format
 # This lets users know that it is a Pi-hole, LLC product
 show_ascii_berry() {
-  echo -e "
+    echo -e "
         ${COL_LIGHT_GREEN}.;;,.
         .ccccc:,.
          :cccclll:.      ..,,
@@ -172,7 +172,7 @@ os_check() {
         local remote_os_domain valid_os valid_version valid_response detected_os detected_version display_warning cmdResult digReturnCode response
         remote_os_domain=${OS_CHECK_DOMAIN_NAME:-"versions.pi-hole.net"}
 
-        detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+        detected_os=$(grep '^ID=' /etc/os-release | cut -d '=' -f2 | tr -d '"')
         detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
         cmdResult="$(dig +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
@@ -261,174 +261,174 @@ os_check() {
 
 # Compatibility
 package_manager_detect() {
-# First check to see if apt-get is installed.
-if is_command apt-get ; then
-    # Set some global variables here
-    # We don't set them earlier since the installed package manager might be rpm, so these values would be different
-    PKG_MANAGER="apt-get"
-    # A variable to store the command used to update the package cache
-    UPDATE_PKG_CACHE="${PKG_MANAGER} update"
-    # The command we will use to actually install packages
-    PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
-    # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
-    PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-    # Update package cache
-    update_package_cache || exit 1
-    # Check for and determine version number (major and minor) of current php install
-    local phpVer="php"
-    if is_command php ; then
-        printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
-        printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
-        printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
-        phpVer="php$phpInsMajor.$phpInsMinor"
-    fi
-    # Packages required to perfom the os_check (stored as an array)
-    OS_CHECK_DEPS=(grep dnsutils)
-    # Packages required to run this install script (stored as an array)
-    INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
-    # Packages required to run Pi-hole (stored as an array)
-    PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
-    # Packages required for the Web admin interface (stored as an array)
-    # It's useful to separate this from Pi-hole, since the two repos are also setup separately
-    PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
-    # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
-    if [[ -z "${phpInsMajor}" || "${phpInsMajor}" -lt 8 ]]; then
-        PIHOLE_WEB_DEPS+=("${phpVer}-json")
-    fi
-    # The Web server user,
-    LIGHTTPD_USER="www-data"
-    # group,
-    LIGHTTPD_GROUP="www-data"
-    # and config file
-    LIGHTTPD_CFG="lighttpd.conf.debian"
+    # First check to see if apt-get is installed.
+    if is_command apt-get ; then
+        # Set some global variables here
+        # We don't set them earlier since the installed package manager might be rpm, so these values would be different
+        PKG_MANAGER="apt-get"
+        # A variable to store the command used to update the package cache
+        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+        # The command we will use to actually install packages
+        PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
+        # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
+        PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+        # Update package cache
+        update_package_cache || exit 1
+        # Check for and determine version number (major and minor) of current php install
+        local phpVer="php"
+        if is_command php ; then
+            printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
+            printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
+            printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
+            phpVer="php$phpInsMajor.$phpInsMinor"
+        fi
+        # Packages required to perfom the os_check (stored as an array)
+        OS_CHECK_DEPS=(grep dnsutils)
+        # Packages required to run this install script (stored as an array)
+        INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
+        # Packages required to run Pi-hole (stored as an array)
+        PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+        # Packages required for the Web admin interface (stored as an array)
+        # It's useful to separate this from Pi-hole, since the two repos are also setup separately
+        PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
+        # Prior to PHP8.0, JSON functionality is provided as dedicated module, required by Pi-hole AdminLTE: https://www.php.net/manual/json.installation.php
+        if [[ -z "${phpInsMajor}" || "${phpInsMajor}" -lt 8 ]]; then
+            PIHOLE_WEB_DEPS+=("${phpVer}-json")
+        fi
+        # The Web server user,
+        LIGHTTPD_USER="www-data"
+        # group,
+        LIGHTTPD_GROUP="www-data"
+        # and config file
+        LIGHTTPD_CFG="lighttpd.conf.debian"
 
-    # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
-    test_dpkg_lock() {
-        i=0
-        # fuser is a program to show which processes use the named files, sockets, or filesystems
-        # So while the lock is held,
-        while fuser /var/lib/dpkg/lock >/dev/null 2>&1
-        do
-            # we wait half a second,
-            sleep 0.5
-            # increase the iterator,
-            ((i=i+1))
-        done
-        # and then report success once dpkg is unlocked.
-        return 0
-    }
+        # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
+        test_dpkg_lock() {
+            i=0
+            # fuser is a program to show which processes use the named files, sockets, or filesystems
+            # So while the lock is held,
+            while fuser /var/lib/dpkg/lock >/dev/null 2>&1
+            do
+                # we wait half a second,
+                sleep 0.5
+                # increase the iterator,
+                ((i=i+1))
+            done
+            # and then report success once dpkg is unlocked.
+            return 0
+        }
 
-# If apt-get is not found, check for rpm.
-elif is_command rpm ; then
-    # Then check if dnf or yum is the package manager
-    if is_command dnf ; then
-        PKG_MANAGER="dnf"
+    # If apt-get is not found, check for rpm.
+    elif is_command rpm ; then
+        # Then check if dnf or yum is the package manager
+        if is_command dnf ; then
+            PKG_MANAGER="dnf"
+        else
+            PKG_MANAGER="yum"
+        fi
+
+        # These variable names match the ones for apt-get. See above for an explanation of what they are for.
+        PKG_INSTALL=("${PKG_MANAGER}" install -y)
+        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
+        OS_CHECK_DEPS=(grep bind-utils)
+        INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
+        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof)
+        PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
+        LIGHTTPD_USER="lighttpd"
+        LIGHTTPD_GROUP="lighttpd"
+        LIGHTTPD_CFG="lighttpd.conf.fedora"
+
+    # If neither apt-get or yum/dnf package managers were found
     else
-        PKG_MANAGER="yum"
+        # we cannot install required packages
+        printf "  %b No supported package manager found\\n" "${CROSS}"
+        # so exit the installer
+        exit
     fi
-
-    # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-    PKG_INSTALL=("${PKG_MANAGER}" install -y)
-    PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
-    OS_CHECK_DEPS=(grep bind-utils)
-    INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
-    PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof)
-    PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
-    LIGHTTPD_USER="lighttpd"
-    LIGHTTPD_GROUP="lighttpd"
-    LIGHTTPD_CFG="lighttpd.conf.fedora"
-
-# If neither apt-get or yum/dnf package managers were found
-else
-    # we cannot install required packages
-    printf "  %b No supported package manager found\\n" "${CROSS}"
-    # so exit the installer
-    exit
-fi
 }
 
 select_rpm_php(){
-# If the host OS is Fedora,
-if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-    # all required packages should be available by default with the latest fedora release
-    : # continue
-# or if host OS is CentOS,
-elif grep -qiE 'centos|scientific' /etc/redhat-release; then
-    # Pi-Hole currently supports CentOS 7+ with PHP7+
-    SUPPORTED_CENTOS_VERSION=7
-    SUPPORTED_CENTOS_PHP_VERSION=7
-    # Check current CentOS major release version
-    CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-    # Check if CentOS version is supported
-    if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-        printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
-        printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
-        # exit the installer
-        exit
-    fi
-    # php-json is not required on CentOS 7 as it is already compiled into php
-    # verifiy via `php -m | grep json`
-    if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
-        # create a temporary array as arrays are not designed for use as mutable data structures
-        CENTOS7_PIHOLE_WEB_DEPS=()
-        for i in "${!PIHOLE_WEB_DEPS[@]}"; do
-            if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
-                CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
-            fi
-        done
-        # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
-        PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
-        unset CENTOS7_PIHOLE_WEB_DEPS
-    fi
-    # CentOS requires the EPEL repository to gain access to Fedora packages
-    EPEL_PKG="epel-release"
-    rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
-    if [[ $rc -ne 0 ]]; then
-        printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-        "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-        printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
-    fi
+    # If the host OS is Fedora,
+    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+        # all required packages should be available by default with the latest fedora release
+        : # continue
+    # or if host OS is CentOS,
+    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
+        # Pi-Hole currently supports CentOS 7+ with PHP7+
+        SUPPORTED_CENTOS_VERSION=7
+        SUPPORTED_CENTOS_PHP_VERSION=7
+        # Check current CentOS major release version
+        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+        # Check if CentOS version is supported
+        if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
+            printf "  %b CentOS %s is not supported.\\n" "${CROSS}" "${CURRENT_CENTOS_VERSION}"
+            printf "      Please update to CentOS release %s or later.\\n" "${SUPPORTED_CENTOS_VERSION}"
+            # exit the installer
+            exit
+        fi
+        # php-json is not required on CentOS 7 as it is already compiled into php
+        # verifiy via `php -m | grep json`
+        if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
+            # create a temporary array as arrays are not designed for use as mutable data structures
+            CENTOS7_PIHOLE_WEB_DEPS=()
+            for i in "${!PIHOLE_WEB_DEPS[@]}"; do
+                if [[ ${PIHOLE_WEB_DEPS[i]} != "php-json" ]]; then
+                    CENTOS7_PIHOLE_WEB_DEPS+=( "${PIHOLE_WEB_DEPS[i]}" )
+                fi
+            done
+            # re-assign the clean dependency array back to PIHOLE_WEB_DEPS
+            PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
+            unset CENTOS7_PIHOLE_WEB_DEPS
+        fi
+        # CentOS requires the EPEL repository to gain access to Fedora packages
+        EPEL_PKG="epel-release"
+        rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
+        if [[ $rc -ne 0 ]]; then
+            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+            "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+        fi
 
-    # The default php on CentOS 7.x is 5.4 which is EOL
-    # Check if the version of PHP available via installed repositories is >= to PHP 7
-    AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
-    if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
-        # Since PHP 7 is available by default, install via default PHP package names
-        : # do nothing as PHP is current
-    else
-        REMI_PKG="remi-release"
-        REMI_REPO="remi-php72"
-        rpm -q ${REMI_PKG} &> /dev/null || rc=$?
-    if [[ $rc -ne 0 ]]; then
-        # The PHP version available via default repositories is older than version 7
-        if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
-            # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
-            printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
-            : # continue with unsupported php version
+        # The default php on CentOS 7.x is 5.4 which is EOL
+        # Check if the version of PHP available via installed repositories is >= to PHP 7
+        AVAILABLE_PHP_VERSION=$("${PKG_MANAGER}" info php | grep -i version | grep -o '[0-9]\+' | head -1)
+        if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
+            # Since PHP 7 is available by default, install via default PHP package names
+            : # do nothing as PHP is current
         else
-            printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-            "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-            # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-            "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-            yum-config-manager --enable ${REMI_REPO} &> /dev/null
-            printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
-            # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
-            if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
-                printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+            REMI_PKG="remi-release"
+            REMI_REPO="remi-php72"
+            rpm -q ${REMI_PKG} &> /dev/null || rc=$?
+            if [[ $rc -ne 0 ]]; then
+                # The PHP version available via default repositories is older than version 7
+                if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
+                    # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+                    printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
+                    : # continue with unsupported php version
+                else
+                    printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
+                    "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
+                    # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+                    "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+                    yum-config-manager --enable ${REMI_REPO} &> /dev/null
+                    printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
+                    # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+                    if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                        printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+                    else
+                        printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
+                        exit 1
+                    fi
+                fi
+            fi    # Warn user of unsupported version of Fedora or CentOS
+            if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
+                printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
+                exit
             else
-                printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
-                exit 1
+                printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
             fi
         fi
-    fi    # Warn user of unsupported version of Fedora or CentOS
-    if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
-        printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-        exit
-    else
-        printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
     fi
-fi
-fi
 }
 
 # A function for checking if a directory is a git repository
@@ -519,7 +519,7 @@ update_repo() {
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
-         git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
+        git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
     fi
     # Show a completion message
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -629,12 +629,12 @@ welcomeDialogs() {
 IMPORTANT: If you have not already done so, you must ensure that this device has a static IP. Either through DHCP reservation, or by manually assigning one. Depending on your operating system, there are many ways to achieve this.
 
 Choose yes to indicate that you have understood this message, and wish to continue" "${r}" "${c}"; then
-#Nothing to do, continue
-  echo
-else
-  printf "  %b Installer exited at static IP message.\\n" "${INFO}"
-  exit 1
-fi
+        #Nothing to do, continue
+        echo
+    else
+        printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+        exit 1
+    fi
 }
 
 # A function that lets the user pick an interface to use with Pi-hole
@@ -674,7 +674,7 @@ chooseInterface() {
         # Feed the available interfaces into this while loop
         done <<< "${availableInterfaces}"
         # The whiptail command that will be run, stored in a variable
-        chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to toggle selection)" "${r}" "${c}" "${interfaceCount}")
+        chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to toggle selection)" "${r}" "${c}" 6)
         # Now run the command using the interfaces saved into the array
         chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
         # If the user chooses Cancel, exit
@@ -759,9 +759,8 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     # if `dhcpcd` is used offer to set this as static IP for the device
     if [[ -f "/etc/dhcpcd.conf" ]]; then
-            # configure networking via dhcpcd
-            getStaticIPv4Settings
-            setDHCPCD
+        # configure networking via dhcpcd
+        getStaticIPv4Settings
     fi
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
@@ -770,47 +769,59 @@ collect_v4andv6_information() {
 getStaticIPv4Settings() {
     # Local, named variables
     local ipSettingsCorrect
+    local DHCPChoice
     # Ask if the user wants to use DHCP settings as their static IP
     # This is useful for users that are using DHCP reservations; then we can just use the information gathered via our functions
-    if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Do you want to use your current network settings as a static address?
-          IP address:    ${IPV4_ADDRESS}
-          Gateway:       ${IPv4gw}" "${r}" "${c}"; then
+    DHCPChoice=$(whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --menu --separate-output "Do you want to use your current network settings as a static address? \\n
+          IP address:    ${IPV4_ADDRESS} \\n
+          Gateway:       ${IPv4gw} \\n" "${r}" "${c}" 3\
+          "Yes" "Set static IP using current values" \
+          "No" "Set static IP using custom values" \
+          "Skip" "I will set a static IP later, or have already done so" 3>&2 2>&1 1>&3) || \
+          { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+
+    case ${DHCPChoice} in
+        "Yes")
         # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
         whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
-If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
-It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." "${r}" "${c}"
-    # Nothing else to do since the variables are already set above
-    else
-    # Otherwise, we need to ask the user to input their desired settings.
-    # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
-    # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-    until [[ "${ipSettingsCorrect}" = True ]]; do
+        If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
+        It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." "${r}" "${c}"
+        # Nothing else to do since the variables are already set above
+        setDHCPCD
+        ;;
 
-        # Ask for the IPv4 address
-        IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" "${r}" "${c}" "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
-        # Canceling IPv4 settings window
-        { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-        printf "  %b Your static IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+        "No")
+        # Otherwise, we need to ask the user to input their desired settings.
+        # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
+        # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
+        until [[ "${ipSettingsCorrect}" = True ]]; do
 
-        # Ask for the gateway
-        IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" "${r}" "${c}" "${IPv4gw}" 3>&1 1>&2 2>&3) || \
-        # Canceling gateway settings window
-        { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-        printf "  %b Your static IPv4 gateway: %s\\n" "${INFO}" "${IPv4gw}"
+            # Ask for the IPv4 address
+            IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" "${r}" "${c}" "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
+            # Canceling IPv4 settings window
+            { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+            printf "  %b Your static IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
 
-        # Give the user a chance to review their settings before moving on
-        if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-            IP address: ${IPV4_ADDRESS}
-            Gateway:    ${IPv4gw}" "${r}" "${c}"; then
-                # After that's done, the loop ends and we move on
-                ipSettingsCorrect=True
-        else
-            # If the settings are wrong, the loop continues
-            ipSettingsCorrect=False
-        fi
-    done
-    # End the if statement for DHCP vs. static
-    fi
+            # Ask for the gateway
+            IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" "${r}" "${c}" "${IPv4gw}" 3>&1 1>&2 2>&3) || \
+            # Canceling gateway settings window
+            { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+            printf "  %b Your static IPv4 gateway: %s\\n" "${INFO}" "${IPv4gw}"
+
+            # Give the user a chance to review their settings before moving on
+            if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
+                IP address: ${IPV4_ADDRESS}
+                Gateway:    ${IPv4gw}" "${r}" "${c}"; then
+                    # After that's done, the loop ends and we move on
+                    ipSettingsCorrect=True
+                else
+                    # If the settings are wrong, the loop continues
+                    ipSettingsCorrect=False
+                fi
+            done
+        setDHCPCD
+        ;;
+    esac
 }
 
 # Configure networking via dhcpcd
@@ -845,7 +856,7 @@ valid_ip() {
     # Regex matching an optional port (starting with '#') range of 1-65536
     local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?";
     # Build a full IPv4 regex from the above subexpressions
-    local regex="^${ipv4elem}\.${ipv4elem}\.${ipv4elem}\.${ipv4elem}${portelem}$"
+    local regex="^${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}${portelem}$"
 
     # Evaluate the regex, and return the result
     [[ $ip =~ ${regex} ]]
@@ -902,8 +913,8 @@ setDNS() {
     IFS=${OIFS}
     # In a whiptail dialog, show the options
     DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
-    "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
-    # Exit if the user selects "Cancel"
+        "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
+        # Exit if the user selects "Cancel"
     { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
 
     # Depending on the user's choice, set the GLOBAL variables to the IP of the respective provider
@@ -1169,8 +1180,8 @@ version_check_dnsmasq() {
             install -D -m 644 -T "${dnsmasq_original_config}" "${dnsmasq_conf}"
             printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
         else
-        # Otherwise, don't to anything
-        printf " it is not a Pi-hole file, leaving alone!\\n"
+            # Otherwise, don't to anything
+            printf " it is not a Pi-hole file, leaving alone!\\n"
         fi
     else
         # If a file cannot be found,
@@ -1205,8 +1216,8 @@ version_check_dnsmasq() {
         sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_target}"
     fi
 
-	# Set the cache size
-	sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" "${dnsmasq_pihole_01_target}"
+    # Set the cache size
+    sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" "${dnsmasq_pihole_01_target}"
 
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
 
@@ -1481,8 +1492,14 @@ update_package_cache() {
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     else
         # Otherwise, show an error and exit
+
+        # In case we used apt-get and apt is also available, we use this as recommendation as we have seen it
+        # gives more user-friendly (interactive) advice
+        if [[ ${PKG_MANAGER} == "apt-get" ]] && is_command apt ; then
+            UPDATE_PKG_CACHE="apt update"
+        fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to update package cache. Please try \"%s\"%b" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
+        printf "  %bError: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
@@ -1548,7 +1565,7 @@ install_dependent_packages() {
 
     # Install Fedora/CentOS packages
     for i in "$@"; do
-    # For each package, check if it's already installed (and if so, don't add it to the installArray)
+        # For each package, check if it's already installed (and if so, don't add it to the installArray)
         printf "  %b Checking for %s..." "${INFO}" "${i}"
         if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
             printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
@@ -1718,18 +1735,18 @@ finalExports() {
     fi
     # echo the information to the user
     {
-    echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-    echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-    echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
-    echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
-    echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
-    echo "QUERY_LOGGING=${QUERY_LOGGING}"
-    echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
-    echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-    echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
-    echo "CACHE_SIZE=${CACHE_SIZE}"
-    echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
-    echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
+        echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
+        echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
+        echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
+        echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
+        echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
+        echo "QUERY_LOGGING=${QUERY_LOGGING}"
+        echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
+        echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
+        echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
+        echo "CACHE_SIZE=${CACHE_SIZE}"
+        echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
+        echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
 
@@ -1845,7 +1862,7 @@ checkSelinux() {
     local CURRENT_SELINUX
     local SELINUX_ENFORCING=0
     # Check for SELinux configuration file and getenforce command
-    if [[ -f /etc/selinux/config ]] && command -v getenforce &> /dev/null; then
+    if [[ -f /etc/selinux/config ]] && is_command getenforce; then
         # Check the default SELinux mode
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
@@ -1904,7 +1921,7 @@ displayFinalMessage() {
         additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
 
 Your Admin Webpage login password is ${pwstring}"
-   fi
+    fi
 
     # Final completion message to user
     whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
@@ -2077,7 +2094,6 @@ clone_or_update_repos() {
 # shellcheck disable=SC2120
 FTLinstall() {
     # Local, named variables
-    local latesttag
     local str="Downloading and Installing FTL"
     printf "  %b %s..." "${INFO}" "${str}"
 
@@ -2148,7 +2164,7 @@ FTLinstall() {
 
 disable_dnsmasq() {
     # dnsmasq can now be stopped and disabled if it exists
-    if which dnsmasq &> /dev/null; then
+    if is_command dnsmasq; then
         if check_service_active "dnsmasq";then
             printf "  %b FTL can now resolve DNS Queries without dnsmasq running separately\\n" "${INFO}"
             stop_service dnsmasq
@@ -2278,7 +2294,7 @@ FTLcheckUpdate() {
     local localSha1
 
     # if dnsmasq exists and is running at this point, force reinstall of FTL Binary
-    if which dnsmasq &> /dev/null; then
+    if is_command dnsmasq; then
         if check_service_active "dnsmasq";then
             return 0
         fi
@@ -2439,7 +2455,7 @@ main() {
 
     #In case of RPM based distro, select the proper PHP version
     if [[ "$PKG_MANAGER" == "yum" || "$PKG_MANAGER" == "dnf" ]] ; then
-      select_rpm_php
+        select_rpm_php
     fi
 
     # Check if SELinux is Enforcing
@@ -2469,12 +2485,12 @@ main() {
         get_available_interfaces
         # Find interfaces and let the user choose one
         chooseInterface
+        # find IPv4 and IPv6 information of the device
+        collect_v4andv6_information
         # Decide what upstream DNS Servers to use
         setDNS
         # Give the user a choice of blocklists to include in their install. Or not.
         chooseBlocklists
-        # find IPv4 and IPv6 information of the device
-        collect_v4andv6_information
         # Let the user decide if they want the web interface to be installed automatically
         setAdminFlag
         # Let the user decide if they want query logging enabled...
