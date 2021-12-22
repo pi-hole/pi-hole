@@ -1,18 +1,64 @@
-name: Pull Requests
+name: PR Check
 
 on:
-  pull_request_target: # By default, a workflow only runs when a pull_request_target's activity type is opened, synchronize, or reopened.
-    branches:
-      - master # Run only on master branch
-
+  pull_request_target:
+    types: [opened, synchronize, edited, reopened]
 jobs:
   base_branch_check:
     runs-on: ubuntu-latest
-    name: Base Branch Check
+    name: Base Branch
     steps:
-      - name: Comment PR
+      - name: Get branch names
+        id: branch-name
+        uses: tj-actions/branch-names@v5.1
+      - name: Determine if PR is valid
+        run: |
+          echo "base_ref_branch = ${{ steps.branch-name.outputs.base_ref_branch }}"
+          echo "head_ref_branch = ${{ steps.branch-name.outputs.head_ref_branch }}"
+          if [[ "${{ steps.branch-name.outputs.base_ref_branch  == 'master' }}" = "true" ]]; then
+            if [[ "${{ steps.branch-name.outputs.head_ref_branch  == 'development' }}" = "true" ]]; then
+              echo "Valid PR: development -> master"
+              echo "validPR=yes" >> $GITHUB_ENV
+            elif [[ "${{ startsWith(steps.branch-name.outputs.head_ref_branch, 'release/') }}" = "true" ]]; then
+              echo "Valid PR: release/... -> master"
+              echo "validPR=yes" >> $GITHUB_ENV
+            else
+              echo "Invalid PR: ${{ steps.branch-name.outputs.head_ref_branch }} -> master"
+              echo "validPR=no" >> $GITHUB_ENV
+            fi
+          else
+            echo "Valid PR: ${{ steps.branch-name.outputs.head_ref_branch }} -> ${{ steps.branch-name.outputs.base_ref_branch }} "
+            echo "validPR=yes" >> $GITHUB_ENV
+          fi
+          echo ::set-output name=value::${value}
+      - name: Comment on invalid target
+        if: env.validPR == 'no' && !contains(github.event.pull_request.labels.*.name, 'Invalid target')
         uses: thollander/actions-comment-pull-request@v1
         with:
           message: >
-            Thank you very much for your contribution. An automated check has shown that you have opened your Pull Request to the `master` branch. As our project uses this branch for released code we ask you to submit any Pull Requests to the `development` branch instead. Note that, in most cases, you don't have to create a new pull request but can simply [change the base branch](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-base-branch-of-a-pull-request). After changing the base branch, ensure your branch does not contain any extra commits that aren't from you. If this is the case, please [rebase](https://anavarre.net/how-to-rebase-a-github-pull-request/) your branch.
+            An automated check has shown that you have opened your Pull Request to the `master` branch. However, our project uses the `master` branch only for tested code.
+
+            **Please submit a new Pull Request to the `development` branch.**
+
+            You are the special type of person that makes Pi-hole better for us all! Thank you!
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Add label on invalid target
+        if: env.validPR == 'no'
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          label: "Invalid target"
+          type: add
+#      - name: Close invalid PR
+#        if: env.validPR == 'no'
+#        uses: superbrothers/close-pull-request@v3
+      - name: Fail check on invalid target
+        if: env.validPR == 'no'
+        run: exit 1
+      - name: Remove label on valid target # may have been added before
+        if: env.validPR == 'yes'
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          label: "Invalid target"
+          type: remove
