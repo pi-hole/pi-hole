@@ -909,14 +909,21 @@ repairSelector() {
 Attempt to repair gravity database
 
 Available options:
-  pihole -g -r recover    Try to recover a damaged gravity database file.
-                          Pi-hole tries to restore as much as possible
-                          from a corrupted gravity database.
-  pihole -g -r recreate   Create a new gravity database file from scratch.
-                          This will remove your existing gravity database
-                          and create a new file from scratch. If you still
-                          have the migration backup created when migrating
-                          to Pi-hole v5.0, Pi-hole will import these files."
+  pihole -g -r recover        Try to recover a damaged gravity database file.
+                              Pi-hole tries to restore as much as possible
+                              from a corrupted gravity database.
+
+  pihole -g -r recover force  Pi-hole will run the recovery process even when
+                              no damage is detected. This option is meant to be
+                              a last resort. Recovery is a fragile task
+                              consuming a lot of resources and shouldn't be
+                              performed unnecessarily.
+
+  pihole -g -r recreate       Create a new gravity database file from scratch.
+                              This will remove your existing gravity database
+                              and create a new file from scratch. If you still
+                              have the migration backup created when migrating
+                              to Pi-hole v5.0, Pi-hole will import these files."
     exit 0;;
   esac
 }
