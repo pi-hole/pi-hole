@@ -880,6 +880,8 @@ database_recovery() {
     echo -e "${OVER}  ${TICK} ${str} - success"
     mv "${gravityDBfile}" "${gravityDBfile}.old"
     mv "${gravityDBfile}.recovered" "${gravityDBfile}"
+    echo -ne " ${INFO} ${gravityDBfile} has been recovered"
+    echo -ne " ${INFO} The old ${gravityDBfile} has been moved to ${gravityDBfile}.old"
   else
     echo -e "${OVER}  ${CROSS} ${str} - the following errors happened:"
     while IFS= read -r line ; do echo "  - $line"; done <<< "$result"
