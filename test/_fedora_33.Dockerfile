@@ -1,4 +1,5 @@
 FROM fedora:33
+RUN dnf install -y git
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole

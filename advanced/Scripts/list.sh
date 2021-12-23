@@ -16,7 +16,7 @@ GRAVITYDB="${piholeDir}/gravity.db"
 # Source pihole-FTL from install script
 pihole_FTL="${piholeDir}/pihole-FTL.conf"
 if [[ -f "${pihole_FTL}" ]]; then
-  source "${pihole_FTL}"
+    source "${pihole_FTL}"
 fi
 
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
@@ -91,7 +91,8 @@ Options:
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
   -l, --list          Display all your ${listname}listed domains
-  --nuke              Removes all entries in a list"
+  --nuke              Removes all entries in a list
+  --comment \"text\"    Add a comment to the domain. If adding multiple domains the same comment will be used for all"
 
   exit 0
 }
@@ -133,7 +134,7 @@ ProcessDomainList() {
         else
             RemoveDomain "${dom}"
         fi
-  done
+    done
 }
 
 AddDomain() {
@@ -145,19 +146,19 @@ AddDomain() {
     requestedListname="$(GetListnameFromTypeId "${typeId}")"
 
     if [[ "${num}" -ne 0 ]]; then
-      existingTypeId="$(sqlite3 "${gravityDBfile}" "SELECT type FROM domainlist WHERE domain = '${domain}';")"
-      if [[ "${existingTypeId}" == "${typeId}" ]]; then
-        if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} already exists in ${requestedListname}, no need to add!"
+        existingTypeId="$(sqlite3 "${gravityDBfile}" "SELECT type FROM domainlist WHERE domain = '${domain}';")"
+        if [[ "${existingTypeId}" == "${typeId}" ]]; then
+            if [[ "${verbose}" == true ]]; then
+                echo -e "  ${INFO} ${1} already exists in ${requestedListname}, no need to add!"
+            fi
+        else
+            existingListname="$(GetListnameFromTypeId "${existingTypeId}")"
+            sqlite3 "${gravityDBfile}" "UPDATE domainlist SET type = ${typeId} WHERE domain='${domain}';"
+            if [[ "${verbose}" == true ]]; then
+                echo -e "  ${INFO} ${1} already exists in ${existingListname}, it has been moved to ${requestedListname}!"
+            fi
         fi
-      else
-        existingListname="$(GetListnameFromTypeId "${existingTypeId}")"
-        sqlite3 "${gravityDBfile}" "UPDATE domainlist SET type = ${typeId} WHERE domain='${domain}';"
-        if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${1} already exists in ${existingListname}, it has been moved to ${requestedListname}!"
-        fi
-      fi
-      return
+        return
     fi
 
     # Domain not found in the table, add it!
@@ -185,10 +186,10 @@ RemoveDomain() {
     requestedListname="$(GetListnameFromTypeId "${typeId}")"
 
     if [[ "${num}" -eq 0 ]]; then
-      if [[ "${verbose}" == true ]]; then
-          echo -e "  ${INFO} ${domain} does not exist in ${requestedListname}, no need to remove!"
-      fi
-      return
+        if [[ "${verbose}" == true ]]; then
+            echo -e "  ${INFO} ${domain} does not exist in ${requestedListname}, no need to remove!"
+        fi
+        return
     fi
 
     # Domain found in the table, remove it!
@@ -256,8 +257,8 @@ NukeList() {
 GetComment() {
     comment="$1"
     if [[ "${comment}" =~ [^a-zA-Z0-9_\#:/\.,\ -] ]]; then
-      echo "  ${CROSS} Found invalid characters in domain comment!"
-      exit
+        echo "  ${CROSS} Found invalid characters in domain comment!"
+        exit
     fi
 }
 
@@ -292,7 +293,7 @@ ProcessDomainList
 
 # Used on web interface
 if $web; then
-echo "DONE"
+    echo "DONE"
 fi
 
 if [[ ${reload} == true && ${noReloadRequested} == false ]]; then

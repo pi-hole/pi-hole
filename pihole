@@ -71,8 +71,7 @@ reconfigurePiholeFunc() {
 }
 
 updateGravityFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@"
-  exit $?
+  exec "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@"
 }
 
 queryFunc() {
@@ -95,8 +94,7 @@ uninstallFunc() {
 
 versionFunc() {
   shift
-  "${PI_HOLE_SCRIPT_DIR}"/version.sh "$@"
-  exit 0
+  exec "${PI_HOLE_SCRIPT_DIR}"/version.sh "$@"
 }
 
 # Get PID of main pihole-FTL process
