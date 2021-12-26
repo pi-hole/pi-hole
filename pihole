@@ -327,7 +327,7 @@ statusFunc() {
       port="$(lsof -Pni UDP -p ${pid} -a | grep -m1 : | awk -F ":" '{print $2}')"
       listening="$(lsof -Pni:53)"
       if [[ ! -z "$port" ]]; then
-        if [[ "${1}" != "web" ]]; then
+        if [[ "${1}" != "web" ]] && [[ "$port" -eq 53 ]]; then
           analyze_ports "${listening}"
         fi
       else
