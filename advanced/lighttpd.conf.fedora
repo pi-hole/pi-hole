@@ -93,8 +93,8 @@ $HTTP["url"] =~ "^/admin/\.(.*)" {
     url.access-deny = ("")
 }
 
-# allow teleporter iframe on settings page
-$HTTP["url"] =~ "/teleporter\.php$" {
+# allow teleporter and API qr code iframe on settings page
+$HTTP["url"] =~ "/(teleporter|api_token)\.php$" {
     $HTTP["referer"] =~ "/admin/settings\.php" {
         setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
     }

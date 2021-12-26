@@ -27,7 +27,7 @@ PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
-  source ${PIHOLE_COLTABLE_FILE}
+    source ${PIHOLE_COLTABLE_FILE}
 else
     COL_NC='\e[0m' # No Color
     COL_RED='\e[1;91m'
@@ -88,6 +88,7 @@ PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
 PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole-FTL.conf"
+PIHOLE_CUSTOM_HOSTS_FILE="${PIHOLE_DIRECTORY}/custom.list"
 
 # Read the value of an FTL config key. The value is printed to stdout.
 #
@@ -179,7 +180,8 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}"
 "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}"
 "${RESOLVCONF}"
-"${DNSMASQ_CONF}")
+"${DNSMASQ_CONF}"
+"${PIHOLE_CUSTOM_HOSTS_FILE}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
