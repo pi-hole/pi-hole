@@ -285,7 +285,7 @@ Options:
 analyze_ports() {
   # FTL is listening at least on at least one port when this
   # function is getting called
-  echo -e "  ${TICK} DNS service is listening"
+  echo -e "  ${TICK} DNS service is listening on port 53"
   # Check individual address family/protocol combinations
   # For a healthy Pi-hole, they should all be up (nothing printed)
   if grep -q "IPv4.*UDP" <<< "${1}"; then
