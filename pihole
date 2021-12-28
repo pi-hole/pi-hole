@@ -325,7 +325,7 @@ statusFunc() {
   else
     #get the port pihole-FTL is listening on by using FTL's telnet API
     port="$(echo ">dns-port >quit" | nc 127.0.0.1 4711)"
-    listening="$(lsof -Pni:53)"
+    listening="$(lsof -Pni:${port})"
     if [[ "${port}" == "0" ]]; then
       case "${1}" in
         "web") echo "-1";;
@@ -333,7 +333,8 @@ statusFunc() {
       esac
       return 0
     else
-      if [[ "${1}" != "web" ]] && [[ "$port" -eq 53 ]]; then
+      if [[ "${1}" != "web" ]]; then
+        echo -e "  ${TICK} FTL is listening on port ${port}"
         analyze_ports "${listening}"
       fi
     fi
@@ -350,8 +351,7 @@ statusFunc() {
     # Configs are set
     case "${1}" in
       "web") echo "$port";;
-      *) echo -e "  ${TICK} Pi-hole blocking is enabled. FTL is listening on port ${port}"
-      ;;
+      *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
     esac
   else
     # No configs were found
