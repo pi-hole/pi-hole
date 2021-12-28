@@ -350,7 +350,8 @@ statusFunc() {
     # Configs are set
     case "${1}" in
       "web") echo "$port";;
-      *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
+      *) echo -e "  ${TICK} Pi-hole blocking is enabled. FTL is listening on port ${port}"
+      ;;
     esac
   else
     # No configs were found
