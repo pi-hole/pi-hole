@@ -312,7 +312,7 @@ analyze_ports() {
 }
 
 statusFunc() {
-  # Determine if there is pihole-FTL service is listening on any UDP port
+  # Determine if there is pihole-FTL service is listening
   local listening pid port
 
   pid="$(getFTLPID)"
@@ -323,21 +323,22 @@ statusFunc() {
     esac
     return 0
   else
-    #get the port pihole-FTL is listening on
-    port="$(lsof -Pni UDP -p ${pid} -a | grep -m1 : | awk -F ":" '{print $2}')"
+    #get the port pihole-FTL is listening on by using FTL's telnet API
+    port="$(echo ">dns-port >quit" | nc 127.0.0.1 4711)"
     listening="$(lsof -Pni:53)"
-    if [[ ! -z "$port" ]]; then
-      if [[ "${1}" != "web" ]] && [[ "$port" -eq 53 ]]; then
-        analyze_ports "${listening}"
-      fi
-    else
+    if [[ "${port}" == "0" ]]; then
       case "${1}" in
         "web") echo "-1";;
         *) echo -e "  ${CROSS} DNS service is NOT listening";;
       esac
       return 0
+    else
+      if [[ "${1}" != "web" ]] && [[ "$port" -eq 53 ]]; then
+        analyze_ports "${listening}"
+      fi
     fi
   fi
+
   # Determine if Pi-hole's blocking is enabled
   if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
     # A config is commented out
@@ -361,7 +362,6 @@ statusFunc() {
     "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
 
-  fi
 }
 
 tailFunc() {
