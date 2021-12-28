@@ -337,7 +337,7 @@ statusFunc() {
       esac
       return 0
     fi
-
+  fi
   # Determine if Pi-hole's blocking is enabled
   if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
     # A config is commented out
