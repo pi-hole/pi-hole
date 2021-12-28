@@ -323,43 +323,43 @@ statusFunc() {
     esac
     return 0
   else
-      #get the port pihole-FTL is listening on
-      port="$(lsof -Pni UDP -p ${pid} -a | grep -m1 : | awk -F ":" '{print $2}')"
-      listening="$(lsof -Pni:53)"
-      if [[ ! -z "$port" ]]; then
-        if [[ "${1}" != "web" ]] && [[ "$port" -eq 53 ]]; then
-          analyze_ports "${listening}"
-        fi
-      else
-        case "${1}" in
-          "web") echo "-1";;
-          *) echo -e "  ${CROSS} DNS service is NOT listening";;
-        esac
-        return 0
+    #get the port pihole-FTL is listening on
+    port="$(lsof -Pni UDP -p ${pid} -a | grep -m1 : | awk -F ":" '{print $2}')"
+    listening="$(lsof -Pni:53)"
+    if [[ ! -z "$port" ]]; then
+      if [[ "${1}" != "web" ]] && [[ "$port" -eq 53 ]]; then
+        analyze_ports "${listening}"
       fi
+    else
+      case "${1}" in
+        "web") echo "-1";;
+        *) echo -e "  ${CROSS} DNS service is NOT listening";;
+      esac
+      return 0
+    fi
 
-      # Determine if Pi-hole's blocking is enabled
-      if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
-        # A config is commented out
-        case "${1}" in
-          "web") echo 0;;
-          *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
-        esac
-      elif grep -q "BLOCKING_ENABLED=true" /etc/pihole/setupVars.conf;  then
-        # Configs are set
-        case "${1}" in
-          "web") echo "$port";;
-          *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
-        esac
-      else
-        # No configs were found
-        case "${1}" in
-          "web") echo -2;;
-          *) echo -e "  ${INFO} Pi-hole blocking will be enabled";;
-        esac
-        # Enable blocking
-        "${PI_HOLE_BIN_DIR}"/pihole enable
-      fi
+  # Determine if Pi-hole's blocking is enabled
+  if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
+    # A config is commented out
+    case "${1}" in
+      "web") echo 0;;
+      *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
+    esac
+  elif grep -q "BLOCKING_ENABLED=true" /etc/pihole/setupVars.conf;  then
+    # Configs are set
+    case "${1}" in
+      "web") echo "$port";;
+      *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
+    esac
+  else
+    # No configs were found
+    case "${1}" in
+      "web") echo -2;;
+      *) echo -e "  ${INFO} Pi-hole blocking will be enabled";;
+    esac
+    # Enable blocking
+    "${PI_HOLE_BIN_DIR}"/pihole enable
+  fi
 
   fi
 }
