@@ -287,7 +287,7 @@ package_manager_detect() {
         # Packages required to run this install script (stored as an array)
         INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
-        PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2)
+        PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2 netcat)
         # Packages required for the Web admin interface (stored as an array)
         # It's useful to separate this from Pi-hole, since the two repos are also setup separately
         PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
@@ -332,7 +332,7 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof)
+        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof nmap-ncat)
         PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
         LIGHTTPD_USER="lighttpd"
         LIGHTTPD_GROUP="lighttpd"

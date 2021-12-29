@@ -285,7 +285,6 @@ Options:
 analyze_ports() {
   # FTL is listening at least on at least one port when this
   # function is getting called
-  echo -e "  ${TICK} DNS service is listening"
   # Check individual address family/protocol combinations
   # For a healthy Pi-hole, they should all be up (nothing printed)
   if grep -q "IPv4.*UDP" <<< "${1}"; then
@@ -312,19 +311,32 @@ analyze_ports() {
 }
 
 statusFunc() {
-  # Determine if there is a pihole service is listening on port 53
-  local listening
-  listening="$(lsof -Pni:53)"
-  if grep -q "pihole" <<< "${listening}"; then
-    if [[ "${1}" != "web" ]]; then
-      analyze_ports "${listening}"
-    fi
-  else
+  # Determine if there is pihole-FTL service is listening
+  local listening pid port
+
+  pid="$(getFTLPID)"
+  if [[ "$pid" -eq "-1" ]]; then
     case "${1}" in
       "web") echo "-1";;
-      *) echo -e "  ${CROSS} DNS service is NOT listening";;
+      *) echo -e "  ${CROSS} DNS service is NOT running";;
     esac
     return 0
+  else
+    #get the port pihole-FTL is listening on by using FTL's telnet API
+    port="$(echo ">dns-port >quit" | nc 127.0.0.1 4711)"
+    listening="$(lsof -Pni:${port})"
+    if [[ "${port}" == "0" ]]; then
+      case "${1}" in
+        "web") echo "-1";;
+        *) echo -e "  ${CROSS} DNS service is NOT listening";;
+      esac
+      return 0
+    else
+      if [[ "${1}" != "web" ]]; then
+        echo -e "  ${TICK} FTL is listening on port ${port}"
+        analyze_ports "${listening}"
+      fi
+    fi
   fi
 
   # Determine if Pi-hole's blocking is enabled
@@ -337,18 +349,19 @@ statusFunc() {
   elif grep -q "BLOCKING_ENABLED=true" /etc/pihole/setupVars.conf;  then
     # Configs are set
     case "${1}" in
-      "web") echo 1;;
+      "web") echo "$port";;
       *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
     esac
   else
     # No configs were found
     case "${1}" in
-      "web") echo 99;;
+      "web") echo -2;;
       *) echo -e "  ${INFO} Pi-hole blocking will be enabled";;
     esac
     # Enable blocking
     "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
+
 }
 
 tailFunc() {
