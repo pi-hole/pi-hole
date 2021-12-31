@@ -2453,7 +2453,7 @@ main() {
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
     install_dependent_packages "${INSTALLER_DEPS[@]}"
 
-    #In case of RPM based distro, select the proper PHP version
+    # In case of RPM based distro, select the proper PHP version
     if [[ "$PKG_MANAGER" == "yum" || "$PKG_MANAGER" == "dnf" ]] ; then
         select_rpm_php
     fi
