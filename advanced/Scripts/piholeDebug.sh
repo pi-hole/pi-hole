@@ -1386,7 +1386,7 @@ upload_to_tricorder() {
     log_write "${TICK} ${COL_GREEN}** FINISHED DEBUGGING! **${COL_NC}\\n"
 
     # Provide information on what they should do with their token
-    log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+    log_write "   * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 
     # If pihole -d is running automatically
     if [[ "${AUTOMATED}" ]]; then
