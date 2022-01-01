@@ -1430,6 +1430,8 @@ upload_to_tricorder() {
         # Show an error and some help instructions
         # Skipt this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
         if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
+            :
+        else
             log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
             log_write "   * Please try again or contact the Pi-hole team for assistance."
         fi
