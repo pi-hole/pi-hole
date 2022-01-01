@@ -2277,7 +2277,7 @@ FTLcheckUpdate() {
     printf "  %b Checking for existing FTL binary...\\n" "${INFO}"
 
     local ftlLoc
-    ftlLoc=$(which pihole-FTL 2>/dev/null)
+    ftlLoc=$(command -v pihole-FTL 2>/dev/null)
 
     local ftlBranch
 
@@ -2315,7 +2315,7 @@ FTLcheckUpdate() {
             # We already have a pihole-FTL binary downloaded.
             # Alt branches don't have a tagged version against them, so just confirm the checksum of the local vs remote to decide whether we download or not
             remoteSha1=$(curl -sSL --fail "https://ftl.pi-hole.net/${ftlBranch}/${binary}.sha1" | cut -d ' ' -f 1)
-            localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+            localSha1=$(sha1sum "$(command -v pihole-FTL)" | cut -d ' ' -f 1)
 
             if [[ "${remoteSha1}" != "${localSha1}" ]]; then
                 printf "  %b Checksums do not match, downloading from ftl.pi-hole.net.\\n" "${INFO}"
@@ -2345,7 +2345,7 @@ FTLcheckUpdate() {
                 printf "  %b Latest FTL Binary already installed (%s). Confirming Checksum...\\n" "${INFO}" "${FTLlatesttag}"
 
                 remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
-                localSha1=$(sha1sum "$(which pihole-FTL)" | cut -d ' ' -f 1)
+                localSha1=$(sha1sum "$(command -v pihole-FTL)" | cut -d ' ' -f 1)
 
                 if [[ "${remoteSha1}" != "${localSha1}" ]]; then
                     printf "  %b Corruption detected...\\n" "${INFO}"
