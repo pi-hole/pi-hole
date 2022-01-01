@@ -1428,8 +1428,11 @@ upload_to_tricorder() {
     # If no token was generated
     else
         # Show an error and some help instructions
-        log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
-        log_write "   * Please try again or contact the Pi-hole team for assistance."
+        # Skipt this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
+        if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
+            log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
+            log_write "   * Please try again or contact the Pi-hole team for assistance."
+        fi
     fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
     log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
