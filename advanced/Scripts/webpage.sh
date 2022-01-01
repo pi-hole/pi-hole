@@ -387,7 +387,7 @@ ProcessDHCPSettings() {
         fi
 
         if [[ "${PIHOLE_DOMAIN}" == "" ]]; then
-            PIHOLE_DOMAIN="lan"
+            PIHOLE_DOMAIN="home.arpa"
             change_setting "PIHOLE_DOMAIN" "${PIHOLE_DOMAIN}"
         fi
 
