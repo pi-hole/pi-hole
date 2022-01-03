@@ -1428,7 +1428,7 @@ upload_to_tricorder() {
     # If no token was generated
     else
         # Show an error and some help instructions
-        # Skipt this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
+        # Skip this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
         if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
             :
         else
