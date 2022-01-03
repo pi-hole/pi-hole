@@ -441,7 +441,6 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
 #enable-ra
 dhcp-option=option6:dns-server,[::]
 dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,64,3600
-ra-param=*,0,0
 " >> "${dhcpconfig}"
         fi
 
