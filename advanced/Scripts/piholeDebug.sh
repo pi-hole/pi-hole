@@ -467,6 +467,9 @@ diagnose_operating_system() {
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
+    # If the PIHOLE_DOCKER_TAG variable is set, include this information in the debug output
+    [ -n "${PIHOLE_DOCKER_TAG}" ] && log_write "${INFO} Pi-hole Docker Container: ${PIHOLE_DOCKER_TAG}"
+
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
         # display the attributes to the user from the function made earlier
