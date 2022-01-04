@@ -1386,9 +1386,9 @@ upload_to_tricorder() {
     log_write "${TICK} ${COL_GREEN}** FINISHED DEBUGGING! **${COL_NC}\\n"
 
     # Provide information on what they should do with their token
-    log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+    log_write "   * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 
-    # If pihole -d is running automatically (usually through the dashboard)
+    # If pihole -d is running automatically
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
@@ -1396,16 +1396,19 @@ upload_to_tricorder() {
         curl_to_tricorder
         # If we're not running in automated mode,
     else
-        echo ""
-        # give the user a choice of uploading it or not
-        # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
-        read -r -p "[?] Would you like to upload the log? [y/N] " response
-        case ${response} in
-            # If they say yes, run our function for uploading the log
-            [yY][eE][sS]|[yY]) curl_to_tricorder;;
-            # If they choose no, just exit out of the script
-            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
-        esac
+        # if not being called from the web interface
+        if [[ ! "${WEBCALL}" ]]; then
+            echo ""
+            # give the user a choice of uploading it or not
+            # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
+            read -r -p "[?] Would you like to upload the log? [y/N] " response
+            case ${response} in
+                # If they say yes, run our function for uploading the log
+                [yY][eE][sS]|[yY]) curl_to_tricorder;;
+                # If they choose no, just exit out of the script
+                *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
+            esac
+        fi
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token
     # along with some additional useful information
@@ -1425,8 +1428,13 @@ upload_to_tricorder() {
     # If no token was generated
     else
         # Show an error and some help instructions
-        log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
-        log_write "   * Please try again or contact the Pi-hole team for assistance."
+        # Skip this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
+        if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
+            :
+        else
+            log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
+            log_write "   * Please try again or contact the Pi-hole team for assistance."
+        fi
     fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
     log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
