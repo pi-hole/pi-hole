@@ -288,7 +288,7 @@ analyze_ports() {
   # function is getting called
   # Check individual address family/protocol combinations
   # For a healthy Pi-hole, they should all be up (nothing printed)
-  lv4="$(ss --ipv4 --listening --numeric --tcp --udp | grep ":${port} ")"
+  lv4="$(ss --ipv4 --listening --numeric --tcp --udp src :${port})"
   if grep -q "udp " <<< "${lv4}"; then
       echo -e "     ${TICK} UDP (IPv4)"
   else
@@ -299,7 +299,7 @@ analyze_ports() {
   else
       echo -e "     ${CROSS} TCP (IPv4)"
   fi
-  lv6="$(ss --ipv6 --listening --numeric --tcp --udp | grep ":${port} ")"
+  lv6="$(ss --ipv6 --listening --numeric --tcp --udp src :${port})"
   if grep -q "udp " <<< "${lv6}"; then
       echo -e "     ${TICK} UDP (IPv6)"
   else
