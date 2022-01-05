@@ -357,7 +357,7 @@ get_sys_stats() {
     ram_used="${ram_raw[1]}"
     ram_total="${ram_raw[2]}"
 
-    if [[ "$(pihole status web 2> /dev/null)" == "1" ]]; then
+    if [[ "$(pihole status web 2> /dev/null)" -ge "1" ]]; then
         ph_status="${COL_LIGHT_GREEN}Active"
     else
         ph_status="${COL_LIGHT_RED}Offline"
