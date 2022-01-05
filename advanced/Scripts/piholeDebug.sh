@@ -733,11 +733,11 @@ compare_port_to_service_assigned() {
 
     # If the service is a Pi-hole service, highlight it in green
     if [[ "${service_name}" == "${expected_service}" ]]; then
-        log_write "[${COL_GREEN}${port}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
+        log_write "${TICK} ${COL_GREEN}${port}${COL_NC} is in use by ${COL_GREEN}${service_name}${COL_NC}"
     # Otherwise,
     else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_RED}${port}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
+        log_write "${CROSS} ${COL_RED}${port}${COL_NC} is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
     fi
 }
 
@@ -753,32 +753,28 @@ check_required_ports() {
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
         ports_in_use+=( "$line" )
-    done < <( lsof -iTCP -sTCP:LISTEN -P -n +c 10 )
+    done < <( ss --listening --numeric --tcp --udp --processes --oneline --no-header )
 
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
         # loop through them and assign some local variables
         local service_name
-        service_name=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
+        service_name=$(echo "${ports_in_use[$i]}" | awk '{gsub(/users:\(\("/,"",$7);gsub(/".*/,"",$7);print $7}')
         local protocol_type
-        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $5}')
+        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
         local port_number
-        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $9}')"
+        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
 
-        # Skip the line if it's the titles of the columns the lsof command produces
-        if [[ "${service_name}" == COMMAND ]]; then
-            continue
-        fi
         # Use a case statement to determine if the right services are using the right ports
-        case "$(echo "$port_number" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" 53
+        case "$(echo "${port_number}" | rev | cut -d: -f1 | rev)" in
+            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
-            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" 80
+            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
-            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" 4711
+            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
-            *) log_write "${port_number} ${service_name} (${protocol_type})";
+            *) log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
         esac
     done
 }
