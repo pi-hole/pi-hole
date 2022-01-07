@@ -467,6 +467,9 @@ diagnose_operating_system() {
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
+    # If the PIHOLE_DOCKER_TAG variable is set, include this information in the debug output
+    [ -n "${PIHOLE_DOCKER_TAG}" ] && log_write "${INFO} Pi-hole Docker Container: ${PIHOLE_DOCKER_TAG}"
+
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
         # display the attributes to the user from the function made earlier
@@ -730,11 +733,11 @@ compare_port_to_service_assigned() {
 
     # If the service is a Pi-hole service, highlight it in green
     if [[ "${service_name}" == "${expected_service}" ]]; then
-        log_write "[${COL_GREEN}${port}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
+        log_write "${TICK} ${COL_GREEN}${port}${COL_NC} is in use by ${COL_GREEN}${service_name}${COL_NC}"
     # Otherwise,
     else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_RED}${port}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
+        log_write "${CROSS} ${COL_RED}${port}${COL_NC} is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
     fi
 }
 
@@ -750,32 +753,28 @@ check_required_ports() {
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
         ports_in_use+=( "$line" )
-    done < <( lsof -iTCP -sTCP:LISTEN -P -n +c 10 )
+    done < <( ss --listening --numeric --tcp --udp --processes --oneline --no-header )
 
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
         # loop through them and assign some local variables
         local service_name
-        service_name=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
+        service_name=$(echo "${ports_in_use[$i]}" | awk '{gsub(/users:\(\("/,"",$7);gsub(/".*/,"",$7);print $7}')
         local protocol_type
-        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $5}')
+        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
         local port_number
-        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $9}')"
+        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
 
-        # Skip the line if it's the titles of the columns the lsof command produces
-        if [[ "${service_name}" == COMMAND ]]; then
-            continue
-        fi
         # Use a case statement to determine if the right services are using the right ports
-        case "$(echo "$port_number" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" 53
+        case "$(echo "${port_number}" | rev | cut -d: -f1 | rev)" in
+            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
-            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" 80
+            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
-            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" 4711
+            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
-            *) log_write "${port_number} ${service_name} (${protocol_type})";
+            *) log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
         esac
     done
 }
@@ -1386,9 +1385,9 @@ upload_to_tricorder() {
     log_write "${TICK} ${COL_GREEN}** FINISHED DEBUGGING! **${COL_NC}\\n"
 
     # Provide information on what they should do with their token
-    log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+    log_write "   * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 
-    # If pihole -d is running automatically (usually through the dashboard)
+    # If pihole -d is running automatically
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
@@ -1396,16 +1395,19 @@ upload_to_tricorder() {
         curl_to_tricorder
         # If we're not running in automated mode,
     else
-        echo ""
-        # give the user a choice of uploading it or not
-        # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
-        read -r -p "[?] Would you like to upload the log? [y/N] " response
-        case ${response} in
-            # If they say yes, run our function for uploading the log
-            [yY][eE][sS]|[yY]) curl_to_tricorder;;
-            # If they choose no, just exit out of the script
-            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
-        esac
+        # if not being called from the web interface
+        if [[ ! "${WEBCALL}" ]]; then
+            echo ""
+            # give the user a choice of uploading it or not
+            # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
+            read -r -p "[?] Would you like to upload the log? [y/N] " response
+            case ${response} in
+                # If they say yes, run our function for uploading the log
+                [yY][eE][sS]|[yY]) curl_to_tricorder;;
+                # If they choose no, just exit out of the script
+                *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
+            esac
+        fi
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token
     # along with some additional useful information
@@ -1425,8 +1427,13 @@ upload_to_tricorder() {
     # If no token was generated
     else
         # Show an error and some help instructions
-        log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
-        log_write "   * Please try again or contact the Pi-hole team for assistance."
+        # Skip this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
+        if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
+            :
+        else
+            log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
+            log_write "   * Please try again or contact the Pi-hole team for assistance."
+        fi
     fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
     log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
