@@ -787,7 +787,9 @@ check_networking() {
     detect_ip_addresses "6"
     ping_gateway "4"
     ping_gateway "6"
-    check_required_ports
+    # Skip the following check if installed in docker container. Unpriv'ed containers do not have access to the information required
+    # to resolve the service name listening - and the container should not start if there was a port conflict anyway
+    [ -z "${PIHOLE_DOCKER_TAG}" ] && check_required_ports
 }
 
 check_x_headers() {
