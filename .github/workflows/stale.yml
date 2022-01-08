@@ -2,7 +2,8 @@ name: Mark stale issues
 
 on:
   schedule:
-  - cron: '30 * * * *'
+  - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   stale:
@@ -15,7 +16,6 @@ jobs:
     - uses: actions/stale@v4
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        debug-only: true
         days-before-stale: 30
         days-before-close: 5
         stale-issue-message: 'This issue is stale because it has been open 30 days with no activity. Please comment or update this issue or it will be closed in 5 days.'
