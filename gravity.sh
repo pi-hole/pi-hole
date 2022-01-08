@@ -402,14 +402,12 @@ gravity_DownloadBlocklists() {
   )"
 
   local str="Pulling blocklist source list into range"
+  echo -e "${OVER}  ${TICK} ${str}"
 
-  if [[ -n "${sources[*]}" ]] && [[ -n "${sourceDomains[*]}" ]]; then
-    echo -e "${OVER}  ${TICK} ${str}"
-  else
-    echo -e "${OVER}  ${CROSS} ${str}"
+  if [[ -z "${sources[*]}" ]] || [[ -z "${sourceDomains[*]}" ]]; then
     echo -e "  ${INFO} No source list found, or it is empty"
     echo ""
-    return 1
+    unset sources
   fi
 
   local url domain agent cmd_ext str target compression
