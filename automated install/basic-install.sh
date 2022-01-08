@@ -287,7 +287,7 @@ package_manager_detect() {
         # Packages required to run this install script (stored as an array)
         INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
-        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2 netcat)
+        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2 netcat-openbsd)
         # Packages required for the Web admin interface (stored as an array)
         # It's useful to separate this from Pi-hole, since the two repos are also setup separately
         PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
