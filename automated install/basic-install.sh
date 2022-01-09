@@ -1737,7 +1737,7 @@ finalExports() {
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;/DNSMASQ_LISTENING/d;' "${setupVars}"
+        sed -i.update.bak '/PIHOLE_INTERFACE/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;/DNSMASQ_LISTENING/d;' "${setupVars}"
     fi
     # echo the information to the user
     {
