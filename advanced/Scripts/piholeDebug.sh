@@ -753,7 +753,7 @@ check_required_ports() {
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
         ports_in_use+=( "$line" )
-    done < <( ss --listening --numeric --tcp --udp --processes --oneline --no-header )
+    done < <( ss --listening --numeric --tcp --udp --processes --no-header )
 
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
