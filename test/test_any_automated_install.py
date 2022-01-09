@@ -483,7 +483,6 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
         setup_var_file += "{}={}\n".format(k, v)
     setup_var_file += "INSTALL_WEB_SERVER=true\n"
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
-    setup_var_file += "IPV4_ADDRESS=127.0.0.1\n"
     setup_var_file += "EOF\n"
     host.run(setup_var_file)
     installWeb = host.run('''
