@@ -779,6 +779,21 @@ check_required_ports() {
     done
 }
 
+ip_command() {
+    # Obtain and log information from "ip XYZ show" commands
+    echo_current_diagnostic "${2}"
+    local entries=()
+    mapfile -t entries < <(ip "${1}" show)
+    for line in "${entries[@]}"; do
+        log_write "   ${line}"
+    done
+}
+
+check_ip_command() {
+    ip_command "addr" "Network interfaces and addresses"
+    ip_command "route" "Network routing table"
+}
+
 check_networking() {
     # Runs through several of the functions made earlier; we just clump them
     # together since they are all related to the networking aspect of things
@@ -1454,6 +1469,7 @@ check_selinux
 check_firewalld
 processor_check
 disk_usage
+check_ip_command
 check_networking
 check_name_resolution
 check_dhcp_servers
