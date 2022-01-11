@@ -22,3 +22,4 @@ jobs:
         stale-issue-label: 'Submitter Attention Required'
         exempt-issue-labels: 'pinned, Fixed in next release, Bug: Confirmed'
         exempt-all-issue-assignees: true
+        operations-per-run: 300
