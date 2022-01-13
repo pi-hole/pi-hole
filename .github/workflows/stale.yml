@@ -20,6 +20,6 @@ jobs:
         days-before-close: 5
         stale-issue-message: 'This issue is stale because it has been open 30 days with no activity. Please comment or update this issue or it will be closed in 5 days.'
         stale-issue-label: 'Submitter Attention Required'
-        exempt-issue-labels: 'pinned, Fixed in next release, Bug: Confirmed'
+        exempt-issue-labels: 'internal, Fixed in next release, Bug: Confirmed'
         exempt-all-issue-assignees: true
         operations-per-run: 300
