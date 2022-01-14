@@ -233,7 +233,7 @@ for result in "${results[@]}"; do
     adlistAddress="${extra/|*/}"
     extra="${extra#*|}"
     if [[ "${extra}" == "0" ]]; then
-        extra="(disabled)"
+        extra=" (disabled)"
     else
         extra=""
     fi
@@ -241,7 +241,7 @@ for result in "${results[@]}"; do
     if [[ -n "${blockpage}" ]]; then
         echo "0 ${adlistAddress}"
     elif [[ -n "${exact}" ]]; then
-        echo "  - ${adlistAddress} ${extra}"
+        echo "  - ${adlistAddress}${extra}"
     else
         if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then
             count=""
@@ -256,7 +256,7 @@ for result in "${results[@]}"; do
             [[ "${count}" -gt "${max_count}" ]] && continue
             echo "   ${COL_GRAY}Over ${count} results found, skipping rest of file${COL_NC}"
         else
-            echo "   ${match} ${extra}"
+            echo "   ${match}${extra}"
         fi
     fi
 done
