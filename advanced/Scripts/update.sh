@@ -49,7 +49,8 @@ GitCheckUpdateAvail() {
         # get the latest local tag
         LOCAL=$(git describe --abbrev=0 --tags master)
         # get the latest tag from remote
-        REMOTE=$(git describe --abbrev=0 --tags origin/master)
+        # we can't use "git describe --abbrev=0 --tags origin/master" here because it is not supported on older git versions
+        REMOTE=$(git describe --tags $(git rev-list --tags -1))
 
     else
         # @ alone is a shortcut for HEAD. Older versions of git
