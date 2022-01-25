@@ -648,12 +648,10 @@ Teleporter() {
     php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
 }
 
-checkDomain()
-{
+checkDomain() {
     local domain validDomain
-    # Convert to lowercase
-    domain="${1,,}"
-    validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
+    domain="${1}"
+    validDomain=$(grep -P "^((-|_)*[A-Za-z\\d]((-|_)*[A-Za-z\\d])*(-|_)*)(\\.(-|_)*([A-Za-z\\d]((-|_)*[A-Za-z\\d])*))*$" <<< "${domain}") # Valid chars check
     validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
     echo "${validDomain}"
 }
