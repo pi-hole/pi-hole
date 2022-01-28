@@ -640,12 +640,17 @@ Interfaces:
 }
 
 Teleporter() {
-    local datetimestamp
-    local host
-    datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
-    host=$(hostname)
-    host="${host//./_}"
-    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
+    local filename
+    filename="${args[2]}"
+    if [[ -z "${filename}" ]]; then
+        local datetimestamp
+        local host
+        datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+        host=$(hostname)
+        host="${host//./_}"
+        filename="pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
+    fi
+    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "${filename}"
 }
 
 checkDomain()
