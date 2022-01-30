@@ -170,6 +170,16 @@ restartDNS() {
   fi
 }
 
+addOrEditKeyValPair() {
+  local key="${1}"
+  local value="${2}"
+  if grep -q "^${key}=" "${setupVars}"; then
+    sed -i "/^${key}=/c\\${key}=${value}" "${setupVars}"
+  else
+    echo "${key}=${value}" >> "${setupVars}" 
+  fi
+}
+
 piholeEnable() {
   if [[ "${2}" == "-h" ]] || [[ "${2}" == "--help" ]]; then
     echo "Usage: pihole disable [time]
@@ -223,7 +233,7 @@ Time:
       fi
 
       local str="Pi-hole Disabled"
-      sed -i "s/^BLOCKING_ENABLED=true/BLOCKING_ENABLED=false/" "${setupVars}"
+      addOrEditKeyValPair "BLOCKING_ENABLED" "false"
     fi
   else
     # Enable Pi-hole
@@ -235,7 +245,7 @@ Time:
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    sed -i "s/^BLOCKING_ENABLED=false/BLOCKING_ENABLED=true/" "${setupVars}"
+    addOrEditKeyValPair "BLOCKING_ENABLED" "true"
   fi
 
   restartDNS reload-lists
@@ -258,7 +268,7 @@ Options:
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
-    sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
+    addOrEditKeyValPair "QUERY_LOGGING" "false"
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
       "${PI_HOLE_BIN_DIR}"/pihole -f
@@ -268,7 +278,7 @@ Options:
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
     sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
-    sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
+    addOrEditKeyValPair "QUERY_LOGGING" "true"
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
   else
