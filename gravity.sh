@@ -119,7 +119,7 @@ gravity_swap_databases() {
   mv "${gravityTEMPfile}" "${gravityDBfile}"
   echo -e "${OVER}  ${TICK} ${str}"
 
-  if [ oldAvail ]; then
+  if $oldAvail; then
     echo -e "  ${TICK} The old database remains available."
   fi
 }
