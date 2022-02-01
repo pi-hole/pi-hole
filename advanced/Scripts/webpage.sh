@@ -45,7 +45,7 @@ Options:
   -h, --help          Show this help dialog
   -i, interface       Specify dnsmasq's interface listening behavior
   -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)
-  -t, teleporter      Backup configuration as an archive"
+  -t, teleporter      Backup configuration as an archive. Optionally specify a custom filename"
     exit 0
 }
 
