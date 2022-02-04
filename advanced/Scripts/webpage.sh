@@ -37,15 +37,16 @@ Example: pihole -a -p password
 Set options for the Admin Console
 
 Options:
-  -p, password        Set Admin Console password
-  -c, celsius         Set Celsius as preferred temperature unit
-  -f, fahrenheit      Set Fahrenheit as preferred temperature unit
-  -k, kelvin          Set Kelvin as preferred temperature unit
-  -e, email           Set an administrative contact address for the Block Page
-  -h, --help          Show this help dialog
-  -i, interface       Specify dnsmasq's interface listening behavior
-  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)
-  -t, teleporter      Backup configuration as an archive. Optionally specify a custom filename"
+  -p, password                    Set Admin Console password
+  -c, celsius                     Set Celsius as preferred temperature unit
+  -f, fahrenheit                  Set Fahrenheit as preferred temperature unit
+  -k, kelvin                      Set Kelvin as preferred temperature unit
+  -e, email                       Set an administrative contact address for the Block Page
+  -h, --help                      Show this help dialog
+  -i, interface                   Specify dnsmasq's interface listening behavior
+  -l, privacylevel                Set privacy level (0 = lowest, 3 = highest)
+  -t, teleporter                  Backup configuration as an archive
+  -t, teleporter myname.tar.gz    Backup configuration to archive with name myname.tar.gz as specified"
     exit 0
 }
 
