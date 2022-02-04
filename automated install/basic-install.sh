@@ -1372,7 +1372,7 @@ install_manpage() {
     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
 
-    # remvoe previously installed "pihole-FTL.conf" man page
+    # remove previously installed "pihole-FTL.conf.5" man page
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
         rm /usr/local/share/man/man5/pihole-FTL.conf.5
     fi
