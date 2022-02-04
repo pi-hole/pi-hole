@@ -739,7 +739,7 @@ RemoveCustomDNSAddress() {
     validHost="$(checkDomain "${host}")"
     if [[ -n "${validHost}" ]]; then
         if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-            sed -i "/^${ip} ${validHost}$/d" "${dnscustomfile}"
+            sed -i "/^${ip} ${validHost}$/Id" "${dnscustomfile}"
         else
             echo -e "  ${CROSS} Invalid IP has been passed"
             exit 1
@@ -792,7 +792,7 @@ RemoveCustomCNAMERecord() {
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
         if [[ -n "${validTarget}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
+            sed -i "/cname=${validDomain},${validTarget}$/Id" "${dnscustomcnamefile}"
         else
             echo "  ${CROSS} Invalid Target Passed!"
             exit 1
