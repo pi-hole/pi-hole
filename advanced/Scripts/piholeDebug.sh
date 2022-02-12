@@ -753,7 +753,7 @@ check_required_ports() {
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
         ports_in_use+=( "$line" )
-    done < <( ss --listening --numeric --tcp --udp --processes --oneline --no-header )
+    done < <( ss --listening --numeric --tcp --udp --processes --no-header )
 
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
@@ -779,6 +779,21 @@ check_required_ports() {
     done
 }
 
+ip_command() {
+    # Obtain and log information from "ip XYZ show" commands
+    echo_current_diagnostic "${2}"
+    local entries=()
+    mapfile -t entries < <(ip "${1}" show)
+    for line in "${entries[@]}"; do
+        log_write "   ${line}"
+    done
+}
+
+check_ip_command() {
+    ip_command "addr" "Network interfaces and addresses"
+    ip_command "route" "Network routing table"
+}
+
 check_networking() {
     # Runs through several of the functions made earlier; we just clump them
     # together since they are all related to the networking aspect of things
@@ -787,7 +802,9 @@ check_networking() {
     detect_ip_addresses "6"
     ping_gateway "4"
     ping_gateway "6"
-    check_required_ports
+    # Skip the following check if installed in docker container. Unpriv'ed containers do not have access to the information required
+    # to resolve the service name listening - and the container should not start if there was a port conflict anyway
+    [ -z "${PIHOLE_DOCKER_TAG}" ] && check_required_ports
 }
 
 check_x_headers() {
@@ -871,7 +888,7 @@ dig_at() {
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
-    random_url=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
+    random_url=$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
 
     # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
     # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
@@ -1185,7 +1202,7 @@ show_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" \
+        pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1210,7 +1227,7 @@ show_FTL_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        sqlite3 "${PIHOLE_FTL_DB_FILE}" \
+        pihole-FTL sqlite3 "${PIHOLE_FTL_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1267,7 +1284,7 @@ analyze_gravity_list() {
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
-    gravity_updated_raw="$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
+    gravity_updated_raw="$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
     gravity_updated="$(date -d @"${gravity_updated_raw}")"
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
@@ -1275,7 +1292,7 @@ analyze_gravity_list() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
-    mapfile -t gravity_sample < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
+    mapfile -t gravity_sample < <(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
     log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
@@ -1452,6 +1469,7 @@ check_selinux
 check_firewalld
 processor_check
 disk_usage
+check_ip_command
 check_networking
 check_name_resolution
 check_dhcp_servers

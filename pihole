@@ -21,6 +21,9 @@ readonly FTL_PID_FILE="/run/pihole-FTL.pid"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
+readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+source "${utilsfile}"
+
 webpageFunc() {
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
   main "$@"
@@ -223,8 +226,7 @@ Time:
       fi
 
       local str="Pi-hole Disabled"
-      sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
-      echo "BLOCKING_ENABLED=false" >> "${setupVars}"
+      addOrEditKeyValPair "BLOCKING_ENABLED" "false" "${setupVars}"
     fi
   else
     # Enable Pi-hole
@@ -236,8 +238,7 @@ Time:
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    sed -i "/BLOCKING_ENABLED=/d" "${setupVars}"
-    echo "BLOCKING_ENABLED=true" >> "${setupVars}"
+    addOrEditKeyValPair "BLOCKING_ENABLED" "true" "${setupVars}"
   fi
 
   restartDNS reload-lists
@@ -260,7 +261,7 @@ Options:
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
     sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
-    sed -i 's/^QUERY_LOGGING=true/QUERY_LOGGING=false/' /etc/pihole/setupVars.conf
+    addOrEditKeyValPair "QUERY_LOGGING" "false" "${setupVars}"
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
       "${PI_HOLE_BIN_DIR}"/pihole -f
@@ -270,7 +271,7 @@ Options:
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
     sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
-    sed -i 's/^QUERY_LOGGING=false/QUERY_LOGGING=true/' /etc/pihole/setupVars.conf
+    addOrEditKeyValPair "QUERY_LOGGING" "true" "${setupVars}"
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
   else
