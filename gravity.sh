@@ -1012,8 +1012,10 @@ fi
 update_gravity_timestamp
 
 # Ensure proper permissions are set for the database
+chown root:pihole "${piholeDir}"
+chmod 0775 "${piholeDir}"
 chown pihole:pihole "${gravityDBfile}"
-chmod g+w "${piholeDir}" "${gravityDBfile}"
+chmod 0664   "${gravityDBfile}"
 
 # Compute numbers to be displayed
 gravity_ShowCount
