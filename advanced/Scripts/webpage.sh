@@ -39,23 +39,22 @@ Example: pihole -a -p password
 Set options for the Admin Console
 
 Options:
-  -p, password        Set Admin Console password
-  -c, celsius         Set Celsius as preferred temperature unit
-  -f, fahrenheit      Set Fahrenheit as preferred temperature unit
-  -k, kelvin          Set Kelvin as preferred temperature unit
-  -e, email           Set an administrative contact address for the Block Page
-  -h, --help          Show this help dialog
-  -i, interface       Specify dnsmasq's interface listening behavior
-                        Add '-h' for more info on interface usage
-  -s, speedtest       Set speedtest intevel , user 0 to disable Speedtests
-                        use -sn to prevent logging to results list
-  -sd                 Set speedtest display range
-  -sn                 Run speedtest now
-  -sm		          Speedtest Mode
-  -sc                 Clear speedtest data
-  -ss                 Set custom server
-  -l, privacylevel    Set privacy level (0 = lowest, 3 = highest)
-  -t, teleporter      Backup configuration as an archive"
+  -p, password                    Set Admin Console password
+  -c, celsius                     Set Celsius as preferred temperature unit
+  -f, fahrenheit                  Set Fahrenheit as preferred temperature unit
+  -k, kelvin                      Set Kelvin as preferred temperature unit
+  -e, email                       Set an administrative contact address for the Block Page
+  -h, --help                      Show this help dialog
+  -i, interface                   Specify dnsmasq's interface listening behavior
+  -s, speedtest                   Set speedtest intevel , user 0 to disable Speedtests use -sn to prevent logging to results list
+  -sd                             Set speedtest display range
+  -sn                             Run speedtest now
+  -sm		                      Speedtest Mode
+  -sc                             Clear speedtest data
+  -ss                             Set custom server
+  -l, privacylevel                Set privacy level (0 = lowest, 3 = highest)
+  -t, teleporter                  Backup configuration as an archive
+  -t, teleporter myname.tar.gz    Backup configuration to archive with name myname.tar.gz as specified"
     exit 0
 }
 
@@ -621,13 +620,13 @@ CustomizeAdLists() {
 
     if CheckUrl "${address}"; then
         if [[ "${args[2]}" == "enable" ]]; then
-            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
+            pihole-FTL sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
         elif [[ "${args[2]}" == "disable" ]]; then
-            sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
+            pihole-FTL sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
         elif [[ "${args[2]}" == "add" ]]; then
-            sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
+            pihole-FTL sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
         elif [[ "${args[2]}" == "del" ]]; then
-            sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+            pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
         else
             echo "Not permitted"
             return 1
@@ -765,12 +764,17 @@ Interfaces:
 }
 
 Teleporter() {
-    local datetimestamp
-    local host
-    datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
-    host=$(hostname)
-    host="${host//./_}"
-    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
+    local filename
+    filename="${args[2]}"
+    if [[ -z "${filename}" ]]; then
+        local datetimestamp
+        local host
+        datetimestamp=$(date "+%Y-%m-%d_%H-%M-%S")
+        host=$(hostname)
+        host="${host//./_}"
+        filename="pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
+    fi
+    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "${filename}"
 }
 
 checkDomain()
@@ -806,12 +810,12 @@ addAudit()
     done
     # Insert only the domain here. The date_added field will be
     # filled with its default value (date_added = current timestamp)
-    sqlite3 "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
+    pihole-FTL sqlite3 "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
 }
 
 clearAudit()
 {
-    sqlite3 "${gravityDBfile}" "DELETE FROM domain_audit;"
+    pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM domain_audit;"
 }
 
 SetPrivacyLevel() {
@@ -858,7 +862,7 @@ RemoveCustomDNSAddress() {
     validHost="$(checkDomain "${host}")"
     if [[ -n "${validHost}" ]]; then
         if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
-            sed -i "/^${ip} ${validHost}$/d" "${dnscustomfile}"
+            sed -i "/^${ip} ${validHost}$/Id" "${dnscustomfile}"
         else
             echo -e "  ${CROSS} Invalid IP has been passed"
             exit 1
@@ -911,7 +915,7 @@ RemoveCustomCNAMERecord() {
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
         if [[ -n "${validTarget}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}$/d" "${dnscustomcnamefile}"
+            sed -i "/cname=${validDomain},${validTarget}$/Id" "${dnscustomcnamefile}"
         else
             echo "  ${CROSS} Invalid Target Passed!"
             exit 1
