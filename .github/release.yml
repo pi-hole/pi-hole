@@ -1,0 +1,7 @@
+changelog:
+  exclude:
+    labels:
+      - internal
+    authors:
+      - dependabot
+      - github-actions

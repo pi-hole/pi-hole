@@ -287,7 +287,7 @@ package_manager_detect() {
         # Packages required to run this install script (stored as an array)
         INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
-        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2 netcat)
+        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd)
         # Packages required for the Web admin interface (stored as an array)
         # It's useful to separate this from Pi-hole, since the two repos are also setup separately
         PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
@@ -332,7 +332,7 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap nmap-ncat)
+        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat)
         PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
         LIGHTTPD_USER="lighttpd"
         LIGHTTPD_GROUP="lighttpd"
@@ -1373,7 +1373,12 @@ install_manpage() {
     # Testing complete, copy the files & update the man db
     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
+
+    # remove previously installed "pihole-FTL.conf.5" man page
+    if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
+        rm /usr/local/share/man/man5/pihole-FTL.conf.5
+    fi
+
     if mandb -q &>/dev/null; then
         # Updated successfully
         printf "%b  %b man pages installed and database updated\\n" "${OVER}" "${TICK}"
@@ -1381,7 +1386,7 @@ install_manpage() {
     else
         # Something is wrong with the system's man installation, clean up
         # our files, (leave everything how we found it).
-        rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5
+        rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8
         printf "%b  %b man page db not updated, man pages not installed\\n" "${OVER}" "${CROSS}"
     fi
 }
