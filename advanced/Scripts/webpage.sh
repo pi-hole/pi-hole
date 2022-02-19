@@ -808,6 +808,23 @@ RemoveCustomCNAMERecord() {
     fi
 }
 
+SetRateLimit() {
+    local rate_limit_count rate_limit_interval reload
+    rate_limit_count="${args[2]}"
+    rate_limit_interval="${args[3]}"
+    reload="${args[4]}"
+
+    # Set rate-limit setting inf valid
+    if [ "${rate_limit_count}" -ge 0 ] && [ "${rate_limit_interval}" -ge 0 ]; then
+        changeFTLsetting "RATE_LIMIT" "${rate_limit_count}/${rate_limit_interval}"
+    fi
+
+    # Restart FTL to update rate-limit settings only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
 main() {
     args=("$@")
 
@@ -841,6 +858,7 @@ main() {
         "removecustomdns"     ) RemoveCustomDNSAddress;;
         "addcustomcname"      ) AddCustomCNAMERecord;;
         "removecustomcname"   ) RemoveCustomCNAMERecord;;
+        "ratelimit"           ) SetRateLimit;;
         *                     ) helpFunc;;
     esac
 
