@@ -316,9 +316,10 @@ analyze_ports() {
 
 statusFunc() {
   # Determine if there is pihole-FTL service is listening
-  local listening pid port
+  local pid port ftl_api_port
 
   pid="$(getFTLPID)"
+  ftl_api_port="$(getFTLAPIPort)"
   if [[ "$pid" -eq "-1" ]]; then
     case "${1}" in
       "web") echo "-1";;
@@ -326,8 +327,8 @@ statusFunc() {
     esac
     return 0
   else
-    #get the port pihole-FTL is listening on by using FTL's telnet API
-    port="$(echo ">dns-port >quit" | nc 127.0.0.1 4711)"
+    #get the DNS port pihole-FTL is listening on by using FTL's telnet API
+    port="$(echo ">dns-port >quit" | nc 127.0.0.1 "$ftl_api_port")"
     if [[ "${port}" == "0" ]]; then
       case "${1}" in
         "web") echo "-1";;
