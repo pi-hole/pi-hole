@@ -1,4 +1,4 @@
-FROM centos:7
+FROM centos:latest
 RUN yum install -y git
 
 ENV GITDIR /etc/.pihole
