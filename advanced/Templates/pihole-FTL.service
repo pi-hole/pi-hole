@@ -1,0 +1,102 @@
+#!/usr/bin/env sh
+### BEGIN INIT INFO
+# Provides:          pihole-FTL
+# Required-Start:    $remote_fs $syslog $network
+# Required-Stop:     $remote_fs $syslog $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: pihole-FTL daemon
+# Description:       Enable service provided by pihole-FTL daemon
+### END INIT INFO
+
+is_running() {
+  pgrep -xo "pihole-FTL" > /dev/null
+}
+
+
+# Start the service
+start() {
+  if is_running; then
+    echo "pihole-FTL is already running"
+  else
+    # Touch files to ensure they exist (create if non-existing, preserve if existing)
+    mkdir -pm 0755 /run/pihole
+    touch /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases
+    # Ensure that permissions are set so that pihole-FTL can edit all necessary files
+    chown pihole:pihole /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases /run/pihole /etc/pihole
+    chmod 0644 /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases
+    # Ensure that permissions are set so that pihole-FTL can edit the files. We ignore errors as the file may not (yet) exist
+    chmod -f 0644 /etc/pihole/macvendor.db
+    # Chown database files to the user FTL runs as. We ignore errors as the files may not (yet) exist
+    chown -f pihole:pihole /etc/pihole/pihole-FTL.db /etc/pihole/gravity.db /etc/pihole/macvendor.db
+    # Chown database file permissions so that the pihole group (web interface) can edit the file. We ignore errors as the files may not (yet) exist
+    chmod -f 0664 /etc/pihole/pihole-FTL.db
+    if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip "/usr/bin/pihole-FTL"; then
+      su -s /bin/sh -c "/usr/bin/pihole-FTL" pihole
+    else
+      echo "Warning: Starting pihole-FTL as root because setting capabilities is not supported on this system"
+      /usr/bin/pihole-FTL
+    fi
+    echo
+  fi
+}
+
+# Stop the service
+stop() {
+  if is_running; then
+    pkill -xo "pihole-FTL"
+    for i in 1 2 3 4 5; do
+      if ! is_running; then
+        break
+      fi
+
+      printf "."
+      sleep 1
+    done
+    echo
+
+    if is_running; then
+      echo "Not stopped; may still be shutting down or shutdown may have failed, killing now"
+      pkill -xo -9 "pihole-FTL"
+      exit 1
+    else
+      echo "Stopped"
+    fi
+  else
+    echo "Not running"
+  fi
+  # Cleanup
+  rm -f /run/pihole/FTL.sock /dev/shm/FTL-*
+  echo
+}
+
+# Indicate the service status
+status() {
+  if is_running; then
+    echo "[ ok ] pihole-FTL is running"
+    exit 0
+  else
+    echo "[    ] pihole-FTL is not running"
+    exit 1
+  fi
+}
+
+
+### main logic ###
+case "$1" in
+  stop)
+        stop
+        ;;
+  status)
+        status
+        ;;
+  start|restart|reload|condrestart)
+        stop
+        start
+        ;;
+  *)
+        echo "Usage: $0 {start|stop|restart|reload|status}"
+        exit 1
+esac
+
+exit 0

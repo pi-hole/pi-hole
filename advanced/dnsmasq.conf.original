@@ -46,7 +46,7 @@
 #resolv-file=
 
 # By  default,  dnsmasq  will  send queries to any of the upstream
-# servers it knows about and tries to favour servers to are  known
+# servers it knows about and tries to favor servers to are  known
 # to  be  up.  Uncommenting this forces dnsmasq to try each query
 # with  each  server  strictly  in  the  order  they   appear   in
 # /etc/resolv.conf
@@ -189,7 +189,7 @@
 # add names to the DNS for the IPv6 address of SLAAC-configured dual-stack
 # hosts. Use the DHCPv4 lease to derive the name, network segment and
 # MAC address and assume that the host will also have an
-# IPv6 address calculated using the SLAAC alogrithm.
+# IPv6 address calculated using the SLAAC algorithm.
 #dhcp-range=1234::, ra-names
 
 # Do Router Advertisements, BUT NOT DHCP for this subnet.
@@ -210,7 +210,7 @@
 #dhcp-range=1234::, ra-stateless, ra-names
 
 # Do router advertisements for all subnets where we're doing DHCPv6
-# Unless overriden by ra-stateless, ra-names, et al, the router
+# Unless overridden by ra-stateless, ra-names, et al, the router
 # advertisements will have the M and O bits set, so that the clients
 # get addresses and configuration from DHCPv6, and the A bit reset, so the
 # clients don't use SLAAC addresses.
@@ -281,7 +281,7 @@
 # Give a fixed IPv6 address and name to client with
 # DUID 00:01:00:01:16:d2:83:fc:92:d4:19:e2:d8:b2
 # Note the MAC addresses CANNOT be used to identify DHCPv6 clients.
-# Note also the they [] around the IPv6 address are obilgatory.
+# Note also the they [] around the IPv6 address are obligatory.
 #dhcp-host=id:00:01:00:01:16:d2:83:fc:92:d4:19:e2:d8:b2, fred, [1234::5]
 
 # Ignore any clients which are not specified in dhcp-host lines
@@ -404,14 +404,14 @@
 #dhcp-option=vendor:MSFT,2,1i
 
 # Send the Encapsulated-vendor-class ID needed by some configurations of
-# Etherboot to allow is to recognise the DHCP server.
+# Etherboot to allow is to recognize the DHCP server.
 #dhcp-option=vendor:Etherboot,60,"Etherboot"
 
 # Send options to PXELinux. Note that we need to send the options even
 # though they don't appear in the parameter request list, so we need
 # to use dhcp-option-force here.
 # See http://syslinux.zytor.com/pxe.php#special for details.
-# Magic number - needed before anything else is recognised
+# Magic number - needed before anything else is recognized
 #dhcp-option-force=208,f1:00:74:7e
 # Configuration file name
 #dhcp-option-force=209,configs/common

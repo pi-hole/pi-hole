@@ -3,4 +3,10 @@
 *.swp
 __pycache__
 .cache
-.pullapprove.yml
+.pytest_cache
+.tox
+.eggs
+*.egg-info
+.idea/
+*.iml
+.vscode/

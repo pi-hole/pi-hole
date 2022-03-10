@@ -1,0 +1,25 @@
+name: Mark stale issues
+
+on:
+  schedule:
+  - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+    - uses: actions/stale@v4
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        days-before-stale: 30
+        days-before-close: 5
+        stale-issue-message: 'This issue is stale because it has been open 30 days with no activity. Please comment or update this issue or it will be closed in 5 days.'
+        stale-issue-label: 'stale'
+        exempt-issue-labels: 'Internal, Fixed in next release, Bug: Confirmed'
+        exempt-all-issue-assignees: true
+        operations-per-run: 300

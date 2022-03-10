@@ -1,0 +1,48 @@
+name: Test Supported Distributions
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  smoke-test:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+    -
+      name: Checkout repository
+      uses: actions/checkout@v2
+    -
+      name: Run Smoke Tests
+      run: |
+        # Ensure scripts in repository are executable
+        IFS=$'\n';
+        for f in $(find . -name '*.sh'); do if [[ ! -x $f ]]; then echo "$f is not executable" && FAIL=1; fi ;done
+        unset IFS;
+        # If FAIL is 1 then we fail.
+        [[ $FAIL == 1 ]] && exit 1 || echo "Smoke Tests Passed"
+
+  distro-test:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    needs: smoke-test
+    strategy:
+      matrix:
+        distro: [debian_9, debian_10, debian_11, ubuntu_16, ubuntu_18, ubuntu_20, ubuntu_21, centos_7, centos_8, fedora_33, fedora_34]
+    env:
+      DISTRO: ${{matrix.distro}}
+    steps:
+    -
+      name: Checkout repository
+      uses: actions/checkout@v2
+    -
+      name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    -
+      name: Install dependencies
+      run: pip install -r test/requirements.txt
+    -
+      name: Test with tox
+      run: tox -c test/tox.${DISTRO}.ini

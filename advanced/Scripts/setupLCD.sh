@@ -15,28 +15,28 @@
 # Borrowed from adafruit-pitft-helper < borrowed from raspi-config
 # https://github.com/adafruit/Adafruit-PiTFT-Helper/blob/master/adafruit-pitft-helper#L324-L334
 getInitSys() {
-	if command -v systemctl > /dev/null && systemctl | grep -q '\-\.mount'; then
-		SYSTEMD=1
-	elif [ -f /etc/init.d/cron ] && [ ! -h /etc/init.d/cron ]; then
-		SYSTEMD=0
-	else
-		echo "Unrecognised init system"
-		return 1
-	fi
+    if command -v systemctl > /dev/null && systemctl | grep -q '\-\.mount'; then
+        SYSTEMD=1
+    elif [ -f /etc/init.d/cron ] && [ ! -h /etc/init.d/cron ]; then
+        SYSTEMD=0
+    else
+        echo "Unrecognized init system"
+        return 1
+    fi
 }
 
 # Borrowed from adafruit-pitft-helper:
 # https://github.com/adafruit/Adafruit-PiTFT-Helper/blob/master/adafruit-pitft-helper#L274-L285
 autoLoginPiToConsole() {
-	if [ -e /etc/init.d/lightdm ]; then
-		if [ ${SYSTEMD} -eq 1 ]; then
-			systemctl set-default multi-user.target
-			ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
-		else
-			update-rc.d lightdm disable 2
-			sed /etc/inittab -i -e "s/1:2345:respawn:\/sbin\/getty --noclear 38400 tty1/1:2345:respawn:\/bin\/login -f pi tty1 <\/dev\/tty1 >\/dev\/tty1 2>&1/"
-		fi
-	fi
+    if [ -e /etc/init.d/lightdm ]; then
+        if [ ${SYSTEMD} -eq 1 ]; then
+            systemctl set-default multi-user.target
+            ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+        else
+            update-rc.d lightdm disable 2
+            sed /etc/inittab -i -e "s/1:2345:respawn:\/sbin\/getty --noclear 38400 tty1/1:2345:respawn:\/bin\/login -f pi tty1 <\/dev\/tty1 >\/dev\/tty1 2>&1/"
+        fi
+    fi
 }
 
 ######### SCRIPT ###########
@@ -70,5 +70,5 @@ setupcon
 reboot
 
 # Start showing the stats on the screen by running the command on another tty:
-# http://unix.stackexchange.com/questions/170063/start-a-process-on-a-different-tty
+# https://unix.stackexchange.com/questions/170063/start-a-process-on-a-different-tty
 #setsid sh -c 'exec /usr/local/bin/chronometer.sh <> /dev/tty1 >&0 2>&1'

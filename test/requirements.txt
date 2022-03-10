@@ -1,0 +1,6 @@
+docker-compose
+pytest
+pytest-xdist
+pytest-cov
+pytest-testinfra
+tox
