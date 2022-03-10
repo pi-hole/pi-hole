@@ -90,6 +90,7 @@ getRemoteVersion(){
     local version
     local cachedVersions
     local arrCache
+    local owner="pi-hole"
     cachedVersions="/etc/pihole/GitHubVersions"
 
     #If the above file exists, then we can read from that. Prevents overuse of GitHub API
@@ -104,8 +105,12 @@ getRemoteVersion(){
 
         return 0
     fi
+    
+    if [[ "$daemon" == "AdminLTE" ]]; then
+        owner="arevindh"
+    fi
 
-    version=$(curl --silent --fail "https://api.github.com/repos/pi-hole/${daemon}/releases/latest" | \
+    version=$(curl --silent --fail "https://api.github.com/repos/${owner}/${daemon}/releases/latest" | \
         awk -F: '$1 ~/tag_name/ { print $2 }' | \
         tr -cd '[[:alnum:]]._-')
     if [[ "${version}" =~ ^v ]]; then
