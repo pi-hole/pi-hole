@@ -1,4 +1,6 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC3043 #https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
+
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -16,28 +18,20 @@
 
 #######################
 # Takes either
-#   - Three arguments: key, value, and file.
-#   - Two arguments: key, and file
+#   - Three arguments: file, key, and value.
+#   - Two arguments: file, and key.
 #
 # Checks the target file for the existence of the key
 #   - If it exists, it changes the value
 #   - If it does not exist, it adds the value
 #
 # Example usage:
-# addOrEditKeyValuePair "BLOCKING_ENABLED" "true" "/etc/pihole/setupVars.conf"
+# addOrEditKeyValuePair "/etc/pihole/setupVars.conf" "BLOCKING_ENABLED" "true"
 #######################
 addOrEditKeyValPair() {
-  local key="${1}"
-  local value
-  local file
-  
-  # If two arguments have been passed, then the second one is the file - there is no value
-  if [ $# -lt 3 ]; then    
-    file="${2}"
-  else    
-    value="${2}"
-    file="${3}"
-  fi
+  local file="${1}"
+  local key="${2}"
+  local value="${3}"
 
   if [ "${value}" != "" ]; then
     # value has a value, so it is a key pair

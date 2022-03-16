@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
+# shellcheck disable=SC2154
+
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -54,7 +56,7 @@ Options:
 }
 
 add_setting() {
-    addOrEditKeyValPair "${1}" "${2}" "${setupVars}"
+    addOrEditKeyValPair "${setupVars}" "${1}" "${2}"
 }
 
 delete_setting() {
@@ -62,11 +64,11 @@ delete_setting() {
 }
 
 change_setting() {
-    addOrEditKeyValPair "${1}" "${2}" "${setupVars}"
+    addOrEditKeyValPair "${setupVars}" "${1}" "${2}"
 }
 
 addFTLsetting() {
-    addOrEditKeyValPair "${1}" "${2}" "${FTLconf}"
+    addOrEditKeyValPair "${FTLconf}" "${1}" "${2}"
 }
 
 deleteFTLsetting() {
@@ -74,11 +76,11 @@ deleteFTLsetting() {
 }
 
 changeFTLsetting() {
-    addOrEditKeyValPair "${1}" "${2}" "${FTLconf}"
+    addOrEditKeyValPair "${FTLconf}" "${1}" "${2}"
 }
 
 add_dnsmasq_setting() {
-    addOrEditKeyValPair "${1}" "${2}" "${dnsmasqconfig}"
+    addOrEditKeyValPair "${dnsmasqconfig}" "${1}" "${2}"
 }
 
 delete_dnsmasq_setting() {
