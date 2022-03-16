@@ -26,6 +26,9 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 PH_TEST="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
+readonly utilsfile="/opt/pihole/utils.sh"
+source "${utilsfile}"
+
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
     source ${coltable}
@@ -51,41 +54,35 @@ Options:
 }
 
 add_setting() {
-    echo "${1}=${2}" >> "${setupVars}"
+    addOrEditKeyValPair "${1}" "${2}" "${setupVars}"
 }
 
 delete_setting() {
-    sed -i "/^${1}/d" "${setupVars}"
+    removeKey "${1}" "${setupVars}"
 }
 
 change_setting() {
-    delete_setting "${1}"
-    add_setting "${1}" "${2}"
+    addOrEditKeyValPair "${1}" "${2}" "${setupVars}"
 }
 
 addFTLsetting() {
-    echo "${1}=${2}" >> "${FTLconf}"
+    addOrEditKeyValPair "${1}" "${2}" "${FTLconf}"
 }
 
 deleteFTLsetting() {
-    sed -i "/^${1}/d" "${FTLconf}"
+    removeKey "${1}" "${FTLconf}"
 }
 
 changeFTLsetting() {
-    deleteFTLsetting "${1}"
-    addFTLsetting "${1}" "${2}"
+    addOrEditKeyValPair "${1}" "${2}" "${FTLconf}"
 }
 
 add_dnsmasq_setting() {
-    if [[ "${2}" != "" ]]; then
-        echo "${1}=${2}" >> "${dnsmasqconfig}"
-    else
-        echo "${1}" >> "${dnsmasqconfig}"
-    fi
+    addOrEditKeyValPair "${1}" "${2}" "${dnsmasqconfig}"
 }
 
 delete_dnsmasq_setting() {
-    sed -i "/^${1}/d" "${dnsmasqconfig}"
+    removeKey "${1}" "${dnsmasqconfig}"
 }
 
 SetTemperatureUnit() {
@@ -183,7 +180,7 @@ ProcessDNSSettings() {
     fi
 
     delete_dnsmasq_setting "dnssec"
-    delete_dnsmasq_setting "trust-anchor="
+    delete_dnsmasq_setting "trust-anchor"
 
     if [[ "${DNSSEC}" == true ]]; then
         echo "dnssec
