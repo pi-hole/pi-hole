@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
@@ -39,7 +39,7 @@ addOrEditKeyValPair() {
     file="${3}"
   fi
 
-  if [[ "${value}" != "" ]]; then
+  if [ "${value}" != "" ]; then
     # value has a value, so it is a key pair
     if grep -q "^${key}=" "${file}"; then
       # Key already exists in file, modify the value
@@ -74,23 +74,23 @@ removeKey() {
 # returns FTL's current telnet API port
 #######################
 getFTLAPIPort(){
-  local -r FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-  local -r DEFAULT_PORT_FILE="/run/pihole-FTL.port"
-  local -r DEFAULT_FTL_PORT=4711
+  local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
+  local DEFAULT_PORT_FILE="/run/pihole-FTL.port"
+  local DEFAULT_FTL_PORT=4711
   local PORTFILE
   local ftl_api_port
 
-  if [[ -f "$FTLCONFFILE" ]]; then
+  if [ -f "$FTLCONFFILE" ]; then
     # if PORTFILE is not set in pihole-FTL.conf, use the default path
     PORTFILE="$( (grep "^PORTFILE=" $FTLCONFFILE || echo "$DEFAULT_PORT_FILE") | cut -d"=" -f2-)"
   fi
 
-  if [[ -s "$PORTFILE" ]]; then
+  if [ -s "$PORTFILE" ]; then
     # -s: FILE exists and has a size greater than zero
-    ftl_api_port=$(<"$PORTFILE")
+    ftl_api_port=$(cat "${PORTFILE}")
     # Exploit prevention: unset the variable if there is malicious content
-    # Verify that the value read from the file is numeric
-    [[ "$ftl_api_port" =~ [^[:digit:]] ]] && unset ftl_api_port
+    # Verify that the value read from the file is numeric    
+    expr "$ftl_api_port" : "[^[:digit:]]" > /dev/null && unset ftl_api_port
   fi
 
   # echo the port found in the portfile or default to the default port
