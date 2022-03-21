@@ -170,7 +170,15 @@ function queryAds($serverName) {
         $serverName
     );
     $queryAds = file($queryAdsURL, FILE_IGNORE_NEW_LINES);
-    $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAds)));
+
+    // $queryAds must be an array (to avoid PHP 8.0+ error)
+    if (is_array($queryAds)) {
+        $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAds)));
+    } else {
+        // if not an array, return an error message
+        return array("0" => "error", "1" => "Not an array:<br>(".gettype($queryAds).")<br>".print_r($queryAds, true));
+    }
+
     $queryTime = sprintf("%.0f", (microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"]) - $preQueryTime);
 
     // Exception Handling
