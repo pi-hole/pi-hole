@@ -498,6 +498,14 @@ fi
 
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
+  "-v" | "version"              ) versionFunc "$@";;
+  "-c" | "chronometer"          ) chronometerFunc "$@";;
+  "-d" | "debug"                ) debugFunc "$@";;
+  "-q" | "query"                ) queryFunc "$@";;
+  "status"                      ) statusFunc "$2";;
+  "-t" | "tail"                 ) tailFunc "$2";;
+  "tricorder"                   ) tricorderFunc;;
+  *                             ) helpFunc;;
 esac
 
 # Must be root to use this tool
@@ -519,26 +527,17 @@ case "${1}" in
   "--regex" | "regex"           ) listFunc "$@";;
   "--white-regex" | "white-regex" ) listFunc "$@";;
   "--white-wild" | "white-wild"   ) listFunc "$@";;
-  "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
-  "-c" | "chronometer"          ) chronometerFunc "$@";;
-  "-h" | "help"                 ) helpFunc;;
-  "-v" | "version"              ) versionFunc "$@";;
-  "-q" | "query"                ) queryFunc "$@";;
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
-  "status"                      ) statusFunc "$2";;
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
-  "-t" | "tail"                 ) tailFunc "$2";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
-  "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
-  *                             ) helpFunc;;
 esac
