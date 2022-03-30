@@ -365,7 +365,7 @@ statusFunc() {
     # Enable blocking
     "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
-
+exit 0
 }
 
 tailFunc() {
@@ -549,6 +549,7 @@ case "${1}" in
   "--regex" | "regex"           ) listFunc "$@";;
   "--white-regex" | "white-regex" ) listFunc "$@";;
   "--white-wild" | "white-wild"   ) listFunc "$@";;
+  "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
@@ -557,7 +558,6 @@ case "${1}" in
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
-  "-d" | "debug"                ) debugFunc "$@";;
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
