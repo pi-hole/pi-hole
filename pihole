@@ -496,15 +496,37 @@ if [[ $# = 0 ]]; then
   helpFunc
 fi
 
+# functions that do not requiere sudo power
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
   "-v" | "version"              ) versionFunc "$@";;
   "-c" | "chronometer"          ) chronometerFunc "$@";;
-  "-d" | "debug"                ) debugFunc "$@";;
   "-q" | "query"                ) queryFunc "$@";;
   "status"                      ) statusFunc "$2";;
   "-t" | "tail"                 ) tailFunc "$2";;
   "tricorder"                   ) tricorderFunc;;
+
+  # we need to add all arguments that require sudo power to not trigger the * argument
+  "-w" | "whitelist"            ) ;;
+  "-b" | "blacklist"            ) ;;
+  "--wild" | "wildcard"         ) ;;
+  "--regex" | "regex"           ) ;;
+  "--white-regex" | "white-regex" ) ;;
+  "--white-wild" | "white-wild"   ) ;;
+  "-f" | "flush"                ) ;;
+  "-up" | "updatePihole"        ) ;;
+  "-r"  | "reconfigure"         ) ;;
+  "-g" | "updateGravity"        ) ;;
+  "-l" | "logging"              ) ;;
+  "uninstall"                   ) ;;
+  "enable"                      ) ;;
+  "disable"                     ) ;;
+  "-d" | "debug"                ) ;;
+  "restartdns"                  ) ;;
+  "-a" | "admin"                ) ;;
+  "checkout"                    ) ;;
+  "updatechecker"               ) ;;
+  "arpflush"                    ) ;;
   *                             ) helpFunc;;
 esac
 
@@ -535,6 +557,7 @@ case "${1}" in
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
+  "-d" | "debug"                ) debugFunc "$@";;
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
