@@ -1333,8 +1333,7 @@ installConfigs() {
         install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
         if [ ! -f /etc/lighttpd/external.conf ]; then
-            touch /etc/lighttpd/external.conf
-            chmod 644 /etc/lighttpd/external.conf
+            install -m 644 /dev/null /etc/lighttpd/external.com
         fi
         # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
