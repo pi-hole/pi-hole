@@ -906,9 +906,11 @@ dig_at() {
     #          Removes all interfaces which are not UP
     #     s/^[0-9]*: //g;
     #          Removes interface index
+    #     s/@.*//g;
+    #          Removes everything after @ (if found)
     #     s/: <.*//g;
     #          Removes everything after the interface name
-    interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/: <.*//g;")"
+    interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/@.*//g;s/: <.*//g;")"
 
     while IFS= read -r iface ; do
         # Get addresses of current interface
