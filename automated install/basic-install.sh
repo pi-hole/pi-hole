@@ -1129,7 +1129,7 @@ chooseBlocklists() {
     done
     # Create an empty adList file with appropriate permissions.
     if [ ! -f "${adlistFile}" ]; then
-        touch "${adlistFile}"
+        install /dev/null "${adlistFile}"
         chmod 644 "${adlistFile}"
     fi
 }
