@@ -1275,7 +1275,7 @@ show_clients() {
 }
 
 show_messages() {
-    show_FTL_db_entries "Pi-hole diagnosis messages" "SELECT id,datetime(timestamp,'unixepoch','localtime') timestamp,type,message,blob1,blob2,blob3,blob4,blob5 FROM message;" "4 19 20 60 20 20 20 20 20"
+    show_FTL_db_entries "Pi-hole diagnosis messages" "SELECT count (message) as count, datetime(max(timestamp),'unixepoch','localtime') as 'last timestamp', type, message, blob1, blob2, blob3, blob4, blob5 FROM message GROUP BY type, message, blob1, blob2, blob3, blob4, blob5;" "6 19 20 60 20 20 20 20 20"
 }
 
 analyze_gravity_list() {
