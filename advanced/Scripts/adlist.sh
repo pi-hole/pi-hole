@@ -64,14 +64,14 @@ ValidateId() {
     fi
 
     # Return count of id, either 0 or 1
-    return "$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE id = '${id}';")"
+    return "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE id = '${id}';")"
 }
 
 DisplayAdlist() {
     # This function outputs all ad lists in the database to stdout.
 
-    # sqlite3 outputs formatted columns
-    sqlite3 -header -column "${gravityDBfile}" "SELECT id, address FROM adlist ORDER BY id;"
+    # pihole-FTL sqlite3 outputs formatted columns
+    pihole-FTL sqlite3 -header -column "${gravityDBfile}" "SELECT id, address FROM adlist ORDER BY id;"
 
     exit 0
 }
@@ -84,7 +84,7 @@ RemoveAdlist() {
 
     # getopt sets parameters into single quotes.
     # Remove single quotes
-    id=$(echo "${id}" | sed -e "s/'//g")
+    id="${id//\'/}"
 
     # Validate id before removing
     ValidateId "${id}"
@@ -99,10 +99,10 @@ RemoveAdlist() {
     fi
 
     # Get address of id for user output
-    address="$(sqlite3 "${gravityDBfile}" "SELECT address FROM adlist WHERE id='${id}';")"
+    address="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT address FROM adlist WHERE id='${id}';")"
 
     # Remove from adlist
-    if [[ $(sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE id=='${id}';") -ne 0 ]]
+    if [[ $(pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE id=='${id}';") -ne 0 ]]
     then
         if [[ "${verbose}" == "true" ]]
         then
@@ -113,7 +113,7 @@ RemoveAdlist() {
     fi
         
     # Remove from group
-    if [[ $(sqlite3 "${gravityDBfile}" "DELETE FROM adlist_by_group WHERE adlist_id==${id};") -ne 0 ]]
+    if [[ $(pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM adlist_by_group WHERE adlist_id==${id};") -ne 0 ]]
     then
         if [[ "${verbose}" == "true" ]]
         then
@@ -140,7 +140,7 @@ then
     exit 1
 fi
 
-set -- $options
+set -- "${options}"
 
 # Options set
 optionsHelpFunc="true"
