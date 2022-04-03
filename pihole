@@ -496,7 +496,7 @@ if [[ $# = 0 ]]; then
   helpFunc
 fi
 
-# functions that do not requiere sudo power
+# functions that do not require sudo power
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
   "-v" | "version"              ) versionFunc "$@";;
