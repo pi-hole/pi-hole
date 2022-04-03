@@ -22,7 +22,6 @@ fi
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
-gravityDBfile="gravity.db"
 
 verbose=true
 
@@ -65,14 +64,14 @@ ValidateId() {
     fi
 
     # Return count of id, either 0 or 1
-    return "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE id = '${id}';")"
+    return "$(sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE id = '${id}';")"
 }
 
 DisplayAdlist() {
     # This function outputs all ad lists in the database to stdout.
 
     # sqlite3 outputs formatted columns
-    pihole-FTL sqlite3 -header -column "${gravityDBfile}" "SELECT id, address FROM adlist ORDER BY id;"
+    sqlite3 -header -column "${gravityDBfile}" "SELECT id, address FROM adlist ORDER BY id;"
 
     exit 0
 }
@@ -85,7 +84,7 @@ RemoveAdlist() {
 
     # getopt sets parameters into single quotes.
     # Remove single quotes
-    id=`echo "${id}" | sed -e "s/'//g"`
+    id=$(echo "${id}" | sed -e "s/'//g")
 
     # Validate id before removing
     ValidateId "${id}"
@@ -100,11 +99,10 @@ RemoveAdlist() {
     fi
 
     # Get address of id for user output
-    address="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT address FROM adlist WHERE id='${id}';")"
+    address="$(sqlite3 "${gravityDBfile}" "SELECT address FROM adlist WHERE id='${id}';")"
 
     # Remove from adlist
-    pihole-FTL sqlite3 "${gravityDBfile}" 'DELETE FROM adlist WHERE id=='${id}';'
-    if [[ $? -ne 0 ]]
+    if [[ $(sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE id=='${id}';") -ne 0 ]]
     then
         if [[ "${verbose}" == "true" ]]
         then
@@ -115,8 +113,7 @@ RemoveAdlist() {
     fi
         
     # Remove from group
-    pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM adlist_by_group WHERE adlist_id==${id};"
-    if [[ $? -ne 0 ]]
+    if [[ $(sqlite3 "${gravityDBfile}" "DELETE FROM adlist_by_group WHERE adlist_id==${id};") -ne 0 ]]
     then
         if [[ "${verbose}" == "true" ]]
         then
@@ -146,9 +143,9 @@ fi
 set -- $options
 
 # Options set
-optionsHelpFunc=true
-optionsDisplayAdlist=false
-optionsRemoveAdlist=false
+optionsHelpFunc="true"
+optionsDisplayAdlist="false"
+optionsRemoveAdlist="false"
 optionsRemoveAdlistParam=""
 
 while [ $# -gt 0 ]
