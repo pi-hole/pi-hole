@@ -34,7 +34,7 @@ addOrEditKeyValPair() {
   local value="${3}"
 
   if [ "${value}" != "" ]; then
-    # value has a value, so it is a key pair
+    # value has a value, so it is a key-value pair
     if grep -q "^${key}=" "${file}"; then
       # Key already exists in file, modify the value
       sed -i "/^${key}=/c\\${key}=${value}" "${file}"
@@ -52,7 +52,7 @@ addOrEditKeyValPair() {
 }
 
 #######################
-# Takes two arguments key, and file.
+# Takes two arguments file, and key.
 # Deletes a key from target file
 #
 # Example usage:
