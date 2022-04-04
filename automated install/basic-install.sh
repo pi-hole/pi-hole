@@ -262,7 +262,7 @@ os_check() {
 # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
 test_dpkg_lock() {
     i=0
-    printf "  %b   Waiting for package manager to finish\\n" "${INFO}"
+    printf "  %b Waiting for package manager to finish\\n" "${INFO}"
     # fuser is a program to show which processes use the named files, sockets, or filesystems
     # So while the lock is held,
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1
