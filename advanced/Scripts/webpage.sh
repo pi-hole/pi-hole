@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090
+# shellcheck disable=SC2154
+
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -26,6 +28,9 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 PH_TEST="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
+readonly utilsfile="/opt/pihole/utils.sh"
+source "${utilsfile}"
+
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
     source ${coltable}
@@ -51,41 +56,35 @@ Options:
 }
 
 add_setting() {
-    echo "${1}=${2}" >> "${setupVars}"
+    addOrEditKeyValPair "${setupVars}" "${1}" "${2}"
 }
 
 delete_setting() {
-    sed -i "/^${1}/d" "${setupVars}"
+    removeKey "${setupVars}" "${1}"
 }
 
 change_setting() {
-    delete_setting "${1}"
-    add_setting "${1}" "${2}"
+    addOrEditKeyValPair "${setupVars}" "${1}" "${2}"
 }
 
 addFTLsetting() {
-    echo "${1}=${2}" >> "${FTLconf}"
+    addOrEditKeyValPair "${FTLconf}" "${1}" "${2}"
 }
 
 deleteFTLsetting() {
-    sed -i "/^${1}/d" "${FTLconf}"
+    removeKey "${FTLconf}" "${1}"
 }
 
 changeFTLsetting() {
-    deleteFTLsetting "${1}"
-    addFTLsetting "${1}" "${2}"
+    addOrEditKeyValPair "${FTLconf}" "${1}" "${2}"
 }
 
 add_dnsmasq_setting() {
-    if [[ "${2}" != "" ]]; then
-        echo "${1}=${2}" >> "${dnsmasqconfig}"
-    else
-        echo "${1}" >> "${dnsmasqconfig}"
-    fi
+    addOrEditKeyValPair "${dnsmasqconfig}" "${1}" "${2}"
 }
 
 delete_dnsmasq_setting() {
-    sed -i "/^${1}/d" "${dnsmasqconfig}"
+    removeKey "${dnsmasqconfig}" "${1}"
 }
 
 SetTemperatureUnit() {
@@ -183,7 +182,7 @@ ProcessDNSSettings() {
     fi
 
     delete_dnsmasq_setting "dnssec"
-    delete_dnsmasq_setting "trust-anchor="
+    delete_dnsmasq_setting "trust-anchor"
 
     if [[ "${DNSSEC}" == true ]]; then
         echo "dnssec

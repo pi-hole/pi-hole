@@ -2,15 +2,33 @@ def test_key_val_replacement_works(host):
     ''' Confirms addOrEditKeyValPair provides the expected output '''
     host.run('''
     source /opt/pihole/utils.sh
-    addOrEditKeyValPair "KEY_ONE" "value1" "./testoutput"
-    addOrEditKeyValPair "KEY_TWO" "value2" "./testoutput"
-    addOrEditKeyValPair "KEY_ONE" "value3" "./testoutput"
-    addOrEditKeyValPair "KEY_FOUR" "value4" "./testoutput"
+    addOrEditKeyValPair "./testoutput" "KEY_ONE" "value1"
+    addOrEditKeyValPair "./testoutput" "KEY_TWO" "value2"
+    addOrEditKeyValPair "./testoutput" "KEY_ONE" "value3"
+    addOrEditKeyValPair "./testoutput" "KEY_FOUR" "value4"
+    addOrEditKeyValPair "./testoutput" "KEY_FIVE_NO_VALUE"
+    addOrEditKeyValPair "./testoutput" "KEY_FIVE_NO_VALUE"
     ''')
     output = host.run('''
     cat ./testoutput
     ''')
-    expected_stdout = 'KEY_ONE=value3\nKEY_TWO=value2\nKEY_FOUR=value4\n'
+    expected_stdout = 'KEY_ONE=value3\nKEY_TWO=value2\nKEY_FOUR=value4\nKEY_FIVE_NO_VALUE\n'
+    assert expected_stdout == output.stdout
+
+
+def test_key_val_removal_works(host):
+    ''' Confirms removeKey provides the expected output '''
+    host.run('''
+    source /opt/pihole/utils.sh
+    addOrEditKeyValPair "./testoutput" "KEY_ONE" "value1"
+    addOrEditKeyValPair "./testoutput" "KEY_TWO" "value2"
+    addOrEditKeyValPair "./testoutput" "KEY_THREE" "value3"
+    removeKey "./testoutput" "KEY_TWO"
+    ''')
+    output = host.run('''
+    cat ./testoutput
+    ''')
+    expected_stdout = 'KEY_ONE=value1\nKEY_THREE=value3\n'
     assert expected_stdout == output.stdout
 
 
