@@ -17,7 +17,7 @@ getFTLPID() {
     FTL_PID="$(cat "$FTL_PID_FILE")"
     # Exploit prevention: unset the variable if there is malicious content
     # Verify that the value read from the file is numeric
-    expr "$FTL_PID" : "[^[:digit:]]" > /dev/null && unset pid
+    expr "$FTL_PID" : "[^[:digit:]]" > /dev/null && unset FTL_PID
   fi
 
   # If FTL is not running, or the PID file contains malicious stuff, substitute
