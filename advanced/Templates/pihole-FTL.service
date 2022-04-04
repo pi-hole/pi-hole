@@ -9,8 +9,30 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
+# Get PID of main pihole-FTL process
+FTL_PID_FILE="/run/pihole-FTL.pid"
+getFTLPID() {
+  if [ -s "${FTL_PID_FILE}" ]; then
+    # -s: FILE exists and has a size greater than zero
+    FTL_PID="$(cat "$FTL_PID_FILE")"
+    # Exploit prevention: unset the variable if there is malicious content
+    # Verify that the value read from the file is numeric
+    expr "$FTL_PID" : "[^[:digit:]]" > /dev/null && unset pid
+  fi
+
+  # If FTL is not running, or the PID file contains malicious stuff, substitute
+  # negative PID to signal this to the caller
+  echo "${FTL_PID:=-1}"
+}
+
+
 is_running() {
-  pgrep -xo "pihole-FTL" > /dev/null
+  FTL_PID="$(getFTLPID)"
+  if [ "$FTL_PID" -eq "-1" ]; then
+    echo "false"
+  else
+    echo "true"
+  fi
 }
 
 
@@ -21,7 +43,7 @@ start() {
   else
     # Touch files to ensure they exist (create if non-existing, preserve if existing)
     mkdir -pm 0755 /run/pihole
-    [ ! -f /run/pihole-FTL.pid ] && install -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.pid
+    [ ! -f /run/.pid ] && install -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.pid
     [ ! -f /run/pihole-FTL.port ] && install -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.port
     [ ! -f /var/log/pihole-FTL.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole-FTL.log
     [ ! -f /var/log/pihole.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole.log
@@ -47,7 +69,7 @@ start() {
 # Stop the service
 stop() {
   if is_running; then
-    pkill -xo "pihole-FTL"
+    pkill -F "${FTL_PID_FILE}"
     for i in 1 2 3 4 5; do
       if ! is_running; then
         break
@@ -60,7 +82,7 @@ stop() {
 
     if is_running; then
       echo "Not stopped; may still be shutting down or shutdown may have failed, killing now"
-      pkill -xo -9 "pihole-FTL"
+      pkill -9 -F "${FTL_PID_FILE}"
       exit 1
     else
       echo "Stopped"
@@ -69,7 +91,7 @@ stop() {
     echo "Not running"
   fi
   # Cleanup
-  rm -f /run/pihole/FTL.sock /dev/shm/FTL-*
+  rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}"
   echo
 }
 
