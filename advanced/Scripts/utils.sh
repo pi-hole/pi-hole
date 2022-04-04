@@ -56,11 +56,11 @@ addOrEditKeyValPair() {
 # Deletes a key from target file
 #
 # Example usage:
-# removeKey "PIHOLE_DNS_1" "/etc/pihole/setupVars.conf"
+# removeKey "/etc/pihole/setupVars.conf" "PIHOLE_DNS_1"
 #######################
 removeKey() {
-  local key="${1}"
-  local file="${2}"
+  local file="${1}"
+  local key="${2}"
   sed -i "/^${key}/d" "${file}"
 }
 

@@ -17,13 +17,13 @@ def test_key_val_replacement_works(host):
 
 
 def test_key_val_removal_works(host):
-    ''' Confirms addOrEditKeyValPair provides the expected output '''
+    ''' Confirms removeKey provides the expected output '''
     host.run('''
     source /opt/pihole/utils.sh
     addOrEditKeyValPair "./testoutput" "KEY_ONE" "value1"
     addOrEditKeyValPair "./testoutput" "KEY_TWO" "value2"
     addOrEditKeyValPair "./testoutput" "KEY_THREE" "value3"
-    removeKey "KEY_TWO" "./testoutput"
+    removeKey "./testoutput" "KEY_TWO"
     ''')
     output = host.run('''
     cat ./testoutput

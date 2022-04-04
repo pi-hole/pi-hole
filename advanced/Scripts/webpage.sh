@@ -60,7 +60,7 @@ add_setting() {
 }
 
 delete_setting() {
-    removeKey "${1}" "${setupVars}"
+    removeKey "${setupVars}" "${1}"
 }
 
 change_setting() {
@@ -72,7 +72,7 @@ addFTLsetting() {
 }
 
 deleteFTLsetting() {
-    removeKey "${1}" "${FTLconf}"
+    removeKey "${FTLconf}" "${1}"
 }
 
 changeFTLsetting() {
@@ -84,7 +84,7 @@ add_dnsmasq_setting() {
 }
 
 delete_dnsmasq_setting() {
-    removeKey "${1}" "${dnsmasqconfig}"
+    removeKey "${dnsmasqconfig}" "${1}"
 }
 
 SetTemperatureUnit() {

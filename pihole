@@ -260,7 +260,7 @@ Options:
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
-    sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
+    addOrEditKeyValPair /etc/dnsmasq.d/01-pihole.conf "log-queries"
     addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "false"
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
@@ -270,7 +270,7 @@ Options:
     local str="Logging has been disabled!"
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
-    sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
+    removeKey /etc/dnsmasq.d/01-pihole.conf "log-queries"
     addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "true"
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
