@@ -29,9 +29,9 @@ getFTLPID() {
 is_running() {
   FTL_PID="$(getFTLPID)"
   if [ "$FTL_PID" -eq "-1" ]; then
-    echo "false"
+    return 1
   else
-    echo "true"
+    echo 0
   fi
 }
 
