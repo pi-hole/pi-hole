@@ -259,6 +259,29 @@ os_check() {
     fi
 }
 
+# This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
+test_dpkg_lock() {
+    i=0
+    printf "  %b Waiting for package manager to finish (up to 30 seconds)\\n" "${INFO}"
+    # fuser is a program to show which processes use the named files, sockets, or filesystems
+    # So while the lock is held,
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1
+    do
+        # we wait half a second,
+        sleep 0.5
+        # increase the iterator,
+        ((i=i+1))
+        # exit if waiting for more then 30 seconds
+        if [[ $i -gt 60 ]]; then
+            printf "  %b %bError: Could not verify package manager finished and released lock. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "       Attempt to install packages manually and retry.\\n"
+            exit 1;
+        fi
+    done
+    # and then report success once dpkg is unlocked.
+    return 0
+}
+
 # Compatibility
 package_manager_detect() {
     # First check to see if apt-get is installed.
@@ -301,22 +324,6 @@ package_manager_detect() {
         LIGHTTPD_GROUP="www-data"
         # and config file
         LIGHTTPD_CFG="lighttpd.conf.debian"
-
-        # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
-        test_dpkg_lock() {
-            i=0
-            # fuser is a program to show which processes use the named files, sockets, or filesystems
-            # So while the lock is held,
-            while fuser /var/lib/dpkg/lock >/dev/null 2>&1
-            do
-                # we wait half a second,
-                sleep 0.5
-                # increase the iterator,
-                ((i=i+1))
-            done
-            # and then report success once dpkg is unlocked.
-            return 0
-        }
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm ; then
