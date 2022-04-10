@@ -365,7 +365,7 @@ statusFunc() {
     # Enable blocking
     "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
-
+exit 0
 }
 
 tailFunc() {
@@ -496,8 +496,38 @@ if [[ $# = 0 ]]; then
   helpFunc
 fi
 
+# functions that do not require sudo power
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
+  "-v" | "version"              ) versionFunc "$@";;
+  "-c" | "chronometer"          ) chronometerFunc "$@";;
+  "-q" | "query"                ) queryFunc "$@";;
+  "status"                      ) statusFunc "$2";;
+  "-t" | "tail"                 ) tailFunc "$2";;
+  "tricorder"                   ) tricorderFunc;;
+
+  # we need to add all arguments that require sudo power to not trigger the * argument
+  "-w" | "whitelist"            ) ;;
+  "-b" | "blacklist"            ) ;;
+  "--wild" | "wildcard"         ) ;;
+  "--regex" | "regex"           ) ;;
+  "--white-regex" | "white-regex" ) ;;
+  "--white-wild" | "white-wild"   ) ;;
+  "-f" | "flush"                ) ;;
+  "-up" | "updatePihole"        ) ;;
+  "-r"  | "reconfigure"         ) ;;
+  "-g" | "updateGravity"        ) ;;
+  "-l" | "logging"              ) ;;
+  "uninstall"                   ) ;;
+  "enable"                      ) ;;
+  "disable"                     ) ;;
+  "-d" | "debug"                ) ;;
+  "restartdns"                  ) ;;
+  "-a" | "admin"                ) ;;
+  "checkout"                    ) ;;
+  "updatechecker"               ) ;;
+  "arpflush"                    ) ;;
+  *                             ) helpFunc;;
 esac
 
 # Must be root to use this tool
@@ -524,21 +554,13 @@ case "${1}" in
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
-  "-c" | "chronometer"          ) chronometerFunc "$@";;
-  "-h" | "help"                 ) helpFunc;;
-  "-v" | "version"              ) versionFunc "$@";;
-  "-q" | "query"                ) queryFunc "$@";;
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
-  "status"                      ) statusFunc "$2";;
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
-  "-t" | "tail"                 ) tailFunc "$2";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
-  "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
-  *                             ) helpFunc;;
 esac
