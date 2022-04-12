@@ -11,8 +11,8 @@
 source "/opt/pihole/COL_TABLE"
 
 while true; do
-    read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " yn
-    case ${yn} in
+    read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " answer
+    case ${answer} in
         [Yy]* ) break;;
         * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
     esac
@@ -75,8 +75,8 @@ removeAndPurge() {
     for i in "${DEPS[@]}"; do
         if package_check "${i}" > /dev/null; then
             while true; do
-                read -rp "  ${QST} Do you wish to remove ${COL_WHITE}${i}${COL_NC} from your system? [Y/N] " yn
-                case ${yn} in
+                read -rp "  ${QST} Do you wish to remove ${COL_WHITE}${i}${COL_NC} from your system? [Y/N] " answer
+                case ${answer} in
                     [Yy]* )
                         echo -ne "  ${INFO} Removing ${i}...";
                         ${SUDO} "${PKG_REMOVE[@]}" "${i}" &> /dev/null;
@@ -214,8 +214,8 @@ while true; do
         echo -n "${i} "
     done
     echo "${COL_NC}"
-    read -rp "  ${QST} Do you wish to go through each dependency for removal? (Choosing No will leave all dependencies installed) [Y/n] " yn
-    case ${yn} in
+    read -rp "  ${QST} Do you wish to go through each dependency for removal? (Choosing No will leave all dependencies installed) [Y/n] " answer
+    case ${answer} in
         [Yy]* ) removeAndPurge; break;;
         [Nn]* ) removeNoPurge; break;;
         * ) removeAndPurge; break;;
