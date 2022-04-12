@@ -21,7 +21,7 @@ readonly FTL_PID_FILE="/run/pihole-FTL.pid"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
-readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 source "${utilsfile}"
 
 webpageFunc() {

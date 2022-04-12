@@ -28,7 +28,7 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 PH_TEST="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
-readonly utilsfile="/opt/pihole/utils.sh"
+utilsfile="/opt/pihole/utils.sh"
 source "${utilsfile}"
 
 coltable="/opt/pihole/COL_TABLE"
