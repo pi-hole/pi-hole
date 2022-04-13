@@ -13,9 +13,12 @@
 FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
 DEFAULT_PID_FILE="/run/pihole-FTL.pid"
 getFTLPID() {
-  if [ -f "$FTLCONFFILE" ]; then
+  if [ -s "$FTLCONFFILE" ]; then
     # if PIDFILE is not set in pihole-FTL.conf, use the default path
     FTL_PID_FILE="$( (grep "^PIDFILE=" $FTLCONFFILE || echo "$DEFAULT_PID_FILE") | cut -d"=" -f2-)"
+  else
+    # if there is no pihole-FTL.conf, use the default path
+    FTL_PID_FILE="$DEFAULT_PID_FILE"
   fi
 
   if [ -s "${FTL_PID_FILE}" ]; then
