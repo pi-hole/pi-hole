@@ -10,8 +10,14 @@
 ### END INIT INFO
 
 # Get PID of main pihole-FTL process
-FTL_PID_FILE="/run/pihole-FTL.pid"
+FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
+DEFAULT_PID_FILE="/run/pihole-FTL.pid"
 getFTLPID() {
+  if [ -f "$FTLCONFFILE" ]; then
+    # if PIDFILE is not set in pihole-FTL.conf, use the default path
+    FTL_PID_FILE="$( (grep "^PIDFILE=" $FTLCONFFILE || echo "$DEFAULT_PID_FILE") | cut -d"=" -f2-)"
+  fi
+
   if [ -s "${FTL_PID_FILE}" ]; then
     # -s: FILE exists and has a size greater than zero
     FTL_PID="$(cat "$FTL_PID_FILE")"
