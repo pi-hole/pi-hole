@@ -6,8 +6,8 @@ def test_key_val_replacement_works(host):
     addOrEditKeyValPair "./testoutput" "KEY_TWO" "value2"
     addOrEditKeyValPair "./testoutput" "KEY_ONE" "value3"
     addOrEditKeyValPair "./testoutput" "KEY_FOUR" "value4"
-    addOrEditKeyValPair "./testoutput" "KEY_FIVE_NO_VALUE"
-    addOrEditKeyValPair "./testoutput" "KEY_FIVE_NO_VALUE"
+    addKey "./testoutput" "KEY_FIVE_NO_VALUE"
+    addKey "./testoutput" "KEY_FIVE_NO_VALUE"
     ''')
     output = host.run('''
     cat ./testoutput
