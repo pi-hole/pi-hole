@@ -90,7 +90,7 @@ stop() {
     if is_running; then
       echo "Not stopped; may still be shutting down or shutdown may have failed, killing now"
       pkill -9 -F "${FTL_PID_FILE}"
-      exit 1
+      exit 0
     else
       echo "Stopped"
     fi
