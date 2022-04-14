@@ -17,43 +17,49 @@
 #  - New functions must have a test added for them in test/test_any_utils.py
 
 #######################
-# Takes either
-#   - Three arguments: file, key, and value.
-#   - Two arguments: file, and key.
+# Takes Three arguments: file, key, and value.
 #
 # Checks the target file for the existence of the key
 #   - If it exists, it changes the value
 #   - If it does not exist, it adds the value
 #
 # Example usage:
-# addOrEditKeyValuePair "/etc/pihole/setupVars.conf" "BLOCKING_ENABLED" "true"
+# addOrEditKeyValPair "/etc/pihole/setupVars.conf" "BLOCKING_ENABLED" "true"
 #######################
 addOrEditKeyValPair() {
   local file="${1}"
   local key="${2}"
   local value="${3}"
 
-  if [ "${value}" != "" ]; then
-    # value has a value, so it is a key-value pair
-    if grep -q "^${key}=" "${file}"; then
+  if grep -q "^${key}=" "${file}"; then
       # Key already exists in file, modify the value
       sed -i "/^${key}=/c\\${key}=${value}" "${file}"
-    else
-      # Key does not already exist, add it and it's value
-      echo "${key}=${value}" >> "${file}"
-    fi
   else
-    # value has no value, so it is just a key. Add it if it does not already exist
-    if ! grep -q "^${key}" "${file}"; then
-      # Key does not exist, add it.
-      echo "${key}" >> "${file}"
-    fi
+    # Key does not already exist, add it and it's value
+    echo "${key}=${value}" >> "${file}"
   fi
 }
 
 #######################
-# Takes two arguments file, and key.
-# Deletes a key from target file
+# Takes two arguments: file, and key.
+# Adds a key to target file
+#
+# Example usage:
+# addKey "/etc/dnsmasq.d/01-pihole.conf" "log-queries"
+#######################
+addKey(){
+  local file="${1}"
+  local key="${2}"
+
+  if ! grep -q "^${key}" "${file}"; then
+      # Key does not exist, add it.
+      echo "${key}" >> "${file}"
+  fi
+}
+
+#######################
+# Takes two arguments: file, and key.
+# Deletes a key or key/value pair from target file
 #
 # Example usage:
 # removeKey "/etc/pihole/setupVars.conf" "PIHOLE_DNS_1"
