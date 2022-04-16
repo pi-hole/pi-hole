@@ -679,7 +679,7 @@ def test_FTL_detect_aarch64_no_errors(host):
     mock_command(
         'ldd',
         {
-            '/bin/ls': (
+            '/bin/bash': (
                 '/lib/ld-linux-aarch64.so.1',
                 '0'
             )
@@ -709,7 +709,7 @@ def test_FTL_detect_armv4t_no_errors(host):
     # mock uname to return armv4t platform
     mock_command('uname', {'-m': ('armv4t', '0')}, host)
     # mock ldd to respond with ld-linux shared library
-    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux.so.3', '0')}, host)
+    mock_command('ldd', {'/bin/bash': ('/lib/ld-linux.so.3', '0')}, host)
     detectPlatform = host.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
@@ -733,7 +733,7 @@ def test_FTL_detect_armv5te_no_errors(host):
     # mock uname to return armv5te platform
     mock_command('uname', {'-m': ('armv5te', '0')}, host)
     # mock ldd to respond with ld-linux shared library
-    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux.so.3', '0')}, host)
+    mock_command('ldd', {'/bin/bash': ('/lib/ld-linux.so.3', '0')}, host)
     detectPlatform = host.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
@@ -757,7 +757,7 @@ def test_FTL_detect_armv6l_no_errors(host):
     # mock uname to return armv6l platform
     mock_command('uname', {'-m': ('armv6l', '0')}, host)
     # mock ldd to respond with ld-linux-armhf shared library
-    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, host)
+    mock_command('ldd', {'/bin/bash': ('/lib/ld-linux-armhf.so.3', '0')}, host)
     detectPlatform = host.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
@@ -782,7 +782,7 @@ def test_FTL_detect_armv7l_no_errors(host):
     # mock uname to return armv7l platform
     mock_command('uname', {'-m': ('armv7l', '0')}, host)
     # mock ldd to respond with ld-linux-armhf shared library
-    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, host)
+    mock_command('ldd', {'/bin/bash': ('/lib/ld-linux-armhf.so.3', '0')}, host)
     detectPlatform = host.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
@@ -807,7 +807,7 @@ def test_FTL_detect_armv8a_no_errors(host):
     # mock uname to return armv8a platform
     mock_command('uname', {'-m': ('armv8a', '0')}, host)
     # mock ldd to respond with ld-linux-armhf shared library
-    mock_command('ldd', {'/bin/ls': ('/lib/ld-linux-armhf.so.3', '0')}, host)
+    mock_command('ldd', {'/bin/bash': ('/lib/ld-linux-armhf.so.3', '0')}, host)
     detectPlatform = host.run('''
     source /opt/pihole/basic-install.sh
     create_pihole_user
