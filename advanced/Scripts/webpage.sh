@@ -155,7 +155,7 @@ ProcessDNSSettings() {
         if [ -z "${!var}" ]; then
             break;
         fi
-        addOrEditKeyValPair "${dnsmasqconfig}" "server" "${!var}"
+        addKey "${dnsmasqconfig}" "server=${!var}"
         (( COUNTER++ ))
     done
 
