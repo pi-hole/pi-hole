@@ -1,29 +1,47 @@
 def test_key_val_replacement_works(host):
-    ''' Confirms addOrEditKeyValPair provides the expected output '''
+    ''' Confirms addOrEditKeyValPair either adds or replaces a key value pair in a given file '''
     host.run('''
     source /opt/pihole/utils.sh
     addOrEditKeyValPair "./testoutput" "KEY_ONE" "value1"
     addOrEditKeyValPair "./testoutput" "KEY_TWO" "value2"
     addOrEditKeyValPair "./testoutput" "KEY_ONE" "value3"
     addOrEditKeyValPair "./testoutput" "KEY_FOUR" "value4"
-    addKey "./testoutput" "KEY_FIVE_NO_VALUE"
-    addKey "./testoutput" "KEY_FIVE_NO_VALUE"
     ''')
     output = host.run('''
     cat ./testoutput
     ''')
-    expected_stdout = 'KEY_ONE=value3\nKEY_TWO=value2\nKEY_FOUR=value4\nKEY_FIVE_NO_VALUE\n'
+    expected_stdout = 'KEY_ONE=value3\nKEY_TWO=value2\nKEY_FOUR=value4\n'
     assert expected_stdout == output.stdout
 
 
-def test_key_val_removal_works(host):
-    ''' Confirms removeKey provides the expected output '''
+def test_key_addition_works(host):
+    ''' Confirms addKey adds a key (no value) to a file without duplicating it '''
+    host.run('''
+    source /opt/pihole/utils.sh
+    addKey "./testoutput" "KEY_ONE"
+    addKey "./testoutput" "KEY_ONE"
+    addKey "./testoutput" "KEY_TWO"
+    addKey "./testoutput" "KEY_TWO"
+    addKey "./testoutput" "KEY_THREE"
+    addKey "./testoutput" "KEY_THREE"
+    ''')
+    output = host.run('''
+    cat ./testoutput
+    ''')
+    expected_stdout = 'KEY_ONE\nKEY_TWO\nKEY_THREE\n'
+    assert expected_stdout == output.stdout
+
+
+def test_key_removal_works(host):
+    ''' Confirms removeKey removes a key or key/value pair '''
     host.run('''
     source /opt/pihole/utils.sh
     addOrEditKeyValPair "./testoutput" "KEY_ONE" "value1"
     addOrEditKeyValPair "./testoutput" "KEY_TWO" "value2"
     addOrEditKeyValPair "./testoutput" "KEY_THREE" "value3"
+    addKey "./testoutput" "KEY_FOUR"
     removeKey "./testoutput" "KEY_TWO"
+    removeKey "./testoutput" "KEY_FOUR"
     ''')
     output = host.run('''
     cat ./testoutput
