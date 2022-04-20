@@ -529,7 +529,6 @@ parseList() {
   # 2. Append ,adlistID to every line
   # 3. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
   # 4. Ensures there is a newline on the last line
-  # sed -e "/[^a-zA-Z0-9.\_-]/d;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
   # previous line modified 20/04/2022, see https://github.com/pi-hole/pi-hole/issues/4701
   sed -e "/[^a-zA-Z0-9.\_-]/d;s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
   # Find (up to) five domains containing invalid characters (see above)
