@@ -2216,7 +2216,7 @@ get_binary_name() {
         local rev
         rev=$(uname -m | sed "s/[^0-9]//g;")
         local lib
-        lib=$(ldd $(which sh) | grep -E '^\s*/lib' | awk '{ print $1 }')
+        lib=$(ldd "$(which sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
