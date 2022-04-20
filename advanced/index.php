@@ -164,13 +164,35 @@ ini_set("default_socket_timeout", 3);
 function queryAds($serverName) {
     // Determine the time it takes while querying adlists
     $preQueryTime = microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"];
+
+    // Determine which protocol should be used
+    $protocol = "http";
+    if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ||
+        (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https') ||
+        (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+    ) {
+        $protocol = "https";
+    }
+
+    // Format the URL
     $queryAdsURL = sprintf(
-        "http://127.0.0.1:%s/admin/scripts/pi-hole/php/queryads.php?domain=%s&bp",
+        "%s://127.0.0.1:%s/admin/scripts/pi-hole/php/queryads.php?domain=%s&bp",
+        $protocol,
         $_SERVER["SERVER_PORT"],
         $serverName
     );
-    $queryAds = file($queryAdsURL, FILE_IGNORE_NEW_LINES);
-    $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAds)));
+
+    // Request the file and receive the response
+    $queryAdsFile = file($queryAdsURL, FILE_IGNORE_NEW_LINES);
+
+    // $queryAdsFile must be an array (to avoid PHP 8.0+ error)
+    if (is_array($queryAdsFile)) {
+        $queryAds = array_values(array_filter(preg_replace("/data:\s+/", "", $queryAdsFile)));
+    } else {
+        // if not an array, return an error message
+        return array("0" => "error", "1" => "<br>(".gettype($queryAdsFile).")<br>".print_r($queryAdsFile, true));
+    }
+
     $queryTime = sprintf("%.0f", (microtime(true)-$_SERVER["REQUEST_TIME_FLOAT"]) - $preQueryTime);
 
     // Exception Handling
