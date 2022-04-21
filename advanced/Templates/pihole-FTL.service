@@ -12,6 +12,7 @@
 # Get PID of main pihole-FTL process
 FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
 DEFAULT_PID_FILE="/run/pihole-FTL.pid"
+FTL_PID=''
 getFTLPID() {
   if [ -s "$FTLCONFFILE" ]; then
     # if PIDFILE is not set in pihole-FTL.conf, use the default path
@@ -36,12 +37,13 @@ getFTLPID() {
 
 
 is_running() {
-  FTL_PID="$(getFTLPID)"
-  if [ "$FTL_PID" -eq "-1" ]; then
-    return 1
-  else
-    echo 0
+  if [ -z "$FTL_PID" ]; then
+    FTL_PID="$(getFTLPID)"
   fi
+  if [ -d "/proc/$FTL_PID" ]; then
+    return 0
+  fi
+  return 1
 }
 
 
@@ -76,7 +78,7 @@ start() {
 # Stop the service
 stop() {
   if is_running; then
-    pkill -F "${FTL_PID_FILE}"
+    kill "$FTL_PID"
     for i in 1 2 3 4 5; do
       if ! is_running; then
         break
@@ -89,8 +91,7 @@ stop() {
 
     if is_running; then
       echo "Not stopped; may still be shutting down or shutdown may have failed, killing now"
-      pkill -9 -F "${FTL_PID_FILE}"
-      exit 0
+      kill -9 "$FTL_PID"
     else
       echo "Stopped"
     fi
