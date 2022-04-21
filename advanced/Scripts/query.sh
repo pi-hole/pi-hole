@@ -64,8 +64,8 @@ Example: 'pihole -q -exact domain.com'
 Query the adlists for a specified domain
 
 Options:
-  -exact              Search the block lists for exact domain matches
-  -all                Return all query matches within a block list
+  -exact              Search the adlists for exact domain matches
+  -all                Return all query matches within the adlists
   -h, --help          Show this help dialog"
   exit 0
 fi
@@ -210,7 +210,7 @@ mapfile -t results <<< "$(scanDatabaseTable "${domainQuery}" "gravity")"
 
 # Handle notices
 if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
-    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the block lists"
+    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the adlists"
     exit 0
 elif [[ -z "${results[*]}" ]]; then
     # Result found in WL/BL/Wildcards

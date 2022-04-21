@@ -239,10 +239,10 @@ os_check() {
             printf "      If you wish to attempt to continue anyway, you can try one of the following commands to skip this check:\\n"
             printf "\\n"
             printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
-            printf "             %bcurl -sSL https://install.pi-hole.net | PIHOLE_SKIP_OS_CHECK=true sudo -E bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "             %bcurl -sSL https://install.pi-hole.net | sudo PIHOLE_SKIP_OS_CHECK=true bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
             printf "\\n"
             printf "           If you are seeing this message after having run pihole -up:\\n"
-            printf "             %bPIHOLE_SKIP_OS_CHECK=true sudo -E pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "             %bsudo PIHOLE_SKIP_OS_CHECK=true pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
             printf "           (In this case, your previous run of pihole -up will have already updated the local repository)\\n"
             printf "\\n"
             printf "      It is possible that the installation will still fail at this stage due to an unsupported configuration.\\n"
@@ -257,6 +257,29 @@ os_check() {
     else
         printf "  %b %bPIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
+}
+
+# This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
+test_dpkg_lock() {
+    i=0
+    printf "  %b Waiting for package manager to finish (up to 30 seconds)\\n" "${INFO}"
+    # fuser is a program to show which processes use the named files, sockets, or filesystems
+    # So while the lock is held,
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1
+    do
+        # we wait half a second,
+        sleep 0.5
+        # increase the iterator,
+        ((i=i+1))
+        # exit if waiting for more then 30 seconds
+        if [[ $i -gt 60 ]]; then
+            printf "  %b %bError: Could not verify package manager finished and released lock. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "       Attempt to install packages manually and retry.\\n"
+            exit 1;
+        fi
+    done
+    # and then report success once dpkg is unlocked.
+    return 0
 }
 
 # Compatibility
@@ -287,7 +310,7 @@ package_manager_detect() {
         # Packages required to run this install script (stored as an array)
         INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
-        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd)
+        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps)
         # Packages required for the Web admin interface (stored as an array)
         # It's useful to separate this from Pi-hole, since the two repos are also setup separately
         PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
@@ -301,22 +324,6 @@ package_manager_detect() {
         LIGHTTPD_GROUP="www-data"
         # and config file
         LIGHTTPD_CFG="lighttpd.conf.debian"
-
-        # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
-        test_dpkg_lock() {
-            i=0
-            # fuser is a program to show which processes use the named files, sockets, or filesystems
-            # So while the lock is held,
-            while fuser /var/lib/dpkg/lock >/dev/null 2>&1
-            do
-                # we wait half a second,
-                sleep 0.5
-                # increase the iterator,
-                ((i=i+1))
-            done
-            # and then report success once dpkg is unlocked.
-            return 0
-        }
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm ; then
@@ -1130,8 +1137,11 @@ chooseBlocklists() {
         appendToListsFile "${choice}"
     done
     # Create an empty adList file with appropriate permissions.
-    touch "${adlistFile}"
-    chmod 644 "${adlistFile}"
+    if [ ! -f "${adlistFile}" ]; then
+        install -m 644 /dev/null "${adlistFile}"
+    else
+        chmod 644 "${adlistFile}"
+    fi
 }
 
 # Accept a string parameter, it must be one of the default lists
@@ -1332,8 +1342,9 @@ installConfigs() {
         # and copy in the config file Pi-hole needs
         install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
-        touch /etc/lighttpd/external.conf
-        chmod 644 /etc/lighttpd/external.conf
+        if [ ! -f /etc/lighttpd/external.conf ]; then
+            install -m 644 /dev/null /etc/lighttpd/external.conf
+        fi
         # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
@@ -2207,7 +2218,7 @@ get_binary_name() {
         local rev
         rev=$(uname -m | sed "s/[^0-9]//g;")
         local lib
-        lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
+        lib=$(ldd "$(which sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
