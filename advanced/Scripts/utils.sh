@@ -12,7 +12,7 @@
 
 # Basic Housekeeping rules
 #  - Functions must be self contained
-#  - Functions must be added in alphabetical order
+#  - Functions should be grouped with other similar functions
 #  - Functions must be documented
 #  - New functions must have a test added for them in test/test_any_utils.py
 
