@@ -12,9 +12,10 @@
 # Get PID of main pihole-FTL process
 FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
 DEFAULT_PID_FILE="/run/pihole-FTL.pid"
+DEFAULT_PORT_FILE="/run/pihole-FTL.port"
 FTL_PID=''
 
-getFTLPIDPath() {
+getFTLPIDFile() {
   if [ -s "$FTLCONFFILE" ]; then
     # if PIDFILE is not set in pihole-FTL.conf, use the default path
     FTL_PID_FILE="$( (grep "^PIDFILE=" $FTLCONFFILE || echo "$DEFAULT_PID_FILE") | cut -d"=" -f2-)"
@@ -25,8 +26,6 @@ getFTLPIDPath() {
 }
 
 getFTLPID() {
-  getFTLPIDPath
-
   if [ -s "${FTL_PID_FILE}" ]; then
     # -s: FILE exists and has a size greater than zero
     FTL_PID="$(cat "$FTL_PID_FILE")"
@@ -40,8 +39,21 @@ getFTLPID() {
   echo "${FTL_PID:=-1}"
 }
 
+getFTLPortFile () {
+  if [ -s "$FTLCONFFILE" ]; then
+    # if PORTFILE is not set in pihole-FTL.conf, use the default path
+    FTL_PORT_FILE="$( (grep "^PORTFILE=" $FTLCONFFILE || echo "$DEFAULT_PORT_FILE") | cut -d"=" -f2-)"
+  else
+    # if there is no pihole-FTL.conf, use the default path
+    FTL_PORT_FILE="$DEFAULT_PORT_FILE"
+fi
+}
+
+
 
 is_running() {
+  getFTLPIDFile
+  getFTLPortFile
   if [ -z "$FTL_PID" ]; then
     FTL_PID="$(getFTLPID)"
   fi
@@ -59,6 +71,8 @@ start() {
   else
     # Touch files to ensure they exist (create if non-existing, preserve if existing)
     mkdir -pm 0755 /run/pihole
+    [ ! -f "${FTL_PID_FILE}" ] && install -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
+    [ ! -f "${FTL_PORT_FILE}" ] && install -m 644 -o pihole -g pihole /dev/null "${FTL_PORT_FILE}"
     [ ! -f /var/log/pihole-FTL.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole-FTL.log
     [ ! -f /var/log/pihole.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole.log
     [ ! -f /etc/pihole/dhcp.leases ] && install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
@@ -104,7 +118,7 @@ stop() {
     echo "Not running"
   fi
   # Cleanup
-  rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}"
+  rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}" "${FTL_PORT_FILE}"
   echo
 }
 
