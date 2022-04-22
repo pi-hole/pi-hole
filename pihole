@@ -21,7 +21,7 @@ readonly FTL_PID_FILE="/run/pihole-FTL.pid"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
-readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 source "${utilsfile}"
 
 webpageFunc() {
@@ -226,7 +226,7 @@ Time:
       fi
 
       local str="Pi-hole Disabled"
-      addOrEditKeyValPair "BLOCKING_ENABLED" "false" "${setupVars}"
+      addOrEditKeyValPair "${setupVars}" "BLOCKING_ENABLED" "false"
     fi
   else
     # Enable Pi-hole
@@ -238,7 +238,7 @@ Time:
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    addOrEditKeyValPair "BLOCKING_ENABLED" "true" "${setupVars}"
+    addOrEditKeyValPair "${setupVars}" "BLOCKING_ENABLED" "true"
   fi
 
   restartDNS reload-lists
@@ -260,8 +260,8 @@ Options:
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
-    sed -i 's/^log-queries/#log-queries/' /etc/dnsmasq.d/01-pihole.conf
-    addOrEditKeyValPair "QUERY_LOGGING" "false" "${setupVars}"
+    removeKey /etc/dnsmasq.d/01-pihole.conf "log-queries"
+    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "false"
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
       "${PI_HOLE_BIN_DIR}"/pihole -f
@@ -270,8 +270,8 @@ Options:
     local str="Logging has been disabled!"
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
-    sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.d/01-pihole.conf
-    addOrEditKeyValPair "QUERY_LOGGING" "true" "${setupVars}"
+    addKey /etc/dnsmasq.d/01-pihole.conf "log-queries"
+    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "true"
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
   else
@@ -316,9 +316,10 @@ analyze_ports() {
 
 statusFunc() {
   # Determine if there is pihole-FTL service is listening
-  local listening pid port
+  local pid port ftl_api_port
 
   pid="$(getFTLPID)"
+  ftl_api_port="$(getFTLAPIPort)"
   if [[ "$pid" -eq "-1" ]]; then
     case "${1}" in
       "web") echo "-1";;
@@ -326,8 +327,8 @@ statusFunc() {
     esac
     return 0
   else
-    #get the port pihole-FTL is listening on by using FTL's telnet API
-    port="$(echo ">dns-port >quit" | nc 127.0.0.1 4711)"
+    #get the DNS port pihole-FTL is listening on by using FTL's telnet API
+    port="$(echo ">dns-port >quit" | nc 127.0.0.1 "$ftl_api_port")"
     if [[ "${port}" == "0" ]]; then
       case "${1}" in
         "web") echo "-1";;
@@ -364,7 +365,7 @@ statusFunc() {
     # Enable blocking
     "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
-
+exit 0
 }
 
 tailFunc() {
@@ -495,8 +496,38 @@ if [[ $# = 0 ]]; then
   helpFunc
 fi
 
+# functions that do not require sudo power
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
+  "-v" | "version"              ) versionFunc "$@";;
+  "-c" | "chronometer"          ) chronometerFunc "$@";;
+  "-q" | "query"                ) queryFunc "$@";;
+  "status"                      ) statusFunc "$2";;
+  "-t" | "tail"                 ) tailFunc "$2";;
+  "tricorder"                   ) tricorderFunc;;
+
+  # we need to add all arguments that require sudo power to not trigger the * argument
+  "-w" | "whitelist"            ) ;;
+  "-b" | "blacklist"            ) ;;
+  "--wild" | "wildcard"         ) ;;
+  "--regex" | "regex"           ) ;;
+  "--white-regex" | "white-regex" ) ;;
+  "--white-wild" | "white-wild"   ) ;;
+  "-f" | "flush"                ) ;;
+  "-up" | "updatePihole"        ) ;;
+  "-r"  | "reconfigure"         ) ;;
+  "-g" | "updateGravity"        ) ;;
+  "-l" | "logging"              ) ;;
+  "uninstall"                   ) ;;
+  "enable"                      ) ;;
+  "disable"                     ) ;;
+  "-d" | "debug"                ) ;;
+  "restartdns"                  ) ;;
+  "-a" | "admin"                ) ;;
+  "checkout"                    ) ;;
+  "updatechecker"               ) ;;
+  "arpflush"                    ) ;;
+  *                             ) helpFunc;;
 esac
 
 # Must be root to use this tool
@@ -523,21 +554,13 @@ case "${1}" in
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
   "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
-  "-c" | "chronometer"          ) chronometerFunc "$@";;
-  "-h" | "help"                 ) helpFunc;;
-  "-v" | "version"              ) versionFunc "$@";;
-  "-q" | "query"                ) queryFunc "$@";;
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
-  "status"                      ) statusFunc "$2";;
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
-  "-t" | "tail"                 ) tailFunc "$2";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
-  "tricorder"                   ) tricorderFunc;;
   "updatechecker"               ) updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
-  *                             ) helpFunc;;
 esac

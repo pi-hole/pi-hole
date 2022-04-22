@@ -19,7 +19,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FROM_BRANCH: 'master'
           TO_BRANCH: 'development'
-          CONTENT_COMPARISON: true
       - name: Label the pull request to ignore for release note generation
         uses: actions-ecosystem/action-add-labels@v1
         with:
