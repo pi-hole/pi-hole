@@ -9,22 +9,24 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
-# Get PID of main pihole-FTL process
+# Global variables
 FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
 DEFAULT_PID_FILE="/run/pihole-FTL.pid"
 DEFAULT_PORT_FILE="/run/pihole-FTL.port"
 FTL_PID=''
 
+# Get the file path of the pihole-FTL.pid file
 getFTLPIDFile() {
   if [ -s "$FTLCONFFILE" ]; then
     # if PIDFILE is not set in pihole-FTL.conf, use the default path
-    FTL_PID_FILE="$( (grep "^PIDFILE=" $FTLCONFFILE || echo "$DEFAULT_PID_FILE") | cut -d"=" -f2-)"
+    FTL_PID_FILE="$({ grep '^PIDFILE=' "$FTLCONFFILE" || echo "$DEFAULT_PID_FILE"; } | cut -d'=' -f2-)"
   else
     # if there is no pihole-FTL.conf, use the default path
     FTL_PID_FILE="$DEFAULT_PID_FILE"
   fi
 }
 
+# Get the PID of the FTL process based on the content of the pihole-FTL.pid file
 getFTLPID() {
   if [ -s "${FTL_PID_FILE}" ]; then
     # -s: FILE exists and has a size greater than zero
@@ -39,10 +41,11 @@ getFTLPID() {
   echo "${FTL_PID:=-1}"
 }
 
+# Get the file path of the pihole-FTL.port file
 getFTLPortFile () {
   if [ -s "$FTLCONFFILE" ]; then
     # if PORTFILE is not set in pihole-FTL.conf, use the default path
-    FTL_PORT_FILE="$( (grep "^PORTFILE=" $FTLCONFFILE || echo "$DEFAULT_PORT_FILE") | cut -d"=" -f2-)"
+    FTL_PORT_FILE="$({ grep '^PORTFILE=' "$FTLCONFFILE" || echo "$DEFAULT_PID_FILE"; } | cut -d'=' -f2-)"
   else
     # if there is no pihole-FTL.conf, use the default path
     FTL_PORT_FILE="$DEFAULT_PORT_FILE"
@@ -50,10 +53,7 @@ fi
 }
 
 
-
 is_running() {
-  getFTLPIDFile
-  getFTLPortFile
   if [ -z "$FTL_PID" ]; then
     FTL_PID="$(getFTLPID)"
   fi
@@ -135,6 +135,11 @@ status() {
 
 
 ### main logic ###
+
+# Get file paths
+getFTLPIDFile
+getFTLPortFile
+
 case "$1" in
   stop)
         stop
