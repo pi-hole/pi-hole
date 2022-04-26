@@ -1,5 +1,5 @@
 # Determine if terminal is capable of showing colors
-if [[ -t 1 ]] && [[ $(tput colors) -ge 8 ]]; then
+if ([[ -t 1 ]] && [[ $(tput colors) -ge 8 ]]) || [[ "${WEBCALL}" ]]; then
   # Bold and underline may not show up on all clients
   # If something MUST be emphasized, use both
   COL_BOLD='[1m'

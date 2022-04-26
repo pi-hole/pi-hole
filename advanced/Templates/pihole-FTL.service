@@ -21,12 +21,15 @@ start() {
   else
     # Touch files to ensure they exist (create if non-existing, preserve if existing)
     mkdir -pm 0755 /run/pihole
-    touch /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases
+    [ ! -f /run/pihole-FTL.pid ] && install -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.pid
+    [ ! -f /run/pihole-FTL.port ] && install -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.port
+    [ ! -f /var/log/pihole-FTL.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole-FTL.log
+    [ ! -f /var/log/pihole.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole.log
+    [ ! -f /etc/pihole/dhcp.leases ] && install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
     # Ensure that permissions are set so that pihole-FTL can edit all necessary files
-    chown pihole:pihole /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases /run/pihole /etc/pihole
-    chmod 0644 /run/pihole-FTL.pid /run/pihole-FTL.port /var/log/pihole-FTL.log /var/log/pihole.log /etc/pihole/dhcp.leases
+    chown pihole:pihole /run/pihole /etc/pihole /var/log/pihole.log /var/log/pihole.log /etc/pihole/dhcp.leases
     # Ensure that permissions are set so that pihole-FTL can edit the files. We ignore errors as the file may not (yet) exist
-    chmod -f 0644 /etc/pihole/macvendor.db
+    chmod -f 0644 /etc/pihole/macvendor.db /etc/pihole/dhcp.leases /var/log/pihole-FTL.log /var/log/pihole.log
     # Chown database files to the user FTL runs as. We ignore errors as the files may not (yet) exist
     chown -f pihole:pihole /etc/pihole/pihole-FTL.db /etc/pihole/gravity.db /etc/pihole/macvendor.db
     # Chown database file permissions so that the pihole group (web interface) can edit the file. We ignore errors as the files may not (yet) exist
