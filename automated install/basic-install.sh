@@ -946,7 +946,7 @@ setDNS() {
             fi
 
             # Prompt the user to enter custom upstream servers
-            piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'" "${r}" "${c}" "${prePopulate}" 3>&1 1>&2 2>&3) || \
+            piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma. If you want to specify a port other than 53, separate it with a hash.\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'" "${r}" "${c}" "${prePopulate}" 3>&1 1>&2 2>&3) || \
             { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
             # Clean user input and replace whitespace with comma.
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
