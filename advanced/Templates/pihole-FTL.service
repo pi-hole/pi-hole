@@ -54,9 +54,6 @@ fi
 
 
 is_running() {
-  if [ -z "${FTL_PID}" ]; then
-    FTL_PID="$(getFTLPID)"
-  fi
   if [ -d "/proc/${FTL_PID}" ]; then
     return 0
   fi
@@ -139,6 +136,9 @@ status() {
 # Get file paths
 getFTLPIDFile
 getFTLPortFile
+
+# Get FTL's current PID
+getFTLPID
 
 case "$1" in
   stop)
