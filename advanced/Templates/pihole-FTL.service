@@ -9,8 +9,55 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
+# Global variables
+FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
+DEFAULT_PID_FILE="/run/pihole-FTL.pid"
+DEFAULT_PORT_FILE="/run/pihole-FTL.port"
+FTL_PID=''
+
+# Get the file path of the pihole-FTL.pid file
+getFTLPIDFile() {
+  if [ -s "${FTLCONFFILE}" ]; then
+    # if PIDFILE is not set in pihole-FTL.conf, use the default path
+    FTL_PID_FILE="$({ grep '^PIDFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PID_FILE}"; } | cut -d'=' -f2-)"
+  else
+    # if there is no pihole-FTL.conf, use the default path
+    FTL_PID_FILE="${DEFAULT_PID_FILE}"
+  fi
+}
+
+# Get the PID of the FTL process based on the content of the pihole-FTL.pid file
+getFTLPID() {
+  if [ -s "${FTL_PID_FILE}" ]; then
+    # -s: FILE exists and has a size greater than zero
+    FTL_PID="$(cat "${FTL_PID_FILE}")"
+    # Exploit prevention: unset the variable if there is malicious content
+    # Verify that the value read from the file is numeric
+    expr "${FTL_PID}" : "[^[:digit:]]" > /dev/null && unset FTL_PID
+  fi
+
+  # If FTL is not running, or the PID file contains malicious stuff, substitute
+  # negative PID to signal this
+  FTL_PID=${FTL_PID:=-1}
+}
+
+# Get the file path of the pihole-FTL.port file
+getFTLPortFile() {
+  if [ -s "${FTLCONFFILE}" ]; then
+    # if PORTFILE is not set in pihole-FTL.conf, use the default path
+    FTL_PORT_FILE="$({ grep '^PORTFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PORT_FILE}"; } | cut -d'=' -f2-)"
+  else
+    # if there is no pihole-FTL.conf, use the default path
+    FTL_PORT_FILE="${DEFAULT_PORT_FILE}"
+fi
+}
+
+
 is_running() {
-  pgrep -xo "pihole-FTL" > /dev/null
+  if [ -d "/proc/${FTL_PID}" ]; then
+    return 0
+  fi
+  return 1
 }
 
 
@@ -21,8 +68,8 @@ start() {
   else
     # Touch files to ensure they exist (create if non-existing, preserve if existing)
     mkdir -pm 0755 /run/pihole
-    [ ! -f /run/pihole-FTL.pid ] && install -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.pid
-    [ ! -f /run/pihole-FTL.port ] && install -m 644 -o pihole -g pihole /dev/null /run/pihole-FTL.port
+    [ ! -f "${FTL_PID_FILE}" ] && install -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
+    [ ! -f "${FTL_PORT_FILE}" ] && install -m 644 -o pihole -g pihole /dev/null "${FTL_PORT_FILE}"
     [ ! -f /var/log/pihole-FTL.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole-FTL.log
     [ ! -f /var/log/pihole.log ] && install -m 644 -o pihole -g pihole /dev/null /var/log/pihole.log
     [ ! -f /etc/pihole/dhcp.leases ] && install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
@@ -47,7 +94,7 @@ start() {
 # Stop the service
 stop() {
   if is_running; then
-    pkill -xo "pihole-FTL"
+    kill "${FTL_PID}"
     for i in 1 2 3 4 5; do
       if ! is_running; then
         break
@@ -60,8 +107,7 @@ stop() {
 
     if is_running; then
       echo "Not stopped; may still be shutting down or shutdown may have failed, killing now"
-      pkill -xo -9 "pihole-FTL"
-      exit 1
+      kill -9 "${FTL_PID}"
     else
       echo "Stopped"
     fi
@@ -69,7 +115,7 @@ stop() {
     echo "Not running"
   fi
   # Cleanup
-  rm -f /run/pihole/FTL.sock /dev/shm/FTL-*
+  rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}" "${FTL_PORT_FILE}"
   echo
 }
 
@@ -86,6 +132,14 @@ status() {
 
 
 ### main logic ###
+
+# Get file paths
+getFTLPIDFile
+getFTLPortFile
+
+# Get FTL's current PID
+getFTLPID
+
 case "$1" in
   stop)
         stop
