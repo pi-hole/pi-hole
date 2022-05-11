@@ -37,8 +37,8 @@ getFTLPID() {
   fi
 
   # If FTL is not running, or the PID file contains malicious stuff, substitute
-  # negative PID to signal this to the caller
-  echo "${FTL_PID:=-1}"
+  # negative PID to signal this
+  FTL_PID=${FTL_PID:=-1}
 }
 
 # Get the file path of the pihole-FTL.port file
