@@ -2528,6 +2528,14 @@ main() {
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
         fi
+
+        # If this is an update from a previous Pi-hole installation
+        # we need to move any existing `pihole*` logs from `/var/log` to `/var/log/pihole`
+        # if /var/log/pihole.log is not a symlink (set durign FTL startup) move the files
+        # can be removed with Pi-hole v6.0
+        if [ -f /var/log/pihole.log ] && [ ! -L /var/log/pihole.log ]; then
+            mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
+        fi
     fi
     # Download or update the scripts by updating the appropriate git repos
     clone_or_update_repos
