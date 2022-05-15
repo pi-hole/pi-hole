@@ -905,23 +905,6 @@ def test_FTL_binary_installed_and_responsive_no_errors(host):
     assert expected_stdout in installed_binary.stdout
 
 
-# def test_FTL_support_files_installed(host):
-#     '''
-#     confirms FTL support files are installed
-#     '''
-#     support_files = host.run('''
-#     source /opt/pihole/basic-install.sh
-#     FTLdetect
-#     stat -c '%a %n' /var/log/pihole-FTL.log
-#     stat -c '%a %n' /run/pihole-FTL.port
-#     stat -c '%a %n' /run/pihole-FTL.pid
-#     ls -lac /run
-#     ''')
-#     assert '644 /run/pihole-FTL.port' in support_files.stdout
-#     assert '644 /run/pihole-FTL.pid' in support_files.stdout
-#     assert '644 /var/log/pihole-FTL.log' in support_files.stdout
-
-
 def test_IPv6_only_link_local(host):
     '''
     confirms IPv6 blocking is disabled for Link-local address
