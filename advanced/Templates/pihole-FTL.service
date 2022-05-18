@@ -87,14 +87,12 @@ start() {
     # Should be removed with Pi-hole v6.0
     if [ ! -f /var/log/pihole.log ]; then
         ln -s /var/log/pihole/pihole.log /var/log/pihole.log
-        chown pihole:pihole /var/log/pihole.log
-        chmod -f 0644 /var/log/pihole.log
+        chown -h pihole:pihole /var/log/pihole.log
 
     fi
     if [ ! -f /var/log/pihole-FTL.log ]; then
         ln -s /var/log/pihole/pihole-FTL.log /var/log/pihole-FTL.log
-        chown pihole:pihole /var/log/pihole-FTL.log
-        chmod -f 0644 /var/log/pihole-FTL.log
+        chown -h pihole:pihole /var/log/pihole-FTL.log
     fi
 
     if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip "/usr/bin/pihole-FTL"; then
