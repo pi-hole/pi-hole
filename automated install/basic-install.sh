@@ -1326,6 +1326,9 @@ installConfigs() {
         fi
     fi
 
+    # Install pihole-FTL.service
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
@@ -2116,9 +2119,6 @@ FTLinstall() {
 
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
-
-    # Always replace pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
     local ftlBranch
     local url
