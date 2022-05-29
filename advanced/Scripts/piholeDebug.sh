@@ -1259,12 +1259,21 @@ show_messages() {
     show_FTL_db_entries "Pi-hole diagnosis messages" "SELECT count (message) as count, datetime(max(timestamp),'unixepoch','localtime') as 'last timestamp', type, message, blob1, blob2, blob3, blob4, blob5 FROM message GROUP BY type, message, blob1, blob2, blob3, blob4, blob5;" "6 19 20 60 20 20 20 20 20"
 }
 
+database_permissions() {
+    local permissions
+    permissions=$(ls -lhd "${1}")
+    log_write "${COL_GREEN}${permissions}${COL_NC}"
+}
+
 analyze_gravity_list() {
     echo_current_diagnostic "Gravity Database"
 
-    local gravity_permissions
-    gravity_permissions=$(ls -lhd "${PIHOLE_GRAVITY_DB_FILE}")
-    log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
+    database_permissions "${PIHOLE_GRAVITY_DB_FILE}"
+
+    # if users want to check database integrity
+    if [[ "${CHECK_DATABASE}" = true ]]; then
+        database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+    fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
     gravity_updated_raw="$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
@@ -1285,6 +1294,57 @@ analyze_gravity_list() {
     log_write ""
     IFS="$OLD_IFS"
 }
+
+analyze_ftl_db() {
+    echo_current_diagnostic "Pi-hole FTL Query Database"
+    database_permissions "${PIHOLE_FTL_DB_FILE}"
+    # if users want to check database integrity
+    if [[ "${CHECK_DATABASE}" = true ]]; then
+        database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+    fi
+}
+
+database_integrity_check(){
+    local result
+    local database="${1}"
+
+    log_write "${INFO} Checking integrity of ${database} ... (this can take several minutes)"
+    result="$(pihole-FTL "${database}" "PRAGMA integrity_check" 2>&1)"
+    if [[ ${result} = "ok" ]]; then
+      log_write "${TICK} Integrity of ${database} intact"
+
+
+      log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
+      unset result
+      result="$(pihole-FTL sqlite3 "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1)"
+      if [[ -z ${result} ]]; then
+        log_write "${TICK} No foreign key errors in ${database}"
+      else
+        log_write "${CROSS} ${COL_RED}Foreign key errors in ${database} found.${COL_NC}"
+        while IFS= read -r line ; do
+            log_write "    $line"
+        done <<< "$result"
+      fi
+
+    else
+      log_write "${CROSS} ${COL_RED}Integrity errors in ${database} found.\n${COL_NC}"
+      while IFS= read -r line ; do
+        log_write "    $line"
+      done <<< "$result"
+    fi
+
+}
+
+check_database_integrity() {
+    echo_current_diagnostic "Gravity Database"
+    database_permissions "${PIHOLE_GRAVITY_DB_FILE}"
+    database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
+
+    echo_current_diagnostic "Pi-hole FTL Query Database"
+    database_permissions "${PIHOLE_FTL_DB_FILE}"
+    database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+}
+
 
 obfuscated_pihole_log() {
   local pihole_log=("$@")
@@ -1431,7 +1491,7 @@ upload_to_tricorder() {
         if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
             :
         else
-            log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
+            log_write "${CROSS} ${COL_RED}There was an error uploading your debug log.${COL_NC}"
             log_write "   * Please try again or contact the Pi-hole team for assistance."
         fi
     fi
@@ -1460,6 +1520,7 @@ process_status
 ftl_full_status
 parse_setup_vars
 check_x_headers
+analyze_ftl_db
 analyze_gravity_list
 show_groups
 show_domainlist
