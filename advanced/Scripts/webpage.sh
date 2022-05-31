@@ -772,7 +772,8 @@ Teleporter() {
         host="${host//./_}"
         filename="pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
     fi
-    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "${filename}"
+    # webroot is sourced from basic-install above
+    php "${webroot}/admin/scripts/pi-hole/php/teleporter.php" > "${filename}"
 }
 
 checkDomain()
