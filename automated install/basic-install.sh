@@ -2613,6 +2613,19 @@ main() {
     # Fixes a problem reported on Ubuntu 18.04 where trying to start
     # the service before enabling causes installer to exit
     enable_service pihole-FTL
+
+    # If this is an update from a previous Pi-hole installation
+    # we need to move any existing `pihole*` logs from `/var/log` to `/var/log/pihole`
+    # if /var/log/pihole.log is not a symlink (set durign FTL startup) move the files
+    # can be removed with Pi-hole v6.0
+    # To be sure FTL is not running when we move the files we explicitly stop it here
+
+    stop_service pihole-FTL &> /dev/null
+
+    if [ -f /var/log/pihole.log ] && [ ! -L /var/log/pihole.log ]; then
+        mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
+    fi
+
     restart_service pihole-FTL
 
     # Download and compile the aggregated block list
