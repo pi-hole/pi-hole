@@ -66,8 +66,8 @@ PIHOLE_DIRECTORY="/etc/pihole"
 PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
 RUN_DIRECTORY="/run"
-LOG_DIRECTORY="/var/log"
-WEB_SERVER_LOG_DIRECTORY="${LOG_DIRECTORY}/lighttpd"
+LOG_DIRECTORY="/var/log/pihole"
+WEB_SERVER_LOG_DIRECTORY="/var/log/lighttpd"
 WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
@@ -131,8 +131,8 @@ PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
 PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log")"
 
-PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
-PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
+PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access-pihole.log"
+PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error-pihole.log"
 
 RESOLVCONF="${ETC}/resolv.conf"
 DNSMASQ_CONF="${ETC}/dnsmasq.conf"
@@ -467,6 +467,9 @@ diagnose_operating_system() {
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
+    # If the PIHOLE_DOCKER_TAG variable is set, include this information in the debug output
+    [ -n "${PIHOLE_DOCKER_TAG}" ] && log_write "${INFO} Pi-hole Docker Container: ${PIHOLE_DOCKER_TAG}"
+
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
         # display the attributes to the user from the function made earlier
@@ -730,11 +733,11 @@ compare_port_to_service_assigned() {
 
     # If the service is a Pi-hole service, highlight it in green
     if [[ "${service_name}" == "${expected_service}" ]]; then
-        log_write "[${COL_GREEN}${port}${COL_NC}] is in use by ${COL_GREEN}${service_name}${COL_NC}"
+        log_write "${TICK} ${COL_GREEN}${port}${COL_NC} is in use by ${COL_GREEN}${service_name}${COL_NC}"
     # Otherwise,
     else
         # Show the service name in red since it's non-standard
-        log_write "[${COL_RED}${port}${COL_NC}] is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
+        log_write "${CROSS} ${COL_RED}${port}${COL_NC} is in use by ${COL_RED}${service_name}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_PORTS})"
     fi
 }
 
@@ -750,34 +753,45 @@ check_required_ports() {
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
         ports_in_use+=( "$line" )
-    done < <( lsof -iTCP -sTCP:LISTEN -P -n +c 10 )
+    done < <( ss --listening --numeric --tcp --udp --processes --no-header )
 
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
         # loop through them and assign some local variables
         local service_name
-        service_name=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
+        service_name=$(echo "${ports_in_use[$i]}" | awk '{gsub(/users:\(\("/,"",$7);gsub(/".*/,"",$7);print $7}')
         local protocol_type
-        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $5}')
+        protocol_type=$(echo "${ports_in_use[$i]}" | awk '{print $1}')
         local port_number
-        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $9}')"
+        port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
 
-        # Skip the line if it's the titles of the columns the lsof command produces
-        if [[ "${service_name}" == COMMAND ]]; then
-            continue
-        fi
         # Use a case statement to determine if the right services are using the right ports
-        case "$(echo "$port_number" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" 53
+        case "$(echo "${port_number}" | rev | cut -d: -f1 | rev)" in
+            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
-            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" 80
+            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
-            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" 4711
+            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
                 ;;
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
-            *) log_write "${port_number} ${service_name} (${protocol_type})";
+            *) log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
         esac
     done
+}
+
+ip_command() {
+    # Obtain and log information from "ip XYZ show" commands
+    echo_current_diagnostic "${2}"
+    local entries=()
+    mapfile -t entries < <(ip "${1}" show)
+    for line in "${entries[@]}"; do
+        log_write "   ${line}"
+    done
+}
+
+check_ip_command() {
+    ip_command "addr" "Network interfaces and addresses"
+    ip_command "route" "Network routing table"
 }
 
 check_networking() {
@@ -788,7 +802,9 @@ check_networking() {
     detect_ip_addresses "6"
     ping_gateway "4"
     ping_gateway "6"
-    check_required_ports
+    # Skip the following check if installed in docker container. Unpriv'ed containers do not have access to the information required
+    # to resolve the service name listening - and the container should not start if there was a port conflict anyway
+    [ -z "${PIHOLE_DOCKER_TAG}" ] && check_required_ports
 }
 
 check_x_headers() {
@@ -872,7 +888,7 @@ dig_at() {
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
-    random_url=$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
+    random_url=$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
 
     # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
     # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
@@ -890,9 +906,11 @@ dig_at() {
     #          Removes all interfaces which are not UP
     #     s/^[0-9]*: //g;
     #          Removes interface index
+    #     s/@.*//g;
+    #          Removes everything after @ (if found)
     #     s/: <.*//g;
     #          Removes everything after the interface name
-    interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/: <.*//g;")"
+    interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/@.*//g;s/: <.*//g;")"
 
     while IFS= read -r iface ; do
         # Get addresses of current interface
@@ -1186,7 +1204,7 @@ show_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" \
+        pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1211,7 +1229,7 @@ show_FTL_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        sqlite3 "${PIHOLE_FTL_DB_FILE}" \
+        pihole-FTL sqlite3 "${PIHOLE_FTL_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1257,7 +1275,7 @@ show_clients() {
 }
 
 show_messages() {
-    show_FTL_db_entries "Pi-hole diagnosis messages" "SELECT id,datetime(timestamp,'unixepoch','localtime') timestamp,type,message,blob1,blob2,blob3,blob4,blob5 FROM message;" "4 19 20 60 20 20 20 20 20"
+    show_FTL_db_entries "Pi-hole diagnosis messages" "SELECT count (message) as count, datetime(max(timestamp),'unixepoch','localtime') as 'last timestamp', type, message, blob1, blob2, blob3, blob4, blob5 FROM message GROUP BY type, message, blob1, blob2, blob3, blob4, blob5;" "6 19 20 60 20 20 20 20 20"
 }
 
 analyze_gravity_list() {
@@ -1268,7 +1286,7 @@ analyze_gravity_list() {
     log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
-    gravity_updated_raw="$(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
+    gravity_updated_raw="$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
     gravity_updated="$(date -d @"${gravity_updated_raw}")"
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
@@ -1276,7 +1294,7 @@ analyze_gravity_list() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
-    mapfile -t gravity_sample < <(sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
+    mapfile -t gravity_sample < <(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
     log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
@@ -1386,9 +1404,9 @@ upload_to_tricorder() {
     log_write "${TICK} ${COL_GREEN}** FINISHED DEBUGGING! **${COL_NC}\\n"
 
     # Provide information on what they should do with their token
-    log_write "    * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
+    log_write "   * The debug log can be uploaded to tricorder.pi-hole.net for sharing with developers only."
 
-    # If pihole -d is running automatically (usually through the dashboard)
+    # If pihole -d is running automatically
     if [[ "${AUTOMATED}" ]]; then
         # let the user know
         log_write "${INFO} Debug script running in automated mode"
@@ -1396,16 +1414,19 @@ upload_to_tricorder() {
         curl_to_tricorder
         # If we're not running in automated mode,
     else
-        echo ""
-        # give the user a choice of uploading it or not
-        # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
-        read -r -p "[?] Would you like to upload the log? [y/N] " response
-        case ${response} in
-            # If they say yes, run our function for uploading the log
-            [yY][eE][sS]|[yY]) curl_to_tricorder;;
-            # If they choose no, just exit out of the script
-            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
-        esac
+        # if not being called from the web interface
+        if [[ ! "${WEBCALL}" ]]; then
+            echo ""
+            # give the user a choice of uploading it or not
+            # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
+            read -r -p "[?] Would you like to upload the log? [y/N] " response
+            case ${response} in
+                # If they say yes, run our function for uploading the log
+                [yY][eE][sS]|[yY]) curl_to_tricorder;;
+                # If they choose no, just exit out of the script
+                *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
+            esac
+        fi
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token
     # along with some additional useful information
@@ -1425,8 +1446,13 @@ upload_to_tricorder() {
     # If no token was generated
     else
         # Show an error and some help instructions
-        log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
-        log_write "   * Please try again or contact the Pi-hole team for assistance."
+        # Skip this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
+        if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
+            :
+        else
+            log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
+            log_write "   * Please try again or contact the Pi-hole team for assistance."
+        fi
     fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
     log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
@@ -1445,6 +1471,7 @@ check_selinux
 check_firewalld
 processor_check
 disk_usage
+check_ip_command
 check_networking
 check_name_resolution
 check_dhcp_servers

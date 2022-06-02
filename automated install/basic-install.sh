@@ -239,10 +239,10 @@ os_check() {
             printf "      If you wish to attempt to continue anyway, you can try one of the following commands to skip this check:\\n"
             printf "\\n"
             printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
-            printf "             %bcurl -sSL https://install.pi-hole.net | PIHOLE_SKIP_OS_CHECK=true sudo -E bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "             %bcurl -sSL https://install.pi-hole.net | sudo PIHOLE_SKIP_OS_CHECK=true bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
             printf "\\n"
             printf "           If you are seeing this message after having run pihole -up:\\n"
-            printf "             %bPIHOLE_SKIP_OS_CHECK=true sudo -E pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
+            printf "             %bsudo PIHOLE_SKIP_OS_CHECK=true pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
             printf "           (In this case, your previous run of pihole -up will have already updated the local repository)\\n"
             printf "\\n"
             printf "      It is possible that the installation will still fail at this stage due to an unsupported configuration.\\n"
@@ -257,6 +257,29 @@ os_check() {
     else
         printf "  %b %bPIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
+}
+
+# This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
+test_dpkg_lock() {
+    i=0
+    printf "  %b Waiting for package manager to finish (up to 30 seconds)\\n" "${INFO}"
+    # fuser is a program to show which processes use the named files, sockets, or filesystems
+    # So while the lock is held,
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1
+    do
+        # we wait half a second,
+        sleep 0.5
+        # increase the iterator,
+        ((i=i+1))
+        # exit if waiting for more then 30 seconds
+        if [[ $i -gt 60 ]]; then
+            printf "  %b %bError: Could not verify package manager finished and released lock. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "       Attempt to install packages manually and retry.\\n"
+            exit 1;
+        fi
+    done
+    # and then report success once dpkg is unlocked.
+    return 0
 }
 
 # Compatibility
@@ -287,7 +310,7 @@ package_manager_detect() {
         # Packages required to run this install script (stored as an array)
         INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
-        PIHOLE_DEPS=(cron curl iputils-ping lsof psmisc sudo unzip idn2 sqlite3 libcap2-bin dns-root-data libcap2 netcat)
+        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps)
         # Packages required for the Web admin interface (stored as an array)
         # It's useful to separate this from Pi-hole, since the two repos are also setup separately
         PIHOLE_WEB_DEPS=(lighttpd "${phpVer}-common" "${phpVer}-cgi" "${phpVer}-sqlite3" "${phpVer}-xml" "${phpVer}-intl")
@@ -301,22 +324,6 @@ package_manager_detect() {
         LIGHTTPD_GROUP="www-data"
         # and config file
         LIGHTTPD_CFG="lighttpd.conf.debian"
-
-        # This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
-        test_dpkg_lock() {
-            i=0
-            # fuser is a program to show which processes use the named files, sockets, or filesystems
-            # So while the lock is held,
-            while fuser /var/lib/dpkg/lock >/dev/null 2>&1
-            do
-                # we wait half a second,
-                sleep 0.5
-                # increase the iterator,
-                ((i=i+1))
-            done
-            # and then report success once dpkg is unlocked.
-            return 0
-        }
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm ; then
@@ -332,7 +339,7 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc sqlite libcap lsof nmap-ncat)
+        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat)
         PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
         LIGHTTPD_USER="lighttpd"
         LIGHTTPD_GROUP="lighttpd"
@@ -939,7 +946,7 @@ setDNS() {
             fi
 
             # Prompt the user to enter custom upstream servers
-            piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\\n\\nFor example '8.8.8.8, 8.8.4.4'" "${r}" "${c}" "${prePopulate}" 3>&1 1>&2 2>&3) || \
+            piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma. If you want to specify a port other than 53, separate it with a hash.\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'" "${r}" "${c}" "${prePopulate}" 3>&1 1>&2 2>&3) || \
             { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
             # Clean user input and replace whitespace with comma.
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
@@ -1128,8 +1135,11 @@ chooseBlocklists() {
         appendToListsFile "${choice}"
     done
     # Create an empty adList file with appropriate permissions.
-    touch "${adlistFile}"
-    chmod 644 "${adlistFile}"
+    if [ ! -f "${adlistFile}" ]; then
+        install -m 644 /dev/null "${adlistFile}"
+    else
+        chmod 644 "${adlistFile}"
+    fi
 }
 
 # Accept a string parameter, it must be one of the default lists
@@ -1299,10 +1309,10 @@ installConfigs() {
     echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
     chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
-    # Install empty file if it does not exist
+    # Install template file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
         install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
-        if ! install -o pihole -m 664 /dev/null "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
+        if ! install -T -o pihole -m 664 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
             printf "  %bError: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
@@ -1315,6 +1325,9 @@ installConfigs() {
             return 1
         fi
     fi
+
+    # Install pihole-FTL.service
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
@@ -1330,8 +1343,9 @@ installConfigs() {
         # and copy in the config file Pi-hole needs
         install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
         # Make sure the external.conf file exists, as lighttpd v1.4.50 crashes without it
-        touch /etc/lighttpd/external.conf
-        chmod 644 /etc/lighttpd/external.conf
+        if [ ! -f /etc/lighttpd/external.conf ]; then
+            install -m 644 /dev/null /etc/lighttpd/external.conf
+        fi
         # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
         if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
@@ -1371,7 +1385,12 @@ install_manpage() {
     # Testing complete, copy the files & update the man db
     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.conf.5 /usr/local/share/man/man5/pihole-FTL.conf.5
+
+    # remove previously installed "pihole-FTL.conf.5" man page
+    if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
+        rm /usr/local/share/man/man5/pihole-FTL.conf.5
+    fi
+
     if mandb -q &>/dev/null; then
         # Updated successfully
         printf "%b  %b man pages installed and database updated\\n" "${OVER}" "${TICK}"
@@ -1379,7 +1398,7 @@ install_manpage() {
     else
         # Something is wrong with the system's man installation, clean up
         # our files, (leave everything how we found it).
-        rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5
+        rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8
         printf "%b  %b man page db not updated, man pages not installed\\n" "${OVER}" "${CROSS}"
     fi
 }
@@ -1731,7 +1750,7 @@ finalExports() {
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;' "${setupVars}"
+        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;/DNSMASQ_LISTENING/d;' "${setupVars}"
     fi
     # echo the information to the user
     {
@@ -1747,6 +1766,7 @@ finalExports() {
         echo "CACHE_SIZE=${CACHE_SIZE}"
         echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
         echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
+        echo "DNSMASQ_LISTENING=${DNSMASQ_LISTENING:-local}"
     }>> "${setupVars}"
     chmod 644 "${setupVars}"
 
@@ -2100,9 +2120,6 @@ FTLinstall() {
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
 
-    # Always replace pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
-
     local ftlBranch
     local url
 
@@ -2199,7 +2216,7 @@ get_binary_name() {
         local rev
         rev=$(uname -m | sed "s/[^0-9]//g;")
         local lib
-        lib=$(ldd /bin/ls | grep -E '^\s*/lib' | awk '{ print $1 }')
+        lib=$(ldd "$(which sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
@@ -2596,6 +2613,19 @@ main() {
     # Fixes a problem reported on Ubuntu 18.04 where trying to start
     # the service before enabling causes installer to exit
     enable_service pihole-FTL
+
+    # If this is an update from a previous Pi-hole installation
+    # we need to move any existing `pihole*` logs from `/var/log` to `/var/log/pihole`
+    # if /var/log/pihole.log is not a symlink (set durign FTL startup) move the files
+    # can be removed with Pi-hole v6.0
+    # To be sure FTL is not running when we move the files we explicitly stop it here
+
+    stop_service pihole-FTL &> /dev/null
+
+    if [ -f /var/log/pihole.log ] && [ ! -L /var/log/pihole.log ]; then
+        mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
+    fi
+
     restart_service pihole-FTL
 
     # Download and compile the aggregated block list

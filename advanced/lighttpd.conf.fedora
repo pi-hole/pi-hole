@@ -29,13 +29,18 @@ server.modules = (
 server.document-root        = "/var/www/html"
 server.error-handler-404    = "/pihole/index.php"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
-server.errorlog             = "/var/log/lighttpd/error.log"
+server.errorlog             = "/var/log/lighttpd/error-pihole.log"
 server.pid-file             = "/run/lighttpd.pid"
 server.username             = "lighttpd"
 server.groupname            = "lighttpd"
 server.port                 = 80
-accesslog.filename          = "/var/log/lighttpd/access.log"
+accesslog.filename          = "/var/log/lighttpd/access-pihole.log"
 accesslog.format            = "%{%s}t|%V|%r|%s|%b"
+
+# Allow streaming response
+# reference: https://redmine.lighttpd.net/projects/lighttpd/wiki/Server_stream-response-bodyDetails
+server.stream-response-body = 1
+#ssl.read-ahead              = "disable"
 
 index-file.names            = ( "index.php", "index.html", "index.lighttpd.html" )
 url.access-deny             = ( "~", ".inc", ".md", ".yml", ".ini" )

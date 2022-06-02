@@ -1,0 +1,27 @@
+name: Sync Back to Development
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  sync-branches:
+    runs-on: ubuntu-latest
+    name: Syncing branches
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Opening pull request
+        id: pull
+        uses: tretuna/sync-branches@1.4.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FROM_BRANCH: 'master'
+          TO_BRANCH: 'development'
+      - name: Label the pull request to ignore for release note generation
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: internal
+          repo: ${{ github.repository }}
+          number: ${{ steps.pull.outputs.PULL_REQUEST_NUMBER }}

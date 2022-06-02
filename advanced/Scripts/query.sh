@@ -64,8 +64,8 @@ Example: 'pihole -q -exact domain.com'
 Query the adlists for a specified domain
 
 Options:
-  -exact              Search the block lists for exact domain matches
-  -all                Return all query matches within a block list
+  -exact              Search the adlists for exact domain matches
+  -all                Return all query matches within the adlists
   -h, --help          Show this help dialog"
   exit 0
 fi
@@ -121,7 +121,7 @@ scanDatabaseTable() {
     fi
 
     # Send prepared query to gravity database
-    result="$(sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
+    result="$(pihole-FTL sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
     if [[ -z "${result}" ]]; then
         # Return early when there are no matches in this table
         return
@@ -164,7 +164,7 @@ scanRegexDatabaseTable() {
     type="${3:-}"
 
     # Query all regex from the corresponding database tables
-    mapfile -t regexList < <(sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${type}" 2> /dev/null)
+    mapfile -t regexList < <(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${type}" 2> /dev/null)
 
     # If we have regexps to process
     if [[ "${#regexList[@]}" -ne 0 ]]; then
@@ -210,7 +210,7 @@ mapfile -t results <<< "$(scanDatabaseTable "${domainQuery}" "gravity")"
 
 # Handle notices
 if [[ -z "${wbMatch:-}" ]] && [[ -z "${wcMatch:-}" ]] && [[ -z "${results[*]}" ]]; then
-    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the block lists"
+    echo -e "  ${INFO} No ${exact/t/t }results found for ${COL_BOLD}${domainQuery}${COL_NC} within the adlists"
     exit 0
 elif [[ -z "${results[*]}" ]]; then
     # Result found in WL/BL/Wildcards
@@ -233,7 +233,7 @@ for result in "${results[@]}"; do
     adlistAddress="${extra/|*/}"
     extra="${extra#*|}"
     if [[ "${extra}" == "0" ]]; then
-        extra="(disabled)"
+        extra=" (disabled)"
     else
         extra=""
     fi
@@ -241,7 +241,7 @@ for result in "${results[@]}"; do
     if [[ -n "${blockpage}" ]]; then
         echo "0 ${adlistAddress}"
     elif [[ -n "${exact}" ]]; then
-        echo "  - ${adlistAddress} ${extra}"
+        echo "  - ${adlistAddress}${extra}"
     else
         if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then
             count=""
@@ -256,7 +256,7 @@ for result in "${results[@]}"; do
             [[ "${count}" -gt "${max_count}" ]] && continue
             echo "   ${COL_GRAY}Over ${count} results found, skipping rest of file${COL_NC}"
         else
-            echo "   ${match} ${extra}"
+            echo "   ${match}${extra}"
         fi
     fi
 done
