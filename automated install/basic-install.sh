@@ -1734,29 +1734,14 @@ create_pihole_user() {
 
 # This function saves any changes to the setup variables into the setupvars.conf file for future runs
 finalExports() {
-    # If the Web interface is not set to be installed,
-    if [[ "${INSTALL_WEB_INTERFACE}" == false ]]; then
-        # and if there is not an IPv4 address,
-        if [[ "${IPV4_ADDRESS}" ]]; then
-            # there is no block page, so set IPv4 to 0.0.0.0 (all IP addresses)
-            IPV4_ADDRESS="0.0.0.0"
-        fi
-        if [[ "${IPV6_ADDRESS}" ]]; then
-            # and IPv6 to ::/0
-            IPV6_ADDRESS="::/0"
-        fi
-    fi
-
     # If the setup variable file exists,
     if [[ -e "${setupVars}" ]]; then
         # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/IPV4_ADDRESS/d;/IPV6_ADDRESS/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;/DNSMASQ_LISTENING/d;' "${setupVars}"
+        sed -i.update.bak '/PIHOLE_INTERFACE/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;/DNSMASQ_LISTENING/d;' "${setupVars}"
     fi
     # echo the information to the user
     {
         echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-        echo "IPV4_ADDRESS=${IPV4_ADDRESS}"
-        echo "IPV6_ADDRESS=${IPV6_ADDRESS}"
         echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
         echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
         echo "QUERY_LOGGING=${QUERY_LOGGING}"
