@@ -301,8 +301,13 @@ package_manager_detect() {
         local phpVer="php"
         if is_command php ; then
             printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
-            printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
-            printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
+            printf -v phpInsMajor "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
+            printf -v phpInsMinor "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
+            if [[ "$phpInsMajor" =~ [^[:digit:]] || "$phpInsMinor" =~ [^[:digit:]]  ]]; then
+                 printf "  %b No valid PHP version detected\\n" "${CROSS}"
+                # so exit the installer
+                exit
+            fi
             phpVer="php$phpInsMajor.$phpInsMinor"
         fi
         # Packages required to perfom the os_check (stored as an array)
