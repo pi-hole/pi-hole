@@ -298,7 +298,7 @@ package_manager_detect() {
         # Update package cache
         update_package_cache || exit 1
         # Check for and determine version number (major and minor) of current php install
-        local phpVer
+        local phpVer="php"
         if is_command php ; then
             phpVer="$(php -v 2> /dev/null | head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
             # Check if the first character of the string is numeric
