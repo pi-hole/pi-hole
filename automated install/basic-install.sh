@@ -300,7 +300,7 @@ package_manager_detect() {
         # Check for and determine version number (major and minor) of current php install
         local phpVer="php"
         if is_command php ; then
-            phpVer="$(php -v 2> /dev/null | head -n1 | cut -d '-' -f1 | cut -d ' ' -f2)"
+            phpVer="$(php <<< "<?php echo PHP_VERSION ?>")"
             # Check if the first character of the string is numeric
             if [[ ${phpVer:0:1} =~ [1-9] ]]; then
                 printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "${phpVer}"
