@@ -300,10 +300,19 @@ package_manager_detect() {
         # Check for and determine version number (major and minor) of current php install
         local phpVer="php"
         if is_command php ; then
-            printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "$(php <<< "<?php echo PHP_VERSION ?>")"
-            printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
-            printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
-            phpVer="php$phpInsMajor.$phpInsMinor"
+            phpVer="$(php <<< "<?php echo PHP_VERSION ?>")"
+            # Check if the first character of the string is numeric
+            if [[ ${phpVer:0:1} =~ [1-9] ]]; then
+                printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "${phpVer}"
+                printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
+                printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
+                phpVer="php$phpInsMajor.$phpInsMinor"
+            else
+                printf "  %b No valid PHP installation detected!\\n" "${CROSS}"
+                printf "  %b PHP version : %s\\n" "${INFO}" "${phpVer}"
+                printf "  %b Aborting installation.\\n" "${CROSS}"
+                exit 1
+            fi
         fi
         # Packages required to perfom the os_check (stored as an array)
         OS_CHECK_DEPS=(grep dnsutils)
