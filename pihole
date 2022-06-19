@@ -503,7 +503,7 @@ case "${1}" in
   "-c" | "chronometer"          ) chronometerFunc "$@";;
   "-q" | "query"                ) queryFunc "$@";;
   "status"                      ) statusFunc "$2";;
-  "-t" | "tail"                 ) tailFunc "$2";;
+
   "tricorder"                   ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
@@ -527,6 +527,7 @@ case "${1}" in
   "checkout"                    ) ;;
   "updatechecker"               ) ;;
   "arpflush"                    ) ;;
+  "-t" | "tail"                 ) ;;
   *                             ) helpFunc;;
 esac
 
@@ -563,4 +564,5 @@ case "${1}" in
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "updatechecker"               ) updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
+  "-t" | "tail"                 ) tailFunc "$2";;
 esac
