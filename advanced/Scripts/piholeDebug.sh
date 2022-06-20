@@ -137,27 +137,8 @@ PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error-pihole.log"
 RESOLVCONF="${ETC}/resolv.conf"
 DNSMASQ_CONF="${ETC}/dnsmasq.conf"
 
-# An array of operating system "pretty names" that we officially support
-# We can loop through the array at any time to see if it matches a value
-#SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
-
 # Store Pi-hole's processes in an array for easy use and parsing
 PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
-
-# Store the required directories in an array so it can be parsed through
-#REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
-#"${CRON_D_DIRECTORY}"
-#"${DNSMASQ_D_DIRECTORY}"
-#"${PIHOLE_DIRECTORY}"
-#"${PIHOLE_SCRIPTS_DIRECTORY}"
-#"${BIN_DIRECTORY}"
-#"${RUN_DIRECTORY}"
-#"${LOG_DIRECTORY}"
-#"${WEB_SERVER_LOG_DIRECTORY}"
-#"${WEB_SERVER_CONFIG_DIRECTORY}"
-#"${HTML_DIRECTORY}"
-#"${WEB_GIT_DIRECTORY}"
-#"${BLOCK_PAGE_DIRECTORY}")
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
