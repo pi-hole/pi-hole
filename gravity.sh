@@ -641,7 +641,25 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # shellcheck disable=SC2086
-  httpCode=$(curl -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+  if [ -f "${piholeDir}/list.${id}.${domain}.etag" ]
+	then 
+	echo -e "boo"
+	  currentetag=$(<"${piholeDir}/list.${id}.${domain}.etag")
+	else
+	  currentetag=$""
+  fi
+
+  echo -e "\n current Etag: " $currentetag
+
+  httpCode=$(curl -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} --header 'If-None-Match:$currentetag' -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+
+  curl -sI "${url}"| tr -d '\r' | sed -e '/etag/!d' -e 's/^etag: //' -e 's/"//g' > ${piholeDir}/list.${id}.${domain}.etag
+
+  if [ "${httpCode}" != 304 ] 
+  then
+	newetag=$(<"${piholeDir}/list.${id}.${domain}.etag")
+	echo -e "\n new Etag: " $newetag
+  fi
 
   case $url in
     # Did we "download" a local file?
