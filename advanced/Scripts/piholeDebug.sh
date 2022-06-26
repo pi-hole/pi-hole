@@ -1394,7 +1394,7 @@ curl_to_tricorder() {
 upload_to_tricorder() {
     local username="pihole"
     # Set the permissions and owner
-    chmod 644 ${PIHOLE_DEBUG_LOG}
+    chmod 640 ${PIHOLE_DEBUG_LOG}
     chown "$USER":"${username}" ${PIHOLE_DEBUG_LOG}
 
     # Let the user know debugging is complete with something strikingly visual
