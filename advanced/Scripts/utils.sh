@@ -89,7 +89,7 @@ getFTLAPIPort(){
     # -s: FILE exists and has a size greater than zero
     ftl_api_port=$(cat "${PORTFILE}")
     # Exploit prevention: unset the variable if there is malicious content
-    # Verify that the value read from the file is numeric    
+    # Verify that the value read from the file is numeric
     expr "$ftl_api_port" : "[^[:digit:]]" > /dev/null && unset ftl_api_port
   fi
 
