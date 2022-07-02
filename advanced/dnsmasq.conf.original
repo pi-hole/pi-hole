@@ -507,7 +507,7 @@
 # (using /etc/hosts) then that name can be specified as the
 # tftp_servername (the third option to dhcp-boot) and in that
 # case dnsmasq resolves this name and returns the resultant IP
-# addresses in round robin fasion. This facility can be used to
+# addresses in round robin fashion. This facility can be used to
 # load balance the tftp load among a set of servers.
 #dhcp-boot=/var/ftpd/pxelinux.0,boothost,tftp_server_name
 

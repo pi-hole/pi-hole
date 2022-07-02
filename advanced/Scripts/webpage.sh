@@ -296,7 +296,7 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
     # changes in the non-FQDN forwarding. This cannot be done in 01-pihole.conf
     # as we don't want to delete all local=/.../ lines so it's much safer to
     # simply rewrite the entire corresponding config file (which is what the
-    # DHCP settings subroutie is doing)
+    # DHCP settings subroutine is doing)
     ProcessDHCPSettings
 }
 
