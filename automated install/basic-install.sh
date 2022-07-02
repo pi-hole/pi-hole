@@ -101,7 +101,7 @@ if [ -z "${USER}" ]; then
     USER="$(id -un)"
 fi
 
-# dialog dimensions: 20 rows and 70 chars width assures to fit on small screens and is known to hold all content.
+# dialog dimensions: Let dialog handle appropriate sizing.
 r=20
 c=70
 
@@ -430,9 +430,9 @@ select_rpm_php(){
                 dialog --no-shadow --clear \
                     --title "PHP 7 Update (recommended)" \
                     --defaultno \
-                    --yesno "PHP 7.x is recommended for both security and language features. \
-                        \\nWould you like to install PHP7 via Remi's RPM repository? \
-                        \\n\\nSee: https://rpms.remirepo.net for more information" \
+                    --yesno "PHP 7.x is recommended for both security and language features.\
+\\n\\nWould you like to install PHP7 via Remi's RPM repository?\
+\\n\\nSee: https://rpms.remirepo.net for more information"\
                         "${r}" "${c}"
 
                 result=$?
@@ -474,9 +474,9 @@ select_rpm_php(){
                 --defaultno \
                 --no-button "Exit" \
                 --yes-button "Continue" \
-                --yesno "Would you like to continue installation on an unsupported RPM based distribution? \
-                    \\n\\nPlease ensure the following packages have been installed manually: \
-                    \\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" \
+                --yesno "Would you like to continue installation on an unsupported RPM based distribution?\
+\\n\\nPlease ensure the following packages have been installed manually:\
+\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+"\
                 "${r}" "${c}"
 
             result=$?
@@ -702,10 +702,10 @@ welcomeDialogs() {
             --title "Static IP Needed" \
             --no-button "Exit" --yes-button "Continue" \
             --defaultno \
-            --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n \
-                \\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n \
-                Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n \
-                Please continue when the static addressing has been configured." \
+            --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n\
+\\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
+Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
+Please continue when the static addressing has been configured."\
             "${r}" "${c}"
 
          result=$?
@@ -873,10 +873,10 @@ getStaticIPv4Settings() {
             dialog --no-shadow --clear \
                 --backtitle "IP information" \
                 --title "FYI: IP Conflict" \
-                --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict. \
-                    But in most cases the router is smart enough to not do that. \
-                    If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want. \
-                    It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." \
+                --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict\
+But in most cases the router is smart enough to not do that.\
+If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.\
+It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address."\
                 "${r}" "${c}"
 
                 result=$?
@@ -1066,9 +1066,9 @@ setDNS() {
             # Prompt the user to enter custom upstream servers
             piholeDNS=$(dialog --no-shadow --clear --output-fd 1 \
                             --backtitle "Specify Upstream DNS Provider(s)" \
-                            --inputbox "Enter your desired upstream DNS provider(s), separated by a comma. \
-                                If you want to specify a port other than 53, separate it with a hash. \
-                                \\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'" \
+                            --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\
+If you want to specify a port other than 53, separate it with a hash.\
+\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'"\
                                 "${r}" "${c}" "${prePopulate}")
 
             result=$?
@@ -1100,8 +1100,8 @@ setDNS() {
                 dialog --no-shadow --clear \
                     --title "Invalid IP Address(es)" \
                     --backtitle "Invalid IP" \
-                    --msgbox "\\nOne or both of the entered IP addresses were invalid. Please try again. \
-                        \\n\\nInvalid IPs: ${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}" \
+                    --msgbox "\\nOne or both of the entered IP addresses were invalid. Please try again.\
+\\n\\nInvalid IPs: ${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}" \
                     "${r}" "${c}"
 
                 result=$?
@@ -1199,10 +1199,10 @@ setLogging() {
 
 # Allow the user to set their FTL privacy level
 setPrivacyLevel() {
+    # The default selection is level 0
     PRIVACY_LEVEL=$(dialog --no-shadow --clear --output-fd 1 \
         --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" \
         "${r}" "${c}" 6 \
-        # The default selection is level 0
         "0" "Show everything" on \
         "1" "Hide domains" off \
         "2" "Hide domains and clients" off \
@@ -1259,12 +1259,12 @@ setAdminFlag() {
         dialog --no-shadow --clear \
             --backtitle "Pi-hole Installation" \
             --title "Web Server" \
-            --yesno "\\n\\nA web server is required for the Admin Web Interface. \
-                \\n\\nDo you want to install lighttpd and the required PHP modules? \
-                \\n\\nNB: If you disable this, and, do not have an existing web server \
-                and required PHP modules (${php_modules# }) installed, the web interface \
-                will not function. Additionally the web server user needs to be member of \
-                the \"pihole\" group for full functionality." \
+            --yesno "\\n\\nA web server is required for the Admin Web Interface.\
+\\n\\nDo you want to install lighttpd and the required PHP modules?\
+\\n\\nNB: If you disable this, and, do not have an existing web server\
+and required PHP modules (${php_modules# }) installed, the web interface\
+will not function. Additionally the web server user needs to be member of\
+the \"pihole\" group for full functionality." \
             "${r}" "${c}"
 
         result=$?
@@ -1300,10 +1300,10 @@ chooseBlocklists() {
     dialog --no-shadow --clear \
         --backtitle "Pi-hole Installation" \
         --title "Blocklists" \
-        --yesno "\\nPi-hole relies on third party lists in order to block ads. \
-            \\n\\nYou can use the suggestion below, and/or add your own after installation. \
-            \\n\\nSelect 'Yes' to include: \
-            \\n\\nStevenBlack's Unified Hosts List" \
+        --yesno "\\nPi-hole relies on third party lists in order to block ads.\
+\\n\\nYou can use the suggestion below, and/or add your own after installation.\
+\\n\\nSelect 'Yes' to include:\
+\\n\\nStevenBlack's Unified Hosts List" \
         "${r}" "${c}"
 
     result=$?
@@ -2112,11 +2112,11 @@ Your Admin Webpage login password is ${pwstring}"
     # Final completion message to user
     dialog --no-shadow --clear \
         --title "Installation Complete!" \
-        --msgbox "Configure your devices to use the Pi-hole as their DNS server using: \
-        \\n\\nIPv4:	${IPV4_ADDRESS%/*} \
-        \\nIPv6:	${IPV6_ADDRESS:-"Not Configured"} \
-        \\nIf you have not done so already, the above IP should be set to static. \
-        \\n${additional}"
+        --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
+\\n\\nIPv4:	${IPV4_ADDRESS%/*}\
+\\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
+\\nIf you have not done so already, the above IP should be set to static.\
+\\n${additional}"
     "${r}" "${c}"
 }
 
@@ -2139,9 +2139,9 @@ update_dialogs() {
     # Display the information to the user
     UpdateCmd=$(dialog --no-shadow --clear --output-fd 1 \
                 --title "Existing Install Detected!" \
-                --menu "\\n\\nWe have detected an existing install. \
-                    \\n\\nPlease choose from the following options: \
-                    \\n($strAdd)" \
+                --menu "\\n\\nWe have detected an existing install.\
+\\n\\nPlease choose from the following options:\
+\\n($strAdd)"\
                     "${r}" "${c}" 2 \
     "${opt1a}"  "${opt1b}" \
     "${opt2a}"  "${opt2b}")
