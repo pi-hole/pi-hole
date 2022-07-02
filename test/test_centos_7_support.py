@@ -26,8 +26,8 @@ def test_php_upgrade_user_optout_centos_eq_7(host):
     confirms installer behavior when user opt-out of installing PHP7 from REMI
     (php not currently installed)
     '''
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '1')}, host)
+    # dialog returns Cancel for user prompt
+    mock_command('dialog', {'*': ('', '1')}, host)
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -45,8 +45,8 @@ def test_php_upgrade_user_optin_centos_eq_7(host):
     confirms installer behavior when user opt-in to installing PHP7 from REMI
     (php not currently installed)
     '''
-    # Whiptail dialog returns Continue for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # dialog returns Continue for user prompt
+    mock_command('dialog', {'*': ('', '0')}, host)
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
