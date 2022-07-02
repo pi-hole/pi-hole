@@ -584,7 +584,7 @@ disk_usage() {
     # Additinal keywords can be added, separated by "|"
     hide="curlftpfs"
 
-    # only show those lines not containg a sensitive phrase
+    # only show those lines not containing a sensitive phrase
     for line in "${file_system[@]}"; do
       if [[ ! $line =~ $hide ]]; then
         log_write "   ${line}"

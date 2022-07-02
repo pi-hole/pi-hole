@@ -150,7 +150,7 @@ def get_directories_recursive(host, directory):
 
 def test_installPihole_fresh_install_readableFiles(host):
     '''
-    confirms all neccessary files are readable by pihole user
+    confirms all necessary files are readable by pihole user
     '''
     # Whiptail dialog returns Cancel for user prompt
     mock_command('whiptail', {'*': ('', '0')}, host)
