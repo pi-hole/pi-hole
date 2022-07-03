@@ -397,13 +397,15 @@ select_rpm_php(){
             unset CENTOS7_PIHOLE_WEB_DEPS
         fi
         # CentOS requires the EPEL repository to gain access to Fedora packages
-        EPEL_PKG="epel-release"
-        rpm -q ${EPEL_PKG} &> /dev/null || rc=$?
-        if [[ $rc -ne 0 ]]; then
-            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-            "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+        if [[ CURRENT_CENTOS_VERSION -eq 7 ]]; then
+            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+        elif [[ CURRENT_CENTOS_VERSION -eq 8 ]]; then
+            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
         fi
+
+        printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+        "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
+        printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
 
         # The default php on CentOS 7.x is 5.4 which is EOL
         # Check if the version of PHP available via installed repositories is >= to PHP 7
