@@ -2,7 +2,7 @@ name: Mark stale issues
 
 on:
   schedule:
-  - cron: '0 * * * *'
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
