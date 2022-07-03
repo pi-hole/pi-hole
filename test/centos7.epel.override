@@ -1,0 +1,7 @@
+[main]
+verbose = 0
+socket_timeout = 3
+enabled = 1
+hostfilepath = /var/cache/yum/timedhosts.txt
+maxhostfileage = 1
+exclude=.edu
