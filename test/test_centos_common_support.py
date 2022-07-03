@@ -36,7 +36,7 @@ def test_enable_epel_repository_centos(host):
     expected_stdout = info_box + (' Enabling EPEL package repository '
                                   '(https://fedoraproject.org/wiki/EPEL)')
     assert expected_stdout in package_manager_detect.stdout
-    expected_stdout = tick_box + ' Installed epel-release'
+    expected_stdout = tick_box + ' Installed'
     assert expected_stdout in package_manager_detect.stdout
     epel_package = host.package('epel-release')
     assert epel_package.is_installed
