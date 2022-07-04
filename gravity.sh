@@ -39,6 +39,9 @@ GRAVITYDB="${gravityDBfile_default}"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
+# BLOCKLIST_STORAGE_DIR may be overwritten by source pihole-FTL.conf below
+BLOCKLIST_STORAGE_DIR="${piholeDir}"
+
 domainsExtension="domains"
 
 # Source setupVars from install script
@@ -436,7 +439,7 @@ gravity_DownloadBlocklists() {
     id="${sourceIDs[$i]}"
 
     # Save the file as list.#.domain
-    saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
+    saveLocation="${BLOCKLIST_STORAGE_DIR}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
