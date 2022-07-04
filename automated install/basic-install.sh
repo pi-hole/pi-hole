@@ -356,7 +356,8 @@ package_manager_detect() {
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
-        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
+        # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
+        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
         PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat)
@@ -407,16 +408,21 @@ select_rpm_php(){
             PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
             unset CENTOS7_PIHOLE_WEB_DEPS
         fi
-        # CentOS requires the EPEL repository to gain access to Fedora packages
-        if [[ CURRENT_CENTOS_VERSION -eq 7 ]]; then
-            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-        elif [[ CURRENT_CENTOS_VERSION -eq 8 ]]; then
-            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+
+        if rpm -qa | grep -qi 'epel'; then
+            printf "  %b EPEL repository already installed\\n" "${TICK}"
+        else
+            # CentOS requires the EPEL repository to gain access to Fedora packages
+            if [[ CURRENT_CENTOS_VERSION -eq 7 ]]; then
+                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            elif [[ CURRENT_CENTOS_VERSION -eq 8 ]]; then
+                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+            fi
+            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+            "${PKG_INSTALL[@]}" ${EPEL_PKG}
+            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
         fi
 
-        printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-        "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-        printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
 
         # The default php on CentOS 7.x is 5.4 which is EOL
         # Check if the version of PHP available via installed repositories is >= to PHP 7
@@ -424,38 +430,44 @@ select_rpm_php(){
         if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
             # Since PHP 7 is available by default, install via default PHP package names
             : # do nothing as PHP is current
+            printf "PHP 7 is installed"
         else
             REMI_PKG="remi-release"
             REMI_REPO="remi-php72"
-            rpm -q ${REMI_PKG} &> /dev/null || rc=$?
-            if [[ $rc -ne 0 ]]; then
-                # The PHP version available via default repositories is older than version 7
-                dialog --no-shadow --clear \
-                    --title "PHP 7 Update (recommended)" \
-                    --defaultno \
-                    --yesno "PHP 7.x is recommended for both security and language features.\
+            REMI_REPO_URL="https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm"
+
+            # The PHP version available via default repositories is older than version 7
+            dialog --no-shadow --keep-tite \
+                --title "PHP 7 Update (recommended)" \
+                --defaultno \
+                --yesno "PHP 7.x is recommended for both security and language features.\
 \\n\\nWould you like to install PHP7 via Remi's RPM repository?\
 \\n\\nSee: https://rpms.remirepo.net for more information"\
-                        "${r}" "${c}"
+                "${r}" "${c}" && result=0 || result=$?
 
-                result=$?
-                case ${result} in
-                    # User chose to install PHP 7 via Remi's RPM repository
-                    "${DIALOG_OK}")
+            case ${result} in
+                "${DIALOG_OK}" )
+                    printf "  %b Installing PHP 7 via Remi's RPM repository\\n" "${INFO}"
+                    "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
+                    if rpm -q ${REMI_PKG} &> /dev/null; then
+                        printf "  %b Remi's RPM repository is already installed\\n" "${TICK}"
+                    else
                         printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-                        "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-                        # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
-                        "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-                        yum-config-manager --enable ${REMI_REPO} &> /dev/null
+                        yum -y install "${REMI_REPO_URL}"
+                        printf "  %b Installed %s from %s\\n" "${TICK}" "${REMI_PKG}" "${REMI_REPO_URL}"
                         printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
-                        # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
-                        if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
-                            printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
-                        else
-                            printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
-                            exit 1
-                        fi
-                        ;;
+                    fi
+                        yum-config-manager --disable 'remi-php*'
+                        yum-config-manager --enable "${REMI_REPO}"
+
+                    # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
+                    if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
+                        printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
+                    else
+                        printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
+                        exit 1
+                    fi
+                    ;;
 
                     # User chose not to install PHP 7 via Remi's RPM repository
                     "${DIALOG_CANCEL}")
@@ -471,8 +483,9 @@ select_rpm_php(){
                 esac
             fi
 
+    else
             # Warn user of unsupported version of Fedora or CentOS
-            dialog --no-shadow --clear \
+            dialog --no-shadow --keep-tite \
                 --title "Unsupported RPM based distribution" \
                 --defaultno \
                 --no-button "Exit" \
@@ -480,9 +493,8 @@ select_rpm_php(){
                 --yesno "Would you like to continue installation on an unsupported RPM based distribution?\
 \\n\\nPlease ensure the following packages have been installed manually:\
 \\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+"\
-                "${r}" "${c}"
+                "${r}" "${c}" && result=0 || result=$?
 
-            result=$?
             case ${result} in
                 # User chose to continue installation on an unsupported RPM based distribution
                 "${DIALOG_OK}")
@@ -498,7 +510,6 @@ select_rpm_php(){
                     exit 1
                     ;;
             esac
-        fi
     fi
 }
 
@@ -689,17 +700,17 @@ get_available_interfaces() {
 # A function for displaying the dialogs the user sees when first running the installer
 welcomeDialogs() {
     # Display the welcome dialog using an appropriately sized window via the calculation conducted earlier in the script
-    dialog --no-shadow --clear \
+    dialog --no-shadow --clear --keep-tite \
         --backtitle "Welcome" \
             --title "Pi-hole Automated Installer" \
             --msgbox "\\n\\nThis installer will transform your device into a network-wide ad blocker!" \
             "${r}" "${c}" \
-            --and-widget \
+            --and-widget --clear \
         --backtitle "Support Pi-hole" \
             --title "Open Source Software" \
             --msgbox "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" \
             "${r}" "${c}" \
-            --and-widget \
+            --and-widget --clear \
         --colors \
             --backtitle "Initiating network interface" \
             --title "Static IP Needed" \
@@ -709,9 +720,8 @@ welcomeDialogs() {
 \\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
 Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
 Please continue when the static addressing has been configured."\
-            "${r}" "${c}"
+            "${r}" "${c}" && result=0 || result="$?"
 
-         result=$?
          case "${result}" in
              "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
                 printf "  %b Installer exited at static IP message.\\n" "${INFO}"
@@ -748,7 +758,7 @@ chooseInterface() {
         done
         # shellcheck disable=SC2086
         # Disable check for double quote here as we are passing a string with spaces
-        PIHOLE_INTERFACE=$(dialog --no-shadow --clear --output-fd 1 \
+        PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --radiolist "Choose An Interface (press space to toggle selection)" \
             ${r} ${c} "${interfaceCount}" ${interfacesList})
 
@@ -848,7 +858,7 @@ getStaticIPv4Settings() {
     local DHCPChoice
     # Ask if the user wants to use DHCP settings as their static IP
     # This is useful for users that are using DHCP reservations; we can use the information gathered
-    DHCPChoice=$(dialog --no-shadow --clear --output-fd 1 \
+    DHCPChoice=$(dialog --no-shadow --keep-tite --output-fd 1 \
         --backtitle "Calibrating network interface" \
         --title "Static IP Address" \
         --menu "Do you want to use your current network settings as a static address?\\n \
@@ -873,16 +883,15 @@ getStaticIPv4Settings() {
                 ;;
             "Yes")
             # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
-            dialog --no-shadow --clear \
+            dialog --no-shadow --keep-tite \
                 --backtitle "IP information" \
                 --title "FYI: IP Conflict" \
                 --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict\
 But in most cases the router is smart enough to not do that.\
 If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.\
 It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address."\
-                "${r}" "${c}"
+                "${r}" "${c}" && result=0 || result=$?
 
-                result=$?
                 case ${result} in
                     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
                     printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
@@ -899,7 +908,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
             until [[ "${ipSettingsCorrect}" = True ]]; do
 
                 # Ask for the IPv4 address
-                _staticIPv4Temp=$(dialog --no-shadow --clear --output-fd 1 \
+                _staticIPv4Temp=$(dialog --no-shadow --keep-tite --output-fd 1 \
                     --backtitle "Calibrating network interface" \
                     --title "IPv4 Address" \
                     --form "\\nEnter your desired IPv4 address" \
@@ -919,16 +928,15 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
                 IPv4gw=${_staticIPv4Temp#*$'\n'}
 
                 # Give the user a chance to review their settings before moving on
-                dialog --no-shadow --clear \
+                dialog --no-shadow --keep-tite \
                     --backtitle "Calibrating network interface" \
                     --title "Static IP Address" \
                     --defaultno \
                     --yesno "Are these settings correct?
                         IP address: ${IPV4_ADDRESS}
                         Gateway:    ${IPv4gw}" \
-                    "${r}" "${c}"
+                    "${r}" "${c}" && result=0 || result=$?
 
-                result=$?
                 case ${result} in
                     "${DIALOG_OK}")
                     # After that's done, the loop ends and we move on
@@ -1033,7 +1041,7 @@ setDNS() {
     # Restore the IFS to what it was
     IFS=${OIFS}
     # In a dialog, show the options
-    DNSchoices=$(dialog --no-shadow --clear --output-fd 1 \
+    DNSchoices=$(dialog --no-shadow --keep-tite --output-fd 1 \
                     --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
         "${DNSChooseOptions[@]}")
 
@@ -1067,7 +1075,7 @@ setDNS() {
             fi
 
             # Prompt the user to enter custom upstream servers
-            piholeDNS=$(dialog --no-shadow --clear --output-fd 1 \
+            piholeDNS=$(dialog --no-shadow --keep-tite --output-fd 1 \
                             --backtitle "Specify Upstream DNS Provider(s)" \
                             --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\
 If you want to specify a port other than 53, separate it with a hash.\
@@ -1100,14 +1108,13 @@ If you want to specify a port other than 53, separate it with a hash.\
             # If either of the DNS servers are invalid,
             if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
                 # explain this to the user,
-                dialog --no-shadow --clear \
+                dialog --no-shadow --keep-tite \
                     --title "Invalid IP Address(es)" \
                     --backtitle "Invalid IP" \
                     --msgbox "\\nOne or both of the entered IP addresses were invalid. Please try again.\
 \\n\\nInvalid IPs: ${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}" \
-                    "${r}" "${c}"
+                    "${r}" "${c}" && result=0 || result=$?
 
-                result=$?
                 case ${result} in
                     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
                     printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
@@ -1125,13 +1132,12 @@ If you want to specify a port other than 53, separate it with a hash.\
                 # and continue the loop.
                 DNSSettingsCorrect=False
             else
-                dialog --no-shadow --clear \
+                dialog --no-shadow --keep-tite \
                     --backtitle "Specify Upstream DNS Provider(s)" \
                     --title "Upstream DNS Provider(s)" \
                     --yesno "Are these settings correct?\\n\\tDNS Server 1:\\t${PIHOLE_DNS_1}\\n\\tDNS Server 2:\\t${PIHOLE_DNS_2}" \
-                    "${r}" "${c}"
+                    "${r}" "${c}" && result=0 || result=$?
 
-                result=$?
                 case ${result} in
                     "${DIALOG_OK}")
                         DNSSettingsCorrect=True
@@ -1174,13 +1180,12 @@ If you want to specify a port other than 53, separate it with a hash.\
 # Allow the user to enable/disable logging
 setLogging() {
     # Ask the user if they want to enable logging
-    dialog --no-shadow --clear \
+    dialog --no-shadow --keep-tite \
         --backtitle "Pihole Installation" \
         --title "Enable Logging" \
         --yesno "\\n\\nWould you like to enable query logging?" \
-        "${r}" "${c}"
+        "${r}" "${c}" && result=0 || result=$?
 
-    result=$?
     case ${result} in
         "${DIALOG_OK}")
             # If they chose yes,
@@ -1203,7 +1208,7 @@ setLogging() {
 # Allow the user to set their FTL privacy level
 setPrivacyLevel() {
     # The default selection is level 0
-    PRIVACY_LEVEL=$(dialog --no-shadow --clear --output-fd 1 \
+    PRIVACY_LEVEL=$(dialog --no-shadow --keep-tite --output-fd 1 \
         --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" \
         "${r}" "${c}" 6 \
         "0" "Show everything" on \
@@ -1226,13 +1231,12 @@ setPrivacyLevel() {
 # Function to ask the user if they want to install the dashboard
 setAdminFlag() {
     # Similar to the logging function, ask what the user wants
-    dialog --no-shadow --clear \
+    dialog --no-shadow --keep-tite \
         --backtitle "Pihole Installation" \
         --title "Admin Web Interface" \
         --yesno "\\n\\nDo you want to install the Admin Web Interface?" \
-        "${r}" "${c}"
+        "${r}" "${c}" && result=0 || result=$?
 
-    result=$?
     case ${result} in
         "${DIALOG_OK}")
             # If they chose yes,
@@ -1259,7 +1263,7 @@ setAdminFlag() {
         # Get list of required PHP modules, excluding base package (common) and handler (cgi)
         local i php_modules
         for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
-        dialog --no-shadow --clear \
+        dialog --no-shadow --keep-tite \
             --backtitle "Pi-hole Installation" \
             --title "Web Server" \
             --yesno "\\n\\nA web server is required for the Admin Web Interface.\
@@ -1268,9 +1272,8 @@ setAdminFlag() {
 and required PHP modules (${php_modules# }) installed, the web interface\
 will not function. Additionally the web server user needs to be member of\
 the \"pihole\" group for full functionality." \
-            "${r}" "${c}"
+            "${r}" "${c}" && result=0 || result=$?
 
-        result=$?
         case ${result} in
             "${DIALOG_OK}")
                 # If they chose yes,
@@ -1300,16 +1303,15 @@ chooseBlocklists() {
         mv "${adlistFile}" "${adlistFile}.old"
     fi
     # Let user select (or not) blocklists
-    dialog --no-shadow --clear \
+    dialog --no-shadow --keep-tite \
         --backtitle "Pi-hole Installation" \
         --title "Blocklists" \
         --yesno "\\nPi-hole relies on third party lists in order to block ads.\
 \\n\\nYou can use the suggestion below, and/or add your own after installation.\
 \\n\\nSelect 'Yes' to include:\
 \\n\\nStevenBlack's Unified Hosts List" \
-        "${r}" "${c}"
+        "${r}" "${c}" && result=0 || result=$?
 
-    result=$?
     case ${result} in
         "${DIALOG_OK}")
             # If they chose yes,
@@ -2113,7 +2115,7 @@ Your Admin Webpage login password is ${pwstring}"
     fi
 
     # Final completion message to user
-    dialog --no-shadow --clear \
+    dialog --no-shadow --keep-tite \
         --title "Installation Complete!" \
         --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
 \\n\\nIPv4:	${IPV4_ADDRESS%/*}\
@@ -2140,14 +2142,14 @@ update_dialogs() {
     opt2b="Resets Pi-hole and allows re-selecting settings."
 
     # Display the information to the user
-    UpdateCmd=$(dialog --no-shadow --clear --output-fd 1 \
+    UpdateCmd=$(dialog --no-shadow --keep-tite --output-fd 1 \
                 --title "Existing Install Detected!" \
                 --menu "\\n\\nWe have detected an existing install.\
 \\n\\nPlease choose from the following options:\
 \\n($strAdd)"\
                     "${r}" "${c}" 2 \
     "${opt1a}"  "${opt1b}" \
-    "${opt2a}"  "${opt2b}")
+    "${opt2a}"  "${opt2b}" || true)
 
     result=$?
     case ${result} in
@@ -2634,6 +2636,9 @@ main() {
         fi
     fi
 
+    # Check if SELinux is Enforcing and exit before doing anything else
+    checkSelinux
+
     # Check for supported package managers so that we may install dependencies
     package_manager_detect
 
@@ -2656,8 +2661,6 @@ main() {
         select_rpm_php
     fi
 
-    # Check if SELinux is Enforcing
-    checkSelinux
 
     # If the setup variable file exists,
     if [[ -f "${setupVars}" ]]; then
