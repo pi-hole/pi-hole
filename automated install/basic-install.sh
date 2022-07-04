@@ -284,6 +284,9 @@ test_dpkg_lock() {
 
 # Compatibility
 package_manager_detect() {
+    # TODO - pull common packages for both distributions out into a common variable, then add
+    # the distro-specific ones below.
+
     # First check to see if apt-get is installed.
     if is_command apt-get ; then
         # Set some global variables here
@@ -347,7 +350,7 @@ package_manager_detect() {
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
         PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
         OS_CHECK_DEPS=(grep bind-utils)
-        INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
+        INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
         PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat)
         PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
         LIGHTTPD_USER="lighttpd"
