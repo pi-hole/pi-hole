@@ -1268,9 +1268,9 @@ setAdminFlag() {
             --title "Web Server" \
             --yesno "\\n\\nA web server is required for the Admin Web Interface.\
 \\n\\nDo you want to install lighttpd and the required PHP modules?\
-\\n\\nNB: If you disable this, and, do not have an existing web server\
-and required PHP modules (${php_modules# }) installed, the web interface\
-will not function. Additionally the web server user needs to be member of\
+\\n\\nNB: If you disable this, and, do not have an existing web server \
+and required PHP modules (${php_modules# }) installed, the web interface \
+will not function. Additionally the web server user needs to be member of \
 the \"pihole\" group for full functionality." \
             "${r}" "${c}" && result=0 || result=$?
 
