@@ -759,6 +759,7 @@ chooseInterface() {
         # shellcheck disable=SC2086
         # Disable check for double quote here as we are passing a string with spaces
         PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
+            --cancel-label "Exit" --ok-label "Select" \
             --radiolist "Choose An Interface (press space to toggle selection)" \
             ${r} ${c} "${interfaceCount}" ${interfacesList})
 
@@ -859,6 +860,7 @@ getStaticIPv4Settings() {
     # Ask if the user wants to use DHCP settings as their static IP
     # This is useful for users that are using DHCP reservations; we can use the information gathered
     DHCPChoice=$(dialog --no-shadow --keep-tite --output-fd 1 \
+        --cancel-label "Exit" --ok-label "Continue" \
         --backtitle "Calibrating network interface" \
         --title "Static IP Address" \
         --menu "Do you want to use your current network settings as a static address?\\n \
@@ -884,6 +886,7 @@ getStaticIPv4Settings() {
             "Yes")
             # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
             dialog --no-shadow --keep-tite \
+                --cancel-label "Exit" \
                 --backtitle "IP information" \
                 --title "FYI: IP Conflict" \
                 --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict\
@@ -909,6 +912,8 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
                 # Ask for the IPv4 address
                 _staticIPv4Temp=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                    --cancer-label "Exit" \
+                    --ok-label "Continue" \
                     --backtitle "Calibrating network interface" \
                     --title "IPv4 Address" \
                     --form "\\nEnter your desired IPv4 address" \
@@ -929,24 +934,14 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
                 # Give the user a chance to review their settings before moving on
                 dialog --no-shadow --keep-tite \
+                    --no-label "Edit IP" \
                     --backtitle "Calibrating network interface" \
                     --title "Static IP Address" \
                     --defaultno \
                     --yesno "Are these settings correct?
                         IP address: ${IPV4_ADDRESS}
                         Gateway:    ${IPv4gw}" \
-                    "${r}" "${c}" && result=0 || result=$?
-
-                case ${result} in
-                    "${DIALOG_OK}")
-                    # After that's done, the loop ends and we move on
-                    ipSettingsCorrect=True
-                    ;;
-                    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                    printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-                    exit 1
-                    ;;
-                esac
+                    "${r}" "${c}" && ipSettingsCorrect=True
             done
             ;;
        esac
@@ -1042,6 +1037,7 @@ setDNS() {
     IFS=${OIFS}
     # In a dialog, show the options
     DNSchoices=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                    --cancel-label "Exit" \
                     --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
         "${DNSChooseOptions[@]}")
 
@@ -1076,6 +1072,7 @@ setDNS() {
 
             # Prompt the user to enter custom upstream servers
             piholeDNS=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                            --cancel-label "Exit" \
                             --backtitle "Specify Upstream DNS Provider(s)" \
                             --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\
 If you want to specify a port other than 53, separate it with a hash.\
@@ -1113,14 +1110,7 @@ If you want to specify a port other than 53, separate it with a hash.\
                     --backtitle "Invalid IP" \
                     --msgbox "\\nOne or both of the entered IP addresses were invalid. Please try again.\
 \\n\\nInvalid IPs: ${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}" \
-                    "${r}" "${c}" && result=0 || result=$?
-
-                case ${result} in
-                    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                    printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-                    exit 1
-                    ;;
-                esac
+                    "${r}" "${c}"
 
                 # set the variables back to nothing,
                 if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
@@ -1209,6 +1199,8 @@ setLogging() {
 setPrivacyLevel() {
     # The default selection is level 0
     PRIVACY_LEVEL=$(dialog --no-shadow --keep-tite --output-fd 1 \
+        --cancel-label "Exit" \
+        --ok-label "Continue" \
         --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" \
         "${r}" "${c}" 6 \
         "0" "Show everything" on \
@@ -2143,6 +2135,7 @@ update_dialogs() {
 
     # Display the information to the user
     UpdateCmd=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                --cancel-label Exit \
                 --title "Existing Install Detected!" \
                 --menu "\\n\\nWe have detected an existing install.\
 \\n\\nPlease choose from the following options:\
