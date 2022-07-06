@@ -1179,12 +1179,12 @@ setLogging() {
     case ${result} in
         "${DIALOG_OK}")
             # If they chose yes,
-            printf " %b Query Logging on.\\n" "${INFO}"
+            printf "  %b Query Logging on.\\n" "${INFO}"
             QUERY_LOGGING=true
             ;;
         "${DIALOG_CANCEL}")
             # If they chose no,
-            printf " %b Query Logging off.\\n" "${INFO}"
+            printf "  %b Query Logging off.\\n" "${INFO}"
             QUERY_LOGGING=false
             ;;
         "${DIALOG_ESC}")
@@ -1232,13 +1232,13 @@ setAdminFlag() {
     case ${result} in
         "${DIALOG_OK}")
             # If they chose yes,
-            printf " %b Installing Admin Web Interface\\n" "${INFO}"
+            printf "  %b Installing Admin Web Interface\\n" "${INFO}"
             # Set the flag to install the web interface
             INSTALL_WEB_INTERFACE=true
             ;;
         "${DIALOG_CANCEL}")
             # If they chose no,
-            printf " %b Not installing Admin Web Interface\\n" "${INFO}"
+            printf "  %b Not installing Admin Web Interface\\n" "${INFO}"
             # Set the flag to not install the web interface
             INSTALL_WEB_INTERFACE=false
             INSTALL_WEB_SERVER=false
@@ -1269,13 +1269,13 @@ the \"pihole\" group for full functionality." \
         case ${result} in
             "${DIALOG_OK}")
                 # If they chose yes,
-                printf " %b Installing lighttpd\\n" "${INFO}"
+                printf "  %b Installing lighttpd\\n" "${INFO}"
                 # Set the flag to install the web server
                 INSTALL_WEB_SERVER=true
                 ;;
             "${DIALOG_CANCEL}")
                 # If they chose no,
-                printf " %b Not installing lighttpd\\n" "${INFO}"
+                printf "  %b Not installing lighttpd\\n" "${INFO}"
                 # Set the flag to not install the web server
                 INSTALL_WEB_SERVER=false
                 ;;
@@ -1307,12 +1307,12 @@ chooseBlocklists() {
     case ${result} in
         "${DIALOG_OK}")
             # If they chose yes,
-            printf " %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+            printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
             echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
             ;;
         "${DIALOG_CANCEL}")
             # If they chose no,
-            printf " %b Not installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+            printf "  %b Not installing StevenBlack's Unified Hosts List\\n" "${INFO}"
             ;;
         "${DIALOG_ESC}")
             # User pressed <ESC>
