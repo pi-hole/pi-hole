@@ -1,5 +1,5 @@
 FROM centos:7
-RUN yum install -y git
+RUN yum install -y dialog git python3
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole

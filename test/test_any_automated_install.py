@@ -152,8 +152,8 @@ def test_installPihole_fresh_install_readableFiles(host):
     '''
     confirms all necessary files are readable by pihole user
     '''
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # dialog returns Cancel for user prompt
+    mock_command('dialog', {'*': ('', '0')}, host)
     # mock git pull
     mock_command_passthrough('git', {'pull': ('', '0')}, host)
     # mock systemctl to not start lighttpd and FTL
@@ -393,8 +393,8 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
         "127.0.0.1",
         # "pi.hole"
     ]
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # dialog returns Cancel for user prompt
+    mock_command('dialog', {'*': ('', '0')}, host)
 
     # mock git pull
     mock_command_passthrough('git', {'pull': ('', '0')}, host)
@@ -870,8 +870,8 @@ def test_FTL_download_aarch64_no_errors(host):
     '''
     confirms only aarch64 package is downloaded for FTL engine
     '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # mock dialog answers and ensure installer dependencies
+    mock_command('dialog', {'*': ('', '0')}, host)
     host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -1100,7 +1100,7 @@ def test_os_check_passes(host):
 
 def test_package_manager_has_installer_deps(host):
     ''' Confirms OS is able to install the required packages for the installer'''
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    mock_command('dialog', {'*': ('', '0')}, host)
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -1113,7 +1113,7 @@ def test_package_manager_has_installer_deps(host):
 
 def test_package_manager_has_pihole_deps(host):
     ''' Confirms OS is able to install the required packages for Pi-hole '''
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    mock_command('dialog', {'*': ('', '0')}, host)
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -1127,7 +1127,7 @@ def test_package_manager_has_pihole_deps(host):
 
 def test_package_manager_has_web_deps(host):
     ''' Confirms OS is able to install the required packages for web '''
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    mock_command('dialog', {'*': ('', '0')}, host)
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect

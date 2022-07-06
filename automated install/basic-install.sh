@@ -2,7 +2,7 @@
 # shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
-# (c) 2017-2021 Pi-hole, LLC (https://pi-hole.net)
+# (c) Pi-hole (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
 # Installs and Updates Pi-hole
@@ -31,6 +31,14 @@ export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 # These variables should all be GLOBAL variables, written in CAPS
 # Local variables will be in lowercase and will exist only within functions
 # It's still a work in progress, so you may see some variance in this guideline until it is complete
+
+# Dialog result codes
+# dialog code values can be set by environment variables, we only override if
+# the env var is not set or empty.
+: "${DIALOG_OK:=0}"
+: "${DIALOG_CANCEL:=1}"
+: "${DIALOG_ESC:=255}"
+
 
 # List of supported DNS servers
 DNS_SERVERS=$(cat << EOM
@@ -93,7 +101,7 @@ if [ -z "${USER}" ]; then
     USER="$(id -un)"
 fi
 
-# whiptail dialog dimensions: 20 rows and 70 chars width assures to fit on small screens and is known to hold all content.
+# dialog dimensions: Let dialog handle appropriate sizing.
 r=20
 c=70
 
@@ -284,6 +292,9 @@ test_dpkg_lock() {
 
 # Compatibility
 package_manager_detect() {
+    # TODO - pull common packages for both distributions out into a common variable, then add
+    # the distro-specific ones below.
+
     # First check to see if apt-get is installed.
     if is_command apt-get ; then
         # Set some global variables here
@@ -317,7 +328,7 @@ package_manager_detect() {
         # Packages required to perform the os_check (stored as an array)
         OS_CHECK_DEPS=(grep dnsutils)
         # Packages required to run this install script (stored as an array)
-        INSTALLER_DEPS=(git iproute2 whiptail ca-certificates)
+        INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
         PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps)
         # Packages required for the Web admin interface (stored as an array)
@@ -345,9 +356,10 @@ package_manager_detect() {
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
-        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l"
+        # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
+        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
         OS_CHECK_DEPS=(grep bind-utils)
-        INSTALLER_DEPS=(git iproute newt procps-ng which chkconfig ca-certificates)
+        INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
         PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat)
         PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
         LIGHTTPD_USER="lighttpd"
@@ -396,16 +408,21 @@ select_rpm_php(){
             PIHOLE_WEB_DEPS=("${CENTOS7_PIHOLE_WEB_DEPS[@]}")
             unset CENTOS7_PIHOLE_WEB_DEPS
         fi
-        # CentOS requires the EPEL repository to gain access to Fedora packages
-        if [[ CURRENT_CENTOS_VERSION -eq 7 ]]; then
-            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-        elif [[ CURRENT_CENTOS_VERSION -eq 8 ]]; then
-            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+
+        if rpm -qa | grep -qi 'epel'; then
+            printf "  %b EPEL repository already installed\\n" "${TICK}"
+        else
+            # CentOS requires the EPEL repository to gain access to Fedora packages
+            if [[ CURRENT_CENTOS_VERSION -eq 7 ]]; then
+                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+            elif [[ CURRENT_CENTOS_VERSION -eq 8 ]]; then
+                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+            fi
+            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+            "${PKG_INSTALL[@]}" ${EPEL_PKG}
+            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
         fi
 
-        printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-        "${PKG_INSTALL[@]}" ${EPEL_PKG} &> /dev/null
-        printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
 
         # The default php on CentOS 7.x is 5.4 which is EOL
         # Check if the version of PHP available via installed repositories is >= to PHP 7
@@ -413,23 +430,36 @@ select_rpm_php(){
         if [[ $AVAILABLE_PHP_VERSION -ge $SUPPORTED_CENTOS_PHP_VERSION ]]; then
             # Since PHP 7 is available by default, install via default PHP package names
             : # do nothing as PHP is current
+            printf "PHP 7 is installed"
         else
             REMI_PKG="remi-release"
             REMI_REPO="remi-php72"
-            rpm -q ${REMI_PKG} &> /dev/null || rc=$?
-            if [[ $rc -ne 0 ]]; then
-                # The PHP version available via default repositories is older than version 7
-                if ! whiptail --defaultno --title "PHP 7 Update (recommended)" --yesno "PHP 7.x is recommended for both security and language features.\\nWould you like to install PHP7 via Remi's RPM repository?\\n\\nSee: https://rpms.remirepo.net for more information" "${r}" "${c}"; then
-                    # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
-                    printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
-                    : # continue with unsupported php version
-                else
-                    printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
-                    "${PKG_INSTALL[@]}" "https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm" &> /dev/null
-                    # enable the PHP 7 repository via yum-config-manager (provided by yum-utils)
+            REMI_REPO_URL="https://rpms.remirepo.net/enterprise/${REMI_PKG}-$(rpm -E '%{rhel}').rpm"
+
+            # The PHP version available via default repositories is older than version 7
+            dialog --no-shadow --keep-tite \
+                --title "PHP 7 Update (recommended)" \
+                --defaultno \
+                --yesno "PHP 7.x is recommended for both security and language features.\
+\\n\\nWould you like to install PHP7 via Remi's RPM repository?\
+\\n\\nSee: https://rpms.remirepo.net for more information"\
+                "${r}" "${c}" && result=0 || result=$?
+
+            case ${result} in
+                "${DIALOG_OK}" )
+                    printf "  %b Installing PHP 7 via Remi's RPM repository\\n" "${INFO}"
                     "${PKG_INSTALL[@]}" "yum-utils" &> /dev/null
-                    yum-config-manager --enable ${REMI_REPO} &> /dev/null
-                    printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
+                    if rpm -q ${REMI_PKG} &> /dev/null; then
+                        printf "  %b Remi's RPM repository is already installed\\n" "${TICK}"
+                    else
+                        printf "  %b Enabling Remi's RPM repository (https://rpms.remirepo.net)\\n" "${INFO}"
+                        yum -y install "${REMI_REPO_URL}"
+                        printf "  %b Installed %s from %s\\n" "${TICK}" "${REMI_PKG}" "${REMI_REPO_URL}"
+                        printf "  %b Remi's RPM repository has been enabled for PHP7\\n" "${TICK}"
+                    fi
+                        yum-config-manager --disable 'remi-php*'
+                        yum-config-manager --enable "${REMI_REPO}"
+
                     # trigger an install/update of PHP to ensure previous version of PHP is updated from REMI
                     if "${PKG_INSTALL[@]}" "php-cli" &> /dev/null; then
                         printf "  %b PHP7 installed/updated via Remi's RPM repository\\n" "${TICK}"
@@ -437,15 +467,49 @@ select_rpm_php(){
                         printf "  %b There was a problem updating to PHP7 via Remi's RPM repository\\n" "${CROSS}"
                         exit 1
                     fi
-                fi
-            fi    # Warn user of unsupported version of Fedora or CentOS
-            if ! whiptail --defaultno --title "Unsupported RPM based distribution" --yesno "Would you like to continue installation on an unsupported RPM based distribution?\\n\\nPlease ensure the following packages have been installed manually:\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+" "${r}" "${c}"; then
-                printf "  %b Aborting installation due to unsupported RPM based distribution\\n" "${CROSS}"
-                exit
-            else
-                printf "  %b Continuing installation with unsupported RPM based distribution\\n" "${INFO}"
+                    ;;
+
+                    # User chose not to install PHP 7 via Remi's RPM repository
+                    "${DIALOG_CANCEL}")
+                        # User decided to NOT update PHP from REMI, attempt to install the default available PHP version
+                        printf "  %b User opt-out of PHP 7 upgrade on CentOS. Deprecated PHP may be in use.\\n" "${INFO}"
+                        ;;
+
+                    # User closed the dialog window
+                    "${DIALOG_ESC}")
+                        printf "  %b Escape pressed, exiting installer at Remi dialog window\\n" "${CROSS}"
+                        exit 1
+                        ;;
+                esac
             fi
-        fi
+
+    else
+            # Warn user of unsupported version of Fedora or CentOS
+            dialog --no-shadow --keep-tite \
+                --title "Unsupported RPM based distribution" \
+                --defaultno \
+                --no-button "Exit" \
+                --yes-button "Continue" \
+                --yesno "Would you like to continue installation on an unsupported RPM based distribution?\
+\\n\\nPlease ensure the following packages have been installed manually:\
+\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+"\
+                "${r}" "${c}" && result=0 || result=$?
+
+            case ${result} in
+                # User chose to continue installation on an unsupported RPM based distribution
+                "${DIALOG_OK}")
+                    printf "  %b User opted to continue installation on an unsupported RPM based distribution.\\n" "${INFO}"
+                    ;;
+                # User chose not to continue installation on an unsupported RPM based distribution
+                "${DIALOG_CANCEL}")
+                    printf "  %b User opted not to continue installation on an unsupported RPM based distribution.\\n" "${INFO}"
+                    exit 1
+                    ;;
+                "${DIALOG_ESC}")
+                    printf "  %b Escape pressed, exiting installer at unsupported RPM based distribution dialog window\\n" "${CROSS}"
+                    exit 1
+                    ;;
+            esac
     fi
 }
 
@@ -636,40 +700,45 @@ get_available_interfaces() {
 # A function for displaying the dialogs the user sees when first running the installer
 welcomeDialogs() {
     # Display the welcome dialog using an appropriately sized window via the calculation conducted earlier in the script
-    whiptail --msgbox --backtitle "Welcome" --title "Pi-hole automated installer" "\\n\\nThis installer will transform your device into a network-wide ad blocker!" "${r}" "${c}"
+    dialog --no-shadow --clear --keep-tite \
+        --backtitle "Welcome" \
+            --title "Pi-hole Automated Installer" \
+            --msgbox "\\n\\nThis installer will transform your device into a network-wide ad blocker!" \
+            "${r}" "${c}" \
+            --and-widget --clear \
+        --backtitle "Support Pi-hole" \
+            --title "Open Source Software" \
+            --msgbox "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" \
+            "${r}" "${c}" \
+            --and-widget --clear \
+        --colors \
+            --backtitle "Initiating network interface" \
+            --title "Static IP Needed" \
+            --no-button "Exit" --yes-button "Continue" \
+            --defaultno \
+            --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n\
+\\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
+Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
+Please continue when the static addressing has been configured."\
+            "${r}" "${c}" && result=0 || result="$?"
 
-    # Request that users donate if they enjoy the software since we all work on it in our free time
-    whiptail --msgbox --backtitle "Plea" --title "Free and open source" "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" "${r}" "${c}"
-
-    # Explain the need for a static address
-    if whiptail --defaultno --backtitle "Initiating network interface" --title "Static IP Needed" --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.
-
-IMPORTANT: If you have not already done so, you must ensure that this device has a static IP. Either through DHCP reservation, or by manually assigning one. Depending on your operating system, there are many ways to achieve this.
-
-Choose yes to indicate that you have understood this message, and wish to continue" "${r}" "${c}"; then
-        #Nothing to do, continue
-        echo
-    else
-        printf "  %b Installer exited at static IP message.\\n" "${INFO}"
-        exit 1
-    fi
+         case "${result}" in
+             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+                printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+                exit 1
+                ;;
+         esac
 }
 
 # A function that lets the user pick an interface to use with Pi-hole
 chooseInterface() {
-    # Turn the available interfaces into an array so it can be used with a whiptail dialog
-    local interfacesArray=()
+    # Turn the available interfaces into a string so it can be used with dialog
+    local interfacesList
     # Number of available interfaces
     local interfaceCount
-    # Whiptail variable storage
-    local chooseInterfaceCmd
-    # Temporary Whiptail options storage
-    local chooseInterfaceOptions
-    # Loop sentinel variable
-    local firstLoop=1
 
-    # Find out how many interfaces are available to choose from
-    interfaceCount=$(wc -l <<< "${availableInterfaces}")
+    # POSIX compliant way to get the number of elements in an array
+    interfaceCount=$(printf "%s\n" "${availableInterfaces}" | wc -l)
 
     # If there is one interface,
     if [[ "${interfaceCount}" -eq 1 ]]; then
@@ -677,33 +746,33 @@ chooseInterface() {
         PIHOLE_INTERFACE="${availableInterfaces}"
     # Otherwise,
     else
+        # Set status for the first entry to be selected
+        status="ON"
+
         # While reading through the available interfaces
-        while read -r line; do
-            # Use a variable to set the option as OFF to begin with
-            mode="OFF"
-            # If it's the first loop,
-            if [[ "${firstLoop}" -eq 1 ]]; then
-                # set this as the interface to use (ON)
-                firstLoop=0
-                mode="ON"
-            fi
-            # Put all these interfaces into an array
-            interfacesArray+=("${line}" "available" "${mode}")
-        # Feed the available interfaces into this while loop
-        done <<< "${availableInterfaces}"
-        # The whiptail command that will be run, stored in a variable
-        chooseInterfaceCmd=(whiptail --separate-output --radiolist "Choose An Interface (press space to toggle selection)" "${r}" "${c}" 6)
-        # Now run the command using the interfaces saved into the array
-        chooseInterfaceOptions=$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 >/dev/tty) || \
-        # If the user chooses Cancel, exit
-        { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
-        # For each interface
-        for desiredInterface in ${chooseInterfaceOptions}; do
-            # Set the one the user selected as the interface to use
-            PIHOLE_INTERFACE=${desiredInterface}
-            # and show this information to the user
-            printf "  %b Using interface: %s\\n" "${INFO}" "${PIHOLE_INTERFACE}"
+        for interface in ${availableInterfaces}; do
+            # Put all these interfaces into a string
+            interfacesList="${interfacesList}${interface} available ${status} "
+            # All further interfaces are deselected
+            status="OFF"
         done
+        # shellcheck disable=SC2086
+        # Disable check for double quote here as we are passing a string with spaces
+        PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
+            --cancel-label "Exit" --ok-label "Select" \
+            --radiolist "Choose An Interface (press space to toggle selection)" \
+            ${r} ${c} "${interfaceCount}" ${interfacesList})
+
+        result=$?
+        case ${result} in
+            "${DIALOG_CANCEL}"|"${DIALOG_ESC}")
+                # Show an error message and exit
+                printf "  %b %s\\n" "${CROSS}" "No interface selected, exiting installer"
+                exit 1
+                ;;
+        esac
+
+        printf "  %b Using interface: %s\\n" "${INFO}" "${PIHOLE_INTERFACE}"
     fi
 }
 
@@ -789,57 +858,94 @@ getStaticIPv4Settings() {
     local ipSettingsCorrect
     local DHCPChoice
     # Ask if the user wants to use DHCP settings as their static IP
-    # This is useful for users that are using DHCP reservations; then we can just use the information gathered via our functions
-    DHCPChoice=$(whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --menu --separate-output "Do you want to use your current network settings as a static address? \\n
-          IP address:    ${IPV4_ADDRESS} \\n
-          Gateway:       ${IPv4gw} \\n" "${r}" "${c}" 3\
-          "Yes" "Set static IP using current values" \
-          "No" "Set static IP using custom values" \
-          "Skip" "I will set a static IP later, or have already done so" 3>&2 2>&1 1>&3) || \
-          { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+    # This is useful for users that are using DHCP reservations; we can use the information gathered
+    DHCPChoice=$(dialog --no-shadow --keep-tite --output-fd 1 \
+        --cancel-label "Exit" --ok-label "Continue" \
+        --backtitle "Calibrating network interface" \
+        --title "Static IP Address" \
+        --menu "Do you want to use your current network settings as a static address?\\n \
+            IP address:    ${IPV4_ADDRESS}\\n \
+            Gateway:       ${IPv4gw}\\n" \
+            "${r}" "${c}" 3 \
+                "Yes" "Set static IP using current values" \
+                "No" "Set static IP using custom values" \
+                "Skip" "I will set a static IP later, or have already done so")
 
-    case ${DHCPChoice} in
-        "Yes")
-        # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
-        whiptail --msgbox --backtitle "IP information" --title "FYI: IP Conflict" "It is possible your router could still try to assign this IP to a device, which would cause a conflict.  But in most cases the router is smart enough to not do that.
-        If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.
-        It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address." "${r}" "${c}"
-        # Nothing else to do since the variables are already set above
-        setDHCPCD
-        ;;
+        result=$?
+        case ${result} in
+            "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+            ;;
+        esac
 
-        "No")
-        # Otherwise, we need to ask the user to input their desired settings.
-        # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
-        # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
-        until [[ "${ipSettingsCorrect}" = True ]]; do
+        case ${DHCPChoice} in
+            "Skip")
+                return
+                ;;
+            "Yes")
+            # If they choose yes, let the user know that the IP address will not be available via DHCP and may cause a conflict.
+            dialog --no-shadow --keep-tite \
+                --cancel-label "Exit" \
+                --backtitle "IP information" \
+                --title "FYI: IP Conflict" \
+                --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict\
+But in most cases the router is smart enough to not do that.\
+If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.\
+It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address."\
+                "${r}" "${c}" && result=0 || result=$?
 
-            # Ask for the IPv4 address
-            IPV4_ADDRESS=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 address" --inputbox "Enter your desired IPv4 address" "${r}" "${c}" "${IPV4_ADDRESS}" 3>&1 1>&2 2>&3) || \
-            # Canceling IPv4 settings window
-            { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-            printf "  %b Your static IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
+                case ${result} in
+                    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+                    printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                    exit 1
+                    ;;
+                esac
+            ;;
 
-            # Ask for the gateway
-            IPv4gw=$(whiptail --backtitle "Calibrating network interface" --title "IPv4 gateway (router)" --inputbox "Enter your desired IPv4 default gateway" "${r}" "${c}" "${IPv4gw}" 3>&1 1>&2 2>&3) || \
-            # Canceling gateway settings window
-            { ipSettingsCorrect=False; echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-            printf "  %b Your static IPv4 gateway: %s\\n" "${INFO}" "${IPv4gw}"
+            "No")
+            # Otherwise, we need to ask the user to input their desired settings.
+            # Start by getting the IPv4 address (pre-filling it with info gathered from DHCP)
+            # Start a loop to let the user enter their information with the chance to go back and edit it if necessary
+            ipSettingsCorrect=false
+            until [[ "${ipSettingsCorrect}" = True ]]; do
 
-            # Give the user a chance to review their settings before moving on
-            if whiptail --backtitle "Calibrating network interface" --title "Static IP Address" --yesno "Are these settings correct?
-                IP address: ${IPV4_ADDRESS}
-                Gateway:    ${IPv4gw}" "${r}" "${c}"; then
-                    # After that's done, the loop ends and we move on
-                    ipSettingsCorrect=True
-                else
-                    # If the settings are wrong, the loop continues
-                    ipSettingsCorrect=False
-                fi
+                # Ask for the IPv4 address
+                _staticIPv4Temp=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                    --cancer-label "Exit" \
+                    --ok-label "Continue" \
+                    --backtitle "Calibrating network interface" \
+                    --title "IPv4 Address" \
+                    --form "\\nEnter your desired IPv4 address" \
+                    "${r}" "${c}" 0 \
+                        "IPv4 Address:" 1 1 "${IPV4_ADDRESS}" 1 15 19 0 \
+                        "IPv4 Gateway:" 2 1 "${IPv4gw}" 2 15 19 0)
+
+                result=$?
+                case ${result} in
+                    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+                    printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                    exit 1
+                    ;;
+                esac
+
+                IPV4_ADDRESS=${_staticIPv4Temp%$'\n'*}
+                IPv4gw=${_staticIPv4Temp#*$'\n'}
+
+                # Give the user a chance to review their settings before moving on
+                dialog --no-shadow --keep-tite \
+                    --no-label "Edit IP" \
+                    --backtitle "Calibrating network interface" \
+                    --title "Static IP Address" \
+                    --defaultno \
+                    --yesno "Are these settings correct?
+                        IP address: ${IPV4_ADDRESS}
+                        Gateway:    ${IPv4gw}" \
+                    "${r}" "${c}" && ipSettingsCorrect=True
             done
-        setDHCPCD
-        ;;
-    esac
+            ;;
+       esac
+       setDHCPCD
 }
 
 # Configure networking via dhcpcd
@@ -929,11 +1035,19 @@ setDNS() {
     DNSChooseOptions[DNSServerCount]=""
     # Restore the IFS to what it was
     IFS=${OIFS}
-    # In a whiptail dialog, show the options
-    DNSchoices=$(whiptail --separate-output --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
-        "${DNSChooseOptions[@]}" 2>&1 >/dev/tty) || \
-        # Exit if the user selects "Cancel"
-    { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+    # In a dialog, show the options
+    DNSchoices=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                    --cancel-label "Exit" \
+                    --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
+        "${DNSChooseOptions[@]}")
+
+        result=$?
+        case ${result} in
+            "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+            ;;
+        esac
 
     # Depending on the user's choice, set the GLOBAL variables to the IP of the respective provider
     if [[ "${DNSchoices}" == "Custom" ]]
@@ -947,7 +1061,7 @@ setDNS() {
                     # If the first and second upstream servers do not exist, do not prepopulate an IP address
                     prePopulate=""
                 else
-                    # Otherwise, prepopulate the whiptail dialogue with the appropriate DNS value(s)
+                    # Otherwise, prepopulate the dialogue with the appropriate DNS value(s)
                     prePopulate=", ${PIHOLE_DNS_2}"
                 fi
             elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
@@ -957,8 +1071,22 @@ setDNS() {
             fi
 
             # Prompt the user to enter custom upstream servers
-            piholeDNS=$(whiptail --backtitle "Specify Upstream DNS Provider(s)"  --inputbox "Enter your desired upstream DNS provider(s), separated by a comma. If you want to specify a port other than 53, separate it with a hash.\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'" "${r}" "${c}" "${prePopulate}" 3>&1 1>&2 2>&3) || \
-            { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+            piholeDNS=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                            --cancel-label "Exit" \
+                            --backtitle "Specify Upstream DNS Provider(s)" \
+                            --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\
+If you want to specify a port other than 53, separate it with a hash.\
+\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'"\
+                                "${r}" "${c}" "${prePopulate}")
+
+            result=$?
+            case ${result} in
+                "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+                printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                exit 1
+                ;;
+            esac
+
             # Clean user input and replace whitespace with comma.
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
 
@@ -977,7 +1105,13 @@ setDNS() {
             # If either of the DNS servers are invalid,
             if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]] || [[ "${PIHOLE_DNS_2}" == "${strInvalid}" ]]; then
                 # explain this to the user,
-                whiptail --msgbox --backtitle "Invalid IP" --title "Invalid IP" "One or both entered IP addresses were invalid. Please try again.\\n\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" ${r} ${c}
+                dialog --no-shadow --keep-tite \
+                    --title "Invalid IP Address(es)" \
+                    --backtitle "Invalid IP" \
+                    --msgbox "\\nOne or both of the entered IP addresses were invalid. Please try again.\
+\\n\\nInvalid IPs: ${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}" \
+                    "${r}" "${c}"
+
                 # set the variables back to nothing,
                 if [[ "${PIHOLE_DNS_1}" == "${strInvalid}" ]]; then
                     PIHOLE_DNS_1=""
@@ -988,12 +1122,24 @@ setDNS() {
                 # and continue the loop.
                 DNSSettingsCorrect=False
             else
-                # Otherwise, show the DNS setting to the user, and break the loop if they confirm them.
-                if (whiptail --backtitle "Specify Upstream DNS Provider(s)" --title "Upstream DNS Provider(s)" --yesno "Are these settings correct?\\n    DNS Server 1:   $PIHOLE_DNS_1\\n    DNS Server 2:   ${PIHOLE_DNS_2}" "${r}" "${c}"); then
-                    DNSSettingsCorrect=True
-                else
-                    DNSSettingsCorrect=False
-                fi
+                dialog --no-shadow --keep-tite \
+                    --backtitle "Specify Upstream DNS Provider(s)" \
+                    --title "Upstream DNS Provider(s)" \
+                    --yesno "Are these settings correct?\\n\\tDNS Server 1:\\t${PIHOLE_DNS_1}\\n\\tDNS Server 2:\\t${PIHOLE_DNS_2}" \
+                    "${r}" "${c}" && result=0 || result=$?
+
+                case ${result} in
+                    "${DIALOG_OK}")
+                        DNSSettingsCorrect=True
+                        ;;
+                    "${DIALOG_CANCEL}")
+                        DNSSettingsCorrect=False
+                        ;;
+                    "${DIALOG_ESC}")
+                        printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                        exit 1
+                        ;;
+                esac
             fi
         done
     else
@@ -1023,105 +1169,120 @@ setDNS() {
 
 # Allow the user to enable/disable logging
 setLogging() {
-    # Local, named variables
-    local LogToggleCommand
-    local LogChooseOptions
-    local LogChoices
+    # Ask the user if they want to enable logging
+    dialog --no-shadow --keep-tite \
+        --backtitle "Pihole Installation" \
+        --title "Enable Logging" \
+        --yesno "\\n\\nWould you like to enable query logging?" \
+        "${r}" "${c}" && result=0 || result=$?
 
-    # Ask if the user wants to log queries
-    LogToggleCommand=(whiptail --separate-output --radiolist "Do you want to log queries?" "${r}" "${c}" 6)
-    # The default selection is on
-    LogChooseOptions=("On (Recommended)" "" on
-        Off "" off)
-    # Get the user's choice
-    LogChoices=$("${LogToggleCommand[@]}" "${LogChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
-    case ${LogChoices} in
-        # If it's on,
-        "On (Recommended)")
-            printf "  %b Logging On.\\n" "${INFO}"
-            # set the GLOBAL variable setting to true
+    case ${result} in
+        "${DIALOG_OK}")
+            # If they chose yes,
+            printf "  %b Query Logging on.\\n" "${INFO}"
             QUERY_LOGGING=true
             ;;
-        # Otherwise, it's off,
-        Off)
-            printf "  %b Logging Off.\\n" "${INFO}"
-            # set the GLOBAL variable setting to false
+        "${DIALOG_CANCEL}")
+            # If they chose no,
+            printf "  %b Query Logging off.\\n" "${INFO}"
             QUERY_LOGGING=false
+            ;;
+        "${DIALOG_ESC}")
+            # User pressed <ESC>
+            printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
             ;;
     esac
 }
 
 # Allow the user to set their FTL privacy level
 setPrivacyLevel() {
-    local LevelCommand
-    local LevelOptions
-
-    LevelCommand=(whiptail --separate-output --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" "${r}" "${c}" 6)
-
     # The default selection is level 0
-    LevelOptions=(
-        "0" "Show everything" on
-        "1" "Hide domains" off
-        "2" "Hide domains and clients" off
-        "3" "Anonymous mode" off
-    )
+    PRIVACY_LEVEL=$(dialog --no-shadow --keep-tite --output-fd 1 \
+        --cancel-label "Exit" \
+        --ok-label "Continue" \
+        --radiolist "Select a privacy mode for FTL. https://docs.pi-hole.net/ftldns/privacylevels/" \
+        "${r}" "${c}" 6 \
+        "0" "Show everything" on \
+        "1" "Hide domains" off \
+        "2" "Hide domains and clients" off \
+        "3" "Anonymous mode" off)
 
-    # Get the user's choice
-    PRIVACY_LEVEL=$("${LevelCommand[@]}" "${LevelOptions[@]}" 2>&1 >/dev/tty) || (echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}" && exit 1)
-
-    printf "  %b Privacy level %d" "${INFO}" "${PRIVACY_LEVEL}"
+        result=$?
+        case ${result} in
+            "${DIALOG_OK}")
+                printf "  %b Using privacy level: %s\\n" "${INFO}" "${PRIVACY_LEVEL}"
+                ;;
+            "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+                printf "  %b Cancelled privacy level selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                exit 1
+                ;;
+        esac
 }
 
 # Function to ask the user if they want to install the dashboard
 setAdminFlag() {
-    # Local, named variables
-    local WebToggleCommand
-    local WebChooseOptions
-    local WebChoices
-
     # Similar to the logging function, ask what the user wants
-    WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web admin interface?" "${r}" "${c}" 6)
-    # with the default being enabled
-    WebChooseOptions=("On (Recommended)" "" on
-        Off "" off)
-    WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
-    # Depending on their choice
-    case ${WebChoices} in
-        "On (Recommended)")
-            printf "  %b Web Interface On\\n" "${INFO}"
-            # Set it to true
+    dialog --no-shadow --keep-tite \
+        --backtitle "Pihole Installation" \
+        --title "Admin Web Interface" \
+        --yesno "\\n\\nDo you want to install the Admin Web Interface?" \
+        "${r}" "${c}" && result=0 || result=$?
+
+    case ${result} in
+        "${DIALOG_OK}")
+            # If they chose yes,
+            printf "  %b Installing Admin Web Interface\\n" "${INFO}"
+            # Set the flag to install the web interface
             INSTALL_WEB_INTERFACE=true
             ;;
-        Off)
-            printf "  %b Web Interface Off\\n" "${INFO}"
-            # or false
+        "${DIALOG_CANCEL}")
+            # If they chose no,
+            printf "  %b Not installing Admin Web Interface\\n" "${INFO}"
+            # Set the flag to not install the web interface
             INSTALL_WEB_INTERFACE=false
-            # Deselect the web server as well, since it is obsolete then
             INSTALL_WEB_SERVER=false
+            ;;
+        "${DIALOG_ESC}")
+            # User pressed <ESC>
+            printf "  %b Escape pressed, exiting installer at Admin Web Interface choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
             ;;
     esac
 
     # If the user wants to install the Web admin interface (i.e. it has not been deselected above)
-    if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Get list of required PHP modules, excluding base package (common) and handler (cgi)
         local i php_modules
         for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
-        WebToggleCommand=(whiptail --separate-output --radiolist "Do you wish to install the web server (lighttpd) and required PHP modules?\\n\\nNB: If you disable this, and, do not have an existing web server and required PHP modules (${php_modules# }) installed, the web interface will not function. Additionally the web server user needs to be member of the \"pihole\" group for full functionality." "${r}" "${c}" 6)
-        # Enable as default and recommended option
-        WebChooseOptions=("On (Recommended)" "" on
-            Off "" off)
-        WebChoices=$("${WebToggleCommand[@]}" "${WebChooseOptions[@]}" 2>&1 >/dev/tty) || (printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" && exit 1)
-        # Depending on their choice
-        case ${WebChoices} in
-            "On (Recommended)")
-                printf "  %b Web Server On\\n" "${INFO}"
-                # set it to true, as clearly seen below.
+        dialog --no-shadow --keep-tite \
+            --backtitle "Pi-hole Installation" \
+            --title "Web Server" \
+            --yesno "\\n\\nA web server is required for the Admin Web Interface.\
+\\n\\nDo you want to install lighttpd and the required PHP modules?\
+\\n\\nNB: If you disable this, and, do not have an existing web server \
+and required PHP modules (${php_modules# }) installed, the web interface \
+will not function. Additionally the web server user needs to be member of \
+the \"pihole\" group for full functionality." \
+            "${r}" "${c}" && result=0 || result=$?
+
+        case ${result} in
+            "${DIALOG_OK}")
+                # If they chose yes,
+                printf "  %b Installing lighttpd\\n" "${INFO}"
+                # Set the flag to install the web server
                 INSTALL_WEB_SERVER=true
                 ;;
-            Off)
-                printf "  %b Web Server Off\\n" "${INFO}"
-                # or false
+            "${DIALOG_CANCEL}")
+                # If they chose no,
+                printf "  %b Not installing lighttpd\\n" "${INFO}"
+                # Set the flag to not install the web server
                 INSTALL_WEB_SERVER=false
+                ;;
+            "${DIALOG_ESC}")
+                # User pressed <ESC>
+                printf "  %b Escape pressed, exiting installer at web server choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                exit 1
                 ;;
         esac
     fi
@@ -1133,32 +1294,38 @@ chooseBlocklists() {
     if [[ -f "${adlistFile}" ]]; then
         mv "${adlistFile}" "${adlistFile}.old"
     fi
-    # Let user select (or not) blocklists via a checklist
-    cmd=(whiptail --separate-output --checklist "Pi-hole relies on third party lists in order to block ads.\\n\\nYou can use the suggestion below, and/or add your own after installation\\n\\nTo deselect the suggested list, use spacebar" "${r}" "${c}" 5)
-    # In an array, show the options available (all off by default):
-    options=(StevenBlack "StevenBlack's Unified Hosts List" on)
+    # Let user select (or not) blocklists
+    dialog --no-shadow --keep-tite \
+        --backtitle "Pi-hole Installation" \
+        --title "Blocklists" \
+        --yesno "\\nPi-hole relies on third party lists in order to block ads.\
+\\n\\nYou can use the suggestion below, and/or add your own after installation.\
+\\n\\nSelect 'Yes' to include:\
+\\n\\nStevenBlack's Unified Hosts List" \
+        "${r}" "${c}" && result=0 || result=$?
 
-    # In a variable, show the choices available; exit if Cancel is selected
-    choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) || { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; rm "${adlistFile}" ;exit 1; }
-    # Add all selected choices to the lists file
-    for choice in ${choices}
-    do
-        appendToListsFile "${choice}"
-    done
+    case ${result} in
+        "${DIALOG_OK}")
+            # If they chose yes,
+            printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+            echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
+            ;;
+        "${DIALOG_CANCEL}")
+            # If they chose no,
+            printf "  %b Not installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+            ;;
+        "${DIALOG_ESC}")
+            # User pressed <ESC>
+            printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+            ;;
+    esac
     # Create an empty adList file with appropriate permissions.
     if [ ! -f "${adlistFile}" ]; then
         install -m 644 /dev/null "${adlistFile}"
     else
         chmod 644 "${adlistFile}"
     fi
-}
-
-# Accept a string parameter, it must be one of the default lists
-# This function saves duplication between chooseBlocklists and installDefaultBlocklists
-appendToListsFile() {
-    case $1 in
-        StevenBlack  )  echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}";;
-    esac
 }
 
 # Used only in unattended setup
@@ -1169,7 +1336,7 @@ installDefaultBlocklists() {
     if [[ -f "${adlistFile}" ]]; then
         return;
     fi
-    appendToListsFile StevenBlack
+        echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
 }
 
 # Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
@@ -1934,20 +2101,17 @@ displayFinalMessage() {
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Store a message in a variable and display it
-        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
-
-Your Admin Webpage login password is ${pwstring}"
+        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
     fi
 
     # Final completion message to user
-    whiptail --msgbox --backtitle "Make it so." --title "Installation Complete!" "Configure your devices to use the Pi-hole as their DNS server using:
-
-IPv4:	${IPV4_ADDRESS%/*}
-IPv6:	${IPV6_ADDRESS:-"Not Configured"}
-
-If you have not done so already, the above IP should be set to static.
-
-${additional}" "${r}" "${c}"
+    dialog --no-shadow --keep-tite \
+        --title "Installation Complete!" \
+        --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
+\\n\\nIPv4:	${IPV4_ADDRESS%/*}\
+\\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
+\\nIf you have not done so already, the above IP should be set to static.\
+\\n${additional}" "${r}" "${c}"
 }
 
 update_dialogs() {
@@ -1967,20 +2131,33 @@ update_dialogs() {
     opt2b="Resets Pi-hole and allows re-selecting settings."
 
     # Display the information to the user
-    UpdateCmd=$(whiptail --title "Existing Install Detected!" --menu "\\n\\nWe have detected an existing install.\\n\\nPlease choose from the following options: \\n($strAdd)" "${r}" "${c}" 2 \
+    UpdateCmd=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                --cancel-label Exit \
+                --title "Existing Install Detected!" \
+                --menu "\\n\\nWe have detected an existing install.\
+\\n\\nPlease choose from the following options:\
+\\n($strAdd)"\
+                    "${r}" "${c}" 2 \
     "${opt1a}"  "${opt1b}" \
-    "${opt2a}"  "${opt2b}" 3>&2 2>&1 1>&3) || \
-    { printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+    "${opt2a}"  "${opt2b}" || true)
+
+    result=$?
+    case ${result} in
+        "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+            ;;
+    esac
 
     # Set the variable based on if the user chooses
     case ${UpdateCmd} in
         # repair, or
-        ${opt1a})
+        "${opt1a}")
             printf "  %b %s option selected\\n" "${INFO}" "${opt1a}"
             useUpdateVars=true
             ;;
         # reconfigure,
-        ${opt2a})
+        "${opt2a}")
             printf "  %b %s option selected\\n" "${INFO}" "${opt2a}"
             useUpdateVars=false
             ;;
@@ -2449,6 +2626,9 @@ main() {
         fi
     fi
 
+    # Check if SELinux is Enforcing and exit before doing anything else
+    checkSelinux
+
     # Check for supported package managers so that we may install dependencies
     package_manager_detect
 
@@ -2471,14 +2651,12 @@ main() {
         select_rpm_php
     fi
 
-    # Check if SELinux is Enforcing
-    checkSelinux
 
     # If the setup variable file exists,
     if [[ -f "${setupVars}" ]]; then
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
-            printf "  %b Performing unattended setup, no whiptail dialogs will be displayed\\n" "${INFO}"
+            printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
             # Use the setup variables
             useUpdateVars=true
             # also disable debconf-apt-progress dialogs
