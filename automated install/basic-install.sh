@@ -2101,9 +2101,7 @@ displayFinalMessage() {
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Store a message in a variable and display it
-        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin
-
-Your Admin Webpage login password is ${pwstring}"
+        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
     fi
 
     # Final completion message to user
@@ -2113,8 +2111,7 @@ Your Admin Webpage login password is ${pwstring}"
 \\n\\nIPv4:	${IPV4_ADDRESS%/*}\
 \\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
 \\nIf you have not done so already, the above IP should be set to static.\
-\\n${additional}"
-    "${r}" "${c}"
+\\n${additional}" "${r}" "${c}"
 }
 
 update_dialogs() {
