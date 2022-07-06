@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN true && \
     chmod +x $SCRIPTDIR/*
 
-ENV PH_TEST true
+ENV SKIP_INSTALL true
 ENV OS_CHECK_DOMAIN_NAME dev-supportedos.pi-hole.net
 
 #sed '/# Start the installer/Q' /opt/pihole/basic-install.sh > /opt/pihole/stub_basic-install.sh && \
