@@ -24,8 +24,8 @@ readonly gravityDBfile="/etc/pihole/gravity.db"
 
 # Source install script for ${setupVars}, ${PI_HOLE_BIN_DIR} and valid_ip()
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-# shellcheck disable=SC2034  # used in basic-install
-PH_TEST="true"
+# shellcheck disable=SC2034  # used in basic-install to source the script without running it
+SKIP_INSTALL="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 utilsfile="/opt/pihole/utils.sh"

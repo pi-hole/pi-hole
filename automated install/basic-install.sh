@@ -2860,6 +2860,8 @@ main() {
     fi
 }
 
-if [[ "${PH_TEST}" != true ]] ; then
+# allow to source this script without running it
+# used in docker-pihole and webpage.sh
+if [[ "${SKIP_INSTALL}" != true ]] ; then
     main "$@"
 fi
