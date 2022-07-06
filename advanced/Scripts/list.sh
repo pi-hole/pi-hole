@@ -100,21 +100,29 @@ Options:
 ValidateDomain() {
     # Convert to lowercase
     domain="${1,,}"
+    local str validDomain
 
     # Check validity of domain (don't check for regex entries)
-    if [[ "${#domain}" -le 253 ]]; then
-        if [[ ( "${typeId}" == "${regex_blacklist}" || "${typeId}" == "${regex_whitelist}" ) && "${wildcard}" == false ]]; then
-            validDomain="${domain}"
-        else
+    if [[ ( "${typeId}" == "${regex_blacklist}" || "${typeId}" == "${regex_whitelist}" ) && "${wildcard}" == false ]]; then
+        validDomain="${domain}"
+    else
+        # Check max length
+        if [[ "${#domain}" -le 253 ]]; then
             validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
             validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
+            # set error string
+            str="is not a valid argument or domain name!"
+        else
+            validDomain=
+            str="is too long!"
+
         fi
     fi
 
     if [[ -n "${validDomain}" ]]; then
         domList=("${domList[@]}" "${validDomain}")
     else
-        echo -e "  ${CROSS} ${domain} is not a valid argument or domain name!"
+        echo -e "  ${CROSS} ${domain} ${str}"
     fi
 
     domaincount=$((domaincount+1))
