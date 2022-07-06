@@ -1136,7 +1136,7 @@ If you want to specify a port other than 53, separate it with a hash.\
                         DNSSettingsCorrect=False
                         ;;
                     "${DIALOG_ESC}")
-                        printf "  %bEscape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                        printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                         exit 1
                         ;;
                 esac
@@ -1189,7 +1189,7 @@ setLogging() {
             ;;
         "${DIALOG_ESC}")
             # User pressed <ESC>
-            printf " %bEscape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
@@ -1245,7 +1245,7 @@ setAdminFlag() {
             ;;
         "${DIALOG_ESC}")
             # User pressed <ESC>
-            printf " %bEscape pressed, exiting installer at Admin Web Interface choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %b Escape pressed, exiting installer at Admin Web Interface choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
@@ -1281,7 +1281,7 @@ the \"pihole\" group for full functionality." \
                 ;;
             "${DIALOG_ESC}")
                 # User pressed <ESC>
-                printf " %bEscape pressed, exiting installer at web server choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                printf "  %b Escape pressed, exiting installer at web server choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                 exit 1
                 ;;
         esac
@@ -1316,7 +1316,7 @@ chooseBlocklists() {
             ;;
         "${DIALOG_ESC}")
             # User pressed <ESC>
-            printf " %bEscape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
