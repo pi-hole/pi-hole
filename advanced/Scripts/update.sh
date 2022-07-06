@@ -17,7 +17,7 @@ readonly PI_HOLE_GIT_URL="https://github.com/arevindh/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 # shellcheck disable=SC2034
-PH_TEST=true
+SKIP_INSTALL=true
 
 # when --check-only is passed to this script, it will not perform the actual update
 CHECK_ONLY=false
