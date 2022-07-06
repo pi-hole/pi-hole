@@ -874,7 +874,7 @@ getStaticIPv4Settings() {
         result=$?
         case ${result} in
             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
         esac
@@ -897,7 +897,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
                 case ${result} in
                     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                    printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                    printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                     exit 1
                     ;;
                 esac
@@ -924,7 +924,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
                 result=$?
                 case ${result} in
                     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                    printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                    printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                     exit 1
                     ;;
                 esac
@@ -1044,7 +1044,7 @@ setDNS() {
         result=$?
         case ${result} in
             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
         esac
@@ -1082,7 +1082,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             result=$?
             case ${result} in
                 "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                 exit 1
                 ;;
             esac
@@ -1491,7 +1491,7 @@ installConfigs() {
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
         install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
         if ! install -T -o pihole -m 664 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
-            printf "  %bError: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            printf "  %b Error: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
     fi
@@ -1499,7 +1499,7 @@ installConfigs() {
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
         if ! install -o root -m 644 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
-            printf "  %bError: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
     fi
@@ -1659,7 +1659,7 @@ disable_resolved_stublistener() {
     # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
     if check_service_active "systemd-resolved"; then
         # Check if DNSStubListener is enabled
-        printf "  %b  %b Testing if systemd-resolved DNSStub-Listener is active" "${OVER}" "${INFO}"
+        printf "  %b %b Testing if systemd-resolved DNSStub-Listener is active" "${OVER}" "${INFO}"
         if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
             # Disable the DNSStubListener to unbind it from port 53
             # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
@@ -1696,7 +1696,7 @@ update_package_cache() {
             UPDATE_PKG_CACHE="apt update"
         fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %bError: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
+        printf "  %b Error: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
@@ -2144,7 +2144,7 @@ update_dialogs() {
     result=$?
     case ${result} in
         "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
@@ -2253,14 +2253,14 @@ clone_or_update_repos() {
         printf "  %b Performing reconfiguration, skipping download of local repos\\n" "${INFO}"
         # Reset the Core repo
         resetRepo ${PI_HOLE_LOCAL_REPO} || \
-        { printf "  %bUnable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
+        { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # reset it's repo
             resetRepo ${webInterfaceDir} || \
-            { printf "  %bUnable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
+            { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
             exit 1; \
             }
         fi
@@ -2268,14 +2268,14 @@ clone_or_update_repos() {
     else
         # so get git files for Core
         getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { printf "  %bUnable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
+        { printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # get the Web git files
             getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-            { printf "  %bUnable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
+            { printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
             exit 1; \
             }
         fi
@@ -2339,7 +2339,7 @@ FTLinstall() {
             # Otherwise, the hash download failed, so print and exit.
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %bError: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+            printf "  %b Error: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
             return 1
         fi
     else
@@ -2347,7 +2347,7 @@ FTLinstall() {
         popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # The URL could not be found
-        printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+        printf "  %b Error: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
         return 1
     fi
 }
