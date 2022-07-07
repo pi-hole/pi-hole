@@ -2623,7 +2623,7 @@ main() {
 
     stop_service pihole-FTL &> /dev/null
 
-    if [ -d /var/log/pihole/ ]; then
+    if [ ! -d /var/log/pihole/ ]; then
         mkdir /var/log/pihole/
         chmod 0775 /var/log/pihole/
     fi
