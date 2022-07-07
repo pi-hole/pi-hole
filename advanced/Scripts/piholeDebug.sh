@@ -66,8 +66,8 @@ PIHOLE_DIRECTORY="/etc/pihole"
 PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
 RUN_DIRECTORY="/run"
-LOG_DIRECTORY="/var/log"
-WEB_SERVER_LOG_DIRECTORY="${LOG_DIRECTORY}/lighttpd"
+LOG_DIRECTORY="/var/log/pihole"
+WEB_SERVER_LOG_DIRECTORY="/var/log/lighttpd"
 WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
@@ -129,35 +129,16 @@ FTL_PORT="${RUN_DIRECTORY}/pihole-FTL.port"
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
-PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/pihole-FTL.log")"
+PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/FTL.log")"
 
-PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access.log"
-PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error.log"
+PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access-pihole.log"
+PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error-pihole.log"
 
 RESOLVCONF="${ETC}/resolv.conf"
 DNSMASQ_CONF="${ETC}/dnsmasq.conf"
 
-# An array of operating system "pretty names" that we officially support
-# We can loop through the array at any time to see if it matches a value
-#SUPPORTED_OS=("Raspbian" "Ubuntu" "Fedora" "Debian" "CentOS")
-
 # Store Pi-hole's processes in an array for easy use and parsing
 PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
-
-# Store the required directories in an array so it can be parsed through
-#REQUIRED_DIRECTORIES=("${CORE_GIT_DIRECTORY}"
-#"${CRON_D_DIRECTORY}"
-#"${DNSMASQ_D_DIRECTORY}"
-#"${PIHOLE_DIRECTORY}"
-#"${PIHOLE_SCRIPTS_DIRECTORY}"
-#"${BIN_DIRECTORY}"
-#"${RUN_DIRECTORY}"
-#"${LOG_DIRECTORY}"
-#"${WEB_SERVER_LOG_DIRECTORY}"
-#"${WEB_SERVER_CONFIG_DIRECTORY}"
-#"${HTML_DIRECTORY}"
-#"${WEB_GIT_DIRECTORY}"
-#"${BLOCK_PAGE_DIRECTORY}")
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
@@ -603,7 +584,7 @@ disk_usage() {
     # Additinal keywords can be added, separated by "|"
     hide="curlftpfs"
 
-    # only show those lines not containg a sensitive phrase
+    # only show those lines not containing a sensitive phrase
     for line in "${file_system[@]}"; do
       if [[ ! $line =~ $hide ]]; then
         log_write "   ${line}"
@@ -1394,7 +1375,7 @@ curl_to_tricorder() {
 upload_to_tricorder() {
     local username="pihole"
     # Set the permissions and owner
-    chmod 644 ${PIHOLE_DEBUG_LOG}
+    chmod 640 ${PIHOLE_DEBUG_LOG}
     chown "$USER":"${username}" ${PIHOLE_DEBUG_LOG}
 
     # Let the user know debugging is complete with something strikingly visual

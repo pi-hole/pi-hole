@@ -150,10 +150,10 @@ def get_directories_recursive(host, directory):
 
 def test_installPihole_fresh_install_readableFiles(host):
     '''
-    confirms all neccessary files are readable by pihole user
+    confirms all necessary files are readable by pihole user
     '''
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # dialog returns Cancel for user prompt
+    mock_command('dialog', {'*': ('', '0')}, host)
     # mock git pull
     mock_command_passthrough('git', {'pull': ('', '0')}, host)
     # mock systemctl to not start lighttpd and FTL
@@ -393,8 +393,8 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
         "127.0.0.1",
         # "pi.hole"
     ]
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # dialog returns Cancel for user prompt
+    mock_command('dialog', {'*': ('', '0')}, host)
 
     # mock git pull
     mock_command_passthrough('git', {'pull': ('', '0')}, host)
@@ -483,7 +483,6 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
         setup_var_file += "{}={}\n".format(k, v)
     setup_var_file += "INSTALL_WEB_SERVER=true\n"
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
-    setup_var_file += "IPV4_ADDRESS=127.0.0.1\n"
     setup_var_file += "EOF\n"
     host.run(setup_var_file)
     installWeb = host.run('''
@@ -871,8 +870,8 @@ def test_FTL_download_aarch64_no_errors(host):
     '''
     confirms only aarch64 package is downloaded for FTL engine
     '''
-    # mock whiptail answers and ensure installer dependencies
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # mock dialog answers and ensure installer dependencies
+    mock_command('dialog', {'*': ('', '0')}, host)
     host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -903,23 +902,6 @@ def test_FTL_binary_installed_and_responsive_no_errors(host):
     ''')
     expected_stdout = 'v'
     assert expected_stdout in installed_binary.stdout
-
-
-# def test_FTL_support_files_installed(host):
-#     '''
-#     confirms FTL support files are installed
-#     '''
-#     support_files = host.run('''
-#     source /opt/pihole/basic-install.sh
-#     FTLdetect
-#     stat -c '%a %n' /var/log/pihole-FTL.log
-#     stat -c '%a %n' /run/pihole-FTL.port
-#     stat -c '%a %n' /run/pihole-FTL.pid
-#     ls -lac /run
-#     ''')
-#     assert '644 /run/pihole-FTL.port' in support_files.stdout
-#     assert '644 /run/pihole-FTL.pid' in support_files.stdout
-#     assert '644 /var/log/pihole-FTL.log' in support_files.stdout
 
 
 def test_IPv6_only_link_local(host):
@@ -1118,7 +1100,7 @@ def test_os_check_passes(host):
 
 def test_package_manager_has_installer_deps(host):
     ''' Confirms OS is able to install the required packages for the installer'''
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    mock_command('dialog', {'*': ('', '0')}, host)
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -1131,7 +1113,7 @@ def test_package_manager_has_installer_deps(host):
 
 def test_package_manager_has_pihole_deps(host):
     ''' Confirms OS is able to install the required packages for Pi-hole '''
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    mock_command('dialog', {'*': ('', '0')}, host)
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -1145,7 +1127,7 @@ def test_package_manager_has_pihole_deps(host):
 
 def test_package_manager_has_web_deps(host):
     ''' Confirms OS is able to install the required packages for web '''
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    mock_command('dialog', {'*': ('', '0')}, host)
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect

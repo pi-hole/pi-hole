@@ -8,39 +8,50 @@ permissions:
   contents: read
 
 jobs:
-  smoke-test:
+  smoke-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
     -
       name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     -
-      name: Run Smoke Tests
+      name: Check scripts in repository are executable
       run: |
-        # Ensure scripts in repository are executable
         IFS=$'\n';
         for f in $(find . -name '*.sh'); do if [[ ! -x $f ]]; then echo "$f is not executable" && FAIL=1; fi ;done
         unset IFS;
         # If FAIL is 1 then we fail.
-        [[ $FAIL == 1 ]] && exit 1 || echo "Smoke Tests Passed"
+        [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
+    -
+      name: Spell-Checking
+      uses: codespell-project/actions-codespell@master
+      with:
+        ignore_words_file: .codespellignore
+    -
+      name: Get editorconfig-checker
+      uses: editorconfig-checker/action-editorconfig-checker@main
+    -
+      name: Run editorconfig-checker
+      run: editorconfig-checker
+
 
   distro-test:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    needs: smoke-test
+    needs: smoke-tests
     strategy:
       matrix:
-        distro: [debian_9, debian_10, debian_11, ubuntu_16, ubuntu_18, ubuntu_20, ubuntu_21, centos_7, centos_8, fedora_33, fedora_34]
+        distro: [debian_10, debian_11, ubuntu_18, ubuntu_20, ubuntu_21, ubuntu_22, centos_7, centos_8, fedora_34]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
     -
       name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     -
       name: Set up Python 3.8
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
       with:
         python-version: 3.8
     -

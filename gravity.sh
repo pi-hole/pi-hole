@@ -540,7 +540,7 @@ parseList() {
   num_target_lines_new="$(grep -c "^" "${target}")"
   # Number of new correctly added lines
   num_correct_lines="$(( num_target_lines_new-num_target_lines ))"
-  # Upate number of lines in target file
+  # Update number of lines in target file
   num_target_lines="$num_target_lines_new"
   num_invalid="$(( num_source_lines-num_correct_lines ))"
   if [[ "${num_invalid}" -eq 0 ]]; then

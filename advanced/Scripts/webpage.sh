@@ -296,7 +296,7 @@ trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC68345710423
     # changes in the non-FQDN forwarding. This cannot be done in 01-pihole.conf
     # as we don't want to delete all local=/.../ lines so it's much safer to
     # simply rewrite the entire corresponding config file (which is what the
-    # DHCP settings subroutie is doing)
+    # DHCP settings subroutine is doing)
     ProcessDHCPSettings
 }
 
@@ -440,8 +440,8 @@ dhcp-leasefile=/etc/pihole/dhcp.leases
             echo "#quiet-dhcp6
 #enable-ra
 dhcp-option=option6:dns-server,[::]
-dhcp-range=::100,::1ff,constructor:${interface},ra-names,slaac,64,3600
-ra-param=*,0,0
+dhcp-range=::,constructor:${interface},ra-names,ra-stateless,64
+
 " >> "${dhcpconfig}"
         fi
 
@@ -650,7 +650,8 @@ Teleporter() {
         host="${host//./_}"
         filename="pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
     fi
-    php /var/www/html/admin/scripts/pi-hole/php/teleporter.php > "${filename}"
+    # webroot is sourced from basic-install above
+    php "${webroot}/admin/scripts/pi-hole/php/teleporter.php" > "${filename}"
 }
 
 checkDomain()

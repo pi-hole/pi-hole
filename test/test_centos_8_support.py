@@ -29,8 +29,8 @@ def test_php_upgrade_user_optout_skipped_centos_gte_8(host):
     latest CentOS (should trigger on CentOS7 only)
     (php not currently installed)
     '''
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '1')}, host)
+    # dialog dialog returns Cancel for user prompt
+    mock_command('dialog', {'*': ('', '1')}, host)
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -50,8 +50,8 @@ def test_php_upgrade_user_optin_skipped_centos_gte_8(host):
     latest CentOS (should trigger on CentOS7 only)
     (php not currently installed)
     '''
-    # Whiptail dialog returns Continue for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # dialog dialog returns Continue for user prompt
+    mock_command('dialog', {'*': ('', '0')}, host)
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect

@@ -12,7 +12,7 @@
 
 # Basic Housekeeping rules
 #  - Functions must be self contained
-#  - Functions must be added in alphabetical order
+#  - Functions should be grouped with other similar functions
 #  - Functions must be documented
 #  - New functions must have a test added for them in test/test_any_utils.py
 
@@ -89,7 +89,7 @@ getFTLAPIPort(){
     # -s: FILE exists and has a size greater than zero
     ftl_api_port=$(cat "${PORTFILE}")
     # Exploit prevention: unset the variable if there is malicious content
-    # Verify that the value read from the file is numeric    
+    # Verify that the value read from the file is numeric
     expr "$ftl_api_port" : "[^[:digit:]]" > /dev/null && unset ftl_api_port
   fi
 

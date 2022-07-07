@@ -36,7 +36,7 @@ def test_enable_epel_repository_centos(host):
     expected_stdout = info_box + (' Enabling EPEL package repository '
                                   '(https://fedoraproject.org/wiki/EPEL)')
     assert expected_stdout in package_manager_detect.stdout
-    expected_stdout = tick_box + ' Installed epel-release'
+    expected_stdout = tick_box + ' Installed'
     assert expected_stdout in package_manager_detect.stdout
     epel_package = host.package('epel-release')
     assert epel_package.is_installed
@@ -76,8 +76,8 @@ def test_php_version_lt_7_detected_upgrade_user_optout_centos(host):
     default_centos_php_version = php_package.version.split('.')[0]
     if int(default_centos_php_version) >= 7:  # PHP7 is supported/recommended
         pytest.skip("Test deprecated . Detected default PHP version >= 7")
-    # Whiptail dialog returns Cancel for user prompt
-    mock_command('whiptail', {'*': ('', '1')}, host)
+    # dialog returns Cancel for user prompt
+    mock_command('dialog', {'*': ('', '1')}, host)
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
@@ -101,8 +101,8 @@ def test_php_version_lt_7_detected_upgrade_user_optin_centos(host):
     default_centos_php_version = php_package.version.split('.')[0]
     if int(default_centos_php_version) >= 7:  # PHP7 is supported/recommended
         pytest.skip("Test deprecated . Detected default PHP version >= 7")
-    # Whiptail dialog returns Continue for user prompt
-    mock_command('whiptail', {'*': ('', '0')}, host)
+    # dialog returns Continue for user prompt
+    mock_command('dialog', {'*': ('', '0')}, host)
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
