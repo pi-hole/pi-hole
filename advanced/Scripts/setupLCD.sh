@@ -49,7 +49,7 @@ echo /usr/local/bin/chronometer.sh >> /home/pi/.bashrc
 # OR
 #$SUDO echo /usr/local/bin/chronometer.sh >> /etc/profile
 
-# Set up the LCD screen based on Adafruits instuctions:
+# Set up the LCD screen based on Adafruits instructions:
 # https://learn.adafruit.com/adafruit-pitft-28-inch-resistive-touchscreen-display-raspberry-pi/easy-install
 curl -SLs https://apt.adafruit.com/add-pin | bash
 apt-get -y install raspberrypi-bootloader

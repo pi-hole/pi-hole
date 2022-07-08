@@ -581,7 +581,7 @@ disk_usage() {
     # Some lines of df might contain sensitive information like usernames and passwords.
     # E.g. curlftpfs filesystems (https://www.looklinux.com/mount-ftp-share-on-linux-using-curlftps/)
     # We are not interested in those lines so we collect keyword, to remove them from the output
-    # Additinal keywords can be added, separated by "|"
+    # Additional keywords can be added, separated by "|"
     hide="curlftpfs"
 
     # only show those lines not containing a sensitive phrase
@@ -990,7 +990,7 @@ make_array_from_file() {
     else
         # Otherwise, read the file line by line
         while IFS= read -r line;do
-            # Othwerise, strip out comments and blank lines
+            # Otherwise, strip out comments and blank lines
             new_line=$(echo "${line}" | sed -e 's/^\s*#.*$//' -e '/^$/d')
             # If the line still has content (a non-zero value)
             if [[ -n "${new_line}" ]]; then
@@ -1048,7 +1048,7 @@ parse_file() {
 }
 
 check_name_resolution() {
-    # Check name resolution from localhost, Pi-hole's IP, and Google's name severs
+    # Check name resolution from localhost, Pi-hole's IP, and Google's name servers
     # using the function we created earlier
     dig_at 4
     dig_at 6
@@ -1309,7 +1309,7 @@ obfuscated_pihole_log() {
           # If the variable does not a value (the current default behavior), so do not obfuscate anything
           if [[ -z ${OBFUSCATE} ]]; then
               log_write "   ${line}"
-          # Othwerise, a flag was passed to this command to obfuscate domains in the log
+          # Otherwise, a flag was passed to this command to obfuscate domains in the log
           else
               # So first check if there are domains in the log that should be obfuscated
               if [[ -n ${line_to_obfuscate} ]]; then
