@@ -386,7 +386,7 @@ select_rpm_php(){
             exit
         fi
         # php-json is not required on CentOS 7 as it is already compiled into php
-        # verifiy via `php -m | grep json`
+        # verify via `php -m | grep json`
         if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
             # create a temporary array as arrays are not designed for use as mutable data structures
             CENTOS7_PIHOLE_WEB_DEPS=()
