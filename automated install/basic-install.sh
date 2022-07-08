@@ -2624,8 +2624,7 @@ main() {
     stop_service pihole-FTL &> /dev/null
 
     if [ ! -d /var/log/pihole/ ]; then
-        mkdir /var/log/pihole/
-        chmod 0775 /var/log/pihole/
+        mkdir -m 0755 /var/log/pihole/
     fi
 
     # Special handling for pihole-FTL.log -> pihole/FTL.log
@@ -2641,7 +2640,6 @@ main() {
 
     # Remaining log files
     if [ -f /var/log/pihole.log ] && [ ! -L /var/log/pihole.log ]; then
-        mkdir -p /var/log/pihole/
         mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
     fi
 
