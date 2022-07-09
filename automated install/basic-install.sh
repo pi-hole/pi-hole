@@ -912,7 +912,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
                 # Ask for the IPv4 address
                 _staticIPv4Temp=$(dialog --no-shadow --keep-tite --output-fd 1 \
-                    --cancer-label "Exit" \
+                    --cancel-label "Exit" \
                     --ok-label "Continue" \
                     --backtitle "Calibrating network interface" \
                     --title "IPv4 Address" \
