@@ -36,19 +36,20 @@ listFunc() {
 }
 
 debugFunc() {
-  local automated
-  local web
+    local automated
+    local web
+    local check_database_integrity
+    # Pull off the `debug` leaving passed call augmentation flags in $1
+    shift
 
-  # Pull off the `debug` leaving passed call augmentation flags in $1
-  shift
-  if [[ "$@" == *"-a"* ]]; then
-    automated="true"
-  fi
-  if [[ "$@" == *"-w"* ]]; then
-    web="true"
-  fi
+    for value in "$@"; do
+        [[ "$value"  == *"-a"* ]] && automated="true"
+        [[ "$value"  == *"-w"* ]] && web="true"
+        [[ "$value"  == *"-c"* ]] && check_database_integrity="true"
+        [[ "$value" == *"--check_database"* ]] && check_database_integrity="true"
+    done
 
-  AUTOMATED=${automated:-} WEBCALL=${web:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
+  AUTOMATED=${automated:-} WEBCALL=${web:-} CHECK_DATABASE=${check_database_integrity:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
 }
 
@@ -455,6 +456,7 @@ Whitelist/Blacklist Options:
 
 Debugging Options:
   -d, debug           Start a debugging session
+                        Add '-c' or '--check-database' to include a Pi-hole database integrity check
                         Add '-a' to automatically upload the log to tricorder.pi-hole.net
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
