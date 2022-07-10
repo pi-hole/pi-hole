@@ -1955,28 +1955,20 @@ installLogrotate() {
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
-        local touched=0
 
-        if grep -q "/var/log/pihole.log" ${target}; then
+        # Account for changed logfile paths from /var/log -> /var/log/pihole/ made in core v5.11.
+        if  grep -q "/var/log/pihole.log" ${target}  ||  grep -q "/var/log/pihole-FTL.log" ${target}; then
             sed -i 's/\/var\/log\/pihole.log/\/var\/log\/pihole\/pihole.log/g' ${target}
-            touched=1
-        fi
-
-        if grep -q "/var/log/pihole-FTL.log" ${target}; then
             sed -i 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
-            touched=1
-        fi
 
-        if [ "${touched}" -eq "0" ]; then
-            printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
-            # Return value isn't that important, using 2 to indicate that it's not a fatal error but
-            # the function did not complete.
-            return 2
-        else
             printf "\\n\\t%b Old log file paths updated in existing logrotate file. \\n" "${INFO}"
             return 3
         fi
 
+        printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
+        # Return value isn't that important, using 2 to indicate that it's not a fatal error but
+        # the function did not complete.
+        return 2
     fi
     # Copy the file over from the local repo
     install -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
