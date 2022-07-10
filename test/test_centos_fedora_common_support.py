@@ -30,7 +30,7 @@ def test_selinux_enforcing_exit(host):
     source /opt/pihole/basic-install.sh
     checkSelinux
     ''')
-    expected_stdout = cross_box + ' Current SELinux: Enforcing'
+    expected_stdout = cross_box + ' Current SELinux: enforcing'
     assert expected_stdout in check_selinux.stdout
     expected_stdout = 'SELinux Enforcing detected, exiting installer'
     assert expected_stdout in check_selinux.stdout
@@ -46,7 +46,7 @@ def test_selinux_permissive(host):
     source /opt/pihole/basic-install.sh
     checkSelinux
     ''')
-    expected_stdout = tick_box + ' Current SELinux: Permissive'
+    expected_stdout = tick_box + ' Current SELinux: permissive'
     assert expected_stdout in check_selinux.stdout
     assert check_selinux.rc == 0
 
@@ -60,6 +60,6 @@ def test_selinux_disabled(host):
     source /opt/pihole/basic-install.sh
     checkSelinux
     ''')
-    expected_stdout = tick_box + ' Current SELinux: Disabled'
+    expected_stdout = tick_box + ' Current SELinux: disabled'
     assert expected_stdout in check_selinux.stdout
     assert check_selinux.rc == 0
