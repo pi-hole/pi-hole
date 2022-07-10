@@ -395,7 +395,7 @@ select_rpm_php(){
             exit
         fi
         # php-json is not required on CentOS 7 as it is already compiled into php
-        # verifiy via `php -m | grep json`
+        # verify via `php -m | grep json`
         if [[ $CURRENT_CENTOS_VERSION -eq 7 ]]; then
             # create a temporary array as arrays are not designed for use as mutable data structures
             CENTOS7_PIHOLE_WEB_DEPS=()
@@ -912,7 +912,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
                 # Ask for the IPv4 address
                 _staticIPv4Temp=$(dialog --no-shadow --keep-tite --output-fd 1 \
-                    --cancer-label "Exit" \
+                    --cancel-label "Exit" \
                     --ok-label "Continue" \
                     --backtitle "Calibrating network interface" \
                     --title "IPv4 Address" \
@@ -1955,6 +1955,16 @@ installLogrotate() {
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
+
+        # Account for changed logfile paths from /var/log -> /var/log/pihole/ made in core v5.11.
+        if  grep -q "/var/log/pihole.log" ${target}  ||  grep -q "/var/log/pihole-FTL.log" ${target}; then
+            sed -i 's/\/var\/log\/pihole.log/\/var\/log\/pihole\/pihole.log/g' ${target}
+            sed -i 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
+
+            printf "\\n\\t%b Old log file paths updated in existing logrotate file. \\n" "${INFO}"
+            return 3
+        fi
+
         printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
         # Return value isn't that important, using 2 to indicate that it's not a fatal error but
         # the function did not complete.
@@ -2050,22 +2060,22 @@ checkSelinux() {
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
             enforcing)
-                printf "  %b %bDefault SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${DEFAULT_SELINUX}" "${COL_NC}"
+                printf "  %b %bDefault SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${DEFAULT_SELINUX,,}" "${COL_NC}"
                 SELINUX_ENFORCING=1
                 ;;
             *)  # 'permissive' and 'disabled'
-                printf "  %b %bDefault SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${DEFAULT_SELINUX}" "${COL_NC}"
+                printf "  %b %bDefault SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${DEFAULT_SELINUX,,}" "${COL_NC}"
                 ;;
         esac
         # Check the current state of SELinux
         CURRENT_SELINUX=$(getenforce)
         case "${CURRENT_SELINUX,,}" in
             enforcing)
-                printf "  %b %bCurrent SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${CURRENT_SELINUX}" "${COL_NC}"
+                printf "  %b %bCurrent SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${CURRENT_SELINUX,,}" "${COL_NC}"
                 SELINUX_ENFORCING=1
                 ;;
             *)  # 'permissive' and 'disabled'
-                printf "  %b %bCurrent SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${CURRENT_SELINUX}" "${COL_NC}"
+                printf "  %b %bCurrent SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${CURRENT_SELINUX,,}" "${COL_NC}"
                 ;;
         esac
     else
@@ -2797,8 +2807,7 @@ main() {
     stop_service pihole-FTL &> /dev/null
 
     if [ ! -d /var/log/pihole/ ]; then
-        mkdir /var/log/pihole/
-        chmod 0775 /var/log/pihole/
+        mkdir -m 0755 /var/log/pihole/
     fi
 
     # Special handling for pihole-FTL.log -> pihole/FTL.log
@@ -2814,7 +2823,6 @@ main() {
 
     # Remaining log files
     if [ -f /var/log/pihole.log ] && [ ! -L /var/log/pihole.log ]; then
-        mkdir -p /var/log/pihole/
         mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
     fi
 
@@ -2866,6 +2874,7 @@ main() {
     fi
 }
 
-if [[ "${PH_TEST}" != true ]] ; then
+# allow to source this script without running it
+if [[ "${SKIP_INSTALL}" != true ]] ; then
     main "$@"
 fi
