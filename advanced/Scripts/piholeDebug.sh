@@ -1230,7 +1230,7 @@ check_dhcp_servers() {
     OLD_IFS="$IFS"
     IFS=$'\n'
     local entries=()
-    mapfile -t entries < <(pihole-FTL dhcp-discover)
+    mapfile -t entries < <(pihole-FTL dhcp-discover & spinner)
 
     for line in "${entries[@]}"; do
         log_write "   ${line}"
@@ -1309,14 +1309,14 @@ database_integrity_check(){
     local database="${1}"
 
     log_write "${INFO} Checking integrity of ${database} ... (this can take several minutes)"
-    result="$(pihole-FTL "${database}" "PRAGMA integrity_check" 2>&1)"
+    result="$(pihole-FTL "${database}" "PRAGMA integrity_check" 2>&1 & spinner)"
     if [[ ${result} = "ok" ]]; then
       log_write "${TICK} Integrity of ${database} intact"
 
 
       log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
       unset result
-      result="$(pihole-FTL sqlite3 "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1)"
+      result="$(pihole-FTL sqlite3 "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
       if [[ -z ${result} ]]; then
         log_write "${TICK} No foreign key errors in ${database}"
       else
@@ -1345,6 +1345,34 @@ check_database_integrity() {
     database_integrity_check "${PIHOLE_FTL_DB_FILE}"
 }
 
+# Show a text spinner during a long process run
+#
+spinner(){
+    local PID=$!  # PID of the most recent background process
+    local spin="/-\|"
+    local start=0
+    local elapsed=0
+    local i=1
+
+    start=$(date +%s) # Start the counter
+
+    tput civis > /dev/tty # Hide the cursor
+    trap 'tput cnorm > /dev/tty' EXIT # ensures cursor is visible again, in case of premature exit
+
+    while [ -d /proc/$PID ]; do
+        elapsed=$(( $(date +%s) - start ))
+        # print the spinner only on screen (tty) - use hours only if needed
+        if [ "$elapsed" -lt 3600 ]; then
+            printf "\r${spin:i++%${#spin}:1} %02d:%02d" $((elapsed/60)) $((elapsed%60)) >"$(tty)"
+        else
+            printf "\r${spin:i++%${#spin}:1} %02d:%02d:%02d" $((elapsed/3600)) $(((elapsed/60)%60)) $((elapsed%60)) >"$(tty)"
+        fi
+        sleep 0.25
+    done
+
+    printf "\r" >"$(tty)" # Return to the begin of the line after completion (the spinner will be overwritten)
+    tput cnorm > /dev/tty # Restore cursor visibility
+}
 
 obfuscated_pihole_log() {
   local pihole_log=("$@")
