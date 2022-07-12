@@ -859,6 +859,7 @@ main() {
         "addcustomcname"      ) AddCustomCNAMERecord;;
         "removecustomcname"   ) RemoveCustomCNAMERecord;;
         "ratelimit"           ) SetRateLimit;;
+        "processdnssettings"  ) ProcessDNSSettings;;
         *                     ) helpFunc;;
     esac
 
