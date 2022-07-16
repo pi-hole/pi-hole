@@ -381,7 +381,7 @@ select_rpm_php(){
         # all required packages should be available by default with the latest fedora release
         : # continue
     # or if host OS is CentOS,
-    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
+    elif grep -qiE 'centos|scientific|alma|rocky' /etc/redhat-release; then
         # Pi-Hole currently supports CentOS 7+ with PHP7+
         SUPPORTED_CENTOS_VERSION=7
         SUPPORTED_CENTOS_PHP_VERSION=7
@@ -413,11 +413,7 @@ select_rpm_php(){
             printf "  %b EPEL repository already installed\\n" "${TICK}"
         else
             # CentOS requires the EPEL repository to gain access to Fedora packages
-            if [[ CURRENT_CENTOS_VERSION -eq 7 ]]; then
-                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-            elif [[ CURRENT_CENTOS_VERSION -eq 8 ]]; then
-                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
-            fi
+            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${CURRENT_CENTOS_VERSION}.noarch.rpm"
             printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
             "${PKG_INSTALL[@]}" ${EPEL_PKG}
             printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
