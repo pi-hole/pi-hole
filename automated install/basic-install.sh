@@ -805,7 +805,7 @@ testIPv6() {
 
 find_IPv6_information() {
     # Detects IPv6 address used for communication to WAN addresses.
-    IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
+    mapfile -t IPV6_ADDRESSES <<<"$(ip -6 address | grep 'scope global' | awk '{print $2}')"
 
     # For each address in the array above, determine the type of IPv6 address it is
     for i in "${IPV6_ADDRESSES[@]}"; do
@@ -820,13 +820,13 @@ find_IPv6_information() {
 
     # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
     # If the ULA_ADDRESS contains a value,
-    if [[ ! -z "${ULA_ADDRESS}" ]]; then
+    if [[ -n "${ULA_ADDRESS}" ]]; then
         # set the IPv6 address to the ULA address
         IPV6_ADDRESS="${ULA_ADDRESS}"
         # Show this info to the user
         printf "  %b Found IPv6 ULA address\\n" "${INFO}"
     # Otherwise, if the GUA_ADDRESS has a value,
-    elif [[ ! -z "${GUA_ADDRESS}" ]]; then
+    elif [[ -n "${GUA_ADDRESS}" ]]; then
         # Let the user know
         printf "  %b Found IPv6 GUA address\\n" "${INFO}"
         # And assign it to the global variable
@@ -1751,9 +1751,9 @@ install_dependent_packages() {
             # Running apt-get install with minimal output can cause some issues with
             # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-            printf '%*s\n' "$columns" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
-            printf '%*s\n' "$columns" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -;
             return
         fi
         printf "\\n"
@@ -1774,9 +1774,9 @@ install_dependent_packages() {
     # If there's anything to install, install everything in the list.
     if [[ "${#installArray[@]}" -gt 0 ]]; then
         printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-        printf '%*s\n' "$columns" '' | tr " " -;
+        printf '%*s\n' "${c}" '' | tr " " -;
         "${PKG_INSTALL[@]}" "${installArray[@]}"
-        printf '%*s\n' "$columns" '' | tr " " -;
+        printf '%*s\n' "${c}" '' | tr " " -;
         return
     fi
     printf "\\n"
@@ -1939,6 +1939,7 @@ finalExports() {
 
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
+    # shellcheck source=advanced/Scripts/webpage.sh
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
     # Look for DNS server settings which would have to be reapplied
