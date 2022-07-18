@@ -428,7 +428,7 @@ select_rpm_php(){
         # all required packages should be available by default with the latest fedora release
         : # continue
     # or if host OS is CentOS,
-    elif grep -qiE 'centos|scientific' /etc/redhat-release; then
+    elif grep -qiE 'centos|scientific|alma|rocky' /etc/redhat-release; then
         # Pi-Hole currently supports CentOS 7+ with PHP7+
         SUPPORTED_CENTOS_VERSION=7
         SUPPORTED_CENTOS_PHP_VERSION=7
@@ -460,11 +460,7 @@ select_rpm_php(){
             printf "  %b EPEL repository already installed\\n" "${TICK}"
         else
             # CentOS requires the EPEL repository to gain access to Fedora packages
-            if [[ CURRENT_CENTOS_VERSION -eq 7 ]]; then
-                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-            elif [[ CURRENT_CENTOS_VERSION -eq 8 ]]; then
-                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
-            fi
+            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${CURRENT_CENTOS_VERSION}.noarch.rpm"
             printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
             "${PKG_INSTALL[@]}" ${EPEL_PKG}
             printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
@@ -852,7 +848,7 @@ testIPv6() {
 
 find_IPv6_information() {
     # Detects IPv6 address used for communication to WAN addresses.
-    IPV6_ADDRESSES=("$(ip -6 address | grep 'scope global' | awk '{print $2}')")
+    mapfile -t IPV6_ADDRESSES <<<"$(ip -6 address | grep 'scope global' | awk '{print $2}')"
 
     # For each address in the array above, determine the type of IPv6 address it is
     for i in "${IPV6_ADDRESSES[@]}"; do
@@ -1854,9 +1850,9 @@ install_dependent_packages() {
             # Running apt-get install with minimal output can cause some issues with
             # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-            printf '%*s\n' "$columns" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
-            printf '%*s\n' "$columns" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -;
             return
         fi
         printf "\\n"
@@ -1875,9 +1871,9 @@ install_dependent_packages() {
         # If there's anything to install, install everything in the list.
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[@]}"
-            printf '%*s\n' "$columns" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
-            printf '%*s\n' "$columns" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -;
             return
         fi
         printf "\\n"
@@ -1898,9 +1894,9 @@ install_dependent_packages() {
     # If there's anything to install, install everything in the list.
     if [[ "${#installArray[@]}" -gt 0 ]]; then
         printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-        printf '%*s\n' "$columns" '' | tr " " -;
+        printf '%*s\n' "${c}" '' | tr " " -;
         "${PKG_INSTALL[@]}" "${installArray[@]}"
-        printf '%*s\n' "$columns" '' | tr " " -;
+        printf '%*s\n' "${c}" '' | tr " " -;
         return
     fi
     printf "\\n"
@@ -2077,6 +2073,7 @@ finalExports() {
 
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
+    # shellcheck source=advanced/Scripts/webpage.sh
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
     # Look for DNS server settings which would have to be reapplied
