@@ -19,6 +19,8 @@ getInitSys() {
         SYSTEMD=1
     elif [ -f /etc/init.d/cron ] && [ ! -h /etc/init.d/cron ]; then
         SYSTEMD=0
+    elif [ -f /etc/init.d/crond ] && [ ! -h /etc/init.d/crond ]; then
+        SYSTEMD=2
     else
         echo "Unrecognized init system"
         return 1
@@ -32,6 +34,9 @@ autoLoginPiToConsole() {
         if [ ${SYSTEMD} -eq 1 ]; then
             systemctl set-default multi-user.target
             ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+        elif [ ${SYSTEMD} -eq 2 ]; then
+            rc-update -a del lightdm
+            sed /etc/inittab -i -e "s/1:2345:respawn:\/sbin\/getty --noclear 38400 tty1/1:2345:respawn:\/bin\/login -f pi tty1 <\/dev\/tty1 >\/dev\/tty1 2>&1/"
         else
             update-rc.d lightdm disable 2
             sed /etc/inittab -i -e "s/1:2345:respawn:\/sbin\/getty --noclear 38400 tty1/1:2345:respawn:\/bin\/login -f pi tty1 <\/dev\/tty1 >\/dev\/tty1 2>&1/"

@@ -64,6 +64,12 @@ elif [ -x "$(command -v rpm)" ]; then
     package_check() {
         rpm -qa | grep "^$1-" > /dev/null
     }
+elif [ -x "$(command -v apk)" ]; then
+    # Alpine Family
+    PKG_REMOVE=("${PKG_MANAGER}" --no-cache --purge del -r)
+    package_check() {
+        apk --no-cache info -e "$1" > /dev/null
+    }
 else
     echo -e "  ${CROSS} OS distribution not supported"
     exit 1
@@ -120,7 +126,15 @@ removeNoPurge() {
     if [[ -f /etc/crontab.orig ]]; then
         ${SUDO} mv /etc/crontab /etc/crontab.pihole
         ${SUDO} mv /etc/crontab.orig /etc/crontab
-        ${SUDO} service cron restart
+
+        # Alpine Family
+        if [ "${PKG_MANAGER}" == 'apk' ]; then
+            "${SUDO}" rc-service -s cron restart
+            "${SUDO}" rc-service -N cron start
+        else
+            ${SUDO} service cron restart
+        fi
+
         echo -e "  ${TICK} Restored the default system cron"
     fi
 
@@ -166,6 +180,8 @@ removeNoPurge() {
         echo -ne "  ${INFO} Removing pihole-FTL..."
         if [[ -x "$(command -v systemctl)" ]]; then
             systemctl stop pihole-FTL
+        elif [[ -x "$(command -v rc-service)" ]]; then
+            rc-service pihole-FTL stop
         else
             service pihole-FTL stop
         fi
@@ -179,11 +195,17 @@ removeNoPurge() {
         ${SUDO} rm -f /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8 /usr/local/share/man/man5/pihole-FTL.conf.5
         ${SUDO} mandb -q &>/dev/null
         echo -e "  ${TICK} Removed pihole man page"
+    elif [[ -f /usr/share/man/man8/pihole.8 ]]; then
+        ${SUDO} rm -f /usr/share/man/man8/pihole.8 /usr/share/man/man8/pihole-FTL.8 /usr/share/man/man5/pihole-FTL.conf.5
+        ${SUDO} makewhatis -a /usr/share/man &>/dev/null
+        echo -e "  ${TICK} Removed pihole man page"
     fi
 
     # If the pihole user exists, then remove
     if id "pihole" &> /dev/null; then
-        if ${SUDO} userdel -r pihole 2> /dev/null; then
+        if [ "${PKG_MANAGER}" != 'apk' ] && "${SUDO}" userdel -r pihole 2> /dev/null; then
+            echo -e "  ${TICK} Removed 'pihole' user"
+        elif [ "${PKG_MANAGER}" == 'apk' ] && "${SUDO}" deluser --remove-home pihole 2> /dev/null; then
             echo -e "  ${TICK} Removed 'pihole' user"
         else
             echo -e "  ${CROSS} Unable to remove 'pihole' user"
@@ -191,7 +213,9 @@ removeNoPurge() {
     fi
     # If the pihole group exists, then remove
     if getent group "pihole" &> /dev/null; then
-        if ${SUDO} groupdel pihole 2> /dev/null; then
+        if [ "${PKG_MANAGER}" != 'apk' ] && "${SUDO}" groupdel pihole 2> /dev/null; then
+            echo -e "  ${TICK} Removed 'pihole' group"
+        elif [ "${PKG_MANAGER}" == 'apk' ] && "${SUDO}" delgroup pihole 2> /dev/null; then
             echo -e "  ${TICK} Removed 'pihole' group"
         else
             echo -e "  ${CROSS} Unable to remove 'pihole' group"

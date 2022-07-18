@@ -942,6 +942,10 @@ process_status(){
             # get its status via systemctl
             local status_of_process
             status_of_process=$(systemctl is-active "${i}")
+        elif command -v rc-update &> /dev/null; then
+            # get its status via OpenRC
+            local status_of_process
+            status_of_process=$(rc-update -a show | grep -sEe "\s*${i} .*")
         else
             # Otherwise, use the service command and mock the output of `systemctl is-active`
             local status_of_process
@@ -971,6 +975,13 @@ ftl_full_status(){
       log_write "   ${FTL_status}"
     else
       log_write "${INFO} systemctl:  command not found"
+    fi
+
+    if command -v rc-service &> /dev/null; then
+      FTL_status=$(rc-service pihole-FTL status)
+      log_write "   ${FTL_status}"
+    else
+      log_write "${INFO} rc-service:  command not found"
     fi
 }
 

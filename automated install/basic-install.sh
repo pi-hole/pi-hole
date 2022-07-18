@@ -89,7 +89,9 @@ fi
 
 adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
+# shellcheck disable=SC2269
 IPV4_ADDRESS=${IPV4_ADDRESS}
+# shellcheck disable=SC2269
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=true
@@ -365,6 +367,51 @@ package_manager_detect() {
         LIGHTTPD_USER="lighttpd"
         LIGHTTPD_GROUP="lighttpd"
         LIGHTTPD_CFG="lighttpd.conf.fedora"
+
+    # If neither apt-get or yum/dnf package managers were found
+    elif is_command apk ; then
+        PKG_MANAGER="apk"
+        # These variable names match the ones for apt-get. See above for an explanation of what they are for.
+        PKG_INSTALL=("${PKG_MANAGER}" --no-cache add)
+        PKG_COUNT="${PKG_MANAGER} --no-cache upgrade -s | grep -sEe ' [0-9]+ packages' | sed -E -e 's/.* ([0-9]+) packages/\1/' || true"
+
+        local phpVer="php"
+
+        if is_command php ; then
+            phpVer="$(php <<< "<?php echo PHP_VERSION ?>")"
+            # Check if the first character of the string is numeric
+            if [[ ${phpVer:0:1} =~ [1-9] ]]; then
+                printf "  %b Existing PHP installation detected : PHP version %s\\n" "${INFO}" "${phpVer}"
+                printf -v phpInsMajor "%d" "$(php <<< "<?php echo PHP_MAJOR_VERSION ?>")"
+                printf -v phpInsMinor "%d" "$(php <<< "<?php echo PHP_MINOR_VERSION ?>")"
+                phpVer="php$phpInsMajor.$phpInsMinor"
+            else
+                printf "  %b No valid PHP installation detected!\\n" "${CROSS}"
+                printf "  %b PHP version : %s\\n" "${INFO}" "${phpVer}"
+                printf "  %b Aborting installation.\\n" "${CROSS}"
+                exit 1
+            fi
+        fi
+
+        # These repositories are added to the default ones so we can install the dependencies musl-locales and libcap2
+        ## musl-locales is required to use the locale command
+        {
+            echo 'https://dl-cdn.alpinelinux.org/alpine/edge/main/'
+            echo 'https://dl-cdn.alpinelinux.org/alpine/edge/community/'
+        } >> /etc/apk/repositories && apk -q update
+
+        OS_CHECK_DEPS=(grep bind-tools)
+        INSTALLER_DEPS=(git iproute2 dialog ca-certificates musl-locales ncurses libcap)
+        PIHOLE_DEPS=(cronie curl iputils psmisc sudo unzip libidn2 netcat-openbsd procps dnssec-root libcap2)
+        PIHOLE_WEB_DEPS=(lighttpd php "${phpVer%.*}-common" "${phpVer%.*}-cgi" "${phpVer%.*}-sqlite3" "${phpVer%.*}-xml" "${phpVer%.*}-intl")
+
+        if [[ -z "${phpInsMajor}" || "${phpInsMajor}" -lt 8 ]]; then
+            PIHOLE_WEB_DEPS+=("${phpVer%.*}-json")
+        fi
+
+        LIGHTTPD_USER="www-data"
+        LIGHTTPD_GROUP="www-data"
+        LIGHTTPD_CFG="lighttpd.conf.alpine"
 
     # If neither apt-get or yum/dnf package managers were found
     else
@@ -805,7 +852,7 @@ testIPv6() {
 
 find_IPv6_information() {
     # Detects IPv6 address used for communication to WAN addresses.
-    IPV6_ADDRESSES=($(ip -6 address | grep 'scope global' | awk '{print $2}'))
+    IPV6_ADDRESSES=("$(ip -6 address | grep 'scope global' | awk '{print $2}')")
 
     # For each address in the array above, determine the type of IPv6 address it is
     for i in "${IPV6_ADDRESSES[@]}"; do
@@ -820,13 +867,13 @@ find_IPv6_information() {
 
     # Determine which address to be used: Prefer ULA over GUA or don't use any if none found
     # If the ULA_ADDRESS contains a value,
-    if [[ ! -z "${ULA_ADDRESS}" ]]; then
+    if [[ -n "${ULA_ADDRESS}" ]]; then
         # set the IPv6 address to the ULA address
         IPV6_ADDRESS="${ULA_ADDRESS}"
         # Show this info to the user
         printf "  %b Found IPv6 ULA address\\n" "${INFO}"
     # Otherwise, if the GUA_ADDRESS has a value,
-    elif [[ ! -z "${GUA_ADDRESS}" ]]; then
+    elif [[ -n "${GUA_ADDRESS}" ]]; then
         # Let the user know
         printf "  %b Found IPv6 GUA address\\n" "${INFO}"
         # And assign it to the global variable
@@ -1088,6 +1135,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             esac
 
             # Clean user input and replace whitespace with comma.
+            # shellcheck disable=SC2001
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
 
             # Separate the user input into the two DNS values (separated by a comma)
@@ -1543,6 +1591,51 @@ install_manpage() {
     # Default location for man files for /usr/local/bin is /usr/local/share/man
     # on lightweight systems may not be present, so check before copying.
     printf "  %b Testing man page installation" "${INFO}"
+
+    if [ "${PKG_MANAGER}" == 'apk' ]; then
+      if ! is_command mandoc ; then
+          # if mandb is not present, no manpage support
+          printf "%b  %b man not installed\\n" "${OVER}" "${INFO}"
+          return
+      elif [[ ! -d "/usr/share/man" ]]; then
+          # appropriate directory for Pi-hole's man page is not present
+          printf "%b  %b man pages not installed\\n" "${OVER}" "${INFO}"
+          return
+      fi
+
+      if [[ ! -d "/usr/share/man/man8" ]]; then
+          # if not present, create man8 directory
+          install -d -m 755 /usr/share/man/man8
+      fi
+
+      if [[ ! -d "/usr/share/man/man5" ]]; then
+          # if not present, create man5 directory
+          install -d -m 755 /usr/share/man/man5
+      fi
+
+      # Testing complete, copy the files & update the man db
+      install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/share/man/man8/pihole.8
+      install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/share/man/man8/pihole-FTL.8
+
+      # remove previously installed "pihole-FTL.conf.5" man page
+      if [[ -f "/usr/share/man/man5/pihole-FTL.conf.5" ]]; then
+          rm /usr/share/man/man5/pihole-FTL.conf.5
+      fi
+
+      if makewhatis -a /usr/share/man &>/dev/null; then
+          # Updated successfully
+          printf "%b  %b man pages installed and database updated\\n" "${OVER}" "${TICK}"
+          return
+      else
+          # Something is wrong with the system's man installation, clean up
+          # our files, (leave everything how we found it).
+          rm /usr/share/man/man8/pihole.8 /usr/share/man/man8/pihole-FTL.8
+          printf "%b  %b man page db not updated, man pages not installed\\n" "${OVER}" "${CROSS}"
+      fi
+
+      return
+    fi
+
     if ! is_command mandb ; then
         # if mandb is not present, no manpage support
         printf "%b  %b man not installed\\n" "${OVER}" "${INFO}"
@@ -1588,6 +1681,8 @@ stop_service() {
     printf "  %b %s..." "${INFO}" "${str}"
     if is_command systemctl ; then
         systemctl stop "${1}" &> /dev/null || true
+    elif is_command rc-service ; then
+        rc-service "${1}" stop &> /dev/null || true
     else
         service "${1}" stop &> /dev/null || true
     fi
@@ -1603,6 +1698,8 @@ restart_service() {
     if is_command systemctl ; then
         # use that to restart the service
         systemctl restart "${1}" &> /dev/null
+    elif is_command rc-service ; then
+        rc-service "${1}" restart &> /dev/null || true
     else
         # Otherwise, fall back to the service command
         service "${1}" restart &> /dev/null
@@ -1619,6 +1716,8 @@ enable_service() {
     if is_command systemctl ; then
         # use that to enable the service
         systemctl enable "${1}" &> /dev/null
+    elif is_command rc-update ; then
+        rc-update add "${1}" default &> /dev/null || true
     else
         #  Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" defaults &> /dev/null
@@ -1635,6 +1734,8 @@ disable_service() {
     if is_command systemctl ; then
         # use that to disable the service
         systemctl disable "${1}" &> /dev/null
+    elif is_command rc-update ; then
+        rc-update del "${1}" default &> /dev/null || true
     else
         # Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" disable &> /dev/null
@@ -1647,6 +1748,8 @@ check_service_active() {
     if is_command systemctl ; then
         # use that to check the status of the service
         systemctl is-enabled "${1}" &> /dev/null
+    elif is_command rc-update ; then
+        rc-update -a show | grep -sEe "\s*${1} .*" &> /dev/null
     else
         # Otherwise, fall back to service command
         service "${1}" status &> /dev/null
@@ -1751,6 +1854,27 @@ install_dependent_packages() {
             # Running apt-get install with minimal output can cause some issues with
             # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
+            printf '%*s\n' "$columns" '' | tr " " -;
+            "${PKG_INSTALL[@]}" "${installArray[@]}"
+            printf '%*s\n' "$columns" '' | tr " " -;
+            return
+        fi
+        printf "\\n"
+        return 0
+    elif is_command apk ; then
+        # For each package, check if it's already installed (and if so, don't add it to the installArray)
+        for i in "$@"; do
+            printf "  %b Checking for %s..." "${INFO}" "${i}"
+            if apk --no-cache info -e "${i}" &> /dev/null; then
+                printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
+            else
+                printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
+                installArray+=("${i}")
+            fi
+        done
+        # If there's anything to install, install everything in the list.
+        if [[ "${#installArray[@]}" -gt 0 ]]; then
+            printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[@]}"
             printf '%*s\n' "$columns" '' | tr " " -;
             "${PKG_INSTALL[@]}" "${installArray[@]}"
             printf '%*s\n' "$columns" '' | tr " " -;
@@ -1882,6 +2006,16 @@ create_pihole_user() {
                 else
                     printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
                 fi
+            elif addgroup pihole; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                local str="Adding user 'pihole' to group 'pihole'"
+                printf "  %b %s..." "${INFO}" "${str}"
+                # if pihole user can be added to group pihole
+                if addgroup pihole pihole; then
+                    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                else
+                    printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                fi
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             fi
@@ -1896,12 +2030,16 @@ create_pihole_user() {
             # then add her to the pihole group (as it already exists)
             if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+            elif adduser -S -G pihole -s /usr/sbin/nologin pihole; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             fi
         else
             # add user pihole with default group settings
             if useradd -r -s /usr/sbin/nologin pihole; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+            elif adduser -S -s /usr/sbin/nologin pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -2005,11 +2143,18 @@ installPihole() {
             chmod a+rx ${webroot}
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
-            usermod -a -G pihole ${LIGHTTPD_USER}
+            if is_command usermod; then
+                usermod -a -G pihole ${LIGHTTPD_USER}
+            elif is_command addgroup; then
+                addgroup ${LIGHTTPD_USER} pihole
+            fi
             # If the lighttpd command is executable,
             if is_command lighty-enable-mod ; then
                 # enable fastcgi and fastcgi-php
                 lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
+            elif is_command apk ; then
+                # enable fastcgi and fastcgi-php on Alpine
+                sed -i -E -e 's/^\#\s*(include \"mod_(fast)?cgi\.conf\")/\1/g' /etc/lighttpd/lighttpd.conf
             else
                 # Otherwise, show info about installing them
                 printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
@@ -2440,7 +2585,11 @@ get_binary_name() {
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the processor of packages dpkg installs (for example, "i386")
         local dpkgarch
-        dpkgarch=$(dpkg --print-processor 2> /dev/null || dpkg --print-architecture 2> /dev/null)
+        if is_command apk ; then
+            dpkgarch=$(apk --print-arch 2> /dev/null)
+        else
+            dpkgarch=$(dpkg --print-processor 2> /dev/null || dpkg --print-architecture 2> /dev/null)
+        fi
 
         # Special case: This is a 32 bit OS, installed on a 64 bit machine
         # -> change machine processor to download the 32 bit executable
@@ -2707,7 +2856,7 @@ main() {
 
         # Get the privacy level if it exists (default is 0)
         if [[ -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
-            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf")
+            PRIVACY_LEVEL=$(sed -n -e 's/PRIVACYLEVEL=\(.*\)/\1/p' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf")
 
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
