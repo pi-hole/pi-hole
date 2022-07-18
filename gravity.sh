@@ -455,7 +455,7 @@ gravity_DownloadBlocklists() {
 
     # this will remove first @ that is after schema and before domain
     # \1 is optional schema, \2 is userinfo
-    check_url="$( sed -re 's#([^:/]*://)?([^/]+)@#\1\2#' <<< "$url" )"
+    check_url="$( sed -E -e 's#([^:/]*://)?([^/]+)@#\1\2#' <<< "$url" )"
 
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
