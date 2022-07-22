@@ -42,7 +42,7 @@ jobs:
     needs: smoke-tests
     strategy:
       matrix:
-        distro: [debian_10, debian_11, ubuntu_18, ubuntu_20, ubuntu_21, ubuntu_22, centos_7, centos_8, fedora_34]
+        distro: [alpine, debian_10, debian_11, ubuntu_18, ubuntu_20, ubuntu_21, ubuntu_22, centos_7, centos_8, fedora_34]
     env:
       DISTRO: ${{matrix.distro}}
     steps:

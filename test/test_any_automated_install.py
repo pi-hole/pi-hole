@@ -20,6 +20,7 @@ def test_supported_package_manager(host):
     '''
     # break supported package managers
     host.run('rm -rf /usr/bin/apt-get')
+    host.run('rm -rf /sbin/apk')
     host.run('rm -rf /usr/bin/rpm')
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
@@ -195,6 +196,10 @@ def test_installPihole_fresh_install_readableFiles(host):
     host.run('command -v apt-get > /dev/null && apt-get install -qq man')
     host.run('command -v dnf > /dev/null && dnf install -y man')
     host.run('command -v yum > /dev/null && yum install -y man')
+    actual_rc = host.run('command -v apk > /dev/null && apk --no-cache add mandoc man-pages')
+    man_path = "/usr/local/share/man"
+    if actual_rc == 0:
+        man_path = "/usr/share/man"
     # create configuration file
     setup_var_file = 'cat <<EOF> /etc/pihole/setupVars.conf\n'
     for k, v in SETUPVARS.items():
@@ -320,35 +325,35 @@ def test_installPihole_fresh_install_readableFiles(host):
     # check readable and executable manpages
     if maninstalled is True:
         check_man = test_cmd.format(
-            'x', '/usr/local/share/man', piholeuser)
+            'x', man_path, piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
         check_man = test_cmd.format(
-            'r', '/usr/local/share/man', piholeuser)
+            'r', man_path, piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
         check_man = test_cmd.format(
-            'x', '/usr/local/share/man/man8', piholeuser)
+            'x', man_path + '/man8', piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
         check_man = test_cmd.format(
-            'r', '/usr/local/share/man/man8', piholeuser)
+            'r', man_path + '/man8', piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
         check_man = test_cmd.format(
-            'x', '/usr/local/share/man/man5', piholeuser)
+            'x', man_path + '/man5', piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
         check_man = test_cmd.format(
-            'r', '/usr/local/share/man/man5', piholeuser)
+            'r', man_path + '/man5', piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
         check_man = test_cmd.format(
-            'r', '/usr/local/share/man/man8/pihole.8', piholeuser)
+            'r', man_path + '/man8/pihole.8', piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
         check_man = test_cmd.format(
-            'r', '/usr/local/share/man/man8/pihole-FTL.8', piholeuser)
+            'r', man_path + '/man8/pihole-FTL.8', piholeuser)
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
     # check not readable sudoers file
@@ -404,6 +409,19 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
         if [ command -v "apt-get" >/dev/null 2>&1 ]; then
             LIGHTTPD_USER="www-data"
             LIGHTTPD_GROUP="www-data"
+        elif [ command -v "apk" >/dev/null 2>&1 ]; then
+            LIGHTTPD_USER="www-data"
+            LIGHTTPD_GROUP="www-data"
+
+            if ! getent group "$LIGHTTPD_GROUP" &> /dev/null; then
+                addgroup "$LIGHTTPD_GROUP"
+            fi
+
+            if ! id -u "$LIGHTTPD_USER" &> /dev/null; then
+                adduser -DHG "$LIGHTTPD_GROUP" "$LIGHTTPD_USER"
+            else
+                addgroup "$LIGHTTPD_USER" "$LIGHTTPD_GROUP"
+            fi
         else
             LIGHTTPD_USER="lighttpd"
             LIGHTTPD_GROUP="lighttpd"
