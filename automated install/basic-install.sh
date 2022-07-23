@@ -139,9 +139,9 @@ else
 fi
 
 # Check the init system
-if is_command systemctl; then
+if command -v systemctl >/dev/null 2>&1; then
   INIT_SYSTEM='systemd'
-elif is_command rc-service; then
+elif command -v rc-service >/dev/null 2>&1; then
   INIT_SYSTEM='openrc'
 fi
 
@@ -378,7 +378,7 @@ package_manager_detect() {
     PKG_MANAGER="apk"
     # These variable names match the ones for apt-get. See above for an explanation of what they are for.
     PKG_INSTALL=("${PKG_MANAGER}" --no-cache add)
-    PKG_COUNT="${PKG_MANAGER} --no-cache upgrade -s | grep -sEe ' [0-9]+ packages' | sed -E -e 's/.* ([0-9]+) packages/\1/' || true"
+    PKG_COUNT="${PKG_MANAGER} list -u | wc -l || true"
 
     local phpVer="php"
 
@@ -2619,12 +2619,21 @@ get_binary_name() {
     # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
     if [[ "${dpkgarch}" == "i386" ]]; then
       printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
-      l_binary="pihole-FTL-linux-x86_32"
+      # set the binary to be used
+      if [[ "${PLAT}" == 'Alpine' ]]; then
+        l_binary='pihole-FTL-musl-linux-x86_32'
+      else
+        l_binary='pihole-FTL-linux-x86_32'
+      fi
     else
       # 64bit
       printf "%b  %b Detected x86_64 processor\\n" "${OVER}" "${TICK}"
       # set the binary to be used
-      l_binary="pihole-FTL-linux-x86_64"
+      if [[ "${PLAT}" == 'Alpine' ]]; then
+        l_binary='pihole-FTL-musl-linux-x86_64'
+      else
+        l_binary='pihole-FTL-linux-x86_64'
+      fi
     fi
   else
     # Something else - we try to use 32bit executable and warn the user
@@ -2635,7 +2644,12 @@ get_binary_name() {
     else
       printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
     fi
-    l_binary="pihole-FTL-linux-x86_32"
+
+    if [[ "${PLAT}" == 'Alpine' ]]; then
+      l_binary='pihole-FTL-musl-linux-x86_32'
+    else
+      l_binary='pihole-FTL-linux-x86_32'
+    fi
   fi
 
   # Returning a string value via echo
