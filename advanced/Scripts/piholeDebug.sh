@@ -1348,30 +1348,33 @@ check_database_integrity() {
 # Show a text spinner during a long process run
 #
 spinner(){
-    local PID=$!  # PID of the most recent background process
-    local spin="/-\|"
-    local start=0
-    local elapsed=0
-    local i=1
+    # Show the spinner only if there is a tty
+    if tty -s; then
+        local PID=$!  # PID of the most recent background process
+        local spin="/-\|"
+        local start=0
+        local elapsed=0
+        local i=1
 
-    start=$(date +%s) # Start the counter
+        start=$(date +%s) # Start the counter
 
-    tput civis > /dev/tty # Hide the cursor
-    trap 'tput cnorm > /dev/tty' EXIT # ensures cursor is visible again, in case of premature exit
+        tput civis > /dev/tty # Hide the cursor
+        trap 'tput cnorm > /dev/tty' EXIT # ensures cursor is visible again, in case of premature exit
 
-    while [ -d /proc/$PID ]; do
-        elapsed=$(( $(date +%s) - start ))
-        # print the spinner only on screen (tty) - use hours only if needed
-        if [ "$elapsed" -lt 3600 ]; then
-            printf "\r${spin:i++%${#spin}:1} %02d:%02d" $((elapsed/60)) $((elapsed%60)) >"$(tty)"
-        else
-            printf "\r${spin:i++%${#spin}:1} %02d:%02d:%02d" $((elapsed/3600)) $(((elapsed/60)%60)) $((elapsed%60)) >"$(tty)"
-        fi
-        sleep 0.25
-    done
+        while [ -d /proc/$PID ]; do
+            elapsed=$(( $(date +%s) - start ))
+            # use hours only if needed
+            if [ "$elapsed" -lt 3600 ]; then
+                printf "\r${spin:i++%${#spin}:1} %02d:%02d" $((elapsed/60)) $((elapsed%60)) >"$(tty)"
+            else
+                printf "\r${spin:i++%${#spin}:1} %02d:%02d:%02d" $((elapsed/3600)) $(((elapsed/60)%60)) $((elapsed%60)) >"$(tty)"
+            fi
+            sleep 0.25
+        done
 
-    printf "\r" >"$(tty)" # Return to the begin of the line after completion (the spinner will be overwritten)
-    tput cnorm > /dev/tty # Restore cursor visibility
+        printf "\r" >"$(tty)" # Return to the begin of the line after completion (the spinner will be overwritten)
+        tput cnorm > /dev/tty # Restore cursor visibility
+    fi
 }
 
 obfuscated_pihole_log() {
