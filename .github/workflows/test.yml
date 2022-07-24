@@ -14,7 +14,7 @@ jobs:
     steps:
     -
       name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.0.0
     -
       name: Check scripts in repository are executable
       run: |
@@ -30,7 +30,7 @@ jobs:
         ignore_words_file: .codespellignore
     -
       name: Get editorconfig-checker
-      uses: editorconfig-checker/action-editorconfig-checker@main
+      uses: editorconfig-checker/action-editorconfig-checker@v1.0.0
     -
       name: Run editorconfig-checker
       run: editorconfig-checker
@@ -49,10 +49,10 @@ jobs:
     steps:
     -
       name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.0.0
     -
       name: Set up Python 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v4.0.0
       with:
         python-version: 3.8
     -
