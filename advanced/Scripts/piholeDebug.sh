@@ -1346,34 +1346,41 @@ check_database_integrity() {
 }
 
 # Show a text spinner during a long process run
-#
 spinner(){
     # Show the spinner only if there is a tty
     if tty -s; then
-        local PID=$!  # PID of the most recent background process
-        local spin="/-\|"
-        local start=0
-        local elapsed=0
-        local i=1
+        # PID of the most recent background process
+        _PID=$!
+        _spin="/-\|"
+        _start=0
+        _elapsed=0
+        _i=1
 
-        start=$(date +%s) # Start the counter
+        # Start the counter
+        _start=$(date +%s)
 
-        tput civis > /dev/tty # Hide the cursor
-        trap 'tput cnorm > /dev/tty' EXIT # ensures cursor is visible again, in case of premature exit
+        # Hide the cursor
+        tput civis > /dev/tty
 
-        while [ -d /proc/$PID ]; do
-            elapsed=$(( $(date +%s) - start ))
+        # ensures cursor is visible again, in case of premature exit
+        trap 'tput cnorm > /dev/tty' EXIT
+
+        while [ -d /proc/$_PID ]; do
+            _elapsed=$(( $(date +%s) - _start ))
             # use hours only if needed
-            if [ "$elapsed" -lt 3600 ]; then
-                printf "\r${spin:i++%${#spin}:1} %02d:%02d" $((elapsed/60)) $((elapsed%60)) >"$(tty)"
+            if [ "$_elapsed" -lt 3600 ]; then
+                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d" $((_elapsed/60)) $((_elapsed%60)) >"$(tty)"
             else
-                printf "\r${spin:i++%${#spin}:1} %02d:%02d:%02d" $((elapsed/3600)) $(((elapsed/60)%60)) $((elapsed%60)) >"$(tty)"
+                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d:%02d" $((_elapsed/3600)) $(((_elapsed/60)%60)) $((_elapsed%60)) >"$(tty)"
             fi
             sleep 0.25
         done
 
-        printf "\r" >"$(tty)" # Return to the begin of the line after completion (the spinner will be overwritten)
-        tput cnorm > /dev/tty # Restore cursor visibility
+        # Return to the begin of the line after completion (the spinner will be overwritten)
+        printf "\r" >"$(tty)"
+
+        # Restore cursor visibility
+        tput cnorm > /dev/tty
     fi
 }
 
