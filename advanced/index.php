@@ -168,8 +168,7 @@ function queryAds($serverName) {
     // Determine which protocol should be used
     $protocol = "http";
     if ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ||
-        (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https') ||
-        (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https')
     ) {
         $protocol = "https";
     }
