@@ -54,13 +54,13 @@ def test_getFTLAPIPort_default(host):
     ''' Confirms getFTLAPIPort returns the default API port '''
     output = host.run('''
     source /opt/pihole/utils.sh
-    getFTLAPIPort
+    getFTLAPIPort "/run/pihole-FTL.port"
     ''')
     expected_stdout = '4711\n'
     assert expected_stdout == output.stdout
 
 
-def test_getFTLAPIPort_custom(host):
+def test_getFTLAPIPortFile_and_getFTLAPIPort_custom(host):
     ''' Confirms getFTLAPIPort returns a custom API port in a custom PORTFILE location '''
     host.run('''
     echo "PORTFILE=/tmp/port.file" > /etc/pihole/pihole-FTL.conf
@@ -68,7 +68,8 @@ def test_getFTLAPIPort_custom(host):
     ''')
     output = host.run('''
     source /opt/pihole/utils.sh
-    getFTLAPIPort
+    FTL_API_PORT=$(getFTLAPIPortFile)
+    getFTLAPIPort "${FTL_API_PORT}"
     ''')
     expected_stdout = '1234\n'
     assert expected_stdout == output.stdout
