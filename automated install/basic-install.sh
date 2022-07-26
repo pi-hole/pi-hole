@@ -1402,7 +1402,7 @@ installConfigs() {
             install -m 644 /dev/null /etc/lighttpd/external.conf
         fi
         # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-        if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
+        if [[ -f "${PI_HOLE_404_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
         fi
         # Make the directories if they do not exist and set the owners
