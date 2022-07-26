@@ -1672,8 +1672,8 @@ installPiholeWeb() {
     install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/index.php ${PI_HOLE_404_DIR}/
 
     # Remove superseded file
-    if [[ -e "${PI_HOLE_404_DIR}/index.js" ]]; then
-        rm "${PI_HOLE_404_DIR}/index.js"
+    if [[ -e "${PI_HOLE_404_DIR}/blockingpage.css" ]]; then
+        rm "${PI_HOLE_404_DIR}/blockingpage.css"
     fi
 
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
