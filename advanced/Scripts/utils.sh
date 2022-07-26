@@ -71,28 +71,87 @@ removeKey() {
 }
 
 #######################
-# returns FTL's current telnet API port
+# returns path of FTL's port file
+#######################
+getFTLAPIPortFile() {
+    local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
+    local DEFAULT_PORT_FILE="/run/pihole-FTL.port"
+    local FTL_APIPORT_FILE
+
+    if [ -s "${FTLCONFFILE}" ]; then
+        # if PORTFILE is not set in pihole-FTL.conf, use the default path
+        FTL_APIPORT_FILE="$({ grep '^PORTFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PORT_FILE}"; } | cut -d'=' -f2-)"
+    else
+        # if there is no pihole-FTL.conf, use the default path
+        FTL_APIPORT_FILE="${DEFAULT_PORT_FILE}"
+    fi
+
+      echo "${FTL_APIPORT_FILE}"
+}
+
+
+#######################
+# returns FTL's current telnet API port based on the content of the pihole-FTL.port file
+#
+# Takes one argument: path to pihole-FTL.port
+# Example getFTLAPIPort "/run/pihole-FTL.port"
 #######################
 getFTLAPIPort(){
+    local PORTFILE="${1}"
+    local DEFAULT_FTL_PORT=4711
+    local ftl_api_port
+
+    if [ -s "$PORTFILE" ]; then
+        # -s: FILE exists and has a size greater than zero
+        ftl_api_port=$(cat "${PORTFILE}")
+        # Exploit prevention: unset the variable if there is malicious content
+        # Verify that the value read from the file is numeric
+        expr "$ftl_api_port" : "[^[:digit:]]" > /dev/null && unset ftl_api_port
+    fi
+
+    # echo the port found in the portfile or default to the default port
+    echo "${ftl_api_port:=$DEFAULT_FTL_PORT}"
+}
+
+#######################
+# returns path of FTL's PID  file
+#######################
+getFTLPIDFile() {
   local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-  local DEFAULT_PORT_FILE="/run/pihole-FTL.port"
-  local DEFAULT_FTL_PORT=4711
-  local PORTFILE
-  local ftl_api_port
+  local DEFAULT_PID_FILE="/run/pihole-FTL.pid"
+  local FTL_PID_FILE
 
-  if [ -f "$FTLCONFFILE" ]; then
-    # if PORTFILE is not set in pihole-FTL.conf, use the default path
-    PORTFILE="$( (grep "^PORTFILE=" $FTLCONFFILE || echo "$DEFAULT_PORT_FILE") | cut -d"=" -f2-)"
+  if [ -s "${FTLCONFFILE}" ]; then
+    # if PIDFILE is not set in pihole-FTL.conf, use the default path
+    FTL_PID_FILE="$({ grep '^PIDFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PID_FILE}"; } | cut -d'=' -f2-)"
+  else
+    # if there is no pihole-FTL.conf, use the default path
+    FTL_PID_FILE="${DEFAULT_PID_FILE}"
   fi
 
-  if [ -s "$PORTFILE" ]; then
-    # -s: FILE exists and has a size greater than zero
-    ftl_api_port=$(cat "${PORTFILE}")
-    # Exploit prevention: unset the variable if there is malicious content
-    # Verify that the value read from the file is numeric
-    expr "$ftl_api_port" : "[^[:digit:]]" > /dev/null && unset ftl_api_port
-  fi
+  echo "${FTL_PID_FILE}"
+}
 
-  # echo the port found in the portfile or default to the default port
-  echo "${ftl_api_port:=$DEFAULT_FTL_PORT}"
+#######################
+# returns FTL's PID based on the content of the pihole-FTL.pid file
+#
+# Takes one argument: path to pihole-FTL.pid
+# Example getFTLPID "/run/pihole-FTL.pid"
+#######################
+getFTLPID() {
+    local FTL_PID_FILE="${1}"
+    local FTL_PID
+
+    if [ -s "${FTL_PID_FILE}" ]; then
+        # -s: FILE exists and has a size greater than zero
+        FTL_PID="$(cat "${FTL_PID_FILE}")"
+        # Exploit prevention: unset the variable if there is malicious content
+        # Verify that the value read from the file is numeric
+        expr "${FTL_PID}" : "[^[:digit:]]" > /dev/null && unset FTL_PID
+    fi
+
+    # If FTL is not running, or the PID file contains malicious stuff, substitute
+    # negative PID to signal this
+    FTL_PID=${FTL_PID:=-1}
+    echo  "${FTL_PID}"
 }
