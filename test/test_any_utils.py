@@ -49,6 +49,15 @@ def test_key_removal_works(host):
     expected_stdout = 'KEY_ONE=value1\nKEY_THREE=value3\n'
     assert expected_stdout == output.stdout
 
+def test_getFTLAPIPortFile_default(host):
+    ''' Confirms getFTLAPIPortFile returns the default API port file path '''
+    output = host.run('''
+    source /opt/pihole/utils.sh
+    getFTLAPIPortFile
+    ''')
+    expected_stdout = '/run/pihole-FTL.port\n'
+    assert expected_stdout == output.stdout
+
 
 def test_getFTLAPIPort_default(host):
     ''' Confirms getFTLAPIPort returns the default API port '''
@@ -72,4 +81,25 @@ def test_getFTLAPIPortFile_and_getFTLAPIPort_custom(host):
     getFTLAPIPort "${FTL_API_PORT}"
     ''')
     expected_stdout = '1234\n'
+    assert expected_stdout == output.stdout
+
+def test_getFTLPIDFile_default(host):
+    ''' Confirms getFTLPIDFile returns the default PID file path '''
+    output = host.run('''
+    source /opt/pihole/utils.sh
+    getFTLPIDFile
+    ''')
+    expected_stdout = '/run/pihole-FTL.pid\n'
+    assert expected_stdout == output.stdout
+
+def test_getFTLPIDFile_custom(host):
+    ''' Confirms getFTLPIDFile returns a custom PID file path '''
+    host.run('''
+    echo "PIDFILE=/tmp/pid.file" > /etc/pihole/pihole-FTL.conf
+    ''')
+    output = host.run('''
+    source /opt/pihole/utils.sh
+    getFTLPIDFile
+    ''')
+    expected_stdout = '/tmp/pid.file\n'
     assert expected_stdout == output.stdout
