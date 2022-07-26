@@ -49,6 +49,7 @@ def test_key_removal_works(host):
     expected_stdout = 'KEY_ONE=value1\nKEY_THREE=value3\n'
     assert expected_stdout == output.stdout
 
+
 def test_getFTLAPIPortFile_default(host):
     ''' Confirms getFTLAPIPortFile returns the default API port file path '''
     output = host.run('''
@@ -72,8 +73,9 @@ def test_getFTLAPIPort_default(host):
 def test_getFTLAPIPortFile_and_getFTLAPIPort_custom(host):
     ''' Confirms getFTLAPIPort returns a custom API port in a custom PORTFILE location '''
     host.run('''
-    echo "PORTFILE=/tmp/port.file" > /etc/pihole/pihole-FTL.conf
-    echo "1234" > /tmp/port.file
+    tmpfile=$(mktemp)
+    echo "PORTFILE=${tmpfile}" > /etc/pihole/pihole-FTL.conf
+    echo "1234" > ${tmpfile}
     ''')
     output = host.run('''
     source /opt/pihole/utils.sh
@@ -82,6 +84,7 @@ def test_getFTLAPIPortFile_and_getFTLAPIPort_custom(host):
     ''')
     expected_stdout = '1234\n'
     assert expected_stdout == output.stdout
+
 
 def test_getFTLPIDFile_default(host):
     ''' Confirms getFTLPIDFile returns the default PID file path '''
@@ -92,6 +95,7 @@ def test_getFTLPIDFile_default(host):
     expected_stdout = '/run/pihole-FTL.pid\n'
     assert expected_stdout == output.stdout
 
+
 def test_getFTLPID_default(host):
     ''' Confirms getFTLPID returns the default value if FTL is not running '''
     output = host.run('''
@@ -101,17 +105,18 @@ def test_getFTLPID_default(host):
     expected_stdout = '-1\n'
     assert expected_stdout == output.stdout
 
+
 def test_getFTLPIDFile_and_getFTLPID_custom(host):
     ''' Confirms getFTLPIDFile returns a custom PID file path '''
     host.run('''
-    echo "PIDFILE=/tmp/pid.file" > /etc/pihole/pihole-FTL.conf
-    echo "1234" > /tmp/pid.file
+    tmpfile=$(mktemp)
+    echo "PIDFILE=${tmpfile}" > /etc/pihole/pihole-FTL.conf
+    echo "1234" > ${tmpfile}
     ''')
     output = host.run('''
     source /opt/pihole/utils.sh
     FTL_PID_FILE=$(getFTLPIDFile)
     getFTLPID "${FTL_PID_FILE}"
     ''')
-    expected_stdout = '/tmp/pid.file\n'
+    expected_stdout = '1234\n'
     assert expected_stdout == output.stdout
-
