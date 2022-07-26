@@ -77,8 +77,8 @@ def test_getFTLAPIPortFile_and_getFTLAPIPort_custom(host):
     ''')
     output = host.run('''
     source /opt/pihole/utils.sh
-    FTL_API_PORT=$(getFTLAPIPortFile)
-    getFTLAPIPort "${FTL_API_PORT}"
+    FTL_API_PORT_FILE=$(getFTLAPIPortFile)
+    getFTLAPIPort "${FTL_API_PORT_FILE}"
     ''')
     expected_stdout = '1234\n'
     assert expected_stdout == output.stdout
@@ -92,14 +92,26 @@ def test_getFTLPIDFile_default(host):
     expected_stdout = '/run/pihole-FTL.pid\n'
     assert expected_stdout == output.stdout
 
-def test_getFTLPIDFile_custom(host):
+def test_getFTLPID_default(host):
+    ''' Confirms getFTLPID returns the default value if FTL is not running '''
+    output = host.run('''
+    source /opt/pihole/utils.sh
+    getFTLPID
+    ''')
+    expected_stdout = '-1\n'
+    assert expected_stdout == output.stdout
+
+def test_getFTLPIDFile_and_getFTLPID_custom(host):
     ''' Confirms getFTLPIDFile returns a custom PID file path '''
     host.run('''
     echo "PIDFILE=/tmp/pid.file" > /etc/pihole/pihole-FTL.conf
+    echo "1234" > /tmp/pid.file
     ''')
     output = host.run('''
     source /opt/pihole/utils.sh
-    getFTLPIDFile
+    FTL_PID_FILE=$(getFTLPIDFile)
+    getFTLPID "${FTL_PID_FILE}"
     ''')
     expected_stdout = '/tmp/pid.file\n'
     assert expected_stdout == output.stdout
+
