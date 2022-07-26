@@ -885,9 +885,9 @@ getStaticIPv4Settings() {
                 --cancel-label "Exit" \
                 --backtitle "IP information" \
                 --title "FYI: IP Conflict" \
-                --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict\
-But in most cases the router is smart enough to not do that.\
-If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.\
+                --msgbox "\\nIt is possible your router could still try to assign this IP to a device, which would cause a conflict, \
+but in most cases the router is smart enough to not do that.\n\n\
+If you are worried, either manually set the address, or modify the DHCP reservation pool so it does not include the IP you want.\n\n\
 It is also possible to use a DHCP reservation, but if you are going to do that, you might as well set a static address."\
                 "${r}" "${c}" && result=0 || result=$?
 
