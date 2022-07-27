@@ -49,7 +49,7 @@ if ($serverName === "pi.hole"
             <meta charset='utf-8'>
             <meta name='viewport' content='width=device-width, initial-scale=1'>
             <title>● $serverName</title>
-            <link rel='shortcut icon' href='admin/img/favicons/favicon.ico' type='image/x-icon'>
+            <link rel='shortcut icon' href='/admin/img/favicons/favicon.ico' type='image/x-icon'>
             <style>
               #splashpage { background: #222; color: rgba(255, 255, 255, 0.7); text-align: center; }
               #splashpage img { margin: 5px; width: 256px; }
@@ -57,7 +57,7 @@ if ($serverName === "pi.hole"
             </style>
         </head>
         <body id='splashpage'>
-            <img src='admin/img/logo.svg' alt='Pi-hole logo' width='256' height='377'>
+            <img src='/admin/img/logo.svg' alt='Pi-hole logo' width='256' height='377'>
             <br>
             <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
             <a href='/admin'>Did you mean to go to the admin panel?</a>
