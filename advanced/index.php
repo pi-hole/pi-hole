@@ -51,16 +51,24 @@ if ($serverName === "pi.hole"
             <title>● $serverName</title>
             <link rel='shortcut icon' href='/admin/img/favicons/favicon.ico' type='image/x-icon'>
             <style>
-              #splashpage { background: #222; color: rgba(255, 255, 255, 0.7); text-align: center; }
-              #splashpage img { margin: 5px; width: 256px; }
-              #splashpage b { color: inherit; }
+                html, body { height: 100% }
+                body { font: 13pt "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+                body { margin: 0; }
+                p { margin: 0; }
+                a { color: #3c8dbc; text-decoration: none; }
+                a:hover { color: #72afda; text-decoration: underline; }
+                #splashpage { background: #222; color: rgba(255, 255, 255, 0.7); text-align: center; display: flex; align-items: center; justify-content: center; }
+                #splashpage img { margin: 5px; width: 256px; }
+                #splashpage b { color: inherit; }
             </style>
         </head>
         <body id='splashpage'>
+            <div>
             <img src='/admin/img/logo.svg' alt='Pi-hole logo' width='256' height='377'>
             <br>
             <p>Pi-<strong>hole</strong>: Your black hole for Internet advertisements</p>
             <a href='/admin'>Did you mean to go to the admin panel?</a>
+            </div>
         </body>
     </html>
 EOT;
