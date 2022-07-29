@@ -52,12 +52,12 @@ if ($serverName === "pi.hole"
             <link rel='shortcut icon' href='/admin/img/favicons/favicon.ico' type='image/x-icon'>
             <style>
                 html, body { height: 100% }
-                body { font: 13pt "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-                body { margin: 0; }
+                body { margin: 0; font: 13pt "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+                body { background: #222; color: rgba(255, 255, 255, 0.7); text-align: center; }
                 p { margin: 0; }
                 a { color: #3c8dbc; text-decoration: none; }
                 a:hover { color: #72afda; text-decoration: underline; }
-                #splashpage { background: #222; color: rgba(255, 255, 255, 0.7); text-align: center; display: flex; align-items: center; justify-content: center; }
+                #splashpage { display: flex; align-items: center; justify-content: center; }
                 #splashpage img { margin: 5px; width: 256px; }
                 #splashpage b { color: inherit; }
             </style>
