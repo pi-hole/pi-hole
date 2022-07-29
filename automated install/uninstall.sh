@@ -44,8 +44,8 @@ source "${setupVars}"
 # package_manager_detect() sourced from basic-install.sh
 package_manager_detect
 
-# Install packages used by the Pi-hole
-DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}")
+# Uninstall packages used by the Pi-hole
+DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}" "${OS_CHECK_DEPS[@]}")
 if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
     # Install the Web dependencies
     DEPS+=("${PIHOLE_WEB_DEPS[@]}")
