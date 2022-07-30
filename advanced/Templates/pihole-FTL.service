@@ -9,48 +9,10 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
-# Global variables
-FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-DEFAULT_PID_FILE="/run/pihole-FTL.pid"
-DEFAULT_PORT_FILE="/run/pihole-FTL.port"
-FTL_PID=''
-
-# Get the file path of the pihole-FTL.pid file
-getFTLPIDFile() {
-  if [ -s "${FTLCONFFILE}" ]; then
-    # if PIDFILE is not set in pihole-FTL.conf, use the default path
-    FTL_PID_FILE="$({ grep '^PIDFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PID_FILE}"; } | cut -d'=' -f2-)"
-  else
-    # if there is no pihole-FTL.conf, use the default path
-    FTL_PID_FILE="${DEFAULT_PID_FILE}"
-  fi
-}
-
-# Get the PID of the FTL process based on the content of the pihole-FTL.pid file
-getFTLPID() {
-  if [ -s "${FTL_PID_FILE}" ]; then
-    # -s: FILE exists and has a size greater than zero
-    FTL_PID="$(cat "${FTL_PID_FILE}")"
-    # Exploit prevention: unset the variable if there is malicious content
-    # Verify that the value read from the file is numeric
-    expr "${FTL_PID}" : "[^[:digit:]]" > /dev/null && unset FTL_PID
-  fi
-
-  # If FTL is not running, or the PID file contains malicious stuff, substitute
-  # negative PID to signal this
-  FTL_PID=${FTL_PID:=-1}
-}
-
-# Get the file path of the pihole-FTL.port file
-getFTLPortFile() {
-  if [ -s "${FTLCONFFILE}" ]; then
-    # if PORTFILE is not set in pihole-FTL.conf, use the default path
-    FTL_PORT_FILE="$({ grep '^PORTFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PORT_FILE}"; } | cut -d'=' -f2-)"
-  else
-    # if there is no pihole-FTL.conf, use the default path
-    FTL_PORT_FILE="${DEFAULT_PORT_FILE}"
-fi
-}
+#source utils.sh for getFTLPIDFile(), getFTLPID (), getFTLAPIPortFile()
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
+utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+. "${utilsfile}"
 
 
 is_running() {
@@ -148,11 +110,11 @@ status() {
 ### main logic ###
 
 # Get file paths
-getFTLPIDFile
-getFTLPortFile
+FTL_PID_FILE="$(getFTLPIDFile)"
+FTL_PORT_FILE="$(getFTLAPIPortFile)"
 
 # Get FTL's current PID
-getFTLPID
+FTL_PID="$(getFTLPID ${FTL_PID_FILE})"
 
 case "$1" in
   stop)
