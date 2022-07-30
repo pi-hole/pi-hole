@@ -366,29 +366,27 @@ package_manager_detect() {
         LIGHTTPD_GROUP="lighttpd"
         LIGHTTPD_CFG="lighttpd.conf.fedora"
 
+        # If the host OS is centos (or a derivative), epel is required for lighttpd
+        if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+            # Check current CentOS major release version
+            CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+            if rpm -qa | grep -qi 'epel'; then
+                printf "  %b EPEL repository already installed\\n" "${TICK}"
+            else
+                # CentOS requires the EPEL repository to gain access to Fedora packages
+                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${CURRENT_CENTOS_VERSION}.noarch.rpm"
+                printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+                "${PKG_INSTALL[@]}" "${EPEL_PKG}"
+                printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+            fi
+        fi
+
     # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
         # so exit the installer
         exit
-    fi
-}
-
-check_epel_repo_required(){
-    # If the host OS is centos (or a derivative), epel is required for lighttpd
-    if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-        # Check current CentOS major release version
-        CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-        if rpm -qa | grep -qi 'epel'; then
-            printf "  %b EPEL repository already installed\\n" "${TICK}"
-        else
-            # CentOS requires the EPEL repository to gain access to Fedora packages
-            EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${CURRENT_CENTOS_VERSION}.noarch.rpm"
-            printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-            "${PKG_INSTALL[@]}" ${EPEL_PKG}
-            printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
-        fi
     fi
 }
 
@@ -2535,12 +2533,6 @@ main() {
     # Install packages used by this installation script
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
     install_dependent_packages "${INSTALLER_DEPS[@]}"
-
-    #In case of RPM based distro, select the proper PHP version
-    if [[ "$PKG_MANAGER" == "yum" || "$PKG_MANAGER" == "dnf" ]] ; then
-        check_epel_repo_required
-    fi
-
 
     # If the setup variable file exists,
     if [[ -f "${setupVars}" ]]; then

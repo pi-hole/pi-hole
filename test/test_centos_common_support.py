@@ -14,7 +14,6 @@ def test_enable_epel_repository_centos(host):
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    check_epel_repo_required
     ''')
     expected_stdout = info_box + (' Enabling EPEL package repository '
                                   '(https://fedoraproject.org/wiki/EPEL)')
