@@ -377,7 +377,7 @@ package_manager_detect() {
 
 check_epel_repo_required(){
     # If the host OS is centos (or a derivative), epel is required for lighttpd
-    if grep -qiE 'centos|scientific|alma|rocky' /etc/redhat-release; then
+    if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
         # Check current CentOS major release version
         CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
         if rpm -qa | grep -qi 'epel'; then
