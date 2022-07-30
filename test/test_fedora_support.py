@@ -6,7 +6,7 @@ def test_epel_and_remi_not_installed_fedora(host):
     package_manager_detect = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    select_rpm_php
+    check_epel_repo_required
     ''')
     assert package_manager_detect.stdout == ''
 

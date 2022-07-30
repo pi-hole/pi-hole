@@ -375,22 +375,11 @@ package_manager_detect() {
     fi
 }
 
-select_rpm_php(){
-    local unsupported_dialog=0
-    # If the host OS is Fedora,
-    if grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-        # all required packages should be available by default with the latest fedora release
-        : # continue
-    # or if host OS is CentOS,
-    elif grep -qiE 'centos|scientific|alma|rocky' /etc/redhat-release; then
-        SUPPORTED_CENTOS_VERSION=8
+check_epel_repo_required(){
+    # If the host OS is centos (or a derivative),
+    if grep -qiE 'centos|scientific|alma|rocky' /etc/redhat-release; then
         # Check current CentOS major release version
         CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-        # Check if CentOS version is supported
-        if [[ $CURRENT_CENTOS_VERSION -lt $SUPPORTED_CENTOS_VERSION ]]; then
-            unsupported_dialog=1
-        fi
-
         if rpm -qa | grep -qi 'epel'; then
             printf "  %b EPEL repository already installed\\n" "${TICK}"
         else
@@ -400,37 +389,6 @@ select_rpm_php(){
             "${PKG_INSTALL[@]}" ${EPEL_PKG}
             printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
         fi
-    else
-        unsupported_dialog=1
-    fi
-
-    if [[ ${unsupported_dialog} -eq 1 ]];then
-            # Warn user of unsupported version of Fedora or CentOS
-            dialog --no-shadow --keep-tite \
-                --title "Unsupported RPM based distribution" \
-                --defaultno \
-                --no-button "Exit" \
-                --yes-button "Continue" \
-                --yesno "Would you like to continue installation on an unsupported RPM based distribution?\
-\\n\\nPlease ensure the following packages have been installed manually:\
-\\n\\n- lighttpd\\n- lighttpd-fastcgi\\n- PHP version 7+"\
-                "${r}" "${c}" && result=0 || result=$?
-
-            case ${result} in
-                # User chose to continue installation on an unsupported RPM based distribution
-                "${DIALOG_OK}")
-                    printf "  %b User opted to continue installation on an unsupported RPM based distribution.\\n" "${INFO}"
-                    ;;
-                # User chose not to continue installation on an unsupported RPM based distribution
-                "${DIALOG_CANCEL}")
-                    printf "  %b User opted not to continue installation on an unsupported RPM based distribution.\\n" "${INFO}"
-                    exit 1
-                    ;;
-                "${DIALOG_ESC}")
-                    printf "  %b Escape pressed, exiting installer at unsupported RPM based distribution dialog window\\n" "${CROSS}"
-                    exit 1
-                    ;;
-            esac
     fi
 }
 
@@ -2580,7 +2538,7 @@ main() {
 
     #In case of RPM based distro, select the proper PHP version
     if [[ "$PKG_MANAGER" == "yum" || "$PKG_MANAGER" == "dnf" ]] ; then
-        select_rpm_php
+        check_epel_repo_required
     fi
 
 

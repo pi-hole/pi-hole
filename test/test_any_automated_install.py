@@ -1117,7 +1117,7 @@ def test_package_manager_has_pihole_deps(host):
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    select_rpm_php
+    check_epel_repo_required
     install_dependent_packages ${PIHOLE_DEPS[@]}
     ''')
 
@@ -1131,7 +1131,7 @@ def test_package_manager_has_web_deps(host):
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    select_rpm_php
+    check_epel_repo_required
     install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
     ''')
 
