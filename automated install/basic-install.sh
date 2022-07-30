@@ -306,6 +306,7 @@ package_manager_detect() {
         PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
         # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+        PKG_CHECK="apt-cache show"
         # Update package cache
         update_package_cache || exit 1
         # Check for and determine version number (major and minor) of current php install
@@ -358,6 +359,7 @@ package_manager_detect() {
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
+        PKG_CHECK="${PKG_MANAGER} list"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
         PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat)
