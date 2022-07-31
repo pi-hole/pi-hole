@@ -368,13 +368,13 @@ package_manager_detect() {
 
         # If the host OS is centos (or a derivative), epel is required for lighttpd
         if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-            # Check current CentOS major release version
-            CURRENT_CENTOS_VERSION=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
             if rpm -qa | grep -qi 'epel'; then
                 printf "  %b EPEL repository already installed\\n" "${TICK}"
             else
-                # CentOS requires the EPEL repository to gain access to Fedora packages
-                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${CURRENT_CENTOS_VERSION}.noarch.rpm"
+                local RH_RELEASE EPEL_PKG
+                # EPEL not already installed, add it based on the release version
+                RH_RELEASE=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${RH_RELEASE}.noarch.rpm"
                 printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
                 "${PKG_INSTALL[@]}" "${EPEL_PKG}"
                 printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
