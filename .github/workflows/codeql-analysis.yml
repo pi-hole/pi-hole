@@ -13,7 +13,28 @@ on:
     - cron: '32 11 * * 6'
 
 jobs:
+    # JOB to run change detection
+  changes:
+    runs-on: ubuntu-latest
+    # Set job outputs to values from filter step
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+    steps:
+    -
+        name: Checkout Repo
+        uses: actions/checkout@v3.0.2
+    -
+        name: Check which files have been touched
+        uses: dorny/paths-filter@v2.10.2
+        id: filter
+        with:
+          filters: |
+            python:
+              - 'test/*.py'
+
   analyze:
+    needs: changes
+    if: ${{ needs.changes.outputs.python == 'true' }}
     name: Analyze
     runs-on: ubuntu-latest
 

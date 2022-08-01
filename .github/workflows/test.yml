@@ -17,10 +17,10 @@ jobs:
     steps:
     -
         name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.0.2
     -
         name: Check which files have been touched
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v2.10.2
         id: filter
         with:
           filters: |
@@ -31,6 +31,7 @@ jobs:
               - 'test/**'
               - 'gravity.sh'
               - 'pihole'
+              - '.github/workflows/test.yml'
 
   smoke-tests:
     if: github.event.pull_request.draft == false
@@ -62,7 +63,7 @@ jobs:
 
   distro-test:
     needs: [ smoke-tests, changes ]
-    if: ${{ github.event.pull_request.draft == false && needs.changes.outputs.requires-distro-test == 'true' }}
+    if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -73,15 +74,23 @@ jobs:
     steps:
     -
       name: Checkout repository
+      if: ${{ needs.changes.outputs.requires-distro-test == 'true' }}
       uses: actions/checkout@v3.0.2
     -
       name: Set up Python 3.8
+      if: ${{ needs.changes.outputs.requires-distro-test == 'true' }}
       uses: actions/setup-python@v4.1.0
       with:
         python-version: 3.8
     -
       name: Install dependencies
+      if: ${{ needs.changes.outputs.requires-distro-test == 'true' }}
       run: pip install -r test/requirements.txt
     -
       name: Test with tox
+      if: ${{ needs.changes.outputs.requires-distro-test == 'true' }}
       run: tox -c test/tox.${DISTRO}.ini
+    -
+      name: Passed with nothing to do
+      if: ${{ needs.changes.outputs.requires-distro-test == 'false' }}
+      run: echo "Nothing to test!"
