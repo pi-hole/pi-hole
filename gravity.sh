@@ -719,10 +719,10 @@ gravity_DownloadBlocklistFromUrl() {
 
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
-  local source="${1}" destination="${2}" firstLine
+  local src="${1}" destination="${2}" firstLine
 
   # Determine if we are parsing a consolidated list
-  #if [[ "${source}" == "${piholeDir}/${matterAndLight}" ]]; then
+  #if [[ "${src}" == "${piholeDir}/${matterAndLight}" ]]; then
     # Remove comments and print only the domain name
     # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
     # This helps with that and makes it easier to read
@@ -733,7 +733,7 @@ gravity_ParseFileIntoDomains() {
     # 4) Remove lines containing "/"
     # 5) Remove leading tabs, spaces, etc.
     # 6) Delete lines not matching domain names
-    < "${source}" tr -d '\r' | \
+    < "${src}" tr -d '\r' | \
     tr '[:upper:]' '[:lower:]' | \
     sed 's/\s*#.*//g' | \
     sed -r '/(\/).*$/d' | \
@@ -745,16 +745,16 @@ gravity_ParseFileIntoDomains() {
 
   # Individual file parsing: Keep comments, while parsing domains from each line
   # We keep comments to respect the list maintainer's licensing
-  read -r firstLine < "${source}"
+  read -r firstLine < "${src}"
 
   # Determine how to parse individual source file formats
   if [[ "${firstLine,,}" =~ (adblock|ublock|^!) ]]; then
     # Compare $firstLine against lower case words found in Adblock lists
     echo -e "  ${CROSS} Format: Adblock (list type not supported)"
-  elif grep -q "^address=/" "${source}" &> /dev/null; then
+  elif grep -q "^address=/" "${src}" &> /dev/null; then
     # Parse Dnsmasq format lists
     echo -e "  ${CROSS} Format: Dnsmasq (list type not supported)"
-  elif grep -q -E "^https?://" "${source}" &> /dev/null; then
+  elif grep -q -E "^https?://" "${src}" &> /dev/null; then
     # Parse URL list if source file contains "http://" or "https://"
     # Scanning for "^IPv4$" is too slow with large (1M) lists on low-end hardware
     echo -ne "  ${INFO} Format: URL"
@@ -770,13 +770,13 @@ gravity_ParseFileIntoDomains() {
       /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { next }
       # Print if nonempty
       length { print }
-    ' "${source}" 2> /dev/null > "${destination}"
+    ' "${src}" 2> /dev/null > "${destination}"
     chmod 644 "${destination}"
 
     echo -e "${OVER}  ${TICK} Format: URL"
   else
     # Default: Keep hosts/domains file in same format as it was downloaded
-    output=$( { mv "${source}" "${destination}"; } 2>&1 )
+    output=$( { mv "${src}" "${destination}"; } 2>&1 )
     chmod 644 "${destination}"
 
     if [[ ! -e "${destination}" ]]; then
