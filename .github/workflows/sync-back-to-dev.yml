@@ -11,7 +11,7 @@ jobs:
     name: Syncing branches
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.0.2
       - name: Opening pull request
         id: pull
         uses: tretuna/sync-branches@1.4.0
@@ -20,7 +20,7 @@ jobs:
           FROM_BRANCH: 'master'
           TO_BRANCH: 'development'
       - name: Label the pull request to ignore for release note generation
-        uses: actions-ecosystem/action-add-labels@v1
+        uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
           labels: internal
           repo: ${{ github.repository }}
