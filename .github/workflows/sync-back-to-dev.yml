@@ -20,7 +20,7 @@ jobs:
           FROM_BRANCH: 'master'
           TO_BRANCH: 'development'
       - name: Label the pull request to ignore for release note generation
-        uses: actions-ecosystem/action-add-labels@v1.1.0
+        uses: actions-ecosystem/action-add-labels@v1.1.3
         with:
           labels: internal
           repo: ${{ github.repository }}
