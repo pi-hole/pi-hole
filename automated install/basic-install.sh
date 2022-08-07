@@ -2126,11 +2126,7 @@ checkout_pull_branch() {
 
     git_pull=$(git pull --no-rebase || return 1)
 
-    if [[ "$git_pull" == *"up-to-date"* ]]; then
-        printf "  %b %s\\n" "${INFO}" "${git_pull}"
-    else
-        printf "%s\\n" "$git_pull"
-    fi
+    printf "  %b %s\\n" "${INFO}" "${git_pull}"
 
     return 0
 }
