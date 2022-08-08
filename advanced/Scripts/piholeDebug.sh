@@ -332,17 +332,34 @@ compare_local_version_to_git_version() {
 
 check_ftl_version() {
     local ftl_name="FTL"
+    local FTL_VERSION FTL_COMMIT FTL_BRANCH
     echo_current_diagnostic "${ftl_name} version"
     # Use the built in command to check FTL's version
-    FTL_VERSION=$(pihole-FTL version)
+    FTL_VERSION=$(pihole-FTL -vv | grep -m 1 Version | awk '{printf $2}')
+    FTL_BRANCH=$(pihole-FTL -vv | grep -m 1 Branch | awk '{printf $2}')
+    FTL_COMMIT=$(pihole-FTL -vv | grep -m 1 Commit | awk '{printf $2}')
+
     # Compare the current FTL version to the remote version
     if [[ "${FTL_VERSION}" == "$(pihole -v | awk '/FTL/ {print $6}' | cut -d ')' -f1)" ]]; then
         # If they are the same, FTL is up-to-date
         log_write "${TICK} ${ftl_name}: ${COL_GREEN}${FTL_VERSION}${COL_NC}"
     else
         # If not, show it in yellow, signifying there is an update
-        log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
+        log_write "${INFO} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
     fi
+
+    # If they use the master branch, they are on the stable codebase
+    if [[ "${FTL_BRANCH}" == "master" ]]; then
+        # so the color of the text is green
+        log_write "${INFO} Branch: ${COL_GREEN}${FTL_BRANCH}${COL_NC}"
+        # If it is any other branch, they are in a development branch
+    else
+        # So show that in yellow, signifying it's something to take a look at, but not a critical error
+        log_write "${INFO} Branch: ${COL_YELLOW}${FTL_BRANCH}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
+    fi
+
+    # echo the current commit
+    log_write "${INFO} Commit: ${FTL_COMMIT}"
 }
 
 # Checks the core version of the Pi-hole codebase
