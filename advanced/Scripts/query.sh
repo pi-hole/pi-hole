@@ -16,7 +16,6 @@ GRAVITYDB="${piholeDir}/gravity.db"
 options="$*"
 all=""
 exact=""
-blockpage=""
 matchType="match"
 # Source pihole-FTL from install script
 pihole_FTL="${piholeDir}/pihole-FTL.conf"
@@ -71,18 +70,14 @@ Options:
 fi
 
 # Handle valid options
-if [[ "${options}" == *"-bp"* ]]; then
-    exact="exact"; blockpage=true
-else
-    [[ "${options}" == *"-all"* ]] && all=true
-    if [[ "${options}" == *"-exact"* ]]; then
-        exact="exact"; matchType="exact ${matchType}"
-    fi
+[[ "${options}" == *"-all"* ]] && all=true
+if [[ "${options}" == *"-exact"* ]]; then
+    exact="exact"; matchType="exact ${matchType}"
 fi
 
 # Strip valid options, leaving only the domain and invalid options
 # This allows users to place the options before or after the domain
-options=$(sed -E 's/ ?-(bp|adlists?|all|exact) ?//g' <<< "${options}")
+options=$(sed -E 's/ ?-(adlists?|all|exact) ?//g' <<< "${options}")
 
 # Handle remaining options
 # If $options contain non ASCII characters, convert to punycode
@@ -136,17 +131,11 @@ scanDatabaseTable() {
     wbMatch=true
 
     # Print table name
-    if [[ -z "${blockpage}" ]]; then
-        echo " ${matchType^} found in ${COL_BOLD}exact ${table}${COL_NC}"
-    fi
+    echo " ${matchType^} found in ${COL_BOLD}exact ${table}${COL_NC}"
 
     # Loop over results and print them
     mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
-        if [[ -n "${blockpage}" ]]; then
-            echo "π ${result}"
-            exit 0
-        fi
         domain="${result/|*}"
         if [[ "${result#*|}" == "0" ]]; then
             extra=" (disabled)"
@@ -181,18 +170,13 @@ scanRegexDatabaseTable() {
             # Form a "results" message
             str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
             # If we are displaying more than just the source of the block
-            if [[ -z "${blockpage}" ]]; then
-                # Set the wildcard match flag
-                wcMatch=true
-                # Echo the "matched" message, indented by one space
-                echo " ${str_message}"
-                # Echo the "results" message, each line indented by three spaces
-                # shellcheck disable=SC2001
-                echo "${str_result}" | sed 's/^/   /'
-            else
-                echo "π .wildcard"
-                exit 0
-            fi
+            # Set the wildcard match flag
+            wcMatch=true
+            # Echo the "matched" message, indented by one space
+            echo " ${str_message}"
+            # Echo the "results" message, each line indented by three spaces
+            # shellcheck disable=SC2001
+            echo "${str_result}" | sed 's/^/   /'
         fi
     fi
 }
@@ -222,7 +206,7 @@ elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
 fi
 
 # Print "Exact matches for" title
-if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
+if [[ -n "${exact}" ]]; then
     plural=""; [[ "${#results[*]}" -gt 1 ]] && plural="es"
     echo " ${matchType^}${plural} for ${COL_BOLD}${domainQuery}${COL_NC} found in:"
 fi
@@ -238,9 +222,7 @@ for result in "${results[@]}"; do
         extra=""
     fi
 
-    if [[ -n "${blockpage}" ]]; then
-        echo "0 ${adlistAddress}"
-    elif [[ -n "${exact}" ]]; then
+    if [[ -n "${exact}" ]]; then
         echo "  - ${adlistAddress}${extra}"
     else
         if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then
