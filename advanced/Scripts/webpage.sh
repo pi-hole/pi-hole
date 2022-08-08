@@ -17,6 +17,7 @@ readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 # 03 -> wildcards
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
+readonly dhcpstatichostnames="/etc/pihole/static-hostnames.list"
 readonly dnscustomfile="/etc/pihole/custom.list"
 readonly dnscustomcnamefile="/etc/dnsmasq.d/05-pihole-custom-cname.conf"
 
@@ -474,6 +475,7 @@ EnableDHCP() {
 dhcp-name-match=set:hostname-ignore,localhost
 dhcp-ignore-names=tag:hostname-ignore"
 
+    addOrEditKeyValPair "${dhcpconfig}" "addn-hosts" "${dhcpstatichostnames}"
     ProcessDHCPSettings
 
     RestartDNS
@@ -566,6 +568,52 @@ RemoveDHCPStaticAddress() {
         exit 1
     fi
 
+}
+
+AddDHCPStaticHostname() {
+    echo -e "  ${TICK} Adding static DHCP Hostname entry..."
+
+    mac="${args[2]}"
+    ip="${args[3]}"
+    host="${args[4]}"
+    reload="${args[5]}"
+
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            # Mac address will be used as a key to support RemoveDHCPStaticHostname
+            printf "#%s\n%s %s\n" "${mac}" "${ip}" "${validHost}" >> "${dhcpstatichostnames}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    # Restart dnsmasq to load new custom DNS entries only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
+RemoveDHCPStaticHostname() {
+    echo -e "  ${TICK} Removing static DHCP Hostname entry..."
+
+    mac="${args[2]}"
+    reload="${args[3]}"
+
+    if [[ "$mac" =~ ^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$ ]]; then
+        sed -i "/^#${mac}/I,+1d" "${dhcpstatichostnames}"
+    else
+        echo "  ${CROSS} Invalid Mac Passed!"
+        exit 1
+    fi
+    # Restart dnsmasq to load new custom DNS entries only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
 }
 
 SetAdminEmail() {
@@ -847,6 +895,8 @@ main() {
         "-h" | "--help"       ) helpFunc;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
+        "adddhcphostname"     ) AddDHCPStaticHostname;;
+        "removedhcphostname"  ) RemoveDHCPStaticHostname;;
         "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;
