@@ -82,7 +82,7 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
-PI_HOLE_BLOCKPAGE_DIR="${webroot}/pihole"
+PI_HOLE_404_DIR="${webroot}/pihole"
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
 fi
@@ -1402,7 +1402,7 @@ installConfigs() {
             install -m 644 /dev/null /etc/lighttpd/external.conf
         fi
         # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-        if [[ -f "${PI_HOLE_BLOCKPAGE_DIR}/custom.php" ]]; then
+        if [[ -f "${PI_HOLE_404_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
         fi
         # Make the directories if they do not exist and set the owners
@@ -1662,19 +1662,14 @@ install_dependent_packages() {
 
 # Install the Web interface dashboard
 installPiholeWeb() {
-    printf "\\n  %b Installing blocking page...\\n" "${INFO}"
+    printf "\\n  %b Installing 404 page...\\n" "${INFO}"
 
-    local str="Creating directory for blocking page, and copying files"
+    local str="Creating directory for 404 page, and copying files"
     printf "  %b %s..." "${INFO}" "${str}"
-    # Install the directory,
-    install -d -m 0755 ${PI_HOLE_BLOCKPAGE_DIR}
-    # and the blockpage
-    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/{index,blockingpage}.* ${PI_HOLE_BLOCKPAGE_DIR}/
-
-    # Remove superseded file
-    if [[ -e "${PI_HOLE_BLOCKPAGE_DIR}/index.js" ]]; then
-        rm "${PI_HOLE_BLOCKPAGE_DIR}/index.js"
-    fi
+    # Install the directory
+    install -d -m 0755 ${PI_HOLE_404_DIR}
+    # and the 404 handler
+    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/index.php ${PI_HOLE_404_DIR}/
 
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 

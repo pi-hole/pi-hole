@@ -814,29 +814,13 @@ check_x_headers() {
     # server is operating correctly
     echo_current_diagnostic "Dashboard and block page"
     # Use curl -I to get the header and parse out just the X-Pi-hole one
-    local block_page
-    block_page=$(curl -Is localhost | awk '/X-Pi-hole/' | tr -d '\r')
-    # Do it for the dashboard as well, as the header is different than above
+    local full_curl_output_dashboard
     local dashboard
-    dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
+    full_curl_output_dashboard="$(curl -Is localhost/admin/)"
+    dashboard=$(echo "${full_curl_output_dashboard}" | awk '/X-Pi-hole/' | tr -d '\r')
     # Store what the X-Header should be in variables for comparison later
-    local block_page_working
-    block_page_working="X-Pi-hole: A black hole for Internet advertisements."
     local dashboard_working
     dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
-    local full_curl_output_block_page
-    full_curl_output_block_page="$(curl -Is localhost)"
-    local full_curl_output_dashboard
-    full_curl_output_dashboard="$(curl -Is localhost/admin/)"
-    # If the X-header found by curl matches what is should be,
-    if [[ $block_page == "$block_page_working" ]]; then
-        # display a success message
-        log_write "$TICK Block page X-Header: ${COL_GREEN}${block_page}${COL_NC}"
-    else
-        # Otherwise, show an error
-        log_write "$CROSS Block page X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-        log_write "${COL_RED}${full_curl_output_block_page}${COL_NC}"
-    fi
 
     # Same logic applies to the dashboard as above, if the X-Header matches what a working system should have,
     if [[ $dashboard == "$dashboard_working" ]]; then
@@ -845,6 +829,7 @@ check_x_headers() {
     else
         # Otherwise, it's a failure since the X-Headers either don't exist or have been modified in some way
         log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+
         log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
     fi
 }
