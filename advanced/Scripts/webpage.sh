@@ -48,7 +48,6 @@ Options:
   -c, celsius                     Set Celsius as preferred temperature unit
   -f, fahrenheit                  Set Fahrenheit as preferred temperature unit
   -k, kelvin                      Set Kelvin as preferred temperature unit
-  -e, email                       Set an administrative contact address for the Block Page
   -h, --help                      Show this help dialog
   -i, interface                   Specify dnsmasq's interface listening behavior
   -s, speedtest                   Set speedtest intevel , user 0 to disable Speedtests use -sn to prevent logging to results list
@@ -690,37 +689,6 @@ RemoveDHCPStaticAddress() {
 
 }
 
-SetAdminEmail() {
-    if [[ "${1}" == "-h" ]] || [[ "${1}" == "--help" ]]; then
-        echo "Usage: pihole -a email <address>
-Example: 'pihole -a email admin@address.com'
-Set an administrative contact address for the Block Page
-
-Options:
-  \"\"                  Empty: Remove admin contact
-  -h, --help          Show this help dialog"
-        exit 0
-    fi
-
-    if [[ -n "${args[2]}" ]]; then
-
-        # Sanitize email address in case of security issues
-        # Regex from https://stackoverflow.com/a/2138832/4065967
-        local regex
-        regex="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\$"
-        if [[ ! "${args[2]}" =~ ${regex} ]]; then
-            echo -e "  ${CROSS} Invalid email address"
-            exit 0
-        fi
-
-        addOrEditKeyValPair "${setupVars}" "ADMIN_EMAIL" "${args[2]}"
-        echo -e "  ${TICK} Setting admin contact to ${args[2]}"
-    else
-        addOrEditKeyValPair "${setupVars}" "ADMIN_EMAIL" ""
-        echo -e "  ${TICK} Removing admin contact"
-    fi
-}
-
 SetListeningMode() {
     source "${setupVars}"
 
@@ -969,7 +937,6 @@ main() {
         "-h" | "--help"       ) helpFunc;;
         "addstaticdhcp"       ) AddDHCPStaticAddress;;
         "removestaticdhcp"    ) RemoveDHCPStaticAddress;;
-        "-e" | "email"        ) SetAdminEmail "$3";;
         "-i" | "interface"    ) SetListeningMode "$@";;
         "-t" | "teleporter"   ) Teleporter;;
         "adlist"              ) CustomizeAdLists;;

@@ -15,7 +15,7 @@ _pihole() {
 			COMPREPLY=( $(compgen -W "${opts_lists}" -- ${cur}) )
 		;;
 		"admin")
-			opts_admin="celsius email fahrenheit interface kelvin password privacylevel"
+			opts_admin="celsius fahrenheit interface kelvin password privacylevel"
 			COMPREPLY=( $(compgen -W "${opts_admin}" -- ${cur}) )
 		;;
 		"checkout")
