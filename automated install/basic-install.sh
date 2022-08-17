@@ -1127,8 +1127,8 @@ setAdminFlag() {
             ;;
     esac
 
-    # If the user wants to install the Web admin interface (i.e. it has not been deselected above)
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+    # If the user wants to install the Web admin interface (i.e. it has not been deselected above) and did not deselect the web server via command-line argument
+    if [[ "${INSTALL_WEB_INTERFACE}" == true && "${INSTALL_WEB_SERVER}" == true ]]; then
         # Get list of required PHP modules, excluding base package (common) and handler (cgi)
         local i php_modules
         for i in "${PIHOLE_WEB_DEPS[@]}"; do [[ $i == 'php'* && $i != *'-common' && $i != *'-cgi' ]] && php_modules+=" ${i#*-}"; done
