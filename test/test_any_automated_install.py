@@ -79,6 +79,7 @@ def test_setupVars_saved_to_file(host):
     echo start
     TERM=xterm
     source /opt/pihole/basic-install.sh
+    source /opt/pihole/utils.sh
     {}
     mkdir -p /etc/dnsmasq.d
     version_check_dnsmasq
