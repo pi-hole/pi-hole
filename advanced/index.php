@@ -34,7 +34,7 @@ if ($serverName === "pi.hole"
     // When directly browsing via IP or authorized hostname
     // Render splash/landing page based off presence of $landPage file
     // Unset variables so as to not be included in $landPage or $splashPage
-    unset($svPasswd, $svEmail, $authorizedHosts, $validExtTypes, $currentUrlExt);
+    unset($authorizedHosts);
     // If $landPage file is present
     if (is_file(getcwd()."/$landPage")) {
         unset($serverName, $viewPort); // unset extra variables not to be included in $landpage
