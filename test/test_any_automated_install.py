@@ -239,24 +239,14 @@ def test_installPihole_fresh_install_readableFiles(host):
         'r', '/etc/pihole/dns-servers.conf', piholeuser)
     actual_rc = host.run(check_servers).rc
     assert exit_status_success == actual_rc
-    # readable GitHubVersions
-    check_version = test_cmd.format(
-        'r', '/etc/pihole/GitHubVersions', piholeuser)
-    actual_rc = host.run(check_version).rc
-    assert exit_status_success == actual_rc
     # readable install.log
     check_install = test_cmd.format(
         'r', '/etc/pihole/install.log', piholeuser)
     actual_rc = host.run(check_install).rc
     assert exit_status_success == actual_rc
-    # readable localbranches
-    check_localbranch = test_cmd.format(
-        'r', '/etc/pihole/localbranches', piholeuser)
-    actual_rc = host.run(check_localbranch).rc
-    assert exit_status_success == actual_rc
-    # readable localversions
+    # readable versions
     check_localversion = test_cmd.format(
-        'r', '/etc/pihole/localversions', piholeuser)
+        'r', '/etc/pihole/versions', piholeuser)
     actual_rc = host.run(check_localversion).rc
     assert exit_status_success == actual_rc
     # readable logrotate
