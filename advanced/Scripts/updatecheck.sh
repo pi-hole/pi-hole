@@ -41,33 +41,19 @@ function get_local_version() {
 # shellcheck disable=SC1091
 . /etc/pihole/setupVars.conf
 
-utilsfile="/opt/pihole/utils.sh"
-source "${utilsfile}"
+# Source the utils file
+# shellcheck disable=SC1091
+. /opt/pihole/utils.sh
 
 # Remove the below three legacy files if they exist
-GITHUB_VERSION_FILE="/etc/pihole/GitHubVersions"
-LOCAL_BRANCH_FILE="/etc/pihole/localbranches"
-LOCAL_VERSION_FILE="/etc/pihole/localversions"
-
-if [ -f "${GITHUB_VERSION_FILE}" ]; then
-    rm "${GITHUB_VERSION_FILE}"
-fi
-
-if [ -f "${LOCAL_BRANCH_FILE}" ]; then
-    rm "${LOCAL_BRANCH_FILE}"
-fi
-
-if [ -f "${LOCAL_VERSION_FILE}" ]; then
-    rm "${LOCAL_VERSION_FILE}"
-fi
+rm -f "/etc/pihole/GitHubVersions"
+rm -f "/etc/pihole/localbranches"
+rm -f "/etc/pihole/localversions"
 
 # Create new versions file if it does not exist
 VERSION_FILE="/etc/pihole/versions"
-
-if [ ! -f "${VERSION_FILE}" ]; then
-    touch "${VERSION_FILE}"
-    chmod 644 "${VERSION_FILE}"
-fi
+touch "${VERSION_FILE}"
+chmod 644 "${VERSION_FILE}"
 
 if [[ "$2" == "remote" ]]; then
 
