@@ -89,17 +89,18 @@ getRemoteVersion(){
     local daemon="${1}"
     local version
     local cachedVersions
-    local arrCache
-    cachedVersions="/etc/pihole/GitHubVersions"
+    cachedVersions="/etc/pihole/versions"
 
     #If the above file exists, then we can read from that. Prevents overuse of GitHub API
     if [[ -f "$cachedVersions" ]]; then
-        IFS=' ' read -r -a arrCache < "$cachedVersions"
+
+        # shellcheck disable=SC1090
+        . "$cachedVersions"
 
         case $daemon in
-            "pi-hole"   )  echo "${arrCache[0]}";;
-            "AdminLTE"  )  [[ "${INSTALL_WEB_INTERFACE}" == true ]] && echo "${arrCache[1]}";;
-            "FTL"       )  [[ "${INSTALL_WEB_INTERFACE}" == true ]] && echo "${arrCache[2]}" || echo "${arrCache[1]}";;
+            "pi-hole"   )  echo "${GITHUB_CORE_VERSION}";;
+            "AdminLTE"  )  [[ "${INSTALL_WEB_INTERFACE}" == true ]] && echo "${GITHUB_WEB_VERSION}";;
+            "FTL"       )  echo "${GITHUB_FTL_VERSION}";;
         esac
 
         return 0
