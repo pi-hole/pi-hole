@@ -7,10 +7,10 @@ _pihole() {
 
 	case "${prev}" in
 		"pihole")
-			opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist arpflush"
+			opts="admin denylist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard allowlist arpflush"
 			COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 		;;
-		"whitelist"|"blacklist"|"wildcard"|"regex")
+		"allowlist"|"denylist"|"wildcard"|"regex")
 			opts_lists="\--delmode \--noreload \--quiet \--list \--nuke"
 			COMPREPLY=( $(compgen -W "${opts_lists}" -- ${cur}) )
 		;;

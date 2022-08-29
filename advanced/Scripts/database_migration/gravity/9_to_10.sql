@@ -4,10 +4,10 @@ PRAGMA FOREIGN_KEYS=OFF;
 
 BEGIN TRANSACTION;
 
-DROP TABLE IF EXISTS whitelist;
-DROP TABLE IF EXISTS blacklist;
-DROP TABLE IF EXISTS regex_whitelist;
-DROP TABLE IF EXISTS regex_blacklist;
+DROP TABLE IF EXISTS allowlist;
+DROP TABLE IF EXISTS denylist;
+DROP TABLE IF EXISTS regex_allowlist;
+DROP TABLE IF EXISTS regex_denylist;
 
 CREATE TRIGGER tr_domainlist_delete AFTER DELETE ON domainlist
     BEGIN

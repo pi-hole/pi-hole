@@ -5,7 +5,7 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# Whitelist and blacklist domains
+# Allowlist and denylist domains
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
@@ -42,35 +42,35 @@ source ${colfile}
 
 # IDs are hard-wired to domain interpretation in the gravity database scheme
 # Clients (including FTL) will read them through the corresponding views
-readonly whitelist="0"
-readonly blacklist="1"
-readonly regex_whitelist="2"
-readonly regex_blacklist="3"
+readonly allowlist="0"
+readonly denylist="1"
+readonly regex_allowlist="2"
+readonly regex_denylist="3"
 
 GetListnameFromTypeId() {
-    if [[ "$1" == "${whitelist}" ]]; then
-        echo "whitelist"
-    elif  [[ "$1" == "${blacklist}" ]]; then
-        echo "blacklist"
-    elif  [[ "$1" == "${regex_whitelist}" ]]; then
-        echo "regex whitelist"
-    elif  [[ "$1" == "${regex_blacklist}" ]]; then
-        echo "regex blacklist"
+    if [[ "$1" == "${allowlist}" ]]; then
+        echo "allowlist"
+    elif  [[ "$1" == "${denylist}" ]]; then
+        echo "denylist"
+    elif  [[ "$1" == "${regex_allowlist}" ]]; then
+        echo "regex allowlist"
+    elif  [[ "$1" == "${regex_denylist}" ]]; then
+        echo "regex denylist"
     fi
 }
 
 GetListParamFromTypeId() {
-    if [[ "${typeId}" == "${whitelist}" ]]; then
+    if [[ "${typeId}" == "${allowlist}" ]]; then
         echo "w"
-    elif  [[ "${typeId}" == "${blacklist}" ]]; then
+    elif  [[ "${typeId}" == "${denylist}" ]]; then
         echo "b"
-    elif  [[ "${typeId}" == "${regex_whitelist}" && "${wildcard}" == true ]]; then
-        echo "-white-wild"
-    elif  [[ "${typeId}" == "${regex_whitelist}" ]]; then
-        echo "-white-regex"
-    elif  [[ "${typeId}" == "${regex_blacklist}" && "${wildcard}" == true ]]; then
+    elif  [[ "${typeId}" == "${regex_allowlist}" && "${wildcard}" == true ]]; then
+        echo "-allow-wild"
+    elif  [[ "${typeId}" == "${regex_allowlist}" ]]; then
+        echo "-allow-regex"
+    elif  [[ "${typeId}" == "${regex_denylist}" && "${wildcard}" == true ]]; then
         echo "-wild"
-    elif  [[ "${typeId}" == "${regex_blacklist}" ]]; then
+    elif  [[ "${typeId}" == "${regex_denylist}" ]]; then
         echo "-regex"
     fi
 }
@@ -103,7 +103,7 @@ ValidateDomain() {
     local str validDomain
 
     # Check validity of domain (don't check for regex entries)
-    if [[ ( "${typeId}" == "${regex_blacklist}" || "${typeId}" == "${regex_whitelist}" ) && "${wildcard}" == false ]]; then
+    if [[ ( "${typeId}" == "${regex_denylist}" || "${typeId}" == "${regex_allowlist}" ) && "${wildcard}" == false ]]; then
         validDomain="${domain}"
     else
         # Check max length
@@ -272,10 +272,10 @@ GetComment() {
 
 while (( "$#" )); do
     case "${1}" in
-        "-w" | "whitelist"   ) typeId=0;;
-        "-b" | "blacklist"   ) typeId=1;;
-        "--white-regex" | "white-regex" ) typeId=2;;
-        "--white-wild" | "white-wild" ) typeId=2; wildcard=true;;
+        "-w" | "allowlist"   ) typeId=0;;
+        "-b" | "denylist"   ) typeId=1;;
+        "--allow-regex" | "allow-regex" ) typeId=2;;
+        "--allow-wild" | "allow-wild" ) typeId=2; wildcard=true;;
         "--wild" | "wildcard" ) typeId=3; wildcard=true;;
         "--regex" | "regex"   ) typeId=3;;
         "-nr"| "--noreload"  ) noReloadRequested=true;;

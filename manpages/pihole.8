@@ -1,7 +1,7 @@
 .TH "Pi-hole" "8" "Pi-hole" "Pi-hole" "April 2020"
 .SH "NAME"
 
-Pi-hole : A black-hole for internet advertisements
+Pi-hole : A deny-hole for internet advertisements
 .br
 .SH "SYNOPSIS"
 
@@ -52,37 +52,37 @@ pihole restartdns\fR [options]
 Available commands and options:
 .br
 
-\fB-w, whitelist\fR [options] [<domain1> <domain2 ...>]
+\fB-w, allowlist\fR [options] [<domain1> <domain2 ...>]
 .br
-    Adds or removes specified domain or domains to the Whitelist
+    Adds or removes specified domain or domains to the Allowlist
 .br
 
-\fB-b, blacklist\fR [options] [<domain1> <domain2 ...>]
+\fB-b, denylist\fR [options] [<domain1> <domain2 ...>]
 .br
-    Adds or removes specified domain or domains to the blacklist
+    Adds or removes specified domain or domains to the denylist
 .br
 
 \fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
 .br
-    Add or removes specified regex filter to the regex blacklist
+    Add or removes specified regex filter to the regex denylist
 .br
 
-\fB--white-regex\fR [options] [<regex1> <regex2 ...>]
+\fB--allow-regex\fR [options] [<regex1> <regex2 ...>]
 .br
-    Add or removes specified regex filter to the regex whitelist
+    Add or removes specified regex filter to the regex allowlist
 .br
 
 \fB--wild, wildcard\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified domain to the wildcard blacklist
+    Add or removes specified domain to the wildcard denylist
 .br
 
-\fB--white-wild\fR [options] [<domain1> <domain2 ...>]
+\fB--allow-wild\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified domain to the wildcard whitelist
+    Add or removes specified domain to the wildcard allowlist
 .br
 
-    (Whitelist/Blacklist manipulation options):
+    (Allowlist/Denylist manipulation options):
 .br
       -d, --delmode     Remove domain(s) from the list
 .br
@@ -289,17 +289,17 @@ Available commands and options:
 Some usage examples
 .br
 
-Whitelist/blacklist manipulation
+Allowlist/denylist manipulation
 .br
 
 \fBpihole -w iloveads.example.com\fR
 .br
-    Adds "iloveads.example.com" to whitelist
+    Adds "iloveads.example.com" to allowlist
 .br
 
 \fBpihole -b -d noads.example.com\fR
 .br
-    Removes "noads.example.com" from blacklist
+    Removes "noads.example.com" from denylist
 .br
 
 \fBpihole --wild example.com\fR
@@ -310,7 +310,7 @@ Whitelist/blacklist manipulation
 
 \fBpihole --regex "ad.*\\.example\\.com$"\fR
 .br
-    Adds "ad.*\\.example\\.com$" to the regex blacklist.
+    Adds "ad.*\\.example\\.com$" to the regex denylist.
     Would block all subdomains of example.com which start with "ad"
 .br
 

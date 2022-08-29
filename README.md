@@ -138,7 +138,7 @@ The [pihole](https://docs.pi-hole.net/core/pihole-command/) command has all the 
 
 Some notable features include:
 
-- [Whitelisting, Blacklisting, and Regex](https://docs.pi-hole.net/core/pihole-command/#whitelisting-blacklisting-and-regex)
+- [Allowlisting, Denylisting, and Regex](https://docs.pi-hole.net/core/pihole-command/#allowlisting-denylisting-and-regex)
 - [Debugging utility](https://docs.pi-hole.net/core/pihole-command/#debugger)
 - [Viewing the live log file](https://docs.pi-hole.net/core/pihole-command/#tail)
 - [Updating Ad Lists](https://docs.pi-hole.net/core/pihole-command/#gravity)

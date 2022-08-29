@@ -15,30 +15,30 @@ CREATE TABLE domainlist
 	comment TEXT
 );
 
-ALTER TABLE whitelist ADD COLUMN type INTEGER;
-UPDATE whitelist SET type = 0;
+ALTER TABLE allowlist ADD COLUMN type INTEGER;
+UPDATE allowlist SET type = 0;
 INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
-    SELECT type,domain,enabled,date_added,date_modified,comment FROM whitelist;
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM allowlist;
 
-ALTER TABLE blacklist ADD COLUMN type INTEGER;
-UPDATE blacklist SET type = 1;
+ALTER TABLE denylist ADD COLUMN type INTEGER;
+UPDATE denylist SET type = 1;
 INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
-    SELECT type,domain,enabled,date_added,date_modified,comment FROM blacklist;
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM denylist;
 
-ALTER TABLE regex_whitelist ADD COLUMN type INTEGER;
-UPDATE regex_whitelist SET type = 2;
+ALTER TABLE regex_allowlist ADD COLUMN type INTEGER;
+UPDATE regex_allowlist SET type = 2;
 INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
-    SELECT type,domain,enabled,date_added,date_modified,comment FROM regex_whitelist;
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM regex_allowlist;
 
-ALTER TABLE regex_blacklist ADD COLUMN type INTEGER;
-UPDATE regex_blacklist SET type = 3;
+ALTER TABLE regex_denylist ADD COLUMN type INTEGER;
+UPDATE regex_denylist SET type = 3;
 INSERT INTO domainlist (type,domain,enabled,date_added,date_modified,comment)
-    SELECT type,domain,enabled,date_added,date_modified,comment FROM regex_blacklist;
+    SELECT type,domain,enabled,date_added,date_modified,comment FROM regex_denylist;
 
-DROP TABLE whitelist_by_group;
-DROP TABLE blacklist_by_group;
-DROP TABLE regex_whitelist_by_group;
-DROP TABLE regex_blacklist_by_group;
+DROP TABLE allowlist_by_group;
+DROP TABLE denylist_by_group;
+DROP TABLE regex_allowlist_by_group;
+DROP TABLE regex_denylist_by_group;
 CREATE TABLE domainlist_by_group
 (
 	domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
@@ -46,17 +46,17 @@ CREATE TABLE domainlist_by_group
 	PRIMARY KEY (domainlist_id, group_id)
 );
 
-DROP TRIGGER tr_whitelist_update;
-DROP TRIGGER tr_blacklist_update;
-DROP TRIGGER tr_regex_whitelist_update;
-DROP TRIGGER tr_regex_blacklist_update;
+DROP TRIGGER tr_allowlist_update;
+DROP TRIGGER tr_denylist_update;
+DROP TRIGGER tr_regex_allowlist_update;
+DROP TRIGGER tr_regex_denylist_update;
 CREATE TRIGGER tr_domainlist_update AFTER UPDATE ON domainlist
     BEGIN
       UPDATE domainlist SET date_modified = (cast(strftime('%s', 'now') as int)) WHERE domain = NEW.domain;
     END;
 
-DROP VIEW vw_whitelist;
-CREATE VIEW vw_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+DROP VIEW vw_allowlist;
+CREATE VIEW vw_allowlist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
@@ -64,8 +64,8 @@ CREATE VIEW vw_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_gr
     AND domainlist.type = 0
     ORDER BY domainlist.id;
 
-DROP VIEW vw_blacklist;
-CREATE VIEW vw_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+DROP VIEW vw_denylist;
+CREATE VIEW vw_denylist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
@@ -73,8 +73,8 @@ CREATE VIEW vw_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_gr
     AND domainlist.type = 1
     ORDER BY domainlist.id;
 
-DROP VIEW vw_regex_whitelist;
-CREATE VIEW vw_regex_whitelist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+DROP VIEW vw_regex_allowlist;
+CREATE VIEW vw_regex_allowlist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
@@ -82,8 +82,8 @@ CREATE VIEW vw_regex_whitelist AS SELECT domain, domainlist.id AS id, domainlist
     AND domainlist.type = 2
     ORDER BY domainlist.id;
 
-DROP VIEW vw_regex_blacklist;
-CREATE VIEW vw_regex_blacklist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
+DROP VIEW vw_regex_denylist;
+CREATE VIEW vw_regex_denylist AS SELECT domain, domainlist.id AS id, domainlist_by_group.group_id AS group_id
     FROM domainlist
     LEFT JOIN domainlist_by_group ON domainlist_by_group.domainlist_id = domainlist.id
     LEFT JOIN "group" ON "group".id = domainlist_by_group.group_id
