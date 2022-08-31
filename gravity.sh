@@ -40,6 +40,7 @@ gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
 domainsExtension="domains"
+curl_connect_timeout=10
 
 # Source setupVars from install script
 setupVars="${piholeDir}/setupVars.conf"
@@ -641,7 +642,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # shellcheck disable=SC2086
-  httpCode=$(curl --connect-timeout 10 -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
 
   case $url in
     # Did we "download" a local file?
