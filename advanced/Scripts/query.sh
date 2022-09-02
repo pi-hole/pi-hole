@@ -16,7 +16,6 @@ GRAVITYDB="${piholeDir}/gravity.db"
 options="$*"
 all=""
 exact=""
-blockpage=""
 matchType="match"
 # Source pihole-FTL from install script
 pihole_FTL="${piholeDir}/pihole-FTL.conf"
@@ -34,7 +33,7 @@ source "${colfile}"
 # Scan an array of files for matching strings
 scanList(){
     # Escape full stops
-    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" type="${3:-}"
+    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" list_type="${3:-}"
 
     # Prevent grep from printing file path
     cd "$piholeDir" || exit 1
@@ -43,7 +42,7 @@ scanList(){
     export LC_CTYPE=C
 
     # /dev/null forces filename to be printed when only one list has been generated
-    case "${type}" in
+    case "${list_type}" in
         "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
         # Iterate through each regexp and check whether it matches the domainQuery
         # If it does, print the matching regexp and continue looping
@@ -71,18 +70,14 @@ Options:
 fi
 
 # Handle valid options
-if [[ "${options}" == *"-bp"* ]]; then
-    exact="exact"; blockpage=true
-else
-    [[ "${options}" == *"-all"* ]] && all=true
-    if [[ "${options}" == *"-exact"* ]]; then
-        exact="exact"; matchType="exact ${matchType}"
-    fi
+[[ "${options}" == *"-all"* ]] && all=true
+if [[ "${options}" == *"-exact"* ]]; then
+    exact="exact"; matchType="exact ${matchType}"
 fi
 
 # Strip valid options, leaving only the domain and invalid options
 # This allows users to place the options before or after the domain
-options=$(sed -E 's/ ?-(bp|adlists?|all|exact) ?//g' <<< "${options}")
+options=$(sed -E 's/ ?-(adlists?|all|exact) ?//g' <<< "${options}")
 
 # Handle remaining options
 # If $options contain non ASCII characters, convert to punycode
@@ -99,10 +94,10 @@ if [[ -n "${str:-}" ]]; then
 fi
 
 scanDatabaseTable() {
-    local domain table type querystr result extra
+    local domain table list_type querystr result extra
     domain="$(printf "%q" "${1}")"
     table="${2}"
-    type="${3:-}"
+    list_type="${3:-}"
 
     # As underscores are legitimate parts of domains, we escape them when using the LIKE operator.
     # Underscores are SQLite wildcards matching exactly one character. We obviously want to suppress this
@@ -115,8 +110,8 @@ scanDatabaseTable() {
         esac
     else
         case "${exact}" in
-            "exact" ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain = '${domain}'";;
-            *       ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${type}' AND domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+            "exact" ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${list_type}' AND domain = '${domain}'";;
+            *       ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${list_type}' AND domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
         esac
     fi
 
@@ -136,17 +131,11 @@ scanDatabaseTable() {
     wbMatch=true
 
     # Print table name
-    if [[ -z "${blockpage}" ]]; then
-        echo " ${matchType^} found in ${COL_BOLD}exact ${table}${COL_NC}"
-    fi
+    echo " ${matchType^} found in ${COL_BOLD}exact ${table}${COL_NC}"
 
     # Loop over results and print them
     mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
-        if [[ -n "${blockpage}" ]]; then
-            echo "π ${result}"
-            exit 0
-        fi
         domain="${result/|*}"
         if [[ "${result#*|}" == "0" ]]; then
             extra=" (disabled)"
@@ -158,13 +147,13 @@ scanDatabaseTable() {
 }
 
 scanRegexDatabaseTable() {
-    local domain list
+    local domain list list_type
     domain="${1}"
     list="${2}"
-    type="${3:-}"
+    list_type="${3:-}"
 
     # Query all regex from the corresponding database tables
-    mapfile -t regexList < <(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${type}" 2> /dev/null)
+    mapfile -t regexList < <(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${list_type}" 2> /dev/null)
 
     # If we have regexps to process
     if [[ "${#regexList[@]}" -ne 0 ]]; then
@@ -181,18 +170,13 @@ scanRegexDatabaseTable() {
             # Form a "results" message
             str_result="${COL_BOLD}${str_regexMatches}${COL_NC}"
             # If we are displaying more than just the source of the block
-            if [[ -z "${blockpage}" ]]; then
-                # Set the wildcard match flag
-                wcMatch=true
-                # Echo the "matched" message, indented by one space
-                echo " ${str_message}"
-                # Echo the "results" message, each line indented by three spaces
-                # shellcheck disable=SC2001
-                echo "${str_result}" | sed 's/^/   /'
-            else
-                echo "π .wildcard"
-                exit 0
-            fi
+            # Set the wildcard match flag
+            wcMatch=true
+            # Echo the "matched" message, indented by one space
+            echo " ${str_message}"
+            # Echo the "results" message, each line indented by three spaces
+            # shellcheck disable=SC2001
+            echo "${str_result}" | sed 's/^/   /'
         fi
     fi
 }
@@ -222,7 +206,7 @@ elif [[ -z "${all}" ]] && [[ "${#results[*]}" -ge 100 ]]; then
 fi
 
 # Print "Exact matches for" title
-if [[ -n "${exact}" ]] && [[ -z "${blockpage}" ]]; then
+if [[ -n "${exact}" ]]; then
     plural=""; [[ "${#results[*]}" -gt 1 ]] && plural="es"
     echo " ${matchType^}${plural} for ${COL_BOLD}${domainQuery}${COL_NC} found in:"
 fi
@@ -238,9 +222,7 @@ for result in "${results[@]}"; do
         extra=""
     fi
 
-    if [[ -n "${blockpage}" ]]; then
-        echo "0 ${adlistAddress}"
-    elif [[ -n "${exact}" ]]; then
+    if [[ -n "${exact}" ]]; then
         echo "  - ${adlistAddress}${extra}"
     else
         if [[ ! "${adlistAddress}" == "${adlistAddress_prev:-}" ]]; then

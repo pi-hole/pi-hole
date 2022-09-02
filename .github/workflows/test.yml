@@ -14,7 +14,7 @@ jobs:
     steps:
     -
       name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.0.2
     -
       name: Check scripts in repository are executable
       run: |
@@ -30,7 +30,7 @@ jobs:
         ignore_words_file: .codespellignore
     -
       name: Get editorconfig-checker
-      uses: editorconfig-checker/action-editorconfig-checker@main
+      uses: editorconfig-checker/action-editorconfig-checker@main # tag v1.0.0 is really out of date
     -
       name: Run editorconfig-checker
       run: editorconfig-checker
@@ -41,17 +41,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: smoke-tests
     strategy:
+      fail-fast: false
       matrix:
-        distro: [debian_10, debian_11, ubuntu_18, ubuntu_20, ubuntu_21, ubuntu_22, centos_7, centos_8, fedora_34]
+        distro: [debian_10, debian_11, ubuntu_18, ubuntu_20, ubuntu_22, centos_8, fedora_34]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
     -
       name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.0.2
     -
       name: Set up Python 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v4.2.0
       with:
         python-version: 3.8
     -

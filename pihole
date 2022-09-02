@@ -16,7 +16,6 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # error due to modifying a readonly variable.
 setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
-readonly FTL_PID_FILE="/run/pihole-FTL.pid"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
@@ -36,19 +35,20 @@ listFunc() {
 }
 
 debugFunc() {
-  local automated
-  local web
+    local automated
+    local web
+    local check_database_integrity
+    # Pull off the `debug` leaving passed call augmentation flags in $1
+    shift
 
-  # Pull off the `debug` leaving passed call augmentation flags in $1
-  shift
-  if [[ "$@" == *"-a"* ]]; then
-    automated="true"
-  fi
-  if [[ "$@" == *"-w"* ]]; then
-    web="true"
-  fi
+    for value in "$@"; do
+        [[ "$value"  == *"-a"* ]] && automated="true"
+        [[ "$value"  == *"-w"* ]] && web="true"
+        [[ "$value"  == *"-c"* ]] && check_database_integrity="true"
+        [[ "$value" == *"--check_database"* ]] && check_database_integrity="true"
+    done
 
-  AUTOMATED=${automated:-} WEBCALL=${web:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
+  AUTOMATED=${automated:-} WEBCALL=${web:-} CHECK_DATABASE=${check_database_integrity:-} "${PI_HOLE_SCRIPT_DIR}"/piholeDebug.sh
   exit 0
 }
 
@@ -100,25 +100,8 @@ versionFunc() {
   exec "${PI_HOLE_SCRIPT_DIR}"/version.sh "$@"
 }
 
-# Get PID of main pihole-FTL process
-getFTLPID() {
-  local pid
-
-  if [ -s "${FTL_PID_FILE}" ]; then
-    # -s: FILE exists and has a size greater than zero
-    pid="$(<"$FTL_PID_FILE")"
-    # Exploit prevention: unset the variable if there is malicious content
-    # Verify that the value read from the file is numeric
-    [[ "$pid" =~ [^[:digit:]] ]] && unset pid
-  fi
-
-  # If FTL is not running, or the PID file contains malicious stuff, substitute
-  # negative PID to signal this to the caller
-  echo "${pid:=-1}"
-}
-
 restartDNS() {
-  local svcOption svc str output status pid icon
+  local svcOption svc str output status pid icon FTL_PID_FILE
   svcOption="${1:-restart}"
 
   # Determine if we should reload or restart
@@ -127,7 +110,11 @@ restartDNS() {
     # Note 1: This will NOT re-read any *.conf files
     # Note 2: We cannot use killall here as it does
     #         not know about real-time signals
-    pid="$(getFTLPID)"
+
+    # get the current path to the pihole-FTL.pid
+    FTL_PID_FILE="$(getFTLPIDFile)"
+
+    pid="$(getFTLPID ${FTL_PID_FILE})"
     if [[ "$pid" -eq "-1" ]]; then
       svc="true"
       str="FTL is not running"
@@ -140,7 +127,7 @@ restartDNS() {
   elif [[ "${svcOption}" =~ "reload" ]]; then
     # Reloading of the DNS cache has been requested
     # Note: This will NOT re-read any *.conf files
-    pid="$(getFTLPID)"
+    pid="$(getFTLPID ${FTL_PID_FILE})"
     if [[ "$pid" -eq "-1" ]]; then
       svc="true"
       str="FTL is not running"
@@ -315,33 +302,37 @@ analyze_ports() {
 }
 
 statusFunc() {
-  # Determine if there is pihole-FTL service is listening
-  local pid port ftl_api_port
+    # Determine if there is pihole-FTL service is listening
+    local pid port ftl_api_port ftl_pid_file ftl_apiport_file
 
-  pid="$(getFTLPID)"
-  ftl_api_port="$(getFTLAPIPort)"
-  if [[ "$pid" -eq "-1" ]]; then
-    case "${1}" in
-      "web") echo "-1";;
-      *) echo -e "  ${CROSS} DNS service is NOT running";;
-    esac
-    return 0
-  else
-    #get the DNS port pihole-FTL is listening on by using FTL's telnet API
-    port="$(echo ">dns-port >quit" | nc 127.0.0.1 "$ftl_api_port")"
-    if [[ "${port}" == "0" ]]; then
-      case "${1}" in
-        "web") echo "-1";;
-        *) echo -e "  ${CROSS} DNS service is NOT listening";;
-      esac
-      return 0
+    ftl_pid_file="$(getFTLPIDFile)"
+
+    pid="$(getFTLPID ${ftl_pid_file})"
+
+    ftl_apiport_file="${getFTLAPIPortFile}"
+    ftl_api_port="$(getFTLAPIPort ${ftl_apiport_file})"
+    if [[ "$pid" -eq "-1" ]]; then
+        case "${1}" in
+            "web") echo "-1";;
+            *) echo -e "  ${CROSS} DNS service is NOT running";;
+        esac
+        return 0
     else
-      if [[ "${1}" != "web" ]]; then
-        echo -e "  ${TICK} FTL is listening on port ${port}"
-        analyze_ports "${port}"
-      fi
+        #get the DNS port pihole-FTL is listening on by using FTL's telnet API
+        port="$(echo ">dns-port >quit" | nc 127.0.0.1 "$ftl_api_port")"
+        if [[ "${port}" == "0" ]]; then
+            case "${1}" in
+                "web") echo "-1";;
+                *) echo -e "  ${CROSS} DNS service is NOT listening";;
+            esac
+            return 0
+        else
+            if [[ "${1}" != "web" ]]; then
+                echo -e "  ${TICK} FTL is listening on port ${port}"
+                analyze_ports "${port}"
+            fi
+        fi
     fi
-  fi
 
   # Determine if Pi-hole's blocking is enabled
   if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
@@ -455,6 +446,7 @@ Whitelist/Blacklist Options:
 
 Debugging Options:
   -d, debug           Start a debugging session
+                        Add '-c' or '--check-database' to include a Pi-hole database integrity check
                         Add '-a' to automatically upload the log to tricorder.pi-hole.net
   -f, flush           Flush the Pi-hole log
   -r, reconfigure     Reconfigure or Repair Pi-hole subsystems

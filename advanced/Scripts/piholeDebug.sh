@@ -332,17 +332,34 @@ compare_local_version_to_git_version() {
 
 check_ftl_version() {
     local ftl_name="FTL"
+    local FTL_VERSION FTL_COMMIT FTL_BRANCH
     echo_current_diagnostic "${ftl_name} version"
     # Use the built in command to check FTL's version
-    FTL_VERSION=$(pihole-FTL version)
+    FTL_VERSION=$(pihole-FTL -vv | grep -m 1 Version | awk '{printf $2}')
+    FTL_BRANCH=$(pihole-FTL -vv | grep -m 1 Branch | awk '{printf $2}')
+    FTL_COMMIT=$(pihole-FTL -vv | grep -m 1 Commit | awk '{printf $2}')
+
     # Compare the current FTL version to the remote version
     if [[ "${FTL_VERSION}" == "$(pihole -v | awk '/FTL/ {print $6}' | cut -d ')' -f1)" ]]; then
         # If they are the same, FTL is up-to-date
         log_write "${TICK} ${ftl_name}: ${COL_GREEN}${FTL_VERSION}${COL_NC}"
     else
         # If not, show it in yellow, signifying there is an update
-        log_write "${TICK} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
+        log_write "${INFO} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
     fi
+
+    # If they use the master branch, they are on the stable codebase
+    if [[ "${FTL_BRANCH}" == "master" ]]; then
+        # so the color of the text is green
+        log_write "${INFO} Branch: ${COL_GREEN}${FTL_BRANCH}${COL_NC}"
+        # If it is any other branch, they are in a development branch
+    else
+        # So show that in yellow, signifying it's something to take a look at, but not a critical error
+        log_write "${INFO} Branch: ${COL_YELLOW}${FTL_BRANCH}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
+    fi
+
+    # echo the current commit
+    log_write "${INFO} Commit: ${FTL_COMMIT}"
 }
 
 # Checks the core version of the Pi-hole codebase
@@ -797,29 +814,13 @@ check_x_headers() {
     # server is operating correctly
     echo_current_diagnostic "Dashboard and block page"
     # Use curl -I to get the header and parse out just the X-Pi-hole one
-    local block_page
-    block_page=$(curl -Is localhost | awk '/X-Pi-hole/' | tr -d '\r')
-    # Do it for the dashboard as well, as the header is different than above
+    local full_curl_output_dashboard
     local dashboard
-    dashboard=$(curl -Is localhost/admin/ | awk '/X-Pi-hole/' | tr -d '\r')
+    full_curl_output_dashboard="$(curl -Is localhost/admin/)"
+    dashboard=$(echo "${full_curl_output_dashboard}" | awk '/X-Pi-hole/' | tr -d '\r')
     # Store what the X-Header should be in variables for comparison later
-    local block_page_working
-    block_page_working="X-Pi-hole: A black hole for Internet advertisements."
     local dashboard_working
     dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
-    local full_curl_output_block_page
-    full_curl_output_block_page="$(curl -Is localhost)"
-    local full_curl_output_dashboard
-    full_curl_output_dashboard="$(curl -Is localhost/admin/)"
-    # If the X-header found by curl matches what is should be,
-    if [[ $block_page == "$block_page_working" ]]; then
-        # display a success message
-        log_write "$TICK Block page X-Header: ${COL_GREEN}${block_page}${COL_NC}"
-    else
-        # Otherwise, show an error
-        log_write "$CROSS Block page X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-        log_write "${COL_RED}${full_curl_output_block_page}${COL_NC}"
-    fi
 
     # Same logic applies to the dashboard as above, if the X-Header matches what a working system should have,
     if [[ $dashboard == "$dashboard_working" ]]; then
@@ -828,6 +829,7 @@ check_x_headers() {
     else
         # Otherwise, it's a failure since the X-Headers either don't exist or have been modified in some way
         log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+
         log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
     fi
 }
@@ -1230,7 +1232,7 @@ check_dhcp_servers() {
     OLD_IFS="$IFS"
     IFS=$'\n'
     local entries=()
-    mapfile -t entries < <(pihole-FTL dhcp-discover)
+    mapfile -t entries < <(pihole-FTL dhcp-discover & spinner)
 
     for line in "${entries[@]}"; do
         log_write "   ${line}"
@@ -1259,12 +1261,21 @@ show_messages() {
     show_FTL_db_entries "Pi-hole diagnosis messages" "SELECT count (message) as count, datetime(max(timestamp),'unixepoch','localtime') as 'last timestamp', type, message, blob1, blob2, blob3, blob4, blob5 FROM message GROUP BY type, message, blob1, blob2, blob3, blob4, blob5;" "6 19 20 60 20 20 20 20 20"
 }
 
+database_permissions() {
+    local permissions
+    permissions=$(ls -lhd "${1}")
+    log_write "${COL_GREEN}${permissions}${COL_NC}"
+}
+
 analyze_gravity_list() {
     echo_current_diagnostic "Gravity Database"
 
-    local gravity_permissions
-    gravity_permissions=$(ls -lhd "${PIHOLE_GRAVITY_DB_FILE}")
-    log_write "${COL_GREEN}${gravity_permissions}${COL_NC}"
+    database_permissions "${PIHOLE_GRAVITY_DB_FILE}"
+
+    # if users want to check database integrity
+    if [[ "${CHECK_DATABASE}" = true ]]; then
+        database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+    fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
     gravity_updated_raw="$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
@@ -1284,6 +1295,95 @@ analyze_gravity_list() {
 
     log_write ""
     IFS="$OLD_IFS"
+}
+
+analyze_ftl_db() {
+    echo_current_diagnostic "Pi-hole FTL Query Database"
+    database_permissions "${PIHOLE_FTL_DB_FILE}"
+    # if users want to check database integrity
+    if [[ "${CHECK_DATABASE}" = true ]]; then
+        database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+    fi
+}
+
+database_integrity_check(){
+    local result
+    local database="${1}"
+
+    log_write "${INFO} Checking integrity of ${database} ... (this can take several minutes)"
+    result="$(pihole-FTL "${database}" "PRAGMA integrity_check" 2>&1 & spinner)"
+    if [[ ${result} = "ok" ]]; then
+      log_write "${TICK} Integrity of ${database} intact"
+
+
+      log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
+      unset result
+      result="$(pihole-FTL sqlite3 "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
+      if [[ -z ${result} ]]; then
+        log_write "${TICK} No foreign key errors in ${database}"
+      else
+        log_write "${CROSS} ${COL_RED}Foreign key errors in ${database} found.${COL_NC}"
+        while IFS= read -r line ; do
+            log_write "    $line"
+        done <<< "$result"
+      fi
+
+    else
+      log_write "${CROSS} ${COL_RED}Integrity errors in ${database} found.\n${COL_NC}"
+      while IFS= read -r line ; do
+        log_write "    $line"
+      done <<< "$result"
+    fi
+
+}
+
+check_database_integrity() {
+    echo_current_diagnostic "Gravity Database"
+    database_permissions "${PIHOLE_GRAVITY_DB_FILE}"
+    database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
+
+    echo_current_diagnostic "Pi-hole FTL Query Database"
+    database_permissions "${PIHOLE_FTL_DB_FILE}"
+    database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+}
+
+# Show a text spinner during a long process run
+spinner(){
+    # Show the spinner only if there is a tty
+    if tty -s; then
+        # PID of the most recent background process
+        _PID=$!
+        _spin="/-\|"
+        _start=0
+        _elapsed=0
+        _i=1
+
+        # Start the counter
+        _start=$(date +%s)
+
+        # Hide the cursor
+        tput civis > /dev/tty
+
+        # ensures cursor is visible again, in case of premature exit
+        trap 'tput cnorm > /dev/tty' EXIT
+
+        while [ -d /proc/$_PID ]; do
+            _elapsed=$(( $(date +%s) - _start ))
+            # use hours only if needed
+            if [ "$_elapsed" -lt 3600 ]; then
+                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d" $((_elapsed/60)) $((_elapsed%60)) >"$(tty)"
+            else
+                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d:%02d" $((_elapsed/3600)) $(((_elapsed/60)%60)) $((_elapsed%60)) >"$(tty)"
+            fi
+            sleep 0.25
+        done
+
+        # Return to the begin of the line after completion (the spinner will be overwritten)
+        printf "\r" >"$(tty)"
+
+        # Restore cursor visibility
+        tput cnorm > /dev/tty
+    fi
 }
 
 obfuscated_pihole_log() {
@@ -1431,7 +1531,7 @@ upload_to_tricorder() {
         if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
             :
         else
-            log_write "${CROSS}  ${COL_RED}There was an error uploading your debug log.${COL_NC}"
+            log_write "${CROSS} ${COL_RED}There was an error uploading your debug log.${COL_NC}"
             log_write "   * Please try again or contact the Pi-hole team for assistance."
         fi
     fi
@@ -1460,6 +1560,7 @@ process_status
 ftl_full_status
 parse_setup_vars
 check_x_headers
+analyze_ftl_db
 analyze_gravity_list
 show_groups
 show_domainlist

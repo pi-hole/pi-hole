@@ -116,9 +116,9 @@ def test_installPiholeWeb_fresh_install_no_errors(host):
     source /opt/pihole/basic-install.sh
     installPiholeWeb
     ''')
-    expected_stdout = info_box + ' Installing blocking page...'
+    expected_stdout = info_box + ' Installing 404 page...'
     assert expected_stdout in installWeb.stdout
-    expected_stdout = tick_box + (' Creating directory for blocking page, '
+    expected_stdout = tick_box + (' Creating directory for 404 page, '
                                   'and copying files')
     assert expected_stdout in installWeb.stdout
     expected_stdout = info_box + ' Backing up index.lighttpd.html'
@@ -130,7 +130,6 @@ def test_installPiholeWeb_fresh_install_no_errors(host):
     assert expected_stdout in installWeb.stdout
     web_directory = host.run('ls -r /var/www/html/pihole').stdout
     assert 'index.php' in web_directory
-    assert 'blockingpage.css' in web_directory
 
 
 def get_directories_recursive(host, directory):
@@ -240,24 +239,14 @@ def test_installPihole_fresh_install_readableFiles(host):
         'r', '/etc/pihole/dns-servers.conf', piholeuser)
     actual_rc = host.run(check_servers).rc
     assert exit_status_success == actual_rc
-    # readable GitHubVersions
-    check_version = test_cmd.format(
-        'r', '/etc/pihole/GitHubVersions', piholeuser)
-    actual_rc = host.run(check_version).rc
-    assert exit_status_success == actual_rc
     # readable install.log
     check_install = test_cmd.format(
         'r', '/etc/pihole/install.log', piholeuser)
     actual_rc = host.run(check_install).rc
     assert exit_status_success == actual_rc
-    # readable localbranches
-    check_localbranch = test_cmd.format(
-        'r', '/etc/pihole/localbranches', piholeuser)
-    actual_rc = host.run(check_localbranch).rc
-    assert exit_status_success == actual_rc
-    # readable localversions
+    # readable versions
     check_localversion = test_cmd.format(
-        'r', '/etc/pihole/localversions', piholeuser)
+        'r', '/etc/pihole/versions', piholeuser)
     actual_rc = host.run(check_localversion).rc
     assert exit_status_success == actual_rc
     # readable logrotate
@@ -604,10 +593,6 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
         check_index = test_cmd.format(
             'r', webroot + '/pihole/index.php', webuser)
         actual_rc = host.run(check_index).rc
-        assert exit_status_success == actual_rc
-        check_blockpage = test_cmd.format(
-            'r', webroot + '/pihole/blockingpage.css', webuser)
-        actual_rc = host.run(check_blockpage).rc
         assert exit_status_success == actual_rc
         if test_webpage is True:
             # check webpage for unreadable files
@@ -1107,7 +1092,7 @@ def test_package_manager_has_installer_deps(host):
     install_dependent_packages ${INSTALLER_DEPS[@]}
     ''')
 
-    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert 'No package' not in output.stdout
     assert output.rc == 0
 
 
@@ -1117,11 +1102,10 @@ def test_package_manager_has_pihole_deps(host):
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    select_rpm_php
     install_dependent_packages ${PIHOLE_DEPS[@]}
     ''')
 
-    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert 'No package' not in output.stdout
     assert output.rc == 0
 
 
@@ -1131,9 +1115,8 @@ def test_package_manager_has_web_deps(host):
     output = host.run('''
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    select_rpm_php
     install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
     ''')
 
-    assert 'No package' not in output.stdout  # centos7 still exits 0...
+    assert 'No package' not in output.stdout
     assert output.rc == 0
