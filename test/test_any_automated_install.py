@@ -880,13 +880,17 @@ def test_FTL_binary_installed_and_responsive_no_errors(host):
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
+    echo "development" > /etc/pihole/ftlbranch
     binary="pihole-FTL${funcOutput##*pihole-FTL}"
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
-    pihole-FTL version
+    ''')
+    version_check = host.run('''
+    VERSION=$(pihole-FTL version)
+    echo ${VERSION:0:1}
     ''')
     expected_stdout = 'v'
-    assert expected_stdout in installed_binary.stdout
+    assert expected_stdout in version_check.stdout
 
 
 def test_IPv6_only_link_local(host):
