@@ -885,7 +885,10 @@ def test_FTL_binary_installed_and_responsive_no_errors(host):
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
     ''')
-    version_check = host.run('pihole-FTL version')
+    version_check = host.run('''
+    VERSION=$(pihole-FTL version)
+    echo ${VERSION:0:1}
+    ''')
     expected_stdout = 'v'
     assert expected_stdout in version_check.stdout
 
