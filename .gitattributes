@@ -17,12 +17,10 @@
 Lib/*  binary
 GitHub.Tests.Integration/Resources/*  binary
 
-
 # Binary files that should not be normalized or diffed
 *.png    binary
 *.jpg    binary
 *.gif    binary
-
 *.pfx    binary
 *.snk    binary
 *.dll    binary
@@ -32,7 +30,6 @@ GitHub.Tests.Integration/Resources/*  binary
 *.pdb    binary
 *.sdf    binary
 *.7z     binary
-
 
 # Catch all for anything we forgot. Add rules if you get CRLF -> LF warnings.
 * text eol=lf
