@@ -91,4 +91,8 @@ else
     FTL_VERSION="$(pihole-FTL version)"
     echo -n " ${FTL_VERSION}" >> "${LOCAL_VERSION_FILE}"
 
+    if [[ "${PIHOLE_DOCKER_TAG}" ]]; then
+        addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${PIHOLE_DOCKER_TAG}"
+    fi
+
 fi
