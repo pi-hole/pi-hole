@@ -41,6 +41,9 @@ else
     #OVER="\r\033[K"
 fi
 
+# shellcheck disable=SC1091
+. /etc/pihole/versions
+
 OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
 
 # FAQ URLs for use in showing the debug log
@@ -465,8 +468,8 @@ diagnose_operating_system() {
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
-    # If the PIHOLE_DOCKER_TAG variable is set, include this information in the debug output
-    [ -n "${PIHOLE_DOCKER_TAG}" ] && log_write "${INFO} Pi-hole Docker Container: ${PIHOLE_DOCKER_TAG}"
+    # If DOCKER_VERSION is set (Sourced from /etc/pihole/versions at start of script), include this information in the debug output
+    [ -n "${DOCKER_VERSION}" ] && log_write "${INFO} Pi-hole Docker Container: ${DOCKER_VERSION}"
 
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
@@ -802,7 +805,7 @@ check_networking() {
     ping_gateway "6"
     # Skip the following check if installed in docker container. Unpriv'ed containers do not have access to the information required
     # to resolve the service name listening - and the container should not start if there was a port conflict anyway
-    [ -z "${PIHOLE_DOCKER_TAG}" ] && check_required_ports
+    [ -z "${DOCKER_VERSION}" ] && check_required_ports
 }
 
 check_x_headers() {
