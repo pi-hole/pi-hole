@@ -84,6 +84,7 @@ else
     FTL_VERSION="$(pihole-FTL version)"
     addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
 
+    # PIHOLE_DOCKER_TAG is set as env variable only on docker installations
     if [[ "${PIHOLE_DOCKER_TAG}" ]]; then
         addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${PIHOLE_DOCKER_TAG}"
     fi
