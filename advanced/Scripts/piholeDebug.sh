@@ -815,7 +815,7 @@ check_x_headers() {
     # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
     # when accessing the dashboard (i.e curl -I pi.hole/admin/)
     # server is operating correctly
-    echo_current_diagnostic "Dashboard and block page"
+    echo_current_diagnostic "Dashboard headers"
     # Use curl -I to get the header and parse out just the X-Pi-hole one
     local full_curl_output_dashboard
     local dashboard
@@ -825,7 +825,7 @@ check_x_headers() {
     local dashboard_working
     dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
 
-    # Same logic applies to the dashboard as above, if the X-Header matches what a working system should have,
+    # If the X-Header matches what a working system should have,
     if [[ $dashboard == "$dashboard_working" ]]; then
         # then we can show a success
         log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
