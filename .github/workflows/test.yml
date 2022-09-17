@@ -43,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: [debian_10, debian_11, ubuntu_18, ubuntu_20, ubuntu_22, centos_8, fedora_34]
+        distro: [debian_10, debian_11, ubuntu_20, ubuntu_22, centos_8, fedora_34]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
@@ -51,10 +51,10 @@ jobs:
       name: Checkout repository
       uses: actions/checkout@v3.0.2
     -
-      name: Set up Python 3.8
+      name: Set up Python 3.10
       uses: actions/setup-python@v4.2.0
       with:
-        python-version: 3.8
+        python-version: '3.10'
     -
       name: Install dependencies
       run: pip install -r test/requirements.txt
