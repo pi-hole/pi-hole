@@ -503,11 +503,11 @@ chronoFunc() {
         fi
 
         printFunc "   Pi-hole: " "$ph_status" "$ph_info"
-        printFunc " Blocked %: " "$ads_percentage_today%" "$ads_info"
+        printFunc "   Blocked: " "$ads_percentage_today%" "$ads_info"
         printFunc "Local Qrys: " "$queries_cached_percentage%" "$dns_info"
 
-        printFunc "Last Blckd: " "$recent_blocked"
-        printFunc " Top Blckd: " "$top_ad"
+        printFunc "Last Block: " "$recent_blocked"
+        printFunc " Top Block: " "$top_ad"
 
         # Provide more stats on screens with more lines
         if [[ "$scr_lines" -eq 17 ]]; then
