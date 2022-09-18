@@ -53,7 +53,6 @@ FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisite
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
-FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
 FAQ_BAD_ADDRESS="${COL_CYAN}https://discourse.pi-hole.net/t/why-do-i-see-bad-address-at-in-pihole-log/3972${COL_NC}"
 
@@ -1277,7 +1276,7 @@ analyze_gravity_list() {
 
     # if users want to check database integrity
     if [[ "${CHECK_DATABASE}" = true ]]; then
-        database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+        database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
     fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
@@ -1338,16 +1337,6 @@ database_integrity_check(){
       done <<< "$result"
     fi
 
-}
-
-check_database_integrity() {
-    echo_current_diagnostic "Gravity Database"
-    database_permissions "${PIHOLE_GRAVITY_DB_FILE}"
-    database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
-
-    echo_current_diagnostic "Pi-hole FTL Query Database"
-    database_permissions "${PIHOLE_FTL_DB_FILE}"
-    database_integrity_check "${PIHOLE_FTL_DB_FILE}"
 }
 
 # Show a text spinner during a long process run
