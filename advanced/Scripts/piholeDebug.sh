@@ -1277,7 +1277,7 @@ analyze_gravity_list() {
 
     # if users want to check database integrity
     if [[ "${CHECK_DATABASE}" = true ]]; then
-        database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+        database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
     fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
