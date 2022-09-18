@@ -1377,8 +1377,29 @@ installConfigs() {
         fi
     fi
 
-    # Install pihole-FTL.service
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
+    # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
+    # Follow debhelper logic, which checks for /run/systemd/system to derive whether systemd is the init system
+    if [[ -d '/run/systemd/system' ]]; then
+        install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
+
+        # Set net admin permissions so that FTL can serve DNS, DHCP and IMAP (for DHCPv6). If this does not work, run FTL as root user.
+        if ! setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip '/usr/bin/pihole-FTL'; then
+            sed -i '/^User=/d' '/etc/systemd/system/pihole-FTL.service'
+        fi
+
+        # Remove init.d service if present
+        if [[ -e '/etc/init.d/pihole-FTL' ]]; then
+            rm '/etc/init.d/pihole-FTL'
+            update-rc.d pihole-FTL remove
+        fi
+
+        # Load final service
+        systemctl daemon-reload
+    else
+        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
+    fi
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
 
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
