@@ -1339,16 +1339,6 @@ database_integrity_check(){
 
 }
 
-check_database_integrity() {
-    echo_current_diagnostic "Gravity Database"
-    database_permissions "${PIHOLE_GRAVITY_DB_FILE}"
-    database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
-
-    echo_current_diagnostic "Pi-hole FTL Query Database"
-    database_permissions "${PIHOLE_FTL_DB_FILE}"
-    database_integrity_check "${PIHOLE_FTL_DB_FILE}"
-}
-
 # Show a text spinner during a long process run
 spinner(){
     # Show the spinner only if there is a tty
