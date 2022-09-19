@@ -37,6 +37,8 @@ rm -f "/etc/pihole/localversions"
 VERSION_FILE="/etc/pihole/versions"
 touch "${VERSION_FILE}"
 chmod 644 "${VERSION_FILE}"
+# if /pihole.docker.tag file exists, we will use it's value later in this script
+DOCKER_TAG=$(cat file 2>/dev/null)
 
 if [[ "$2" == "remote" ]]; then
 
@@ -55,7 +57,7 @@ if [[ "$2" == "remote" ]]; then
     GITHUB_FTL_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
 
-    if [[ "${PIHOLE_DOCKER_TAG}" ]]; then
+    if [[ "${DOCKER_TAG}" ]]; then
         GITHUB_DOCKER_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/docker-pi-hole/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
         addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
     fi
@@ -84,9 +86,8 @@ else
     FTL_VERSION="$(pihole-FTL version)"
     addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
 
-    # PIHOLE_DOCKER_TAG is set as env variable only on docker installations
-    if [[ "${PIHOLE_DOCKER_TAG}" ]]; then
-        addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${PIHOLE_DOCKER_TAG}"
+    if [[ "${DOCKER_TAG}" ]]; then
+        addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${DOCKER_TAG}"
     fi
 
 fi
