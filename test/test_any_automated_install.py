@@ -857,7 +857,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(host):
     """
     confirms FTL binary is copied and functional in installed location
     """
-    installed_binary = host.run(
+    host.run(
         """
     source /opt/pihole/basic-install.sh
     create_pihole_user
