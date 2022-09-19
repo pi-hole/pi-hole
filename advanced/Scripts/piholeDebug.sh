@@ -41,6 +41,9 @@ else
     #OVER="\r\033[K"
 fi
 
+# shellcheck disable=SC1091
+. /etc/pihole/versions
+
 OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
 
 # FAQ URLs for use in showing the debug log
@@ -50,7 +53,6 @@ FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisite
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
-FAQ_ULA="${COL_CYAN}https://discourse.pi-hole.net/t/use-ipv6-ula-addresses-for-pi-hole/2127${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
 FAQ_BAD_ADDRESS="${COL_CYAN}https://discourse.pi-hole.net/t/why-do-i-see-bad-address-at-in-pihole-log/3972${COL_NC}"
 
@@ -465,8 +467,8 @@ diagnose_operating_system() {
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
-    # If the PIHOLE_DOCKER_TAG variable is set, include this information in the debug output
-    [ -n "${PIHOLE_DOCKER_TAG}" ] && log_write "${INFO} Pi-hole Docker Container: ${PIHOLE_DOCKER_TAG}"
+    # If DOCKER_VERSION is set (Sourced from /etc/pihole/versions at start of script), include this information in the debug output
+    [ -n "${DOCKER_VERSION}" ] && log_write "${INFO} Pi-hole Docker Container: ${DOCKER_VERSION}"
 
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
@@ -802,7 +804,7 @@ check_networking() {
     ping_gateway "6"
     # Skip the following check if installed in docker container. Unpriv'ed containers do not have access to the information required
     # to resolve the service name listening - and the container should not start if there was a port conflict anyway
-    [ -z "${PIHOLE_DOCKER_TAG}" ] && check_required_ports
+    [ -z "${DOCKER_VERSION}" ] && check_required_ports
 }
 
 check_x_headers() {
@@ -812,7 +814,7 @@ check_x_headers() {
     # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
     # when accessing the dashboard (i.e curl -I pi.hole/admin/)
     # server is operating correctly
-    echo_current_diagnostic "Dashboard and block page"
+    echo_current_diagnostic "Dashboard headers"
     # Use curl -I to get the header and parse out just the X-Pi-hole one
     local full_curl_output_dashboard
     local dashboard
@@ -822,7 +824,7 @@ check_x_headers() {
     local dashboard_working
     dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
 
-    # Same logic applies to the dashboard as above, if the X-Header matches what a working system should have,
+    # If the X-Header matches what a working system should have,
     if [[ $dashboard == "$dashboard_working" ]]; then
         # then we can show a success
         log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
@@ -1274,7 +1276,7 @@ analyze_gravity_list() {
 
     # if users want to check database integrity
     if [[ "${CHECK_DATABASE}" = true ]]; then
-        database_integrity_check "${PIHOLE_FTL_DB_FILE}"
+        database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
     fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
@@ -1335,16 +1337,6 @@ database_integrity_check(){
       done <<< "$result"
     fi
 
-}
-
-check_database_integrity() {
-    echo_current_diagnostic "Gravity Database"
-    database_permissions "${PIHOLE_GRAVITY_DB_FILE}"
-    database_integrity_check "${PIHOLE_GRAVITY_DB_FILE}"
-
-    echo_current_diagnostic "Pi-hole FTL Query Database"
-    database_permissions "${PIHOLE_FTL_DB_FILE}"
-    database_integrity_check "${PIHOLE_FTL_DB_FILE}"
 }
 
 # Show a text spinner during a long process run
