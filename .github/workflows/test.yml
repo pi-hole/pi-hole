@@ -34,7 +34,11 @@ jobs:
     -
       name: Run editorconfig-checker
       run: editorconfig-checker
-
+    -
+      name: Run black python code formatter
+      uses: psf/black@stable
+      with:
+        src: "./test"
 
   distro-test:
     if: github.event.pull_request.draft == false
