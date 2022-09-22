@@ -999,10 +999,10 @@ If you want to specify a port other than 53, separate it with a hash.\
                 # and continue the loop.
                 DNSSettingsCorrect=False
             else
-                dialog --no-shadow --keep-tite \
+                dialog --no-shadow --no-collapse --keep-tite \
                     --backtitle "Specify Upstream DNS Provider(s)" \
                     --title "Upstream DNS Provider(s)" \
-                    --yesno "Are these settings correct?\\n\\tDNS Server 1:\\t${PIHOLE_DNS_1}\\n\\tDNS Server 2:\\t${PIHOLE_DNS_2}" \
+                    --yesno "Are these settings correct?\\n"$'\t'"DNS Server 1:"$'\t'"${PIHOLE_DNS_1}\\n"$'\t'"DNS Server 2:"$'\t'"${PIHOLE_DNS_2}" \
                     "${r}" "${c}" && result=0 || result=$?
 
                 case ${result} in
