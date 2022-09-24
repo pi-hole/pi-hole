@@ -42,6 +42,11 @@ warning1() {
     esac
 }
 
+updateCheckFunc() {
+    /opt/pihole/updatecheck.sh
+    /opt/pihole/updatecheck.sh x remote
+}
+
 checkout() {
     local corebranches
     local webbranches
@@ -164,6 +169,8 @@ checkout() {
             exit 1
         fi
         checkout_pull_branch "${webInterfaceDir}" "${2}"
+        # Force an update of the updatechecker
+        updateCheckFunc
     elif [[ "${1}" == "ftl" ]] ; then
         local path
         local oldbranch
@@ -178,6 +185,8 @@ checkout() {
             FTLinstall "${binary}"
             restart_service pihole-FTL
             enable_service pihole-FTL
+            # Force an update of the updatechecker
+            updateCheckFunc
         else
             echo "  ${CROSS} Requested branch \"${2}\" is not available"
             ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
