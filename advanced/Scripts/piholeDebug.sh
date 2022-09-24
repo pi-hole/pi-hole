@@ -41,6 +41,9 @@ else
     #OVER="\r\033[K"
 fi
 
+# Force an update of the updatechecker
+/opt/pihole/updatecheck.sh
+/opt/pihole/updatecheck.sh x remote
 # shellcheck disable=SC1091
 . /etc/pihole/versions
 
