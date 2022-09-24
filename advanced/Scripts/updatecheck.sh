@@ -57,19 +57,19 @@ if [[ "$2" == "remote" ]]; then
         echo -e "  ${INFO} Local version file information updated."
     fi
 
-    GITHUB_CORE_VERSION="$(curl -s 'https://${apidomain}/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+    GITHUB_CORE_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/pi-hole/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        GITHUB_WEB_VERSION="$(curl -s 'https://${apidomain}/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+        GITHUB_WEB_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/AdminLTE/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
         addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
     fi
 
-    GITHUB_FTL_VERSION="$(curl -s 'https://${apidomain}/repos/pi-hole/FTL/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+    GITHUB_FTL_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/FTL/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
 
     if [[ "${PIHOLE_DOCKER_TAG}" ]]; then
-        GITHUB_DOCKER_VERSION="$(curl -s 'https://${apidomain}/repos/pi-hole/docker-pi-hole/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+        GITHUB_DOCKER_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/docker-pi-hole/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
         addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
     fi
 
