@@ -1270,7 +1270,7 @@ version_check_dnsmasq() {
     addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "interface" "$PIHOLE_INTERFACE"
     if [[ "${PIHOLE_DNS_1}" != "" ]]; then
         # then add in the primary DNS server.
-        addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "server" "$$PIHOLE_DNS_1"
+        addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "server" "$PIHOLE_DNS_1"
     fi
     # Ditto if DNS2 is not empty
     if [[ "${PIHOLE_DNS_2}" != "" ]]; then
@@ -1278,7 +1278,7 @@ version_check_dnsmasq() {
     fi
 
     # Set the cache size
-    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "cache-size" "$$CACHE_SIZE"
+    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "cache-size" "$CACHE_SIZE"
 
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
 
