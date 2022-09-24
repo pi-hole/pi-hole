@@ -142,8 +142,6 @@ checkout() {
             exit 1
         fi
         checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
-        # Force an update of the updatechecker
-        updateCheckFunc
     elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB_INTERFACE}" == "true" ]] ; then
         str="Fetching branches from ${webInterfaceGitUrl}"
         echo -ne "  ${INFO} $str"
