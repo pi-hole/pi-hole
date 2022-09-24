@@ -44,32 +44,19 @@ if [[ "$2" == "remote" ]]; then
         sleep 30
     fi
 
-    # Source the COL_TABLE
-    # shellcheck disable=SC1091
-    . /opt/pihole/COL_TABLE
-
-    apidomain="api.github.com"
-    domainIP=$(dig +tries=1 +time=2 -4 "${apidomain}" @127.0.0.1 +short A)
-    if ! [[ "${domainIP}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[1-9]{1,3}$ ]]; then
-        echo -e "  ${CROSS} Couldn't retrieve version info (${apidomain} unreachable)."
-        exit 1
-    else
-        echo -e "  ${INFO} Local version file information updated."
-    fi
-
-    GITHUB_CORE_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/pi-hole/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
+    GITHUB_CORE_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        GITHUB_WEB_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/AdminLTE/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
+        GITHUB_WEB_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
         addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
     fi
 
-    GITHUB_FTL_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/FTL/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
+    GITHUB_FTL_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
 
     if [[ "${PIHOLE_DOCKER_TAG}" ]]; then
-        GITHUB_DOCKER_VERSION="$(curl -s "https://${apidomain}/repos/pi-hole/docker-pi-hole/releases/latest" 2> /dev/null | jq --raw-output .tag_name)"
+        GITHUB_DOCKER_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/docker-pi-hole/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
         addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
     fi
 
