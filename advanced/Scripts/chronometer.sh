@@ -14,7 +14,9 @@ LC_NUMERIC=C
 # Retrieve stats from FTL engine
 pihole-FTL() {
     local ftl_port LINE
-    ftl_port=$(cat /run/pihole-FTL.port 2> /dev/null)
+    # shellcheck disable=SC1091
+    . /opt/pihole/utils.sh
+    ftl_port=$(getFTLAPIPort)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
         exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
