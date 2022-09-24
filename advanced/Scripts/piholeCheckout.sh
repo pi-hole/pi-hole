@@ -43,8 +43,8 @@ warning1() {
 }
 
 updateCheckFunc() {
-/opt/pihole/updatecheck.sh
-/opt/pihole/updatecheck.sh x remote
+    /opt/pihole/updatecheck.sh
+    /opt/pihole/updatecheck.sh x remote
 }
 
 checkout() {
