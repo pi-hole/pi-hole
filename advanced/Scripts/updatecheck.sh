@@ -37,8 +37,14 @@ rm -f "/etc/pihole/localversions"
 VERSION_FILE="/etc/pihole/versions"
 touch "${VERSION_FILE}"
 chmod 644 "${VERSION_FILE}"
+
 # if /pihole.docker.tag file exists, we will use it's value later in this script
-DOCKER_TAG=$(cat file 2>/dev/null)
+DOCKER_TAG=$(cat /pihole.docker.tag 2>/dev/null)
+regex='^([0-9]+\.){1,2}(\*|[0-9]+)(-.*)?$|(^nightly$)|(^dev.*$)'
+if [[ ! "${DOCKER_TAG}" =~ $regex ]]; then
+  # DOCKER_TAG does not match the pattern (see https://regex101.com/r/RsENuz/1), so unset it.
+  unset DOCKER_TAG
+fi
 
 if [[ "$2" == "remote" ]]; then
 
