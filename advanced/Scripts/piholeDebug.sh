@@ -678,20 +678,24 @@ ping_gateway() {
     local protocol="${1}"
     ping_ipv4_or_ipv6 "${protocol}"
     # Check if we are using IPv4 or IPv6
-    # Find the default gateway using IPv4 or IPv6
+    # Find the default gateways using IPv4 or IPv6
     local gateway
-    mapfile -t gateway < <(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3)
 
-    # If the gateway array is not empty (meaning a gateway was found),
-    if [[ ${#gateway[@]} -ne 0 ]]; then
-        log_write "${INFO} Default IPv${protocol} gateway(s):"
-        for i in "${gateway[@]}"; do log_write "     $i"; done
+    log_write "${INFO} Default IPv${protocol} gateway(s):"
+
+    while IFS= read -r gateway; do
+        log_write "     ${gateway}"
+    done < <(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3)
+
+    gateway=$(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3 | head -n 1)
+    # If there was at least one gateway
+    if [ -n "${gateway}" ]; then
         # Let the user know we will ping the gateway for a response
-        log_write "   * Pinging first gateway ${gateway[0]}..."
+        log_write "   * Pinging first gateway ${gateway}..."
         # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
         # on the pihole interface, and tail the last three lines of the output
         # If pinging the gateway is not successful,
-        if ! ${cmd} -c 1 -W 2 -n "${gateway[0]}" -I "${PIHOLE_INTERFACE}" >/dev/null; then
+        if ! ${cmd} -c 1 -W 2 -n "${gateway}" -I "${PIHOLE_INTERFACE}" >/dev/null; then
             # let the user know
             log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\\n"
             # and return an error code
