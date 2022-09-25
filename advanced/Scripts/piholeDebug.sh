@@ -678,15 +678,20 @@ ping_gateway() {
     local protocol="${1}"
     ping_ipv4_or_ipv6 "${protocol}"
     # Check if we are using IPv4 or IPv6
-    # Find the default gateway using IPv4 or IPv6
+    # Find the default gateways using IPv4 or IPv6
     local gateway
-    gateway="$(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3)"
 
-    # If the gateway variable has a value (meaning a gateway was found),
-    if [[ -n "${gateway}" ]]; then
-        log_write "${INFO} Default IPv${protocol} gateway: ${gateway}"
+    log_write "${INFO} Default IPv${protocol} gateway(s):"
+
+    while IFS= read -r gateway; do
+        log_write "     ${gateway}"
+    done < <(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3)
+
+    gateway=$(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3 | head -n 1)
+    # If there was at least one gateway
+    if [ -n "${gateway}" ]; then
         # Let the user know we will ping the gateway for a response
-        log_write "   * Pinging ${gateway}..."
+        log_write "   * Pinging first gateway ${gateway}..."
         # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
         # on the pihole interface, and tail the last three lines of the output
         # If pinging the gateway is not successful,
