@@ -73,10 +73,7 @@ removeKey() {
 
 #######################
 # returns FTL's current telnet API port based on the setting in /etc/pihole-FTL.conf
-#
-# Takes one argument: path to pihole-FTL.port
-# Example getFTLAPIPort "/run/pihole-FTL.port"
-#######################
+########################
 getFTLAPIPort(){
     local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
     local DEFAULT_FTL_PORT=4711
