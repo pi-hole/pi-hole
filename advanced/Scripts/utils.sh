@@ -82,16 +82,14 @@ getFTLAPIPort(){
     if [ -s "$FTLCONFFILE" ]; then
         # if FTLPORT is not set in pihole-FTL.conf, use the default port
         ftl_api_port="$({ grep '^FTLPORT=' "${FTLCONFFILE}" || echo "${DEFAULT_FTL_PORT}"; } | cut -d'=' -f2-)"
-        # Exploit prevention: unset the variable if there is malicious content
-        # Verify that the value read from the file is numeric
-        expr "${ftl_api_port}" : "[^[:digit:]]" > /dev/null && unset ftl_api_port
+        # Exploit prevention: set the port to the default port if there is malicious (non-numeric)
+        # content set in pihole-FTL.conf
+        expr "${ftl_api_port}" : "[^[:digit:]]" > /dev/null && ftl_api_port="${DEFAULT_FTL_PORT}"
     else
         # if there is no pihole-FTL.conf, use the default port
         ftl_api_port="${DEFAULT_FTL_PORT}"
     fi
 
-    # If the ftl_api_port contained malicious stuff, substitute with -1
-    ftl_api_port=${ftl_api_port:=-1}
     echo "${ftl_api_port}"
 }
 

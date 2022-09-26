@@ -92,7 +92,7 @@ def test_getFTLAPIPort_custom(host):
 
 
 def test_getFTLAPIPort_malicious(host):
-    """Confirms getFTLAPIPort returns -1 if the setting in pihole-FTL.conf contains non-digits"""
+    """Confirms getFTLAPIPort returns 4711 if the setting in pihole-FTL.conf contains non-digits"""
     host.run(
         """
     echo "FTLPORT=*$ssdfsd" > /etc/pihole/pihole-FTL.conf
@@ -104,7 +104,7 @@ def test_getFTLAPIPort_malicious(host):
     getFTLAPIPort
     """
     )
-    expected_stdout = "-1\n"
+    expected_stdout = "4711\n"
     assert expected_stdout == output.stdout
 
 
