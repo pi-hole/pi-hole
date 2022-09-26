@@ -14,6 +14,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3.0.2
+
       - name: Check scripts in repository are executable
         run: |
           IFS=$'\n';
@@ -21,14 +22,18 @@ jobs:
           unset IFS;
           # If FAIL is 1 then we fail.
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
+
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@master
         with:
           ignore_words_file: .codespellignore
+
       - name: Get editorconfig-checker
         uses: editorconfig-checker/action-editorconfig-checker@main # tag v1.0.0 is really out of date
+
       - name: Run editorconfig-checker
         run: editorconfig-checker
+
       - name: Check python code formatting with black
         uses: psf/black@stable
         with:
@@ -49,11 +54,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3.0.2
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v4.2.0
         with:
           python-version: "3.10"
+
       - name: Install dependencies
         run: pip install -r test/requirements.txt
+
       - name: Test with tox
         run: tox -c test/tox.${DISTRO}.ini
