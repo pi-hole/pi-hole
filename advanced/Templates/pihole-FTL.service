@@ -9,11 +9,10 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
-#source utils.sh for getFTLPIDFile(), getFTLPID ()
+#source utils.sh for getFTLPIDFile(), getFTLPID()
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 . "${utilsfile}"
-
 
 is_running() {
   if [ -d "/proc/${FTL_PID}" ]; then
@@ -23,7 +22,7 @@ is_running() {
 }
 
 cleanup() {
-  rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}" "${FTL_PORT_FILE}"
+    rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}" "${FTL_PORT_FILE}"
 }
 
 # Start the service
@@ -114,6 +113,9 @@ status() {
 
 
 ### main logic ###
+
+# catch sudden termination
+trap 'cleanup; exit 1' INT HUP TERM ABRT
 
 # Get file paths
 FTL_PID_FILE="$(getFTLPIDFile)"
