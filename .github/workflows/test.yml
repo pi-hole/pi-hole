@@ -48,7 +48,16 @@ jobs:
       fail-fast: false
       matrix:
         distro:
-          [debian_10, debian_11, ubuntu_20, ubuntu_22, centos_8, fedora_34]
+          [
+            debian_10,
+            debian_11,
+            ubuntu_20,
+            ubuntu_22,
+            centos_8,
+            fedora_34,
+            fedora_35,
+            fedora_36,
+          ]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
