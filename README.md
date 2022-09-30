@@ -87,7 +87,7 @@ If you'd rather not donate (_which is okay!_), there are other ways you can help
 - [Hetzner Cloud](https://hetzner.cloud/?ref=7aceisRX3AzA) _affiliate link_
 - [Digital Ocean](https://www.digitalocean.com/?refcode=344d234950e1) _affiliate link_
 - [Stickermule](https://www.stickermule.com/unlock?ref_id=9127301701&utm_medium=link&utm_source=invite) _earn a $10 credit after your first purchase_
-- [Amazon US](http://www.amazon.com/exec/obidos/redirect-home/pihole09-20) _affiliate link_
+- [Amazon US](https://www.amazon.com/exec/obidos/redirect-home/pihole09-20) _affiliate link_
 - Spreading the word about our software and how you have benefited from it
 
 ### Contributing via GitHub
