@@ -29,7 +29,8 @@ if (!empty($_SERVER["FQDN"])) {
 if ($serverName === "pi.hole"
     || (!empty($_SERVER["VIRTUAL_HOST"]) && $serverName === $_SERVER["VIRTUAL_HOST"])) {
     // Redirect to Web Interface
-    exit(header("Location: /admin"));
+    header("Location: /admin");
+    exit();
 } elseif (filter_var($serverName, FILTER_VALIDATE_IP) || in_array($serverName, $authorizedHosts)) {
     // When directly browsing via IP or authorized hostname
     // Render splash/landing page based off presence of $landPage file
@@ -75,6 +76,6 @@ EOT;
     exit($splashPage);
 }
 
-exit(header("HTTP/1.1 404 Not Found"));
-
+header("HTTP/1.1 404 Not Found");
+exit();
 ?>
