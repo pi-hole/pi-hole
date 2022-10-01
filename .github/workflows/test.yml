@@ -54,7 +54,6 @@ jobs:
             ubuntu_20,
             ubuntu_22,
             centos_8,
-            fedora_34,
             fedora_35,
             fedora_36,
           ]
