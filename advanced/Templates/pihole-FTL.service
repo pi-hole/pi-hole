@@ -22,7 +22,7 @@ is_running() {
 }
 
 cleanup() {
-    rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}" "${FTL_PORT_FILE}"
+    rm -f /run/pihole/FTL.sock /dev/shm/FTL-* "${FTL_PID_FILE}"
 }
 
 # Start the service
@@ -65,9 +65,9 @@ start() {
       /usr/bin/pihole-FTL || ec=$?
     fi
     # Cleanup if startup failed
-    if [ "${ec}" != 0 ]; then
+    if [ -n "${ec}" ] && [ "${ec}" != 0 ]; then
         cleanup
-        exit "${ec}"
+        exit $ec
     fi
     echo
   fi
