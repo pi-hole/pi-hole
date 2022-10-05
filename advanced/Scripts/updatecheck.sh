@@ -20,6 +20,10 @@ function get_local_version() {
     git describe --long --dirty --tags 2> /dev/null || return 1
 }
 
+function get_remote_version() {
+    curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2> /dev/null | jq --raw-output .tag_name || return 1
+}
+
 # Source the setupvars config file
 # shellcheck disable=SC1091
 . /etc/pihole/setupVars.conf
@@ -52,19 +56,19 @@ if [[ "$2" == "remote" ]]; then
         sleep 30
     fi
 
-    GITHUB_CORE_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/pi-hole/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+    GITHUB_CORE_VERSION="$(get_remote_version pi-hole)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        GITHUB_WEB_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/AdminLTE/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+        GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
         addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
     fi
 
-    GITHUB_FTL_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/FTL/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+    GITHUB_FTL_VERSION="$(get_remote_version FTL)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
 
     if [[ "${DOCKER_TAG}" ]]; then
-        GITHUB_DOCKER_VERSION="$(curl -s 'https://api.github.com/repos/pi-hole/docker-pi-hole/releases/latest' 2> /dev/null | jq --raw-output .tag_name)"
+        GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole)"
         addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
     fi
 
