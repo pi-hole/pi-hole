@@ -49,8 +49,10 @@ rm -f "/etc/pihole/localversions"
 
 # Create new versions file if it does not exist
 VERSION_FILE="/etc/pihole/versions"
-touch "${VERSION_FILE}"
-chmod 644 "${VERSION_FILE}"
+if [ ! -f ${VERSION_FILE} ]; then
+    touch "${VERSION_FILE}"
+    chmod 644 "${VERSION_FILE}"
+fi
 
 # if /pihole.docker.tag file exists, we will use it's value later in this script
 DOCKER_TAG=$(cat /pihole.docker.tag 2>/dev/null)
