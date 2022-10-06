@@ -28,7 +28,7 @@ function get_remote_version() {
 # shellcheck disable=SC1091
 . /etc/pihole/setupVars.conf
 
-# Source the utils file
+# Source the utils file for addOrEditKeyValPair()
 # shellcheck disable=SC1091
 . /opt/pihole/utils.sh
 
@@ -50,54 +50,55 @@ if [[ ! "${DOCKER_TAG}" =~ $regex ]]; then
   unset DOCKER_TAG
 fi
 
-if [[ "$2" == "remote" ]]; then
-
-    if [[ "$3" == "reboot" ]]; then
+# used in cronjob
+if [[ "$1" == "reboot" ]]; then
         sleep 30
-    fi
+fi
 
-    GITHUB_CORE_VERSION="$(get_remote_version pi-hole)"
-    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
-        addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
-    fi
+# get local versions
 
-    GITHUB_FTL_VERSION="$(get_remote_version FTL)"
-    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
+CORE_BRANCH="$(get_local_branch /etc/.pihole)"
+addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
 
-    if [[ "${DOCKER_TAG}" ]]; then
-        GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole)"
-        addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
-    fi
+if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+    WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
+    addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
+fi
 
-else
+FTL_BRANCH="$(pihole-FTL branch)"
+addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
 
-    CORE_BRANCH="$(get_local_branch /etc/.pihole)"
-    addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
+CORE_VERSION="$(get_local_version /etc/.pihole)"
+addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
 
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
-        addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
-    fi
+if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+    WEB_VERSION="$(get_local_version /var/www/html/admin)"
+    addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
+fi
 
-    FTL_BRANCH="$(pihole-FTL branch)"
-    addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
+FTL_VERSION="$(pihole-FTL version)"
+addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
 
-    CORE_VERSION="$(get_local_version /etc/.pihole)"
-    addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
+if [[ "${DOCKER_TAG}" ]]; then
+    addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${DOCKER_TAG}"
+fi
 
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        WEB_VERSION="$(get_local_version /var/www/html/admin)"
-        addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
-    fi
 
-    FTL_VERSION="$(pihole-FTL version)"
-    addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
+# get remote versions
 
-    if [[ "${DOCKER_TAG}" ]]; then
-        addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${DOCKER_TAG}"
-    fi
+GITHUB_CORE_VERSION="$(get_remote_version pi-hole)"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
+if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+    GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
+    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
+fi
+
+GITHUB_FTL_VERSION="$(get_remote_version FTL)"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
+
+if [[ "${DOCKER_TAG}" ]]; then
+    GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole)"
+    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
 fi
