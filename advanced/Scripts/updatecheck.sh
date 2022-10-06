@@ -15,13 +15,23 @@ function get_local_branch() {
 }
 
 function get_local_version() {
-    # Return active branch
+    # Return active version
     cd "${1}" 2> /dev/null || return 1
     git describe --long --dirty --tags 2> /dev/null || return 1
 }
 
+function get_local_hash() {
+    cd "${1}" 2> /dev/null || return 1
+    git rev-parse --short HEAD || return 1
+}
+
 function get_remote_version() {
     curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2> /dev/null | jq --raw-output .tag_name || return 1
+}
+
+
+function get_remote_hash(){
+    git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 0,9);}' || return 1
 }
 
 # Source the setupvars config file
@@ -61,13 +71,22 @@ fi
 CORE_BRANCH="$(get_local_branch /etc/.pihole)"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
 
+CORE_HASH="$(get_local_hash /etc/.pihole)"
+addOrEditKeyValPair "${VERSION_FILE}" "CORE_HASH" "${CORE_HASH}"
+
 if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
     addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
+
+    WEB_HASH="$(get_local_hash /var/www/html/admin)"
+    addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
 fi
 
 FTL_BRANCH="$(pihole-FTL branch)"
 addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
+
+FTL_HASH="$(pihole-FTL -v | cut -d "-" -f2)"
+addOrEditKeyValPair "${VERSION_FILE}" "FTL_HASH" "${FTL_HASH}"
 
 CORE_VERSION="$(get_local_version /etc/.pihole)"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
@@ -90,13 +109,22 @@ fi
 GITHUB_CORE_VERSION="$(get_remote_version pi-hole)"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
+GITHUB_CORE_HASH="$(get_remote_hash pi-hole "${CORE_BRANCH}")"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
+
 if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
     GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
+
+    GITHUB_WEB_HASH="$(get_remote_hash AdminLTE "${WEB_BRANCH}")"
+    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
 fi
 
 GITHUB_FTL_VERSION="$(get_remote_version FTL)"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
+
+GITHUB_FTL_HASH="$(get_remote_hash FTL "${FTL_BRANCH}")"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_HASH" "${GITHUB_FTL_HASH}"
 
 if [[ "${DOCKER_TAG}" ]]; then
     GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole)"
