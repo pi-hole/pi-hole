@@ -12,14 +12,14 @@
 # shellcheck disable=SC1091
 . /etc/pihole/setupVars.conf
 
-# Sourece the versions file poupulated by updatechecker.sh
+# Source the versions file poupulated by updatechecker.sh
 cachedVersions="/etc/pihole/versions"
 
 if [ -f ${cachedVersions} ]; then
     # shellcheck disable=SC1090
     . "$cachedVersions"
 else
-    echo "Could not find /etc/pihole/versons. Exiting."
+    echo "Could not find /etc/pihole/versions. Exiting."
     exit 1
 fi
 
@@ -113,7 +113,7 @@ defaultOutput() {
 }
 
 helpFunc() {
-    echo "Usage: piho && lle -v [repo | option] [option]
+    echo "Usage: pihole -v [repo | option] [option]
 Example: 'pihole -v -p -l'
 Show Pi-hole, Admin Console & FTL versions
 
