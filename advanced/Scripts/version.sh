@@ -25,41 +25,41 @@ fi
 
 getLocalVersion() {
     case ${1} in
-        "Pi-hole"   )  echo "${CORE_VERSION}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_VERSION}";;
-        "FTL"       )  echo "${FTL_VERSION}";;
+        "Pi-hole"   )  echo "${CORE_VERSION:=N/A}";;
+        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_VERSION:=N/A}";;
+        "FTL"       )  echo "${FTL_VERSION:=N/A}";;
     esac
 }
 
 getLocalHash() {
     case ${1} in
-        "Pi-hole"   )  echo "${CORE_HASH}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_HASH}";;
-        "FTL"       )  echo "${FTL_HASH}";;
+        "Pi-hole"   )  echo "${CORE_HASH:=N/A}";;
+        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_HASH:=N/A}";;
+        "FTL"       )  echo "${FTL_HASH:=N/A}";;
     esac
 }
 
 getRemoteHash(){
     case ${1} in
-        "Pi-hole"   )  echo "${GITHUB_CORE_HASH}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_HASH}";;
-        "FTL"       )  echo "${GITHUB_FTL_HASH}";;
+        "Pi-hole"   )  echo "${GITHUB_CORE_HASH:=N/A}";;
+        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_HASH:=N/A}";;
+        "FTL"       )  echo "${GITHUB_FTL_HASH:=N/A}";;
     esac
 }
 
 getRemoteVersion(){
     case ${1} in
-        "Pi-hole"   )  echo "${GITHUB_CORE_VERSION}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_VERSION}";;
-        "FTL"       )  echo "${GITHUB_FTL_VERSION}";;
+        "Pi-hole"   )  echo "${GITHUB_CORE_VERSION:=N/A}";;
+        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_VERSION:=N/A}";;
+        "FTL"       )  echo "${GITHUB_FTL_VERSION:=N/A}";;
     esac
 }
 
 getLocalBranch(){
     case ${1} in
-        "Pi-hole"   )  echo "${CORE_BRANCH}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_BRANCH}";;
-        "FTL"       )  echo "${FTL_BRANCH}";;
+        "Pi-hole"   )  echo "${CORE_BRANCH:=N/A}";;
+        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_BRANCH:=N/A}";;
+        "FTL"       )  echo "${FTL_BRANCH:=N/A}";;
     esac
 }
 
@@ -73,7 +73,7 @@ versionOutput() {
     [ "$2" = "-l" ] || [ "$2" = "--latest" ] || [ -z "$2" ] && latest=$(getRemoteVersion "${1}")
     if [ "$2" = "--hash" ]; then
         [ "$3" = "-c" ] || [ "$3" = "--current" ] || [ -z "$3" ] && curHash=$(getLocalHash "${1}") && branch=$(getLocalBranch "${1}")
-        [ "$3" = "-l" ] || [ "$3" = "--latest" ] || [ -z "$3" ] && latHash=$(getRemoteHash "${1}")
+        [ "$3" = "-l" ] || [ "$3" = "--latest" ] || [ -z "$3" ] && latHash=$(getRemoteHash "${1}") && branch=$(getLocalBranch "${1}")
     fi
     if [ -n "$current" ] && [ -n "$latest" ]; then
         output="${1} version is $branch $current (Latest: $latest)"
