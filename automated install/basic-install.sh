@@ -2022,9 +2022,8 @@ update_dialogs() {
 \\n($strAdd)"\
                     "${r}" "${c}" 2 \
     "${opt1a}"  "${opt1b}" \
-    "${opt2a}"  "${opt2b}" || true)
+    "${opt2a}"  "${opt2b}") || result=$?
 
-    result=$?
     case ${result} in
         "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
             printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
