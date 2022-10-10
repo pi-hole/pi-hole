@@ -303,14 +303,13 @@ analyze_ports() {
 
 statusFunc() {
     # Determine if there is pihole-FTL service is listening
-    local pid port ftl_api_port ftl_pid_file ftl_apiport_file
+    local pid port ftl_api_port ftl_pid_file
 
     ftl_pid_file="$(getFTLPIDFile)"
 
     pid="$(getFTLPID ${ftl_pid_file})"
 
-    ftl_apiport_file="${getFTLAPIPortFile}"
-    ftl_api_port="$(getFTLAPIPort ${ftl_apiport_file})"
+    ftl_api_port="$(getFTLAPIPort)"
     if [[ "$pid" -eq "-1" ]]; then
         case "${1}" in
             "web") echo "-1";;

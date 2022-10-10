@@ -83,6 +83,7 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_404_DIR="${webroot}/pihole"
+FTL_CONFIG_FILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
 fi
@@ -999,10 +1000,10 @@ If you want to specify a port other than 53, separate it with a hash.\
                 # and continue the loop.
                 DNSSettingsCorrect=False
             else
-                dialog --no-shadow --keep-tite \
+                dialog --no-shadow --no-collapse --keep-tite \
                     --backtitle "Specify Upstream DNS Provider(s)" \
                     --title "Upstream DNS Provider(s)" \
-                    --yesno "Are these settings correct?\\n\\tDNS Server 1:\\t${PIHOLE_DNS_1}\\n\\tDNS Server 2:\\t${PIHOLE_DNS_2}" \
+                    --yesno "Are these settings correct?\\n"$'\t'"DNS Server 1:"$'\t'"${PIHOLE_DNS_1}\\n"$'\t'"DNS Server 2:"$'\t'"${PIHOLE_DNS_2}" \
                     "${r}" "${c}" && result=0 || result=$?
 
                 case ${result} in
@@ -1264,35 +1265,30 @@ version_check_dnsmasq() {
     # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
     install -D -m 644 -T "${dnsmasq_pihole_01_source}" "${dnsmasq_pihole_01_target}"
     printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_pihole_01_target}"
-    # Replace our placeholder values with the GLOBAL DNS variables that we populated earlier
-    # First, swap in the interface to listen on,
-    sed -i "s/@INT@/$PIHOLE_INTERFACE/" "${dnsmasq_pihole_01_target}"
+    # Add settings with the GLOBAL DNS variables that we populated earlier
+    # First, set the interface to listen on
+    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "interface" "$PIHOLE_INTERFACE"
     if [[ "${PIHOLE_DNS_1}" != "" ]]; then
-        # then swap in the primary DNS server.
-        sed -i "s/@DNS1@/$PIHOLE_DNS_1/" "${dnsmasq_pihole_01_target}"
-    else
-        # Otherwise, remove the line which sets DNS1.
-        sed -i '/^server=@DNS1@/d' "${dnsmasq_pihole_01_target}"
+        # then add in the primary DNS server.
+        addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "server" "$PIHOLE_DNS_1"
     fi
     # Ditto if DNS2 is not empty
     if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-        sed -i "s/@DNS2@/$PIHOLE_DNS_2/" "${dnsmasq_pihole_01_target}"
-    else
-        sed -i '/^server=@DNS2@/d' "${dnsmasq_pihole_01_target}"
+        addKey "${dnsmasq_pihole_01_target}" "server=$PIHOLE_DNS_2"
     fi
 
     # Set the cache size
-    sed -i "s/@CACHE_SIZE@/$CACHE_SIZE/" "${dnsmasq_pihole_01_target}"
+    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "cache-size" "$CACHE_SIZE"
 
     sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
 
     # If the user does not want to enable logging,
     if [[ "${QUERY_LOGGING}" == false ]] ; then
-        # disable it by commenting out the directive in the DNS config file
-        sed -i 's/^log-queries/#log-queries/' "${dnsmasq_pihole_01_target}"
+        # remove itfrom the DNS config file
+        removeKey "${dnsmasq_pihole_01_target}" "log-queries"
     else
-        # Otherwise, enable it by uncommenting the directive in the DNS config file
-        sed -i 's/^#log-queries/log-queries/' "${dnsmasq_pihole_01_target}"
+        # Otherwise, enable it by adding the directive to the DNS config file
+        addKey "${dnsmasq_pihole_01_target}" "log-queries"
     fi
 
     printf "  %b Installing %s..." "${INFO}" "${dnsmasq_rfc6761_06_source}"
@@ -1365,9 +1361,9 @@ installConfigs() {
     chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
     # Install template file if it does not exist
-    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
+    if [[ ! -r "${FTL_CONFIG_FILE}" ]]; then
         install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
-        if ! install -T -o pihole -m 664 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" &>/dev/null; then
+        if ! install -T -o pihole -m 664 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${FTL_CONFIG_FILE}" &>/dev/null; then
             printf "  %b Error: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
@@ -1784,30 +1780,24 @@ create_pihole_user() {
 
 # This function saves any changes to the setup variables into the setupvars.conf file for future runs
 finalExports() {
-    # If the setup variable file exists,
-    if [[ -e "${setupVars}" ]]; then
-        # update the variables in the file
-        sed -i.update.bak '/PIHOLE_INTERFACE/d;/PIHOLE_DNS_1\b/d;/PIHOLE_DNS_2\b/d;/QUERY_LOGGING/d;/INSTALL_WEB_SERVER/d;/INSTALL_WEB_INTERFACE/d;/LIGHTTPD_ENABLED/d;/CACHE_SIZE/d;/DNS_FQDN_REQUIRED/d;/DNS_BOGUS_PRIV/d;/DNSMASQ_LISTENING/d;' "${setupVars}"
-    fi
-    # echo the information to the user
-    {
-        echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-        echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
-        echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
-        echo "QUERY_LOGGING=${QUERY_LOGGING}"
-        echo "INSTALL_WEB_SERVER=${INSTALL_WEB_SERVER}"
-        echo "INSTALL_WEB_INTERFACE=${INSTALL_WEB_INTERFACE}"
-        echo "LIGHTTPD_ENABLED=${LIGHTTPD_ENABLED}"
-        echo "CACHE_SIZE=${CACHE_SIZE}"
-        echo "DNS_FQDN_REQUIRED=${DNS_FQDN_REQUIRED:-true}"
-        echo "DNS_BOGUS_PRIV=${DNS_BOGUS_PRIV:-true}"
-        echo "DNSMASQ_LISTENING=${DNSMASQ_LISTENING:-local}"
-    }>> "${setupVars}"
+    # set or update the variables in the file
+
+    addOrEditKeyValPair "${setupVars}" "PIHOLE_INTERFACE" "${PIHOLE_INTERFACE}"
+    addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_1" "${PIHOLE_DNS_1}"
+    addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_2" "${PIHOLE_DNS_2}"
+    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "${QUERY_LOGGING}"
+    addOrEditKeyValPair "${setupVars}" "INSTALL_WEB_SERVER" "${INSTALL_WEB_SERVER}"
+    addOrEditKeyValPair "${setupVars}" "INSTALL_WEB_INTERFACE" "${INSTALL_WEB_INTERFACE}"
+    addOrEditKeyValPair "${setupVars}" "LIGHTTPD_ENABLED" "${LIGHTTPD_ENABLED}"
+    addOrEditKeyValPair "${setupVars}" "CACHE_SIZE" "${CACHE_SIZE}"
+    addOrEditKeyValPair "${setupVars}" "DNS_FQDN_REQUIRED" "${DNS_FQDN_REQUIRED:-true}"
+    addOrEditKeyValPair "${setupVars}" "DNS_BOGUS_PRIV" "${DNS_BOGUS_PRIV:-true}"
+    addOrEditKeyValPair "${setupVars}" "DNSMASQ_LISTENING" "${DNSMASQ_LISTENING:-local}"
+
     chmod 644 "${setupVars}"
 
     # Set the privacy level
-    sed -i '/PRIVACYLEVEL/d' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
-    echo "PRIVACYLEVEL=${PRIVACY_LEVEL}" >> "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+    addOrEditKeyValPair "${FTL_CONFIG_FILE}" "PRIVACYLEVEL" "${PRIVACY_LEVEL}"
 
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
@@ -1895,6 +1885,16 @@ installPihole() {
         printf "  %b Failure in dependent script copy function.\\n" "${CROSS}"
         exit 1
     fi
+
+    # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
+    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
+        # shellcheck disable=SC1091
+        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+    else
+        printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
+        exit 1
+    fi
+
     # Install config files
     if ! installConfigs; then
         printf "  %b Failure in dependent config copy function.\\n" "${CROSS}"
@@ -2022,9 +2022,8 @@ update_dialogs() {
 \\n($strAdd)"\
                     "${r}" "${c}" 2 \
     "${opt1a}"  "${opt1b}" \
-    "${opt2a}"  "${opt2b}" || true)
+    "${opt2a}"  "${opt2b}") || result=$?
 
-    result=$?
     case ${result} in
         "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
             printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
@@ -2569,8 +2568,8 @@ main() {
         source "${setupVars}"
 
         # Get the privacy level if it exists (default is 0)
-        if [[ -f "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf" ]]; then
-            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf")
+        if [[ -f "${FTL_CONFIG_FILE}" ]]; then
+            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${FTL_CONFIG_FILE}")
 
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"

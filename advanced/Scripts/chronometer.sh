@@ -14,7 +14,9 @@ LC_NUMERIC=C
 # Retrieve stats from FTL engine
 pihole-FTL() {
     local ftl_port LINE
-    ftl_port=$(cat /run/pihole-FTL.port 2> /dev/null)
+    # shellcheck disable=SC1091
+    . /opt/pihole/utils.sh
+    ftl_port=$(getFTLAPIPort)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
         exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"
@@ -503,11 +505,11 @@ chronoFunc() {
         fi
 
         printFunc "   Pi-hole: " "$ph_status" "$ph_info"
-        printFunc " Ads Today: " "$ads_percentage_today%" "$ads_info"
+        printFunc "   Blocked: " "$ads_percentage_today%" "$ads_info"
         printFunc "Local Qrys: " "$queries_cached_percentage%" "$dns_info"
 
-        printFunc "   Blocked: " "$recent_blocked"
-        printFunc "Top Advert: " "$top_ad"
+        printFunc "Last Block: " "$recent_blocked"
+        printFunc " Top Block: " "$top_ad"
 
         # Provide more stats on screens with more lines
         if [[ "$scr_lines" -eq 17 ]]; then
