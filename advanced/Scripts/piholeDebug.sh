@@ -242,12 +242,12 @@ compare_local_version_to_git_version() {
     local pihole_component="${2}"
     # If we are checking the Core versions,
     if [[ "${pihole_component}" == "Core" ]]; then
-        # We need to search for "Pi-hole" when using pihole -v
-        local search_term="Pi-hole"
+        # set the github repo name
+        local repo_name="pi-hole"
     elif [[ "${pihole_component}" == "Web" ]]; then
-        # We need to search for "AdminLTE" so store it in a variable as well
+        # set the github repo name
         #shellcheck disable=2034
-        local search_term="AdminLTE"
+        local repo_name="adminlte"
     fi
     # Display what we are checking
     echo_current_diagnostic "${pihole_component} version"
@@ -261,26 +261,28 @@ compare_local_version_to_git_version() {
         log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
         if git status &> /dev/null; then
             # The current version the user is on
-            local remote_version
-            remote_version=$(git describe --tags --abbrev=0);
+            local local_version
+            local_version=$(git describe --tags --abbrev=0);
             # What branch they are on
-            local remote_branch
-            remote_branch=$(git rev-parse --abbrev-ref HEAD);
+            local local_branch
+            local_branch=$(git rev-parse --abbrev-ref HEAD);
             # The commit they are on
-            local remote_commit
-            remote_commit=$(git describe --long --dirty --tags --always)
+            local local_commit
+            local_commit=$(git describe --long --dirty --tags --always)
             # Status of the repo
             local local_status
             local_status=$(git status -s)
+            local remote_version
+            remote_version=$(curl -s "https://api.github.com/repos/pi-hole/${repo_name}/releases/latest" 2> /dev/null | jq --raw-output .tag_name)
             # echo this information out to the user in a nice format
-            # If the current version matches what pihole -v produces, the user is up-to-date
-            if [[ "${remote_version}" == "$(pihole -v | awk '/${search_term}/ {print $6}' | cut -d ')' -f1)" ]]; then
-                log_write "${TICK} ${pihole_component}: ${COL_GREEN}${remote_version}${COL_NC}"
+            # If the current version matches the lastest tag, the user is up-to-date
+            if [[ "${local_version}" == "${remote_version}" ]]; then
+                log_write "${TICK} Version: ${COL_GREEN}${local_version}${COL_NC} [Latest: ${remote_version}]"
             # If not,
             else
                 # echo the current version in yellow, signifying it's something to take a look at, but not a critical error
                 # Also add a URL to an FAQ
-                log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
+                log_write "${INFO} Version: ${COL_YELLOW}${local_version:-Untagged}${COL_NC} [Latest: ${remote_version}] (${FAQ_UPDATE_PI_HOLE})"
             fi
 
             # Print the repo upstreams
@@ -288,16 +290,16 @@ compare_local_version_to_git_version() {
             log_write "${INFO} Remotes: ${remotes//$'\n'/'\n             '}"
 
             # If the repo is on the master branch, they are on the stable codebase
-            if [[ "${remote_branch}" == "master" ]]; then
+            if [[ "${local_branch}" == "master" ]]; then
                 # so the color of the text is green
-                log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
+                log_write "${INFO} Branch: ${COL_GREEN}${local_branch}${COL_NC}"
             # If it is any other branch, they are in a development branch
             else
                 # So show that in yellow, signifying it's something to take a look at, but not a critical error
-                log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
+                log_write "${INFO} Branch: ${COL_YELLOW}${local_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
             fi
             # echo the current commit
-            log_write "${INFO} Commit: ${remote_commit}"
+            log_write "${INFO} Commit: ${local_commit}"
             # if `local_status` is non-null, then the repo is not clean, display details here
             if [[ ${local_status} ]]; then
               # Replace new lines in the status with 12 spaces to make the output cleaner
@@ -331,21 +333,22 @@ compare_local_version_to_git_version() {
 }
 
 check_ftl_version() {
-    local ftl_name="FTL"
-    local FTL_VERSION FTL_COMMIT FTL_BRANCH
-    echo_current_diagnostic "${ftl_name} version"
+    local FTL_VERSION FTL_COMMIT FTL_BRANCH remote_version
+    echo_current_diagnostic "FTL version"
     # Use the built in command to check FTL's version
     FTL_VERSION=$(pihole-FTL -vv | grep -m 1 Version | awk '{printf $2}')
     FTL_BRANCH=$(pihole-FTL -vv | grep -m 1 Branch | awk '{printf $2}')
     FTL_COMMIT=$(pihole-FTL -vv | grep -m 1 Commit | awk '{printf $2}')
 
+    remote_version=$(curl -s 'https://api.github.com/repos/pi-hole/ftl/releases/latest' 2> /dev/null | jq --raw-output .tag_name)
+
     # Compare the current FTL version to the remote version
-    if [[ "${FTL_VERSION}" == "$(pihole -v | awk '/FTL/ {print $6}' | cut -d ')' -f1)" ]]; then
+    if [[ "${FTL_VERSION}" == "${remote_version}" ]]; then
         # If they are the same, FTL is up-to-date
-        log_write "${TICK} ${ftl_name}: ${COL_GREEN}${FTL_VERSION}${COL_NC}"
+        log_write "${TICK} Version: ${COL_GREEN}${FTL_VERSION}${COL_NC} [Latest: ${remote_version}]"
     else
         # If not, show it in yellow, signifying there is an update
-        log_write "${INFO} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
+        log_write "${INFO} Version: ${COL_YELLOW}${FTL_VERSION}${COL_NC} [Latest: ${remote_version}] (${FAQ_UPDATE_PI_HOLE})"
     fi
 
     # If they use the master branch, they are on the stable codebase
