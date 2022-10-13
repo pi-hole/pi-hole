@@ -44,8 +44,6 @@ fi
 # shellcheck disable=SC1091
 . /etc/pihole/versions
 
-OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
-
 # FAQ URLs for use in showing the debug log
 FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
 FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
@@ -54,7 +52,6 @@ FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prereq
 FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
 FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
-FAQ_BAD_ADDRESS="${COL_CYAN}https://discourse.pi-hole.net/t/why-do-i-see-bad-address-at-in-pihole-log/3972${COL_NC}"
 
 # Other URLs we may use
 FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
@@ -1383,49 +1380,8 @@ spinner(){
     fi
 }
 
-obfuscated_pihole_log() {
-  local pihole_log=("$@")
-  local line
-  local error_to_check_for
-  local line_to_obfuscate
-  local obfuscated_line
-  for line in "${pihole_log[@]}"; do
-      # A common error in the pihole.log is when there is a non-hosts formatted file
-      # that the DNS server is attempting to read.  Since it's not formatted
-      # correctly, there will be an entry for "bad address at line n"
-      # So we can check for that here and highlight it in red so the user can see it easily
-      error_to_check_for=$(echo "${line}" | grep 'bad address at')
-      # Some users may not want to have the domains they visit sent to us
-      # To that end, we check for lines in the log that would contain a domain name
-      line_to_obfuscate=$(echo "${line}" | grep ': query\|: forwarded\|: reply')
-      # If the variable contains a value, it found an error in the log
-      if [[ -n ${error_to_check_for} ]]; then
-          # So we can print it in red to make it visible to the user
-          log_write "   ${CROSS} ${COL_RED}${line}${COL_NC} (${FAQ_BAD_ADDRESS})"
-      else
-          # If the variable does not a value (the current default behavior), so do not obfuscate anything
-          if [[ -z ${OBFUSCATE} ]]; then
-              log_write "   ${line}"
-          # Otherwise, a flag was passed to this command to obfuscate domains in the log
-          else
-              # So first check if there are domains in the log that should be obfuscated
-              if [[ -n ${line_to_obfuscate} ]]; then
-                  # If there are, we need to use awk to replace only the domain name (the 6th field in the log)
-                  # so we substitute the domain for the placeholder value
-                  obfuscated_line=$(echo "${line_to_obfuscate}" | awk -v placeholder="${OBFUSCATED_PLACEHOLDER}" '{sub($6,placeholder); print $0}')
-                  log_write "   ${obfuscated_line}"
-              else
-                  log_write "   ${line}"
-              fi
-          fi
-      fi
-  done
-}
-
 analyze_pihole_log() {
   echo_current_diagnostic "Pi-hole log"
-  local pihole_log_head=()
-  local pihole_log_tail=()
   local pihole_log_permissions
   local logging_enabled
 
@@ -1435,22 +1391,10 @@ analyze_pihole_log() {
       log_write "${INFO} Query logging is disabled"
       log_write ""
   fi
-  # Put the current Internal Field Separator into another variable so it can be restored later
-  OLD_IFS="$IFS"
-  # Get the lines that are in the file(s) and store them in an array for parsing later
-  IFS=$'\r\n'
+
   pihole_log_permissions=$(ls -lhd "${PIHOLE_LOG}")
   log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
-  mapfile -t pihole_log_head < <(head -n 20 ${PIHOLE_LOG})
-  log_write "   ${COL_CYAN}-----head of $(basename ${PIHOLE_LOG})------${COL_NC}"
-  obfuscated_pihole_log "${pihole_log_head[@]}"
-  log_write ""
-  mapfile -t pihole_log_tail < <(tail -n 20 ${PIHOLE_LOG})
-  log_write "   ${COL_CYAN}-----tail of $(basename ${PIHOLE_LOG})------${COL_NC}"
-  obfuscated_pihole_log "${pihole_log_tail[@]}"
-  log_write ""
-  # Set the IFS back to what it was
-  IFS="$OLD_IFS"
+  head_tail_log "${PIHOLE_LOG}" 20
 }
 
 curl_to_tricorder() {
