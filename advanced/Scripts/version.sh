@@ -19,8 +19,10 @@ if [ -f ${cachedVersions} ]; then
     # shellcheck disable=SC1090
     . "$cachedVersions"
 else
-    echo "Could not find /etc/pihole/versions. Exiting."
-    exit 1
+    echo "Could not find /etc/pihole/versions. Running update now."
+    pihole updatechecker
+    # shellcheck disable=SC1090
+    . "$cachedVersions"
 fi
 
 getLocalVersion() {
