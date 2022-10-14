@@ -49,10 +49,8 @@ rm -f "/etc/pihole/localversions"
 
 # Create new versions file if it does not exist
 VERSION_FILE="/etc/pihole/versions"
-if [ ! -f ${VERSION_FILE} ]; then
-    touch "${VERSION_FILE}"
-    chmod 644 "${VERSION_FILE}"
-fi
+touch "${VERSION_FILE}"
+chmod 644 "${VERSION_FILE}"
 
 # if /pihole.docker.tag file exists, we will use it's value later in this script
 DOCKER_TAG=$(cat /pihole.docker.tag 2>/dev/null)
@@ -68,7 +66,10 @@ if [[ "$1" == "reboot" ]]; then
 fi
 
 
-# get local versions
+# get Core versions
+
+CORE_VERSION="$(get_local_version /etc/.pihole)"
+addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
 
 CORE_BRANCH="$(get_local_branch /etc/.pihole)"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
@@ -76,13 +77,38 @@ addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
 CORE_HASH="$(get_local_hash /etc/.pihole)"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_HASH" "${CORE_HASH}"
 
+GITHUB_CORE_VERSION="$(get_remote_version pi-hole)"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
+
+GITHUB_CORE_HASH="$(get_remote_hash pi-hole "${CORE_BRANCH}")"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
+
+
+# get Web versions
+
 if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+
+    WEB_VERSION="$(get_local_version /var/www/html/admin)"
+    addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
+
     WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
     addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
 
     WEB_HASH="$(get_local_hash /var/www/html/admin)"
     addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
+
+    GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
+    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
+
+    GITHUB_WEB_HASH="$(get_remote_hash AdminLTE "${WEB_BRANCH}")"
+    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
+
 fi
+
+# get FTL versions
+
+FTL_VERSION="$(pihole-FTL version)"
+addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
 
 FTL_BRANCH="$(pihole-FTL branch)"
 addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
@@ -90,45 +116,18 @@ addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
 FTL_HASH="$(pihole-FTL -v | cut -d "-" -f2)"
 addOrEditKeyValPair "${VERSION_FILE}" "FTL_HASH" "${FTL_HASH}"
 
-CORE_VERSION="$(get_local_version /etc/.pihole)"
-addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
-
-if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-    WEB_VERSION="$(get_local_version /var/www/html/admin)"
-    addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
-fi
-
-FTL_VERSION="$(pihole-FTL version)"
-addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
-
-if [[ "${DOCKER_TAG}" ]]; then
-    addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${DOCKER_TAG}"
-fi
-
-
-# get remote versions
-
-GITHUB_CORE_VERSION="$(get_remote_version pi-hole)"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
-
-GITHUB_CORE_HASH="$(get_remote_hash pi-hole "${CORE_BRANCH}")"
-addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
-
-if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-    GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
-    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
-
-    GITHUB_WEB_HASH="$(get_remote_hash AdminLTE "${WEB_BRANCH}")"
-    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
-fi
-
 GITHUB_FTL_VERSION="$(get_remote_version FTL)"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
 
 GITHUB_FTL_HASH="$(get_remote_hash FTL "${FTL_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_HASH" "${GITHUB_FTL_HASH}"
 
+
+# get Docker versions
+
 if [[ "${DOCKER_TAG}" ]]; then
+    addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${DOCKER_TAG}"
+
     GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole)"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
 fi
