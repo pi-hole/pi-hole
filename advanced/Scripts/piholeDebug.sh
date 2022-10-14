@@ -238,14 +238,19 @@ compare_local_version_to_git_version() {
     local git_dir="${1}"
     # The named component of the project (Core or Web)
     local pihole_component="${2}"
+
     # If we are checking the Core versions,
     if [[ "${pihole_component}" == "Core" ]]; then
-        # set the github repo name
-        local repo_name="pi-hole"
+        local remote_version
+        # remote version is taken from /etc/pihole/versions (sourced above)
+        remote_version="${GITHUB_CORE_VERSION}"
     elif [[ "${pihole_component}" == "Web" ]]; then
-        # set the github repo name
-        #shellcheck disable=2034
-        local repo_name="adminlte"
+        local remote_version
+        # remote version is taken from /etc/pihole/versions (sourced above)
+        remote_version="${GITHUB_WEB_VERSION}"
+    fi
+    if [ -z "${remote_version}" ]; then
+        remote_version="N/A"
     fi
     # Display what we are checking
     echo_current_diagnostic "${pihole_component} version"
@@ -270,8 +275,6 @@ compare_local_version_to_git_version() {
             # Status of the repo
             local local_status
             local_status=$(git status -s)
-            local remote_version
-            remote_version=$(curl -s "https://api.github.com/repos/pi-hole/${repo_name}/releases/latest" 2> /dev/null | jq --raw-output .tag_name)
             # echo this information out to the user in a nice format
             # If the current version matches the latest tag, the user is up-to-date
             if [[ "${local_version}" == "${remote_version}" ]]; then
@@ -338,7 +341,11 @@ check_ftl_version() {
     FTL_BRANCH=$(pihole-FTL -vv | grep -m 1 Branch | awk '{printf $2}')
     FTL_COMMIT=$(pihole-FTL -vv | grep -m 1 Commit | awk '{printf $2}')
 
-    remote_version=$(curl -s 'https://api.github.com/repos/pi-hole/ftl/releases/latest' 2> /dev/null | jq --raw-output .tag_name)
+    # remote version is taken from /etc/pihole/versions (sourced above)
+    remote_version="${GITHUB_FTL_VERSION}"
+    if [ -z "${remote_version}" ]; then
+        remote_version="N/A"
+    fi
 
     # Compare the current FTL version to the remote version
     if [[ "${FTL_VERSION}" == "${remote_version}" ]]; then
