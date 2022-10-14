@@ -522,7 +522,7 @@ case "${1}" in
   *                             ) helpFunc;;
 esac
 
-# Must be root to use this tool
+# Must be rooted to use this tool
 if [[ ! $EUID -eq 0 ]];then
   if [[ -x "$(command -v sudo)" ]]; then
     exec sudo bash "$0" "$@"
