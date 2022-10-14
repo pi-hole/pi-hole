@@ -46,7 +46,6 @@ fi
 
 # FAQ URLs for use in showing the debug log
 FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
-FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
@@ -70,7 +69,6 @@ WEB_SERVER_LOG_DIRECTORY="/var/log/lighttpd"
 WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
-#BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
 SHM_DIRECTORY="/dev/shm"
 ETC="/etc"
 
@@ -274,7 +272,7 @@ compare_local_version_to_git_version() {
             local remote_version
             remote_version=$(curl -s "https://api.github.com/repos/pi-hole/${repo_name}/releases/latest" 2> /dev/null | jq --raw-output .tag_name)
             # echo this information out to the user in a nice format
-            # If the current version matches the lastest tag, the user is up-to-date
+            # If the current version matches the latest tag, the user is up-to-date
             if [[ "${local_version}" == "${remote_version}" ]]; then
                 log_write "${TICK} Version: ${COL_GREEN}${local_version}${COL_NC} [Latest: ${remote_version}]"
             # If not,
@@ -295,7 +293,7 @@ compare_local_version_to_git_version() {
             # If it is any other branch, they are in a development branch
             else
                 # So show that in yellow, signifying it's something to take a look at, but not a critical error
-                log_write "${INFO} Branch: ${COL_YELLOW}${local_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
+                log_write "${INFO} Branch: ${COL_YELLOW}${local_branch:-Detached}${COL_NC}"
             fi
             # echo the current commit
             log_write "${INFO} Commit: ${local_commit}"
@@ -357,7 +355,7 @@ check_ftl_version() {
         # If it is any other branch, they are in a development branch
     else
         # So show that in yellow, signifying it's something to take a look at, but not a critical error
-        log_write "${INFO} Branch: ${COL_YELLOW}${FTL_BRANCH}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
+        log_write "${INFO} Branch: ${COL_YELLOW}${FTL_BRANCH}${COL_NC}"
     fi
 
     # echo the current commit
