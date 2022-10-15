@@ -47,7 +47,6 @@ fi
 OBFUSCATED_PLACEHOLDER="<DOMAIN OBFUSCATED>"
 
 # FAQ URLs for use in showing the debug log
-FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
@@ -239,19 +238,6 @@ compare_local_version_to_git_version() {
     # The named component of the project (Core or Web)
     local pihole_component="${2}"
 
-    # If we are checking the Core versions,
-    if [[ "${pihole_component}" == "Core" ]]; then
-        local remote_version
-        # remote version is taken from /etc/pihole/versions (sourced above)
-        remote_version="${GITHUB_CORE_VERSION}"
-    elif [[ "${pihole_component}" == "Web" ]]; then
-        local remote_version
-        # remote version is taken from /etc/pihole/versions (sourced above)
-        remote_version="${GITHUB_WEB_VERSION}"
-    fi
-    if [ -z "${remote_version}" ]; then
-        remote_version="N/A"
-    fi
     # Display what we are checking
     echo_current_diagnostic "${pihole_component} version"
     # Store the error message in a variable in case we want to change and/or reuse it
@@ -276,15 +262,7 @@ compare_local_version_to_git_version() {
             local local_status
             local_status=$(git status -s)
             # echo this information out to the user in a nice format
-            # If the current version matches the latest tag, the user is up-to-date
-            if [[ "${local_version}" == "${remote_version}" ]]; then
-                log_write "${TICK} Version: ${COL_GREEN}${local_version}${COL_NC} [Latest: ${remote_version}]"
-            # If not,
-            else
-                # echo the current version in yellow, signifying it's something to take a look at, but not a critical error
-                # Also add a URL to an FAQ
-                log_write "${INFO} Version: ${COL_YELLOW}${local_version:-Untagged}${COL_NC} [Latest: ${remote_version}] (${FAQ_UPDATE_PI_HOLE})"
-            fi
+            log_write "${TICK} Version: ${local_version}"
 
             # Print the repo upstreams
             remotes=$(git remote -v)
@@ -334,27 +312,15 @@ compare_local_version_to_git_version() {
 }
 
 check_ftl_version() {
-    local FTL_VERSION FTL_COMMIT FTL_BRANCH remote_version
+    local FTL_VERSION FTL_COMMIT FTL_BRANCH
     echo_current_diagnostic "FTL version"
     # Use the built in command to check FTL's version
     FTL_VERSION=$(pihole-FTL -vv | grep -m 1 Version | awk '{printf $2}')
     FTL_BRANCH=$(pihole-FTL -vv | grep -m 1 Branch | awk '{printf $2}')
     FTL_COMMIT=$(pihole-FTL -vv | grep -m 1 Commit | awk '{printf $2}')
 
-    # remote version is taken from /etc/pihole/versions (sourced above)
-    remote_version="${GITHUB_FTL_VERSION}"
-    if [ -z "${remote_version}" ]; then
-        remote_version="N/A"
-    fi
 
-    # Compare the current FTL version to the remote version
-    if [[ "${FTL_VERSION}" == "${remote_version}" ]]; then
-        # If they are the same, FTL is up-to-date
-        log_write "${TICK} Version: ${COL_GREEN}${FTL_VERSION}${COL_NC} [Latest: ${remote_version}]"
-    else
-        # If not, show it in yellow, signifying there is an update
-        log_write "${INFO} Version: ${COL_YELLOW}${FTL_VERSION}${COL_NC} [Latest: ${remote_version}] (${FAQ_UPDATE_PI_HOLE})"
-    fi
+    log_write "${TICK} Version: ${FTL_VERSION}"
 
     # If they use the master branch, they are on the stable codebase
     if [[ "${FTL_BRANCH}" == "master" ]]; then
