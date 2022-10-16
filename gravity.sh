@@ -640,9 +640,35 @@ gravity_DownloadBlocklistFromUrl() {
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
   fi
+ 
+
+  if [ -f "${piholeDir}/list.${id}.${domain}.etag" ]
+	then
+	  currentetag=$(<"${piholeDir}/list.${id}.${domain}.etag")
+	else
+	  currentetag=$""
+  fi
+
+  #echo -e "\n current Etag: " "$currentetag"
+
 
   # shellcheck disable=SC2086
-  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+if [ -z "$currentetag" ]
+	then
+		httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+	else
+		httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} --header "If-None-Match: ${currentetag}" -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+ fi
+
+# shellcheck disable=SC2086
+  curl -sI "${url}" -L ${compression} ${cmd_ext} ${heisenbergCompensator} -A "${agent}" | sed -n 's/^etag: //Ip' > "${piholeDir}/list.${id}.${domain}.etag"
+
+# if [ "${httpCode}" != 304 ]
+# then
+#	echo -e "\n statuscode: " "$httpCode"
+#	newetag=$(<"${piholeDir}/list.${id}.${domain}.etag")
+#	echo -e "\n new Etag:     " "$newetag"
+#  fi
 
   case $url in
     # Did we "download" a local file?
