@@ -1,5 +1,5 @@
 FROM quay.io/centos/centos:stream9
-RUN yum install -y git initscripts
+RUN yum install -y --allowerasing curl git initscripts
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
