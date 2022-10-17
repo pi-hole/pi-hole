@@ -739,7 +739,6 @@ gravity_ParseFileIntoDomains() {
   sed -r 's/^.*\s+//g' | \
   sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
   chmod 644 "${destination}"
-  return 0
 }
 
 # Report number of entries in a table
