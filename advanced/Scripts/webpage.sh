@@ -629,9 +629,9 @@ checkDomain()
 
 escapeDots()
 {
+    # SC suggest bashism ${variable//search/replace}
     # shellcheck disable=SC2001
-    # SH suggest bashism ${variable//search/replace}
-    escaped=$(sed 's/\./\\./g' <<< "$1" )
+    escaped=$(echo "$1" | sed 's/\./\\./g')
     echo "${escaped}"
 }
 
