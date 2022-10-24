@@ -627,6 +627,14 @@ checkDomain()
     echo "${validDomain}"
 }
 
+escapeDots()
+{
+    # SC suggest bashism ${variable//search/replace}
+    # shellcheck disable=SC2001
+    escaped=$(echo "$1" | sed 's/\./\\./g')
+    echo "${escaped}"
+}
+
 addAudit()
 {
     shift # skip "-a"
@@ -702,6 +710,7 @@ RemoveCustomDNSAddress() {
     validHost="$(checkDomain "${host}")"
     if [[ -n "${validHost}" ]]; then
         if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            validHost=$(escapeDots "${validHost}")
             sed -i "/^${ip} ${validHost}$/Id" "${dnscustomfile}"
         else
             echo -e "  ${CROSS} Invalid IP has been passed"
@@ -755,7 +764,9 @@ RemoveCustomCNAMERecord() {
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
         if [[ -n "${validTarget}" ]]; then
-            sed -i "/cname=${validDomain},${validTarget}$/Id" "${dnscustomcnamefile}"
+            validDomain=$(escapeDots "${validDomain}")
+            validTarget=$(escapeDots "${validTarget}")
+            sed -i "/^cname=${validDomain},${validTarget}$/Id" "${dnscustomcnamefile}"
         else
             echo "  ${CROSS} Invalid Target Passed!"
             exit 1
