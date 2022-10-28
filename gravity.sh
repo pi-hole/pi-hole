@@ -720,72 +720,25 @@ gravity_DownloadBlocklistFromUrl() {
 
 # Parse source files into domains format
 gravity_ParseFileIntoDomains() {
-  local src="${1}" destination="${2}" firstLine
+  local src="${1}" destination="${2}"
 
-  # Determine if we are parsing a consolidated list
-  #if [[ "${src}" == "${piholeDir}/${matterAndLight}" ]]; then
-    # Remove comments and print only the domain name
-    # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
-    # This helps with that and makes it easier to read
-    # It also helps with debugging so each stage of the script can be researched more in depth
-    # 1) Remove carriage returns
-    # 2) Convert all characters to lowercase
-    # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
-    # 4) Remove lines containing "/"
-    # 5) Remove leading tabs, spaces, etc.
-    # 6) Delete lines not matching domain names
-    < "${src}" tr -d '\r' | \
-    tr '[:upper:]' '[:lower:]' | \
-    sed 's/\s*#.*//g' | \
-    sed -r '/(\/).*$/d' | \
-    sed -r 's/^.*\s+//g' | \
-    sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
-    chmod 644 "${destination}"
-    return 0
-  #fi
-
-  # Individual file parsing: Keep comments, while parsing domains from each line
-  # We keep comments to respect the list maintainer's licensing
-  read -r firstLine < "${src}"
-
-  # Determine how to parse individual source file formats
-  if [[ "${firstLine,,}" =~ (adblock|ublock|^!) ]]; then
-    # Compare $firstLine against lower case words found in Adblock lists
-    echo -e "  ${CROSS} Format: Adblock (list type not supported)"
-  elif grep -q "^address=/" "${src}" &> /dev/null; then
-    # Parse Dnsmasq format lists
-    echo -e "  ${CROSS} Format: Dnsmasq (list type not supported)"
-  elif grep -q -E "^https?://" "${src}" &> /dev/null; then
-    # Parse URL list if source file contains "http://" or "https://"
-    # Scanning for "^IPv4$" is too slow with large (1M) lists on low-end hardware
-    echo -ne "  ${INFO} Format: URL"
-
-    awk '
-      # Remove URL scheme, optional "username:password@", and ":?/;"
-      # The scheme must be matched carefully to avoid blocking the wrong URL
-      # in cases like:
-      #   http://www.evil.com?http://www.good.com
-      # See RFC 3986 section 3.1 for details.
-      /[:?\/;]/ { gsub(/(^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/(.*:.*@)?|[:?\/;].*)/, "", $0) }
-      # Skip lines which are only IPv4 addresses
-      /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { next }
-      # Print if nonempty
-      length { print }
-    ' "${src}" 2> /dev/null > "${destination}"
-    chmod 644 "${destination}"
-
-    echo -e "${OVER}  ${TICK} Format: URL"
-  else
-    # Default: Keep hosts/domains file in same format as it was downloaded
-    output=$( { mv "${src}" "${destination}"; } 2>&1 )
-    chmod 644 "${destination}"
-
-    if [[ ! -e "${destination}" ]]; then
-      echo -e "\\n  ${CROSS} Unable to move tmp file to ${piholeDir}
-    ${output}"
-      gravity_Cleanup "error"
-    fi
-  fi
+  # Remove comments and print only the domain name
+  # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
+  # This helps with that and makes it easier to read
+  # It also helps with debugging so each stage of the script can be researched more in depth
+  # 1) Remove carriage returns
+  # 2) Convert all characters to lowercase
+  # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  # 4) Remove lines containing "/"
+  # 5) Remove leading tabs, spaces, etc.
+  # 6) Delete lines not matching domain names
+  < "${src}" tr -d '\r' | \
+  tr '[:upper:]' '[:lower:]' | \
+  sed 's/\s*#.*//g' | \
+  sed -r '/(\/).*$/d' | \
+  sed -r 's/^.*\s+//g' | \
+  sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
+  chmod 644 "${destination}"
 }
 
 # Report number of entries in a table
