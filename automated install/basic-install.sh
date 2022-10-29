@@ -828,8 +828,11 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 # Configure networking via dhcpcd
 setDHCPCD() {
-    # Check if the IP is already in the file
-    if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
+    # Regex for matching a non-commented static ip address setting
+    local regex="^[ \t]*static ip_address[ \t]*=[ \t]*${IPV4_ADDRESS}[ \t]*$"
+
+    # Check if static IP is already set in file
+    if grep -xq "${regex}" /etc/dhcpcd.conf; then
         printf "  %b Static IP already configured\\n" "${INFO}"
     # If it's not,
     else
