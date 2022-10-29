@@ -45,8 +45,6 @@ fi
 . /etc/pihole/versions
 
 # FAQ URLs for use in showing the debug log
-FAQ_UPDATE_PI_HOLE="${COL_CYAN}https://discourse.pi-hole.net/t/how-do-i-update-pi-hole/249${COL_NC}"
-FAQ_CHECKOUT_COMMAND="${COL_CYAN}https://discourse.pi-hole.net/t/the-pihole-command-with-examples/738#checkout${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
@@ -70,7 +68,6 @@ WEB_SERVER_LOG_DIRECTORY="/var/log/lighttpd"
 WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
-#BLOCK_PAGE_DIRECTORY="${HTML_DIRECTORY}/pihole"
 SHM_DIRECTORY="/dev/shm"
 ETC="/etc"
 
@@ -237,15 +234,7 @@ compare_local_version_to_git_version() {
     local git_dir="${1}"
     # The named component of the project (Core or Web)
     local pihole_component="${2}"
-    # If we are checking the Core versions,
-    if [[ "${pihole_component}" == "Core" ]]; then
-        # We need to search for "Pi-hole" when using pihole -v
-        local search_term="Pi-hole"
-    elif [[ "${pihole_component}" == "Web" ]]; then
-        # We need to search for "AdminLTE" so store it in a variable as well
-        #shellcheck disable=2034
-        local search_term="AdminLTE"
-    fi
+
     # Display what we are checking
     echo_current_diagnostic "${pihole_component} version"
     # Store the error message in a variable in case we want to change and/or reuse it
@@ -258,43 +247,35 @@ compare_local_version_to_git_version() {
         log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
         if git status &> /dev/null; then
             # The current version the user is on
-            local remote_version
-            remote_version=$(git describe --tags --abbrev=0);
+            local local_version
+            local_version=$(git describe --tags --abbrev=0);
             # What branch they are on
-            local remote_branch
-            remote_branch=$(git rev-parse --abbrev-ref HEAD);
+            local local_branch
+            local_branch=$(git rev-parse --abbrev-ref HEAD);
             # The commit they are on
-            local remote_commit
-            remote_commit=$(git describe --long --dirty --tags --always)
+            local local_commit
+            local_commit=$(git describe --long --dirty --tags --always)
             # Status of the repo
             local local_status
             local_status=$(git status -s)
             # echo this information out to the user in a nice format
-            # If the current version matches what pihole -v produces, the user is up-to-date
-            if [[ "${remote_version}" == "$(pihole -v | awk '/${search_term}/ {print $6}' | cut -d ')' -f1)" ]]; then
-                log_write "${TICK} ${pihole_component}: ${COL_GREEN}${remote_version}${COL_NC}"
-            # If not,
-            else
-                # echo the current version in yellow, signifying it's something to take a look at, but not a critical error
-                # Also add a URL to an FAQ
-                log_write "${INFO} ${pihole_component}: ${COL_YELLOW}${remote_version:-Untagged}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
-            fi
+            log_write "${TICK} Version: ${local_version}"
 
             # Print the repo upstreams
             remotes=$(git remote -v)
             log_write "${INFO} Remotes: ${remotes//$'\n'/'\n             '}"
 
             # If the repo is on the master branch, they are on the stable codebase
-            if [[ "${remote_branch}" == "master" ]]; then
+            if [[ "${local_branch}" == "master" ]]; then
                 # so the color of the text is green
-                log_write "${INFO} Branch: ${COL_GREEN}${remote_branch}${COL_NC}"
+                log_write "${INFO} Branch: ${COL_GREEN}${local_branch}${COL_NC}"
             # If it is any other branch, they are in a development branch
             else
                 # So show that in yellow, signifying it's something to take a look at, but not a critical error
-                log_write "${INFO} Branch: ${COL_YELLOW}${remote_branch:-Detached}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
+                log_write "${INFO} Branch: ${COL_YELLOW}${local_branch:-Detached}${COL_NC}"
             fi
             # echo the current commit
-            log_write "${INFO} Commit: ${remote_commit}"
+            log_write "${INFO} Commit: ${local_commit}"
             # if `local_status` is non-null, then the repo is not clean, display details here
             if [[ ${local_status} ]]; then
               # Replace new lines in the status with 12 spaces to make the output cleaner
@@ -328,22 +309,15 @@ compare_local_version_to_git_version() {
 }
 
 check_ftl_version() {
-    local ftl_name="FTL"
     local FTL_VERSION FTL_COMMIT FTL_BRANCH
-    echo_current_diagnostic "${ftl_name} version"
+    echo_current_diagnostic "FTL version"
     # Use the built in command to check FTL's version
     FTL_VERSION=$(pihole-FTL -vv | grep -m 1 Version | awk '{printf $2}')
     FTL_BRANCH=$(pihole-FTL -vv | grep -m 1 Branch | awk '{printf $2}')
     FTL_COMMIT=$(pihole-FTL -vv | grep -m 1 Commit | awk '{printf $2}')
 
-    # Compare the current FTL version to the remote version
-    if [[ "${FTL_VERSION}" == "$(pihole -v | awk '/FTL/ {print $6}' | cut -d ')' -f1)" ]]; then
-        # If they are the same, FTL is up-to-date
-        log_write "${TICK} ${ftl_name}: ${COL_GREEN}${FTL_VERSION}${COL_NC}"
-    else
-        # If not, show it in yellow, signifying there is an update
-        log_write "${INFO} ${ftl_name}: ${COL_YELLOW}${FTL_VERSION}${COL_NC} (${FAQ_UPDATE_PI_HOLE})"
-    fi
+
+    log_write "${TICK} Version: ${FTL_VERSION}"
 
     # If they use the master branch, they are on the stable codebase
     if [[ "${FTL_BRANCH}" == "master" ]]; then
@@ -352,7 +326,7 @@ check_ftl_version() {
         # If it is any other branch, they are in a development branch
     else
         # So show that in yellow, signifying it's something to take a look at, but not a critical error
-        log_write "${INFO} Branch: ${COL_YELLOW}${FTL_BRANCH}${COL_NC} (${FAQ_CHECKOUT_COMMAND})"
+        log_write "${INFO} Branch: ${COL_YELLOW}${FTL_BRANCH}${COL_NC}"
     fi
 
     # echo the current commit
