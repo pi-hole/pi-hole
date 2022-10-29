@@ -738,7 +738,12 @@ AddCustomCNAMERecord() {
     if [[ -n "${validDomain}" ]]; then
         validTarget="$(checkDomain "${target}")"
         if [[ -n "${validTarget}" ]]; then
-            echo "cname=${validDomain},${validTarget}" >> "${dnscustomcnamefile}"
+            if [ "${validDomain}" = "${validTarget}" ]; then
+                echo "  ${CROSS} Domain and target are the same. This would cause a DNS loop."
+                exit 1
+            else
+                echo "cname=${validDomain},${validTarget}" >> "${dnscustomcnamefile}"
+            fi
         else
             echo "  ${CROSS} Invalid Target Passed!"
             exit 1
