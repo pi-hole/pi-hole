@@ -850,10 +850,10 @@ getStaticIPv4Settings() {
 # Configure networking via dhcpcd
 setDHCPCD() {
     # Regex for matching a non-commented static ip address setting
-    local regex="^[ \t]*static ip_address[ \t]*=[ \t]*${IPV4_ADDRESS}[ \t]*$"
+    local regex="^[ \t]*static ip_address[ \t]*=[ \t]*${IPV4_ADDRESS}"
 
     # Check if static IP is already set in file
-    if grep -xq "${regex}" /etc/dhcpcd.conf; then
+    if grep -q "${regex}" /etc/dhcpcd.conf; then
         printf "  %b Static IP already configured\\n" "${INFO}"
     # If it's not,
     else
