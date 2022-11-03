@@ -1785,6 +1785,9 @@ create_pihole_user() {
 finalExports() {
     # set or update the variables in the file
 
+    # create the file if it does not exist
+    touch "${setupVars}"
+
     addOrEditKeyValPair "${setupVars}" "PIHOLE_INTERFACE" "${PIHOLE_INTERFACE}"
     addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_1" "${PIHOLE_DNS_1}"
     addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_2" "${PIHOLE_DNS_2}"
