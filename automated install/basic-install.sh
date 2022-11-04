@@ -351,37 +351,59 @@ package_manager_detect() {
         # Then check if dnf or yum is the package manager
         if is_command dnf ; then
             PKG_MANAGER="dnf"
-        else
+        fi    
+        if is_command yum ; then
             PKG_MANAGER="yum"
+        else
+            PKG_MANAGER="zypper"
         fi
-
-        # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-        PKG_INSTALL=("${PKG_MANAGER}" install -y)
-        # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
-        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
-        OS_CHECK_DEPS=(grep bind-utils)
-        INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
-        PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
-        LIGHTTPD_USER="lighttpd"
-        LIGHTTPD_GROUP="lighttpd"
-        LIGHTTPD_CFG="lighttpd.conf.fedora"
+    
+        if [[ "${PKG_MANAGER}" != "zypper" ]]; then
+          # These variable names match the ones for apt-get. See above for an explanation of what they are for.
+          PKG_INSTALL=("${PKG_MANAGER}" install -y)
+          # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
+          PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
+          OS_CHECK_DEPS=(grep bind-utils)
+          INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
+          PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
+          PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
+          LIGHTTPD_USER="lighttpd"
+          LIGHTTPD_GROUP="lighttpd"
+          LIGHTTPD_CFG="lighttpd.conf.fedora"
 
         # If the host OS is centos (or a derivative), epel is required for lighttpd
-        if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-            if rpm -qa | grep -qi 'epel'; then
-                printf "  %b EPEL repository already installed\\n" "${TICK}"
-            else
-                local RH_RELEASE EPEL_PKG
-                # EPEL not already installed, add it based on the release version
-                RH_RELEASE=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${RH_RELEASE}.noarch.rpm"
-                printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-                "${PKG_INSTALL[@]}" "${EPEL_PKG}"
-                printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
-            fi
-        fi
+          if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+              if rpm -qa | grep -qi 'epel'; then
+                  printf "  %b EPEL repository already installed\\n" "${TICK}"
+              else
+                  local RH_RELEASE EPEL_PKG
+                  # EPEL not already installed, add it based on the release version
+                  RH_RELEASE=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+                  EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${RH_RELEASE}.noarch.rpm"
+                  printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+                  "${PKG_INSTALL[@]}" "${EPEL_PKG}"
+                  printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+              fi
+          fi
+        else
+          # These variable names match the ones for apt-get. See above for an explanation of what they are for.
+          PKG_INSTALL=("${PKG_MANAGER}" install -y)
+          # openSUSE package manager returns number when there are packages to update so we need to || true to prevent the script from exiting.
+          PKG_COUNT="${PKG_MANAGER} lu | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
+          OS_CHECK_DEPS=(grep bind-utils)
+          INSTALLER_DEPS=(git dialog iproute newt procps which ca-certificates)
+          PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap-ng0 nmap ncat jq)
+#          PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php8-common php8-cli php8-pdo php8-xml php8-json php8-intl)
+          PIHOLE_WEB_DEPS=(lighttpd php8 php8-fastcgi php8-cli php8-pdo php8-intl php8-openssl php8-sqlite)
+          LIGHTTPD_USER="lighttpd"
+          LIGHTTPD_GROUP="lighttpd"
+          LIGHTTPD_CFG="lighttpd.conf.fedora"
 
+          # If the host OS is openSUSE, no epel is required for lighttpd
+          if ! grep -qiE 'openSUSE' /etc/os-release; then
+              printf "  openSUSE repositories already active\\n" "${TICK}"
+          fi
+        fi
     # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot install required packages
@@ -2622,6 +2644,8 @@ main() {
     # Copy the temp log file into final log location for storage
     copy_to_install_log
 
+    echo 'pasword generation' 
+    
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Add password to web UI if there is none
         pw=""
@@ -2635,6 +2659,8 @@ main() {
         fi
     fi
 
+    echo 'password is ' ${pw}
+    
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
@@ -2690,6 +2716,8 @@ main() {
 
     restart_service pihole-FTL
 
+    echo '   download and compile block list'
+    
     # Download and compile the aggregated block list
     runGravity
 
@@ -2697,10 +2725,15 @@ main() {
     /opt/pihole/updatecheck.sh
     /opt/pihole/updatecheck.sh x remote
 
+    echo 'display final message'
+    echo 'INSTALL_WEB_INTERFACE is ' ${INSTALL_WEB_INTERFACE}
+    
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
     fi
 
+    echo 'before password generation, #pw:' ${#pw}
+    
     # If the Web interface was installed,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # If there is a password,
