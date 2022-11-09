@@ -731,13 +731,11 @@ gravity_ParseFileIntoDomains() {
   # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
   # 4) Remove lines containing "/"
   # 5) Remove leading tabs, spaces, etc.
-  # 6) Delete lines not matching domain names
   < "${src}" tr -d '\r' | \
   tr '[:upper:]' '[:lower:]' | \
   sed 's/\s*#.*//g' | \
   sed -r '/(\/).*$/d' | \
-  sed -r 's/^.*\s+//g' | \
-  sed -r '/([^\.]+\.)+[^\.]{2,}/!d' >  "${destination}"
+  sed -r 's/^.*\s+//g' >  "${destination}"
   chmod 644 "${destination}"
 }
 
