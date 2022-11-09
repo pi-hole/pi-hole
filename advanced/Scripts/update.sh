@@ -216,9 +216,8 @@ main() {
     fi
 
     if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
-        # Force an update of the updatechecker
+        # Update local and remote versions via updatechecker
         /opt/pihole/updatecheck.sh
-        /opt/pihole/updatecheck.sh x remote
         echo -e "  ${INFO} Local version file information updated."
     fi
 
