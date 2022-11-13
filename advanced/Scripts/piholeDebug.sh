@@ -927,10 +927,21 @@ process_status(){
         else
             # Otherwise, use the service command and mock the output of `systemctl is-active`
             local status_of_process
-            if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
-                status_of_process="active"
+
+            # If DOCKER_VERSION is set, the output is slightly different (s6 init system on Docker)
+            if [ -n "${DOCKER_VERSION}" ]; then
+                if service "${i}" status | grep -E '^up' &> /dev/null; then
+                    status_of_process="active"
+                else
+                    status_of_process="inactive"
+                fi
             else
-                status_of_process="inactive"
+            # non-Docker system
+                if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
+                    status_of_process="active"
+                else
+                    status_of_process="inactive"
+                fi
             fi
         fi
         # and print it out to the user
