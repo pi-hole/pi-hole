@@ -314,9 +314,9 @@ check_ftl_version() {
     local FTL_VERSION FTL_COMMIT FTL_BRANCH
     echo_current_diagnostic "FTL version"
     # Use the built in command to check FTL's version
-    FTL_VERSION=$(pihole-FTL -vv | grep -m 1 Version | awk '{printf $2}')
-    FTL_BRANCH=$(pihole-FTL -vv | grep -m 1 Branch | awk '{printf $2}')
-    FTL_COMMIT=$(pihole-FTL -vv | grep -m 1 Commit | awk '{printf $2}')
+    FTL_VERSION=$(pihole-FTL version)
+    FTL_BRANCH=$(pihole-FTL branch)
+    FTL_COMMIT=$(pihole-FTL --hash)
 
 
     log_write "${TICK} Version: ${FTL_VERSION}"
