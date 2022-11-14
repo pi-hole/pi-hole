@@ -358,7 +358,7 @@ package_manager_detect() {
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
-        PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
+        PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
         PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
@@ -828,8 +828,11 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
 # Configure networking via dhcpcd
 setDHCPCD() {
-    # Check if the IP is already in the file
-    if grep -q "${IPV4_ADDRESS}" /etc/dhcpcd.conf; then
+    # Regex for matching a non-commented static ip address setting
+    local regex="^[ \t]*static ip_address[ \t]*=[ \t]*${IPV4_ADDRESS}"
+
+    # Check if static IP is already set in file
+    if grep -q "${regex}" /etc/dhcpcd.conf; then
         printf "  %b Static IP already configured\\n" "${INFO}"
     # If it's not,
     else
@@ -2267,7 +2270,7 @@ get_binary_name() {
         local rev
         rev=$(uname -m | sed "s/[^0-9]//g;")
         local lib
-        lib=$(ldd "$(which sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
+        lib=$(ldd "$(command -v sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
@@ -2693,9 +2696,8 @@ main() {
     # Download and compile the aggregated block list
     runGravity
 
-    # Force an update of the updatechecker
+    # Update local and remote versions via updatechecker
     /opt/pihole/updatecheck.sh
-    /opt/pihole/updatecheck.sh x remote
 
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
