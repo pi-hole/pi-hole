@@ -77,18 +77,27 @@ versionOutput() {
         [ "$3" = "-c" ] || [ "$3" = "--current" ] || [ -z "$3" ] && curHash=$(getLocalHash "${1}") && branch=$(getLocalBranch "${1}")
         [ "$3" = "-l" ] || [ "$3" = "--latest" ] || [ -z "$3" ] && latHash=$(getRemoteHash "${1}") && branch=$(getLocalBranch "${1}")
     fi
+
+    # We do not want to show the branch name when we are on master,
+    # blank out the variable in this case
+    if [ "$branch" = "master" ]; then
+        branch=""
+    else
+        branch="$branch "
+    fi
+
     if [ -n "$current" ] && [ -n "$latest" ]; then
-        output="${1} version is $branch $current (Latest: $latest)"
+        output="${1} version is $branch$current (Latest: $latest)"
     elif [ -n "$current" ] && [ -z "$latest" ]; then
-        output="Current ${1} version is $branch $current"
+        output="Current ${1} version is $branch$current"
     elif [ -z "$current" ] && [ -n "$latest" ]; then
         output="Latest ${1} version is $latest"
     elif [ -n "$curHash" ] && [ -n "$latHash" ]; then
-        output="Local ${1} hash of branch $branch is $curHash (Remote: $latHash)"
+        output="Local ${1} hash is $curHash (Remote: $latHash)"
     elif [ -n "$curHash" ] && [ -z "$latHash" ]; then
-        output="Current local ${1} hash of branch $branch is $curHash"
+        output="Current local ${1} hash is $curHash"
     elif [ -z "$curHash" ] && [ -n "$latHash" ]; then
-        output="Latest remote ${1} hash of branch $branch is $latHash"
+        output="Latest remote ${1} hash is $latHash"
     elif [ -z "$curHash" ] && [ -z "$latHash" ]; then
         output="Hashes for ${1} not available"
     else
