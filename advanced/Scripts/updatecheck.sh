@@ -17,7 +17,7 @@ function get_local_branch() {
 function get_local_version() {
     # Return active version
     cd "${1}" 2> /dev/null || return 1
-    git describe --long --dirty --tags 2> /dev/null || return 1
+    git describe --tags --always 2> /dev/null || return 1
 }
 
 function get_local_hash() {
@@ -31,7 +31,7 @@ function get_remote_version() {
 
 
 function get_remote_hash(){
-    git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 0,9);}' || return 1
+    git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 0,8);}' || return 1
 }
 
 # Source the setupvars config file
@@ -113,7 +113,7 @@ addOrEditKeyValPair "${VERSION_FILE}" "FTL_VERSION" "${FTL_VERSION}"
 FTL_BRANCH="$(pihole-FTL branch)"
 addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
 
-FTL_HASH="$(pihole-FTL -v | cut -d "-" -f2)"
+FTL_HASH="$(pihole-FTL --hash)"
 addOrEditKeyValPair "${VERSION_FILE}" "FTL_HASH" "${FTL_HASH}"
 
 GITHUB_FTL_VERSION="$(get_remote_version FTL)"
