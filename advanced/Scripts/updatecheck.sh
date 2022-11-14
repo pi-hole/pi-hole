@@ -17,7 +17,7 @@ function get_local_branch() {
 function get_local_version() {
     # Return active version
     cd "${1}" 2> /dev/null || return 1
-    git describe --long --dirty --tags 2> /dev/null || return 1
+    git describe --tags --always 2> /dev/null || return 1
 }
 
 function get_local_hash() {
