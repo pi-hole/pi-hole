@@ -22,7 +22,7 @@ function get_local_version() {
 
 function get_local_hash() {
     cd "${1}" 2> /dev/null || return 1
-    git rev-parse --short HEAD || return 1
+    git rev-parse --short=8 HEAD || return 1
 }
 
 function get_remote_version() {
