@@ -1,4 +1,5 @@
 FROM opensuse/tumbleweed
+RUN zypper install -y --no-recommends git
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
