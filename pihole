@@ -524,6 +524,12 @@ case "${1}" in
   "--regex" | "regex"           ) ;;
   "--white-regex" | "white-regex" ) ;;
   "--white-wild" | "white-wild"   ) ;;
+  "--add-list"                  ) ;;
+  "--add-lists"                 ) ;;
+  "--remove-list"               ) ;;
+  "--remove-lists"              ) ;;
+  "--disable-list"              ) ;;
+  "--enable-list"               ) ;;
   "-f" | "flush"                ) ;;
   "-up" | "updatePihole"        ) ;;
   "-r"  | "reconfigure"         ) ;;
@@ -561,6 +567,12 @@ case "${1}" in
   "--regex" | "regex"           ) listFunc "$@";;
   "--white-regex" | "white-regex" ) listFunc "$@";;
   "--white-wild" | "white-wild"   ) listFunc "$@";;
+  "--add-list"                  ) listFunc "$@";;
+  "--add-lists"                 ) listFunc "$@";;
+  "--remove-list"               ) listFunc "$@";;
+  "--remove-lists"              ) listFunc "$@";;
+  "--disable-list"              ) listFunc "$@";;
+  "--enable-list"               ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;

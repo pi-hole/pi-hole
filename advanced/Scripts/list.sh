@@ -145,6 +145,147 @@ ProcessDomainList() {
     done
 }
 
+AddList() {
+    local address num
+    address="$1"
+
+    # Is the list already present?
+    num="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE address = '${address}';")"
+
+    if [[ "${num}" -ne 0 ]]; then
+        echo -e "  ${INFO} ${1} already exists in adlists, no need to add!"
+        return
+    fi
+
+    # List not found in the table, add it!
+    if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} Adding ${address} to adlists..."
+    fi
+
+    reload=true
+    # Insert only the address here. All other fields will be filled in automatically
+    if [[ -z "${comment}" ]]; then
+        pihole-FTL sqlite3 "${gravityDBfile}" "INSERT INTO adlist (address) VALUES ('${address}');"
+    else
+        # also add comment when variable has been set through the "--comment" option
+        pihole-FTL sqlite3 "${gravityDBfile}" "INSERT INTO adlist (address,comment) VALUES ('${address}','${comment}');"
+    fi
+}
+
+AddListString() {
+    AddList ${1}
+    exit 0;
+}
+
+RemoveList() {
+    local address num
+    address="$1"
+
+    # Is the list already present?
+    num="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE address = '${address}';")"
+
+    if [[ "${num}" -eq 0 ]]; then
+        echo -e "  ${INFO} ${1} does not exist in adlists, no need to delete!"
+        return
+    fi
+
+    # List found in the table, delete it!
+    if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} Removing ${address} from adlists..."
+    fi
+
+    reload=true
+    # Delete the adlist.
+    pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM gravity WHERE adlist_id = (SELECT id FROM adlist WHERE address = '${address}');"
+    pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM adlist_by_group WHERE adlist_id = (SELECT id FROM adlist WHERE address = '${address}');"
+    pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}';"
+}
+
+RemoveListString() {
+    RemoveList ${1}
+    exit 0;
+}
+
+EnableList() {
+    local address num enabled
+    address="$1"
+
+    # Is the list present?
+    num="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE address = '${address}';")"
+    if [[ "${num}" -eq 0 ]]; then
+        echo -e "  ${INFO} ${1} list does not exist in adlists, cannot enable!"
+        exit 0;
+    fi
+
+    num="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE address = '${address}' AND enabled = 1;")"
+    if [[ "${num}" -eq 1 ]]; then
+        echo -e "  ${INFO} ${1} list is already enabled!"
+        exit 0;
+    fi
+
+    # List found and disabled, enable it!
+    if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} Enabling ${address} in adlists..."
+    fi
+
+    # Insert only the address here. All other fields will be filled in automatically
+    pihole-FTL sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}';"
+
+    exit 0;
+}
+
+DisableList() {
+    local address num disabled
+    address="$1"
+
+    # Is the list present?
+    num="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE address = '${address}';")"
+    if [[ "${num}" -eq 0 ]]; then
+        echo -e "  ${INFO} ${1} list does not exist in adlists, cannot enable!"
+        exit 0;
+    fi
+
+    disabled="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM adlist WHERE address = '${address}' AND enabled = 1;")"
+    if [[ "${disabled}" -eq 0 ]]; then
+        echo -e "  ${INFO} ${1} list is already disabled!"
+        exit 0;
+    fi
+
+    # List found and enabled, disable it!
+    if [[ "${verbose}" == true ]]; then
+        echo -e "  ${INFO} Disabling ${address} in adlists..."
+    fi
+    
+    # Insert only the address here. All other fields will be filled in automatically
+    pihole-FTL sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}';"
+
+    exit 0;
+}
+
+AddLists() {
+    local address listsFile
+    listsFile="$1"
+
+    while IFS= read -r address;
+    do 
+        AddList $address
+    done < $listsFile
+
+    exit 0;
+}
+
+RemoveLists() {
+    local address listsFile
+    listsFile="$1"
+
+    while IFS= read -r address;
+    do 
+        RemoveList $address
+    done < $listsFile
+
+    exit 0;
+}
+
 AddDomain() {
     local domain num requestedListname existingTypeId existingListname
     domain="$1"
@@ -282,10 +423,19 @@ while (( "$#" )); do
         "-d" | "--delmode"   ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
-        "-l" | "--list"      ) Displaylist;;
-        "--nuke"             ) NukeList;;
-        "--web"              ) web=true;;
         "--comment"          ) GetComment "${2}"; shift;;
+        ##################################################
+        # These functions exit immediately after execution
+        "-l" | "--list"      ) Displaylist;;
+        "--add-list"         ) AddListString "${2}";;
+        "--add-lists"        ) AddLists "${2}";;
+        "--remove-list"      ) RemoveListString "${2}";;
+        "--remove-lists"     ) RemoveLists "${2}";;
+        "--disable-list"     ) DisableList "${2}";;
+        "--enable-list"      ) EnableList "${2}";;
+        "--nuke"             ) NukeList;;
+        ##################################################
+        "--web"              ) web=true;;
         *                    ) ValidateDomain "${1}";;
     esac
     shift
