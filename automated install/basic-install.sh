@@ -353,22 +353,23 @@ package_manager_detect() {
             PKG_MANAGER="dnf"
         elif is_command yum ; then
             PKG_MANAGER="yum"
-        else
+        elif is_command zypper ; then
             PKG_MANAGER="zypper"
         fi
 
-        if [[ "${PKG_MANAGER}" != "zypper" ]]; then
-          # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-          PKG_INSTALL=("${PKG_MANAGER}" install -y)
+      # These variable names match the ones for apt-get. See above for an explanation of what they are for.
+      PKG_INSTALL=("${PKG_MANAGER}" install -y)
+      OS_CHECK_DEPS=(grep bind-utils)
+      LIGHTTPD_USER="lighttpd"
+      LIGHTTPD_GROUP="lighttpd"
+      LIGHTTPD_CFG="lighttpd.conf.fedora"
+
+        if [ "${PKG_MANAGER}" = "dnf" ] || [ "${PKG_MANAGER}" = "yum" ] ; then
           # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
           PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
-          OS_CHECK_DEPS=(grep bind-utils)
-          INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates)
+          INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
           PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
           PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
-          LIGHTTPD_USER="lighttpd"
-          LIGHTTPD_GROUP="lighttpd"
-          LIGHTTPD_CFG="lighttpd.conf.fedora"
 
         # If the host OS is centos (or a derivative), epel is required for lighttpd
           if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
@@ -385,27 +386,16 @@ package_manager_detect() {
               fi
           fi
         else
-          # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-          PKG_INSTALL=("${PKG_MANAGER}" install -y)
+          # openSUSE packages
           # openSUSE package manager returns number when there are packages to update so we need to || true to prevent the script from exiting.
           PKG_COUNT="${PKG_MANAGER} lu | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
-          OS_CHECK_DEPS=(grep bind-utils)
-          INSTALLER_DEPS=(git dialog iproute newt procps ca-certificates)
+          INSTALLER_DEPS=(git dialog iproute newt procps which ca-certificates)
           PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap-ng0 nmap ncat jq)
-#          PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php8-common php8-cli php8-pdo php8-xml php8-json php8-intl)
           PIHOLE_WEB_DEPS=(lighttpd php8 php8-fastcgi php8-cli php8-pdo php8-intl php8-openssl php8-sqlite)
-          LIGHTTPD_USER="lighttpd"
-          LIGHTTPD_GROUP="lighttpd"
-          LIGHTTPD_CFG="lighttpd.conf.fedora"
-
-          # If the host OS is openSUSE, no epel is required for lighttpd
-          if ! grep -qiE 'openSUSE' /etc/os-release; then
-              printf "  %b openSUSE repositories already active\\n" "${TICK}"
-          fi
-        fi
-    # If neither apt-get or yum/dnf package managers were found
+       fi
     else
-        # we cannot install required packages
+      # If neither apt-get or yum/dnf package managers were found
+      # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
         # so exit the installer
         exit
@@ -2291,7 +2281,7 @@ get_binary_name() {
         local rev
         rev=$(uname -m | sed "s/[^0-9]//g;")
         local lib
-        lib=$(ldd "$(command -v sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
+        lib=$(ldd "$(which sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
@@ -2717,8 +2707,9 @@ main() {
     # Download and compile the aggregated block list
     runGravity
 
-    # Update local and remote versions via updatechecke
+    # Force an update of the updatechecker
     /opt/pihole/updatecheck.sh
+    /opt/pihole/updatecheck.sh x remote
 
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
