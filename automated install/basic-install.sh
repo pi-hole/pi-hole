@@ -1788,6 +1788,23 @@ create_pihole_user() {
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             fi
+            local str="Checking for group 'pihole'"
+            printf "  %b %s..." "${INFO}" "${str}"
+            local str="Creating group 'pihole'"
+            # if group can be created
+            if groupadd pihole; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                local str="Adding user 'pihole' to group 'pihole'"
+                printf "  %b %s..." "${INFO}" "${str}"
+                # if pihole user can be added to group pihole
+                if usermod -g pihole pihole; then
+                    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                else
+                    printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                fi
+            else
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            fi
         fi
     fi
 }
