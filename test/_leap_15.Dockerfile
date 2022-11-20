@@ -1,4 +1,4 @@
-FROM opensuse/tumbleweed
+FROM opensuse/leap:15.4
 RUN zypper install -y --no-recommends git
 
 ENV GITDIR /etc/.pihole
