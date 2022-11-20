@@ -389,7 +389,7 @@ package_manager_detect() {
           # openSUSE packages
           # openSUSE package manager returns number when there are packages to update so we need to || true to prevent the script from exiting.
           PKG_COUNT="${PKG_MANAGER} lu | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
-          INSTALLER_DEPS=(git dialog iproute newt procps which ca-certificates)
+          INSTALLER_DEPS=(git dialog iproute2 newt procps which ca-certificates)
           PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap-ng0 netcat-openbsd jq)
           PIHOLE_WEB_DEPS=(lighttpd php8 php8-fastcgi php8-cli php8-pdo php8-intl php8-openssl php8-sqlite)
        fi
