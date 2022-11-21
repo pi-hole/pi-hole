@@ -2298,7 +2298,7 @@ get_binary_name() {
         local rev
         rev=$(uname -m | sed "s/[^0-9]//g;")
         local lib
-        lib=$(ldd "$(which sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
+        lib=$(ldd "$(command -v sh)" | grep -E '^\s*/lib' | awk '{ print $1 }')
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
@@ -2724,9 +2724,8 @@ main() {
     # Download and compile the aggregated block list
     runGravity
 
-    # Force an update of the updatechecker
+    # Update local and remote versions via updatechecker
     /opt/pihole/updatecheck.sh
-    /opt/pihole/updatecheck.sh x remote
 
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
