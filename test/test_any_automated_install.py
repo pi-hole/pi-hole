@@ -170,7 +170,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     mock_command_passthrough("git", {"pull": ("", "0")}, host)
     # if not testing on openSUSE mock systemctl to not start lighttpd and FTL
     is_openSUSE = host.run("command -v zypper > /dev/null")
-    if is_openSUSE.rc != 0 :
+    if is_openSUSE.rc != 0:
         mock_command_2(
             "systemctl",
             {
