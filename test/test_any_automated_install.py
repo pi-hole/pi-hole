@@ -214,6 +214,8 @@ def test_installPihole_fresh_install_readableFiles(host):
     maninstalled = True
     if (info_box + " man not installed") in install.stdout:
         maninstalled = False
+    if (info_box + " man pages not installed") in install.stdout:
+        maninstalled = False
     piholeuser = "pihole"
     exit_status_success = 0
     test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
