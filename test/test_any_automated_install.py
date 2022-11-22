@@ -169,7 +169,8 @@ def test_installPihole_fresh_install_readableFiles(host):
     # mock git pull
     mock_command_passthrough("git", {"pull": ("", "0")}, host)
     # if not testing on openSUSE mock systemctl to not start lighttpd and FTL
-    if not host.run("command -v zypper > /dev/null"):
+    is_openSUSE = host.run("command -v zypper > /dev/null")
+    if is_openSUSE.rc != 0 :
         mock_command_2(
             "systemctl",
             {
@@ -224,7 +225,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     actual_rc = host.run(check_etc).rc
     assert exit_status_success == actual_rc
     # readable and writable dhcp.leases
-    host.run("ls -lha /etc/pihole/")
     check_leases = test_cmd.format("r", "/etc/pihole/dhcp.leases", piholeuser)
     actual_rc = host.run(check_leases).rc
     assert exit_status_success == actual_rc
@@ -287,6 +287,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     actual_rc = host.run(check_init).rc
     assert exit_status_success == actual_rc
     # check readable /etc/lighttpd/lighttpd.conf
+    host.run("ls -lha /etc/lighttpd/")
     check_lighttpd = test_cmd.format("r", "/etc/lighttpd/lighttpd.conf", piholeuser)
     actual_rc = host.run(check_lighttpd).rc
     assert exit_status_success == actual_rc
