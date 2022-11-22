@@ -169,19 +169,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     # mock git pull
     mock_command_passthrough("git", {"pull": ("", "0")}, host)
     # mock systemctl to not start lighttpd and FTL
-    mock_command_2(
-        "systemctl",
-        {
-            "enable lighttpd": ("", "0"),
-            "restart lighttpd": ("", "0"),
-            "start lighttpd": ("", "0"),
-            "enable pihole-FTL": ("", "0"),
-            "restart pihole-FTL": ("", "0"),
-            "start pihole-FTL": ("", "0"),
-            "*": ('echo "systemctl call with $@"', "0"),
-        },
-        host,
-    )
+
     # try to install man
     host.run("command -v apt-get > /dev/null && apt-get install -qq man")
     host.run("command -v dnf > /dev/null && dnf install -y man")

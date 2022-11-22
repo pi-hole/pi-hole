@@ -1,5 +1,5 @@
 FROM opensuse/leap:15.4
-RUN zypper install -y --no-recommends git dbus-1 systemd-sysvinit
+RUN zypper install -y --no-recommends git dbus-1 systemd-sysvinit libcap-progs
 
 RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
     /etc/systemd/system/*.wants/* \
