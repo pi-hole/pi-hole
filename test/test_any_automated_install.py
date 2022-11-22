@@ -287,7 +287,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     actual_rc = host.run(check_init).rc
     assert exit_status_success == actual_rc
     # check readable /etc/lighttpd/lighttpd.conf
-    host.run("chmod o+x /etc/lighttpd/")
     check_lighttpd = test_cmd.format("r", "/etc/lighttpd/lighttpd.conf", piholeuser)
     actual_rc = host.run(check_lighttpd).rc
     assert exit_status_success == actual_rc
