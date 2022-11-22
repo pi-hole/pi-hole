@@ -1,8 +1,7 @@
 FROM opensuse/leap:15.4
 # suppress warning about pinning packages installed by zypper
 # hadolint ignore=DL3037
-RUN zypper install -y --no-recommends git dbus-1 systemd-sysvinit libcap-progs \
-    zypper clean
+RUN zypper install -y --no-recommends git dbus-1 systemd-sysvinit libcap-progs && zypper clean
 
 RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
     /etc/systemd/system/*.wants/* \
