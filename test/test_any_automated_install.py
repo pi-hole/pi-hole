@@ -186,6 +186,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     host.run("command -v apt-get > /dev/null && apt-get install -qq man")
     host.run("command -v dnf > /dev/null && dnf install -y man")
     host.run("command -v yum > /dev/null && yum install -y man")
+    host.run("command -v zypper > /dev/null && zypper install -y man")
     # create configuration file
     setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
     for k, v in SETUPVARS.items():
