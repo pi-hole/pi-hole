@@ -426,7 +426,7 @@ tricorderFunc() {
 }
 
 updateCheckFunc() {
-  "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh "$@"
+  "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh "$1"
   exit 0
 }
 
@@ -554,7 +554,7 @@ case "${1}" in
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
-  "updatechecker"               ) updateCheckFunc "$@";;
+  "updatechecker"               ) updateCheckFunc "$2";;
   "arpflush"                    ) arpFunc "$@";;
   "-t" | "tail"                 ) tailFunc "$2";;
 esac
