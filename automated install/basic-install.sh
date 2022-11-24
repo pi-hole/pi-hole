@@ -1349,6 +1349,9 @@ installConfigs() {
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" "/etc/init.d/pihole-FTL"
 
     # If the user chose to install the dashboard,
+        # set permissions on /etc/lighttpd/lighttpd.conf so pihole user (other) can read the file
+        chmod o+x /etc/lighttpd
+        chmod o+r "${lighttpdConfig}"
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         # and if the Web server conf directory does not exist,
         if [[ ! -d "/etc/lighttpd" ]]; then
