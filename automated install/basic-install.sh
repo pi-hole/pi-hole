@@ -1399,6 +1399,9 @@ installConfigs() {
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
 
     # If the user chose to install the dashboard,
+        # set permissions on /etc/lighttpd/lighttpd.conf so pihole user (other) can read the file
+        chmod o+x /etc/lighttpd
+        chmod o+r "${lighttpdConfig}"
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
         if grep -q -F "FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
             # Attempt to preserve backwards compatibility with older versions
