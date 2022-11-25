@@ -11,8 +11,6 @@ RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
     /lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup* \
     /lib/systemd/system/systemd-update-utmp*
 
-RUN mkdir -p /etc/init.d/rc2.d /etc/init.d/rc3.d /etc/init.d/rc4.d /etc/init.d/rc5.d
-
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
 
