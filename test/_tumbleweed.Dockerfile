@@ -23,7 +23,6 @@ RUN true && \
     chmod +x $SCRIPTDIR/*
 
 ENV SKIP_INSTALL true
-ENV PIHOLE_SKIP_OS_CHECK true
 ENV OS_CHECK_DOMAIN_NAME dev-supportedos.pi-hole.net
 
 CMD ["/usr/sbin/init"]
