@@ -553,7 +553,7 @@ case "${1}" in
   "restartdns"                  ) restartDNS "$2";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
-  "updatechecker"               ) updateCheckFunc "$@";;
+  "updatechecker"               ) shift; updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
   "-t" | "tail"                 ) tailFunc "$2";;
 esac
