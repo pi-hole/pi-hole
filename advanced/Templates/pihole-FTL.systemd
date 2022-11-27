@@ -1,0 +1,41 @@
+[Unit]
+Description=Pi-hole FTL
+# This unit is supposed to indicate when network functionality is available, but it is only
+# very weakly defined what that is supposed to mean, with one exception: at shutdown, a unit
+# that is ordered after network-online.target will be stopped before the network
+Wants=network-online.target
+After=network-online.target
+# A target that should be used as synchronization point for all host/network name service lookups.
+# All services for which the availability of full host/network name resolution is essential should
+# be ordered after this target, but not pull it in.
+Wants=nss-lookup.target
+Before=nss-lookup.target
+
+# Limit (re)start loop to 5 within 1 minute
+StartLimitBurst=5
+StartLimitIntervalSec=60s
+
+[Service]
+User=pihole
+PermissionsStartOnly=true
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN
+
+ExecStartPre=/opt/pihole/pihole-FTL-prestart.sh
+ExecStart=/usr/bin/pihole-FTL -f
+Restart=on-failure
+RestartSec=5s
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStopPost=/opt/pihole/pihole-FTL-poststop.sh
+
+# Use graceful shutdown with a reasonable timeout
+TimeoutStopSec=10s
+
+# Make /usr, /boot, /etc and possibly some more folders read-only...
+ProtectSystem=full
+# ... except /etc/pihole
+# This merely retains r/w access rights, it does not add any new.
+# Must still be writable on the host!
+ReadWriteDirectories=/etc/pihole
+
+[Install]
+WantedBy=multi-user.target
