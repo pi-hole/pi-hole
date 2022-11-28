@@ -1385,11 +1385,6 @@ installConfigs() {
     if [[ -d '/run/systemd/system' ]]; then
         install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
-        # Set net admin permissions so that FTL can serve DNS, DHCP and IMAP (for DHCPv6). If this does not work, run FTL as root user.
-        if ! setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip '/usr/bin/pihole-FTL'; then
-            sed -i '/^User=/d' '/etc/systemd/system/pihole-FTL.service'
-        fi
-
         # Remove init.d service if present
         if [[ -e '/etc/init.d/pihole-FTL' ]]; then
             rm '/etc/init.d/pihole-FTL'
