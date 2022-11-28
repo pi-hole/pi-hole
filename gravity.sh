@@ -524,15 +524,20 @@ num_target_lines=0
 num_source_lines=0
 num_invalid=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" incorrect_lines
+  local adlistID="${1}" src="${2}" target="${3}" incorrect_lines sample_incorrect_lines
   # This sed does the following things:
+  # 0. Remove all lines containing no domains
   # 1. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
   # 2. Append ,adlistID to every line
   # 3. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
   # 4. Ensures there is a newline on the last line
-  sed -e "/[^a-zA-Z0-9.\_-]/d;s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
-  # Find (up to) five domains containing invalid characters (see above)
-  incorrect_lines="$(sed -e "/[^a-zA-Z0-9.\_-]/!d" "${src}" | head -n 5)"
+  sed -r  "/([^\.]+\.)+[^\.]{2,}/!d;/[^a-zA-Z0-9.\_-]/d;s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
+
+  # Find lines containing no domains or with invalid characters (see above)
+  # Remove duplicates and limit to 5 domains
+  mapfile -t incorrect_lines <<< "$(sed -r "/([^\.]+\.)+[^\.]{2,}/d" < "${src}")"
+  mapfile -t -O "${#incorrect_lines[@]}" incorrect_lines <<< "$(sed -r "/[^a-zA-Z0-9.\_-]/!d" < "${src}")"
+  IFS=" " read -r -a sample_incorrect_lines <<< "$(tr ' ' '\n' <<< "${incorrect_lines[@]}" | sort -u | head -n 5| tr '\n' ' ')"
 
   local num_target_lines_new num_correct_lines
   # Get number of lines in source file
@@ -551,11 +556,12 @@ parseList() {
   fi
 
   # Display sample of invalid lines if we found some
-  if [[ -n "${incorrect_lines}" ]]; then
+  if [ ${#sample_incorrect_lines[@]} -ne 0 ]; then
     echo "      Sample of invalid domains:"
-    while IFS= read -r line; do
-      echo "      - ${line}"
-    done <<< "${incorrect_lines}"
+    for each in "${sample_incorrect_lines[@]}"
+    do
+        echo "      - ${each}"
+    done
   fi
 }
 compareLists() {
@@ -731,11 +737,13 @@ gravity_ParseFileIntoDomains() {
   # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
   # 4) Remove lines containing "/"
   # 5) Remove leading tabs, spaces, etc.
+  # 6) Remove empty lines
   < "${src}" tr -d '\r' | \
   tr '[:upper:]' '[:lower:]' | \
   sed 's/\s*#.*//g' | \
   sed -r '/(\/).*$/d' | \
-  sed -r 's/^.*\s+//g' >  "${destination}"
+  sed -r 's/^.*\s+//g' | \
+  sed '/^$/d'>  "${destination}"
   chmod 644 "${destination}"
 }
 
