@@ -39,7 +39,7 @@ testinfra.backend.docker.DockerBackend.run = run_bash
 def host():
     # run a container
     docker_id = (
-        subprocess.check_output(["docker", "run", "-t", "-d", "--cap-add=ALL", IMAGE])
+        subprocess.check_output(["docker", "run", "-t", "-d", "--privileged", IMAGE])
         .decode()
         .strip()
     )
