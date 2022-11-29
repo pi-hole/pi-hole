@@ -154,7 +154,12 @@ restartDNS() {
     fi
   else
     # A full restart has been requested
-    svc="service pihole-FTL restart"
+    if command -v systemctl >/dev/null 2>&1 ; then
+        svc="systemctl restart pihole-FTL"
+    else
+        svc="service pihole-FTL restart"
+    fi
+
     str="Restarting DNS server"
     icon="${TICK}"
   fi
