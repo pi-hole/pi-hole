@@ -168,23 +168,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     mock_command("dialog", {"*": ("", "0")}, host)
     # mock git pull
     mock_command_passthrough("git", {"pull": ("", "0")}, host)
-    # if systemd is not PID 1 mock systemctl to not start lighttpd and FTL
-    init_system = host.run("cat /proc/1/comm")
-    print(init_system.stdout)
-    if "systemd" not in init_system.stdout:
-        mock_command_2(
-            "systemctl",
-            {
-                "enable lighttpd": ("", "0"),
-                "restart lighttpd": ("", "0"),
-                "start lighttpd": ("", "0"),
-                "enable pihole-FTL": ("", "0"),
-                "restart pihole-FTL": ("", "0"),
-                "start pihole-FTL": ("", "0"),
-                "*": ('echo "systemctl call with $@"', "0"),
-            },
-            host,
-        )
     # try to install man
     host.run("command -v apt-get > /dev/null && apt-get install -qq man")
     host.run("command -v dnf > /dev/null && dnf install -y man")
@@ -281,14 +264,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     )
     actual_rc = host.run(check_dnsmasqconf).rc
     assert exit_status_success == actual_rc
-    if "systemd" not in init_system.stdout:
-        # check readable and executable /etc/init.d/pihole-FTL
-        check_init = test_cmd.format("x", "/etc/init.d/pihole-FTL", piholeuser)
-        actual_rc = host.run(check_init).rc
-        assert exit_status_success == actual_rc
-        check_init = test_cmd.format("r", "/etc/init.d/pihole-FTL", piholeuser)
-        actual_rc = host.run(check_init).rc
-        assert exit_status_success == actual_rc
     # check readable /etc/lighttpd/lighttpd.conf
     check_lighttpd = test_cmd.format("r", "/etc/lighttpd/lighttpd.conf", piholeuser)
     actual_rc = host.run(check_lighttpd).rc
@@ -366,69 +341,6 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
 
     # mock git pull
     mock_command_passthrough("git", {"pull": ("", "0")}, host)
-    init_system = host.run("cat /proc/1/comm")
-    if "systemd" not in init_system.stdout:
-        # if systemd is not PID 1 mock systemctl to not start lighttpd and FTL
-        ligthttpdcommand = dedent(
-            r'''\"\"
-            echo 'starting lighttpd with {}'
-            if [ command -v "apt-get" >/dev/null 2>&1 ]; then
-                LIGHTTPD_USER="www-data"
-                LIGHTTPD_GROUP="www-data"
-            else
-                LIGHTTPD_USER="lighttpd"
-                LIGHTTPD_GROUP="lighttpd"
-            fi
-            mkdir -p "{run}"
-            chown {usergroup} "{run}"
-            mkdir -p "{cache}"
-            chown {usergroup} "/var/cache"
-            chown {usergroup} "{cache}"
-            mkdir -p "{compress}"
-            chown {usergroup} "{compress}"
-            mkdir -p "{uploads}"
-            chown {usergroup} "{uploads}"
-            chmod 0777 /var
-            chmod 0777 /var/cache
-            chmod 0777 "{cache}"
-            find "{run}" -type d -exec chmod 0777 {chmodarg} \;;
-            find "{run}" -type f -exec chmod 0666 {chmodarg} \;;
-            find "{compress}" -type d -exec chmod 0777 {chmodarg} \;;
-            find "{compress}" -type f -exec chmod 0666 {chmodarg} \;;
-            find "{uploads}" -type d -exec chmod 0777 {chmodarg} \;;
-            find "{uploads}" -type f -exec chmod 0666 {chmodarg} \;;
-            /usr/sbin/lighttpd -tt -f '{config}'
-            /usr/sbin/lighttpd -f '{config}'
-            echo \"\"'''.format(
-                "{}",
-                usergroup="${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}}",
-                chmodarg="{{}}",
-                config="/etc/lighttpd/lighttpd.conf",
-                run="/var/run/lighttpd",
-                cache="/var/cache/lighttpd",
-                uploads="/var/cache/lighttpd/uploads",
-                compress="/var/cache/lighttpd/compress",
-            )
-        )
-        FTLcommand = dedent(
-            '''\"\"
-            set -x
-            /etc/init.d/pihole-FTL restart
-            echo \"\"'''
-        )
-        mock_command_run(
-            "systemctl",
-            {
-                "enable lighttpd": ("", "0"),
-                "restart lighttpd": (ligthttpdcommand.format("restart"), "0"),
-                "start lighttpd": (ligthttpdcommand.format("start"), "0"),
-                "enable pihole-FTL": ("", "0"),
-                "restart pihole-FTL": (FTLcommand, "0"),
-                "start pihole-FTL": (FTLcommand, "0"),
-                "*": ('echo "systemctl call with $@"', "0"),
-            },
-            host,
-        )
     # create configuration file
     setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
     for k, v in SETUPVARS.items():
