@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+  # Allows to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
 permissions:
   contents: read
 
