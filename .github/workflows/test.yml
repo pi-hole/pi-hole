@@ -70,7 +70,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install -r test/requirements.txt
+        run:  pip install wheel && pip install -r test/requirements.txt
 
       - name: Test with tox
         run: tox -c test/tox.${DISTRO}.ini
