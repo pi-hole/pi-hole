@@ -399,8 +399,8 @@ os_check() {
     log_write "${INFO} dig return code:  ${digReturnCode}"
     log_write "${INFO} dig response:  ${response}"
 
-    if [ "${response}" -ne 0 ]; then
-        log_write "${CROSS} Distro: ${COL_RED}${detected_os^}${COL_NC}"
+    if [ "${digReturnCode}" -ne 0 ]; then
+        log_write "${INFO} Distro: ${COL_RED}${detected_os^}${COL_NC}"
         log_write "${CROSS} Error:  ${COL_RED}dig command failed - Unable to check OS${COL_NC}"
     else
         IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
