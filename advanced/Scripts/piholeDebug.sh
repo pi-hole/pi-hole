@@ -431,11 +431,11 @@ os_check() {
                 finalmsg="${TICK} ${COL_GREEN}Distro and version supported${COL_NC}"
             else
                 log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
-                finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+                finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported ${COL_NC}(${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
             fi
         else
             log_write "${CROSS} Distro:  ${COL_RED}${detected_os^}${COL_NC}"
-            finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+            finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro ${COL_NC}(${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
         fi
 
         # Print dig response and the final check result
