@@ -439,7 +439,7 @@ os_check() {
         fi
 
         # Print dig response and the final check result
-        log_write "${INFO} dig return code: ${COL_RED}${digReturnCode}${COL_NC}"
+        log_write "${INFO} dig return code: ${COL_GREEN}${digReturnCode}${COL_NC}"
         log_write "${INFO} dig response: ${response}"
         log_write "${finalmsg}"
     fi
