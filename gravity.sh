@@ -526,11 +526,11 @@ num_invalid=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" incorrect_lines sample_incorrect_lines
   # This sed does the following things:
-  # 0. Remove all lines containing no domains
-  # 1. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
-  # 2. Append ,adlistID to every line
-  # 3. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
-  # 4. Ensures there is a newline on the last line
+  # 1. Remove all lines containing no domains
+  # 2. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
+  # 3. Append ,adlistID to every line
+  # 4. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
+  # 5. Ensures there is a newline on the last line
   sed -r  "/([^\.]+\.)+[^\.]{2,}/!d;/[^a-zA-Z0-9.\_-]/d;s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
 
   # Find lines containing no domains or with invalid characters (see above)
