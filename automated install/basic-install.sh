@@ -1776,20 +1776,35 @@ create_pihole_user() {
     else
         # If the pihole user doesn't exist,
         printf "%b  %b %s" "${OVER}" "${CROSS}" "${str}"
-        local str="Creating user 'pihole'"
-        printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-        # create her with the useradd command,
+        local str="Checking for group 'pihole'"
+        printf "  %b %s..." "${INFO}" "${str}"
         if getent group pihole > /dev/null 2>&1; then
-            # then add her to the pihole group (as it already exists)
+            # group pihole exists
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+            # then create and add her to the pihole group
+            local str="Creating user 'pihole'"
+            printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
             if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             fi
         else
-            # add user pihole with default group settings
-            if useradd -r -s /usr/sbin/nologin pihole; then
+            # group pihole does not exist
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            local str="Creating group 'pihole'"
+            # if group can be created
+            if groupadd pihole; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                # create and add pihole user to the pihole group
+                local str="Creating user 'pihole'"
+                printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
+                if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+                    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                else
+                    printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                fi
+
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             fi
