@@ -396,6 +396,7 @@ os_check() {
 
     if [ "${digReturnCode}" -ne 0 ]; then
         log_write "${INFO} Distro: ${detected_os^}"
+        log_write "${INFO} Version: ${detected_version}"
         log_write "${CROSS} dig return code: ${COL_RED}${digReturnCode}${COL_NC}"
         log_write "${CROSS} dig response: ${response}"
         log_write "${CROSS} Error: ${COL_RED}dig command failed - Unable to check OS${COL_NC}"
@@ -437,7 +438,7 @@ os_check() {
         fi
 
         # Print dig response and the final check result
-        log_write "${INFO} dig return code: ${COL_GREEN}${digReturnCode}${COL_NC}"
+        log_write "${TICK} dig return code: ${COL_GREEN}${digReturnCode}${COL_NC}"
         log_write "${INFO} dig response: ${response}"
         log_write "${finalmsg}"
     fi
