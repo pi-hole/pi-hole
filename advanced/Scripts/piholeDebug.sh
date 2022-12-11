@@ -394,41 +394,53 @@ os_check() {
     # Extract dig response
     response="${cmdResult%%$'\n'*}"
 
-    IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
-    for distro_and_versions in "${supportedOS[@]}"
-    do
-        distro_part="${distro_and_versions%%=*}"
-        versions_part="${distro_and_versions##*=}"
-
-        if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
-            valid_os=true
-            IFS="," read -r -a supportedVer <<<"${versions_part}"
-            for version in "${supportedVer[@]}"
-            do
-                if [[ "${detected_version}" =~ $version ]]; then
-                    valid_version=true
-                    break
-                fi
-            done
-            break
-        fi
-    done
-
-    log_write "${INFO} dig return code:  ${digReturnCode}"
-    log_write "${INFO} dig response:  ${response}"
-
-    if [ "$valid_os" = true ]; then
-        log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
-
-        if [ "$valid_version" = true ]; then
-            log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
-        else
-            log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
-            log_write "${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
-        fi
+    if [ "${digReturnCode}" -ne 0 ]; then
+        log_write "${INFO} Distro: ${detected_os^}"
+        log_write "${INFO} Version: ${detected_version}"
+        log_write "${CROSS} dig return code: ${COL_RED}${digReturnCode}${COL_NC}"
+        log_write "${CROSS} dig response: ${response}"
+        log_write "${CROSS} Error: ${COL_RED}dig command failed - Unable to check OS${COL_NC}"
     else
-        log_write "${CROSS} Distro:  ${COL_RED}${detected_os^}${COL_NC}"
-        log_write "${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro (${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+        IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
+        for distro_and_versions in "${supportedOS[@]}"
+        do
+            distro_part="${distro_and_versions%%=*}"
+            versions_part="${distro_and_versions##*=}"
+
+            if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
+                valid_os=true
+                IFS="," read -r -a supportedVer <<<"${versions_part}"
+                for version in "${supportedVer[@]}"
+                do
+                    if [[ "${detected_version}" =~ $version ]]; then
+                        valid_version=true
+                        break
+                    fi
+                done
+                break
+            fi
+        done
+
+        local finalmsg
+        if [ "$valid_os" = true ]; then
+            log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
+
+            if [ "$valid_version" = true ]; then
+                log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
+                finalmsg="${TICK} ${COL_GREEN}Distro and version supported${COL_NC}"
+            else
+                log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
+                finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported ${COL_NC}(${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+            fi
+        else
+            log_write "${CROSS} Distro:  ${COL_RED}${detected_os^}${COL_NC}"
+            finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro ${COL_NC}(${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
+        fi
+
+        # Print dig response and the final check result
+        log_write "${TICK} dig return code: ${COL_GREEN}${digReturnCode}${COL_NC}"
+        log_write "${INFO} dig response: ${response}"
+        log_write "${finalmsg}"
     fi
 }
 
