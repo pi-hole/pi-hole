@@ -13,15 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3.1.0
       - name: Opening pull request
-        id: pull
-        uses: tretuna/sync-branches@1.4.0
-        with:
+        run: gh pr create -B development -H master --title 'Sync master back into development' --body 'Created by Github action' --label 'internal'
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FROM_BRANCH: 'master'
-          TO_BRANCH: 'development'
-      - name: Label the pull request to ignore for release note generation
-        uses: actions-ecosystem/action-add-labels@v1.1.3
-        with:
-          labels: internal
-          repo: ${{ github.repository }}
-          number: ${{ steps.pull.outputs.PULL_REQUEST_NUMBER }}
