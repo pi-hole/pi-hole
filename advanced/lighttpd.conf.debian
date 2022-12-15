@@ -26,7 +26,6 @@ server.modules = (
 )
 
 server.document-root        = "/var/www/html"
-server.error-handler-404    = "/pihole/index.php"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error-pihole.log"
 server.pid-file             = "/run/lighttpd.pid"
