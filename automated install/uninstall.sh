@@ -139,6 +139,19 @@ removeNoPurge() {
             ${SUDO} rm /etc/lighttpd/external.conf
         fi
 
+        # Fedora-based
+        if [[ -f /etc/lighttpd/conf.d/pihole-admin.conf ]]; then
+            ${SUDO} rm /etc/lighttpd/conf.d/pihole-admin.conf
+        fi
+
+        # Debian-based
+        if [[ -f /etc/lighttpd/conf-available/pihole-admin.conf ]]; then
+            if is_command lighty-disable-mod ; then
+                ${SUDO} lighty-disable-mod pihole-admin > /dev/null || true
+            fi
+            ${SUDO} rm /etc/lighttpd/conf-available/15-pihole-admin.conf
+        fi
+
         echo -e "  ${TICK} Removed lighttpd configs"
     fi
 
