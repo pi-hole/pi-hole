@@ -82,7 +82,6 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
-PI_HOLE_404_DIR="${webroot}/pihole"
 FTL_CONFIG_FILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
@@ -1404,10 +1403,6 @@ installConfigs() {
         if grep -q -F "FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
             # Attempt to preserve backwards compatibility with older versions
             install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
-            # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-            if [[ -f "${PI_HOLE_404_DIR}/custom.php" ]]; then
-                sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
-            fi
             # Make the directories if they do not exist and set the owners
             mkdir -p /run/lighttpd
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
@@ -1708,30 +1703,6 @@ install_dependent_packages() {
 
 # Install the Web interface dashboard
 installPiholeWeb() {
-    printf "\\n  %b Installing 404 page...\\n" "${INFO}"
-
-    local str="Creating directory for 404 page, and copying files"
-    printf "  %b %s..." "${INFO}" "${str}"
-    # Install the directory
-    install -d -m 0755 ${PI_HOLE_404_DIR}
-    # and the 404 handler
-    install -D -m 644 ${PI_HOLE_LOCAL_REPO}/advanced/index.php ${PI_HOLE_404_DIR}/
-
-    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-
-    local str="Backing up index.lighttpd.html"
-    printf "  %b %s..." "${INFO}" "${str}"
-    # If the default index file exists,
-    if [[ -f "${webroot}/index.lighttpd.html" ]]; then
-        # back it up
-        mv ${webroot}/index.lighttpd.html ${webroot}/index.lighttpd.orig
-        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-    else
-        # Otherwise, don't do anything
-        printf "%b  %b %s\\n" "${OVER}" "${INFO}" "${str}"
-        printf "      No default index.lighttpd.html file found... not backing up\\n"
-    fi
-
     # Install Sudoers file
     local str="Installing sudoer file"
     printf "\\n  %b %s..." "${INFO}" "${str}"

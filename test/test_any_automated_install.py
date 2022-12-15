@@ -129,20 +129,8 @@ def test_installPiholeWeb_fresh_install_no_errors(host):
     installPiholeWeb
     """
     )
-    expected_stdout = info_box + " Installing 404 page..."
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = tick_box + (
-        " Creating directory for 404 page, " "and copying files"
-    )
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = info_box + " Backing up index.lighttpd.html"
-    assert expected_stdout in installWeb.stdout
-    expected_stdout = "No default index.lighttpd.html file found... " "not backing up"
-    assert expected_stdout in installWeb.stdout
     expected_stdout = tick_box + " Installing sudoer file"
     assert expected_stdout in installWeb.stdout
-    web_directory = host.run("ls -r /var/www/html/pihole").stdout
-    assert "index.php" in web_directory
 
 
 def get_directories_recursive(host, directory):
@@ -556,16 +544,6 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
         return bool(m)
 
     if installWebInterface is True:
-        check_pihole = test_cmd.format("r", webroot + "/pihole", webuser)
-        actual_rc = host.run(check_pihole).rc
-        assert exit_status_success == actual_rc
-        check_pihole = test_cmd.format("x", webroot + "/pihole", webuser)
-        actual_rc = host.run(check_pihole).rc
-        assert exit_status_success == actual_rc
-        # check most important files in $webroot for read permission
-        check_index = test_cmd.format("r", webroot + "/pihole/index.php", webuser)
-        actual_rc = host.run(check_index).rc
-        assert exit_status_success == actual_rc
         if test_webpage is True:
             # check webpage for unreadable files
             noPHPfopen = re.compile(
