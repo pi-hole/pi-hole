@@ -1365,6 +1365,20 @@ installConfigs() {
         if [[ -f "${PI_HOLE_404_DIR}/custom.php" ]]; then
             sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
         fi
+        # Copy the config file to include for pihole admin interface
+        if [[ -d "/etc/lighttpd/conf.d" ]]; then
+            install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/pihole-admin.conf /etc/lighttpd/conf.d/pihole-admin.conf
+        elif [[ -d "/etc/lighttpd/conf-available" ]]; then
+            conf=/etc/lighttpd/conf-available/15-pihole-admin.conf
+            install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/pihole-admin.conf $conf
+            if is_command lighty-enable-mod ; then
+                lighty-enable-mod pihole-admin > /dev/null || true
+            fi
+        else
+            # lighttpd config include dir not found
+            printf "  %b Warning: lighttpd config include dir not found\\n" "${INFO}"
+            printf "      Please manually install pihole-admin.conf\\n"
+        fi
         # Make the directories if they do not exist and set the owners
         mkdir -p /run/lighttpd
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
