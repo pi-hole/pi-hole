@@ -98,7 +98,7 @@ $HTTP["url"] =~ "^/admin/" {
     setenv.add-response-header = (
         "X-Pi-hole" => "The Pi-hole Web interface is working!",
         "X-Frame-Options" => "DENY",
-        "X-XSS-Protection" => "1; mode=block",
+        "X-XSS-Protection" => "0",
         "X-Content-Type-Options" => "nosniff",
         "Content-Security-Policy" => "default-src 'self' 'unsafe-inline';",
         "X-Permitted-Cross-Domain-Policies" => "none",
