@@ -316,6 +316,24 @@ def test_installPihole_fresh_install_readableFiles(host):
         'r', '/etc/lighttpd/lighttpd.conf', piholeuser)
     actual_rc = host.run(check_lighttpd).rc
     assert exit_status_success == actual_rc
+    # check readable /etc/lighttpd/conf*/pihole-admin.conf
+    check_lighttpd = test_cmd.format("r", "/etc/lighttpd/conf.d", piholeuser)
+    if host.run(check_lighttpd).rc == exit_status_success:
+        check_lighttpd = test_cmd.format(
+            "r", "/etc/lighttpd/conf.d/pihole-admin.conf", piholeuser
+        )
+        actual_rc = host.run(check_lighttpd).rc
+        assert exit_status_success == actual_rc
+    else:
+        check_lighttpd = test_cmd.format(
+            "r", "/etc/lighttpd/conf-available", piholeuser
+        )
+        if host.run(check_lighttpd).rc == exit_status_success:
+            check_lighttpd = test_cmd.format(
+                "r", "/etc/lighttpd/conf-available/15-pihole-admin.conf", piholeuser
+            )
+            actual_rc = host.run(check_lighttpd).rc
+            assert exit_status_success == actual_rc
     # check readable and executable manpages
     if maninstalled is True:
         check_man = test_cmd.format(
