@@ -2,4 +2,4 @@ docker-compose
 pytest
 pytest-xdist
 pytest-testinfra
-tox
+tox <= 4.0.12
