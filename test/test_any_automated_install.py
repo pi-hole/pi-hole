@@ -1161,3 +1161,23 @@ def test_package_manager_has_web_deps(host):
 
     assert "No package" not in output.stdout
     assert output.rc == 0
+
+
+def test_lighttpd_lua_support(host):
+    """Confirms lighttpd installed has LUA support"""
+    mock_command("dialog", {"*": ("", "0")}, host)
+    host.run(
+        """
+    source /opt/pihole/basic-install.sh
+    package_manager_detect
+    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
+    """
+    )
+
+    lua_support = host.run(
+        """
+    /usr/sbin/lighttpd -V | grep -o '+ LUA support'
+    """
+    )
+    expected_stdout = "+ LUA support"
+    assert expected_stdout in lua_support.stdout
