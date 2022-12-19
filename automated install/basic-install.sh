@@ -348,42 +348,52 @@ package_manager_detect() {
     # If apt-get is not found, check for rpm.
     elif is_command rpm ; then
         # Then check if dnf or yum is the package manager
+        PKG_MANAGER="yum"
         if is_command dnf ; then
             PKG_MANAGER="dnf"
-        else
-            PKG_MANAGER="yum"
+        elif is_command zypper ; then
+            PKG_MANAGER="zypper"
         fi
 
-        # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-        PKG_INSTALL=("${PKG_MANAGER}" install -y)
-        # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
-        PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
-        OS_CHECK_DEPS=(grep bind-utils)
-        INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
-        PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
-        LIGHTTPD_USER="lighttpd"
-        LIGHTTPD_GROUP="lighttpd"
-        LIGHTTPD_CFG="lighttpd.conf.fedora"
+      # These variable names match the ones for apt-get. See above for an explanation of what they are for.
+      PKG_INSTALL=("${PKG_MANAGER}" install -y)
+      OS_CHECK_DEPS=(grep bind-utils)
+      LIGHTTPD_USER="lighttpd"
+      LIGHTTPD_GROUP="lighttpd"
+      LIGHTTPD_CFG="lighttpd.conf.fedora"
+
+        if [ "${PKG_MANAGER}" = "dnf" ] || [ "${PKG_MANAGER}" = "yum" ] ; then
+          # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
+          PKG_COUNT="${PKG_MANAGER} check-update | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
+          INSTALLER_DEPS=(git dialog iproute newt procps-ng which chkconfig ca-certificates)
+          PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
+          PIHOLE_WEB_DEPS=(lighttpd lighttpd-fastcgi php-common php-cli php-pdo php-xml php-json php-intl)
 
         # If the host OS is centos (or a derivative), epel is required for lighttpd
-        if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
-            if rpm -qa | grep -qi 'epel'; then
-                printf "  %b EPEL repository already installed\\n" "${TICK}"
-            else
-                local RH_RELEASE EPEL_PKG
-                # EPEL not already installed, add it based on the release version
-                RH_RELEASE=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
-                EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${RH_RELEASE}.noarch.rpm"
-                printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
-                "${PKG_INSTALL[@]}" "${EPEL_PKG}"
-                printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
-            fi
-        fi
-
-    # If neither apt-get or yum/dnf package managers were found
+          if ! grep -qiE 'fedora|fedberry' /etc/redhat-release; then
+              if rpm -qa | grep -qi 'epel'; then
+                  printf "  %b EPEL repository already installed\\n" "${TICK}"
+              else
+                  local RH_RELEASE EPEL_PKG
+                  # EPEL not already installed, add it based on the release version
+                  RH_RELEASE=$(grep -oP '(?<= )[0-9]+(?=\.?)' /etc/redhat-release)
+                  EPEL_PKG="https://dl.fedoraproject.org/pub/epel/epel-release-latest-${RH_RELEASE}.noarch.rpm"
+                  printf "  %b Enabling EPEL package repository (https://fedoraproject.org/wiki/EPEL)\\n" "${INFO}"
+                  "${PKG_INSTALL[@]}" "${EPEL_PKG}"
+                  printf "  %b Installed %s\\n" "${TICK}" "${EPEL_PKG}"
+              fi
+          fi
+        else
+          # openSUSE packages
+          # openSUSE package manager returns number when there are packages to update so we need to || true to prevent the script from exiting.
+          PKG_COUNT="${PKG_MANAGER} lu | egrep '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
+          INSTALLER_DEPS=(git dialog iproute2 newt procps which ca-certificates)
+          PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap-ng0 netcat-openbsd jq)
+          PIHOLE_WEB_DEPS=(lighttpd php php-fastcgi php-cli php-pdo php-intl php-openssl php-sqlite)
+       fi
     else
-        # we cannot install required packages
+      # If neither apt-get or yum/dnf package managers were found
+      # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
         # so exit the installer
         exit
@@ -1383,6 +1393,11 @@ installConfigs() {
     # Follow debhelper logic, which checks for /run/systemd/system to derive whether systemd is the init system
     if [[ -d '/run/systemd/system' ]]; then
         install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
+
+        # Set net admin permissions so that FTL can serve DNS, DHCP and IMAP (for DHCPv6). If this does not work, run FTL as root user.
+        if ! setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip '/usr/bin/pihole-FTL'; then
+            sed -i '/^User=/d' '/etc/systemd/system/pihole-FTL.service'
+        fi
 
         # Remove init.d service if present
         if [[ -e '/etc/init.d/pihole-FTL' ]]; then
