@@ -1401,42 +1401,63 @@ installConfigs() {
 
     # If the user chose to install the dashboard,
     if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-        # and if the Web server conf directory does not exist,
-        if [[ ! -d "/etc/lighttpd" ]]; then
-            # make it and set the owners
-            install -d -m 755 -o "${USER}" -g root /etc/lighttpd
-        # Otherwise, if the config file already exists
-        elif [[ -f "${lighttpdConfig}" ]]; then
-            # back up the original
-            mv "${lighttpdConfig}"{,.orig}
-        fi
-        # and copy in the config file Pi-hole needs
-        install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
-        # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
-        if [[ -f "${PI_HOLE_404_DIR}/custom.php" ]]; then
-            sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
+        if grep -q -F "FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
+            # Attempt to preserve backwards compatibility with older versions
+            install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
+            # If there is a custom block page in the html/pihole directory, replace 404 handler in lighttpd config
+            if [[ -f "${PI_HOLE_404_DIR}/custom.php" ]]; then
+                sed -i 's/^\(server\.error-handler-404\s*=\s*\).*$/\1"\/pihole\/custom\.php"/' "${lighttpdConfig}"
+            fi
+            # Make the directories if they do not exist and set the owners
+            mkdir -p /run/lighttpd
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
+            mkdir -p /var/cache/lighttpd/compress
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
+            mkdir -p /var/cache/lighttpd/uploads
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
         fi
         # Copy the config file to include for pihole admin interface
         if [[ -d "/etc/lighttpd/conf.d" ]]; then
             install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/pihole-admin.conf /etc/lighttpd/conf.d/pihole-admin.conf
+            if grep -q -F 'include "/etc/lighttpd/conf.d/pihole-admin.conf"' "${lighttpdConfig}"; then
+                :
+            else
+                echo 'include "/etc/lighttpd/conf.d/pihole-admin.conf"' >> "${lighttpdConfig}"
+            fi
+            # Avoid some warnings trace from lighttpd, which might break tests
+            conf=/etc/lighttpd/conf.d/pihole-admin.conf
+            if lighttpd -f "${lighttpdConfig}" -tt 2>&1 | grep -q -F "WARNING: unknown config-key: dir-listing\."; then
+                echo '# Avoid some warnings trace from lighttpd, which might break tests' >> $conf
+                echo 'server.modules += ( "mod_dirlisting" )' >> $conf
+            fi
+            if lighttpd -f "${lighttpdConfig}" -tt 2>&1 | grep -q -F "warning: please use server.use-ipv6"; then
+                echo '# Avoid some warnings trace from lighttpd, which might break tests' >> $conf
+                echo 'server.use-ipv6 := "disable"' >> $conf
+            fi
         elif [[ -d "/etc/lighttpd/conf-available" ]]; then
             conf=/etc/lighttpd/conf-available/15-pihole-admin.conf
             install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/pihole-admin.conf $conf
+            # disable server.modules += ( ... ) in $conf to avoid module dups
+            # (needed until Debian 10 no longer supported by pi-hole)
+            # (server.modules duplication is ignored in lighttpd 1.4.56+)
+            if awk '!/^server\.modules/{print}' $conf > $conf.$$ && mv $conf.$$ $conf; then
+                :
+            else
+                rm $conf.$$
+            fi
+            chmod 644 $conf
             if is_command lighty-enable-mod ; then
-                lighty-enable-mod pihole-admin > /dev/null || true
+                lighty-enable-mod pihole-admin access redirect fastcgi setenv > /dev/null || true
+            else
+                # Otherwise, show info about installing them
+                printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
+                printf "      Please ensure fastcgi is enabled if you experience issues\\n"
             fi
         else
             # lighttpd config include dir not found
             printf "  %b Warning: lighttpd config include dir not found\\n" "${INFO}"
             printf "      Please manually install pihole-admin.conf\\n"
         fi
-        # Make the directories if they do not exist and set the owners
-        mkdir -p /run/lighttpd
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
-        mkdir -p /var/cache/lighttpd/compress
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
-        mkdir -p /var/cache/lighttpd/uploads
-        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/uploads
     fi
 }
 
@@ -1913,15 +1934,6 @@ installPihole() {
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
             usermod -a -G pihole ${LIGHTTPD_USER}
-            # If the lighttpd command is executable,
-            if is_command lighty-enable-mod ; then
-                # enable fastcgi and fastcgi-php
-                lighty-enable-mod fastcgi fastcgi-php > /dev/null || true
-            else
-                # Otherwise, show info about installing them
-                printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
-                printf "      Please ensure fastcgi is enabled if you experience issues\\n"
-            fi
         fi
     fi
     # Install base files and web interface

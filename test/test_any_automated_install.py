@@ -416,7 +416,7 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
             usergroup="${{LIGHTTPD_USER}}:${{LIGHTTPD_GROUP}}",
             chmodarg="{{}}",
             config="/etc/lighttpd/lighttpd.conf",
-            run="/var/run/lighttpd",
+            run="/run/lighttpd",
             cache="/var/cache/lighttpd",
             uploads="/var/cache/lighttpd/uploads",
             compress="/var/cache/lighttpd/compress",

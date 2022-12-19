@@ -131,6 +131,7 @@ removeNoPurge() {
     fi
 
     if package_check lighttpd > /dev/null; then
+        # Attempt to preserve backwards compatibility with older versions
         if [[ -f /etc/lighttpd/lighttpd.conf.orig ]]; then
             ${SUDO} mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
         fi
@@ -142,6 +143,16 @@ removeNoPurge() {
         # Fedora-based
         if [[ -f /etc/lighttpd/conf.d/pihole-admin.conf ]]; then
             ${SUDO} rm /etc/lighttpd/conf.d/pihole-admin.conf
+            conf=/etc/lighttpd/lighttpd.conf
+            tconf=/tmp/lighttpd.conf.$$
+            if awk '!/^include "\/etc\/lighttpd\/conf\.d\/pihole-admin\.conf"$/{print}' \
+              $conf > $tconf && mv $tconf $conf; then
+                :
+            else
+                rm $tconf
+            fi
+            ${SUDO} chown root:root $conf
+            ${SUDO} chmod 644 $conf
         fi
 
         # Debian-based
