@@ -137,6 +137,9 @@ def test_getFTLPIDFile_and_getFTLPID_custom(host):
     host.run(
         """
     tmpfile=$(mktemp)
+    # adding a small delay here because otherwise there is some kind of
+    # race condition with systemd deleting files in /tmp
+    sleep 1
     echo "PIDFILE=${tmpfile}" > /etc/pihole/pihole-FTL.conf
     echo "1234" > ${tmpfile}
     """

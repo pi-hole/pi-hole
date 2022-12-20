@@ -207,9 +207,10 @@ os_check() {
                 if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
                     valid_os=true
                     IFS="," read -r -a supportedVer <<<"${versions_part}"
+                    # If the version part is a substring of the OS version or it's a rolling release OS (version=any)
                     for version in "${supportedVer[@]}"
                     do
-                        if [[ "${detected_version}" =~ $version ]]; then
+                        if [[ "${detected_version}" =~ $version ]] || [[ "${version}" = "any" ]]; then
                             valid_version=true
                             break
                         fi
