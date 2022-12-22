@@ -173,7 +173,7 @@ AddList() {
 }
 
 AddListString() {
-    AddList ${1}
+    AddList "${1}"
     exit 0;
 }
 
@@ -202,7 +202,7 @@ RemoveList() {
 }
 
 RemoveListString() {
-    RemoveList ${1}
+    RemoveList "${1}"
     exit 0;
 }
 
@@ -268,8 +268,8 @@ AddLists() {
 
     while IFS= read -r address;
     do 
-        AddList $address
-    done < $listsFile
+        AddList "$address"
+    done < "$listsFile"
 
     exit 0;
 }
@@ -280,8 +280,8 @@ RemoveLists() {
 
     while IFS= read -r address;
     do 
-        RemoveList $address
-    done < $listsFile
+        RemoveList "$address"
+    done < "$listsFile"
 
     exit 0;
 }
