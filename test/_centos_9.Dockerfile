@@ -15,4 +15,7 @@ RUN true && \
 ENV SKIP_INSTALL true
 ENV OS_CHECK_DOMAIN_NAME dev-supportedos.pi-hole.net
 
+ENV container docker
+STOPSIGNAL SIGRTMIN+3
+
 CMD ["/usr/sbin/init"]
