@@ -2717,11 +2717,11 @@ main() {
 
     restart_service pihole-FTL
 
-    # Download and compile the aggregated block list
-    runGravity
-
     # Update local and remote versions via updatechecker
     /opt/pihole/updatecheck.sh
+
+    # Download and compile the aggregated block list
+    runGravity
 
     if [[ "${useUpdateVars}" == false ]]; then
         displayFinalMessage "${pw}"
