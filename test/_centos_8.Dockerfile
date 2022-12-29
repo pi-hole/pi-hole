@@ -1,5 +1,5 @@
 FROM quay.io/centos/centos:stream8
-RUN yum install -y git systemd
+RUN dnf --setopt=install_weak_deps=False install -y git systemd
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole

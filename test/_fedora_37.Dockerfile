@@ -1,5 +1,5 @@
 FROM docker.io/fedora:37
-RUN dnf install -y git systemd
+RUN dnf install --setopt=install_weak_deps=False -y git systemd
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole

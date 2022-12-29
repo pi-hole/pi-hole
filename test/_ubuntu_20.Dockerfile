@@ -1,6 +1,6 @@
 FROM docker.io/buildpack-deps:focal-scm
 
-RUN apt-get update && apt-get -y install systemd systemd-sysv
+RUN apt-get update && apt-get -y --no-install-recommends install systemd systemd-sysv
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
