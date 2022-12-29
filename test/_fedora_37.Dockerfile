@@ -1,4 +1,4 @@
-FROM fedora:37
+FROM docker.io/fedora:37
 RUN dnf install -y git systemd
 
 ENV GITDIR /etc/.pihole
@@ -14,8 +14,5 @@ RUN true && \
 
 ENV SKIP_INSTALL true
 ENV OS_CHECK_DOMAIN_NAME dev-supportedos.pi-hole.net
-
-ENV container docker
-STOPSIGNAL SIGRTMIN+3
 
 CMD ["/usr/sbin/init"]

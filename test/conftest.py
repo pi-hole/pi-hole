@@ -1,6 +1,6 @@
 import pytest
 import testinfra
-import testinfra.backend.docker
+import testinfra.backend.podman
 import subprocess
 from textwrap import dedent
 
@@ -19,37 +19,37 @@ info_box = "[i]"
 
 
 # Monkeypatch sh to bash, if they ever support non hard code /bin/sh this can go away
-# https://github.com/pytest-dev/pytest-testinfra/blob/master/testinfra/backend/docker.py
+# https://github.com/pytest-dev/pytest-testinfra/blob/master/testinfra/backend/podman.py
 def run_bash(self, command, *args, **kwargs):
     cmd = self.get_command(command, *args)
     if self.user is not None:
         out = self.run_local(
-            "docker exec -u %s %s /bin/bash -c %s", self.user, self.name, cmd
+            "podman exec -u %s %s /bin/bash -c %s", self.user, self.name, cmd
         )
     else:
-        out = self.run_local("docker exec %s /bin/bash -c %s", self.name, cmd)
+        out = self.run_local("podman exec %s /bin/bash -c %s", self.name, cmd)
     out.command = self.encode(cmd)
     return out
 
 
-testinfra.backend.docker.DockerBackend.run = run_bash
+testinfra.backend.podman.PodmanBackend.run = run_bash
 
 
 @pytest.fixture
 def host():
     # run a container
-    docker_id = (
-        subprocess.check_output(["docker", "run", "-t", "-d", "--privileged", IMAGE])
+    pod_id = (
+        subprocess.check_output(["podman", "run", "-t", "-d", "--cap-add=ALL", IMAGE])
         .decode()
         .strip()
     )
 
     # return a testinfra connection to the container
-    docker_host = testinfra.get_host("docker://" + docker_id)
+    pod_host = testinfra.get_host("podman://" + pod_id)
 
-    yield docker_host
+    yield pod_host
     # at the end of the test suite, destroy the container
-    subprocess.check_call(["docker", "rm", "-f", docker_id])
+    subprocess.check_call(["podman", "rm", "-f", pod_id])
 
 
 # Helper functions

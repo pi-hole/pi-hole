@@ -1,4 +1,4 @@
-FROM buildpack-deps:jammy-scm
+FROM docker.io/buildpack-deps:jammy-scm
 
 RUN apt-get update && apt-get -y install systemd systemd-sysv
 
@@ -16,8 +16,5 @@ RUN true && \
 
 ENV SKIP_INSTALL true
 ENV OS_CHECK_DOMAIN_NAME dev-supportedos.pi-hole.net
-
-ENV container docker
-STOPSIGNAL SIGRTMIN+3
 
 CMD ["/bin/systemd"]
