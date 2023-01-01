@@ -92,6 +92,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=true
 INSTALL_WEB_INTERFACE=true
+WEBPORT=8080
 PRIVACY_LEVEL=0
 CACHE_SIZE=10000
 
@@ -1062,6 +1063,14 @@ setAdminFlag() {
             printf "  %b Installing Admin Web Interface\\n" "${INFO}"
             # Set the flag to install the web interface
             INSTALL_WEB_INTERFACE=true
+
+            # Web port TODO: Below whiptail copy pasted from a previous go at this. needs converting to dialog
+            # Ask for the IPv4 address
+            WEBPORT=$(whiptail --backtitle "Setting web interface port" --title "Web Port" --inputbox "By default, pihole-FTL listens for http traffic on port 8080. If you wish to change the port, you may do so now. You can also do it later by editing /etc/pihole/pihole-FTL.conf" "${r}" "${c}" "${WEBPORT}" 3>&1 1>&2 2>&3) || \
+            # Canceling IPv4 settings window
+            { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
+            printf "  %b The Web interface will be accessible on port: %s\\n" "${INFO}" "${WEBPORT}"
+
             ;;
         "${DIALOG_CANCEL}")
             # If they chose no,
@@ -1662,6 +1671,9 @@ finalExports() {
     # Set the privacy level
     addOrEditKeyValPair "${FTL_CONFIG_FILE}" "PRIVACYLEVEL" "${PRIVACY_LEVEL}"
 
+    # Set the web port
+    addOrEditKeyValPair "${FTL_CONFIG_FILE}" "WEBPORT" "${PRIVACY_LEVEL}"
+
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
     # shellcheck source=advanced/Scripts/webpage.sh
@@ -1819,7 +1831,7 @@ displayFinalMessage() {
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Store a message in a variable and display it
-        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
+        additional="View the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
     fi
 
     # Final completion message to user
@@ -2524,7 +2536,7 @@ main() {
     if [[ "${useUpdateVars}" == false ]]; then
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            printf "  %b View the web interface at http://pi.hole/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
+            printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
         fi
         # Explain to the user how to use Pi-hole as their DNS server
         printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
