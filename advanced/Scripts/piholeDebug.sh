@@ -64,8 +64,6 @@ PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
 RUN_DIRECTORY="/run"
 LOG_DIRECTORY="/var/log/pihole"
-#WEB_SERVER_LOG_DIRECTORY="/var/log/lighttpd" #TODO: FTL access log?
-#WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd" #TODO: FTL access log?
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
 SHM_DIRECTORY="/dev/shm"
@@ -74,9 +72,6 @@ ETC="/etc"
 # Files required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
 PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
-
-#WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
-#WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
@@ -762,34 +757,34 @@ check_networking() {
     [ -z "${DOCKER_VERSION}" ] && check_required_ports
 }
 
-check_x_headers() {
-    # The X-Headers allow us to determine from the command line if the Web
-    # lighttpd.conf has a directive to show "X-Pi-hole: A black hole for Internet advertisements."
-    # in the header of any Pi-holed domain
-    # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
-    # when accessing the dashboard (i.e curl -I pi.hole/admin/)
-    # server is operating correctly
-    echo_current_diagnostic "Dashboard headers"
-    # Use curl -I to get the header and parse out just the X-Pi-hole one
-    local full_curl_output_dashboard
-    local dashboard
-    full_curl_output_dashboard="$(curl -Is localhost/admin/)"
-    dashboard=$(echo "${full_curl_output_dashboard}" | awk '/X-Pi-hole/' | tr -d '\r')
-    # Store what the X-Header should be in variables for comparison later
-    local dashboard_working
-    dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
+# check_x_headers() {
+#     # The X-Headers allow us to determine from the command line if the Web
+#     # lighttpd.conf has a directive to show "X-Pi-hole: A black hole for Internet advertisements."
+#     # in the header of any Pi-holed domain
+#     # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
+#     # when accessing the dashboard (i.e curl -I pi.hole/admin/)
+#     # server is operating correctly
+#     echo_current_diagnostic "Dashboard headers"
+#     # Use curl -I to get the header and parse out just the X-Pi-hole one
+#     local full_curl_output_dashboard
+#     local dashboard
+#     full_curl_output_dashboard="$(curl -Is localhost/admin/)"
+#     dashboard=$(echo "${full_curl_output_dashboard}" | awk '/X-Pi-hole/' | tr -d '\r')
+#     # Store what the X-Header should be in variables for comparison later
+#     local dashboard_working
+#     dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
 
-    # If the X-Header matches what a working system should have,
-    if [[ $dashboard == "$dashboard_working" ]]; then
-        # then we can show a success
-        log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
-    else
-        # Otherwise, it's a failure since the X-Headers either don't exist or have been modified in some way
-        log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
+#     # If the X-Header matches what a working system should have,
+#     if [[ $dashboard == "$dashboard_working" ]]; then
+#         # then we can show a success
+#         log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
+#     else
+#         # Otherwise, it's a failure since the X-Headers either don't exist or have been modified in some way
+#         log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
 
-        log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
-    fi
-}
+#         log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
+#     fi
+# }
 
 dig_at() {
     # We need to test if Pi-hole can properly resolve domain names
