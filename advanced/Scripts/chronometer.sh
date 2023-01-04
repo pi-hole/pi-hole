@@ -8,8 +8,8 @@
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
-LC_ALL=C
-LC_NUMERIC=C
+export LC_ALL=C
+export LC_NUMERIC=C
 
 # Retrieve stats from FTL engine
 pihole-FTL() {
