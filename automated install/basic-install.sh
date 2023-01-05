@@ -716,6 +716,24 @@ find_IPv6_information() {
     fi
 }
 
+# Check if network manager manages the specified device
+doesNMManageIface() {
+    # Does nmcli exist?
+    if ! command -v "nmcli" &> /dev/null; then
+        return 1
+    fi
+
+    iface="$1"
+
+    # Get managed state
+    nm_state=$(nmcli -f GENERAL.NM-MANAGED dev show "$iface")
+    # Output of command
+    if [[ "$nm_state" =~ no$ ]]; then
+        return 1
+    fi
+    return 0
+}
+
 # A function to collect IPv4 and IPv6 information of the device
 collect_v4andv6_information() {
     find_IPv4_information
@@ -725,6 +743,11 @@ collect_v4andv6_information() {
     if [[ -f "/etc/dhcpcd.conf" ]]; then
         # configure networking via dhcpcd
         getStaticIPv4Settings
+        setDHCPCD
+    # Check if network manager is enabled and manages the pihole interface
+    elif doesNMManageIface "${PIHOLE_INTERFACE}" ; then
+        getStaticIPv4Settings
+        setDHCPNM
     fi
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
@@ -822,7 +845,6 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
             done
             ;;
        esac
-       setDHCPCD
 }
 
 # Configure networking via dhcpcd
@@ -846,6 +868,13 @@ setDHCPCD() {
         printf "  %b Set IP address to %s\\n" "${TICK}" "${IPV4_ADDRESS%/*}"
         printf "  %b You may need to restart after the install is complete\\n" "${INFO}"
     fi
+}
+
+# Configure networking via network manager
+setDHCPNM() {
+    nmcli dev modify "${PIHOLE_INTERFACE}" ipv4.addresses "${IPV4_ADDRESS}"
+    nmcli dev modify "${PIHOLE_INTERFACE}" ipv4.dns "${PIHOLE_DNS_1},${PIHOLE_DNS_2}"
+    nmcli dev modify "${PIHOLE_INTERFACE}" ipv4.gateway "${IPv4gw}"
 }
 
 # Check an IP address to see if it is a valid one
