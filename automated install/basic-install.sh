@@ -1224,8 +1224,7 @@ installScripts() {
 # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
 installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
-    # Make sure Pi-hole's config files are in place
-    remove_old_dnsmasq_ftl_configs
+
 
     # Install list of DNS servers
     # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
@@ -1694,6 +1693,8 @@ installPihole() {
         printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
         exit 1
     fi
+
+    remove_old_dnsmasq_ftl_configs
 
     # Install config files
     if ! installConfigs; then
