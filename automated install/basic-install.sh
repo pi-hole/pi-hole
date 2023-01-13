@@ -1137,83 +1137,31 @@ installDefaultBlocklists() {
         echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
 }
 
-# Check if /etc/dnsmasq.conf is from pi-hole.  If so replace with an original and install new in .d directory
-version_check_dnsmasq() {
+remove_old_dnsmasq_ftl_configs() {
     # Local, named variables
     local dnsmasq_conf="/etc/dnsmasq.conf"
-    local dnsmasq_conf_orig="/etc/dnsmasq.conf.orig"
-    local dnsmasq_pihole_id_string="addn-hosts=/etc/pihole/gravity.list"
-    local dnsmasq_pihole_id_string2="# Dnsmasq config for Pi-hole's FTLDNS"
-    local dnsmasq_original_config="${PI_HOLE_LOCAL_REPO}/advanced/dnsmasq.conf.original"
-    local dnsmasq_pihole_01_source="${PI_HOLE_LOCAL_REPO}/advanced/01-pihole.conf"
-    local dnsmasq_pihole_01_target="/etc/dnsmasq.d/01-pihole.conf"
-    local dnsmasq_rfc6761_06_source="${PI_HOLE_LOCAL_REPO}/advanced/06-rfc6761.conf"
-    local dnsmasq_rfc6761_06_target="/etc/dnsmasq.d/06-rfc6761.conf"
+    local pihole_01="/etc/dnsmasq.d/01-pihole.conf"
+    local rfc6761_06="/etc/dnsmasq.d/06-rfc6761.conf"
+    local pihole_dhcp_02="/etc/dnsmasq.d/02-pihole-dhcp.conf"
+
+    # pihole-FTL does some fancy stuff with config these days, and so we can remove some old config files
+    if [[ -f "${pihole_01}" ]]; then
+        rm "${pihole_01}"
+    fi
+
+    if [[ -f "${rfc6761_06}" ]]; then
+        rm "${rfc6761_06}"
+    fi
+
+    if [[ -f "${pihole_dhcp_02}" ]]; then
+        rm "${pihole_dhcp_02}"
+    fi
 
     # If the dnsmasq config file exists
     if [[ -f "${dnsmasq_conf}" ]]; then
-        printf "  %b Existing dnsmasq.conf found..." "${INFO}"
-        # If a specific string is found within this file, we presume it's from older versions on Pi-hole,
-        if grep -q "${dnsmasq_pihole_id_string}" "${dnsmasq_conf}" ||
-           grep -q "${dnsmasq_pihole_id_string2}" "${dnsmasq_conf}"; then
-            printf " it is from a previous Pi-hole install.\\n"
-            printf "  %b Backing up dnsmasq.conf to dnsmasq.conf.orig..." "${INFO}"
-            # so backup the original file,
-            mv -f "${dnsmasq_conf}" "${dnsmasq_conf_orig}"
-            printf "%b  %b Backing up dnsmasq.conf to dnsmasq.conf.orig...\\n" "${OVER}"  "${TICK}"
-            printf "  %b Restoring default dnsmasq.conf..." "${INFO}"
-            # and replace it with the default
-            install -D -m 644 -T "${dnsmasq_original_config}" "${dnsmasq_conf}"
-            printf "%b  %b Restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
-        else
-            # Otherwise, don't to anything
-            printf " it is not a Pi-hole file, leaving alone!\\n"
-        fi
-    else
-        # If a file cannot be found,
-        printf "  %b No dnsmasq.conf found... restoring default dnsmasq.conf..." "${INFO}"
-        # restore the default one
-        install -D -m 644 -T "${dnsmasq_original_config}" "${dnsmasq_conf}"
-        printf "%b  %b No dnsmasq.conf found... restoring default dnsmasq.conf...\\n" "${OVER}"  "${TICK}"
+        # Back it up - we will need to add a symlink to /etc/pihole/dnsmasq.conf later
+        mv "${dnsmasq_conf}" "${dnsmasq_conf}.old"
     fi
-
-    printf "  %b Installing %s..." "${INFO}" "${dnsmasq_pihole_01_target}"
-    # Check to see if dnsmasq directory exists (it may not due to being a fresh install and dnsmasq no longer being a dependency)
-    if [[ ! -d "/etc/dnsmasq.d"  ]];then
-        install -d -m 755 "/etc/dnsmasq.d"
-    fi
-    # Copy the new Pi-hole DNS config file into the dnsmasq.d directory
-    install -D -m 644 -T "${dnsmasq_pihole_01_source}" "${dnsmasq_pihole_01_target}"
-    printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_pihole_01_target}"
-    # Add settings with the GLOBAL DNS variables that we populated earlier
-    # First, set the interface to listen on
-    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "interface" "$PIHOLE_INTERFACE"
-    if [[ "${PIHOLE_DNS_1}" != "" ]]; then
-        # then add in the primary DNS server.
-        addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "server" "$PIHOLE_DNS_1"
-    fi
-    # Ditto if DNS2 is not empty
-    if [[ "${PIHOLE_DNS_2}" != "" ]]; then
-        addKey "${dnsmasq_pihole_01_target}" "server=$PIHOLE_DNS_2"
-    fi
-
-    # Set the cache size
-    addOrEditKeyValPair "${dnsmasq_pihole_01_target}" "cache-size" "$CACHE_SIZE"
-
-    sed -i 's/^#conf-dir=\/etc\/dnsmasq.d$/conf-dir=\/etc\/dnsmasq.d/' "${dnsmasq_conf}"
-
-    # If the user does not want to enable logging,
-    if [[ "${QUERY_LOGGING}" == false ]] ; then
-        # remove itfrom the DNS config file
-        removeKey "${dnsmasq_pihole_01_target}" "log-queries"
-    else
-        # Otherwise, enable it by adding the directive to the DNS config file
-        addKey "${dnsmasq_pihole_01_target}" "log-queries"
-    fi
-
-    printf "  %b Installing %s..." "${INFO}" "${dnsmasq_rfc6761_06_source}"
-    install -D -m 644 -T "${dnsmasq_rfc6761_06_source}" "${dnsmasq_rfc6761_06_target}"
-    printf "%b  %b Installed %s\n" "${OVER}"  "${TICK}" "${dnsmasq_rfc6761_06_target}"
 }
 
 # Clean an existing installation to prepare for upgrade/reinstall
@@ -1272,7 +1220,7 @@ installScripts() {
 installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
     # Make sure Pi-hole's config files are in place
-    version_check_dnsmasq
+    remove_old_dnsmasq_ftl_configs
 
     # Install list of DNS servers
     # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
@@ -2075,28 +2023,6 @@ FTLinstall() {
         printf "  %b Error: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
         return 1
     fi
-}
-
-disable_dnsmasq() {
-    # dnsmasq can now be stopped and disabled if it exists
-    if is_command dnsmasq; then
-        if check_service_active "dnsmasq";then
-            printf "  %b FTL can now resolve DNS Queries without dnsmasq running separately\\n" "${INFO}"
-            stop_service dnsmasq
-            disable_service dnsmasq
-        fi
-    fi
-
-    # Backup existing /etc/dnsmasq.conf if present and ensure that
-    # /etc/dnsmasq.conf contains only "conf-dir=/etc/dnsmasq.d"
-    local conffile="/etc/dnsmasq.conf"
-    if [[ -f "${conffile}" ]]; then
-        printf "  %b Backing up %s to %s.old\\n" "${INFO}" "${conffile}" "${conffile}"
-        mv "${conffile}" "${conffile}.old"
-    fi
-    # Create /etc/dnsmasq.conf
-    echo "conf-dir=/etc/dnsmasq.d" > "${conffile}"
-    chmod 644 "${conffile}"
 }
 
 get_binary_name() {
