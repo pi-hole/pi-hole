@@ -1162,6 +1162,11 @@ remove_old_dnsmasq_ftl_configs() {
         # Back it up - we will need to add a symlink to /etc/pihole/dnsmasq.conf later
         mv "${dnsmasq_conf}" "${dnsmasq_conf}.old"
     fi
+
+    # Create /etc/dnsmasq.d if it doesn't exist
+    if [[ ! -d "/etc/dnsmasq.d" ]]; then
+        mkdir "/etc/dnsmasq.d"
+    fi
 }
 
 # Clean an existing installation to prepare for upgrade/reinstall
@@ -1380,7 +1385,7 @@ check_service_active() {
     fi
 }
 
-# Systemd-resolved's DNSStubListener and dnsmasq can't share port 53.
+# Systemd-resolved's DNSStubListener and ftl can't share port 53.
 disable_resolved_stublistener() {
     printf "  %b Testing if systemd-resolved is enabled\\n" "${INFO}"
     # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
@@ -1389,7 +1394,7 @@ disable_resolved_stublistener() {
         printf "  %b %b Testing if systemd-resolved DNSStub-Listener is active" "${OVER}" "${INFO}"
         if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
             # Disable the DNSStubListener to unbind it from port 53
-            # Note that this breaks dns functionality on host until dnsmasq/ftl are up and running
+            # Note that this breaks dns functionality on host until ftl are up and running
             printf "%b  %b Disabling systemd-resolved DNSStubListener" "${OVER}" "${TICK}"
             # Make a backup of the original /etc/systemd/resolved.conf
             # (This will need to be restored on uninstallation)
@@ -1695,20 +1700,12 @@ installPihole() {
         printf "  %b Failure in dependent config copy function.\\n" "${CROSS}"
         exit 1
     fi
-    # If the user wants to install the dashboard,
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        # do so
-        installPiholeWeb
-    fi
+
     # Install the cron file
     installCron
 
     # Install the logrotate file
     installLogrotate || true
-
-    # Check if dnsmasq is present. If so, disable it and back up any possible
-    # config file
-    disable_dnsmasq
 
     # install a man page entry for pihole
     install_manpage
@@ -2134,13 +2131,6 @@ FTLcheckUpdate() {
     local remoteSha1
     local localSha1
 
-    # if dnsmasq exists and is running at this point, force reinstall of FTL Binary
-    if is_command dnsmasq; then
-        if check_service_active "dnsmasq";then
-            return 0
-        fi
-    fi
-
     if [[ ! "${ftlBranch}" == "master" ]]; then
         #Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         local path
@@ -2397,7 +2387,7 @@ main() {
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
-    # but before starting or resarting the dnsmasq or ftl services
+    # but before starting or resarting the ftl service
     disable_resolved_stublistener
 
     printf "  %b Restarting services...\\n" "${INFO}"
