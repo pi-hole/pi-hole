@@ -77,7 +77,7 @@ deleteFTLsetting() {
 }
 
 changeFTLsetting() {
-    addOrEditKeyValPair "${FTLconf}" "${1}" "${2}"
+    pihole-FTL --config "${1}" "${2}"
 }
 
 add_dnsmasq_setting() {
@@ -165,7 +165,7 @@ SetWebPassword() {
         echo ""
 
         if [ "${PASSWORD}" == "" ]; then
-            addOrEditKeyValPair "${setupVars}" "WEBPASSWORD" ""
+            setFTLConfigValue "api.pwhash" ""
             echo -e "  ${TICK} Password Removed"
             exit 0
         fi
@@ -178,7 +178,7 @@ SetWebPassword() {
         # We do not wrap this in brackets, otherwise BASH will expand any appropriate syntax
         hash=$(HashPassword "$PASSWORD")
         # Save hash to file
-        addOrEditKeyValPair "${setupVars}" "WEBPASSWORD" "${hash}"
+        setFTLConfigValue "api.pwhash" "${hash}"
         echo -e "  ${TICK} New password set"
     else
         echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
