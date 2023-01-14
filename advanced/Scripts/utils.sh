@@ -145,3 +145,26 @@ getFTLPID() {
     FTL_PID=${FTL_PID:=-1}
     echo  "${FTL_PID}"
 }
+
+#######################
+# returns value from FTLs config file using pihole-FTL --config
+#
+# Takes one argument: key
+# Example getFTLConfigValue dns.piholePTR
+#######################
+getFTLConfigValue(){
+  pihole-FTL --config "${1}"
+}
+
+#######################
+# sets value in FTLs config file using pihole-FTL --config
+#
+# Takes two arguments: key and value
+# Example setFTLConfigValue dns.piholePTR PI.HOLE
+#
+# Note, for complex values such as dnsmasq.upstreams, you should wrap the value in single quotes:
+# setFTLConfigValue dnsmasq.upstreams '[ "8.8.8.8" , "8.8.4.4" ]'
+#######################
+setFTLConfigValue(){
+  pihole-FTL --config "${1}" "${2}"
+}
