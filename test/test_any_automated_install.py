@@ -136,15 +136,9 @@ def test_installPiholeWeb_fresh_install_no_errors(host):
 def get_directories_recursive(host, directory):
     if directory is None:
         return directory
-    ls = host.run("ls -d {}".format(directory + "/*/"))
-    directories = list(filter(bool, ls.stdout.splitlines()))
-    dirs = directories
-    for dirval in directories:
-        dir_rec = get_directories_recursive(host, dirval)
-        if isinstance(dir_rec, str):
-            dirs.extend([dir_rec])
-        else:
-            dirs.extend(dir_rec)
+    # returns all non-hidden subdirs of 'directory'
+    dirs_raw = host.run("find {} -type d -not -path '*/.*'".format(directory))
+    dirs = list(filter(bool, dirs_raw.stdout.splitlines()))
     return dirs
 
 
@@ -520,7 +514,7 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
     check_admin = test_cmd.format("x", webroot + "/admin", webuser)
     actual_rc = host.run(check_admin).rc
     assert exit_status_success == actual_rc
-    directories = get_directories_recursive(host, webroot + "/admin/*/")
+    directories = get_directories_recursive(host, webroot + "/admin/")
     for directory in directories:
         check_pihole = test_cmd.format("r", directory, webuser)
         actual_rc = host.run(check_pihole).rc
