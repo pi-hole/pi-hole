@@ -1,0 +1,35 @@
+name: Close stale PR
+# This action will add a `stale` label and close immediately every PR that meets the following conditions:
+#   - it is already marked with "merge conflict" label
+#   - there was no update/comment on the PR in the last 30 days.
+
+on:
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/stale@v7.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          # Do not automatically mark PR/issue as stale
+          days-before-stale: -1
+          # Override 'days-before-stale' for PR only
+          days-before-pr-stale: 30
+          # Close PRs immediately, after marking them 'stale'
+          days-before-pr-close: 0
+          # only run the action on merge conflict PR
+          any-of-labels: 'PR: Merge Conflict'
+          exempt-pr-labels: 'internal, never-stale, ON HOLD, WIP'
+          exempt-all-pr-assignees: true
+          operations-per-run: 300
+          stale-pr-message: ''
+          close-pr-message: 'Existing merge conflicts have not been addressed. This PR is considered abandoned.'
