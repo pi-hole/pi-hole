@@ -26,7 +26,6 @@ server.modules = (
 )
 
 server.document-root        = "/var/www/html"
-server.error-handler-404    = "/pihole/index.php"
 server.upload-dirs          = ( "/var/cache/lighttpd/uploads" )
 server.errorlog             = "/var/log/lighttpd/error-pihole.log"
 server.pid-file             = "/run/lighttpd.pid"
@@ -67,48 +66,9 @@ mimetype.assign = (
     ".woff2" => "font/woff2"
 )
 
-# Add user chosen options held in external file
-# This uses include_shell instead of an include wildcard for compatibility
-include_shell "cat external.conf 2>/dev/null"
+# Add user chosen options held in (optional) external file
+include "external*.conf"
 
 # default listening port for IPv6 falls back to the IPv4 port
 include_shell "/usr/share/lighttpd/use-ipv6.pl " + server.port
-
-# Prevent Lighttpd from enabling Let's Encrypt SSL for every blocked domain
-#include_shell "/usr/share/lighttpd/include-conf-enabled.pl"
-include_shell "find /etc/lighttpd/conf-enabled -name '*.conf' -a ! -name 'letsencrypt.conf' -printf 'include \"%p\"\n' 2>/dev/null"
-
-# If the URL starts with /admin, it is the Web interface
-$HTTP["url"] =~ "^/admin/" {
-    # X-Pi-hole is a response header for debugging using curl -I
-    # X-Frame-Options prevents clickjacking attacks and helps ensure your content is not embedded into other sites via < frame >, < iframe > or < object >.
-    # X-XSS-Protection sets the configuration for the cross-site scripting filters built into most browsers. This is important because it tells the browser to block the response if a malicious script has been inserted from a user input.
-    # X-Content-Type-Options stops a browser from trying to MIME-sniff the content type and forces it to stick with the declared content-type. This is important because the browser will only load external resources if their content-type matches what is expected, and not malicious hidden code.
-    # Content-Security-Policy tells the browser where resources are allowed to be loaded and if it’s allowed to parse/run inline styles or Javascript. This is important because it prevents content injection attacks, such as Cross Site Scripting (XSS).
-    # X-Permitted-Cross-Domain-Policies is an XML document that grants a web client, such as Adobe Flash Player or Adobe Acrobat (though not necessarily limited to these), permission to handle data across domains.
-    # Referrer-Policy allows control/restriction of the amount of information present in the referral header for links away from your page—the URL path or even if the header is sent at all.
-    setenv.add-response-header = (
-        "X-Pi-hole" => "The Pi-hole Web interface is working!",
-        "X-Frame-Options" => "DENY",
-        "X-XSS-Protection" => "1; mode=block",
-        "X-Content-Type-Options" => "nosniff",
-        "Content-Security-Policy" => "default-src 'self' 'unsafe-inline';",
-        "X-Permitted-Cross-Domain-Policies" => "none",
-        "Referrer-Policy" => "same-origin"
-    )
-}
-
-# Block . files from being served, such as .git, .github, .gitignore
-$HTTP["url"] =~ "^/admin/\.(.*)" {
-    url.access-deny = ("")
-}
-
-# allow teleporter and API qr code iframe on settings page
-$HTTP["url"] =~ "/(teleporter|api_token)\.php$" {
-    $HTTP["referer"] =~ "/admin/settings\.php" {
-        setenv.add-response-header = ( "X-Frame-Options" => "SAMEORIGIN" )
-    }
-}
-
-# Default expire header
-expire.url = ( "" => "access plus 0 seconds" )
+include "/etc/lighttpd/conf-enabled/*.conf"

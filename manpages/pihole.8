@@ -23,7 +23,7 @@ Pi-hole : A black-hole for internet advertisements
 .br
 pihole -r
 .br
-pihole -t
+\fBpihole\fR \fB-t\fR [arg]
 .br
 pihole -g\fR
 .br
@@ -113,9 +113,13 @@ Available commands and options:
     Reconfigure or Repair Pi-hole subsystems
 .br
 
-\fB-t, tail\fR
+\fB-t, tail\fR [arg]
 .br
     View the live output of the Pi-hole log
+.br
+
+      [arg]             Optional argument to filter the log for
+                        (regular expressions are supported)
 .br
 
 \fB-a, admin\fR [options]

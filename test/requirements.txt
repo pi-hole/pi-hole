@@ -1,5 +1,6 @@
-docker-compose
-pytest
-pytest-xdist
-pytest-testinfra
-tox
+docker-compose == 1.29.2
+pytest == 7.2.1
+pytest-xdist == 3.1.0
+pytest-testinfra == 7.0.0
+tox == 4.2.8
+
