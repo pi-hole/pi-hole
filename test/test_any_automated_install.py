@@ -105,9 +105,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     mock_command_2(
         "systemctl",
         {
-            "enable lighttpd": ("", "0"),
-            "restart lighttpd": ("", "0"),
-            "start lighttpd": ("", "0"),
             "enable pihole-FTL": ("", "0"),
             "restart pihole-FTL": ("", "0"),
             "start pihole-FTL": ("", "0"),
@@ -123,7 +120,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
     for k, v in SETUPVARS.items():
         setup_var_file += "{}={}\n".format(k, v)
-    setup_var_file += "INSTALL_WEB_SERVER=true\n"
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
     host.run(setup_var_file)
@@ -194,23 +190,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     check_setup = test_cmd.format("r", "/etc/pihole/setupVars.conf", piholeuser)
     actual_rc = host.run(check_setup).rc
     assert exit_status_success == actual_rc
-    # check dnsmasq files
-    # readable /etc/dnsmasq.conf
-    check_dnsmasqconf = test_cmd.format("r", "/etc/dnsmasq.conf", piholeuser)
-    actual_rc = host.run(check_dnsmasqconf).rc
-    assert exit_status_success == actual_rc
-    # readable /etc/dnsmasq.d/01-pihole.conf
-    check_dnsmasqconf = test_cmd.format("r", "/etc/dnsmasq.d", piholeuser)
-    actual_rc = host.run(check_dnsmasqconf).rc
-    assert exit_status_success == actual_rc
-    check_dnsmasqconf = test_cmd.format("x", "/etc/dnsmasq.d", piholeuser)
-    actual_rc = host.run(check_dnsmasqconf).rc
-    assert exit_status_success == actual_rc
-    check_dnsmasqconf = test_cmd.format(
-        "r", "/etc/dnsmasq.d/01-pihole.conf", piholeuser
-    )
-    actual_rc = host.run(check_dnsmasqconf).rc
-    assert exit_status_success == actual_rc
     # check readable and executable /etc/init.d/pihole-FTL
     check_init = test_cmd.format("x", "/etc/init.d/pihole-FTL", piholeuser)
     actual_rc = host.run(check_init).rc
@@ -218,28 +197,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     check_init = test_cmd.format("r", "/etc/init.d/pihole-FTL", piholeuser)
     actual_rc = host.run(check_init).rc
     assert exit_status_success == actual_rc
-    # check readable /etc/lighttpd/lighttpd.conf
-    check_lighttpd = test_cmd.format("r", "/etc/lighttpd/lighttpd.conf", piholeuser)
-    actual_rc = host.run(check_lighttpd).rc
-    assert exit_status_success == actual_rc
-    # check readable /etc/lighttpd/conf*/pihole-admin.conf
-    check_lighttpd = test_cmd.format("r", "/etc/lighttpd/conf.d", piholeuser)
-    if host.run(check_lighttpd).rc == exit_status_success:
-        check_lighttpd = test_cmd.format(
-            "r", "/etc/lighttpd/conf.d/pihole-admin.conf", piholeuser
-        )
-        actual_rc = host.run(check_lighttpd).rc
-        assert exit_status_success == actual_rc
-    else:
-        check_lighttpd = test_cmd.format(
-            "r", "/etc/lighttpd/conf-available", piholeuser
-        )
-        if host.run(check_lighttpd).rc == exit_status_success:
-            check_lighttpd = test_cmd.format(
-                "r", "/etc/lighttpd/conf-available/15-pihole-admin.conf", piholeuser
-            )
-            actual_rc = host.run(check_lighttpd).rc
-            assert exit_status_success == actual_rc
     # check readable and executable manpages
     if maninstalled is True:
         check_man = test_cmd.format("x", "/usr/local/share/man", piholeuser)
