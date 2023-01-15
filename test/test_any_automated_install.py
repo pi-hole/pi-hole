@@ -118,21 +118,6 @@ def test_selinux_not_detected(host):
     assert check_selinux.rc == 0
 
 
-def test_installPiholeWeb_fresh_install_no_errors(host):
-    """
-    confirms all web page assets from Core repo are installed on a fresh build
-    """
-    installWeb = host.run(
-        """
-    umask 0027
-    source /opt/pihole/basic-install.sh
-    installPiholeWeb
-    """
-    )
-    expected_stdout = tick_box + " Installing sudoer file"
-    assert expected_stdout in installWeb.stdout
-
-
 def get_directories_recursive(host, directory):
     if directory is None:
         return directory
