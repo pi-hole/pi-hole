@@ -1159,7 +1159,8 @@ remove_old_dnsmasq_ftl_configs() {
 
     # If the dnsmasq config file exists
     if [[ -f "${dnsmasq_conf}" ]]; then
-        # Back it up - we will need to add a symlink to /etc/pihole/dnsmasq.conf later
+        # There should not be anything custom in here for Pi-hole users
+        # It is no longer needed, but we'll back it up instead of deleting it just in case
         mv "${dnsmasq_conf}" "${dnsmasq_conf}.old"
     fi
 
