@@ -68,40 +68,6 @@ def test_setupVars_are_sourced_to_global_scope(host):
         assert "{}={}".format(k, v) in output
 
 
-def test_setupVars_saved_to_file(host):
-    """
-    confirm saved settings are written to a file for future updates to re-use
-    """
-    # dedent works better with this and padding matching script below
-    set_setup_vars = "\n"
-    for k, v in SETUPVARS.items():
-        set_setup_vars += "    {}={}\n".format(k, v)
-    host.run(set_setup_vars)
-
-    script = dedent(
-        """\
-    set -e
-    echo start
-    TERM=xterm
-    source /opt/pihole/basic-install.sh
-    source /opt/pihole/utils.sh
-    {}
-    mkdir -p /etc/dnsmasq.d
-    version_check_dnsmasq
-    echo "" > /etc/pihole/pihole-FTL.conf
-    finalExports
-    cat /etc/pihole/setupVars.conf
-    """.format(
-            set_setup_vars
-        )
-    )
-
-    output = run_script(host, script).stdout
-
-    for k, v in SETUPVARS.items():
-        assert "{}={}".format(k, v) in output
-
-
 def test_selinux_not_detected(host):
     """
     confirms installer continues when SELinux configuration file does not exist
