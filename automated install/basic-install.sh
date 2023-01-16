@@ -1442,7 +1442,7 @@ installConfigs() {
             fi
             chmod 644 $conf
             if is_command lighty-enable-mod ; then
-                lighty-enable-mod pihole-admin access redirect fastcgi setenv > /dev/null || true
+                lighty-enable-mod pihole-admin access accesslog redirect fastcgi setenv > /dev/null || true
             else
                 # Otherwise, show info about installing them
                 printf "  %b Warning: 'lighty-enable-mod' utility not found\\n" "${INFO}"
