@@ -34,7 +34,7 @@ jobs:
         languages: 'python'
     -
       name: Autobuild
-      uses: github/codeql-action/autobuild@v2
+      uses: github/codeql-action/autobuild@v2.12.0
     -
       name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v2.12.0
