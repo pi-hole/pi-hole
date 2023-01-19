@@ -1434,14 +1434,14 @@ installConfigs() {
             install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/pihole-admin.conf $conf
 
             # Get the version number of lighttpd
-            version=$(lighttpd -v | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+')
+            version=$(dpkg-query -f='${Version}\n' --show lighttpd)
             # Test if that version is greater than or euqal to 1.4.56
             if dpkg --compare-versions "$version" "ge" "1.4.56"; then
                 # If it is, then we don't need to disable the modules
+                # (server.modules duplication is ignored in lighttpd 1.4.56+)
                 :
             else
                 # disable server.modules += ( ... ) in $conf to avoid module dups
-                # (server.modules duplication is ignored in lighttpd 1.4.56+)
                 if awk '!/^server\.modules/{print}' $conf > $conf.$$ && mv $conf.$$ $conf; then
                 :
                 else
