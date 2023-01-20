@@ -244,7 +244,7 @@ database_adlist_number() {
     return;
   fi
 
-  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${num_source_lines}" "${num_invalid}" "${1}" | pihole-FTL sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${num_source_lines}" "${num_unusable}" "${1}" | pihole-FTL sqlite3 "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -522,9 +522,9 @@ gravity_DownloadBlocklists() {
 # num_target_lines does increase for every correctly added domain in pareseList()
 num_target_lines=0
 num_source_lines=0
-num_invalid=0
+num_unusable=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" incorrect_lines sample_incorrect_lines
+  local adlistID="${1}" src="${2}" target="${3}" unusable_lines sample_unusable_lines tmp_unusuable_lines_str false_positive
   # This sed does the following things:
   # 1. Remove all lines containing no domains
   # 2. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
@@ -534,10 +534,41 @@ parseList() {
   sed -r  "/([^\.]+\.)+[^\.]{2,}/!d;/[^a-zA-Z0-9.\_-]/d;s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
 
   # Find lines containing no domains or with invalid characters (see above)
-  # Remove duplicates and limit to 5 domains
-  mapfile -t incorrect_lines <<< "$(sed -r "/([^\.]+\.)+[^\.]{2,}/d" < "${src}")"
-  mapfile -t -O "${#incorrect_lines[@]}" incorrect_lines <<< "$(sed -r "/[^a-zA-Z0-9.\_-]/!d" < "${src}")"
-  IFS=" " read -r -a sample_incorrect_lines <<< "$(tr ' ' '\n' <<< "${incorrect_lines[@]}" | sort -u | head -n 5| tr '\n' ' ')"
+  # Remove duplicates from the list
+  mapfile -t unusable_lines <<< "$(sed -r "/([^\.]+\.)+[^\.]{2,}/d" < "${src}")"
+  mapfile -t -O "${#unusable_lines[@]}" unusable_lines <<< "$(sed -r "/[^a-zA-Z0-9.\_-]/!d" < "${src}")"
+  IFS=" " read -r -a unusable_lines <<< "$(tr ' ' '\n' <<< "${unusable_lines[@]}" | sort -u | tr '\n' ' ')"
+
+  # A list of items of common local hostnames not to report as unusable
+  # Some lists (i.e StevenBlack's) contain these as they are supposed to be used as HOST files
+  # but flagging them as unusable causes more confusion than it's worth - so we suppress them from the output
+  false_positives=(
+    "localhost"
+    "localhost.localdomain"
+    "local"
+    "broadcasthost"
+    "localhost"
+    "ip6-localhost"
+    "ip6-loopback"
+    "lo0 localhost"
+    "ip6-localnet"
+    "ip6-mcastprefix"
+    "ip6-allnodes"
+    "ip6-allrouters"
+    "ip6-allhosts"
+    )
+
+  # Read the unusable lines into a string
+  tmp_unusuable_lines_str=" ${unusable_lines[*]} "
+  for false_positive in "${false_positives[@]}"; do
+    # Remove false positives from tmp_unusuable_lines_str
+    tmp_unusuable_lines_str="${tmp_unusuable_lines_str/ ${false_positive} / }"
+  done
+  # Read the string back into an array
+  IFS=" " read -r -a unusable_lines <<< "${tmp_unusuable_lines_str}"
+
+  # Get a sample of the incorrect lines, limited to 5 (the list should already have been de-duplicated)
+  IFS=" " read -r -a sample_unusable_lines <<< "$(tr ' ' '\n' <<< "${unusable_lines[@]}" | head -n 5 | tr '\n' ' ')"
 
   local num_target_lines_new num_correct_lines
   # Get number of lines in source file
@@ -548,22 +579,20 @@ parseList() {
   num_correct_lines="$(( num_target_lines_new-num_target_lines ))"
   # Update number of lines in target file
   num_target_lines="$num_target_lines_new"
-  num_invalid="$(( num_source_lines-num_correct_lines ))"
-  if [[ "${num_invalid}" -eq 0 ]]; then
-    echo "  ${INFO} Analyzed ${num_source_lines} domains"
-  else
-    echo "  ${INFO} Analyzed ${num_source_lines} domains, ${num_invalid} domains invalid!"
-  fi
+  num_unusable="${#unusable_lines[@]}"
 
-  # Display sample of invalid lines if we found some
-  if [ ${#sample_incorrect_lines[@]} -ne 0 ]; then
-    echo "      Sample of invalid domains:"
-    for each in "${sample_incorrect_lines[@]}"
+  if [[ "${num_unusable}" -ne 0 ]]; then
+    echo "  ${INFO} Imported ${num_correct_lines} domains, ignoring ${num_unusable} non-domain entries"
+    echo "      Sample of non-domain entries:"
+    for each in "${sample_unusable_lines[@]}"
     do
-        echo "      - ${each}"
+        echo "        - ${each}"
     done
+  else
+    echo "  ${INFO} Imported ${num_correct_lines} domains"
   fi
 }
+
 compareLists() {
   local adlistID="${1}" target="${2}"
 
@@ -717,7 +746,7 @@ gravity_DownloadBlocklistFromUrl() {
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
       # Manually reset these two numbers because we do not call parseList here
       num_source_lines=0
-      num_invalid=0
+      num_unusable=0
       database_adlist_number "${adlistID}"
       database_adlist_status "${adlistID}" "4"
     fi
