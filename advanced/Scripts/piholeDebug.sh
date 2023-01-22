@@ -77,6 +77,8 @@ PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
 WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
+WEB_SERVER_PIHOLE_CONFIG_FILE_DEBIAN="${WEB_SERVER_CONFIG_DIRECTORY}/conf-available/15-pihole-admin.conf"
+WEB_SERVER_PIHOLE_CONFIG_FILE_FEDORA="${WEB_SERVER_CONFIG_DIRECTORY}/conf.d/pihole-admin.conf"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
@@ -140,6 +142,8 @@ PIHOLE_PROCESSES=( "lighttpd" "pihole-FTL" )
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${WEB_SERVER_CONFIG_FILE}"
 "${WEB_SERVER_CUSTOM_CONFIG_FILE}"
+"${WEB_SERVER_PIHOLE_CONFIG_FILE_DEBIAN}"
+"${WEB_SERVER_PIHOLE_CONFIG_FILE_FEDORA}"
 "${PIHOLE_INSTALL_LOG_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
@@ -1069,10 +1073,13 @@ dir_check() {
         # check if exists first; if it does,
         if ls "${filename}" 1> /dev/null 2>&1; then
             # do nothing
-            :
+            true
+            return
         else
             # Otherwise, show an error
             log_write "${COL_RED}${directory} does not exist.${COL_NC}"
+            false
+            return
         fi
     done
 }
@@ -1132,9 +1139,10 @@ show_content_of_files_in_dir() {
     # Set a local variable for better readability
     local directory="${1}"
     # Check if the directory exists
-    dir_check "${directory}"
-    # if it does, list the files in it
-    list_files_in_dir "${directory}"
+    if dir_check "${directory}"; then
+        # if it does, list the files in it
+        list_files_in_dir "${directory}"
+    fi
 }
 
 show_content_of_pihole_files() {
@@ -1142,6 +1150,8 @@ show_content_of_pihole_files() {
     show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
+    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}/conf.d"
+    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}/conf-available"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"
