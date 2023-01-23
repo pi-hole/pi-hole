@@ -1403,12 +1403,16 @@ installConfigs() {
         # set permissions on /etc/lighttpd/lighttpd.conf so pihole user (other) can read the file
         chmod o+x /etc/lighttpd
         chmod o+r "${lighttpdConfig}"
+
+        # Ensure /run/lighttpd exists and is owned by lighttpd user
+        # Needed for the php socket
+        mkdir -p /run/lighttpd
+        chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
+
         if grep -q -F "FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
             # Attempt to preserve backwards compatibility with older versions
             install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
             # Make the directories if they do not exist and set the owners
-            mkdir -p /run/lighttpd
-            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
             mkdir -p /var/cache/lighttpd/compress
             chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /var/cache/lighttpd/compress
             mkdir -p /var/cache/lighttpd/uploads
