@@ -513,13 +513,13 @@ if [[ $# = 0 ]]; then
 fi
 
 # functions that do not require sudo power
+need_root=1
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
   "-v" | "version"              ) versionFunc "$@";;
   "-c" | "chronometer"          ) chronometerFunc "$@";;
   "-q" | "query"                ) queryFunc "$@";;
   "status"                      ) statusFunc "$2";;
-
   "tricorder"                   ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
@@ -532,13 +532,14 @@ case "${1}" in
   "-f" | "flush"                ) ;;
   "-up" | "updatePihole"        ) ;;
   "-r"  | "reconfigure"         ) ;;
-  "-g" | "updateGravity"        ) ;;
   "-l" | "logging"              ) ;;
   "uninstall"                   ) ;;
   "enable"                      ) ;;
   "disable"                     ) ;;
   "-d" | "debug"                ) ;;
   "restartdns"                  ) ;;
+  "-g" | "updateGravity"        ) need_root=0;;
+  "reloaddns"                   ) need_root=0;;
   "-a" | "admin"                ) ;;
   "checkout"                    ) ;;
   "updatechecker"               ) ;;
@@ -547,10 +548,20 @@ case "${1}" in
   *                             ) helpFunc;;
 esac
 
-# Must be root to use this tool
-if [[ ! $EUID -eq 0 ]];then
+# Must be root to use this tool for most functions
+if [[ ! $EUID -eq 0 && need_root -eq 1 ]];then
   if [[ -x "$(command -v sudo)" ]]; then
     exec sudo bash "$0" "$@"
+    exit $?
+  else
+    echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+    exit 1
+  fi
+fi
+# Can also be user pihole for other functions
+if [[ ${USER} != "pihole" && need_root -eq 0 ]];then
+  if [[ -x "$(command -v sudo)" ]]; then
+    exec sudo -u pihole bash "$0" "$@"
     exit $?
   else
     echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
@@ -576,6 +587,7 @@ case "${1}" in
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
   "restartdns"                  ) restartDNS "$2";;
+  "reloaddns"                   ) restartDNS "reload";;
   "-a" | "admin"                ) webpageFunc "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "updatechecker"               ) shift; updateCheckFunc "$@";;
