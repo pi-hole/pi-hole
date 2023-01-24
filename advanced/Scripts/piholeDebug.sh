@@ -77,7 +77,7 @@ PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
 WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
-WEB_SERVER_PIHOLE_CONFIG_FILE_DEBIAN="${WEB_SERVER_CONFIG_DIRECTORY}/conf-available/15-pihole-admin.conf"
+WEB_SERVER_PIHOLE_CONFIG_FILE_DEBIAN="${WEB_SERVER_CONFIG_DIRECTORY}/conf-enabled/15-pihole-admin.conf"
 WEB_SERVER_PIHOLE_CONFIG_FILE_FEDORA="${WEB_SERVER_CONFIG_DIRECTORY}/conf.d/pihole-admin.conf"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
@@ -1151,7 +1151,7 @@ show_content_of_pihole_files() {
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}/conf.d"
-    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}/conf-available"
+    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}/conf-enabled"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"
