@@ -66,6 +66,8 @@ RUN_DIRECTORY="/run"
 LOG_DIRECTORY="/var/log/pihole"
 WEB_SERVER_LOG_DIRECTORY="/var/log/lighttpd"
 WEB_SERVER_CONFIG_DIRECTORY="/etc/lighttpd"
+WEB_SERVER_CONFIG_DIRECTORY_FEDORA="${WEB_SERVER_CONFIG_DIRECTORY}/conf.d"
+WEB_SERVER_CONFIG_DIRECTORY_DEBIAN="${WEB_SERVER_CONFIG_DIRECTORY}/conf-enabled"
 HTML_DIRECTORY="/var/www/html"
 WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
 SHM_DIRECTORY="/dev/shm"
@@ -77,8 +79,8 @@ PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
 
 WEB_SERVER_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/lighttpd.conf"
 WEB_SERVER_CUSTOM_CONFIG_FILE="${WEB_SERVER_CONFIG_DIRECTORY}/external.conf"
-WEB_SERVER_PIHOLE_CONFIG_FILE_DEBIAN="${WEB_SERVER_CONFIG_DIRECTORY}/conf-enabled/15-pihole-admin.conf"
-WEB_SERVER_PIHOLE_CONFIG_FILE_FEDORA="${WEB_SERVER_CONFIG_DIRECTORY}/conf.d/pihole-admin.conf"
+WEB_SERVER_PIHOLE_CONFIG_FILE_DEBIAN="${WEB_SERVER_CONFIG_DIRECTORY_DEBIAN}/15-pihole-admin.conf"
+WEB_SERVER_PIHOLE_CONFIG_FILE_FEDORA="${WEB_SERVER_CONFIG_DIRECTORY_FEDORA}/pihole-admin.conf"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
@@ -1103,6 +1105,19 @@ dir_check() {
 list_files_in_dir() {
     # Set the first argument passed to this function as a named variable for better readability
     local dir_to_parse="${1}"
+
+    # show files and sizes of some directories, don't print the file content (yet)
+    if [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
+        # SHM file - we do not want to see the content, but we want to see the files and their sizes
+        log_write "$(ls -lh "${dir_to_parse}/")"
+    elif [[ "${dir_to_parse}" == "${WEB_SERVER_CONFIG_DIRECTORY_FEDORA}" ]]; then
+        # we want to see all files files in /etc/lighttpd/conf.d
+        log_write "$(ls -lh "${dir_to_parse}/" 2> /dev/null )"
+    elif [[ "${dir_to_parse}" == "${WEB_SERVER_CONFIG_DIRECTORY_DEBIAN}" ]]; then
+        # we want to see all files files in /etc/lighttpd/conf.d
+        log_write "$(ls -lh "${dir_to_parse}/"/ 2> /dev/null )"
+    fi
+
     # Store the files found in an array
     mapfile -t files_found < <(ls "${dir_to_parse}")
     # For each file in the array,
@@ -1118,11 +1133,8 @@ list_files_in_dir() {
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
             :
-        elif [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
-            # SHM file - we do not want to see the content, but we want to see the files and their sizes
-            log_write "$(ls -lhd "${dir_to_parse}"/"${each_file}")"
         elif [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
-            # in case of the dnsmasq directory inlcuede all files in the debug output
+            # in case of the dnsmasq directory include all files in the debug output
             log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
             make_array_from_file "${dir_to_parse}/${each_file}"
         else
@@ -1166,8 +1178,8 @@ show_content_of_pihole_files() {
     show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
-    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}/conf.d"
-    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}/conf-enabled"
+    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY_FEDORA}"
+    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY_DEBIAN}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
     show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"
