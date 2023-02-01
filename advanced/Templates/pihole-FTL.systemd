@@ -19,6 +19,7 @@ StartLimitIntervalSec=60s
 User=pihole
 PermissionsStartOnly=true
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN
 
 ExecStartPre=/opt/pihole/pihole-FTL-prestart.sh
 ExecStart=/usr/bin/pihole-FTL -f
@@ -30,12 +31,33 @@ ExecStopPost=/opt/pihole/pihole-FTL-poststop.sh
 # Use graceful shutdown with a reasonable timeout
 TimeoutStopSec=10s
 
-# Make /usr, /boot, /etc and possibly some more folders read-only...
-ProtectSystem=full
-# ... except /etc/pihole
-# This merely retains r/w access rights, it does not add any new.
-# Must still be writable on the host!
-ReadWriteDirectories=/etc/pihole
+BindReadOnlyPaths=/opt/pihole
+ConfigurationDirectory=pihole
+LockPersonality=true
+LogsDirectory=pihole
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateIPC=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RuntimeDirectory=pihole
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+TemporaryFileSystem=/media /mnt /opt /run /srv /var
 
 [Install]
 WantedBy=multi-user.target
