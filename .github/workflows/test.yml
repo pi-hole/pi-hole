@@ -58,7 +58,6 @@ jobs:
             fedora_36,
             fedora_37,
             leap_15,
-            tumbleweed,
           ]
     env:
       DISTRO: ${{matrix.distro}}
