@@ -83,7 +83,6 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 FTL_CONFIG_FILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
-FTL_PID_FILE="/run/pihole/FTL.pid"
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
 fi
@@ -1851,9 +1850,6 @@ finalExports() {
 
     # Set the privacy level
     addOrEditKeyValPair "${FTL_CONFIG_FILE}" "PRIVACYLEVEL" "${PRIVACY_LEVEL}"
-
-    # Set the PID file path
-    addOrEditKeyValPair "${FTL_CONFIG_FILE}" "PIDFILE" "${FTL_PID_FILE}"
 
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
