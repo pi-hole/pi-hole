@@ -165,7 +165,7 @@ SetWebPassword() {
         echo ""
 
         if [ "${PASSWORD}" == "" ]; then
-            setFTLConfigValue "api.pwhash" ""
+            setFTLConfigValue "webserver.api.pwhash" "" >/dev/null
             echo -e "  ${TICK} Password Removed"
             exit 0
         fi
@@ -178,7 +178,7 @@ SetWebPassword() {
         # We do not wrap this in brackets, otherwise BASH will expand any appropriate syntax
         hash=$(HashPassword "$PASSWORD")
         # Save hash to file
-        setFTLConfigValue "api.pwhash" "${hash}"
+        setFTLConfigValue "webserver.api.pwhash" "${hash}" >/dev/null
         echo -e "  ${TICK} New password set"
     else
         echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
