@@ -2,7 +2,6 @@ import pytest
 from textwrap import dedent
 import re
 from .conftest import (
-    SETUPVARS,
     tick_box,
     info_box,
     cross_box,
@@ -30,42 +29,6 @@ def test_supported_package_manager(host):
     expected_stdout = cross_box + " No supported package manager found"
     assert expected_stdout in package_manager_detect.stdout
     # assert package_manager_detect.rc == 1
-
-
-def test_setupVars_are_sourced_to_global_scope(host):
-    """
-    currently update_dialogs sources setupVars with a dot,
-    then various other functions use the variables.
-    This confirms the sourced variables are in scope between functions
-    """
-    setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
-    for k, v in SETUPVARS.items():
-        setup_var_file += "{}={}\n".format(k, v)
-    setup_var_file += "EOF\n"
-    host.run(setup_var_file)
-
-    script = dedent(
-        """\
-    set -e
-    printSetupVars() {
-        # Currently debug test function only
-        echo "Outputting sourced variables"
-        echo "PIHOLE_INTERFACE=${PIHOLE_INTERFACE}"
-        echo "PIHOLE_DNS_1=${PIHOLE_DNS_1}"
-        echo "PIHOLE_DNS_2=${PIHOLE_DNS_2}"
-    }
-    update_dialogs() {
-        . /etc/pihole/setupVars.conf
-    }
-    update_dialogs
-    printSetupVars
-    """
-    )
-
-    output = run_script(host, script).stdout
-
-    for k, v in SETUPVARS.items():
-        assert "{}={}".format(k, v) in output
 
 
 def test_selinux_not_detected(host):
@@ -116,12 +79,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     host.run("command -v apt-get > /dev/null && apt-get install -qq man")
     host.run("command -v dnf > /dev/null && dnf install -y man")
     host.run("command -v yum > /dev/null && yum install -y man")
-    # create configuration file
-    setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
-    for k, v in SETUPVARS.items():
-        setup_var_file += "{}={}\n".format(k, v)
-    setup_var_file += "EOF\n"
-    host.run(setup_var_file)
     install = host.run(
         """
     export TERM=xterm
@@ -184,10 +141,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     assert exit_status_success == actual_rc
     check_FTLconf = test_cmd.format("w", "/etc/pihole/pihole-FTL.conf", piholeuser)
     actual_rc = host.run(check_FTLconf).rc
-    assert exit_status_success == actual_rc
-    # readable setupVars.conf
-    check_setup = test_cmd.format("r", "/etc/pihole/setupVars.conf", piholeuser)
-    actual_rc = host.run(check_setup).rc
     assert exit_status_success == actual_rc
     # check readable and executable /etc/init.d/pihole-FTL
     check_init = test_cmd.format("x", "/etc/init.d/pihole-FTL", piholeuser)

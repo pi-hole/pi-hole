@@ -56,8 +56,6 @@ EOM
 
 # Location for final installation log storage
 installLogLoc="/etc/pihole/install.log"
-# This is an important file as it contains information specific to the machine it's being installed on
-setupVars="/etc/pihole/setupVars.conf"
 # This is a file used for the colorized output
 coltable="/opt/pihole/COL_TABLE"
 
@@ -1566,29 +1564,7 @@ create_pihole_user() {
     fi
 }
 
-# This function saves any changes to the setup variables into the setupvars.conf file for future runs
 finalExports() {
-    # set or update the variables in the file
-
-    addOrEditKeyValPair "${setupVars}" "PIHOLE_INTERFACE" "${PIHOLE_INTERFACE}"
-    addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_1" "${PIHOLE_DNS_1}"
-    addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_2" "${PIHOLE_DNS_2}"
-    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "${QUERY_LOGGING}"
-    addOrEditKeyValPair "${setupVars}" "CACHE_SIZE" "${CACHE_SIZE}"
-    addOrEditKeyValPair "${setupVars}" "DNS_FQDN_REQUIRED" "${DNS_FQDN_REQUIRED:-true}"
-    addOrEditKeyValPair "${setupVars}" "DNS_BOGUS_PRIV" "${DNS_BOGUS_PRIV:-true}"
-    addOrEditKeyValPair "${setupVars}" "DNSMASQ_LISTENING" "${DNSMASQ_LISTENING:-local}"
-
-    chmod 644 "${setupVars}"
-
-    # Set the privacy level
-    addOrEditKeyValPair "${FTL_CONFIG_FILE}" "PRIVACYLEVEL" "${PRIVACY_LEVEL}"
-
-    # Set the web port
-    addOrEditKeyValPair "${FTL_CONFIG_FILE}" "WEBPORT" "${WEBPORT}"
-
-    # Bring in the current settings and the functions to manipulate them
-    source "${setupVars}"
     # shellcheck source=advanced/Scripts/webpage.sh
     source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
 
@@ -1672,7 +1648,6 @@ installPihole() {
     # install a man page entry for pihole
     install_manpage
 
-    # Update setupvars.conf with any variables that may or may not have been changed during the install
     finalExports
 }
 
@@ -1724,11 +1699,12 @@ checkSelinux() {
 
 # Installation complete message with instructions for the user
 displayFinalMessage() {
+    # TODO: COME BACK TO THIS, WHAT IS GOING ON?
     # If the number of arguments is > 0,
     if [[ "${#1}" -gt 0 ]] ; then
         # set the password to the first argument.
         pwstring="$1"
-    elif [[ $(grep 'WEBPASSWORD' -c "${setupVars}") -gt 0 ]]; then
+    elif [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]] ; then
         # Else if the password exists from previous setup, we'll load it later
         pwstring="unchanged"
     else
@@ -2242,19 +2218,16 @@ main() {
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
     install_dependent_packages "${INSTALLER_DEPS[@]}"
 
-    # If the setup variable file exists,
-    if [[ -f "${setupVars}" ]]; then
-        # if it's running unattended,
-        if [[ "${runUnattended}" == true ]]; then
-            printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
-            # Use the setup variables
-            useUpdateVars=true
-            # also disable debconf-apt-progress dialogs
-            export DEBIAN_FRONTEND="noninteractive"
-        else
-            # If running attended, show the available options (repair/reconfigure)
-            update_dialogs
-        fi
+    # if it's running unattended,
+    if [[ "${runUnattended}" == true ]]; then
+        printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
+        # Use the setup variables
+        useUpdateVars=true
+        # also disable debconf-apt-progress dialogs
+        export DEBIAN_FRONTEND="noninteractive"
+    else
+        # If running attended, show the available options (repair/reconfigure)
+        update_dialogs
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then
@@ -2279,18 +2252,6 @@ main() {
     else
         # Setup adlist file if not exists
         installDefaultBlocklists
-
-        # Source ${setupVars} to use predefined user variables in the functions
-        source "${setupVars}"
-
-        # Get the privacy level if it exists (default is 0)
-        if [[ -f "${FTL_CONFIG_FILE}" ]]; then
-            # get the value from $FTL_CONFIG_FILE (and ignoring all commented lines)
-            PRIVACY_LEVEL=$(sed -e '/^[[:blank:]]*#/d' "${FTL_CONFIG_FILE}" | grep "PRIVACYLEVEL" | awk -F "=" 'NR==1{printf$2}')
-
-            # If no setting was found, default to 0
-            PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
-        fi
     fi
     # Download or update the scripts by updating the appropriate git repos
     clone_or_update_repos
@@ -2327,7 +2288,7 @@ main() {
     # Add password to web UI if there is none
     pw=""
     # If no password is set,
-    if [[ $(pihole-FTL --config webserver.api.pwhash) == "${pw}" ]] ; then
+    if [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]] ; then
         # generate a random password
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
         pihole -a -p "${pw}"

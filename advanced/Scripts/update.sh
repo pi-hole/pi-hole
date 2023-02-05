@@ -104,9 +104,6 @@ main() {
     web_update=false
     FTL_update=false
 
-    # shellcheck disable=1090,2154
-    source "${setupVars}"
-
     # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
     package_manager_detect
     install_dependent_packages "${INSTALLER_DEPS[@]}"

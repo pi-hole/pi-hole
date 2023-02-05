@@ -162,8 +162,8 @@ getFTLConfigValue(){
 # Takes two arguments: key and value
 # Example setFTLConfigValue dns.piholePTR PI.HOLE
 #
-# Note, for complex values such as dnsmasq.upstreams, you should wrap the value in single quotes:
-# setFTLConfigValue dnsmasq.upstreams '[ "8.8.8.8" , "8.8.4.4" ]'
+# Note, for complex values such as dns.upstreams, you should wrap the value in single quotes:
+# setFTLConfigValue dns.upstreams '[ "8.8.8.8" , "8.8.4.4" ]'
 #######################
 setFTLConfigValue(){
   pihole-FTL --config "${1}" "${2}" >/dev/null
