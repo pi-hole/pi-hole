@@ -46,10 +46,6 @@ curl_connect_timeout=10
 setupVars="${piholeDir}/setupVars.conf"
 if [[ -f "${setupVars}" ]];then
   source "${setupVars}"
-else
-  echo -e "  ${COL_LIGHT_RED}Installation Failure: ${setupVars} does not exist! ${COL_NC}
-  Please run 'pihole -r', and choose the 'reconfigure' option to fix."
-  exit 1
 fi
 
 # Set up tmp dir variable in case it's not configured
