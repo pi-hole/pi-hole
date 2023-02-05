@@ -172,33 +172,6 @@ def test_getFTLPIDFile_and_getFTLPID_custom(host):
     assert expected_stdout == output.stdout
 
 
-def test_setFTLConfigValue_getFTLConfigValue(host):
-    """
-    Confirms setFTLConfigValue works
-    Requires FTL to be installed, so we do that first (taken from test_FTL_binary_installed_and_responsive_no_errors)
-    """
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    echo "new/http" > /etc/pihole/ftlbranch
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    setFTLConfigValue "dnsmasq.upstreams" '["1.1.1.1"]'
-    """
-    )
-
-    assert '[ "1.1.1.1" ]' in output.stdout
-
-
 def test_getFTLConfigValue_getFTLConfigValue(host):
     """
     Confirms getFTLConfigValue works (also assumes setFTLConfigValue works)
@@ -219,8 +192,8 @@ def test_getFTLConfigValue_getFTLConfigValue(host):
     output = host.run(
         """
     source /opt/pihole/utils.sh
-    setFTLConfigValue "dnsmasq.upstreams" '["9.9.9.9"]' > /dev/null
-    getFTLConfigValue "dnsmasq.upstreams"
+    setFTLConfigValue "dns.upstreams" '["9.9.9.9"]' > /dev/null
+    getFTLConfigValue "dns.upstreams"
     """
     )
 
