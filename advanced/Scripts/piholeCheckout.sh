@@ -61,12 +61,11 @@ checkout() {
         echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
         exit 1;
     fi
-    if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
-        if ! is_repo "${webInterfaceDir}" ; then
-            echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
-            echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
-            exit 1;
-        fi
+
+    if ! is_repo "${webInterfaceDir}" ; then
+        echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
+        echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
+        exit 1;
     fi
 
     if [[ -z "${1}" ]]; then
@@ -85,11 +84,9 @@ checkout() {
         echo ""
         echo -e "  ${INFO} Pi-hole Core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
-        if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
-            echo ""
-            echo -e "  ${INFO} Web interface"
-            fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
-        fi
+        echo ""
+        echo -e "  ${INFO} Web interface"
+        fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
         #echo -e "  ${TICK} Pi-hole Core"
 
         local path
@@ -101,10 +98,8 @@ checkout() {
         echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
         echo -e "  ${INFO} Pi-hole core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
-        if [[ ${INSTALL_WEB_INTERFACE} == "true" ]]; then
-            echo -e "  ${INFO} Web interface"
-            fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
-        fi
+        echo -e "  ${INFO} Web interface"
+        fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
         #echo -e "  ${TICK} Web Interface"
         local path
         path="master/${binary}"
@@ -137,7 +132,7 @@ checkout() {
             exit 1
         fi
         checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
-    elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB_INTERFACE}" == "true" ]] ; then
+    elif [[ "${1}" == "web" ]] ; then
         str="Fetching branches from ${webInterfaceGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${webInterfaceDir}" ; then

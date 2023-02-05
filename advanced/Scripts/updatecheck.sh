@@ -34,10 +34,6 @@ function get_remote_hash(){
     git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 0,8);}' || return 1
 }
 
-# Source the setupvars config file
-# shellcheck disable=SC1091
-. /etc/pihole/setupVars.conf
-
 # Source the utils file for addOrEditKeyValPair()
 # shellcheck disable=SC1091
 . /opt/pihole/utils.sh
@@ -86,24 +82,20 @@ addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
 
 # get Web versions
 
-if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+WEB_VERSION="$(get_local_version /var/www/html/admin)"
+addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
 
-    WEB_VERSION="$(get_local_version /var/www/html/admin)"
-    addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
+WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
+addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
 
-    WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
-    addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
+WEB_HASH="$(get_local_hash /var/www/html/admin)"
+addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
 
-    WEB_HASH="$(get_local_hash /var/www/html/admin)"
-    addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
+GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
 
-    GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
-    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
-
-    GITHUB_WEB_HASH="$(get_remote_hash AdminLTE "${WEB_BRANCH}")"
-    addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
-
-fi
+GITHUB_WEB_HASH="$(get_remote_hash AdminLTE "${WEB_BRANCH}")"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
 
 # get FTL versions
 

@@ -91,7 +91,6 @@ IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=true
-INSTALL_WEB_INTERFACE=true
 WEBPORT=8080
 PRIVACY_LEVEL=0
 CACHE_SIZE=10000
@@ -1048,44 +1047,6 @@ setPrivacyLevel() {
         esac
 }
 
-# Function to ask the user if they want to install the dashboard
-setAdminFlag() {
-    # Similar to the logging function, ask what the user wants
-    dialog --no-shadow --keep-tite \
-        --backtitle "Pihole Installation" \
-        --title "Admin Web Interface" \
-        --yesno "\\n\\nDo you want to install the Admin Web Interface?" \
-        "${r}" "${c}" && result=0 || result=$?
-
-    case ${result} in
-        "${DIALOG_OK}")
-            # If they chose yes,
-            printf "  %b Installing Admin Web Interface\\n" "${INFO}"
-            # Set the flag to install the web interface
-            INSTALL_WEB_INTERFACE=true
-
-            # Web port TODO: Below whiptail copy pasted from a previous go at this. needs converting to dialog
-            # Ask for the IPv4 address
-            WEBPORT=$(whiptail --backtitle "Setting web interface port" --title "Web Port" --inputbox "By default, pihole-FTL listens for http traffic on port 8080. If you wish to change the port, you may do so now. You can also do it later by editing /etc/pihole/pihole-FTL.conf" "${r}" "${c}" "${WEBPORT}" 3>&1 1>&2 2>&3) || \
-            # Canceling IPv4 settings window
-            { echo -e "  ${COL_LIGHT_RED}Cancel was selected, exiting installer${COL_NC}"; exit 1; }
-            printf "  %b The Web interface will be accessible on port: %s\\n" "${INFO}" "${WEBPORT}"
-
-            ;;
-        "${DIALOG_CANCEL}")
-            # If they chose no,
-            printf "  %b Not installing Admin Web Interface\\n" "${INFO}"
-            # Set the flag to not install the web interface
-            INSTALL_WEB_INTERFACE=false
-            ;;
-        "${DIALOG_ESC}")
-            # User pressed <ESC>
-            printf "  %b Escape pressed, exiting installer at Admin Web Interface choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            exit 1
-            ;;
-    esac
-}
-
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {
     # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
@@ -1613,7 +1574,6 @@ finalExports() {
     addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_1" "${PIHOLE_DNS_1}"
     addOrEditKeyValPair "${setupVars}" "PIHOLE_DNS_2" "${PIHOLE_DNS_2}"
     addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "${QUERY_LOGGING}"
-    addOrEditKeyValPair "${setupVars}" "INSTALL_WEB_INTERFACE" "${INSTALL_WEB_INTERFACE}"
     addOrEditKeyValPair "${setupVars}" "CACHE_SIZE" "${CACHE_SIZE}"
     addOrEditKeyValPair "${setupVars}" "DNS_FQDN_REQUIRED" "${DNS_FQDN_REQUIRED:-true}"
     addOrEditKeyValPair "${setupVars}" "DNS_BOGUS_PRIV" "${DNS_BOGUS_PRIV:-true}"
@@ -1775,11 +1735,10 @@ displayFinalMessage() {
         # Else, inform the user that there is no set password.
         pwstring="NOT SET"
     fi
-    # If the user wants to install the dashboard,
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        # Store a message in a variable and display it
-        additional="View the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
-    fi
+
+    # Store a message in a variable and display it
+    additional="View the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
+
 
     # Final completion message to user
     dialog --no-shadow --keep-tite \
@@ -1928,14 +1887,11 @@ clone_or_update_repos() {
         { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
-        # If the Web interface was installed,
-        if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            # reset it's repo
-            resetRepo ${webInterfaceDir} || \
-            { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
-            exit 1; \
-            }
-        fi
+        # Reset the Web repo
+        resetRepo ${webInterfaceDir} || \
+        { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
+        exit 1; \
+        }
     # Otherwise, a repair is happening
     else
         # so get git files for Core
@@ -1943,14 +1899,11 @@ clone_or_update_repos() {
         { printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
-        # If the Web interface was installed,
-        if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            # get the Web git files
-            getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-            { printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
-            exit 1; \
-            }
-        fi
+        # get the Web git files
+        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+        { printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
+        exit 1; \
+        }
     fi
 }
 
@@ -2253,7 +2206,7 @@ main() {
             # when run via curl piping
             if [[ "$0" == "bash" ]]; then
                 # Download the install script and run it with admin rights
-                exec curl -sSL https://raw.githubusercontent.com/pi-hole/pi-hole/master/automated%20install/basic-install.sh | sudo bash "$@"
+                exec curl -sSL https://install.pi-hole.net | sudo bash "$@"
             else
                 # when run via calling local bash script
                 exec sudo bash "$0" "$@"
@@ -2319,8 +2272,6 @@ main() {
         setDNS
         # Give the user a choice of blocklists to include in their install. Or not.
         chooseBlocklists
-        # Let the user decide if they want the web interface to be installed automatically
-        setAdminFlag
         # Let the user decide if they want query logging enabled...
         setLogging
         # Let the user decide the FTL privacy level
@@ -2373,17 +2324,13 @@ main() {
     # Copy the temp log file into final log location for storage
     copy_to_install_log
 
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        # Add password to web UI if there is none
-        pw=""
-        # If no password is set,
-        if [[ $(grep 'WEBPASSWORD' -c "${setupVars}") == 0 ]] ; then
-            # generate a random password
-            pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
-            # shellcheck disable=SC1091
-            . /opt/pihole/webpage.sh
-            echo "WEBPASSWORD=$(HashPassword "${pw}")" >> "${setupVars}"
-        fi
+    # Add password to web UI if there is none
+    pw=""
+    # If no password is set,
+    if [[ $(pihole-FTL --config webserver.api.pwhash) == "${pw}" ]] ; then
+        # generate a random password
+        pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
+        pihole -a -p "${pw}"
     fi
 
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
@@ -2441,21 +2388,17 @@ main() {
         displayFinalMessage "${pw}"
     fi
 
-    # If the Web interface was installed,
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        # If there is a password,
-        if (( ${#pw} > 0 )) ; then
-            # display the password
-            printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
-            printf "  %b This can be changed using 'pihole -a -p'\\n\\n" "${INFO}"
-        fi
+    # If there is a password
+    if (( ${#pw} > 0 )) ; then
+        # display the password
+        printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
+        printf "  %b This can be changed using 'pihole -a -p'\\n\\n" "${INFO}"
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then
         # If the Web interface was installed,
-        if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
-        fi
+        printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
+
         # Explain to the user how to use Pi-hole as their DNS server
         printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
         [[ -n "${IPV4_ADDRESS%/*}" ]] && printf "  %b Pi-hole DNS (IPv4): %s\\n" "${INFO}" "${IPV4_ADDRESS%/*}"

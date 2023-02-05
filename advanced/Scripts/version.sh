@@ -8,10 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Source the setupvars config file
-# shellcheck disable=SC1091
-. /etc/pihole/setupVars.conf
-
 # Source the versions file poupulated by updatechecker.sh
 cachedVersions="/etc/pihole/versions"
 
@@ -28,7 +24,7 @@ fi
 getLocalVersion() {
     case ${1} in
         "Pi-hole"   )  echo "${CORE_VERSION:=N/A}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_VERSION:=N/A}";;
+        "AdminLTE"  )  echo "${WEB_VERSION:=N/A}";;
         "FTL"       )  echo "${FTL_VERSION:=N/A}";;
     esac
 }
@@ -36,7 +32,7 @@ getLocalVersion() {
 getLocalHash() {
     case ${1} in
         "Pi-hole"   )  echo "${CORE_HASH:=N/A}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_HASH:=N/A}";;
+        "AdminLTE"  )  echo "${WEB_HASH:=N/A}";;
         "FTL"       )  echo "${FTL_HASH:=N/A}";;
     esac
 }
@@ -44,7 +40,7 @@ getLocalHash() {
 getRemoteHash(){
     case ${1} in
         "Pi-hole"   )  echo "${GITHUB_CORE_HASH:=N/A}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_HASH:=N/A}";;
+        "AdminLTE"  )  echo "${GITHUB_WEB_HASH:=N/A}";;
         "FTL"       )  echo "${GITHUB_FTL_HASH:=N/A}";;
     esac
 }
@@ -52,7 +48,7 @@ getRemoteHash(){
 getRemoteVersion(){
     case ${1} in
         "Pi-hole"   )  echo "${GITHUB_CORE_VERSION:=N/A}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_VERSION:=N/A}";;
+        "AdminLTE"  )  echo "${GITHUB_WEB_VERSION:=N/A}";;
         "FTL"       )  echo "${GITHUB_FTL_VERSION:=N/A}";;
     esac
 }
@@ -60,16 +56,12 @@ getRemoteVersion(){
 getLocalBranch(){
     case ${1} in
         "Pi-hole"   )  echo "${CORE_BRANCH:=N/A}";;
-        "AdminLTE"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_BRANCH:=N/A}";;
+        "AdminLTE"  )  echo "${WEB_BRANCH:=N/A}";;
         "FTL"       )  echo "${FTL_BRANCH:=N/A}";;
     esac
 }
 
 versionOutput() {
-    if [ "$1" = "AdminLTE" ] && [ "${INSTALL_WEB_INTERFACE}" != true ]; then
-        echo "  WebAdmin not installed"
-        return 1
-    fi
 
     [ "$2" = "-c" ] || [ "$2" = "--current" ] || [ -z "$2" ] && current=$(getLocalVersion "${1}") && branch=$(getLocalBranch "${1}")
     [ "$2" = "-l" ] || [ "$2" = "--latest" ] || [ -z "$2" ] && latest=$(getRemoteVersion "${1}")
@@ -115,11 +107,7 @@ errorOutput() {
 
 defaultOutput() {
     versionOutput "Pi-hole" "$@"
-
-    if [ "${INSTALL_WEB_INTERFACE}" = true ]; then
-        versionOutput "AdminLTE" "$@"
-    fi
-
+    versionOutput "AdminLTE" "$@"
     versionOutput "FTL" "$@"
 }
 

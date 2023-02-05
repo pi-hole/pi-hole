@@ -120,7 +120,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
     for k, v in SETUPVARS.items():
         setup_var_file += "{}={}\n".format(k, v)
-    setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
     host.run(setup_var_file)
     install = host.run(
