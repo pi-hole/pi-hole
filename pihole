@@ -11,10 +11,9 @@
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 
-# setupVars and PI_HOLE_BIN_DIR are not readonly here because in some functions (checkout),
+# PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
 # they might get set again when the installer is sourced. This causes an
 # error due to modifying a readonly variable.
-setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
@@ -193,7 +192,7 @@ Time:
 
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
-    if grep -cq "BLOCKING_ENABLED=false" "${setupVars}"; then
+    if ! getFTLConfigValue dns.blocking.active; then
       echo -e "  ${INFO} Blocking already disabled, nothing to do"
       exit 0
     fi
@@ -233,19 +232,19 @@ Time:
       fi
 
       local str="Pi-hole Disabled"
-      addOrEditKeyValPair "${setupVars}" "BLOCKING_ENABLED" "false"
+      setFTLConfigValue dns.blocking.active false
     fi
   else
     # Enable Pi-hole
     killall -q pihole-reenable
-    if grep -cq "BLOCKING_ENABLED=true" "${setupVars}"; then
+    if getFTLConfigValue dns.blocking.active; then
       echo -e "  ${INFO} Blocking already enabled, nothing to do"
       exit 0
     fi
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    addOrEditKeyValPair "${setupVars}" "BLOCKING_ENABLED" "true"
+    setFTLConfigValue dns.blocking.active true
   fi
 
   restartDNS reload-lists
@@ -267,8 +266,7 @@ Options:
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
-    removeKey /etc/dnsmasq.d/01-pihole.conf "log-queries"
-    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "false"
+    setFTLConfigValue dns.queryLogging false
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
       "${PI_HOLE_BIN_DIR}"/pihole -f
@@ -277,8 +275,7 @@ Options:
     local str="Logging has been disabled!"
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
-    addKey /etc/dnsmasq.d/01-pihole.conf "log-queries"
-    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "true"
+    setFTLConfigValue dns.queryLogging true
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
   else
@@ -354,26 +351,16 @@ statusFunc() {
     fi
 
   # Determine if Pi-hole's blocking is enabled
-  if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
-    # A config is commented out
-    case "${1}" in
-      "web") echo 0;;
-      *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
-    esac
-  elif grep -q "BLOCKING_ENABLED=true" /etc/pihole/setupVars.conf;  then
-    # Configs are set
+  if getFTLConfigValue dns.blocking.active; then
     case "${1}" in
       "web") echo "$port";;
       *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
     esac
   else
-    # No configs were found
     case "${1}" in
-      "web") echo -2;;
-      *) echo -e "  ${INFO} Pi-hole blocking will be enabled";;
+      "web") echo 0;;
+      *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
     esac
-    # Enable blocking
-    "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
 exit 0
 }

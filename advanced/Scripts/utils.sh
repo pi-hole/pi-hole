@@ -153,7 +153,7 @@ getFTLPID() {
 # Example getFTLConfigValue dns.piholePTR
 #######################
 getFTLConfigValue(){
-  pihole-FTL --config "${1}"
+  pihole-FTL --config -q "${1}"
 }
 
 #######################
@@ -166,5 +166,5 @@ getFTLConfigValue(){
 # setFTLConfigValue dnsmasq.upstreams '[ "8.8.8.8" , "8.8.4.4" ]'
 #######################
 setFTLConfigValue(){
-  pihole-FTL --config "${1}" "${2}"
+  pihole-FTL --config "${1}" "${2}" >/dev/null
 }
