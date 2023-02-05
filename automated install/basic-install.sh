@@ -1625,7 +1625,7 @@ finalExports() {
     addOrEditKeyValPair "${FTL_CONFIG_FILE}" "PRIVACYLEVEL" "${PRIVACY_LEVEL}"
 
     # Set the web port
-    addOrEditKeyValPair "${FTL_CONFIG_FILE}" "WEBPORT" "${PRIVACY_LEVEL}"
+    addOrEditKeyValPair "${FTL_CONFIG_FILE}" "WEBPORT" "${WEBPORT}"
 
     # Bring in the current settings and the functions to manipulate them
     source "${setupVars}"
