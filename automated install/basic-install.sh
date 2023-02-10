@@ -1409,7 +1409,7 @@ installConfigs() {
         mkdir -p /run/lighttpd
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
 
-        if grep -q -F "FILE WILL BE OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
+        if grep -q -F "OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
             # Attempt to preserve backwards compatibility with older versions
             install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
             # Make the directories if they do not exist and set the owners
