@@ -13,10 +13,17 @@
 
 export LC_ALL=C
 
-coltable="/opt/pihole/COL_TABLE"
-source "${coltable}"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
+# Source utils.sh for GetFTLConfigValue
+utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck disable=SC1090
+. "${utilsfile}"
+
+coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
+# shellcheck disable=SC1090
+. "${coltable}"
 # shellcheck disable=SC1091
-source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
+. "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
@@ -33,20 +40,13 @@ localList="${piholeDir}/local.list"
 VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
-gravityDBfile_default="${piholeDir}/gravity.db"
-# GRAVITYDB may be overwritten by source pihole-FTL.conf below
-GRAVITYDB="${gravityDBfile_default}"
+GRAVITYDB=$(getFTLConfigValue files.gravity)
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
 domainsExtension="domains"
 curl_connect_timeout=10
 
-# Source setupVars from install script
-setupVars="${piholeDir}/setupVars.conf"
-if [[ -f "${setupVars}" ]];then
-  source "${setupVars}"
-fi
 
 # Set up tmp dir variable in case it's not configured
 : "${GRAVITY_TMPDIR:=/tmp}"
@@ -56,27 +56,12 @@ if [ ! -d "${GRAVITY_TMPDIR}" ] || [ ! -w "${GRAVITY_TMPDIR}" ]; then
   GRAVITY_TMPDIR="/tmp"
 fi
 
-# Source pihole-FTL from install script
-pihole_FTL="${piholeDir}/pihole-FTL.conf"
-if [[ -f "${pihole_FTL}" ]]; then
-  source "${pihole_FTL}"
-fi
-
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
-
-if [[ -z "${BLOCKINGMODE}" ]] ; then
-  BLOCKINGMODE="NULL"
-fi
-
-# Determine if superseded pihole.conf exists
-if [[ -r "${piholeDir}/pihole.conf" ]]; then
-  echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
-fi
 
 # Generate new SQLite3 file from schema template
 generate_gravity_database() {
@@ -519,7 +504,7 @@ gravity_DownloadBlocklistFromUrl() {
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
   blocked=false
-  case $BLOCKINGMODE in
+  case $(getFTLConfigValue dns.blocking.mode) in
     "IP-NODATA-AAAA"|"IP")
       # Get IP address of this domain
       ip="$(dig "${domain}" +short)"
