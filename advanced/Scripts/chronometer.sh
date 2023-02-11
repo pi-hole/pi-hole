@@ -210,11 +210,6 @@ get_init_stats() {
     else
         temp_file=""
     fi
-
-    # Test existence of setupVars config
-    if [[ -f "/etc/pihole/setupVars.conf" ]]; then
-        setupVars="/etc/pihole/setupVars.conf"
-    fi
 }
 
 get_sys_stats() {
@@ -226,9 +221,6 @@ get_sys_stats() {
     # Update every 12 refreshes (Def: every 60s)
     count=$((count+1))
     if [[ "$count" == "1" ]] || (( "$count" % 12 == 0 )); then
-        # Do not source setupVars if file does not exist
-        [[ -n "$setupVars" ]] && source "$setupVars"
-
         mapfile -t ph_ver_raw < <(pihole -v -c 2> /dev/null | sed -n 's/^.* v/v/p')
         if [[ -n "${ph_ver_raw[0]}" ]]; then
             ph_core_ver="${ph_ver_raw[0]}"

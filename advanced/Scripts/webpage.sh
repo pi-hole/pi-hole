@@ -12,6 +12,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+# TODO - this entire file might be able to be removed in v6
+
 readonly dnsmasqconfig="/etc/dnsmasq.d/01-pihole.conf"
 readonly dhcpconfig="/etc/dnsmasq.d/02-pihole-dhcp.conf"
 readonly FTLconf="/etc/pihole/pihole-FTL.conf"
@@ -175,10 +177,8 @@ SetWebPassword() {
     fi
 
     if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
-        # We do not wrap this in brackets, otherwise BASH will expand any appropriate syntax
-        hash=$(HashPassword "$PASSWORD")
-        # Save hash to file
-        setFTLConfigValue "webserver.api.pwhash" "${hash}" >/dev/null
+        # pihole-FTL will automatically hash the password
+        setFTLConfigValue "webserver.api.password" "${PASSWORD}" >/dev/null
         echo -e "  ${TICK} New password set"
     else
         echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"

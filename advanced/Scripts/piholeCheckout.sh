@@ -16,14 +16,11 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # webInterfaceDir set in basic-install.sh
 # piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
-# setupVars set in basic-install.sh
 # check_download_exists sourced from basic-install.sh
 # fully_fetch_repo sourced from basic-install.sh
 # get_available_branches sourced from basic-install.sh
 # fetch_checkout_pull_branch sourced from basic-install.sh
 # checkout_pull_branch sourced from basic-install.sh
-
-source "${setupVars}"
 
 warning1() {
     echo "  Please note that changing branches severely alters your Pi-hole subsystems"

@@ -77,7 +77,6 @@ PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
-PIHOLE_SETUP_VARS_FILE="${PIHOLE_DIRECTORY}/setupVars.conf"
 PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole-FTL.conf"
 PIHOLE_CUSTOM_HOSTS_FILE="${PIHOLE_DIRECTORY}/custom.list"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
@@ -1465,6 +1464,7 @@ upload_to_tricorder() {
 # Run through all the functions we made
 make_temporary_log
 initialize_debug
+# TODO: Address the reliance on setupVars.conf here. Should debug read pihole.toml directly, or rely on pihole-FTL --config?
 # setupVars.conf needs to be sourced before the networking so the values are
 # available to the other functions
 source_setup_variables

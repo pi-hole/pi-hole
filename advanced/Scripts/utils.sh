@@ -25,6 +25,7 @@
 #
 # Example usage:
 # addOrEditKeyValPair "/etc/pihole/setupVars.conf" "BLOCKING_ENABLED" "true"
+# TODO: We miight not actually need this function in v6
 #######################
 addOrEditKeyValPair() {
   local file="${1}"
