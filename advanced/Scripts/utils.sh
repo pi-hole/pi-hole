@@ -44,7 +44,7 @@ addOrEditKeyValPair() {
 }
 
 #######################
-# Takes two arguments: file, and key.
+# Takes two arguments: file and key.
 # Adds a key to target file
 #
 # Example usage:
@@ -64,7 +64,7 @@ addKey(){
 }
 
 #######################
-# Takes two arguments: file, and key.
+# Takes two arguments: file and key.
 # Deletes a key or key/value pair from target file
 #
 # Example usage:
@@ -74,6 +74,24 @@ removeKey() {
   local file="${1}"
   local key="${2}"
   sed -i "/^${key}/d" "${file}"
+}
+
+#######################
+# Takes two arguments: file and key.
+# Returns the value of a given key from target file
+# - ignores all commented lines
+# - only returns the first value if multiple identical keys exist
+#
+#
+# Example usage:
+# getVal "/etc/pihole/setupVars.conf" "PIHOLE_DNS_1"
+#######################
+getVal() {
+  local file="${1}"
+  local key="${2}"
+  local value
+  value=$(sed -e '/^[[:blank:]]*#/d' "${file}" | grep "${key}" | awk -F "=" 'NR==1{printf$2}')
+  printf "%s" "$value"
 }
 
 
