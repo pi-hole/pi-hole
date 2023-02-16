@@ -519,25 +519,31 @@ gravity_DownloadBlocklists() {
   gravity_Blackbody=true
 }
 
-# num_total_imported_domains increases for each list processed
-num_total_imported_domains=0
-num_domains=0
-num_non_domains=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" non_domains sample_non_domains
-  # This sed does the following things:
-  # 1. Remove all lines containing no domains
-  # 2. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
-  # 3. Append ,adlistID to every line
-  # 4. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
-  # 5. Ensures there is a newline on the last line
-  sed -r  "/([^\.]+\.)+[^\.]{2,}/!d;/[^a-zA-Z0-9.\_-]/d;s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
+  local adlistID="${1}" src="${2}" target="${3}" temp_file non_domains sample_non_domains
 
-  # Find lines containing no domains or with invalid characters (see above)
+  # Create a temporary file for the sed magic instead of using "${target}" directly
+  # this allows to split the sed commands to improve readability
+  temp_file="$(mktemp -p "/tmp" --suffix=".gravity")"
+
+  # 1. Add all valid domains (adapted from https://stackoverflow.com/a/30007882)
+  # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
+  sed -r "/^([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/!d" "${src}" > "${temp_file}"
+  # 2. Add all supported ABP style lines (||subdomain.domain.tlp^)
+  sed -r "/^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\^$/!d" "${src}" >> "${temp_file}"
+
+  # Find lines containing no domains or with invalid characters (not matching regex above)
+  # This is simply everything that is not in $temp_file compared to $src
   # Remove duplicates from the list
-  mapfile -t non_domains <<< "$(sed -r "/([^\.]+\.)+[^\.]{2,}/d" < "${src}")"
-  mapfile -t -O "${#non_domains[@]}" non_domains <<< "$(sed -r "/[^a-zA-Z0-9.\_-]/!d" < "${src}")"
-  IFS=" " read -r -a non_domains <<< "$(tr ' ' '\n' <<< "${non_domains[@]}" | sort -u | tr '\n' ' ')"
+  mapfile -t non_domains < <(grep -Fvf "${temp_file}" "${src}" | sort -u )
+
+  # 3. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
+  # 4. Append ,adlistID to every line
+  # 5. Ensures there is a newline on the last line
+  sed -i "s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${temp_file}"
+
+  # concatenate the temporary file to the target file
+  cat "${temp_file}" >> "${target}"
 
   # A list of items of common local hostnames not to report as unusable
   # Some lists (i.e StevenBlack's) contain these as they are supposed to be used as HOST files
@@ -553,13 +559,8 @@ parseList() {
   # Get a sample of non-domain entries, limited to 5 (the list should already have been de-duplicated)
   IFS=" " read -r -a sample_non_domains <<< "$(tr ' ' '\n' <<< "${non_domains[@]}" | head -n 5 | tr '\n' ' ')"
 
-  local tmp_new_imported_total
-  # Get the new number of domains in destination file
-  tmp_new_imported_total="$(grep -c "^" "${target}")"
-  # Number of imported lines for this file is the difference between the new total and the old total. (Or, the number of domains we just added.)
-  num_domains="$(( tmp_new_imported_total-num_total_imported_domains ))"
-  # Replace the running total with the new total.
-  num_total_imported_domains="$tmp_new_imported_total"
+  # Get the number of domains added
+  num_domains="$(grep -c "^" "${temp_file}")"
   # Get the number of non_domains (this is the number of entries left after stripping the source of comments/duplicates/false positives/domains)
   num_non_domains="${#non_domains[@]}"
 
