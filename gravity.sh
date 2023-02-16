@@ -524,7 +524,7 @@ num_total_imported_domains=0
 num_domains=0
 num_non_domains=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" non_domains sample_non_domains tmp_non_domains_str false_positive
+  local adlistID="${1}" src="${2}" target="${3}" non_domains sample_non_domains
   # This sed does the following things:
   # 1. Remove all lines containing no domains
   # 2. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
@@ -542,30 +542,13 @@ parseList() {
   # A list of items of common local hostnames not to report as unusable
   # Some lists (i.e StevenBlack's) contain these as they are supposed to be used as HOST files
   # but flagging them as unusable causes more confusion than it's worth - so we suppress them from the output
-  false_positives=(
-    "localhost"
-    "localhost.localdomain"
-    "local"
-    "broadcasthost"
-    "localhost"
-    "ip6-localhost"
-    "ip6-loopback"
-    "lo0 localhost"
-    "ip6-localnet"
-    "ip6-mcastprefix"
-    "ip6-allnodes"
-    "ip6-allrouters"
-    "ip6-allhosts"
-    )
+  false_positives="localhost|localhost.localdomain|local|broadcasthost|localhost|ip6-localhost|ip6-loopback|lo0 localhost|ip6-localnet|ip6-mcastprefix|ip6-allnodes|ip6-allrouters|ip6-allhosts"
 
-  # Read the unusable lines into a string
-  tmp_non_domains_str=" ${non_domains[*]} "
-  for false_positive in "${false_positives[@]}"; do
-    # Remove false positives from tmp_non_domains_str
-    tmp_non_domains_str="${tmp_non_domains_str/ ${false_positive} / }"
-  done
-  # Read the string back into an array
-  IFS=" " read -r -a non_domains <<< "${tmp_non_domains_str}"
+  # if there are any non-domains, filter the array for false-positives
+  # Credit: https://stackoverflow.com/a/40264051
+  if [[ "${#non_domains[@]}" -gt 0 ]]; then
+    mapfile -d $'\0' -t non_domains < <(printf '%s\0' "${non_domains[@]}" | grep -Ezv "^${false_positives}")
+  fi
 
   # Get a sample of non-domain entries, limited to 5 (the list should already have been de-duplicated)
   IFS=" " read -r -a sample_non_domains <<< "$(tr ' ' '\n' <<< "${non_domains[@]}" | head -n 5 | tr '\n' ' ')"
