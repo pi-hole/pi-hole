@@ -23,6 +23,11 @@ is_running() {
   return 1
 }
 
+cleanup() {
+    # Run post-stop script, which does cleanup among runtime files
+    sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
+}
+
 
 # Start the service
 start() {
@@ -33,10 +38,16 @@ start() {
     sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
 
     if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip "/usr/bin/pihole-FTL"; then
-      su -s /bin/sh -c "/usr/bin/pihole-FTL" pihole || exit $?
+      su -s /bin/sh -c "/usr/bin/pihole-FTL" pihole
     else
       echo "Warning: Starting pihole-FTL as root because setting capabilities is not supported on this system"
-      /usr/bin/pihole-FTL || exit $?
+      /usr/bin/pihole-FTL
+    fi
+    rc=$?
+    # Cleanup if startup failed
+    if [ "${rc}" != 0 ]; then
+        cleanup
+        exit $rc
     fi
     echo
   fi
@@ -65,8 +76,7 @@ stop() {
   else
     echo "Not running"
   fi
-  # Run post-stop script, which does cleanup among runtime files
-  sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
+  cleanup
   echo
 }
 
@@ -83,6 +93,9 @@ status() {
 
 
 ### main logic ###
+
+# catch sudden termination
+trap 'cleanup; exit 1' INT HUP TERM ABRT
 
 # Get FTL's PID file path
 FTL_PID_FILE="$(getFTLPIDFile)"

@@ -24,7 +24,12 @@ utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 source "${utilsfile}"
 
 versionsfile="/etc/pihole/versions"
-source "${versionsfile}"
+if [ -f "${versionsfile}" ]; then
+    # Only source versionsfile if the file exits
+    # fixes a warning during installation where versionsfile does not exist yet
+    # but gravity calls `pihole -status` and thereby sourcing the file
+    source "${versionsfile}"
+fi
 
 webpageFunc() {
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"

@@ -7,13 +7,15 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-###############################################################################
-#     FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE INSTALL/UPDATE PROCEDURE.     #
-# ANY CHANGES MADE TO THIS FILE AFTER INSTALL WILL BE LOST ON THE NEXT UPDATE #
-#                                                                             #
-#              CHANGES SHOULD BE MADE IN A SEPARATE CONFIG FILE:              #
-#                         /etc/lighttpd/external.conf                         #
-###############################################################################
+###################################################################################################
+#   IF THIS HEADER EXISTS, THE FILE WILL BE OVERWRITTEN BY PI-HOLE'S UPDATE PROCEDURE.            #
+#   ANY CHANGES MADE TO THIS FILE WILL BE LOST ON THE NEXT UPDATE UNLESS YOU REMOVE THIS HEADER   #
+#                                                                                                 #
+#   ENSURE THAT YOU DO NOT REMOVE THE REQUIRED LINE:                                              #
+#                                                                                                 #
+#   include "/etc/lighttpd/conf.d/pihole-admin.conf"                                              #
+#                                                                                                 #
+###################################################################################################
 
 server.modules = (
     "mod_access",
@@ -35,8 +37,6 @@ server.groupname            = "lighttpd"
 # For lighttpd version 1.4.46 or above, the port can be overwritten in `/etc/lighttpd/external.conf` using the := operator
 # e.g. server.port := 8000
 server.port                 = 80
-accesslog.filename          = "/var/log/lighttpd/access-pihole.log"
-accesslog.format            = "%{%s}t|%V|%r|%s|%b"
 
 # Allow streaming response
 # reference: https://redmine.lighttpd.net/projects/lighttpd/wiki/Server_stream-response-bodyDetails
