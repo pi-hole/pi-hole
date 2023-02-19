@@ -358,14 +358,6 @@ SetExcludeClients() {
     addOrEditKeyValPair "${setupVars}" "API_EXCLUDE_CLIENTS" "${args[2]}"
 }
 
-Poweroff(){
-    nohup bash -c "sleep 5; poweroff" &> /dev/null </dev/null &
-}
-
-Reboot() {
-    nohup bash -c "sleep 5; reboot" &> /dev/null </dev/null &
-}
-
 RestartDNS() {
     "${PI_HOLE_BIN_DIR}"/pihole restartdns
 }
@@ -815,8 +807,6 @@ main() {
         "setdns"              ) SetDNSServers;;
         "setexcludedomains"   ) SetExcludeDomains;;
         "setexcludeclients"   ) SetExcludeClients;;
-        "poweroff"            ) Poweroff;;
-        "reboot"              ) Reboot;;
         "restartdns"          ) RestartDNS;;
         "setquerylog"         ) SetQueryLogOptions;;
         "enabledhcp"          ) EnableDHCP;;
