@@ -745,18 +745,30 @@ gravity_ParseFileIntoDomains() {
   # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
   # This helps with that and makes it easier to read
   # It also helps with debugging so each stage of the script can be researched more in depth
-  # 1) Remove carriage returns
-  # 2) Convert all characters to lowercase
-  # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  # 1) Convert all characters to lowercase
+  tr '[:upper:]' '[:lower:]' < "${src}" > "${destination}"
+
+  # 2) Remove carriage returns
+  sed -i 's/\r$//' "${destination}"
+
+  # 3a) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  sed -i 's/\s*#.*//g' "${destination}"
+
+  # 3b) Remove lines starting with ! (ABP Comments)
+  sed -i 's/\s*!.*//g' "${destination}"
+
+  # 3c) Remove lines starting with [ (ABP Header)
+  sed -i 's/\s*\[.*//g' "${destination}"
+
   # 4) Remove lines containing "/"
-  # 5) Remove leading tabs, spaces, etc.
+  sed -i -r '/(\/).*$/d' "${destination}"
+
+  # 5) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
+  sed -i -r 's/^.*\s+//g' "${destination}"
+
   # 6) Remove empty lines
-  < "${src}" tr -d '\r' | \
-  tr '[:upper:]' '[:lower:]' | \
-  sed 's/\s*#.*//g' | \
-  sed -r '/(\/).*$/d' | \
-  sed -r 's/^.*\s+//g' | \
-  sed '/^$/d'>  "${destination}"
+  sed -i '/^$/d' "${destination}"
+
   chmod 644 "${destination}"
 }
 
