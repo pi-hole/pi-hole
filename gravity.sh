@@ -524,7 +524,13 @@ parseList() {
 
   # Create a temporary file for the sed magic instead of using "${target}" directly
   # this allows to split the sed commands to improve readability
+  # we use a file handle here and remove the temporary file immediately so the content will be deleted in any case
+  # when the script stops
   temp_file="$(mktemp -p "/tmp" --suffix=".gravity")"
+  exec 3>"$temp_file"
+  rm "${temp_file}"
+  temp_file="/proc/$$/fd/3"
+
 
   # 1. Add all valid domains (adapted from https://stackoverflow.com/a/30007882)
   # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
@@ -540,10 +546,8 @@ parseList() {
   # 3. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
   # 4. Append ,adlistID to every line
   # 5. Ensures there is a newline on the last line
-  sed -i "s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${temp_file}"
-
-  # concatenate the temporary file to the target file
-  cat "${temp_file}" >> "${target}"
+  # and write everything to the target file
+  sed "s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${temp_file}" >> "${target}"
 
   # A list of items of common local hostnames not to report as unusable
   # Some lists (i.e StevenBlack's) contain these as they are supposed to be used as HOST files
@@ -575,6 +579,9 @@ parseList() {
   else
     echo "  ${INFO} Imported ${num_domains} domains"
   fi
+
+  # close file handle
+  exec 3<&-
 }
 
 compareLists() {
