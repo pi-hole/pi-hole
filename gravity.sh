@@ -520,23 +520,29 @@ gravity_DownloadBlocklists() {
 }
 
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" temp_file non_domains sample_non_domains
+  local adlistID="${1}" src="${2}" target="${3}" temp_file temp_file_base non_domains sample_non_domains
 
   # Create a temporary file for the sed magic instead of using "${target}" directly
   # this allows to split the sed commands to improve readability
   # we use a file handle here and remove the temporary file immediately so the content will be deleted in any case
   # when the script stops
-  temp_file="$(mktemp -p "/tmp" --suffix=".gravity")"
-  exec 3>"$temp_file"
-  rm "${temp_file}"
+  temp_file_base="$(mktemp -p "/tmp" --suffix=".gravity")"
+  exec 3>"$temp_file_base"
+  rm "${temp_file_base}"
   temp_file="/proc/$$/fd/3"
 
 
   # 1. Add all valid domains (adapted from https://stackoverflow.com/a/30007882)
   # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
   sed -r "/^([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/!d" "${src}" > "${temp_file}"
-  # 2. Add all supported ABP style lines (||subdomain.domain.tlp^)
-  sed -r "/^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\^$/!d" "${src}" >> "${temp_file}"
+
+  # if there is at least one ABP style domains
+  if  grep -E "^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]" -m 1 -q "${src}"; then
+    echo "  ${INFO} List contained AdBlock Plus style domains"
+    # 2. Add all supported ABP style lines (||subdomain.domain.tlp^)
+    sed -r "/^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\^$/!d" "${src}" >> "${temp_file}"
+  fi
+
 
   # Find lines containing no domains or with invalid characters (not matching regex above)
   # This is simply everything that is not in $temp_file compared to $src
