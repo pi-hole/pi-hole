@@ -16,7 +16,7 @@ pihole-FTL() {
     local ftl_port LINE
     # shellcheck disable=SC1091
     . /opt/pihole/utils.sh
-    ftl_port=$(getFTLAPIPort)
+    ftl_port=$(getFTLConfigValue dns.port)
     if [[ -n "$ftl_port" ]]; then
         # Open connection to FTL
         exec 3<>"/dev/tcp/127.0.0.1/$ftl_port"

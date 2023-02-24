@@ -82,52 +82,6 @@ def test_key_removal_works(host):
     assert expected_stdout == output.stdout
 
 
-def test_getFTLAPIPort_default(host):
-    """Confirms getFTLAPIPort returns the default API port"""
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLAPIPort
-    """
-    )
-    expected_stdout = "4711\n"
-    assert expected_stdout == output.stdout
-
-
-def test_getFTLAPIPort_custom(host):
-    """Confirms getFTLAPIPort returns a custom API port"""
-    host.run(
-        """
-    echo "FTLPORT=1234" > /etc/pihole/pihole-FTL.conf
-    """
-    )
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLAPIPort
-    """
-    )
-    expected_stdout = "1234\n"
-    assert expected_stdout == output.stdout
-
-
-def test_getFTLAPIPort_malicious(host):
-    """Confirms getFTLAPIPort returns 4711 if the setting in pihole-FTL.conf contains non-digits"""
-    host.run(
-        """
-    echo "FTLPORT=*$ssdfsd" > /etc/pihole/pihole-FTL.conf
-    """
-    )
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLAPIPort
-    """
-    )
-    expected_stdout = "4711\n"
-    assert expected_stdout == output.stdout
-
-
 def test_getFTLPIDFile_default(host):
     """Confirms getFTLPIDFile returns the default PID file path"""
     output = host.run(

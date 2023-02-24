@@ -81,29 +81,6 @@ removeKey() {
   sed -i "/^${key}/d" "${file}"
 }
 
-
-#######################
-# returns FTL's current telnet API port based on the setting in /etc/pihole-FTL.conf
-########################
-getFTLAPIPort(){
-    local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-    local DEFAULT_FTL_PORT=4711
-    local ftl_api_port
-
-    if [ -s "$FTLCONFFILE" ]; then
-        # if FTLPORT is not set in pihole-FTL.conf, use the default port
-        ftl_api_port="$({ grep '^FTLPORT=' "${FTLCONFFILE}" || echo "${DEFAULT_FTL_PORT}"; } | cut -d'=' -f2-)"
-        # Exploit prevention: set the port to the default port if there is malicious (non-numeric)
-        # content set in pihole-FTL.conf
-        expr "${ftl_api_port}" : "[^[:digit:]]" > /dev/null && ftl_api_port="${DEFAULT_FTL_PORT}"
-    else
-        # if there is no pihole-FTL.conf, use the default port
-        ftl_api_port="${DEFAULT_FTL_PORT}"
-    fi
-
-    echo "${ftl_api_port}"
-}
-
 #######################
 # returns path of FTL's PID  file
 #######################
