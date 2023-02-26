@@ -536,7 +536,7 @@ gravity_DownloadBlocklists() {
 # is saved in gravtiy's info table to signal FTL if such domains are available
 abp_domains=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" temp_file temp_file_base non_domains sample_non_domains
+  local adlistID="${1}" src="${2}" target="${3}" temp_file temp_file_base non_domains sample_non_domains valid_domain_pattern abp_domain_pattern
 
   # Create a temporary file for the sed magic instead of using "${target}" directly
   # this allows to split the sed commands to improve readability
@@ -547,17 +547,23 @@ parseList() {
   rm "${temp_file_base}"
   temp_file="/proc/$$/fd/3"
 
-
-  # 1. Add all valid domains (adapted from https://stackoverflow.com/a/30007882)
+  # define valid domain patterns
   # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
-  sed -r "/^([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/!d" "${src}" > "${temp_file}"
+  # adapted from https://stackoverflow.com/a/30007882
+  # supported ABP style: ||subdomain.domain.tlp^
 
-  # if there is at least one ABP style domain
-  if  grep -E "^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]" -m 1 -q "${src}"; then
+  valid_domain_pattern="([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
+  abp_domain_pattern="\|\|${valid_domain_pattern}\^"
+
+
+  # 1. Add all valid domains
+    sed -r "/^${valid_domain_pattern}$/!d" "${src}" > "${temp_file}"
+
+  # 2. Add valid ABP style domains if there is at least one such domain
+  if  grep -E "^${abp_domain_pattern}$" -m 1 -q "${src}"; then
     echo "  ${INFO} List contained AdBlock Plus style domains"
     abp_domains=1
-    # 2. Add all supported ABP style lines (||subdomain.domain.tlp^)
-    sed -r "/^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\^$/!d" "${src}" >> "${temp_file}"
+    sed -r "/^${abp_domain_pattern}$/!d" "${src}" >> "${temp_file}"
   fi
 
 
