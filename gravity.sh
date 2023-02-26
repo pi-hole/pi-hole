@@ -137,6 +137,18 @@ update_gravity_timestamp() {
   return 0
 }
 
+# Update timestamp when the gravity table was last updated successfully
+set_abp_info() {
+  pihole-FTL sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('abp_domains',${abp_domains});"
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update ABP domain status in database ${gravityDBfile}\\n  ${output}"
+    return 1
+  fi
+  return 0
+}
+
 # Import domains from file and store them in the specified database table
 database_table_from_file() {
   # Define locals
@@ -519,6 +531,10 @@ gravity_DownloadBlocklists() {
   gravity_Blackbody=true
 }
 
+
+# global variable to indicate if we found ABP style domains during the gravity run
+# is saved in gravtiy's info table to signal FTL if such domains are available
+abp_domains=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" temp_file temp_file_base non_domains sample_non_domains
 
@@ -536,9 +552,10 @@ parseList() {
   # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
   sed -r "/^([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/!d" "${src}" > "${temp_file}"
 
-  # if there is at least one ABP style domains
+  # if there is at least one ABP style domain
   if  grep -E "^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]" -m 1 -q "${src}"; then
     echo "  ${INFO} List contained AdBlock Plus style domains"
+    abp_domains=1
     # 2. Add all supported ABP style lines (||subdomain.domain.tlp^)
     sed -r "/^\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\^$/!d" "${src}" >> "${temp_file}"
   fi
@@ -1013,6 +1030,9 @@ fi
 
 # Update gravity timestamp
 update_gravity_timestamp
+
+# Set abp_domain info field
+set_abp_info
 
 # Ensure proper permissions are set for the database
 chown pihole:pihole "${gravityDBfile}"
