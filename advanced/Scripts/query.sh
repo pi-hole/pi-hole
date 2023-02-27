@@ -102,6 +102,16 @@ scanDatabaseTable() {
     table="${2}"
     list_type="${3:-}"
 
+    # Create search string for ABP entries
+    local abpentry="${domain}" searchstr
+
+    searchstr="'||${abpentry}^'"
+    while [ "${abpentry}" != "${abpentry/./}" ]
+    do
+        abpentry=$(echo "${abpentry}" | cut -f 2- -d '.')
+        searchstr=$(echo "$searchstr, '||${abpentry}^'")
+    done
+
     # As underscores are legitimate parts of domains, we escape them when using the LIKE operator.
     # Underscores are SQLite wildcards matching exactly one character. We obviously want to suppress this
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
@@ -109,12 +119,12 @@ scanDatabaseTable() {
     if [[ "${table}" == "gravity" ]]; then
         case "${exact}" in
             "exact" ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
-            *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+            *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE (domain IN (${searchstr}) OR domain LIKE '%${domain//_/\\_}%' ESCAPE '\\')";;
         esac
     else
         case "${exact}" in
             "exact" ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${list_type}' AND domain = '${domain}'";;
-            *       ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${list_type}' AND domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+            *       ) querystr="SELECT domain,enabled FROM domainlist WHERE type = '${list_type}' AND (domain IN (${searchstr}) OR domain LIKE '%${domain//_/\\_}%' ESCAPE '\\')";;
         esac
     fi
 
