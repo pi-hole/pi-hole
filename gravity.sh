@@ -552,7 +552,7 @@ parseList() {
   # adapted from https://stackoverflow.com/a/30007882
   # supported ABP style: ||subdomain.domain.tlp^
 
-  valid_domain_pattern="([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
+  valid_domain_pattern="([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\.?"
   abp_domain_pattern="\|\|${valid_domain_pattern}\^"
 
 
