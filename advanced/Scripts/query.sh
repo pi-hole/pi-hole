@@ -30,33 +30,6 @@ gravityDBfile="${GRAVITYDB}"
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
 
-# Scan an array of files for matching strings
-scanList(){
-    # Escape full stops
-    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" list_type="${3:-}"
-
-    # Prevent grep from printing file path
-    cd "$piholeDir" || exit 1
-
-    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
-    export LC_CTYPE=C
-
-    # /dev/null forces filename to be printed when only one list has been generated
-    case "${list_type}" in
-        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        # Iterate through each regexp and check whether it matches the domainQuery
-        # If it does, print the matching regexp and continue looping
-        # Input 1 - regexps | Input 2 - domainQuery
-        "regex" )
-            for list in ${lists}; do
-                if [[ "${domain}" =~ ${list} ]]; then
-                    printf "%b\n" "${list}";
-                fi
-            done;;
-        *       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
-    esac
-}
-
 if [[ "${options}" == "-h" ]] || [[ "${options}" == "--help" ]]; then
     echo "Usage: pihole -q [option] <domain>
 Example: 'pihole -q -exact domain.com'
@@ -88,10 +61,40 @@ case "${options}" in
     *              ) domainQuery="${options}";;
 esac
 
+# convert the domain to lowercase
+domainQuery=$(echo "${domainQuery}" | tr '[:upper:]' '[:lower:]')
+
 if [[ -n "${str:-}" ]]; then
     echo -e "${str}${COL_NC}\\nTry 'pihole -q --help' for more information."
     exit 1
 fi
+
+# Scan an array of files for matching strings
+scanList(){
+    # Escape full stops
+    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" list_type="${3:-}"
+
+    # Prevent grep from printing file path
+    cd "$piholeDir" || exit 1
+
+    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
+    export LC_CTYPE=C
+
+    # /dev/null forces filename to be printed when only one list has been generated
+    case "${list_type}" in
+        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
+        # Iterate through each regexp and check whether it matches the domainQuery
+        # If it does, print the matching regexp and continue looping
+        # Input 1 - regexps | Input 2 - domainQuery
+        "regex" )
+            for list in ${lists}; do
+                if [[ "${domain}" =~ ${list} ]]; then
+                    printf "%b\n" "${list}";
+                fi
+            done;;
+        *       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
+    esac
+}
 
 scanDatabaseTable() {
     local domain table list_type querystr result extra
