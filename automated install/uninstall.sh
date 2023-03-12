@@ -221,12 +221,13 @@ removeNoPurge() {
             echo -e "  ${CROSS} Unable to remove 'pihole' group"
         fi
     fi
-
+    
+    systemctl restart systemd-resolved.service
     echo -e "\\n   We're sorry to see you go, but thanks for checking out Pi-hole!
        If you need help, reach out to us on GitHub, Discourse, Reddit or Twitter
        Reinstall at any time: ${COL_WHITE}curl -sSL https://install.pi-hole.net | bash${COL_NC}
 
-      ${COL_LIGHT_RED}Please reset the DNS on your router/clients to restore internet connectivity
+      ${COL_LIGHT_RED}Please try to reset the DNS on your router/clients to restore internet connectivity
       ${COL_LIGHT_GREEN}Uninstallation Complete! ${COL_NC}"
 }
 
