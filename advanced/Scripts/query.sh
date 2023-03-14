@@ -119,7 +119,7 @@ scanDatabaseTable() {
     fi
 
     # Send prepared query to gravity database
-    result="$(pihole-FTL sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
+    result="$(pihole-FTL sqlite3 -separator ',' "${gravityDBfile}" "${querystr}")" 2> /dev/null
     if [[ -z "${result}" ]]; then
         # Return early when there are no matches in this table
         return
@@ -139,8 +139,8 @@ scanDatabaseTable() {
     # Loop over results and print them
     mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
-        domain="${result/|*}"
-        if [[ "${result#*|}" == "0" ]]; then
+        domain="${result/,*}"
+        if [[ "${result#*,}" == "0" ]]; then
             extra=" (disabled)"
         else
             extra=""
@@ -215,10 +215,10 @@ if [[ -n "${exact}" ]]; then
 fi
 
 for result in "${results[@]}"; do
-    match="${result/|*/}"
-    extra="${result#*|}"
-    adlistAddress="${extra/|*/}"
-    extra="${extra#*|}"
+    match="${result/,*/}"
+    extra="${result#*,}"
+    adlistAddress="${extra/,*/}"
+    extra="${extra#*,}"
     if [[ "${extra}" == "0" ]]; then
         extra=" (disabled)"
     else

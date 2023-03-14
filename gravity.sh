@@ -137,6 +137,18 @@ update_gravity_timestamp() {
   return 0
 }
 
+# Update timestamp when the gravity table was last updated successfully
+set_abp_info() {
+  pihole-FTL sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('abp_domains',${abp_domains});"
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to update ABP domain status in database ${gravityDBfile}\\n  ${output}"
+    return 1
+  fi
+  return 0
+}
+
 # Import domains from file and store them in the specified database table
 database_table_from_file() {
   # Define locals
@@ -519,25 +531,52 @@ gravity_DownloadBlocklists() {
   gravity_Blackbody=true
 }
 
-# num_total_imported_domains increases for each list processed
-num_total_imported_domains=0
-num_domains=0
-num_non_domains=0
-parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" non_domains sample_non_domains
-  # This sed does the following things:
-  # 1. Remove all lines containing no domains
-  # 2. Remove all domains containing invalid characters. Valid are: a-z, A-Z, 0-9, dot (.), minus (-), underscore (_)
-  # 3. Append ,adlistID to every line
-  # 4. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
-  # 5. Ensures there is a newline on the last line
-  sed -r  "/([^\.]+\.)+[^\.]{2,}/!d;/[^a-zA-Z0-9.\_-]/d;s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${src}" >> "${target}"
 
-  # Find lines containing no domains or with invalid characters (see above)
+# global variable to indicate if we found ABP style domains during the gravity run
+# is saved in gravtiy's info table to signal FTL if such domains are available
+abp_domains=0
+parseList() {
+  local adlistID="${1}" src="${2}" target="${3}" temp_file temp_file_base non_domains sample_non_domains valid_domain_pattern abp_domain_pattern
+
+  # Create a temporary file for the sed magic instead of using "${target}" directly
+  # this allows to split the sed commands to improve readability
+  # we use a file handle here and remove the temporary file immediately so the content will be deleted in any case
+  # when the script stops
+  temp_file_base="$(mktemp -p "/tmp" --suffix=".gravity")"
+  exec 3>"$temp_file_base"
+  rm "${temp_file_base}"
+  temp_file="/proc/$$/fd/3"
+
+  # define valid domain patterns
+  # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
+  # adapted from https://stackoverflow.com/a/30007882
+  # supported ABP style: ||subdomain.domain.tlp^
+
+  valid_domain_pattern="([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
+  abp_domain_pattern="\|\|${valid_domain_pattern}\^"
+
+
+  # 1. Add all valid domains
+    sed -r "/^${valid_domain_pattern}$/!d" "${src}" > "${temp_file}"
+
+  # 2. Add valid ABP style domains if there is at least one such domain
+  if  grep -E "^${abp_domain_pattern}$" -m 1 -q "${src}"; then
+    echo "  ${INFO} List contained AdBlock Plus style domains"
+    abp_domains=1
+    sed -r "/^${abp_domain_pattern}$/!d" "${src}" >> "${temp_file}"
+  fi
+
+
+  # Find lines containing no domains or with invalid characters (not matching regex above)
+  # This is simply everything that is not in $temp_file compared to $src
   # Remove duplicates from the list
-  mapfile -t non_domains <<< "$(sed -r "/([^\.]+\.)+[^\.]{2,}/d" < "${src}")"
-  mapfile -t -O "${#non_domains[@]}" non_domains <<< "$(sed -r "/[^a-zA-Z0-9.\_-]/!d" < "${src}")"
-  IFS=" " read -r -a non_domains <<< "$(tr ' ' '\n' <<< "${non_domains[@]}" | sort -u | tr '\n' ' ')"
+  mapfile -t non_domains < <(grep -Fvf "${temp_file}" "${src}" | sort -u )
+
+  # 3. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
+  # 4. Append ,adlistID to every line
+  # 5. Ensures there is a newline on the last line
+  # and write everything to the target file
+  sed "s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${temp_file}" >> "${target}"
 
   # A list of items of common local hostnames not to report as unusable
   # Some lists (i.e StevenBlack's) contain these as they are supposed to be used as HOST files
@@ -553,13 +592,8 @@ parseList() {
   # Get a sample of non-domain entries, limited to 5 (the list should already have been de-duplicated)
   IFS=" " read -r -a sample_non_domains <<< "$(tr ' ' '\n' <<< "${non_domains[@]}" | head -n 5 | tr '\n' ' ')"
 
-  local tmp_new_imported_total
-  # Get the new number of domains in destination file
-  tmp_new_imported_total="$(grep -c "^" "${target}")"
-  # Number of imported lines for this file is the difference between the new total and the old total. (Or, the number of domains we just added.)
-  num_domains="$(( tmp_new_imported_total-num_total_imported_domains ))"
-  # Replace the running total with the new total.
-  num_total_imported_domains="$tmp_new_imported_total"
+  # Get the number of domains added
+  num_domains="$(grep -c "^" "${temp_file}")"
   # Get the number of non_domains (this is the number of entries left after stripping the source of comments/duplicates/false positives/domains)
   num_non_domains="${#non_domains[@]}"
 
@@ -574,6 +608,9 @@ parseList() {
   else
     echo "  ${INFO} Imported ${num_domains} domains"
   fi
+
+  # close file handle
+  exec 3<&-
 }
 
 compareLists() {
@@ -744,18 +781,30 @@ gravity_ParseFileIntoDomains() {
   # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
   # This helps with that and makes it easier to read
   # It also helps with debugging so each stage of the script can be researched more in depth
-  # 1) Remove carriage returns
-  # 2) Convert all characters to lowercase
-  # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  # 1) Convert all characters to lowercase
+  tr '[:upper:]' '[:lower:]' < "${src}" > "${destination}"
+
+  # 2) Remove carriage returns
+  sed -i 's/\r$//' "${destination}"
+
+  # 3a) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  sed -i 's/\s*#.*//g' "${destination}"
+
+  # 3b) Remove lines starting with ! (ABP Comments)
+  sed -i 's/\s*!.*//g' "${destination}"
+
+  # 3c) Remove lines starting with [ (ABP Header)
+  sed -i 's/\s*\[.*//g' "${destination}"
+
   # 4) Remove lines containing "/"
-  # 5) Remove leading tabs, spaces, etc.
+  sed -i -r '/(\/).*$/d' "${destination}"
+
+  # 5) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
+  sed -i -r 's/^.*\s+//g' "${destination}"
+
   # 6) Remove empty lines
-  < "${src}" tr -d '\r' | \
-  tr '[:upper:]' '[:lower:]' | \
-  sed 's/\s*#.*//g' | \
-  sed -r '/(\/).*$/d' | \
-  sed -r 's/^.*\s+//g' | \
-  sed '/^$/d'>  "${destination}"
+  sed -i '/^$/d' "${destination}"
+
   chmod 644 "${destination}"
 }
 
@@ -987,6 +1036,9 @@ fi
 
 # Update gravity timestamp
 update_gravity_timestamp
+
+# Set abp_domain info field
+set_abp_info
 
 # Ensure proper permissions are set for the database
 chown pihole:pihole "${gravityDBfile}"
