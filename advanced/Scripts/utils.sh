@@ -57,7 +57,7 @@ addKey(){
   # touch file to prevent grep error if file does not exist yet
   touch "${file}"
 
-  if ! grep -q "^${key}" "${file}"; then
+  if ! grep -q "^${key}$" "${file}"; then
     # Key does not exist, add it.
     echo "${key}" >> "${file}"
   fi

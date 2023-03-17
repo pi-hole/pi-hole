@@ -40,6 +40,26 @@ def test_key_addition_works(host):
     assert expected_stdout == output.stdout
 
 
+def test_key_addition_substr(host):
+    """Confirms addKey adds substring keys (no value) to a file"""
+    host.run(
+        """
+    source /opt/pihole/utils.sh
+    addKey "./testoutput" "KEY_ONE"
+    addKey "./testoutput" "KEY_O"
+    addKey "./testoutput" "KEY_TWO"
+    addKey "./testoutput" "Y_TWO"
+    """
+    )
+    output = host.run(
+        """
+    cat ./testoutput
+    """
+    )
+    expected_stdout = "KEY_ONE\nKEY_O\nKEY_TWO\nY_TWO\n"
+    assert expected_stdout == output.stdout
+
+
 def test_key_removal_works(host):
     """Confirms removeKey removes a key or key/value pair"""
     host.run(
