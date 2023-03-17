@@ -57,6 +57,10 @@ addKey(){
   # touch file to prevent grep error if file does not exist yet
   touch "${file}"
 
+  # Match key against entire line, using both anchors. We assume
+  # that the file's keys never have bounding whitespace. Anchors
+  # are necessary to ensure the key is considered absent when it
+  # is a substring of another key present in the file.
   if ! grep -q "^${key}$" "${file}"; then
     # Key does not exist, add it.
     echo "${key}" >> "${file}"
