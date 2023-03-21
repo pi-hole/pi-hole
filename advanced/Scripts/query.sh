@@ -97,7 +97,7 @@ scanList(){
 }
 
 scanDatabaseTable() {
-    local domain table list_type querystr result extra
+    local domain table list_type querystr result extra abpquerystr abpfound abpentry searchstr
     domain="$(printf "%q" "${1}")"
     table="${2}"
     list_type="${3:-}"
@@ -107,7 +107,6 @@ scanDatabaseTable() {
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     if [[ "${table}" == "gravity" ]]; then
-        local abpquerystr abpfound abpentry searchstr
 
         # Are there ABP entries on gravity?
         # Return 1 if abp_domain=1 or Zero if abp_domain=0 or not set
