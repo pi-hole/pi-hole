@@ -107,9 +107,35 @@ scanDatabaseTable() {
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     if [[ "${table}" == "gravity" ]]; then
+        local abpquerystr abpfound abpentry searchstr
+
+        # Are there ABP entries on gravity?
+        # Return 1 if abp_domain=1 or Zero if abp_domain=0 or not set
+        abpquerystr="SELECT EXISTS (SELECT 1 FROM info WHERE property='abp_domains' and value='1')"
+        abpfound="$(pihole-FTL sqlite3 "${gravityDBfile}" "${abpquerystr}")" 2> /dev/null
+
+        # Create search string for ABP entries only if needed
+        if [ "${abpfound}" -eq 1 ]; then
+            abpentry="${domain}"
+
+            searchstr="'||${abpentry}^'"
+
+            # While a dot is found ...
+            while [ "${abpentry}" != "${abpentry/./}" ]
+            do
+                # ... remove text before the dot (including the dot) and append the result to $searchstr
+                abpentry=$(echo "${abpentry}" | cut -f 2- -d '.')
+                searchstr="$searchstr, '||${abpentry}^'"
+            done
+
+            # The final search string will look like:
+            # "domain IN ('||sub2.sub1.domain.com^', '||sub1.domain.com^', '||domain.com^', '||com^') OR"
+            searchstr="domain IN (${searchstr}) OR "
+        fi
+
         case "${exact}" in
             "exact" ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
-            *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+            *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE ${searchstr} domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
         esac
     else
         case "${exact}" in
