@@ -5,13 +5,35 @@ on:
     branches:
       - master
 
+# The section is needed to drop the default write-all permissions for all jobs
+# that are granted on `push` event. By specifying any permission explicitly
+# all others are set to none. By using the principle of least privilege the damage a compromised
+# workflow can do (because of an injection or compromised third party tool or
+# action) is restricted. Adding labels to issues, commenting
+# on pull-requests, etc. may need additional permissions:
+#
+# Syntax for this section:
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+#
+# Reference for how to assign permissions on a job-by-job basis:
+# https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+#
+# Reference for available permissions that we can enable if needed:
+# https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token
+permissions: {}
+
 jobs:
   sync-branches:
+    # The job needs to be able to pull the code and create a pull request.
+    permissions:
+      contents: read #  for actions/checkout
+      pull-requests: write #  to create pull request
+
     runs-on: ubuntu-latest
     name: Syncing branches
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3.4.0
       - name: Opening pull request
         run: gh pr create -B development -H master --title 'Sync master back into development' --body 'Created by Github action' --label 'internal'
         env:

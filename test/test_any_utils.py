@@ -40,6 +40,26 @@ def test_key_addition_works(host):
     assert expected_stdout == output.stdout
 
 
+def test_key_addition_substr(host):
+    """Confirms addKey adds substring keys (no value) to a file"""
+    host.run(
+        """
+    source /opt/pihole/utils.sh
+    addKey "./testoutput" "KEY_ONE"
+    addKey "./testoutput" "KEY_O"
+    addKey "./testoutput" "KEY_TWO"
+    addKey "./testoutput" "Y_TWO"
+    """
+    )
+    output = host.run(
+        """
+    cat ./testoutput
+    """
+    )
+    expected_stdout = "KEY_ONE\nKEY_O\nKEY_TWO\nY_TWO\n"
+    assert expected_stdout == output.stdout
+
+
 def test_key_removal_works(host):
     """Confirms removeKey removes a key or key/value pair"""
     host.run(
@@ -59,6 +79,22 @@ def test_key_removal_works(host):
     """
     )
     expected_stdout = "KEY_ONE=value1\nKEY_THREE=value3\n"
+    assert expected_stdout == output.stdout
+
+
+def test_get_value_works(host):
+    """Confirms getVal returns the correct value for a given key"""
+    output = host.run(
+        """
+    source /opt/pihole/utils.sh
+    echo "Somekey=xxx" >> /tmp/testfile
+    echo "#Testkey=1234" >> /tmp/testfile
+    echo "Testkey=5678" >> /tmp/testfile
+    echo "Testkey=abcd" >> /tmp/testfile
+    getVal "/tmp/testfile" "Testkey"
+    """
+    )
+    expected_stdout = "5678"
     assert expected_stdout == output.stdout
 
 
