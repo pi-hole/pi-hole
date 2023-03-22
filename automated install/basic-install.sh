@@ -2612,7 +2612,8 @@ main() {
 
         # Get the privacy level if it exists (default is 0)
         if [[ -f "${FTL_CONFIG_FILE}" ]]; then
-            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${FTL_CONFIG_FILE}")
+            # use getVal from utils.sh to get PRIVACYLEVEL
+            PRIVACY_LEVEL=$(getVal "${FTL_CONFIG_FILE}" "PRIVACYLEVEL")
 
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"

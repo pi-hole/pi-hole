@@ -82,6 +82,22 @@ def test_key_removal_works(host):
     assert expected_stdout == output.stdout
 
 
+def test_get_value_works(host):
+    """Confirms getVal returns the correct value for a given key"""
+    output = host.run(
+        """
+    source /opt/pihole/utils.sh
+    echo "Somekey=xxx" >> /tmp/testfile
+    echo "#Testkey=1234" >> /tmp/testfile
+    echo "Testkey=5678" >> /tmp/testfile
+    echo "Testkey=abcd" >> /tmp/testfile
+    getVal "/tmp/testfile" "Testkey"
+    """
+    )
+    expected_stdout = "5678"
+    assert expected_stdout == output.stdout
+
+
 def test_getFTLAPIPort_default(host):
     """Confirms getFTLAPIPort returns the default API port"""
     output = host.run(
