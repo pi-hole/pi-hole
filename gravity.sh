@@ -546,15 +546,6 @@ abp_domains=0
 parseList() {
   local adlistID="${1}" src="${2}" target="${3}" temp_file temp_file_base non_domains sample_non_domains valid_domain_pattern abp_domain_pattern
 
-  # Create a temporary file for the sed magic instead of using "${target}" directly
-  # this allows to split the sed commands to improve readability
-  # we use a file handle here and remove the temporary file immediately so the content will be deleted in any case
-  # when the script stops
-  temp_file_base="$(mktemp -p "/tmp" --suffix=".gravity")"
-  exec 3>"$temp_file_base"
-  rm "${temp_file_base}"
-  temp_file="/proc/$$/fd/3"
-
   # define valid domain patterns
   # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
   # adapted from https://stackoverflow.com/a/30007882
@@ -563,62 +554,39 @@ parseList() {
   valid_domain_pattern="([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
   abp_domain_pattern="\|\|${valid_domain_pattern}\^"
 
-
-  # 1. Add all valid domains
-    sed -r "/^${valid_domain_pattern}$/!d" "${src}" > "${temp_file}"
-
-  # 2. Add valid ABP style domains if there is at least one such domain
-  if  grep -E "^${abp_domain_pattern}$" -m 1 -q "${src}"; then
-    echo "  ${INFO} List contained AdBlock Plus style domains"
-    abp_domains=1
-    sed -r "/^${abp_domain_pattern}$/!d" "${src}" >> "${temp_file}"
-  fi
-
-
-  # Find lines containing no domains or with invalid characters (not matching regex above)
-  # This is simply everything that is not in $temp_file compared to $src
-  # Remove duplicates from the list
-  mapfile -t non_domains < <(grep -Fvf "${temp_file}" "${src}" | sort -u )
-
-  # 3. Remove trailing period (see https://github.com/pi-hole/pi-hole/issues/4701)
-  # 4. Append ,adlistID to every line
-  # 5. Ensures there is a newline on the last line
-  # and write everything to the target file
-  sed "s/\.$//;s/$/,${adlistID}/;/.$/a\\" "${temp_file}" >> "${target}"
-
   # A list of items of common local hostnames not to report as unusable
   # Some lists (i.e StevenBlack's) contain these as they are supposed to be used as HOST files
   # but flagging them as unusable causes more confusion than it's worth - so we suppress them from the output
   false_positives="localhost|localhost.localdomain|local|broadcasthost|localhost|ip6-localhost|ip6-loopback|lo0 localhost|ip6-localnet|ip6-mcastprefix|ip6-allnodes|ip6-allrouters|ip6-allhosts"
 
-  # if there are any non-domains, filter the array for false-positives
-  # Credit: https://stackoverflow.com/a/40264051
-  if [[ "${#non_domains[@]}" -gt 0 ]]; then
-    mapfile -d $'\0' -t non_domains < <(printf '%s\0' "${non_domains[@]}" | grep -Ezv "^${false_positives}")
+  # Extract valid domains from source file and append ,${adlistID} to each line and save count to variable for display.
+  num_domains=$(grep -E "^(${valid_domain_pattern}|${abp_domain_pattern})$" "${src}" | tee >(sed "s/$/,${adlistID}/" >> "${target}") | wc -l)
+
+  # Check if the source file contained AdBlock Plus style domains, if so we set the global variable and inform the user
+  if  grep -E "^${abp_domain_pattern}$" -m 1 -q "${src}"; then
+    echo "  ${INFO} List contained AdBlock Plus style domains"
+    abp_domains=1
   fi
 
-  # Get a sample of non-domain entries, limited to 5 (the list should already have been de-duplicated)
-  IFS=" " read -r -a sample_non_domains <<< "$(tr ' ' '\n' <<< "${non_domains[@]}" | head -n 5 | tr '\n' ' ')"
+  # For completeness, we will get a count of non_domains (this is the number of entries left after stripping the source of comments/duplicates/false positives/domains)
+  invalid_domains="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".ph-non-domains")"
 
-  # Get the number of domains added
-  num_domains="$(grep -c "^" "${temp_file}")"
-  # Get the number of non_domains (this is the number of entries left after stripping the source of comments/duplicates/false positives/domains)
-  num_non_domains="${#non_domains[@]}"
+  num_non_domains=$(grep -Ev "^(${valid_domain_pattern}|${abp_domain_pattern}|${false_positives})$" "${src}" | tee "${invalid_domains}" | wc -l)
 
   # If there are unusable lines, we display some information about them. This is not error or major cause for concern.
   if [[ "${num_non_domains}" -ne 0 ]]; then
-    echo "  ${INFO} Imported ${num_domains} domains, ignoring ${num_non_domains} non-domain entries"
+    type="domains"
+    if [[ "${abp_domains}" -ne 0 ]]; then
+      type="patterns"
+    fi
+    echo "  ${INFO} Imported ${num_domains} ${type}, ignoring ${num_non_domains} non-domain entries"
     echo "      Sample of non-domain entries:"
-    for each in "${sample_non_domains[@]}"
-    do
-        echo "        - ${each}"
-    done
+	  invalid_lines=$(head -n 5 "${invalid_domains}")
+  	echo "${invalid_lines}" | awk '{print "        - " $0}'
   else
     echo "  ${INFO} Imported ${num_domains} domains"
   fi
-
-  # close file handle
-  exec 3<&-
+  rm "${invalid_domains}"
 }
 
 compareLists() {
@@ -648,10 +616,10 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}" compression="${7}"
-  local heisenbergCompensator="" patternBuffer str httpCode success="" ip
+  local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip
 
   # Create temp file to store content on disk instead of RAM
-  patternBuffer=$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".phgpb")
+  listCurlBuffer=$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".phgpb")
 
   # Determine if $saveLocation has read permission
   if [[ -r "${saveLocation}" && $url != "file"* ]]; then
@@ -705,12 +673,12 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # shellcheck disable=SC2086
-  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${patternBuffer}" 2> /dev/null)
+  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${listCurlBuffer}" 2> /dev/null)
 
   case $url in
     # Did we "download" a local file?
     "file"*)
-      if [[ -s "${patternBuffer}" ]]; then
+      if [[ -s "${listCurlBuffer}" ]]; then
         echo -e "${OVER}  ${TICK} ${str} Retrieval successful"; success=true
       else
         echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
@@ -743,10 +711,12 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_status "${adlistID}" "2"
       database_adlist_number "${adlistID}"
       done="true"
-    # Check if $patternbuffer is a non-zero length file
-    elif [[ -s "${patternBuffer}" ]]; then
+    # Check if $listCurlBuffer is a non-zero length file
+    elif [[ -s "${listCurlBuffer}" ]]; then
       # Determine if blocklist is non-standard and parse as appropriate
-      gravity_ParseFileIntoDomains "${patternBuffer}" "${saveLocation}"
+      gravity_ParseFileIntoDomains "${listCurlBuffer}" "${saveLocation}"
+      # Remove curl buffer file after its use
+      rm "${listCurlBuffer}"
       # Add domains to database table file
       parseList "${adlistID}" "${saveLocation}" "${target}"
       # Compare lists, are they identical?
@@ -756,7 +726,7 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_number "${adlistID}"
       done="true"
     else
-      # Fall back to previously cached list if $patternBuffer is empty
+      # Fall back to previously cached list if $listCurlBuffer is empty
       echo -e "  ${INFO} Received empty file"
     fi
   fi
@@ -868,7 +838,10 @@ gravity_Cleanup() {
   # Delete tmp content generated by Gravity
   rm ${piholeDir}/pihole.*.txt 2> /dev/null
   rm ${piholeDir}/*.tmp 2> /dev/null
+  # listCurlBuffer location
   rm "${GRAVITY_TMPDIR}"/*.phgpb 2> /dev/null
+  # invalid_domains location
+  rm "${GRAVITY_TMPDIR}"/*.ph-non-domains 2> /dev/null
 
   # Ensure this function only runs when gravity_SetDownloadOptions() has completed
   if [[ "${gravity_Blackbody:-}" == true ]]; then
@@ -1031,7 +1004,10 @@ if ! gravity_CheckDNSResolutionAvailable; then
   exit 1
 fi
 
-gravity_DownloadBlocklists
+if ! gravity_DownloadBlocklists; then
+  echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
+  exit 1
+fi
 
 # Create local.list
 gravity_generateLocalList
