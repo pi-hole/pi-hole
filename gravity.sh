@@ -39,6 +39,10 @@ GRAVITYDB="${gravityDBfile_default}"
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
+FTLDBfile_default="${piholeDir}/pihole-FTL.db"
+# FTLDB may be overwritten by source pihole-FTL.conf below
+FTLDB="${FTLDBfile_default}"
+
 domainsExtension="domains"
 curl_connect_timeout=10
 
@@ -66,12 +70,13 @@ if [[ -f "${pihole_FTL}" ]]; then
   source "${pihole_FTL}"
 fi
 
-# Set this only after sourcing pihole-FTL.conf as the gravity database path may
-# have changed
+# Set this only after sourcing pihole-FTL.conf as the gravity database path and
+# the FTL's long term database path may have changed
 gravityDBfile="${GRAVITYDB}"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
+FTLDBfile="${FTLDB}"
 
 if [[ -z "${BLOCKINGMODE}" ]] ; then
   BLOCKINGMODE="NULL"
@@ -81,6 +86,21 @@ fi
 if [[ -r "${piholeDir}/pihole.conf" ]]; then
   echo -e "  ${COL_LIGHT_RED}Ignoring overrides specified within pihole.conf! ${COL_NC}"
 fi
+
+# Create pihole diagnosis message
+create_diagnosis_message() {
+  declare result=""
+  # Only create the message if running non-interactive (cron)
+  if pstree -apl "$(pgrep -n cron)" | grep -q "$(basename "$0")"; then
+    # prevent duplicates, change the timestamp.
+    result=$(pihole-FTL sqlite3  "${FTLDBfile}" "SELECT * FROM message WHERE message = '$1' AND type = 'SCRIPT';")
+    if [ -z "${result}" ]; then
+      sudo pihole-FTL sqlite3 "${FTLDBfile}" "INSERT OR IGNORE into message ( timestamp, type, message, blob1 ) values ((cast(strftime('%s', 'now') as int)), 'SCRIPT', '$1', '$(base64 <<< "$(basename "$0")")');"
+    else
+      sudo pihole-FTL sqlite3 "${FTLDBfile}" "UPDATE message SET timestamp = (cast(strftime('%s', 'now') as int)) WHERE message = '$1' AND type = 'SCRIPT';"
+    fi
+  fi
+}
 
 # Generate new SQLite3 file from schema template
 generate_gravity_database() {
@@ -349,6 +369,7 @@ gravity_CheckDNSResolutionAvailable() {
     fi
     return 0
   elif [[ -n "${secs:-}" ]]; then
+    create_diagnosis_message "DNS resolution is not available!"
     echo -e "${OVER}  ${CROSS} DNS resolution is not available"
     exit 1
   fi
@@ -362,6 +383,7 @@ gravity_CheckDNSResolutionAvailable() {
     fi
     return 0
   elif [[ -n "${secs:-}" ]]; then
+    create_diagnosis_message "DNS resolution is not available!"
     echo -e "${OVER}  ${CROSS} DNS resolution is not available"
     exit 1
   fi
@@ -511,6 +533,7 @@ gravity_DownloadBlocklists() {
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
+    create_diagnosis_message "Unable to fill gravity table in database ${gravityTEMPfile}."
     echo -e "\\n  ${CROSS} Unable to fill gravity table in database ${gravityTEMPfile}\\n  ${output}"
     gravity_Cleanup "error"
   else
@@ -986,6 +1009,7 @@ fi
 
 # Move possibly existing legacy files to the gravity database
 if ! migrate_to_database; then
+  create_diagnosis_message "Unable to migrate to database."
   echo -e "   ${CROSS} Unable to migrate to database. Please contact support."
   exit 1
 fi
@@ -1000,11 +1024,13 @@ fi
 
 # Gravity downloads blocklists next
 if ! gravity_CheckDNSResolutionAvailable; then
+  create_diagnosis_message "Can not complete gravity update, no DNS is available."
   echo -e "   ${CROSS} Can not complete gravity update, no DNS is available. Please contact support."
   exit 1
 fi
 
 if ! gravity_DownloadBlocklists; then
+  create_diagnosis_message "Unable to create gravity database."
   echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
   exit 1
 fi
@@ -1014,6 +1040,7 @@ gravity_generateLocalList
 
 # Migrate rest of the data from old to new database
 if ! gravity_swap_databases; then
+  create_diagnosis_message "Unable to create database."
   echo -e "   ${CROSS} Unable to create database. Please contact support."
   exit 1
 fi
