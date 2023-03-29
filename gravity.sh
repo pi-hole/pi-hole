@@ -556,7 +556,7 @@ parseList() {
   valid_domain_pattern="${subdomain_pattern}+${TLD_pattern}"
 
   # supported ABP style: ||subdomain.domain.tld^
-  # Subdomain is optional for ABP style, allowing TLD blocking: ||tld^
+  # ${subdomain_pattern} is optional for ABP style, allowing TLD blocking: ||tld^
   abp_domain_pattern="\|\|${subdomain_pattern}*${TLD_pattern}\^"
 
   # A list of items of common local hostnames not to report as unusable
