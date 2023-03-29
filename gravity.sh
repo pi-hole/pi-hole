@@ -550,11 +550,14 @@ parseList() {
   # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
   # adapted from https://stackoverflow.com/a/30007882
 
-  valid_domain_pattern="([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
+  TLD_pattern="[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
+  subdomain_pattern="([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)"
+
+  valid_domain_pattern="${subdomain_pattern}+${TLD_pattern}"
 
   # supported ABP style: ||subdomain.domain.tld^
-  # allow TLD blocking using ABP style: ||tld^
-  abp_domain_pattern="\|\|([a-z0-9]([a-z0-9_-]{0,61}[a-z0-9]){0,1}\.)*[a-z0-9][a-z0-9-]{0,61}[a-z0-9]\^"
+  # Subdomain is optional for ABP style, allowing TLD blocking: ||tld^
+  abp_domain_pattern="\|\|${subdomain_pattern}*${TLD_pattern}\^"
 
   # A list of items of common local hostnames not to report as unusable
   # Some lists (i.e StevenBlack's) contain these as they are supposed to be used as HOST files
