@@ -421,7 +421,7 @@ gravity_DownloadBlocklists() {
     unset sources
   fi
 
-  local url domain agent cmd_ext str target compression
+  local url domain agent str target compression
   echo ""
 
   # Prepare new gravity database
@@ -475,7 +475,7 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      gravity_DownloadBlocklistFromUrl "${url}" "${cmd_ext}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
+      gravity_DownloadBlocklistFromUrl "${url}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
     fi
     echo ""
   done
@@ -614,8 +614,8 @@ compareLists() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" cmd_ext="${2}" agent="${3}" adlistID="${4}" saveLocation="${5}" target="${6}" compression="${7}"
-  local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip
+  local url="${1}" agent="${2}" adlistID="${3}" saveLocation="${4}" target="${5}" compression="${6}"
+  local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
 
   # Create temp file to store content on disk instead of RAM
   listCurlBuffer=$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".phgpb")
@@ -668,7 +668,7 @@ gravity_DownloadBlocklistFromUrl() {
     bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
     echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
     echo -ne "  ${INFO} ${str} Pending..."
-    cmd_ext="--resolve $domain:$port:$ip $cmd_ext"
+    cmd_ext="--resolve $domain:$port:$ip"
   fi
 
   # shellcheck disable=SC2086
