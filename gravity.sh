@@ -779,7 +779,7 @@ gravity_ParseFileIntoDomains() {
     -e 's/\r$//' \
     -e 's/\s*!.*//g' \
     -e 's/\s*\[.*//g' \
-    -e '/\#[!|?|@]{0,1}\#/d' \
+    -e '/\#[$?@]{0,1}\#/d' \
     -e 's/\s*#.*//g' \
     -e 's/^.*\s+//g' \
     -e '/^$/d' "${destination}"
