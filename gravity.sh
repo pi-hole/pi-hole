@@ -768,18 +768,20 @@ gravity_ParseFileIntoDomains() {
   tr '[:upper:]' '[:lower:]' < "${src}" > "${destination}"
 
   # 2) Remove carriage returns
-  # 3) Remove comments (text starting with "#", include possible spaces before the hash sign)
-  # 4) Remove lines starting with ! (ABP Comments)
-  # 5) Remove lines starting with [ (ABP Header)
-  # 6) Remove lines containing "/"
-  # 7) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
-  # 8) Remove empty lines
+  # 3) Remove lines starting with ! (ABP Comments)
+  # 4) Remove lines starting with [ (ABP Header)
+  # 5) Remove lines containing ABP extended CSS selectors ("##", "#!#", "#@#", "#?#")
+  # 6) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  # 7) Remove lines containing "/"
+  # 8) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
+  # 9) Remove empty lines
 
     sed -i -r \
     -e 's/\r$//' \
-    -e 's/\s*#.*//g' \
     -e 's/\s*!.*//g' \
     -e 's/\s*\[.*//g' \
+    -e '/\#[!|?|@]{0,1}\#/d' \
+    -e 's/\s*#.*//g' \
     -e '/(\/).*$/d' \
     -e 's/^.*\s+//g' \
     -e '/^$/d' "${destination}"
