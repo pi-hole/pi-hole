@@ -30,33 +30,6 @@ gravityDBfile="${GRAVITYDB}"
 colfile="/opt/pihole/COL_TABLE"
 source "${colfile}"
 
-# Scan an array of files for matching strings
-scanList(){
-    # Escape full stops
-    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" list_type="${3:-}"
-
-    # Prevent grep from printing file path
-    cd "$piholeDir" || exit 1
-
-    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
-    export LC_CTYPE=C
-
-    # /dev/null forces filename to be printed when only one list has been generated
-    case "${list_type}" in
-        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" ${lists} /dev/null 2>/dev/null;;
-        # Iterate through each regexp and check whether it matches the domainQuery
-        # If it does, print the matching regexp and continue looping
-        # Input 1 - regexps | Input 2 - domainQuery
-        "regex" )
-            for list in ${lists}; do
-                if [[ "${domain}" =~ ${list} ]]; then
-                    printf "%b\n" "${list}";
-                fi
-            done;;
-        *       ) grep -i "${esc_domain}" ${lists} /dev/null 2>/dev/null;;
-    esac
-}
-
 if [[ "${options}" == "-h" ]] || [[ "${options}" == "--help" ]]; then
     echo "Usage: pihole -q [option] <domain>
 Example: 'pihole -q -exact domain.com'
@@ -84,17 +57,47 @@ options=$(sed -E 's/ ?-(all|exact) ?//g' <<< "${options}")
 case "${options}" in
     ""             ) str="No domain specified";;
     *" "*          ) str="Unknown query option specified";;
-    *[![:ascii:]]* ) domainQuery=$(idn2 "${options}");;
-    *              ) domainQuery="${options}";;
+    *[![:ascii:]]* ) rawDomainQuery=$(idn2 "${options}");;
+    *              ) rawDomainQuery="${options}";;
 esac
+
+# convert the domain to lowercase
+domainQuery=$(echo "${rawDomainQuery}" | tr '[:upper:]' '[:lower:]')
 
 if [[ -n "${str:-}" ]]; then
     echo -e "${str}${COL_NC}\\nTry 'pihole -q --help' for more information."
     exit 1
 fi
 
+# Scan an array of files for matching strings
+scanList(){
+    # Escape full stops
+    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" list_type="${3:-}"
+
+    # Prevent grep from printing file path
+    cd "$piholeDir" || exit 1
+
+    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
+    export LC_CTYPE=C
+
+    # /dev/null forces filename to be printed when only one list has been generated
+    case "${list_type}" in
+        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" "${lists}" /dev/null 2>/dev/null;;
+        # Iterate through each regexp and check whether it matches the domainQuery
+        # If it does, print the matching regexp and continue looping
+        # Input 1 - regexps | Input 2 - domainQuery
+        "regex" )
+            for list in ${lists}; do
+                if [[ "${domain}" =~ ${list} ]]; then
+                    printf "%b\n" "${list}";
+                fi
+            done;;
+        *       ) grep -i "${esc_domain}" "${lists}" /dev/null 2>/dev/null;;
+    esac
+}
+
 scanDatabaseTable() {
-    local domain table list_type querystr result extra
+    local domain table list_type querystr result extra abpquerystr abpfound abpentry searchstr
     domain="$(printf "%q" "${1}")"
     table="${2}"
     list_type="${3:-}"
@@ -104,9 +107,34 @@ scanDatabaseTable() {
     # behavior. The "ESCAPE '\'" clause specifies that an underscore preceded by an '\' should be matched
     # as a literal underscore character. We pretreat the $domain variable accordingly to escape underscores.
     if [[ "${table}" == "gravity" ]]; then
+
+        # Are there ABP entries on gravity?
+        # Return 1 if abp_domain=1 or Zero if abp_domain=0 or not set
+        abpquerystr="SELECT EXISTS (SELECT 1 FROM info WHERE property='abp_domains' and value='1')"
+        abpfound="$(pihole-FTL sqlite3 "${gravityDBfile}" "${abpquerystr}")" 2> /dev/null
+
+        # Create search string for ABP entries only if needed
+        if [ "${abpfound}" -eq 1 ]; then
+            abpentry="${domain}"
+
+            searchstr="'||${abpentry}^'"
+
+            # While a dot is found ...
+            while [ "${abpentry}" != "${abpentry/./}" ]
+            do
+                # ... remove text before the dot (including the dot) and append the result to $searchstr
+                abpentry=$(echo "${abpentry}" | cut -f 2- -d '.')
+                searchstr="$searchstr, '||${abpentry}^'"
+            done
+
+            # The final search string will look like:
+            # "domain IN ('||sub2.sub1.domain.com^', '||sub1.domain.com^', '||domain.com^', '||com^') OR"
+            searchstr="domain IN (${searchstr}) OR "
+        fi
+
         case "${exact}" in
             "exact" ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain = '${domain}'";;
-            *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
+            *       ) querystr="SELECT gravity.domain,adlist.address,adlist.enabled FROM gravity LEFT JOIN adlist ON adlist.id = gravity.adlist_id WHERE ${searchstr} domain LIKE '%${domain//_/\\_}%' ESCAPE '\\'";;
         esac
     else
         case "${exact}" in
@@ -116,7 +144,7 @@ scanDatabaseTable() {
     fi
 
     # Send prepared query to gravity database
-    result="$(pihole-FTL sqlite3 "${gravityDBfile}" "${querystr}")" 2> /dev/null
+    result="$(pihole-FTL sqlite3 -separator ',' "${gravityDBfile}" "${querystr}")" 2> /dev/null
     if [[ -z "${result}" ]]; then
         # Return early when there are no matches in this table
         return
@@ -136,8 +164,8 @@ scanDatabaseTable() {
     # Loop over results and print them
     mapfile -t results <<< "${result}"
     for result in "${results[@]}"; do
-        domain="${result/|*}"
-        if [[ "${result#*|}" == "0" ]]; then
+        domain="${result/,*}"
+        if [[ "${result#*,}" == "0" ]]; then
             extra=" (disabled)"
         else
             extra=""
@@ -212,10 +240,10 @@ if [[ -n "${exact}" ]]; then
 fi
 
 for result in "${results[@]}"; do
-    match="${result/|*/}"
-    extra="${result#*|}"
-    adlistAddress="${extra/|*/}"
-    extra="${extra#*|}"
+    match="${result/,*/}"
+    extra="${result#*,}"
+    adlistAddress="${extra/,*/}"
+    extra="${extra#*,}"
     if [[ "${extra}" == "0" ]]; then
         extra=" (disabled)"
     else
