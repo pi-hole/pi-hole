@@ -7,8 +7,8 @@ on:
   issue_comment:
 
 jobs:
-  stale:
-
+  stale_action:
+    if: github.event_name != 'issue_comment'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -25,3 +25,18 @@ jobs:
           exempt-all-issue-assignees: true
           operations-per-run: 300
           close-issue-reason: 'not_planned'
+
+  remove_stale: # trigger "stale" removal immediately when stale issues are commented on
+    if: github.event_name == 'issue_comment'
+    permissions:
+      contents: read #  for actions/checkout
+      issues: write #  to edit issues label
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.4.0
+      - name: Remove 'stale' label
+        run: gh issue edit ${{ github.event.issue.number }} --remove-label 'stale'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
