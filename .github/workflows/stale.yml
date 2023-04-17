@@ -4,10 +4,14 @@ on:
   schedule:
     - cron: '0 8 * * *'
   workflow_dispatch:
+  issue_comment:
+
+env:
+  stale_label: stale
 
 jobs:
-  stale:
-
+  stale_action:
+    if: github.event_name != 'issue_comment'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -19,8 +23,23 @@ jobs:
           days-before-stale: 30
           days-before-close: 5
           stale-issue-message: 'This issue is stale because it has been open 30 days with no activity. Please comment or update this issue or it will be closed in 5 days.'
-          stale-issue-label: 'stale'
+          stale-issue-label: $stale_label
           exempt-issue-labels: 'Internal, Fixed in next release, Bug: Confirmed, Documentation Needed'
           exempt-all-issue-assignees: true
           operations-per-run: 300
           close-issue-reason: 'not_planned'
+
+  remove_stale: # trigger "stale" removal immediately when stale issues are commented on
+    if: github.event_name == 'issue_comment'
+    permissions:
+      contents: read #  for actions/checkout
+      issues: write #  to edit issues label
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.4.0
+      - name: Remove 'stale' label
+        run: gh issue edit ${{ github.event.issue.number }} --remove-label $stale_label
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
