@@ -18,15 +18,11 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # is_repo() sourced from basic-install.sh
 # setupVars set in basic-install.sh
 # check_download_exists sourced from basic-install.sh
-# fully_fetch_repo sourced from basic-install.sh
-# get_available_branches sourced from basic-install.sh
-# fetch_checkout_pull_branch sourced from basic-install.sh
-# checkout_pull_branch sourced from basic-install.sh
 
 source "${setupVars}"
 
 warning1() {
-    echo "  Please note that changing branches severely alters your Pi-hole subsystems"
+    echo "  Please note that changing branches or tags severely alters your Pi-hole subsystems"
     echo "  Features that work on the master branch, may not on a development branch"
     echo -e "  ${COL_LIGHT_RED}This feature is NOT supported unless a Pi-hole developer explicitly asks!${COL_NC}"
     read -r -p "  Have you read and understood this? [y/N] " response
@@ -36,15 +32,15 @@ warning1() {
             return 0
             ;;
         *)
-            echo -e "\\n  ${INFO} Branch change has been canceled"
+            echo -e "\\n  ${INFO} Branch/Tag change has been canceled"
             return 1
             ;;
     esac
 }
 
 checkout() {
-    local corebranches
-    local webbranches
+    local corerefs
+    local webrefs
 
     # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
     local funcOutput
@@ -111,59 +107,59 @@ checkout() {
         echo "master" > /etc/pihole/ftlbranch
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "core" ]] ; then
-        str="Fetching branches from ${piholeGitUrl}"
+        str="Fetching branches/tags from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
+        corerefs=("$(get_available_refs "${PI_HOLE_FILES_DIR}")")
 
-        if [[ "${corebranches[*]}" == *"master"* ]]; then
+        if [[ "${corerefs[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
-            echo -e "  ${INFO} ${#corebranches[@]} branches available for Pi-hole Core"
+            echo -e "  ${INFO} ${#corerefs[@]} branches/tags available for Pi-hole Core"
         else
-            # Print STDERR output from get_available_branches
-            echo -e "${OVER}  ${CROSS} $str\\n\\n${corebranches[*]}"
+            # Print STDERR output from get_available_refs
+            echo -e "${OVER}  ${CROSS} $str\\n\\n${corerefs[*]}"
             exit 1
         fi
 
         echo ""
-        # Have the user choose the branch they want
-        if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
-            echo -e "  ${INFO} Requested branch \"${2}\" is not available"
-            echo -e "  ${INFO} Available branches for Core are:"
-            for e in "${corebranches[@]}"; do echo "      - $e"; done
+        # Have the user choose the branch/tag they want
+        if ! (for e in "${corerefs[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
+            echo -e "  ${INFO} Requested branch/tag \"${2}\" is not available"
+            echo -e "  ${INFO} Available branches/tags for Core are:"
+            for e in "${corerefs[@]}"; do echo "      - $e"; done
             exit 1
         fi
-        checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
+        checkout_pull_ref "${PI_HOLE_FILES_DIR}" "${2}"
     elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB_INTERFACE}" == "true" ]] ; then
-        str="Fetching branches from ${webInterfaceGitUrl}"
+        str="Fetching branches/tags from ${webInterfaceGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${webInterfaceDir}" ; then
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        webbranches=($(get_available_branches "${webInterfaceDir}"))
+        webrefs=("$(get_available_refs "${webInterfaceDir}")")
 
-        if [[ "${webbranches[*]}" == *"master"* ]]; then
+        if [[ "${webrefs[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
-            echo -e "  ${INFO} ${#webbranches[@]} branches available for Web Admin"
+            echo -e "  ${INFO} ${#webrefs[@]} branches/tags available for Web Admin"
         else
-            # Print STDERR output from get_available_branches
-            echo -e "${OVER}  ${CROSS} $str\\n\\n${webbranches[*]}"
+            # Print STDERR output from get_available_refs
+            echo -e "${OVER}  ${CROSS} $str\\n\\n${webrefs[*]}"
             exit 1
         fi
 
         echo ""
-        # Have the user choose the branch they want
-        if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
-            echo -e "  ${INFO} Requested branch \"${2}\" is not available"
-            echo -e "  ${INFO} Available branches for Web Admin are:"
-            for e in "${webbranches[@]}"; do echo "      - $e"; done
+        # Have the user choose the branch/tags they want
+        if ! (for e in "${webrefs[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
+            echo -e "  ${INFO} Requested branch/tag \"${2}\" is not available"
+            echo -e "  ${INFO} Available branches/tags for Web Admin are:"
+            for e in "${webrefs[@]}"; do echo "      - $e"; done
             exit 1
         fi
-        checkout_pull_branch "${webInterfaceDir}" "${2}"
+        checkout_pull_ref "${webInterfaceDir}" "${2}"
         # Update local and remote versions via updatechecker
         /opt/pihole/updatecheck.sh
     elif [[ "${1}" == "ftl" ]] ; then
@@ -184,7 +180,7 @@ checkout() {
             /opt/pihole/updatecheck.sh
         else
             echo "  ${CROSS} Requested branch \"${2}\" is not available"
-            ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+            ftlbranches=("$(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}')")
             echo -e "  ${INFO} Available branches for FTL are:"
             for e in "${ftlbranches[@]}"; do echo "      - $e"; done
             exit 1
