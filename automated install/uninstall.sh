@@ -193,6 +193,18 @@ removeNoPurge() {
         else
             service pihole-FTL stop
         fi
+        ${SUDO} rm -f /etc/systemd/system/pihole-FTL.service
+        if [[ -d '/etc/systemd/system/pihole-FTL.service.d' ]]; then
+            read -rp "  ${QST} FTL service override directory /etc/systemd/system/pihole-FTL.service.d detected. Do you wish to remove this from your system? [y/N] " answer
+            case $answer in
+                [yY]*)
+                    echo -ne "  ${INFO} Removing /etc/systemd/system/pihole-FTL.service.d..."
+                    ${SUDO} rm -R /etc/systemd/system/pihole-FTL.service.d
+                    echo -e "${OVER}  ${INFO} Removed /etc/systemd/system/pihole-FTL.service.d"
+                ;;
+                *) echo -e "  ${INFO} Leaving /etc/systemd/system/pihole-FTL.service.d in place.";;
+            esac
+        fi
         ${SUDO} rm -f /etc/init.d/pihole-FTL
         ${SUDO} rm -f /usr/bin/pihole-FTL
         echo -e "${OVER}  ${TICK} Removed pihole-FTL"

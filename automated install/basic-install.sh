@@ -1419,7 +1419,7 @@ installConfigs() {
         mkdir -p /run/lighttpd
         chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} /run/lighttpd
 
-        if grep -q -F "FILE AUTOMATICALLY OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
+        if grep -q -F "OVERWRITTEN BY PI-HOLE" "${lighttpdConfig}"; then
             # Attempt to preserve backwards compatibility with older versions
             install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/advanced/${LIGHTTPD_CFG} "${lighttpdConfig}"
             # Make the directories if they do not exist and set the owners
@@ -2622,7 +2622,8 @@ main() {
 
         # Get the privacy level if it exists (default is 0)
         if [[ -f "${FTL_CONFIG_FILE}" ]]; then
-            PRIVACY_LEVEL=$(sed -ne 's/PRIVACYLEVEL=\(.*\)/\1/p' "${FTL_CONFIG_FILE}")
+            # get the value from $FTL_CONFIG_FILE (and ignoring all commented lines)
+            PRIVACY_LEVEL=$(sed -e '/^[[:blank:]]*#/d' "${FTL_CONFIG_FILE}" | grep "PRIVACYLEVEL" | awk -F "=" 'NR==1{printf$2}')
 
             # If no setting was found, default to 0
             PRIVACY_LEVEL="${PRIVACY_LEVEL:-0}"
