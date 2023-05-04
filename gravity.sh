@@ -762,25 +762,21 @@ gravity_ParseFileIntoDomains() {
   tr '[:upper:]' '[:lower:]' < "${src}" > "${destination}"
 
   # 2) Remove carriage returns
-  sed -i 's/\r$//' "${destination}"
+  # 3) Remove lines starting with ! (ABP Comments)
+  # 4) Remove lines starting with [ (ABP Header)
+  # 5) Remove lines containing ABP extended CSS selectors ("##", "#!#", "#@#", "#?#") preceded by a letter
+  # 6) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  # 7) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
+  # 8) Remove empty lines
 
-  # 3a) Remove comments (text starting with "#", include possible spaces before the hash sign)
-  sed -i 's/\s*#.*//g' "${destination}"
-
-  # 3b) Remove lines starting with ! (ABP Comments)
-  sed -i 's/\s*!.*//g' "${destination}"
-
-  # 3c) Remove lines starting with [ (ABP Header)
-  sed -i 's/\s*\[.*//g' "${destination}"
-
-  # 4) Remove lines containing "/"
-  sed -i -r '/(\/).*$/d' "${destination}"
-
-  # 5) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
-  sed -i -r 's/^.*\s+//g' "${destination}"
-
-  # 6) Remove empty lines
-  sed -i '/^$/d' "${destination}"
+    sed -i -r \
+    -e 's/\r$//' \
+    -e 's/\s*!.*//g' \
+    -e 's/\s*\[.*//g' \
+    -e '/[a-z]\#[$?@]{0,1}\#/d' \
+    -e 's/\s*#.*//g' \
+    -e 's/^.*\s+//g' \
+    -e '/^$/d' "${destination}"
 
   chmod 644 "${destination}"
 }
