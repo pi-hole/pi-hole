@@ -199,7 +199,7 @@ checkout() {
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        corerefs=("$(get_available_refs "${PI_HOLE_FILES_DIR}")")
+        mapfile -t corerefs < <(get_available_refs "${PI_HOLE_FILES_DIR}")
 
         if [[ "${corerefs[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
@@ -226,7 +226,7 @@ checkout() {
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        webrefs=("$(get_available_refs "${webInterfaceDir}")")
+        mapfile -t webrefs < <(get_available_refs "${webInterfaceDir}")
 
         if [[ "${webrefs[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
