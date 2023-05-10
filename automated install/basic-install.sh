@@ -478,7 +478,7 @@ update_repo() {
     # Remove any leading "heads/" as $curBranch is later used to check if local branch is remote branch or tag
     curBranch=$(git rev-parse --abbrev-ref HEAD| sed "s/^heads\///g")
 
-    # check if the local branch ef is a branch or a tag on remote repo
+    # check if the local branch ref is a branch or a tag on remote repo
     if git show-ref -q --verify "refs/remotes/origin/$curBranch" 2>/dev/null; then
         ref_is_branch=true
     elif git show-ref -q --verify "refs/tags/$curBranch" 2>/dev/null; then

@@ -58,7 +58,7 @@ GitCheckUpdateAvail() {
         # need @{0}
         LOCAL="$(git rev-parse "@{0}")"
 
-        # check if the local branch ef is a branch or a tag on remote repo
+        # check if the local branch ref is a branch or a tag on remote repo
         if git show-ref -q --verify "refs/remotes/origin/$curBranch" 2>/dev/null; then
             ref_is_tag=false
         elif git show-ref -q --verify "refs/tags/$curBranch" 2>/dev/null; then
