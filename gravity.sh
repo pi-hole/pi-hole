@@ -165,7 +165,10 @@ database_table_from_file() {
   src="${2}"
   backup_path="${piholeDir}/migration_backup"
   backup_file="${backup_path}/$(basename "${2}")"
-  tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".gravity")"
+  # Create a temporary file. We don't use '--suffix' here because not all
+  # implementations of mktemp support it, e.g. on Alpine
+  tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}")"
+  mv "${tmpFile}" "${tmpFile%.*}.gravity"
 
   local timestamp
   timestamp="$(date --utc +'%s')"
@@ -438,7 +441,10 @@ gravity_DownloadBlocklists() {
     echo -e "${OVER}  ${TICK} ${str}"
   fi
 
-  target="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".gravity")"
+  # Create a temporary file. We don't use '--suffix' here because not all
+  # implementations of mktemp support it, e.g. on Alpine
+  target="$(mktemp -p "${GRAVITY_TMPDIR}")"
+  mv "${target}" "${target%.*}.gravity"
 
   # Use compression to reduce the amount of data that is transferred
   # between the Pi-hole and the ad list provider. Use this feature
@@ -568,7 +574,9 @@ parseList() {
   fi
 
   # For completeness, we will get a count of non_domains (this is the number of entries left after stripping the source of comments/duplicates/false positives/domains)
-  invalid_domains="$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".ph-non-domains")"
+  # We don't use '--suffix' here because not all implementations of mktemp support it, e.g. on Alpine
+  invalid_domains=$(mktemp -p "${GRAVITY_TMPDIR}")
+  mv "${invalid_domains}" "${invalid_domains%.*}.ph-non-domains"
 
   num_non_domains=$(grep -Ev "^(${valid_domain_pattern}|${abp_domain_pattern}|${false_positives})$" "${src}" | tee "${invalid_domains}" | wc -l)
 
@@ -618,7 +626,9 @@ gravity_DownloadBlocklistFromUrl() {
   local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
 
   # Create temp file to store content on disk instead of RAM
-  listCurlBuffer=$(mktemp -p "${GRAVITY_TMPDIR}" --suffix=".phgpb")
+  # We don't use '--suffix' here because not all implementations of mktemp support it, e.g. on Alpine
+  listCurlBuffer="$(mktemp -p "${GRAVITY_TMPDIR}")"
+  mv "${listCurlBuffer}" "${listCurlBuffer%.*}.phgpb"
 
   # Determine if $saveLocation has read permission
   if [[ -r "${saveLocation}" && $url != "file"* ]]; then
