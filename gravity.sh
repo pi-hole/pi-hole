@@ -544,7 +544,7 @@ gravity_DownloadBlocklists() {
 # is saved in gravtiy's info table to signal FTL if such domains are available
 abp_domains=0
 parseList() {
-  local adlistID="${1}" src="${2}" target="${3}" temp_file temp_file_base non_domains sample_non_domains valid_domain_pattern abp_domain_pattern
+  local adlistID="${1}" src="${2}" target="${3}" valid_domain_pattern abp_domain_pattern
 
   # define valid domain patterns
   # no need to include uppercase letters, as we convert to lowercase in gravity_ParseFileIntoDomains() already
