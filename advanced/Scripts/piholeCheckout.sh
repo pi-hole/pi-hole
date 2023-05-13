@@ -38,6 +38,23 @@ warning1() {
     esac
 }
 
+warning2() {
+    echo ""
+    echo "  ${INFO} Your are trying to checkout the tag ${1} for Pihole's core component"
+    echo "  ${COL_LIGHT_RED}Please note that checking out core tags before v5.17 will break your installation${COL_NC}"
+    read -r -p "  Proceed anyway? [y/N] " response
+    case "${response}" in
+        [yY][eE][sS]|[yY])
+            echo ""
+            return 0
+            ;;
+        *)
+            echo -e "\\n  ${INFO} Branch/Tag change has been canceled"
+            return 1
+            ;;
+    esac
+}
+
 fully_fetch_repo() {
     # Add upstream branches/tags to shallow clone
     local directory="${1}"
@@ -97,7 +114,7 @@ checkout_pull_ref() {
     oldref="$(git symbolic-ref --quiet HEAD)"
 
     str="Switching to branch/tag: '${ref}' from '${oldref}'"
-    printf "  %b %s" "${INFO}" "$str"
+    printf "  %b %s\\n" "${INFO}" "$str"
 
     # check if the ref is a branch or a tag on the remote repo
     if git show-ref -q --verify "refs/remotes/origin/$ref" 2>/dev/null; then
@@ -107,6 +124,13 @@ checkout_pull_ref() {
     fi
 
     if [ "$ref_is_tag" = true ]; then
+        # In case we are checking out tags on 'core' show an additional warning and allow to cancel checkout
+        if [ "${directory}" = "${PI_HOLE_FILES_DIR}" ]; then
+                if ! warning2 "${ref}" ; then
+                    exit 1
+                fi
+
+        fi
         # in case we want to checkout a tag we need explicitly create a new branch/reset the existing one
         git checkout -B "${ref}" "refs/tags/${ref}" --quiet || return 1
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
