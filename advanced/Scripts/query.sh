@@ -69,31 +69,16 @@ if [[ -n "${str:-}" ]]; then
     exit 1
 fi
 
-# Scan an array of files for matching strings
-scanList(){
-    # Escape full stops
-    local domain="${1}" esc_domain="${1//./\\.}" lists="${2}" list_type="${3:-}"
+# Scan a domain again a list of RegEX
+scanRegExList(){
+    local domain="${1}" list="${2}"
 
-    # Prevent grep from printing file path
-    cd "$piholeDir" || exit 1
+    for entry in ${list}; do
+        if [[ "${domain}" =~ ${entry} ]]; then
+            printf "%b\n" "${entry}";
+        fi
+    done
 
-    # Prevent grep -i matching slowly: https://bit.ly/2xFXtUX
-    export LC_CTYPE=C
-
-    # /dev/null forces filename to be printed when only one list has been generated
-    case "${list_type}" in
-        "exact" ) grep -i -E -l "(^|(?<!#)\\s)${esc_domain}($|\\s|#)" "${lists}" /dev/null 2>/dev/null;;
-        # Iterate through each regexp and check whether it matches the domainQuery
-        # If it does, print the matching regexp and continue looping
-        # Input 1 - regexps | Input 2 - domainQuery
-        "regex" )
-            for list in ${lists}; do
-                if [[ "${domain}" =~ ${list} ]]; then
-                    printf "%b\n" "${list}";
-                fi
-            done;;
-        *       ) grep -i "${esc_domain}" "${lists}" /dev/null 2>/dev/null;;
-    esac
 }
 
 scanDatabaseTable() {
@@ -188,7 +173,7 @@ scanRegexDatabaseTable() {
         # Split regexps over a new line
         str_regexList=$(printf '%s\n' "${regexList[@]}")
         # Check domain against regexps
-        mapfile -t regexMatches < <(scanList "${domain}" "${str_regexList}" "regex")
+        mapfile -t regexMatches < <(scanRegExList "${domain}" "${str_regexList}")
         # If there were regex matches
         if [[  "${#regexMatches[@]}" -ne 0 ]]; then
             # Split matching regexps over a new line
