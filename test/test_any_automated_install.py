@@ -1151,3 +1151,30 @@ def test_package_manager_has_web_deps(host):
 
     assert "No package" not in output.stdout
     assert output.rc == 0
+
+
+def test_webpage_sh_valid_domain(host):
+    """Confirms checkDomain function in webpage.sh works as expected"""
+    check1 = host.run(
+        """
+    source /opt/pihole/webpage.sh
+    checkDomain "pi-hole.net"
+    """
+    )
+    check2 = host.run(
+        """
+    source /opt/pihole/webpage.sh
+    checkDomain "ab.pi-hole.net"
+    """
+    )
+
+    check3 = host.run(
+        """
+    source /opt/pihole/webpage.sh
+    checkDomain "abc.pi-hole.net"
+    """
+    )
+
+    assert "pi-hole.net" in check1.stdout
+    assert "ab.pi-hole.net" in check2.stdout
+    assert "abc.pi-hole.net" in check3.stdout
