@@ -357,7 +357,7 @@ package_manager_detect() {
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
-        PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src)' | wc -l || true"
+        PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates)
         PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
@@ -2366,6 +2366,9 @@ get_binary_name() {
             # set the binary to be used
             l_binary="pihole-FTL-linux-x86_64"
         fi
+    elif [[ "${machine}" == "riscv64" ]]; then
+        printf "%b  %b Detected riscv64 processor\\n" "${OVER}" "${TICK}"
+        l_binary="pihole-FTL-riscv64-linux-gnu"
     else
         # Something else - we try to use 32bit executable and warn the user
         if [[ ! "${machine}" == "i686" ]]; then
