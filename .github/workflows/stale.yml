@@ -29,8 +29,11 @@ jobs:
           operations-per-run: 300
           close-issue-reason: 'not_planned'
 
-  remove_stale: # trigger "stale" removal immediately when stale issues are commented on
-    if: github.event_name == 'issue_comment'
+  remove_stale:
+    # trigger "stale" removal immediately when stale issues are commented on
+    # we need to explicitly check that the trigger does not run on comment on a PR as
+    # 'issue_comment' triggers on issues AND PR comments
+    if: github.event_name == 'issue_comment' && ${{ !github.event.issue.pull_request }}
     permissions:
       contents: read #  for actions/checkout
       issues: write #  to edit issues label
