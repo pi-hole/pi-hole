@@ -664,7 +664,7 @@ checkDomain()
     local domain validDomain
     # Convert to lowercase
     domain="${1,,}"
-    validDomain=$(grep -P "^((-|_)*[a-z0-9]((-|_)*[a-z0-9)*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$" <<< "${domain}") # Valid chars check
+    validDomain=$(grep -P "^((-|_)*[a-z0-9]((-|_)*[a-z0-9])*(-|_)*)(\\.(-|_)*([a-z0-9]((-|_)*[a-z0-9])*))*$" <<< "${domain}") # Valid chars check
     validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
     echo "${validDomain}"
 }
