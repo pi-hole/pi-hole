@@ -174,11 +174,6 @@ def test_installPihole_fresh_install_readableFiles(host):
         )
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
-        check_man = test_cmd.format(
-            "r", "/usr/local/share/man/man8/pihole-FTL.8", piholeuser
-        )
-        actual_rc = host.run(check_man).rc
-        assert exit_status_success == actual_rc
     # check not readable sudoers file
     check_sudo = test_cmd.format("r", "/etc/sudoers.d/pihole", piholeuser)
     actual_rc = host.run(check_sudo).rc

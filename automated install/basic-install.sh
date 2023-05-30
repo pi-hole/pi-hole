@@ -1253,11 +1253,13 @@ install_manpage() {
     fi
     # Testing complete, copy the files & update the man db
     install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole-FTL.8 /usr/local/share/man/man8/pihole-FTL.8
 
-    # remove previously installed "pihole-FTL.conf.5" man page
+    # remove previously installed man pages
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
         rm /usr/local/share/man/man5/pihole-FTL.conf.5
+    fi
+    if [[ -f "/usr/local/share/man/man5/pihole-FTL.8" ]]; then
+        rm /usr/local/share/man/man5/pihole-FTL.8
     fi
 
     if mandb -q &>/dev/null; then
@@ -1267,7 +1269,7 @@ install_manpage() {
     else
         # Something is wrong with the system's man installation, clean up
         # our files, (leave everything how we found it).
-        rm /usr/local/share/man/man8/pihole.8 /usr/local/share/man/man8/pihole-FTL.8
+        rm /usr/local/share/man/man8/pihole.8
         printf "%b  %b man page db not updated, man pages not installed\\n" "${OVER}" "${CROSS}"
     fi
 }
