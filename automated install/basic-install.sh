@@ -1951,39 +1951,29 @@ get_binary_name() {
         if [[ "${lib}" == "/lib/ld-linux-aarch64.so.1" ]]; then
             printf "%b  %b Detected AArch64 (64 Bit ARM) processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            l_binary="pihole-FTL-aarch64-linux-gnu"
+            l_binary="pihole-FTL-arm64"
         elif [[ "${lib}" == "/lib/ld-linux-armhf.so.3" ]]; then
             # Hard-float available: Use gnueabihf binaries
             # If ARMv8 or higher is found (e.g., BCM2837 as found in Raspberry Pi Model 3B)
             if [[ "${rev}" -gt 7 ]]; then
                 printf "%b  %b Detected ARMv8 (or newer) processor\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-armv8-linux-gnueabihf"
+                l_binary="pihole-FTL-armv8"
             elif [[ "${rev}" -eq 7 ]]; then
                 # Otherwise, if ARMv7 is found (e.g., BCM2836 as found in Raspberry Pi Model 2)
                 printf "%b  %b Detected ARMv7 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-armv7-linux-gnueabihf"
+                l_binary="pihole-FTL-armv7"
             else
                 # Otherwise, use the ARMv6 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
                 printf "%b  %b Detected ARMv6 processor (with hard-float support)\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
-                l_binary="pihole-FTL-armv6-linux-gnueabihf"
+                l_binary="pihole-FTL-armv6"
             fi
         else
-            # No hard-float support found: Use gnueabi binaries
-            # Use the ARMv4-compliant binary only if we detected an ARMv4T core
-            if [[ "${rev}" -eq 4 ]]; then
-                printf "%b  %b Detected ARMv4 processor\\n" "${OVER}" "${TICK}"
-                # set the binary to be used
-                l_binary="pihole-FTL-armv4-linux-gnueabi"
-            # Otherwise, use the ARMv5 binary. To date (end of 2020), all modern ARM processors
-            # are backwards-compatible to the ARMv5
-            else
-                printf "%b  %b Detected ARMv5 (or newer) processor\\n" "${OVER}" "${TICK}"
-                # set the binary to be used
-                l_binary="pihole-FTL-armv5-linux-gnueabi"
-            fi
+            # No hard-float support found
+            printf "%b  %b%b ARM processor without hard-float support detected%b\\n" "${OVER}" "${COL_LIGHT_RED}" "${CROSS}" "${COL_NC}"
+            l_binary=""
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the processor of packages dpkg installs (for example, "i386")
@@ -1996,16 +1986,16 @@ get_binary_name() {
         # in the past (see https://github.com/pi-hole/pi-hole/pull/2004)
         if [[ "${dpkgarch}" == "i386" ]]; then
             printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
-            l_binary="pihole-FTL-linux-x86_32"
+            l_binary="pihole-FTL-386"
         else
             # 64bit
             printf "%b  %b Detected x86_64 processor\\n" "${OVER}" "${TICK}"
             # set the binary to be used
-            l_binary="pihole-FTL-linux-x86_64"
+            l_binary="pihole-FTL-amd64"
         fi
     elif [[ "${machine}" == "riscv64" ]]; then
         printf "%b  %b Detected riscv64 processor\\n" "${OVER}" "${TICK}"
-        l_binary="pihole-FTL-riscv64-linux-gnu"
+        l_binary="pihole-FTL-riscv64"
     else
         # Something else - we try to use 32bit executable and warn the user
         if [[ ! "${machine}" == "i686" ]]; then
@@ -2015,7 +2005,7 @@ get_binary_name() {
         else
             printf "%b  %b Detected 32bit (i686) processor\\n" "${OVER}" "${TICK}"
         fi
-        l_binary="pihole-FTL-linux-x86_32"
+        l_binary="pihole-FTL-linux-386"
     fi
 
     # Returning a string value via echo
@@ -2180,6 +2170,16 @@ main() {
         fi
     fi
 
+    # Check if there is a usable FTL binary available on this architecture - do
+    # this early on as FTL is a hard dependency for Pi-hole
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    # Abort early if this processor is not supported (get_binary_name returnS empty string)
+    if [[ "${funcOutput}" == "" ]]; then
+        printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
+        exit 1
+    fi
+
     # Check if SELinux is Enforcing and exit before doing anything else
     checkSelinux
 
@@ -2249,9 +2249,7 @@ main() {
     # Create the pihole user
     create_pihole_user
 
-    # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
-    local funcOutput
-    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    # Download and install FTL
     local binary
     binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
     local theRest

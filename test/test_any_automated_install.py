@@ -268,9 +268,9 @@ def test_FTL_detect_aarch64_no_errors(host):
     assert expected_stdout in detectPlatform.stdout
 
 
-def test_FTL_detect_armv4t_no_errors(host):
+def test_FTL_detect_armv4t_no_install(host):
     """
-    confirms only armv4t package is downloaded for FTL engine
+    confirms armv4t architecture is not supported
     """
     # mock uname to return armv4t platform
     mock_command("uname", {"-m": ("armv4t", "0")}, host)
@@ -288,22 +288,17 @@ def test_FTL_detect_armv4t_no_errors(host):
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
     """
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (" Detected ARMv4 processor")
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
+    expected_stdout = cross_box + (" ARM processor without hard-float support detected")
     assert expected_stdout in detectPlatform.stdout
 
 
-def test_FTL_detect_armv5te_no_errors(host):
+def test_FTL_detect_armv5te_no_install(host):
     """
-    confirms only armv5te package is downloaded for FTL engine
+    confirms armv5te architecture is not supported
     """
     # mock uname to return armv5te platform
     mock_command("uname", {"-m": ("armv5te", "0")}, host)
@@ -321,16 +316,11 @@ def test_FTL_detect_armv5te_no_errors(host):
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
     """
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (" Detected ARMv5 (or newer) processor")
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
+    expected_stdout = cross_box + (" ARM processor without hard-float support detected")
     assert expected_stdout in detectPlatform.stdout
 
 
@@ -375,7 +365,7 @@ def test_FTL_detect_armv7l_no_errors(host):
     """
     # mock uname to return armv7l platform
     mock_command("uname", {"-m": ("armv7l", "0")}, host)
-    # mock ldd to respond with ld-linux-armhf shared library
+    # mock ldd to respond with ld-linux-armhf shared lib    rary
     mock_command(
         "ldd",
         {
