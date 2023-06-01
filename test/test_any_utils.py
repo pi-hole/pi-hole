@@ -151,4 +151,4 @@ def test_getFTLConfigValue_getFTLConfigValue(host):
     """
     )
 
-    assert '[ "9.9.9.9" ]' in output.stdout
+    assert '[ 9.9.9.9 ]' in output.stdout

@@ -1566,17 +1566,6 @@ create_pihole_user() {
     fi
 }
 
-finalExports() {
-    # shellcheck source=advanced/Scripts/webpage.sh
-    source "${PI_HOLE_LOCAL_REPO}/advanced/Scripts/webpage.sh"
-
-    # Look for DNS server settings which would have to be reapplied
-    ProcessDNSSettings
-
-    # Look for DHCP server settings which would have to be reapplied
-    ProcessDHCPSettings
-}
-
 # Install the logrotate script
 installLogrotate() {
     local str="Installing latest logrotate script"
@@ -1649,8 +1638,6 @@ installPihole() {
 
     # install a man page entry for pihole
     install_manpage
-
-    finalExports
 }
 
 # SELinux
