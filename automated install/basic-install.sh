@@ -78,7 +78,6 @@ PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update versi
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
-FTL_CONFIG_FILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
 fi
@@ -1191,15 +1190,6 @@ installConfigs() {
     # Some values may be empty (for example: DNS servers without IPv6 support)
     echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
     chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
-
-    # Install template file if it does not exist
-    if [[ ! -r "${FTL_CONFIG_FILE}" ]]; then
-        install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
-        if ! install -T -o pihole -m 664 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${FTL_CONFIG_FILE}" &>/dev/null; then
-            printf "  %b Error: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
-            return 1
-        fi
-    fi
 
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then

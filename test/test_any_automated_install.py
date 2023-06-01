@@ -80,9 +80,10 @@ def test_installPihole_fresh_install_readableFiles(host):
     host.run("command -v dnf > /dev/null && dnf install -y man")
     host.run("command -v yum > /dev/null && yum install -y man")
     # Workaround to get FTLv6 installed until it reaches master branch
-    host.run("""
-        echo "new/http" > /etc/pihole/ftlbranch
+    host.run(
         """
+    echo "new/http" > /etc/pihole/ftlbranch
+    """
     )
     install = host.run(
         """
@@ -140,13 +141,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     # readable macvendor.db
     check_macvendor = test_cmd.format("r", "/etc/pihole/macvendor.db", piholeuser)
     actual_rc = host.run(check_macvendor).rc
-    assert exit_status_success == actual_rc
-    # readable and writeable pihole-FTL.conf
-    check_FTLconf = test_cmd.format("r", "/etc/pihole/pihole-FTL.conf", piholeuser)
-    actual_rc = host.run(check_FTLconf).rc
-    assert exit_status_success == actual_rc
-    check_FTLconf = test_cmd.format("w", "/etc/pihole/pihole-FTL.conf", piholeuser)
-    actual_rc = host.run(check_FTLconf).rc
     assert exit_status_success == actual_rc
     # check readable and executable /etc/init.d/pihole-FTL
     check_init = test_cmd.format("x", "/etc/init.d/pihole-FTL", piholeuser)
