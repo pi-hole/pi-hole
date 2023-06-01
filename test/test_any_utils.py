@@ -129,7 +129,7 @@ def test_getFTLPIDFile_and_getFTLPID_custom(host):
 def test_getFTLConfigValue_getFTLConfigValue(host):
     """
     Confirms getFTLConfigValue works (also assumes setFTLConfigValue works)
-    Requires FTL to be installed, so we do that first (taken from test_FTL_binary_installed_and_responsive_no_errors)
+    Requires FTL to be installed, so we do that first (taken from test_FTL_development_binary_installed_and_responsive_no_errors)
     """
     host.run(
         """

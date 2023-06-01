@@ -64,7 +64,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     mock_command("dialog", {"*": ("", "0")}, host)
     # mock git pull
     mock_command_passthrough("git", {"pull": ("", "0")}, host)
-    # mock systemctl to not start lighttpd and FTL
+    # mock systemctl to not start FTL
     mock_command_2(
         "systemctl",
         {
@@ -95,6 +95,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     runUnattended=true
     useUpdateVars=true
     main
+    /opt/pihole/pihole-FTL-prestart.sh
     """
     )
     assert 0 == install.rc
@@ -507,9 +508,9 @@ def test_FTL_download_aarch64_no_errors(host):
     assert "error" not in download_binary.stdout.lower()
 
 
-def test_FTL_binary_installed_and_responsive_no_errors(host):
+def test_FTL_development_binary_installed_and_responsive_no_errors(host):
     """
-    confirms FTL binary is copied and functional in installed location
+    confirms FTL development binary is copied and functional in installed location
     """
     host.run(
         """
