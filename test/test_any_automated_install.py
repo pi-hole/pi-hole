@@ -79,6 +79,11 @@ def test_installPihole_fresh_install_readableFiles(host):
     host.run("command -v apt-get > /dev/null && apt-get install -qq man")
     host.run("command -v dnf > /dev/null && dnf install -y man")
     host.run("command -v yum > /dev/null && yum install -y man")
+    # Workaround to get FTLv6 installed until it reaches master branch
+    host.run("""
+        echo "new/http" > /etc/pihole/ftlbranch
+        """
+    )
     install = host.run(
         """
     export TERM=xterm
