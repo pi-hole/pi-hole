@@ -218,10 +218,8 @@ initialize_debug() {
 
 # This is a function for visually displaying the current test that is being run.
 # Accepts one variable: the name of what is being diagnosed
-# Colors do not show in the dashboard, but the icons do: [i], [✓], and [✗]
 echo_current_diagnostic() {
     # Colors are used for visually distinguishing each test in the output
-    # These colors do not show in the GUI, but the formatting will
     log_write "\\n${COL_PURPLE}*** [ DIAGNOSING ]:${COL_NC} ${1}"
 }
 

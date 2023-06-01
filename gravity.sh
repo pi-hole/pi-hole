@@ -210,7 +210,7 @@ database_table_from_file() {
 
 # Check if a column with name ${2} exists in gravity table with name ${1}
 gravity_column_exists() {
-  output=$( { printf ".timeout 30000\\nSELECT EXISTS(SELECT * FROM pragma_table_info('%s') WHERE name='%s');\\n" "${1}" "${2}" | pihole-FTL sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nSELECT EXISTS(SELECT * FROM pragma_table_info('%s') WHERE name='%s');\\n" "${1}" "${2}" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
   if [[ "${output}" == "1" ]]; then
     return 0 # Bash 0 is success
   fi
@@ -225,11 +225,11 @@ database_adlist_number() {
     return;
   fi
 
-  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${2}" "${3}" "${1}" | pihole-FTL sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${2}" "${3}" "${1}" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update number of domains in adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to update number of domains in adlist with ID ${1} in database ${gravityTEMPfile}\\n  ${output}"
     gravity_Cleanup "error"
   fi
 }
@@ -241,11 +241,11 @@ database_adlist_status() {
     return;
   fi
 
-  output=$( { printf ".timeout 30000\\nUPDATE adlist SET status = %i WHERE id = %i;\\n" "${2}" "${1}" | pihole-FTL sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET status = %i WHERE id = %i;\\n" "${2}" "${1}" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update status of adlist with ID ${1} in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to update status of adlist with ID ${1} in database ${gravityTEMPfile}\\n  ${output}"
     gravity_Cleanup "error"
   fi
 }

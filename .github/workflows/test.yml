@@ -53,6 +53,7 @@ jobs:
             debian_11,
             ubuntu_20,
             ubuntu_22,
+            ubuntu_23,
             centos_8,
             centos_9,
             fedora_36,
@@ -66,7 +67,7 @@ jobs:
         uses: actions/checkout@v3.5.2
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4.6.0
+        uses: actions/setup-python@v4.6.1
         with:
           python-version: "3.10"
 
