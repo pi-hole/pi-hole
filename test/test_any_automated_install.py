@@ -286,12 +286,9 @@ def test_FTL_detect_armv4t_no_install(host):
     detectPlatform = host.run(
         """
     source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
+    get_binary_name
     """
     )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
     expected_stdout = cross_box + (" ARM processor without hard-float support detected")
     assert expected_stdout in detectPlatform.stdout
 
@@ -314,12 +311,9 @@ def test_FTL_detect_armv5te_no_install(host):
     detectPlatform = host.run(
         """
     source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
+    get_binary_name
     """
     )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
     expected_stdout = cross_box + (" ARM processor without hard-float support detected")
     assert expected_stdout in detectPlatform.stdout
 

@@ -2174,7 +2174,7 @@ main() {
     # this early on as FTL is a hard dependency for Pi-hole
     local funcOutput
     funcOutput=$(get_binary_name) #Store output of get_binary_name here
-    # Abort early if this processor is not supported (get_binary_name returnS empty string)
+    # Abort early if this processor is not supported (get_binary_name returns empty string)
     if [[ "${funcOutput}" == "" ]]; then
         printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
         exit 1
