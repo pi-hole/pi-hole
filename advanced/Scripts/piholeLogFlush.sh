@@ -30,10 +30,10 @@ if [ -z "$DBFILE" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
-if [[ "$@" != *"quiet"* ]]; then
+if [[ "$*" != *"quiet"* ]]; then
     echo -ne "  ${INFO} Flushing /var/log/pihole/pihole.log ..."
 fi
-if [[ "$@" == *"once"* ]]; then
+if [[ "$*" == *"once"* ]]; then
     # Nightly logrotation
     if command -v /usr/sbin/logrotate >/dev/null; then
         # Logrotate once
@@ -69,7 +69,7 @@ else
     sudo pihole restartdns
 fi
 
-if [[ "$@" != *"quiet"* ]]; then
+if [[ "$*" != *"quiet"* ]]; then
     echo -e "${OVER}  ${TICK} Flushed /var/log/pihole/pihole.log"
     echo -e "  ${TICK} Deleted ${deleted} queries from database"
 fi

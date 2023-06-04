@@ -196,7 +196,7 @@ Time:
       echo -e "  ${INFO} Blocking already disabled, nothing to do"
       exit 0
     fi
-    if [[ $# > 1 ]]; then
+    if [[ $# -gt 1 ]]; then
       local error=false
       if [[ "${2}" == *"s" ]]; then
         tt=${2%"s"}
