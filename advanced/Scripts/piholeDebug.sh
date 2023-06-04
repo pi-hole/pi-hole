@@ -339,7 +339,7 @@ os_check() {
     detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
     detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-    cmdResult="$(dig +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
+    cmdResult="$(dig -4 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
     #Get the return code of the previous command (last line)
     digReturnCode="${cmdResult##*$'\n'}"
 
@@ -349,7 +349,20 @@ os_check() {
     if [ "${digReturnCode}" -ne 0 ]; then
         log_write "${INFO} Distro: ${detected_os^}"
         log_write "${INFO} Version: ${detected_version}"
-        log_write "${CROSS} dig return code: ${COL_RED}${digReturnCode}${COL_NC}"
+        log_write "${CROSS} dig IPv4 return code: ${COL_RED}${digReturnCode}${COL_NC}"
+        log_write "${CROSS} dig response: ${response}"
+        log_write "${INFO} Retrying via IPv6"
+
+        cmdResult="$(dig -6 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
+        #Get the return code of the previous command (last line)
+        digReturnCode="${cmdResult##*$'\n'}"
+
+        # Extract dig response
+        response="${cmdResult%%$'\n'*}"
+    fi
+    # If also no success via IPv6
+    if [ "${digReturnCode}" -ne 0 ]; then
+        log_write "${CROSS} dig IPv6 return code: ${COL_RED}${digReturnCode}${COL_NC}"
         log_write "${CROSS} dig response: ${response}"
         log_write "${CROSS} Error: ${COL_RED}dig command failed - Unable to check OS${COL_NC}"
     else
