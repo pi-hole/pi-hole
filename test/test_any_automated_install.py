@@ -286,7 +286,7 @@ def test_FTL_detect_armv4_no_errors(host):
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv4 or ARMv5 architecture"
+    expected_stdout = tick_box + " Detected ARMv4 or ARMv5 architecture (armv4t)"
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
     assert expected_stdout in detectPlatform.stdout
@@ -319,7 +319,7 @@ def test_FTL_detect_armv5_no_errors(host):
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv4 or ARMv5 architecture"
+    expected_stdout = tick_box + " Detected ARMv4 or ARMv5 architecture (armv5te)"
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
     assert expected_stdout in detectPlatform.stdout
@@ -358,7 +358,7 @@ def test_FTL_detect_armv6_old_no_errors(host):
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + (
-        " Detected ARMv6 architecture (running GLIBC older than 2.29)"
+        " Detected ARMv6 architecture (running GLIBC older than 2.29, armv6l)"
     )
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
@@ -398,7 +398,7 @@ def test_FTL_detect_armv6_recent_no_errors(host):
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + (
-        " Detected ARMv6 architecture (running GLIBC 2.29 or higher)"
+        " Detected ARMv6 architecture (running GLIBC 2.29 or higher, armv6l)"
     )
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
@@ -465,7 +465,40 @@ def test_FTL_detect_armv7l_no_errors(host):
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (" Detected ARMv7 architecture")
+    expected_stdout = tick_box + (" Detected ARMv7 architecture (armv7l)")
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + " Downloading and Installing FTL"
+    assert expected_stdout in detectPlatform.stdout
+
+
+def test_FTL_detect_armv7_no_errors(host):
+    """
+    confirms only armv7 package is downloaded for FTL engine
+    """
+    # mock uname to return armv7 platform
+    mock_command("uname", {"-m": ("armv7", "0")}, host)
+    # mock readelf to respond with armv7 CPU architecture
+    mock_command_2(
+        "readelf",
+        {
+            "-A /bin/sh": ("Tag_CPU_arch: armv7", "0"),
+            "-A /usr/bin/sh": ("Tag_CPU_arch: armv7", "0"),
+        },
+        host,
+    )
+    detectPlatform = host.run(
+        """
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
+    """
+    )
+    expected_stdout = info_box + " FTL Checks..."
+    assert expected_stdout in detectPlatform.stdout
+    expected_stdout = tick_box + (" Detected ARMv7 architecture (armv7)")
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
     assert expected_stdout in detectPlatform.stdout
@@ -498,7 +531,7 @@ def test_FTL_detect_armv8a_no_errors(host):
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv8 (or newer) architecture"
+    expected_stdout = tick_box + " Detected ARMv7 (or newer) architecture (armv8a)"
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
     assert expected_stdout in detectPlatform.stdout
