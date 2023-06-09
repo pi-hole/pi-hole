@@ -1843,7 +1843,7 @@ get_binary_name() {
             l_binary="pihole-FTL-armv6"
         else
             # If ARMv8 or higher is found (e.g., BCM2837 as found in Raspberry Pi Model 3B)
-            if [[ "${rev}" -gt 7 ]]; then
+            if [[ "${cpu_arch}" == "v7" || "${rev}" -gt 7 ]]; then
                 printf "%b  %b Detected ARMv8 (or newer) architecture\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
                 l_binary="pihole-FTL-armv7"
@@ -1852,7 +1852,7 @@ get_binary_name() {
                 printf "%b  %b Detected ARMv7 architecture\\n" "${OVER}" "${TICK}"
                 # set the binary to be used
                 l_binary="pihole-FTL-armv6"
-            elif [[ "${rev}" -gt 5 ]]; then
+            elif [[ "${cpu_arch}" == "v5TE" || "${rev}" -gt 5 ]]; then
                 # Check if the system is using GLIBC 2.29 or higher
                 if [[ -n "${l_glibc_version}" && "$(printf '%s\n' "2.29" "${l_glibc_version}" | sort -V | head -n1)" == "2.29" ]]; then
                     # If so, use the ARMv6 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
