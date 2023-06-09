@@ -304,7 +304,7 @@ package_manager_detect() {
         # Packages required to perform the os_check (stored as an array)
         OS_CHECK_DEPS=(grep dnsutils)
         # Packages required to run this install script (stored as an array)
-        INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
+        INSTALLER_DEPS=(git iproute2 dialog ca-certificates binutils)
         # Packages required to run Pi-hole (stored as an array)
         PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq)
 
@@ -322,7 +322,7 @@ package_manager_detect() {
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         OS_CHECK_DEPS=(grep bind-utils)
-        INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates)
+        INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates binutils)
         PIHOLE_DEPS=(cronie curl findutils sudo unzip libidn2 psmisc libcap nmap-ncat jq)
 
     # If neither apt-get or yum/dnf package managers were found
