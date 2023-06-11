@@ -51,6 +51,7 @@ jobs:
           [
             debian_10,
             debian_11,
+            debian_12,
             ubuntu_20,
             ubuntu_22,
             ubuntu_23,
