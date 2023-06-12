@@ -1001,6 +1001,38 @@ remove_old_dnsmasq_ftl_configs() {
     fi
 }
 
+remove_old_pihole_lighttpd_configs() {
+    local lighttpdConfig="/etc/lighttpd/lighttpd.conf"
+    local condfd="/etc/lighttpd/conf.d/pihole-admin.conf"
+    local confavailable="/etc/lighttpd/conf-available/15-pihole-admin.conf"
+    local confenabled="/etc/lighttpd/conf-enabled/15-pihole-admin.conf"
+
+
+    if [[ -d "/etc/lighttpd/conf.d" ]]; then
+        if grep -q -F 'include "/etc/lighttpd/conf.d/pihole-admin.conf"' "${lighttpdConfig}"; then
+           sed -i '/include "/etc/lighttpd/conf.d/pihole-admin.conf"/d' "${lighttpdConfig}"
+        fi
+
+        if [[ -f "${condfd}" ]]; then
+            rm "${condfd}"
+        fi
+
+
+    elif [[ -d "/etc/lighttpd/conf-available" ]]; then
+        if is_command lighty-disable-mod ; then
+            lighty-disable-mod pihole-admin > /dev/null || true
+        fi
+
+        if [[ -f "${confavailable}" ]]; then
+            rm "${confavailable}"
+        fi
+
+        if [[ -f "${confenabled}" ]]; then
+            rm "${confenabled}"
+        fi
+     fi
+}
+
 # Clean an existing installation to prepare for upgrade/reinstall
 clean_existing() {
     # Local, named variables
@@ -1486,6 +1518,7 @@ installPihole() {
     fi
 
     remove_old_dnsmasq_ftl_configs
+    remove_old_pihole_lighttpd_configs
 
     # Install config files
     if ! installConfigs; then
