@@ -1009,9 +1009,7 @@ remove_old_pihole_lighttpd_configs() {
 
 
     if [[ -d "/etc/lighttpd/conf.d" ]]; then
-        if grep -q -F 'include "/etc/lighttpd/conf.d/pihole-admin.conf"' "${lighttpdConfig}"; then
-           sed -i '/include "\/etc\/lighttpd\/conf.d\/pihole-admin.conf"/d' "${lighttpdConfig}"
-        fi
+        sed -i '/include "\/etc\/lighttpd\/conf.d\/pihole-admin.conf"/d' "${lighttpdConfig}"
 
         if [[ -f "${condfd}" ]]; then
             rm "${condfd}"
