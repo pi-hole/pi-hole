@@ -35,7 +35,8 @@ CREATE TABLE adlist
 	date_updated INTEGER,
 	number INTEGER NOT NULL DEFAULT 0,
 	invalid_domains INTEGER NOT NULL DEFAULT 0,
-	status INTEGER NOT NULL DEFAULT 0
+	status INTEGER NOT NULL DEFAULT 0,
+	abp_entries INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE adlist_by_group
