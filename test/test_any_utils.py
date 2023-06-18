@@ -137,7 +137,7 @@ def test_getFTLConfigValue_getFTLConfigValue(host):
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
-    echo "new/http" > /etc/pihole/ftlbranch
+    echo "development-v6" > /etc/pihole/ftlbranch
     binary="pihole-FTL${funcOutput##*pihole-FTL}"
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
