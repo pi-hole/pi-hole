@@ -82,7 +82,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     # Workaround to get FTLv6 installed until it reaches master branch
     host.run(
         """
-    echo "new/http" > /etc/pihole/ftlbranch
+    echo "development-v6" > /etc/pihole/ftlbranch
     """
     )
     install = host.run(
