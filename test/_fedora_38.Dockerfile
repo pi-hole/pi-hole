@@ -1,5 +1,5 @@
 FROM fedora:38
-RUN dnf install -y git initscripts
+RUN dnf --setopt=install_weak_deps=False install -y git systemd
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
@@ -15,4 +15,4 @@ RUN true && \
 ENV SKIP_INSTALL true
 ENV OS_CHECK_DOMAIN_NAME dev-supportedos.pi-hole.net
 
-#sed '/# Start the installer/Q' /opt/pihole/basic-install.sh > /opt/pihole/stub_basic-install.sh && \
+CMD ["/usr/sbin/init"]

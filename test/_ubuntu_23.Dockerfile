@@ -1,5 +1,7 @@
 FROM buildpack-deps:lunar-scm
 
+RUN apt-get update && apt-get -y --no-install-recommends install systemd systemd-sysv
+
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole
 
@@ -15,4 +17,4 @@ RUN true && \
 ENV SKIP_INSTALL true
 ENV OS_CHECK_DOMAIN_NAME dev-supportedos.pi-hole.net
 
-#sed '/# Start the installer/Q' /opt/pihole/basic-install.sh > /opt/pihole/stub_basic-install.sh && \
+CMD ["/bin/systemd"]
