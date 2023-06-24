@@ -2,5 +2,5 @@ docker-compose == 1.29.2
 pytest == 7.3.2
 pytest-xdist == 3.3.1
 pytest-testinfra == 8.1.0
-tox == 4.6.2
+tox == 4.6.3
 
