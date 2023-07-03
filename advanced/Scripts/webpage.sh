@@ -52,6 +52,7 @@ Options:
   -i, interface                   Specify dnsmasq's interface listening behavior
   -l, privacylevel                Set privacy level (0 = lowest, 3 = highest)
   -t, teleporter                  Backup configuration as an archive
+                                    Add '-h' for more info on Teleporter usage
   -t, teleporter myname.tar.gz    Backup configuration to archive with name myname.tar.gz as specified"
     exit 0
 }
@@ -646,6 +647,27 @@ Interfaces:
 }
 
 Teleporter() {
+    case "${args[2]}" in
+        "-h" | "help"         ) TeleporterHelpFunc;;
+        "-r" | "restore"      ) TeleporterRestore;;
+        *                     ) TeleporterBackup;;
+    esac
+}
+
+TeleporterHelpFunc() {
+    echo "Usage: pihole -a -t [options] [file]
+If no options or file are specified, then backup configuration as an archive
+If a file is specified, then backup configuration to archive with name myname.tar.gz as specified
+
+Example: pihole -a -t myname.tar.gz
+Set options for Teleporter
+
+Options:
+  -r, restore myname.tar.gz       Restore configuration from an archive with name myname.tar.gz as specified"
+    exit 0
+}
+
+TeleporterBackup() {
     local filename
     filename="${args[2]}"
     if [[ -z "${filename}" ]]; then
@@ -657,6 +679,15 @@ Teleporter() {
         filename="pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
     fi
     php "${webroot}/admin/scripts/pi-hole/php/teleporter.php" > "${filename}"
+}
+
+TeleporterRestore() {
+    if [[ "${#args[@]}" -gt 3 ]]; then
+        # webroot is sourced from basic-install above
+        php "${webroot}/admin/scripts/pi-hole/php/teleporter.php" "${args[@]:3}"
+    else
+        TeleporterHelpFunc
+    fi
 }
 
 checkDomain()
