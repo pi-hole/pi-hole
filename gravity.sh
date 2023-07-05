@@ -361,6 +361,7 @@ gravity_DownloadBlocklists() {
   # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
   mapfile -t sources <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
   mapfile -t sourceIDs <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2> /dev/null)"
+  mapfile -t sourceTypes <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
@@ -382,7 +383,7 @@ gravity_DownloadBlocklists() {
     unset sources
   fi
 
-  local url domain agent str target compression
+  local url domain agent str target compression adlist_type
   echo ""
 
   # Prepare new gravity database
@@ -394,7 +395,7 @@ gravity_DownloadBlocklists() {
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n  ${output}"
-    gravity_Cleanup "error"
+    #gravity_Cleanup "error"
   else
     echo -e "${OVER}  ${TICK} ${str}"
   fi
@@ -433,6 +434,15 @@ gravity_DownloadBlocklists() {
     url="${sources[$i]}"
     domain="${sourceDomains[$i]}"
     id="${sourceIDs[$i]}"
+    if [[ "${sourceTypes[$i]}" -eq "0" ]]; then
+      # Gravity list
+      str="blocklist"
+      adlist_type="gravity"
+    else
+      # AntiGravity list
+      str="allowlist"
+      adlist_type="antigravity"
+    fi
 
     # Save the file as list.#.domain
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
@@ -441,7 +451,7 @@ gravity_DownloadBlocklists() {
     # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
     agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
 
-    echo -e "  ${INFO} Target: ${url}"
+    echo -e "  ${INFO} Target: ${url} (${str})"
     local regex check_url
     # Check for characters NOT allowed in URLs
     regex="[^a-zA-Z0-9:/?&%=~._()-;]"
@@ -453,7 +463,7 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      gravity_DownloadBlocklistFromUrl "${url}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
+      gravity_DownloadBlocklistFromUrl "${url}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}"
     fi
     echo ""
   done
@@ -485,7 +495,7 @@ compareLists() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" agent="${2}" adlistID="${3}" saveLocation="${4}" target="${5}" compression="${6}"
+  local url="${1}" agent="${2}" adlistID="${3}" saveLocation="${4}" target="${5}" compression="${6}" gravity_type="${7}"
   local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
 
   # Create temp file to store content on disk instead of RAM
@@ -579,7 +589,7 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
-      pihole-FTL gravity parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "2"
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
@@ -589,7 +599,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Remove curl buffer file after its use
       rm "${listCurlBuffer}"
       # Add domains to database table file
-      pihole-FTL gravity parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       # Compare lists, are they identical?
       compareLists "${adlistID}" "${saveLocation}"
       done="true"
@@ -605,7 +615,7 @@ gravity_DownloadBlocklistFromUrl() {
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       # Add domains to database table file
-      pihole-FTL gravity parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "3"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"

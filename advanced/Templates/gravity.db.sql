@@ -36,7 +36,8 @@ CREATE TABLE adlist
 	number INTEGER NOT NULL DEFAULT 0,
 	invalid_domains INTEGER NOT NULL DEFAULT 0,
 	status INTEGER NOT NULL DEFAULT 0,
-	abp_entries INTEGER NOT NULL DEFAULT 0
+	abp_entries INTEGER NOT NULL DEFAULT 0,
+	type INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE adlist_by_group
@@ -47,6 +48,12 @@ CREATE TABLE adlist_by_group
 );
 
 CREATE TABLE gravity
+(
+	domain TEXT NOT NULL,
+	adlist_id INTEGER NOT NULL REFERENCES adlist (id)
+);
+
+CREATE TABLE antigravity
 (
 	domain TEXT NOT NULL,
 	adlist_id INTEGER NOT NULL REFERENCES adlist (id)
@@ -143,6 +150,13 @@ CREATE VIEW vw_gravity AS SELECT domain, adlist_by_group.group_id AS group_id
     LEFT JOIN adlist ON adlist.id = gravity.adlist_id
     LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
     WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1);
+
+CREATE VIEW vw_antigravity AS SELECT domain, adlist_by_group.group_id AS group_id
+    FROM antigravity
+    LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = antigravity.adlist_id
+    LEFT JOIN adlist ON adlist.id = antigravity.adlist_id
+    LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
+    WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1) AND adlist.type = 1;
 
 CREATE VIEW vw_adlist AS SELECT DISTINCT address, id
     FROM adlist

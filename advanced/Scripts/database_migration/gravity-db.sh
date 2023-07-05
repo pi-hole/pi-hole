@@ -134,4 +134,11 @@ upgrade_gravityDB(){
 		pihole-FTL sqlite3 "${database}" < "${scriptPath}/15_to_16.sql"
 		version=16
 	fi
+	if [[ "$version" == "16" ]]; then
+		# Add antigravity table
+		# Add column type to adlist table (to support adlist types)
+		echo -e "  ${INFO} Upgrading gravity database from version 16 to 17"
+		pihole-FTL sqlite3 "${database}" < "${scriptPath}/16_to_17.sql"
+		version=17
+	fi
 }

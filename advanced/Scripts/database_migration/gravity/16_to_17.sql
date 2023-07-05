@@ -1,0 +1,13 @@
+.timeout 30000
+
+PRAGMA FOREIGN_KEYS=OFF;
+
+BEGIN TRANSACTION;
+
+ALTER TABLE adlist ADD COLUMN type INTEGER NOT NULL DEFAULT 0;
+
+UPDATE adlist SET type = 0;
+
+UPDATE info SET value = 17 WHERE property = 'version';
+
+COMMIT;
