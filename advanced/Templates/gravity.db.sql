@@ -65,7 +65,7 @@ CREATE TABLE info
 	value TEXT NOT NULL
 );
 
-INSERT INTO "info" VALUES('version','16');
+INSERT INTO "info" VALUES('version','17');
 
 CREATE TABLE domain_audit
 (
@@ -158,7 +158,7 @@ CREATE VIEW vw_antigravity AS SELECT domain, adlist_by_group.group_id AS group_i
     LEFT JOIN "group" ON "group".id = adlist_by_group.group_id
     WHERE adlist.enabled = 1 AND (adlist_by_group.group_id IS NULL OR "group".enabled = 1) AND adlist.type = 1;
 
-CREATE VIEW vw_adlist AS SELECT DISTINCT address, id
+CREATE VIEW vw_adlist AS SELECT DISTINCT address, id, type
     FROM adlist
     WHERE enabled = 1
     ORDER BY id;
