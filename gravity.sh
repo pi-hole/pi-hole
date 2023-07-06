@@ -395,7 +395,7 @@ gravity_DownloadBlocklists() {
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to create new database ${gravityTEMPfile}\\n  ${output}"
-    #gravity_Cleanup "error"
+    gravity_Cleanup "error"
   else
     echo -e "${OVER}  ${TICK} ${str}"
   fi
