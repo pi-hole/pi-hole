@@ -1,4 +1,4 @@
-docker-compose == 1.29.2
+pyyaml == 6.0.1
 pytest == 7.4.0
 pytest-xdist == 3.3.1
 pytest-testinfra == 8.1.0
