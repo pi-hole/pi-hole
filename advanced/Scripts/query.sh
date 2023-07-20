@@ -50,7 +50,7 @@ fi
 
 # Strip valid options, leaving only the domain and invalid options
 # This allows users to place the options before or after the domain
-options=$(sed -E 's/ +-(all|exact) ?//g' <<< "${options}")
+options=$(sed -E 's/(^|\s)-(all|exact) ?//g' <<< "${options}")
 
 # Handle remaining options
 # If $options contain non ASCII characters, convert to punycode
