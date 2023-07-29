@@ -2243,6 +2243,14 @@ main() {
         mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
     fi
 
+    # v5 -> v6 upgrade path
+    # if port 80 is already taken, e.g. on update where lighttpd is installed, change the default port to 8080
+    # this should be no issue on upgrades/repairs if FTL is the only webserver as we stop it right above and it should free port 80
+
+    if ss --listening --numeric --tcp --udp | grep -q ":80" ; then
+        setFTLConfigValue webserver.port 8080
+    fi
+
     restart_service pihole-FTL
 
     # Download and compile the aggregated block list
