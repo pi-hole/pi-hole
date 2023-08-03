@@ -17,9 +17,9 @@ mkdir -pm 0755 /run/pihole /var/log/pihole
 [ -f /var/log/pihole/pihole.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/pihole.log
 [ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
-chown pihole:pihole /run/pihole /etc/pihole /var/log/pihole /var/log/pihole/FTL.log /var/log/pihole/pihole.log /etc/pihole/dhcp.leases
+chown pihole:pihole /run/pihole /etc/pihole /var/log/pihole /var/log/pihole/FTL.log /var/log/pihole/pihole.log /etc/pihole/dhcp.leases /etc/pihole/custom.list
 # Ensure that permissions are set so that pihole-FTL can edit the files. We ignore errors as the file may not (yet) exist
-chmod -f 0644 /etc/pihole/macvendor.db /etc/pihole/dhcp.leases /var/log/pihole/FTL.log
+chmod -f 0644 /etc/pihole/macvendor.db /etc/pihole/dhcp.leases /var/log/pihole/FTL.log /etc/pihole/custom.list
 chmod -f 0640 /var/log/pihole/pihole.log
 # Chown database files to the user FTL runs as. We ignore errors as the files may not (yet) exist
 chown -f pihole:pihole /etc/pihole/pihole-FTL.db /etc/pihole/gravity.db /etc/pihole/macvendor.db
