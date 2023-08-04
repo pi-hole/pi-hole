@@ -20,6 +20,8 @@ mkdir -pm 0755 /run/pihole /var/log/pihole
 chown -R pihole:pihole /run/pihole /etc/pihole /var/log/pihole
 chmod -R 0640 /var/log/pihole
 chmod -R 0660 /etc/pihole /run/pihole
+# allow all users to enter der directories
+chmod 0755 /etc/pihole /run/pihole /var/log/pihole
 
 # Backward compatibility for user-scripts that still expect log files in /var/log instead of /var/log/pihole
 # Should be removed with Pi-hole v6.0
