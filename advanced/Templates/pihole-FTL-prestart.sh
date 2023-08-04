@@ -18,6 +18,8 @@ mkdir -pm 0755 /run/pihole /var/log/pihole
 [ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
 chown -R pihole:pihole /run/pihole /etc/pihole /var/log/pihole
+chmod -R 0640 /var/log/pihole
+chmod -R 0660 /etc/pihole /run/pihole
 
 # Backward compatibility for user-scripts that still expect log files in /var/log instead of /var/log/pihole
 # Should be removed with Pi-hole v6.0
