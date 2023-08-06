@@ -19,8 +19,8 @@ mkdir -pm 0755 /var/log/pihole
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
 chown -R pihole:pihole /etc/pihole /var/log/pihole
 chmod -R 0640 /var/log/pihole
-chmod -R 0660 /etc/pihole /run/pihole
-# allow all users to enter der directories
+chmod -R 0660 /etc/pihole
+# allow all users to enter the directories
 chmod 0755 /etc/pihole /var/log/pihole
 
 # Backward compatibility for user-scripts that still expect log files in /var/log instead of /var/log/pihole
