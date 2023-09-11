@@ -383,7 +383,7 @@ gravity_DownloadBlocklists() {
     unset sources
   fi
 
-  local url domain agent str target compression adlist_type
+  local url domain str target compression adlist_type
   echo ""
 
   # Prepare new gravity database
@@ -448,10 +448,7 @@ gravity_DownloadBlocklists() {
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
-    # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
-    agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
-
-    echo -e "  ${INFO} Target: ${url} (${str})"
+    echo -e "  ${INFO} Target: ${url}"
     local regex check_url
     # Check for characters NOT allowed in URLs
     regex="[^a-zA-Z0-9:/?&%=~._()-;]"
@@ -463,7 +460,7 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      gravity_DownloadBlocklistFromUrl "${url}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}"
+      gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}"
     fi
     echo ""
   done
@@ -495,7 +492,7 @@ compareLists() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" agent="${2}" adlistID="${3}" saveLocation="${4}" target="${5}" compression="${6}" gravity_type="${7}"
+  local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}"
   local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
 
   # Create temp file to store content on disk instead of RAM
@@ -555,7 +552,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # shellcheck disable=SC2086
-  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${listCurlBuffer}" 2> /dev/null)
+  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2> /dev/null)
 
   case $url in
     # Did we "download" a local file?
