@@ -809,11 +809,15 @@ dig_at() {
         local record_type="A"
     fi
 
-    # Find a random blocked url that has not been whitelisted.
+    # Find a random blocked url that has not been whitelisted and is not ABP style.
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
-    random_url=$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity ORDER BY RANDOM() LIMIT 1")
+    random_url=$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
+    # Falback if no non-ABP style domains were found
+    if [ -z "${random_url}" ]; then
+        random_url="flurry.com"
+    fi
 
     # Next we need to check if Pi-hole can resolve a domain when the query is sent to it's IP address
     # This better emulates how clients will interact with Pi-hole as opposed to above where Pi-hole is
