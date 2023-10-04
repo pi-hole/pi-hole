@@ -2203,7 +2203,7 @@ main() {
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
-    # but before starting or resarting the ftl service
+    # but before starting or restarting the ftl service
     disable_resolved_stublistener
 
     printf "  %b Restarting services...\\n" "${INFO}"

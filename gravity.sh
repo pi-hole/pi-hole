@@ -675,10 +675,10 @@ gravity_ShowCount() {
   # Here we use the table "gravity" instead of the view "vw_gravity" for speed.
   # It's safe to replace it here, because right after a gravity run both will show the exactly same number of domains.
   gravity_Table_Count "gravity" "gravity domains" ""
-  gravity_Table_Count "vw_blacklist" "exact blacklisted domains"
-  gravity_Table_Count "vw_regex_blacklist" "regex blacklist filters"
-  gravity_Table_Count "vw_whitelist" "exact whitelisted domains"
-  gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
+  gravity_Table_Count "vw_blacklist" "exact denied domains"
+  gravity_Table_Count "vw_regex_blacklist" "regex denied filters"
+  gravity_Table_Count "vw_whitelist" "exact allowed domains"
+  gravity_Table_Count "vw_regex_whitelist" "regex allowed filters"
 }
 
 # Create "localhost" entries into hosts format
