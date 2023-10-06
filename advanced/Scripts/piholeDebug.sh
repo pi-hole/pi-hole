@@ -866,7 +866,7 @@ dig_at() {
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
     random_url=$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
-    # Falback if no non-ABP style domains were found
+    # Fallback if no non-ABP style domains were found
     if [ -z "${random_url}" ]; then
         random_url="flurry.com"
     fi
@@ -1503,7 +1503,7 @@ upload_to_tricorder() {
     # If no token was generated
     else
         # Show an error and some help instructions
-        # Skip this if being called from web interface and autmatic mode was not chosen (users opt-out to upload)
+        # Skip this if being called from web interface and automatic mode was not chosen (users opt-out to upload)
         if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
             :
         else
