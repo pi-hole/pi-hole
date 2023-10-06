@@ -2685,7 +2685,7 @@ main() {
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
-    # but before starting or resarting the dnsmasq or ftl services
+    # but before starting or restarting the dnsmasq or ftl services
     disable_resolved_stublistener
 
     # If the Web server was installed,
