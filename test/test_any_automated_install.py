@@ -70,7 +70,7 @@ def test_setupVars_are_sourced_to_global_scope(host):
 
 def test_setupVars_saved_to_file(host):
     """
-    confirm saved settings are written to a file for future updates to re-use
+    confirm saved settings are written to a file for future updates to reuse
     """
     # dedent works better with this and padding matching script below
     set_setup_vars = "\n"
