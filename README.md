@@ -167,3 +167,7 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 
 1. `http://pi.hole/admin/` (when using Pi-hole as your DNS server)
 2. `http://<IP_ADDRESS_OF_YOUR_PI_HOLE>/admin/`
+
+## License
+
+This product is licensed under the [European Union Public License](https://github.com/pi-hole/pi-hole/blob/master/LICENSE). 
