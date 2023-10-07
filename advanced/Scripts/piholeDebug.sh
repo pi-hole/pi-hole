@@ -449,7 +449,7 @@ os_check() {
 }
 
 diagnose_operating_system() {
-    # error message in a variable so we can easily modify it later (or re-use it)
+    # error message in a variable so we can easily modify it later (or reuse it)
     local error_msg="Distribution unknown -- most likely you are on an unsupported platform and may run into issues."
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
