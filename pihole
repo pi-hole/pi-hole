@@ -413,26 +413,30 @@ tailFunc() {
 }
 
 piholeCheckoutFunc() {
-  if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
-    echo "Usage: pihole checkout [repo] [branch]
-Example: 'pihole checkout master' or 'pihole checkout core dev'
-Switch Pi-hole subsystems to a different GitHub branch
+  if [ -n "${DOCKER_VERSION}" ]; then
+    unsupportedFunc
+  else
+    if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
+      echo "Usage: pihole checkout [repo] [branch]
+  Example: 'pihole checkout master' or 'pihole checkout core dev'
+  Switch Pi-hole subsystems to a different GitHub branch
 
-Repositories:
-  core [branch]       Change the branch of Pi-hole's core subsystem
-  web [branch]        Change the branch of Web Interface subsystem
-  ftl [branch]        Change the branch of Pi-hole's FTL subsystem
+  Repositories:
+    core [branch]       Change the branch of Pi-hole's core subsystem
+    web [branch]        Change the branch of Web Interface subsystem
+    ftl [branch]        Change the branch of Pi-hole's FTL subsystem
 
-Branches:
-  master              Update subsystems to the latest stable release
-  dev                 Update subsystems to the latest development release
-  branchname          Update subsystems to the specified branchname"
-    exit 0
+  Branches:
+    master              Update subsystems to the latest stable release
+    dev                 Update subsystems to the latest development release
+    branchname          Update subsystems to the specified branchname"
+      exit 0
+    fi
+
+    source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
+    shift
+    checkout "$@"
   fi
-
-  source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
-  shift
-  checkout "$@"
 }
 
 tricorderFunc() {
