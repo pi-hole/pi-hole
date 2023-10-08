@@ -233,7 +233,7 @@ get_sys_stats() {
         if [[ -n "${ph_ver_raw[0]}" ]]; then
             ph_core_ver="${ph_ver_raw[0]}"
             if [[ ${#ph_ver_raw[@]} -eq 2 ]]; then
-                # AdminLTE not installed
+                # web not installed
                 ph_lte_ver="(not installed)"
                 ph_ftl_ver="${ph_ver_raw[1]}"
             else
