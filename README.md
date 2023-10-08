@@ -170,4 +170,4 @@ There are several ways to [access the dashboard](https://discourse.pi-hole.net/t
 
 ## License
 
-This product is licensed under the [European Union Public License](https://github.com/pi-hole/pi-hole/blob/master/LICENSE). 
+This product is licensed under the [European Union Public License](https://github.com/pi-hole/pi-hole/blob/master/LICENSE).
