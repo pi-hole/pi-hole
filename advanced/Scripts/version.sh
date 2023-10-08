@@ -24,7 +24,7 @@ fi
 getLocalVersion() {
     case ${1} in
         "Pi-hole"   )  echo "${CORE_VERSION:=N/A}";;
-        "AdminLTE"  )  echo "${WEB_VERSION:=N/A}";;
+        "web"  )  echo "${WEB_VERSION:=N/A}";;
         "FTL"       )  echo "${FTL_VERSION:=N/A}";;
     esac
 }
@@ -32,7 +32,7 @@ getLocalVersion() {
 getLocalHash() {
     case ${1} in
         "Pi-hole"   )  echo "${CORE_HASH:=N/A}";;
-        "AdminLTE"  )  echo "${WEB_HASH:=N/A}";;
+        "web"  )  echo "${WEB_HASH:=N/A}";;
         "FTL"       )  echo "${FTL_HASH:=N/A}";;
     esac
 }
@@ -40,7 +40,7 @@ getLocalHash() {
 getRemoteHash(){
     case ${1} in
         "Pi-hole"   )  echo "${GITHUB_CORE_HASH:=N/A}";;
-        "AdminLTE"  )  echo "${GITHUB_WEB_HASH:=N/A}";;
+        "web"  )  echo "${GITHUB_WEB_HASH:=N/A}";;
         "FTL"       )  echo "${GITHUB_FTL_HASH:=N/A}";;
     esac
 }
@@ -48,7 +48,7 @@ getRemoteHash(){
 getRemoteVersion(){
     case ${1} in
         "Pi-hole"   )  echo "${GITHUB_CORE_VERSION:=N/A}";;
-        "AdminLTE"  )  echo "${GITHUB_WEB_VERSION:=N/A}";;
+        "web"  )  echo "${GITHUB_WEB_VERSION:=N/A}";;
         "FTL"       )  echo "${GITHUB_FTL_VERSION:=N/A}";;
     esac
 }
@@ -56,7 +56,7 @@ getRemoteVersion(){
 getLocalBranch(){
     case ${1} in
         "Pi-hole"   )  echo "${CORE_BRANCH:=N/A}";;
-        "AdminLTE"  )  echo "${WEB_BRANCH:=N/A}";;
+        "web"  )  echo "${WEB_BRANCH:=N/A}";;
         "FTL"       )  echo "${FTL_BRANCH:=N/A}";;
     esac
 }
@@ -107,7 +107,7 @@ errorOutput() {
 
 defaultOutput() {
     versionOutput "Pi-hole" "$@"
-    versionOutput "AdminLTE" "$@"
+    versionOutput "web" "$@"
     versionOutput "FTL" "$@"
 }
 
@@ -118,7 +118,7 @@ Show Pi-hole, Admin Console & FTL versions
 
 Repositories:
   -p, --pihole         Only retrieve info regarding Pi-hole repository
-  -a, --admin          Only retrieve info regarding AdminLTE repository
+  -a, --admin          Only retrieve info regarding web repository
   -f, --ftl            Only retrieve info regarding FTL repository
 
 Options:
@@ -131,7 +131,7 @@ Options:
 
 case "${1}" in
     "-p" | "--pihole"    ) shift; versionOutput "Pi-hole" "$@";;
-    "-a" | "--admin"     ) shift; versionOutput "AdminLTE" "$@";;
+    "-a" | "--admin"     ) shift; versionOutput "web" "$@";;
     "-f" | "--ftl"       ) shift; versionOutput "FTL" "$@";;
     "-h" | "--help"      ) helpFunc;;
     *                    ) defaultOutput "$@";;
