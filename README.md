@@ -150,7 +150,7 @@ You can read our [Core Feature Breakdown](https://docs.pi-hole.net/core/pihole-c
 
 ### The Web Interface Dashboard
 
-This [optional dashboard](https://github.com/pi-hole/AdminLTE) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
+This [optional dashboard](https://github.com/pi-hole/web) allows you to view stats, change settings, and configure your Pi-hole. It's the power of the Command Line Interface, with none of the learning curve!
 
 Some notable features include:
 
