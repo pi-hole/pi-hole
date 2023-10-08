@@ -488,6 +488,10 @@ compareLists() {
     # We assume here it was changed upstream
     database_adlist_status "${adlistID}" "1"
   fi
+
+  # set owner of the file to pihole
+  chown pihole:pihole "${target}.sha1"
+
 }
 
 # Download specified URL and perform checks on HTTP status and file content
@@ -621,6 +625,9 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_status "${adlistID}" "4"
     fi
   fi
+
+  # set owner of the file to pihole
+  chown pihole:pihole "${saveLocation}"
 }
 
 # Parse source files into domains format
