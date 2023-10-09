@@ -2141,8 +2141,8 @@ main() {
     if [[ "${useUpdateVars}" == false ]]; then
         # Display welcome dialogs
         welcomeDialogs
-        # Create directory for Pi-hole storage
-        install -d -m 755 /etc/pihole/
+        # Create directory for Pi-hole storage (/etc/pihole/)
+        install -o pihole -g pihole -d -m 660 "${PI_HOLE_CONFIG_DIR}"
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one
