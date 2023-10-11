@@ -11,7 +11,7 @@
 # Please see LICENSE file for your rights under this license.
 
 # Variables
-readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/AdminLTE.git"
+readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/web.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"

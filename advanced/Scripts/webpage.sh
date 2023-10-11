@@ -348,7 +348,7 @@ SetDNSServers() {
     IFS=',' read -r -a array <<< "${args[2]}"
     for index in "${!array[@]}"
     do
-        # Replace possible "\#" by "#". This fixes AdminLTE#1427
+        # Replace possible "\#" by "#". This fixes web#1427
         local ip
         ip="${array[index]//\\#/#}"
 
