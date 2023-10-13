@@ -9,19 +9,26 @@ utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # Get file paths
 FTL_PID_FILE="$(getFTLPIDFile)"
 
-# Touch files to ensure they exist (create if non-existing, preserve if existing)
-# shellcheck disable=SC2174
-mkdir -pm 0755 /var/log/pihole
-[ -f "${FTL_PID_FILE}" ] || install -D -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
-[ -f /var/log/pihole/FTL.log ] || install -m 644 -o pihole -g pihole /dev/null /var/log/pihole/FTL.log
-[ -f /var/log/pihole/pihole.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/pihole.log
-[ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
+# shellcheck disable=SC2174
+mkdir -pm 0640 /var/log/pihole
 chown -R pihole:pihole /etc/pihole /var/log/pihole
 chmod -R 0640 /var/log/pihole
 chmod -R 0660 /etc/pihole
+
 # allow all users to enter the directories
 chmod 0755 /etc/pihole /var/log/pihole
+
+# allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
+# credits https://stackoverflow.com/a/11512211
+find /etc/pihole -type d -exec chmod 0755 {} \;
+
+# Touch files to ensure they exist (create if non-existing, preserve if existing)
+[ -f "${FTL_PID_FILE}" ] || install -D -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
+[ -f /var/log/pihole/FTL.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/FTL.log
+[ -f /var/log/pihole/pihole.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/pihole.log
+[ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
+
 
 # Backward compatibility for user-scripts that still expect log files in /var/log instead of /var/log/pihole
 # Should be removed with Pi-hole v6.0
