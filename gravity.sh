@@ -178,7 +178,7 @@ database_table_from_file() {
         echo "${rowid},\"${domain}\",${timestamp}" >> "${tmpFile}"
       elif [[ "${table}" == "adlist" ]]; then
         # Adlist table format
-        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${src}\",,0,0,0,0" >> "${tmpFile}"
+        echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${src}\",,0,0,0,0,0" >> "${tmpFile}"
       else
         # White-, black-, and regexlist table format
         echo "${rowid},${list_type},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${src}\"" >> "${tmpFile}"
@@ -361,6 +361,7 @@ gravity_DownloadBlocklists() {
   # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
   mapfile -t sources <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
   mapfile -t sourceIDs <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2> /dev/null)"
+  mapfile -t sourceTypes <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
@@ -382,7 +383,7 @@ gravity_DownloadBlocklists() {
     unset sources
   fi
 
-  local url domain agent str target compression
+  local url domain str target compression adlist_type
   echo ""
 
   # Prepare new gravity database
@@ -433,13 +434,19 @@ gravity_DownloadBlocklists() {
     url="${sources[$i]}"
     domain="${sourceDomains[$i]}"
     id="${sourceIDs[$i]}"
+    if [[ "${sourceTypes[$i]}" -eq "0" ]]; then
+      # Gravity list
+      str="blocklist"
+      adlist_type="gravity"
+    else
+      # AntiGravity list
+      str="allowlist"
+      adlist_type="antigravity"
+    fi
 
     # Save the file as list.#.domain
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
-
-    # Default user-agent (for Cloudflare's Browser Integrity Check: https://support.cloudflare.com/hc/en-us/articles/200170086-What-does-the-Browser-Integrity-Check-do-)
-    agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36"
 
     echo -e "  ${INFO} Target: ${url}"
     local regex check_url
@@ -453,7 +460,7 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      gravity_DownloadBlocklistFromUrl "${url}" "${agent}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}"
+      gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}"
     fi
     echo ""
   done
@@ -485,7 +492,7 @@ compareLists() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" agent="${2}" adlistID="${3}" saveLocation="${4}" target="${5}" compression="${6}"
+  local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}"
   local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
 
   # Create temp file to store content on disk instead of RAM
@@ -545,7 +552,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   # shellcheck disable=SC2086
-  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" -A "${agent}" "${url}" -o "${listCurlBuffer}" 2> /dev/null)
+  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2> /dev/null)
 
   case $url in
     # Did we "download" a local file?
@@ -579,7 +586,7 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
-      pihole-FTL gravity parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "2"
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
@@ -589,7 +596,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Remove curl buffer file after its use
       rm "${listCurlBuffer}"
       # Add domains to database table file
-      pihole-FTL gravity parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       # Compare lists, are they identical?
       compareLists "${adlistID}" "${saveLocation}"
       done="true"
@@ -605,7 +612,7 @@ gravity_DownloadBlocklistFromUrl() {
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       # Add domains to database table file
-      pihole-FTL gravity parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "3"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
@@ -668,10 +675,10 @@ gravity_ShowCount() {
   # Here we use the table "gravity" instead of the view "vw_gravity" for speed.
   # It's safe to replace it here, because right after a gravity run both will show the exactly same number of domains.
   gravity_Table_Count "gravity" "gravity domains" ""
-  gravity_Table_Count "vw_blacklist" "exact blacklisted domains"
-  gravity_Table_Count "vw_regex_blacklist" "regex blacklist filters"
-  gravity_Table_Count "vw_whitelist" "exact whitelisted domains"
-  gravity_Table_Count "vw_regex_whitelist" "regex whitelist filters"
+  gravity_Table_Count "vw_blacklist" "exact denied domains"
+  gravity_Table_Count "vw_regex_blacklist" "regex denied filters"
+  gravity_Table_Count "vw_whitelist" "exact allowed domains"
+  gravity_Table_Count "vw_regex_whitelist" "regex allowed filters"
 }
 
 # Create "localhost" entries into hosts format

@@ -64,11 +64,11 @@ webroot="/var/www/html"
 
 
 # We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
-# AdminLTE is used to set up the Web admin interface.
+# web is used to set up the Web admin interface.
 # Pi-hole contains various setup scripts and files which are critical to the installation.
 # Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
 # Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
-webInterfaceGitUrl="https://github.com/pi-hole/AdminLTE.git"
+webInterfaceGitUrl="https://github.com/pi-hole/web.git"
 webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
@@ -1094,7 +1094,7 @@ installConfigs() {
 
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
-        if ! install -o root -m 644 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
+        if ! install -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
             printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
@@ -2203,7 +2203,7 @@ main() {
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
-    # but before starting or resarting the ftl service
+    # but before starting or restarting the ftl service
     disable_resolved_stublistener
 
     printf "  %b Restarting services...\\n" "${INFO}"

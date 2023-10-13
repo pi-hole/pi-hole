@@ -91,10 +91,10 @@ addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
 WEB_HASH="$(get_local_hash /var/www/html/admin)"
 addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
 
-GITHUB_WEB_VERSION="$(get_remote_version AdminLTE)"
+GITHUB_WEB_VERSION="$(get_remote_version web)"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
 
-GITHUB_WEB_HASH="$(get_remote_hash AdminLTE "${WEB_BRANCH}")"
+GITHUB_WEB_HASH="$(get_remote_hash web "${WEB_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
 
 # get FTL versions
