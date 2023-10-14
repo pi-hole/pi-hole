@@ -118,10 +118,21 @@ Main(){
 
     # Test if the authentication endpoint is available
     TestAPIAvailability
-    # Authenticate with the FTL server
-    Authenthication
+
+    # Users can configure FTL in a way, that for accessing a) all endpoints (webserver.api.localAPIauth)
+    # or b) for the /search endpoint (webserver.api.searchAPIauth) no authentication is required.
+    # Therefore, we try to query directly without authentication but do authenticat if 401 is returned
 
     data=$(GetFTLData "/search/${domain}?N=${max_results}&partial=${partial}")
+
+    if [ "${data}" = 401 ]; then
+        # Unauthenticated, so authenticate with the FTL server required
+        Authenthication
+
+        # send query again
+        data=$(GetFTLData "/search/${domain}?N=${max_results}&partial=${partial}")
+    fi
+
     GenerateOutput "${data}"
     DeleteSession
 }

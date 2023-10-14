@@ -82,10 +82,25 @@ DeleteSession() {
 }
 
 GetFTLData() {
-  local data
+  local data response status
   # get the data from querying the API as well as the http status code
-  data=$(curl -s -X GET "http://localhost:${PORT}/api$1" -H "Accept: application/json" -H "sid: ${SID}" )
-  echo "${data}"
+  response=$(curl -s -w "%{http_code}" -X GET "http://localhost:${PORT}/api$1" -H "Accept: application/json" -H "sid: ${SID}" )
+
+  # status are the last 3 characters
+  status=$(printf %s "${response#"${response%???}"}")
+  # data is everything from response without the last 3 characters
+  data=$(printf %s "${response%???}")
+
+  if [ "${status}" = 200 ]; then
+    # response OK
+    echo "${data}"
+  elif [ "${status}" = 000 ]; then
+    # connection lost
+    echo "000"
+  elif [ "${status}" = 401 ]; then
+    # unauthorized
+    echo "401"
+  fi
 }
 
 secretRead() {
