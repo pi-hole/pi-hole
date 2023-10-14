@@ -496,7 +496,6 @@ Debugging Options:
 
 Options:
   setpassword           set the password for the web interface
-  -c, chronometer     Chronometer is gone, use PADD
   -g, updateGravity   Update the list of ad-serving domains
   -h, --help, help    Show this help dialog
   -l, logging         Specify whether the Pi-hole log should be used
