@@ -125,8 +125,7 @@ queryFunc() {
 }
 
 chronometerFunc() {
-  shift
-  "${PI_HOLE_SCRIPT_DIR}"/chronometer.sh "$@"
+  echo "Chronometer is gone, use PADD (https://github.com/pi-hole/PADD)"
   exit 0
 }
 
@@ -497,8 +496,6 @@ Debugging Options:
 
 Options:
   setpassword           set the password for the web interface
-  -c, chronometer     Calculates stats and displays to an LCD
-                        Add '-h' for more info on chronometer usage
   -g, updateGravity   Update the list of ad-serving domains
   -h, --help, help    Show this help dialog
   -l, logging         Specify whether the Pi-hole log should be used

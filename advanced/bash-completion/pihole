@@ -1,5 +1,5 @@
 _pihole() {
-	local cur prev opts opts_admin opts_checkout opts_chronometer opts_debug opts_interface  opts_logging opts_privacy opts_query opts_update opts_version
+	local cur prev opts opts_admin opts_checkout opts_debug opts_interface  opts_logging opts_privacy opts_query opts_update opts_version
 	COMPREPLY=()
 	cur="${COMP_WORDS[COMP_CWORD]}"
 	prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -7,7 +7,7 @@ _pihole() {
 
 	case "${prev}" in
 		"pihole")
-			opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist arpflush"
+			opts="admin blacklist checkout debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist arpflush"
 			COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 		;;
 		"whitelist"|"blacklist"|"wildcard"|"regex")
@@ -21,10 +21,6 @@ _pihole() {
 		"checkout")
 			opts_checkout="core ftl web master dev"
 			COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
-		;;
-		"chronometer")
-			opts_chronometer="\--exit \--json \--refresh"
-			COMPREPLY=( $(compgen -W "${opts_chronometer}" -- ${cur}) )
 		;;
 		"debug")
 			opts_debug="-a"
