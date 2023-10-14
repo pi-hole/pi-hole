@@ -1085,12 +1085,15 @@ installScripts() {
 installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
 
+    # Ensure that permissions are correctly set
+    chown -R pihole:pihole /etc/pihole
 
     # Install list of DNS servers
     # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
     # Some values may be empty (for example: DNS servers without IPv6 support)
     echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
     chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
+    chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
@@ -1385,8 +1388,8 @@ installCron() {
 # Gravity is a very important script as it aggregates all of the domains into a single HOSTS formatted list,
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
-    # Run gravity in the current shell
-    { /opt/pihole/gravity.sh --force; }
+    # Run gravity in the current shell as user pihole
+    { sudo -u pihole bash /opt/pihole/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -1480,7 +1483,7 @@ installLogrotate() {
         return 2
     fi
     # Copy the file over from the local repo
-    install -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+    install -o pihole -g pihole -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
@@ -2049,6 +2052,7 @@ copy_to_install_log() {
     # Since we use color codes such as '\e[1;33m', they should be removed
     sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
     chmod 644 "${installLogLoc}"
+    chown pihole:pihole "${installLogLoc}"
 }
 
 main() {
@@ -2141,8 +2145,8 @@ main() {
     if [[ "${useUpdateVars}" == false ]]; then
         # Display welcome dialogs
         welcomeDialogs
-        # Create directory for Pi-hole storage
-        install -d -m 755 /etc/pihole/
+        # Create directory for Pi-hole storage (/etc/pihole/)
+        install -d -m 755 "${PI_HOLE_CONFIG_DIR}"
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one
