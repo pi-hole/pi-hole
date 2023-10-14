@@ -17,7 +17,7 @@
 # Globals
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 max_results="20"
-partial="true"
+partial="false"
 domain=""
 
 # Source color table
@@ -29,13 +29,13 @@ colfile="/opt/pihole/COL_TABLE"
 
 Help(){
     echo "Usage: pihole -q [option] <domain>
-Example: 'pihole -q --exact domain.com'
+Example: 'pihole -q --partial domain.com'
 Query the adlists for a specified domain
 
 Options:
-  --exact              Search the adlists for exact domain matches
+  --partial            Search the adlists for partially matching domains
   --all                Return all query matches within the adlists
-  -h, --help          Show this help dialog"
+  -h, --help           Show this help dialog"
   exit 0
 }
 
@@ -141,7 +141,7 @@ Main(){
 while [ "$#" -gt 0 ]; do
   case "$1" in
     "-h" | "--help"     ) Help;;
-    "--exact"           ) partial="false";;
+    "--partial"         ) partial="true";;
     "--all"             ) max_results=10000;; # hard-coded FTL limit
     *                   ) domain=$1;;
   esac
