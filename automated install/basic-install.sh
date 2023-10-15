@@ -1777,7 +1777,8 @@ FTLinstall() {
 
     # Move into the temp ftl directory
     pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
-
+    local tempdir
+    tempdir="$(pwd)"
     local ftlBranch
     local url
 
@@ -1819,12 +1820,19 @@ FTLinstall() {
 
             # Installed the FTL service
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+
+            # Remove temp dir
+            remove_dir "${tempdir}"
+
             return 0
         else
             # Otherwise, the hash download failed, so print and exit.
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             printf "  %b Error: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+
+            # Remove temp dir
+            remove_dir "${tempdir}"
             return 1
         fi
     else
@@ -1833,8 +1841,17 @@ FTLinstall() {
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # The URL could not be found
         printf "  %b Error: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+
+        # Remove temp dir
+        remove_dir "${tempdir}"
         return 1
     fi
+}
+
+remove_dir() {
+  # Delete dir
+  rm -r "${1}" > /dev/null 2>&1 || \
+    echo -e "  ${CROSS} Unable to remove ${1}"
 }
 
 get_binary_name() {
