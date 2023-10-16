@@ -901,4 +901,6 @@ gravity_ShowCount
 gravity_Cleanup
 echo ""
 
+echo "  ${TICK} Done."
+
 # "${PIHOLE_COMMAND}" status
