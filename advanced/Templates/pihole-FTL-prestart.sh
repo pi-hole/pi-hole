@@ -16,6 +16,10 @@ chown -R pihole:pihole /etc/pihole /var/log/pihole
 chmod -R 0640 /var/log/pihole
 chmod -R 0660 /etc/pihole
 
+# Logrotate config file need to be owned by root and must not be writable by group and others
+chown root:root /etc/pihole/logrotate
+chmod 0644 /etc/pihole/logrotate
+
 # allow all users to enter the directories
 chmod 0755 /etc/pihole /var/log/pihole
 

@@ -1483,7 +1483,8 @@ installLogrotate() {
         return 2
     fi
     # Copy the file over from the local repo
-    install -o pihole -g pihole -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+    # Logrotate config file must be owned by root and not writable by group or other
+    install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
