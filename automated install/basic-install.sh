@@ -1870,9 +1870,9 @@ get_binary_name() {
             printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
             # set the binary to be used
             l_binary="pihole-FTL-arm64"
-        elif [[ "${cpu_arch}" == "armv6KZ" ]]; then
-            printf "%b  %b Detected ARMv6KZ architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used
+        elif [[ "${cpu_arch}" == "armv6"* ]]; then
+            printf "%b  %b Detected ARMv6 architecture\\n" "${OVER}" "${TICK}"
+            # set the binary to be used (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
             l_binary="pihole-FTL-armv6"
         else
             # If ARMv8 or higher is found (e.g., BCM2837 as found in Raspberry Pi Model 3B)
@@ -1885,24 +1885,10 @@ get_binary_name() {
                 printf "%b  %b Detected ARMv7 architecture (%s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
                 # set the binary to be used
                 l_binary="pihole-FTL-armv6"
-            elif [[ "${cpu_arch}" == "v5TE" || "${rev}" -gt 5 ]]; then
-                # Check if the system is using GLIBC 2.29 or higher
-                if [[ -n "${l_glibc_version}" && "$(printf '%s\n' "2.29" "${l_glibc_version}" | sort -V | head -n1)" == "2.29" ]]; then
-                    # If so, use the ARMv6 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
-                    printf "%b  %b Detected ARMv6 architecture (running GLIBC 2.29 or higher, %s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
-                    # set the binary to be used
-                    l_binary="pihole-FTL-armv5"
-                else
-                    # Otherwise, use the ARMv5 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
-                    printf "%b  %b Detected ARMv6 architecture (running GLIBC older than 2.29, %s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
-                    # set the binary to be used
-                    l_binary="pihole-FTL-armv4"
-                fi
             else
-                # Otherwise, use the ARMv4 binary (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
-                printf "%b  %b Detected ARMv4 or ARMv5 architecture (%s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
-                # set the binary to be used
-                l_binary="pihole-FTL-armv4"
+                # Otherwise, Pi-hole does not support this architecture
+                printf "%b  %b This processor architecture is not supported by Pi-hole (%s)\\n" "${OVER}" "${CROSS}" "${cpu_arch}"
+                l_binary=""
             fi
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
