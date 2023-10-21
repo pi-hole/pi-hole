@@ -269,8 +269,8 @@ def test_FTL_detect_armv6_no_errors(host):
     mock_command_2(
         "readelf",
         {
-            "-A /bin/sh": ("Tag_CPU_arch: armv6KZ", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv6KZ", "0"),
+            "-A /bin/sh": ("Tag_CPU_arch: armv6", "0"),
+            "-A /usr/bin/sh": ("Tag_CPU_arch: armv6", "0"),
         },
         host,
     )
@@ -319,7 +319,7 @@ def test_FTL_detect_armv7l_no_errors(host):
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (" Detected ARMv7 architecture (armv7l)")
+    expected_stdout = tick_box + (" Detected ARMv7 (or newer) architecture")
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
     assert expected_stdout in detectPlatform.stdout
@@ -352,7 +352,7 @@ def test_FTL_detect_armv7_no_errors(host):
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (" Detected ARMv7 architecture (armv7)")
+    expected_stdout = tick_box + (" Detected ARMv7 (or newer) architecture")
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
     assert expected_stdout in detectPlatform.stdout

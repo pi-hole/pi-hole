@@ -1878,20 +1878,16 @@ get_binary_name() {
             # If AArch64 is found (e.g., BCM2711 in Raspberry Pi 4)
             printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-arm64"
-        elif [[ "${cpu_arch}" == "v6"* ]]; then
+        elif [[ "${rev}" -eq 6 ]]; then
             # If ARMv6 is found (e.g., BCM2835 in Raspberry Pi 1 and Zero)
             printf "%b  %b Detected ARMv6 architecture\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-armv6"
-        elif [[ "${cpu_arch}" == "v7"* || "${rev}" -ge 7 ]]; then
+        elif [[ "${rev}" -ge 7 ]]; then
             # If ARMv7 or higher is found (e.g., BCM2836 in Raspberry PI 2 Mod. B)
             # This path is also used for ARMv8 when the OS is in 32bit mode
             # (e.g., BCM2837 in Raspberry Pi Model 3B, or BCM2711 in Raspberry Pi 4)
             printf "%b  %b Detected ARMv7 (or newer) architecture (%s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
             l_binary="pihole-FTL-armv7"
-        elif [[ "${rev}" -gt 6 ]]; then
-            # Otherwise, if ARMv7 is found (e.g., BCM2836 in Raspberry Pi Model 2)
-            printf "%b  %b Detected ARMv7 architecture (%s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
-            l_binary="pihole-FTL-armv6"
         else
             # Otherwise, Pi-hole does not support this architecture
             printf "%b  %b This processor architecture is not supported by Pi-hole (%s)\\n" "${OVER}" "${CROSS}" "${cpu_arch}"
