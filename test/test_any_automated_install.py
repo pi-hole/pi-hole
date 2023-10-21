@@ -259,158 +259,12 @@ def test_FTL_detect_aarch64_no_errors(host):
     assert expected_stdout in detectPlatform.stdout
 
 
-def test_FTL_detect_armv4_no_errors(host):
-    """
-    confirms only armv4 package is downloaded for FTL engine
-    """
-    # mock uname to return armv4 platform
-    mock_command("uname", {"-m": ("armv4t", "0")}, host)
-    # mock readelf to respond with armv4 CPU architecture
-    mock_command_2(
-        "readelf",
-        {
-            "-A /bin/sh": ("Tag_CPU_arch: armv4t", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv4t", "0"),
-        },
-        host,
-    )
-    detectPlatform = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv4 or ARMv5 architecture (armv4t)"
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv5_no_errors(host):
-    """
-    confirms only armv5 package is downloaded for FTL engine
-    """
-    # mock uname to return armv5te platform
-    mock_command("uname", {"-m": ("armv5te", "0")}, host)
-    # mock readelf to respond with armv5 CPU architecture
-    mock_command_2(
-        "readelf",
-        {
-            "-A /bin/sh": ("Tag_CPU_arch: armv5te", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv5te", "0"),
-        },
-        host,
-    )
-    detectPlatform = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv4 or ARMv5 architecture (armv5te)"
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv6_old_no_errors(host):
+def test_FTL_detect_armv6_no_errors(host):
     """
     confirms only armv6 package is downloaded for FTL engine
     """
-    # mock uname to return armv6l platform
-    mock_command("uname", {"-m": ("armv6l", "0")}, host)
-    # mock readelf to respond with armv6l CPU architecture
-    mock_command_2(
-        "readelf",
-        {
-            "-A /bin/sh": ("Tag_CPU_arch: armv6l", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv6l", "0"),
-        },
-        host,
-    )
-    # Mock old ldd GLIBC version
-    mock_command(
-        "ldd", {"--version": ("ldd (Debian GLIBC 2.13-38+deb7u8) 2.13", "0")}, host
-    )
-
-    detectPlatform = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (
-        " Detected ARMv6 architecture (running GLIBC older than 2.29, armv6l)"
-    )
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv6_recent_no_errors(host):
-    """
-    confirms only armv6 package is downloaded for FTL engine
-    """
-    # mock uname to return armv6l platform
-    mock_command("uname", {"-m": ("armv6l", "0")}, host)
-    # mock readelf to respond with armv6l CPU architecture
-    mock_command_2(
-        "readelf",
-        {
-            "-A /bin/sh": ("Tag_CPU_arch: armv6l", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv6l", "0"),
-        },
-        host,
-    )
-    # Mock old ldd GLIBC version
-    mock_command(
-        "ldd", {"--version": ("'ldd (Debian GLIBC 2.35-38+deb7u8) 2.35'", "0")}, host
-    )
-
-    detectPlatform = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (
-        " Detected ARMv6 architecture (running GLIBC 2.29 or higher, armv6l)"
-    )
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv6KZ_no_errors(host):
-    """
-    confirms only armv6KZ package is downloaded for FTL engine
-    """
-    # mock uname to return armv6KZ platform
-    mock_command("uname", {"-m": ("armv6KZ", "0")}, host)
+    # mock uname to return armv6 platform
+    mock_command("uname", {"-m": ("armv6", "0")}, host)
     # mock readelf to respond with armv6l CPU architecture
     mock_command_2(
         "readelf",
@@ -432,7 +286,7 @@ def test_FTL_detect_armv6KZ_no_errors(host):
     )
     expected_stdout = info_box + " FTL Checks..."
     assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv6KZ architecture"
+    expected_stdout = tick_box + " Detected ARMv6 architecture"
     assert expected_stdout in detectPlatform.stdout
     expected_stdout = tick_box + " Downloading and Installing FTL"
     assert expected_stdout in detectPlatform.stdout
