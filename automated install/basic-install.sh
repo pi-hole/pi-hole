@@ -2088,16 +2088,6 @@ main() {
         fi
     fi
 
-    # Check if there is a usable FTL binary available on this architecture - do
-    # this early on as FTL is a hard dependency for Pi-hole
-    local funcOutput
-    funcOutput=$(get_binary_name) #Store output of get_binary_name here
-    # Abort early if this processor is not supported (get_binary_name returns empty string)
-    if [[ "${funcOutput}" == "" ]]; then
-        printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
-        exit 1
-    fi
-
     # Check if SELinux is Enforcing and exit before doing anything else
     checkSelinux
 
@@ -2113,6 +2103,16 @@ main() {
 
     # Check that the installed OS is officially supported - display warning if not
     os_check
+
+    # Check if there is a usable FTL binary available on this architecture - do
+    # this early on as FTL is a hard dependency for Pi-hole
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    # Abort early if this processor is not supported (get_binary_name returns empty string)
+    if [[ "${funcOutput}" == "" ]]; then
+        printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
+        exit 1
+    fi
 
     # Install packages used by this installation script
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
