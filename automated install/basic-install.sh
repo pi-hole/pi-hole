@@ -302,9 +302,9 @@ package_manager_detect() {
         # Update package cache
         update_package_cache || exit 1
         # Packages required to perform the os_check (stored as an array)
-        OS_CHECK_DEPS=(grep dnsutils)
+        OS_CHECK_DEPS=(grep dnsutils binutils)
         # Packages required to run this install script (stored as an array)
-        INSTALLER_DEPS=(git iproute2 dialog ca-certificates binutils)
+        INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
         # Packages required to run Pi-hole (stored as an array)
         PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq)
 
