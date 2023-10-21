@@ -1860,15 +1860,6 @@ get_binary_name() {
     local machine
     machine=$(uname -m)
 
-    # Get local GLIBC version (leave at "0.0" if no GLIBC, e.g., on musl)
-    local l_glibc_version="0.0"
-    if ldd --version 2>&1 | grep -q "GLIBC"; then
-        l_glibc_version=$(ldd --version | head -n1 | grep -o '[0-9.]*$')
-        printf "%b  %b Detected GLIBC version %s\\n" "${OVER}" "${TICK}" "${l_glibc_version}"
-    else
-        printf "%b  %b No GLIBC detected\\n" "${OVER}" "${CROSS}"
-    fi
-
     local l_binary
 
     local str="Detecting processor"
