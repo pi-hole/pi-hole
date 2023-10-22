@@ -73,9 +73,9 @@ generate_gravity_database() {
   chmod g+w "${piholeDir}" "${gravityDBfile}"
 }
 
-# Copy data from old to new database file and swap them
-gravity_swap_databases() {
-  local str copyGravity oldAvail
+# Build gravity tree
+gravity_build_tree() {
+  local str
   str="Building tree"
   echo -ne "  ${INFO} ${str}..."
 
@@ -88,7 +88,10 @@ gravity_swap_databases() {
     return 1
   fi
   echo -e "${OVER}  ${TICK} ${str}"
+}
 
+# Copy data from old to new database file and swap them
+gravity_swap_databases() {
   str="Swapping databases"
   echo -ne "  ${INFO} ${str}..."
 
@@ -116,11 +119,11 @@ gravity_swap_databases() {
 
 # Update timestamp when the gravity table was last updated successfully
 update_gravity_timestamp() {
-  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | pihole-FTL sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
-    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityDBfile}\\n  ${output}"
+    echo -e "\\n  ${CROSS} Unable to update gravity timestamp in database ${gravityTEMPfile}\\n  ${output}"
     return 1
   fi
   return 0
@@ -659,12 +662,12 @@ gravity_Table_Count() {
   local table="${1}"
   local str="${2}"
   local num
-  num="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM ${table};")"
+  num="$(pihole-FTL sqlite3 "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
   if [[ "${table}" == "gravity" ]]; then
     local unique
-    unique="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
+    unique="$(pihole-FTL sqlite3 "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
     echo -e "  ${INFO} Number of ${str}: ${num} (${COL_BOLD}${unique} unique domains${COL_NC})"
-    pihole-FTL sqlite3 "${gravityDBfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
+    pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"
   fi
@@ -882,21 +885,26 @@ fi
 # Create local.list
 gravity_generateLocalList
 
-# Migrate rest of the data from old to new database
-if ! gravity_swap_databases; then
-  echo -e "   ${CROSS} Unable to create database. Please contact support."
-  exit 1
-fi
-
 # Update gravity timestamp
 update_gravity_timestamp
 
 # Ensure proper permissions are set for the database
-chown pihole:pihole "${gravityDBfile}"
-chmod g+w "${piholeDir}" "${gravityDBfile}"
+chown pihole:pihole "${gravityTEMPfile}"
+chmod g+w "${piholeDir}" "${gravityTEMPfile}"
 
-# Compute numbers to be displayed
+# Build the tree
+gravity_build_tree
+
+# Compute numbers to be displayed (do this after building the tree to get the
+# numbers quickly from the tree instead of having to scan the whole database)
 gravity_ShowCount
+
+# Migrate rest of the data from old to new database
+# IMPORTANT: Swapping the databases must be the last step before the cleanup
+if ! gravity_swap_databases; then
+  echo -e "   ${CROSS} Unable to create database. Please contact support."
+  exit 1
+fi
 
 gravity_Cleanup
 echo ""
