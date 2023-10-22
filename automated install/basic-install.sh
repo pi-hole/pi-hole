@@ -90,7 +90,6 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 QUERY_LOGGING=true
 WEBPORT=8080
 PRIVACY_LEVEL=0
-CACHE_SIZE=10000
 
 if [ -z "${USER}" ]; then
     USER="$(id -un)"
@@ -301,11 +300,11 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # Update package cache
         update_package_cache || exit 1
-        # Packages required to perform the os_check (stored as an array)
-        OS_CHECK_DEPS=(grep dnsutils)
-        # Packages required to run this install script (stored as an array)
-        INSTALLER_DEPS=(git iproute2 dialog ca-certificates binutils)
-        # Packages required to run Pi-hole (stored as an array)
+        # Packages required to perform the os_check and FTL binary detection
+        OS_CHECK_DEPS=(grep dnsutils binutils)
+        # Packages required to run this install script
+        INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
+        # Packages required to run Pi-hole
         PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq)
 
     # If apt-get is not found, check for rpm.
@@ -1856,57 +1855,43 @@ remove_dir() {
 }
 
 get_binary_name() {
-    # Get the OS architecture (we cannot use uname -m as this may return an incorrect architecture when buildx-compiling with QEMU for arm)
+    local l_binary
     local machine
     machine=$(uname -m)
 
-    # Get local GLIBC version (leave at "0.0" if no GLIBC, e.g., on musl)
-    local l_glibc_version="0.0"
-    if ldd --version 2>&1 | grep -q "GLIBC"; then
-        l_glibc_version=$(ldd --version | head -n1 | grep -o '[0-9.]*$')
-        printf "%b  %b Detected GLIBC version %s\\n" "${OVER}" "${TICK}" "${l_glibc_version}"
-    else
-        printf "%b  %b No GLIBC detected\\n" "${OVER}" "${CROSS}"
-    fi
-
-    local l_binary
-
     local str="Detecting processor"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If the machine is arm or aarch
-    if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
-        # ARM
+
+    # If the machine is aarch64 (armv8)
+    if [[ "${machine}" == "aarch64" ]]; then
+        # If AArch64 is found (e.g., BCM2711 in Raspberry Pi 4)
+        printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
+        l_binary="pihole-FTL-arm64"
+    elif [[ "${machine}" == "arm"* ]]; then
+        # ARM 32 bit
         # Get supported processor from other binaries installed on the system
+        # We cannot really rely on the output of $(uname -m) above as this may
+        # return an incorrect architecture when buildx-compiling with QEMU
         local cpu_arch
         cpu_arch=$(readelf -A "$(command -v sh)" | grep Tag_CPU_arch | awk '{ print $2 }')
 
         # Get the revision from the CPU architecture
         local rev
         rev=$(echo "${cpu_arch}" | grep -o '[0-9]*')
-        if [[ "${machine}" == "aarch64" ]]; then
-            printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used
-            l_binary="pihole-FTL-arm64"
-        elif [[ "${cpu_arch}" == "armv6"* ]]; then
+        if [[ "${rev}" -eq 6 ]]; then
+            # If ARMv6 is found (e.g., BCM2835 in Raspberry Pi 1 and Zero)
             printf "%b  %b Detected ARMv6 architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used (e.g., BCM2835 as found in Raspberry Pi Zero and Model 1)
             l_binary="pihole-FTL-armv6"
+        elif [[ "${rev}" -ge 7 ]]; then
+            # If ARMv7 or higher is found (e.g., BCM2836 in Raspberry PI 2 Mod. B)
+            # This path is also used for ARMv8 when the OS is in 32bit mode
+            # (e.g., BCM2837 in Raspberry Pi Model 3B, or BCM2711 in Raspberry Pi 4)
+            printf "%b  %b Detected ARMv7 (or newer) architecture (%s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
+            l_binary="pihole-FTL-armv7"
         else
-            # If ARMv8 or higher is found (e.g., BCM2837 as found in Raspberry Pi Model 3B)
-            if [[ "${cpu_arch}" == "v7" || "${rev}" -gt 7 ]]; then
-                printf "%b  %b Detected ARMv7 (or newer) architecture (%s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
-                # set the binary to be used
-                l_binary="pihole-FTL-armv7"
-            elif [[ "${rev}" -gt 6 ]]; then
-                # Otherwise, if ARMv7 is found (e.g., BCM2836 as found in Raspberry Pi Model 2)
-                printf "%b  %b Detected ARMv7 architecture (%s)\\n" "${OVER}" "${TICK}" "${cpu_arch}"
-                # set the binary to be used
-                l_binary="pihole-FTL-armv6"
-            else
-                # Otherwise, Pi-hole does not support this architecture
-                printf "%b  %b This processor architecture is not supported by Pi-hole (%s)\\n" "${OVER}" "${CROSS}" "${cpu_arch}"
-                l_binary=""
-            fi
+            # Otherwise, Pi-hole does not support this architecture
+            printf "%b  %b This processor architecture is not supported by Pi-hole (%s)\\n" "${OVER}" "${CROSS}" "${cpu_arch}"
+            l_binary=""
         fi
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the processor of packages dpkg installs (for example, "i386")
@@ -1921,9 +1906,8 @@ get_binary_name() {
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-386"
         else
-            # 64bit
+            # 64bit OS
             printf "%b  %b Detected x86_64 architecture\\n" "${OVER}" "${TICK}"
-            # set the binary to be used
             l_binary="pihole-FTL-amd64"
         fi
     elif [[ "${machine}" == "riscv64" ]]; then
@@ -2104,16 +2088,6 @@ main() {
         fi
     fi
 
-    # Check if there is a usable FTL binary available on this architecture - do
-    # this early on as FTL is a hard dependency for Pi-hole
-    local funcOutput
-    funcOutput=$(get_binary_name) #Store output of get_binary_name here
-    # Abort early if this processor is not supported (get_binary_name returns empty string)
-    if [[ "${funcOutput}" == "" ]]; then
-        printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
-        exit 1
-    fi
-
     # Check if SELinux is Enforcing and exit before doing anything else
     checkSelinux
 
@@ -2129,6 +2103,16 @@ main() {
 
     # Check that the installed OS is officially supported - display warning if not
     os_check
+
+    # Check if there is a usable FTL binary available on this architecture - do
+    # this early on as FTL is a hard dependency for Pi-hole
+    local funcOutput
+    funcOutput=$(get_binary_name) #Store output of get_binary_name here
+    # Abort early if this processor is not supported (get_binary_name returns empty string)
+    if [[ "${funcOutput}" == "" ]]; then
+        printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
+        exit 1
+    fi
 
     # Install packages used by this installation script
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
