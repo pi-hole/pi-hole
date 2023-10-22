@@ -90,7 +90,6 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 QUERY_LOGGING=true
 WEBPORT=8080
 PRIVACY_LEVEL=0
-CACHE_SIZE=10000
 
 if [ -z "${USER}" ]; then
     USER="$(id -un)"
@@ -301,11 +300,11 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # Update package cache
         update_package_cache || exit 1
-        # Packages required to perform the os_check (stored as an array)
+        # Packages required to perform the os_check and FTL binary detection
         OS_CHECK_DEPS=(grep dnsutils binutils)
-        # Packages required to run this install script (stored as an array)
+        # Packages required to run this install script
         INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
-        # Packages required to run Pi-hole (stored as an array)
+        # Packages required to run Pi-hole
         PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip idn2 libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq)
 
     # If apt-get is not found, check for rpm.
@@ -1856,29 +1855,30 @@ remove_dir() {
 }
 
 get_binary_name() {
-    # Get the OS architecture (we cannot use uname -m as this may return an incorrect architecture when buildx-compiling with QEMU for arm)
+    local l_binary
     local machine
     machine=$(uname -m)
 
-    local l_binary
-
     local str="Detecting processor"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If the machine is arm or aarch
-    if [[ "${machine}" == "arm"* || "${machine}" == *"aarch"* ]]; then
-        # ARM
+
+    # If the machine is aarch64 (armv8)
+    if [[ "${machine}" == "aarch64" ]]; then
+        # If AArch64 is found (e.g., BCM2711 in Raspberry Pi 4)
+        printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
+        l_binary="pihole-FTL-arm64"
+    elif [[ "${machine}" == "arm"* ]]; then
+        # ARM 32 bit
         # Get supported processor from other binaries installed on the system
+        # We cannot really rely on the output of $(uname -m) above as this may
+        # return an incorrect architecture when buildx-compiling with QEMU
         local cpu_arch
         cpu_arch=$(readelf -A "$(command -v sh)" | grep Tag_CPU_arch | awk '{ print $2 }')
 
         # Get the revision from the CPU architecture
         local rev
         rev=$(echo "${cpu_arch}" | grep -o '[0-9]*')
-        if [[ "${machine}" == "aarch64" ]]; then
-            # If AArch64 is found (e.g., BCM2711 in Raspberry Pi 4)
-            printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
-            l_binary="pihole-FTL-arm64"
-        elif [[ "${rev}" -eq 6 ]]; then
+        if [[ "${rev}" -eq 6 ]]; then
             # If ARMv6 is found (e.g., BCM2835 in Raspberry Pi 1 and Zero)
             printf "%b  %b Detected ARMv6 architecture\\n" "${OVER}" "${TICK}"
             l_binary="pihole-FTL-armv6"
