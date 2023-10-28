@@ -145,4 +145,8 @@ getFTLConfigValue(){
 #######################
 setFTLConfigValue(){
   pihole-FTL --config "${1}" "${2}" >/dev/null
+  if [[ $? -eq 5 ]]; then
+    echo -e "  ${CROSS} ${1} set by environment variable. Please unset it to use this function"
+    exit 5
+  fi
 }
