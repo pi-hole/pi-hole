@@ -482,32 +482,32 @@ check_firewalld() {
     fi
 }
 
-processor_check() {
-    echo_current_diagnostic "Processor"
-    # Store the processor type in a variable
-    PROCESSOR=$(uname -m)
-    # If it does not contain a value,
-    if [[ -z "${PROCESSOR}" ]]; then
-        # we couldn't detect it, so show an error
-        PROCESSOR=$(lscpu | awk '/Architecture/ {print $2}')
-        log_write "${CROSS} ${COL_RED}${PROCESSOR}${COL_NC} has not been tested with FTL, but may still work: (${FAQ_FTL_COMPATIBILITY})"
+run_and_print_command() {
+    # Run the command passed as an argument
+    local cmd="${1}"
+    # Show the command that is being run
+    log_write "${INFO} ${cmd}"
+    # Run the command and store the output in a variable
+    local output
+    output=$(${cmd} 2>&1)
+    # If the command was successful,
+    if [[ $? -eq 0 ]]; then
+        # show the output
+        log_write "${output}"
     else
-        # Check if the architecture is currently supported for FTL
-        case "${PROCESSOR}" in
-            "amd64" | "x86_64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "armv6l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "armv6") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "armv7l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "aarch64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            # Otherwise, show the processor type
-            *) log_write "${INFO} ${PROCESSOR}";
-        esac
+        # otherwise, show an error
+        log_write "${CROSS} ${COL_RED}Command failed${COL_NC}"
     fi
+}
+
+hardware_check() {
+    echo_current_diagnostic "System hardware configuration"
+    # Store the output of the command in a variable
+    run_and_print_command "lshw -short"
+
+    echo_current_diagnostic "Processor details"
+    # Store the output of the command in a variable
+    run_and_print_command "lscpu"
 }
 
 disk_usage() {
@@ -1403,7 +1403,7 @@ check_component_versions
 diagnose_operating_system
 check_selinux
 check_firewalld
-processor_check
+hardware_check
 disk_usage
 check_ip_command
 check_networking
