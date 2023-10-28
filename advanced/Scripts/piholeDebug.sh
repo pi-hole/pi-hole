@@ -781,8 +781,16 @@ dig_at() {
         if [ -n "${addresses}" ]; then
           while IFS= read -r local_address ; do
               # Check if Pi-hole can use itself to block a domain
-              if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
+              if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
                   # If it can, show success
+                  if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
+                    local_dig="NOERROR"
+                  elif [[ "${local_dig}" == *"status: NXDOMAIN"* ]]; then
+                    local_dig="NXDOMAIN"
+                  else
+                    # Extract the IPv4/6 address from the output
+                    local_dig="$(echo "${local_dig}" | grep -Eo '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*|([0-9a-f]{0,4}:){1,7}[0-9a-f]{0,4}')"
+                  fi
                   log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
               else
                   # Otherwise, show a failure
