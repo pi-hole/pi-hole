@@ -868,20 +868,6 @@ ftl_full_status(){
     fi
 }
 
-lighttpd_test_configuration(){
-    # let lighttpd test it's own configuration
-    local lighttpd_conf_test
-    echo_current_diagnostic "Lighttpd configuration test"
-    lighttpd_conf_test=$(lighttpd -tt -f /etc/lighttpd/lighttpd.conf)
-    if [ -z "${lighttpd_conf_test}" ]; then
-        # empty output
-        log_write "${TICK} ${COL_GREEN}No error in lighttpd configuration${COL_NC}"
-    else
-        log_write "${CROSS} ${COL_RED}Error in lighttpd configuration${COL_NC}"
-        log_write "   ${lighttpd_conf_test}"
-    fi
-}
-
 make_array_from_file() {
     local filename="${1}"
     # The second argument can put a limit on how many line should be read from the file
@@ -1419,7 +1405,6 @@ check_name_resolution
 check_dhcp_servers
 process_status
 ftl_full_status
-lighttpd_test_configuration
 parse_pihole_toml
 analyze_ftl_db
 analyze_gravity_list
