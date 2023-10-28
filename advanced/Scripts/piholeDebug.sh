@@ -788,8 +788,9 @@ dig_at() {
                   elif [[ "${local_dig}" == *"status: NXDOMAIN"* ]]; then
                     local_dig="NXDOMAIN"
                   else
-                    # Extract the IPv4/6 address from the output
-                    local_dig="$(echo "${local_dig}" | grep -Eo '[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*|([0-9a-f]{0,4}:){1,7}[0-9a-f]{0,4}')"
+                    # Extract the first entry in the answer section from dig's output,
+                    # replacing any multiple spaces and tabs with a single space
+                    local_dig="$(echo "${local_dig}" | grep -A1 "ANSWER SECTION" | grep -v "ANSWER SECTION" | tr -s " \t" " ")"
                   fi
                   log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
               else
