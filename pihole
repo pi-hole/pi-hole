@@ -43,7 +43,7 @@ SetWebPassword() {
         echo ""
 
         if [ "${PASSWORD}" == "" ]; then
-            setFTLConfigValue "webserver.api.pwhash" "" >/dev/null
+            setFTLConfigValue "webserver.api.password" "" >/dev/null
             echo -e "  ${TICK} Password Removed"
             exit 0
         fi
