@@ -141,6 +141,7 @@ database_table_from_file() {
   # implementations of mktemp support it, e.g. on Alpine
   tmpFile="$(mktemp -p "${GRAVITY_TMPDIR}")"
   mv "${tmpFile}" "${tmpFile%.*}.gravity"
+  tmpFile="${tmpFile%.*}.gravity"
 
   local timestamp
   timestamp="$(date --utc +'%s')"
@@ -502,6 +503,7 @@ gravity_DownloadBlocklistFromUrl() {
   # We don't use '--suffix' here because not all implementations of mktemp support it, e.g. on Alpine
   listCurlBuffer="$(mktemp -p "${GRAVITY_TMPDIR}")"
   mv "${listCurlBuffer}" "${listCurlBuffer%.*}.phgpb"
+  listCurlBuffer="${listCurlBuffer%.*}.phgpb"
 
   # Determine if $saveLocation has read permission
   if [[ -r "${saveLocation}" && $url != "file"* ]]; then
