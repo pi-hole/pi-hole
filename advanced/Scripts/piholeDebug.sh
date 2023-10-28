@@ -77,7 +77,7 @@ PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
-PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole-FTL.conf"
+PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
 PIHOLE_CUSTOM_HOSTS_FILE="${PIHOLE_DIRECTORY}/custom.list"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
 
@@ -138,7 +138,6 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
 "${PIHOLE_LOGROTATE_FILE}"
-"${PIHOLE_SETUP_VARS_FILE}"
 "${PIHOLE_FTL_CONF_FILE}"
 "${PIHOLE_COMMAND}"
 "${PIHOLE_COLTABLE_FILE}"
@@ -163,20 +162,6 @@ NOTE: All log files auto-delete after 48 hours and ONLY the Pi-hole developers c
 
 show_disclaimer(){
     log_write "${DISCLAIMER}"
-}
-
-source_setup_variables() {
-    # Display the current test that is running
-    log_write "\\n${COL_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
-    # If the variable file exists,
-    if ls "${PIHOLE_SETUP_VARS_FILE}" 1> /dev/null 2>&1; then
-        log_write "${INFO} Sourcing ${PIHOLE_SETUP_VARS_FILE}...";
-        # source it
-        source ${PIHOLE_SETUP_VARS_FILE}
-    else
-        # If it can't, show an error
-        log_write "${PIHOLE_SETUP_VARS_FILE} ${COL_RED}does not exist or cannot be read.${COL_NC}"
-    fi
 }
 
 make_temporary_log() {
@@ -546,15 +531,15 @@ disk_usage() {
     done
 }
 
-parse_setup_vars() {
-    echo_current_diagnostic "Setup variables"
+parse_pihole_toml() {
+    echo_current_diagnostic "Pi-hole configuration"
     # If the file exists,
-    if [[ -r "${PIHOLE_SETUP_VARS_FILE}" ]]; then
+    if [[ -r "${PIHOLE_FTL_CONF_FILE}" ]]; then
         # parse it
-        parse_file "${PIHOLE_SETUP_VARS_FILE}"
+        parse_file "${PIHOLE_FTL_CONF_FILE}"
     else
         # If not, show an error
-        log_write "${CROSS} ${COL_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
+        log_write "${CROSS} ${COL_RED}Could not read ${PIHOLE_FTL_CONF_FILE}.${COL_NC}"
     fi
 }
 
@@ -1010,8 +995,10 @@ parse_file() {
     # For each line in the file,
     for file_lines in "${file_info[@]}"; do
         if [[ -n "${file_lines}" ]]; then
-            # don't include the Web password hash
-            [[ "${file_lines}" =~ ^\#.*$  || ! "${file_lines}" || "${file_lines}" == "WEBPASSWORD="* ]] && continue
+            # skip empty and comment lines line
+            [[ "${file_lines}" =~ ^[[:space:]]*\#.*$  || ! "${file_lines}" ]] && continue
+            # remove the password hash from the output (*"pwhash = "*)
+            [[ "${file_lines}" == *"pwhash ="* ]] && file_lines=$(echo "${file_lines}" | sed -e 's/\(pwhash = \).*/\1<removed>/')
             # otherwise, display the lines of the file
             log_write "    ${file_lines}"
         fi
@@ -1076,7 +1063,6 @@ list_files_in_dir() {
         elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_SETUP_VARS_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
@@ -1484,7 +1470,7 @@ check_dhcp_servers
 process_status
 ftl_full_status
 lighttpd_test_configuration
-parse_setup_vars
+parse_pihole_toml
 check_x_headers
 analyze_ftl_db
 analyze_gravity_list
