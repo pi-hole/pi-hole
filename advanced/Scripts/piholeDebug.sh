@@ -732,35 +732,6 @@ check_networking() {
     [ -z "${DOCKER_VERSION}" ] && check_required_ports
 }
 
-# check_x_headers() {
-#     # The X-Headers allow us to determine from the command line if the Web
-#     # lighttpd.conf has a directive to show "X-Pi-hole: A black hole for Internet advertisements."
-#     # in the header of any Pi-holed domain
-#     # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
-#     # when accessing the dashboard (i.e curl -I pi.hole/admin/)
-#     # server is operating correctly
-#     echo_current_diagnostic "Dashboard headers"
-#     # Use curl -I to get the header and parse out just the X-Pi-hole one
-#     local full_curl_output_dashboard
-#     local dashboard
-#     full_curl_output_dashboard="$(curl -Is localhost/admin/)"
-#     dashboard=$(echo "${full_curl_output_dashboard}" | awk '/X-Pi-hole/' | tr -d '\r')
-#     # Store what the X-Header should be in variables for comparison later
-#     local dashboard_working
-#     dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
-
-#     # If the X-Header matches what a working system should have,
-#     if [[ $dashboard == "$dashboard_working" ]]; then
-#         # then we can show a success
-#         log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
-#     else
-#         # Otherwise, it's a failure since the X-Headers either don't exist or have been modified in some way
-#         log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-
-#         log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
-#     fi
-# }
-
 dig_at() {
     # We need to test if Pi-hole can properly resolve domain names
     # as it is an essential piece of the software
@@ -1471,7 +1442,6 @@ process_status
 ftl_full_status
 lighttpd_test_configuration
 parse_pihole_toml
-check_x_headers
 analyze_ftl_db
 analyze_gravity_list
 show_groups
