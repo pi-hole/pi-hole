@@ -550,33 +550,6 @@ parse_locale() {
     parse_file "${pihole_locale}"
 }
 
-detect_ip_addresses() {
-    # First argument should be a 4 or a 6
-    local protocol=${1}
-    # Use ip to show the addresses for the chosen protocol
-    # Store the values in an array so they can be looped through
-    # Get the lines that are in the file(s) and store them in an array for parsing later
-    mapfile -t ip_addr_list < <(ip -"${protocol}" addr show dev "${PIHOLE_INTERFACE}" | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')
-
-    # If there is something in the IP address list,
-    if [[ -n ${ip_addr_list[*]} ]]; then
-        # Local iterator
-        local i
-        # Display the protocol and interface
-        log_write "${TICK} IPv${protocol} address(es) bound to the ${PIHOLE_INTERFACE} interface:"
-        # Since there may be more than one IP address, store them in an array
-        for i in "${!ip_addr_list[@]}"; do
-            log_write "    ${ip_addr_list[$i]}"
-        done
-        # Print a blank line just for formatting
-        log_write ""
-    else
-        # If there are no IPs detected, explain that the protocol is not configured
-        log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\\n"
-        return 1
-    fi
-}
-
 ping_ipv4_or_ipv6() {
     # Give the first argument a readable name (a 4 or a six should be the argument)
     local protocol="${1}"
@@ -605,9 +578,9 @@ ping_gateway() {
 
     while IFS= read -r gateway; do
         log_write "     ${gateway}"
-    done < <(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3)
+    done < <(ip -"${protocol}" route | grep default | cut -d ' ' -f 3)
 
-    gateway=$(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3 | head -n 1)
+    gateway=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
     # If there was at least one gateway
     if [ -n "${gateway}" ]; then
         # Let the user know we will ping the gateway for a response
@@ -615,7 +588,7 @@ ping_gateway() {
         # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
         # on the pihole interface, and tail the last three lines of the output
         # If pinging the gateway is not successful,
-        if ! ${cmd} -c 1 -W 2 -n "${gateway}" -I "${PIHOLE_INTERFACE}" >/dev/null; then
+        if ! ${cmd} -c 1 -W 2 -n "${gateway}" >/dev/null; then
             # let the user know
             log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\\n"
             # and return an error code
@@ -723,8 +696,6 @@ check_networking() {
     # Runs through several of the functions made earlier; we just clump them
     # together since they are all related to the networking aspect of things
     echo_current_diagnostic "Networking"
-    detect_ip_addresses "4"
-    detect_ip_addresses "6"
     ping_gateway "4"
     ping_gateway "6"
     # Skip the following check if installed in docker container. Unpriv'ed containers do not have access to the information required
