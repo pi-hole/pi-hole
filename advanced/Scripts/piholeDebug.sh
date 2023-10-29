@@ -77,7 +77,7 @@ PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
-PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole-FTL.conf"
+PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
 PIHOLE_CUSTOM_HOSTS_FILE="${PIHOLE_DIRECTORY}/custom.list"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
 
@@ -138,7 +138,6 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
 "${PIHOLE_LOGROTATE_FILE}"
-"${PIHOLE_SETUP_VARS_FILE}"
 "${PIHOLE_FTL_CONF_FILE}"
 "${PIHOLE_COMMAND}"
 "${PIHOLE_COLTABLE_FILE}"
@@ -163,20 +162,6 @@ NOTE: All log files auto-delete after 48 hours and ONLY the Pi-hole developers c
 
 show_disclaimer(){
     log_write "${DISCLAIMER}"
-}
-
-source_setup_variables() {
-    # Display the current test that is running
-    log_write "\\n${COL_PURPLE}*** [ INITIALIZING ]${COL_NC} Sourcing setup variables"
-    # If the variable file exists,
-    if ls "${PIHOLE_SETUP_VARS_FILE}" 1> /dev/null 2>&1; then
-        log_write "${INFO} Sourcing ${PIHOLE_SETUP_VARS_FILE}...";
-        # source it
-        source ${PIHOLE_SETUP_VARS_FILE}
-    else
-        # If it can't, show an error
-        log_write "${PIHOLE_SETUP_VARS_FILE} ${COL_RED}does not exist or cannot be read.${COL_NC}"
-    fi
 }
 
 make_temporary_log() {
@@ -497,32 +482,32 @@ check_firewalld() {
     fi
 }
 
-processor_check() {
-    echo_current_diagnostic "Processor"
-    # Store the processor type in a variable
-    PROCESSOR=$(uname -m)
-    # If it does not contain a value,
-    if [[ -z "${PROCESSOR}" ]]; then
-        # we couldn't detect it, so show an error
-        PROCESSOR=$(lscpu | awk '/Architecture/ {print $2}')
-        log_write "${CROSS} ${COL_RED}${PROCESSOR}${COL_NC} has not been tested with FTL, but may still work: (${FAQ_FTL_COMPATIBILITY})"
+run_and_print_command() {
+    # Run the command passed as an argument
+    local cmd="${1}"
+    # Show the command that is being run
+    log_write "${INFO} ${cmd}"
+    # Run the command and store the output in a variable
+    local output
+    output=$(${cmd} 2>&1)
+    # If the command was successful,
+    if [[ $? -eq 0 ]]; then
+        # show the output
+        log_write "${output}"
     else
-        # Check if the architecture is currently supported for FTL
-        case "${PROCESSOR}" in
-            "amd64" | "x86_64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "armv6l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "armv6") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "armv7l") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            "aarch64") log_write "${TICK} ${COL_GREEN}${PROCESSOR}${COL_NC}"
-                ;;
-            # Otherwise, show the processor type
-            *) log_write "${INFO} ${PROCESSOR}";
-        esac
+        # otherwise, show an error
+        log_write "${CROSS} ${COL_RED}Command failed${COL_NC}"
     fi
+}
+
+hardware_check() {
+    echo_current_diagnostic "System hardware configuration"
+    # Store the output of the command in a variable
+    run_and_print_command "lshw -short"
+
+    echo_current_diagnostic "Processor details"
+    # Store the output of the command in a variable
+    run_and_print_command "lscpu"
 }
 
 disk_usage() {
@@ -546,15 +531,15 @@ disk_usage() {
     done
 }
 
-parse_setup_vars() {
-    echo_current_diagnostic "Setup variables"
+parse_pihole_toml() {
+    echo_current_diagnostic "Pi-hole configuration"
     # If the file exists,
-    if [[ -r "${PIHOLE_SETUP_VARS_FILE}" ]]; then
+    if [[ -r "${PIHOLE_FTL_CONF_FILE}" ]]; then
         # parse it
-        parse_file "${PIHOLE_SETUP_VARS_FILE}"
+        parse_file "${PIHOLE_FTL_CONF_FILE}"
     else
         # If not, show an error
-        log_write "${CROSS} ${COL_RED}Could not read ${PIHOLE_SETUP_VARS_FILE}.${COL_NC}"
+        log_write "${CROSS} ${COL_RED}Could not read ${PIHOLE_FTL_CONF_FILE}.${COL_NC}"
     fi
 }
 
@@ -563,33 +548,6 @@ parse_locale() {
     echo_current_diagnostic "Locale"
     pihole_locale="$(locale)"
     parse_file "${pihole_locale}"
-}
-
-detect_ip_addresses() {
-    # First argument should be a 4 or a 6
-    local protocol=${1}
-    # Use ip to show the addresses for the chosen protocol
-    # Store the values in an array so they can be looped through
-    # Get the lines that are in the file(s) and store them in an array for parsing later
-    mapfile -t ip_addr_list < <(ip -"${protocol}" addr show dev "${PIHOLE_INTERFACE}" | awk -F ' ' '{ for(i=1;i<=NF;i++) if ($i ~ '/^inet/') print $(i+1) }')
-
-    # If there is something in the IP address list,
-    if [[ -n ${ip_addr_list[*]} ]]; then
-        # Local iterator
-        local i
-        # Display the protocol and interface
-        log_write "${TICK} IPv${protocol} address(es) bound to the ${PIHOLE_INTERFACE} interface:"
-        # Since there may be more than one IP address, store them in an array
-        for i in "${!ip_addr_list[@]}"; do
-            log_write "    ${ip_addr_list[$i]}"
-        done
-        # Print a blank line just for formatting
-        log_write ""
-    else
-        # If there are no IPs detected, explain that the protocol is not configured
-        log_write "${CROSS} ${COL_RED}No IPv${protocol} address(es) found on the ${PIHOLE_INTERFACE}${COL_NC} interface.\\n"
-        return 1
-    fi
 }
 
 ping_ipv4_or_ipv6() {
@@ -620,9 +578,9 @@ ping_gateway() {
 
     while IFS= read -r gateway; do
         log_write "     ${gateway}"
-    done < <(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3)
+    done < <(ip -"${protocol}" route | grep default | cut -d ' ' -f 3)
 
-    gateway=$(ip -"${protocol}" route | grep default | grep "${PIHOLE_INTERFACE}" | cut -d ' ' -f 3 | head -n 1)
+    gateway=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
     # If there was at least one gateway
     if [ -n "${gateway}" ]; then
         # Let the user know we will ping the gateway for a response
@@ -630,7 +588,7 @@ ping_gateway() {
         # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
         # on the pihole interface, and tail the last three lines of the output
         # If pinging the gateway is not successful,
-        if ! ${cmd} -c 1 -W 2 -n "${gateway}" -I "${PIHOLE_INTERFACE}" >/dev/null; then
+        if ! ${cmd} -c 1 -W 2 -n "${gateway}" >/dev/null; then
             # let the user know
             log_write "${CROSS} ${COL_RED}Gateway did not respond.${COL_NC} ($FAQ_GATEWAY)\\n"
             # and return an error code
@@ -738,43 +696,12 @@ check_networking() {
     # Runs through several of the functions made earlier; we just clump them
     # together since they are all related to the networking aspect of things
     echo_current_diagnostic "Networking"
-    detect_ip_addresses "4"
-    detect_ip_addresses "6"
     ping_gateway "4"
     ping_gateway "6"
     # Skip the following check if installed in docker container. Unpriv'ed containers do not have access to the information required
     # to resolve the service name listening - and the container should not start if there was a port conflict anyway
     [ -z "${DOCKER_VERSION}" ] && check_required_ports
 }
-
-# check_x_headers() {
-#     # The X-Headers allow us to determine from the command line if the Web
-#     # lighttpd.conf has a directive to show "X-Pi-hole: A black hole for Internet advertisements."
-#     # in the header of any Pi-holed domain
-#     # Similarly, it will show "X-Pi-hole: The Pi-hole Web interface is working!" if you view the header returned
-#     # when accessing the dashboard (i.e curl -I pi.hole/admin/)
-#     # server is operating correctly
-#     echo_current_diagnostic "Dashboard headers"
-#     # Use curl -I to get the header and parse out just the X-Pi-hole one
-#     local full_curl_output_dashboard
-#     local dashboard
-#     full_curl_output_dashboard="$(curl -Is localhost/admin/)"
-#     dashboard=$(echo "${full_curl_output_dashboard}" | awk '/X-Pi-hole/' | tr -d '\r')
-#     # Store what the X-Header should be in variables for comparison later
-#     local dashboard_working
-#     dashboard_working="X-Pi-hole: The Pi-hole Web interface is working!"
-
-#     # If the X-Header matches what a working system should have,
-#     if [[ $dashboard == "$dashboard_working" ]]; then
-#         # then we can show a success
-#         log_write "$TICK Web interface X-Header: ${COL_GREEN}${dashboard}${COL_NC}"
-#     else
-#         # Otherwise, it's a failure since the X-Headers either don't exist or have been modified in some way
-#         log_write "$CROSS Web interface X-Header: ${COL_RED}X-Header does not match or could not be retrieved.${COL_NC}"
-
-#         log_write "${COL_RED}${full_curl_output_dashboard}${COL_NC}"
-#     fi
-# }
 
 dig_at() {
     # We need to test if Pi-hole can properly resolve domain names
@@ -854,8 +781,17 @@ dig_at() {
         if [ -n "${addresses}" ]; then
           while IFS= read -r local_address ; do
               # Check if Pi-hole can use itself to block a domain
-              if local_dig=$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" +short "${record_type}"); then
+              if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
                   # If it can, show success
+                  if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
+                    local_dig="NOERROR"
+                  elif [[ "${local_dig}" == *"status: NXDOMAIN"* ]]; then
+                    local_dig="NXDOMAIN"
+                  else
+                    # Extract the first entry in the answer section from dig's output,
+                    # replacing any multiple spaces and tabs with a single space
+                    local_dig="$(echo "${local_dig}" | grep -A1 "ANSWER SECTION" | grep -v "ANSWER SECTION" | tr -s " \t" " ")"
+                  fi
                   log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
               else
                   # Otherwise, show a failure
@@ -933,20 +869,6 @@ ftl_full_status(){
     fi
 }
 
-lighttpd_test_configuration(){
-    # let lighttpd test it's own configuration
-    local lighttpd_conf_test
-    echo_current_diagnostic "Lighttpd configuration test"
-    lighttpd_conf_test=$(lighttpd -tt -f /etc/lighttpd/lighttpd.conf)
-    if [ -z "${lighttpd_conf_test}" ]; then
-        # empty output
-        log_write "${TICK} ${COL_GREEN}No error in lighttpd configuration${COL_NC}"
-    else
-        log_write "${CROSS} ${COL_RED}Error in lighttpd configuration${COL_NC}"
-        log_write "   ${lighttpd_conf_test}"
-    fi
-}
-
 make_array_from_file() {
     local filename="${1}"
     # The second argument can put a limit on how many line should be read from the file
@@ -1010,8 +932,10 @@ parse_file() {
     # For each line in the file,
     for file_lines in "${file_info[@]}"; do
         if [[ -n "${file_lines}" ]]; then
-            # don't include the Web password hash
-            [[ "${file_lines}" =~ ^\#.*$  || ! "${file_lines}" || "${file_lines}" == "WEBPASSWORD="* ]] && continue
+            # skip empty and comment lines line
+            [[ "${file_lines}" =~ ^[[:space:]]*\#.*$  || ! "${file_lines}" ]] && continue
+            # remove the password hash from the output (*"pwhash = "*)
+            [[ "${file_lines}" == *"pwhash ="* ]] && file_lines=$(echo "${file_lines}" | sed -e 's/\(pwhash = \).*/\1<removed>/')
             # otherwise, display the lines of the file
             log_write "    ${file_lines}"
         fi
@@ -1076,7 +1000,6 @@ list_files_in_dir() {
         elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_SETUP_VARS_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
@@ -1475,7 +1398,7 @@ check_component_versions
 diagnose_operating_system
 check_selinux
 check_firewalld
-processor_check
+hardware_check
 disk_usage
 check_ip_command
 check_networking
@@ -1483,9 +1406,7 @@ check_name_resolution
 check_dhcp_servers
 process_status
 ftl_full_status
-lighttpd_test_configuration
-parse_setup_vars
-check_x_headers
+parse_pihole_toml
 analyze_ftl_db
 analyze_gravity_list
 show_groups
