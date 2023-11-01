@@ -108,13 +108,11 @@ Main(){
 
     if [ -z "${domain}" ]; then
         echo "No domain specified"; exit 1
-    else
-        # convert domain to punycode
-        domain=$(idn2 "${domain}")
-
-        # convert the domain to lowercase
-        domain=$(echo "${domain}" | tr '[:upper:]' '[:lower:]')
     fi
+    # domains are lowercased and converted to punycode by FTL since
+    # https://github.com/pi-hole/FTL/pull/1715
+    # no need to do it here
+
 
     # Test if the authentication endpoint is available
     TestAPIAvailability
