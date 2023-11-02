@@ -31,7 +31,7 @@ function get_remote_version() {
 
 
 function get_remote_hash(){
-    git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 0,8);}' || return 1
+    git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 1,8);}' || return 1
 }
 
 # Source the utils file for addOrEditKeyValPair()
