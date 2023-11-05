@@ -496,7 +496,9 @@ Debugging Options:
 
 
 Options:
-  setpassword           set the password for the web interface
+  setpassword [pwd]   Set the password for the web interface
+                        Without optional argument, password is read interactively.
+                        When specifying a password directly, enclose it in single quotes.
   -g, updateGravity   Update the list of ad-serving domains
   -h, --help, help    Show this help dialog
   -l, logging         Specify whether the Pi-hole log should be used
