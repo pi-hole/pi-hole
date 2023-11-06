@@ -91,6 +91,9 @@ QUERY_LOGGING=true
 WEBPORT=8080
 PRIVACY_LEVEL=0
 
+# Where old configs go to if a v6 migration is performed
+V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
+
 if [ -z "${USER}" ]; then
     USER="$(id -un)"
 fi
@@ -2070,6 +2073,34 @@ copy_to_install_log() {
     chown pihole:pihole "${installLogLoc}"
 }
 
+migrate_dnsmasq_configs() {
+    # Previously, Pi-hole created a number of files in /etc/dnsmasq.d
+    # During migration, their content is copied into the new single source of
+    # truth file /etc/pihole/pihole.toml and the old files are moved away to
+    # avoid conflicts with other services on this system
+
+    # Exit early if this is already Pi-hole v6.0
+    # We decide this on the presence of the file /etc/pihole/pihole.toml
+    if [[ -f /etc/pihole/pihole.toml ]]; then
+        return 0
+    fi
+
+    # Create target directory /etc/pihole/migration_backup_v6
+    # and make it owned by pihole:pihole
+    mkdir -p "${V6_CONF_MIGRATION_DIR}
+    chown pihole:pihole "${V6_CONF_MIGRATION_DIR}
+
+    # Move all conf files originally created by Pi-hole into this directory
+    # - 01-pihole.conf
+    # - 02-pihole-dhcp.conf
+    # - 04-pihole-static-dhcp.conf
+    # - 05-pihole-custom-cname.conf
+    # - 06-rfc6761.conf
+
+    mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_MIGRATION_DIR}/ CONF_2>/dev/null || true
+    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_MIGRATION_DIR}/ CONF_2>/dev/null || true
+}
+
 main() {
     ######## FIRST CHECK ########
     # Must be root to install
@@ -2218,6 +2249,9 @@ main() {
         pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
         pihole -a -p "${pw}"
     fi
+
+    # Migrate existing install to v6.0
+    migrate_dnsmasq_configs
 
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
