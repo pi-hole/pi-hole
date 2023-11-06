@@ -544,18 +544,6 @@ disk_usage() {
     done
 }
 
-parse_pihole_toml() {
-    echo_current_diagnostic "Pi-hole configuration"
-    # If the file exists,
-    if [[ -r "${PIHOLE_FTL_CONF_FILE}" ]]; then
-        # parse it
-        parse_file "${PIHOLE_FTL_CONF_FILE}"
-    else
-        # If not, show an error
-        log_write "${CROSS} ${COL_RED}Could not read ${PIHOLE_FTL_CONF_FILE}.${COL_NC}"
-    fi
-}
-
 parse_locale() {
     local pihole_locale
     echo_current_diagnostic "Locale"
@@ -1402,10 +1390,6 @@ upload_to_tricorder() {
 # Run through all the functions we made
 make_temporary_log
 initialize_debug
-# TODO: Address the reliance on setupVars.conf here. Should debug read pihole.toml directly, or rely on pihole-FTL --config?
-# setupVars.conf needs to be sourced before the networking so the values are
-# available to the other functions
-source_setup_variables
 check_component_versions
 # check_critical_program_versions
 diagnose_operating_system
@@ -1419,7 +1403,6 @@ check_name_resolution
 check_dhcp_servers
 process_status
 ftl_full_status
-parse_pihole_toml
 analyze_ftl_db
 analyze_gravity_list
 show_groups
