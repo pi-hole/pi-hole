@@ -2098,7 +2098,7 @@ migrate_dnsmasq_configs() {
     # - 06-rfc6761.conf
 
     mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
-    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_MIGRATION_DIR}/" 2>/dev/null || true
+    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
 }
 
 main() {
