@@ -2087,8 +2087,8 @@ migrate_dnsmasq_configs() {
 
     # Create target directory /etc/pihole/migration_backup_v6
     # and make it owned by pihole:pihole
-    mkdir -p "${V6_CONF_MIGRATION_DIR}
-    chown pihole:pihole "${V6_CONF_MIGRATION_DIR}
+    mkdir -p "${V6_CONF_MIGRATION_DIR}"
+    chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
 
     # Move all conf files originally created by Pi-hole into this directory
     # - 01-pihole.conf
@@ -2097,8 +2097,8 @@ migrate_dnsmasq_configs() {
     # - 05-pihole-custom-cname.conf
     # - 06-rfc6761.conf
 
-    mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_MIGRATION_DIR}/ CONF_2>/dev/null || true
-    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_MIGRATION_DIR}/ CONF_2>/dev/null || true
+    mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_MIGRATION_DIR}/" 2>/dev/null || true
 }
 
 main() {
