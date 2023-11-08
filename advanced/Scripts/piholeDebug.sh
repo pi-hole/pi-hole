@@ -634,10 +634,8 @@ compare_port_to_service_assigned() {
 
 check_required_ports() {
     echo_current_diagnostic "Ports in use"
-    # Since Pi-hole needs 53 and 4711, check what they are being used by
+    # Since Pi-hole needs 53,80 and 443 check what they are being used by
     # so we can detect any issues
-    local resolver="pihole-FTL"
-    local web_server="pihole-FTL"
     local ftl="pihole-FTL"
     # Create an array for these ports in use
     ports_in_use=()
@@ -656,17 +654,13 @@ check_required_ports() {
         local port_number
         port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
 
-        # Use a case statement to determine if the right services are using the right ports
-        case "$(echo "${port_number}" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" "${protocol_type}:${port_number}"
-                ;;
-            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" "${protocol_type}:${port_number}"
-                ;;
-            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
-                ;;
+        # Check if the right services are using the right ports
+        if [[ "$(echo "${port_number}" | rev | cut -d: -f1 | rev)" == @(53|80|443) ]]; then
+            compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
+        else
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
-            *) log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
-        esac
+            log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
+        fi
     done
 }
 
