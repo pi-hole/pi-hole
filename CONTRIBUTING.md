@@ -4,7 +4,6 @@ Please read and understand the contribution guide before creating an issue or pu
 
 The full guide can be found here: [https://docs.pi-hole.net/guides/github/contributing/](https://docs.pi-hole.net/guides/github/contributing/)
 
-
 Please read and understand the contribution guide before creating an issue or pull request.
 
 <h3>Etiquette</h3>
@@ -14,7 +13,7 @@ Please read and understand the contribution guide before creating an issue or pu
   Pi-hole is open source and [powered by donations](https://pi-hole.net/donate/), and as such, we give our free time to build, maintain, and provide user support for this project. It would be extremely unfair for us to suffer abuse or anger for our hard work, so please take a moment to consider that.
   
   Please be considerate towards the developers and other users when raising issues or presenting pull requests.
-  Respect our decision(s), and do not be upset or abusive if your submission is not used
+  Respect our decision(s), and do not be upset or abusive if your submission is not used.
 
 <h3>Viability</h3>
 
@@ -22,16 +21,15 @@ When requesting or submitting new features, first consider whether it might be u
 
 <h3>Procedure</h3>
 
- 
  <h4>Before filing an issue:</h4>
 <ul>
-  <li>Attempt to replicate and document the problem, to ensure that it wasn't a coincidental incident.
+  <li>Attempt to replicate and document the problem, to ensure that it wasn't a coincidental incident.</li>
   
-  <li>Check to make sure your feature suggestion isn't already present within the project.
+  <li>Check to make sure your feature suggestion isn't already present within the project.</li>
   
-  <li>Check the pull requests tab to ensure that the bug doesn't have a fix in progress.
+  <li>Check the pull requests tab to ensure that the bug doesn't have a fix in progress.</li>
   
-  <li>Check the pull requests tab to ensure that the feature isn't already in progress.
+  <li>Check the pull requests tab to ensure that the feature isn't already in progress.</li>
 </ul>
 
 <h4>Before submitting a pull request:</h4>
