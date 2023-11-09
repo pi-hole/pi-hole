@@ -24,26 +24,38 @@ When requesting or submitting new features, first consider whether it might be u
 
  
  <h4>Before filing an issue:</h4>
-
-  Attempt to replicate and document the problem, to ensure that it wasn't a coincidental incident.
-  Check to make sure your feature suggestion isn't already present within the project.
-  Check the pull requests tab to ensure that the bug doesn't have a fix in progress.
-  Check the pull requests tab to ensure that the feature isn't already in progress.
-
+<ul>
+  <li>Attempt to replicate and document the problem, to ensure that it wasn't a coincidental incident.
+  
+  <li>Check to make sure your feature suggestion isn't already present within the project.
+  
+  <li>Check the pull requests tab to ensure that the bug doesn't have a fix in progress.
+  
+  <li>Check the pull requests tab to ensure that the feature isn't already in progress.
+</ul>
 
 <h4>Before submitting a pull request:</h4>
-
-  Check the codebase to ensure that your feature doesn't already exist.
-  Check the pull requests to ensure that another person hasn't already submitted the feature or fix.
-  Read and understand the [DCO guidelines](https://docs.pi-hole.net/guides/github/dco/) for the project.
-
+<ul>
+  <li>Check the codebase to ensure that your feature doesn't already exist.</li>
+  
+  <li>Check the pull requests to ensure that another person hasn't already submitted the feature or fix.</li>
+  
+  <li>Read and understand the [DCO guidelines](https://docs.pi-hole.net/guides/github/dco/) for the project.</li>
+</ul>
 
 <h4>Technical Requirements:</h4>
-
-  Submit Pull Requests to the development branch only.
-  Before Submitting your Pull Request, merge development with your new branch and fix any conflicts. (Make sure you don't break anything in development!)
-  Please use the [Google Style Guide](https://google.github.io/styleguide/shellguide.html) for Shell for your code submission styles.
-  Commit Unix line endings.
-  Please use the Pi-hole brand: Pi-hole (Take a special look at the capitalized 'P' and a low 'h' with a hyphen)
-  For Beginners: see here [how to forking and clone from GitHub](https://docs.pi-hole.net/guides/github/how-to-fork-rebase/)
-  (Optional fun) keep to the theme of Star Trek/black holes/gravity.
+<ul>
+  <li>Submit Pull Requests to the development branch only.</li>
+  
+  <li>Before Submitting your Pull Request, merge development with your new branch and fix any conflicts. (Make sure you don't break anything in development!)</li>
+  
+  <li>Please use the [Google Style Guide](https://google.github.io/styleguide/shellguide.html) for Shell for your code submission styles.</li>
+  
+  <li>Commit Unix line endings.</li>
+  
+  <li>Please use the Pi-hole brand: Pi-hole (Take a special look at the capitalized 'P' and a low 'h' with a hyphen)</li>
+  
+  <li>For Beginners: see here [how to forking and clone from GitHub](https://docs.pi-hole.net/guides/github/how-to-fork-rebase/)</li>
+  
+  <li>(Optional fun) keep to the theme of Star Trek/black holes/gravity.</li>
+</ul>
