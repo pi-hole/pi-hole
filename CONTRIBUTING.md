@@ -46,7 +46,7 @@ When requesting or submitting new features, first consider whether it might be u
   <li>Submit Pull Requests to the development branch only.</li>
 
   <li>Before Submitting your Pull Request, merge development with your new branch and fix any conflicts. (Make sure you don't break anything in development!)</li>
-  
+
   <li>Please use the [Google Style Guide](https://google.github.io/styleguide/shellguide.html) for Shell for your code submission styles.</li>
 
   <li>Commit Unix line endings.</li>
