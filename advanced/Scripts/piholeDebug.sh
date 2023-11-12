@@ -80,34 +80,18 @@ PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
 
 # Read the value of an FTL config key. The value is printed to stdout.
-#
-# Args:
-# 1. The key to read
-# 2. The default if the setting or config does not exist
 get_ftl_conf_value() {
     local key=$1
-    local default=$2
     local value
 
-    # Obtain key=... setting from FTL directly
-    if [[ -e "$PIHOLE_FTL_CONF_FILE" ]]; then
-        # Constructed to return nothing when
-        # a) the setting is not present in the config file, or
-        # b) the setting is commented out (e.g. "#DBFILE=...")
-        value="$(pihole-FTL --config "${key}")"
-    fi
-
-    # Test for missing value. Use default value in this case.
-    if [[ -z "$value" ]]; then
-        value="$default"
-    fi
-
+    # Obtain setting from FTL directly
+    value="$(pihole-FTL --config "${key}")"
     echo "$value"
 }
 
-PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity" "${PIHOLE_DIRECTORY}/gravity.db")"
+PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 
-PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database" "${PIHOLE_DIRECTORY}/pihole-FTL.db")"
+PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
@@ -117,8 +101,8 @@ FTL_PID="${RUN_DIRECTORY}/pihole-FTL.pid"
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
-PIHOLE_FTL_LOG="$(get_ftl_conf_value "files.log.ftl" "${LOG_DIRECTORY}/FTL.log")"
-PIHOLE_WEBSERVER_LOG="$(get_ftl_conf_value "files.log.webserver" "${LOG_DIRECTORY}/webserver.log")"
+PIHOLE_FTL_LOG="$(get_ftl_conf_value "files.log.ftl")"
+PIHOLE_WEBSERVER_LOG="$(get_ftl_conf_value "files.log.webserver")"
 
 RESOLVCONF="${ETC}/resolv.conf"
 DNSMASQ_CONF="${ETC}/dnsmasq.conf"
@@ -1267,7 +1251,7 @@ analyze_pihole_log() {
   local pihole_log_permissions
   local queryLogging
 
-  queryLogging=$(pihole-FTL --config dns.queryLogging)
+  queryLogging="$(get_ftl_conf_value "dns.queryLogging")"
   if [[ "${queryLogging}" == "false" ]]; then
       # Inform user that logging has been disabled and pihole.log does not contain queries
       log_write "${INFO} Query logging is disabled"
