@@ -618,7 +618,7 @@ compare_port_to_service_assigned() {
 
 check_required_ports() {
     echo_current_diagnostic "Ports in use"
-    # Since Pi-hole needs 53,80 and 443 check what they are being used by
+    # Since Pi-hole needs various ports, check what they are being used by
     # so we can detect any issues
     local ftl="pihole-FTL"
     # Create an array for these ports in use
@@ -627,6 +627,15 @@ check_required_ports() {
     while IFS= read -r line; do
         ports_in_use+=( "$line" )
     done < <( ss --listening --numeric --tcp --udp --processes --no-header )
+
+    local ports_configured
+    # Get all configured ports
+    ports_configured="$(pihole-FTL --config "webserver.port")"
+    # Remove all non-didgits, split into an array at ","
+    ports_configured="${ports_configured//[!0-9,]/}"
+    mapfile -d "," -t ports_configured < <(echo "${ports_configured}")
+    # Add port 53
+    ports_configured+=("53")
 
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
@@ -639,7 +648,7 @@ check_required_ports() {
         port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
 
         # Check if the right services are using the right ports
-        if [[ "$(echo "${port_number}" | rev | cut -d: -f1 | rev)" == @(53|80|443) ]]; then
+        if [[ ${ports_configured[*]} =~ $(echo "${port_number}" | rev | cut -d: -f1 | rev) ]]; then
             compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
         else
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
