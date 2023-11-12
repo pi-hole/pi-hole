@@ -82,11 +82,9 @@ PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
 # Read the value of an FTL config key. The value is printed to stdout.
 get_ftl_conf_value() {
     local key=$1
-    local value
 
     # Obtain setting from FTL directly
-    value="$(pihole-FTL --config "${key}")"
-    echo "$value"
+    pihole-FTL --config "${key}"
 }
 
 PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
