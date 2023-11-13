@@ -49,7 +49,6 @@ FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisite
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_FIREWALLD="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#firewalld${COL_NC}"
 FAQ_GATEWAY="${COL_CYAN}https://discourse.pi-hole.net/t/why-is-a-default-gateway-important-for-pi-hole/3546${COL_NC}"
-FAQ_FTL_COMPATIBILITY="${COL_CYAN}https://github.com/pi-hole/FTL#compatibility-list${COL_NC}"
 
 # Other URLs we may use
 FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
@@ -78,38 +77,19 @@ PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
 PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
-PIHOLE_CUSTOM_HOSTS_FILE="${PIHOLE_DIRECTORY}/hosts/custom.list"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
 
 # Read the value of an FTL config key. The value is printed to stdout.
-#
-# Args:
-# 1. The key to read
-# 2. The default if the setting or config does not exist
 get_ftl_conf_value() {
     local key=$1
-    local default=$2
-    local value
 
-    # Obtain key=... setting from pihole-FTL.conf
-    if [[ -e "$PIHOLE_FTL_CONF_FILE" ]]; then
-        # Constructed to return nothing when
-        # a) the setting is not present in the config file, or
-        # b) the setting is commented out (e.g. "#DBFILE=...")
-        value="$(sed -n -e "s/^\\s*$key=\\s*//p" ${PIHOLE_FTL_CONF_FILE})"
-    fi
-
-    # Test for missing value. Use default value in this case.
-    if [[ -z "$value" ]]; then
-        value="$default"
-    fi
-
-    echo "$value"
+    # Obtain setting from FTL directly
+    pihole-FTL --config "${key}"
 }
 
-PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "GRAVITYDB" "${PIHOLE_DIRECTORY}/gravity.db")"
+PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 
-PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "DBFILE" "${PIHOLE_DIRECTORY}/pihole-FTL.db")"
+PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
@@ -119,10 +99,8 @@ FTL_PID="${RUN_DIRECTORY}/pihole-FTL.pid"
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
 PIHOLE_DEBUG_LOG="${LOG_DIRECTORY}/pihole_debug.log"
-PIHOLE_FTL_LOG="$(get_ftl_conf_value "LOGFILE" "${LOG_DIRECTORY}/FTL.log")"
-
-# PIHOLE_WEB_SERVER_ACCESS_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/access-pihole.log" #TODO: FTL Error log?
-# PIHOLE_WEB_SERVER_ERROR_LOG_FILE="${WEB_SERVER_LOG_DIRECTORY}/error-pihole.log" #TODO: FTL Error log?
+PIHOLE_FTL_LOG="$(get_ftl_conf_value "files.log.ftl")"
+PIHOLE_WEBSERVER_LOG="$(get_ftl_conf_value "files.log.webserver")"
 
 RESOLVCONF="${ETC}/resolv.conf"
 DNSMASQ_CONF="${ETC}/dnsmasq.conf"
@@ -132,8 +110,6 @@ PIHOLE_PROCESSES=( "pihole-FTL" )
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
-# "${WEB_SERVER_CONFIG_FILE}"
-# "${WEB_SERVER_CUSTOM_CONFIG_FILE}"
 "${PIHOLE_INSTALL_LOG_FILE}"
 "${PIHOLE_RAW_BLOCKLIST_FILES}"
 "${PIHOLE_LOCAL_HOSTS_FILE}"
@@ -146,11 +122,9 @@ REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
 "${PIHOLE_LOG_GZIPS}"
 "${PIHOLE_DEBUG_LOG}"
 "${PIHOLE_FTL_LOG}"
-"${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}"
-"${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}"
+"${PIHOLE_WEBSERVER_LOG}"
 "${RESOLVCONF}"
 "${DNSMASQ_CONF}"
-"${PIHOLE_CUSTOM_HOSTS_FILE}"
 "${PIHOLE_VERSIONS_FILE}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
@@ -642,10 +616,8 @@ compare_port_to_service_assigned() {
 
 check_required_ports() {
     echo_current_diagnostic "Ports in use"
-    # Since Pi-hole needs 53 and 4711, check what they are being used by
+    # Since Pi-hole needs various ports, check what they are being used by
     # so we can detect any issues
-    local resolver="pihole-FTL"
-    local web_server="pihole-FTL"
     local ftl="pihole-FTL"
     # Create an array for these ports in use
     ports_in_use=()
@@ -653,6 +625,15 @@ check_required_ports() {
     while IFS= read -r line; do
         ports_in_use+=( "$line" )
     done < <( ss --listening --numeric --tcp --udp --processes --no-header )
+
+    local ports_configured
+    # Get all configured ports
+    ports_configured="$(pihole-FTL --config "webserver.port")"
+    # Remove all non-didgits, split into an array at ","
+    ports_configured="${ports_configured//[!0-9,]/}"
+    mapfile -d "," -t ports_configured < <(echo "${ports_configured}")
+    # Add port 53
+    ports_configured+=("53")
 
     # Now that we have the values stored,
     for i in "${!ports_in_use[@]}"; do
@@ -664,17 +645,13 @@ check_required_ports() {
         local port_number
         port_number="$(echo "${ports_in_use[$i]}" | awk '{print $5}')" #  | awk '{gsub(/^.*:/,"",$5);print $5}')
 
-        # Use a case statement to determine if the right services are using the right ports
-        case "$(echo "${port_number}" | rev | cut -d: -f1 | rev)" in
-            53) compare_port_to_service_assigned  "${resolver}" "${service_name}" "${protocol_type}:${port_number}"
-                ;;
-            80) compare_port_to_service_assigned  "${web_server}" "${service_name}" "${protocol_type}:${port_number}"
-                ;;
-            4711) compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
-                ;;
+        # Check if the right services are using the right ports
+        if [[ ${ports_configured[*]} =~ $(echo "${port_number}" | rev | cut -d: -f1 | rev) ]]; then
+            compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
+        else
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
-            *) log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
-        esac
+            log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
+        fi
     done
 }
 
@@ -983,12 +960,6 @@ list_files_in_dir() {
     if [[ "${dir_to_parse}" == "${SHM_DIRECTORY}" ]]; then
         # SHM file - we do not want to see the content, but we want to see the files and their sizes
         log_write "$(ls -lh "${dir_to_parse}/")"
-    elif [[ "${dir_to_parse}" == "${WEB_SERVER_CONFIG_DIRECTORY_FEDORA}" ]]; then
-        # we want to see all files files in /etc/lighttpd/conf.d
-        log_write "$(ls -lh "${dir_to_parse}/" 2> /dev/null )"
-    elif [[ "${dir_to_parse}" == "${WEB_SERVER_CONFIG_DIRECTORY_DEBIAN}" ]]; then
-        # we want to see all files files in /etc/lighttpd/conf.d
-        log_write "$(ls -lh "${dir_to_parse}/"/ 2> /dev/null )"
     fi
 
     # Store the files found in an array
@@ -1002,7 +973,6 @@ list_files_in_dir() {
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_WEB_SERVER_ACCESS_LOG_FILE}" ]] || \
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
             :
         elif [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
@@ -1017,8 +987,8 @@ list_files_in_dir() {
                     log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
                     case "${dir_to_parse}/${each_file}" in
-                        # If it's Web server error log, give the first and last 25 lines
-                        "${PIHOLE_WEB_SERVER_ERROR_LOG_FILE}") head_tail_log "${dir_to_parse}/${each_file}" 25
+                        # If it's Web server log, give the first and last 25 lines
+                        "${PIHOLE_WEBSERVER_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 25
                             ;;
                         # Same for the FTL log
                         "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
@@ -1049,11 +1019,7 @@ show_content_of_pihole_files() {
     # Show the content of the files in each of Pi-hole's folders
     show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
-    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY}"
-    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY_FEDORA}"
-    show_content_of_files_in_dir "${WEB_SERVER_CONFIG_DIRECTORY_DEBIAN}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
-    show_content_of_files_in_dir "${WEB_SERVER_LOG_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"
     show_content_of_files_in_dir "${SHM_DIRECTORY}"
     show_content_of_files_in_dir "${ETC}"
@@ -1290,10 +1256,10 @@ spinner(){
 analyze_pihole_log() {
   echo_current_diagnostic "Pi-hole log"
   local pihole_log_permissions
-  local logging_enabled
+  local queryLogging
 
-  logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
-  if [[ "${logging_enabled}" == "0" ]]; then
+  queryLogging="$(get_ftl_conf_value "dns.queryLogging")"
+  if [[ "${queryLogging}" == "false" ]]; then
       # Inform user that logging has been disabled and pihole.log does not contain queries
       log_write "${INFO} Query logging is disabled"
       log_write ""
