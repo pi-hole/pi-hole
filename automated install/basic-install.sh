@@ -1122,9 +1122,9 @@ installConfigs() {
     chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
     # Install empty custom.list file if it does not exist
-    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
-        if ! install -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
-            printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+    if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
+        if ! install -D -T -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
+            printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}/hosts"
             return 1
         fi
     fi
