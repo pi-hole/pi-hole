@@ -2,7 +2,7 @@
 
 Please read and understand the contribution guide before creating an issue or pull request.
 
-The full guide can be found here: [https://docs.pi-hole.net/guides/github/contributing/](https://docs.pi-hole.net/guides/github/contributing/)
+The full guide can be found here: <a href="https://docs.pi-hole.net/guides/github/contributing/" target="_blank">Pi-hole documentation - Contributing on GitHub</a>
 
 Please read and understand the contribution guide before creating an issue or pull request.
 
