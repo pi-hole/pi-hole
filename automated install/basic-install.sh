@@ -1532,7 +1532,7 @@ stop_service() {
 restart_service() {
     # Local, named variables
     local str="Restarting ${1} service"
-    printf "  %b %s..." "${INFO}" "${str}"
+    printf "  %b %s...\n" "${INFO}" "${str}"
     # If systemctl exists,
     if is_command systemctl ; then
         # use that to restart the service
