@@ -538,12 +538,25 @@ gravity_DownloadBlocklistFromUrl() {
       fi;;
   esac
 
+
   if [[ "${blocked}" == true ]]; then
-    printf -v ip_addr "%s" "${PIHOLE_DNS_1%#*}"
-    if [[ ${PIHOLE_DNS_1} != *"#"* ]]; then
+    # Get first defined upstream server
+    local upstream
+    upstream="$(getFTLConfigValue dns.upstreams)"
+
+    # Isolate first upstream server from a string like
+    # [ 1.2.3.4#1234, 5.6.7.8#5678, ... ]
+    upstream="${upstream%%,*}"
+    upstream="${upstream##*[}"
+    upstream="${upstream%%]*}"
+
+    # Get IP address and port of this upstream server
+    local ip_addr port
+    printf -v ip_addr "%s" "${upstream%#*}"
+    if [[ ${upstream} != *"#"* ]]; then
       port=53
     else
-      printf -v port "%s" "${PIHOLE_DNS_1#*#}"
+      printf -v port "%s" "${upstream#*#}"
     fi
     ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
     if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
@@ -551,7 +564,7 @@ gravity_DownloadBlocklistFromUrl() {
     else port=80
     fi
     bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
-    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}";
+    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${upstream} to download ${url}";
     echo -ne "  ${INFO} ${str} Pending..."
     cmd_ext="--resolve $domain:$port:$ip"
   fi
