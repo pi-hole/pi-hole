@@ -99,7 +99,7 @@ gravity_swap_databases() {
   # Number of available blocks on disk
   availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
   # Number of blocks, used by gravity.db
-  gravityBlocks=$(stat --format "%b" ${gravityDBfile})
+  gravityBlocks=$(stat --format "%b" "${gravityDBfile}")
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
   oldAvail=false
@@ -604,7 +604,7 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
-      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "2"
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
@@ -614,7 +614,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Remove curl buffer file after its use
       rm "${listCurlBuffer}"
       # Add domains to database table file
-      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       # Compare lists, are they identical?
       compareLists "${adlistID}" "${saveLocation}"
       done="true"
@@ -630,7 +630,7 @@ gravity_DownloadBlocklistFromUrl() {
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       # Add domains to database table file
-      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "3"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
