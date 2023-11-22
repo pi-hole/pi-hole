@@ -517,57 +517,61 @@ gravity_DownloadBlocklistFromUrl() {
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
   blocked=false
-  case $(getFTLConfigValue dns.blocking.mode) in
-    "IP-NODATA-AAAA"|"IP")
-      # Get IP address of this domain
-      ip="$(dig "${domain}" +short)"
-      # Check if this IP matches any IP of the system
-      if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<< "$(ip a)") -gt 0 ]]; then
-        blocked=true
-      fi;;
-    "NXDOMAIN")
-      if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
-        blocked=true
-      fi;;
-    "NODATA")
-      if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +short "${domain}") ]]; then
-         blocked=true
-      fi;;
-    "NULL"|*)
-      if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
-        blocked=true
-      fi;;
-  esac
 
+  # Check if this domain is blocked by Pi-hole but only if the domain is not a
+  # local file or empty
+  if [[ $url != "file"* ]] && [[ -n "${domain}" ]]; then
+    case $(getFTLConfigValue dns.blocking.mode) in
+        "IP-NODATA-AAAA"|"IP")
+        # Get IP address of this domain
+        ip="$(dig "${domain}" +short)"
+        # Check if this IP matches any IP of the system
+        if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<< "$(ip a)") -gt 0 ]]; then
+            blocked=true
+        fi;;
+        "NXDOMAIN")
+        if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
+            blocked=true
+        fi;;
+        "NODATA")
+        if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +short "${domain}") ]]; then
+            blocked=true
+        fi;;
+        "NULL"|*)
+        if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
+            blocked=true
+        fi;;
+    esac
 
-  if [[ "${blocked}" == true ]]; then
-    # Get first defined upstream server
-    local upstream
-    upstream="$(getFTLConfigValue dns.upstreams)"
+    if [[ "${blocked}" == true ]]; then
+        # Get first defined upstream server
+        local upstream
+        upstream="$(getFTLConfigValue dns.upstreams)"
 
-    # Isolate first upstream server from a string like
-    # [ 1.2.3.4#1234, 5.6.7.8#5678, ... ]
-    upstream="${upstream%%,*}"
-    upstream="${upstream##*[}"
-    upstream="${upstream%%]*}"
+        # Isolate first upstream server from a string like
+        # [ 1.2.3.4#1234, 5.6.7.8#5678, ... ]
+        upstream="${upstream%%,*}"
+        upstream="${upstream##*[}"
+        upstream="${upstream%%]*}"
 
-    # Get IP address and port of this upstream server
-    local ip_addr port
-    printf -v ip_addr "%s" "${upstream%#*}"
-    if [[ ${upstream} != *"#"* ]]; then
-      port=53
-    else
-      printf -v port "%s" "${upstream#*#}"
+        # Get IP address and port of this upstream server
+        local ip_addr port
+        printf -v ip_addr "%s" "${upstream%#*}"
+        if [[ ${upstream} != *"#"* ]]; then
+        port=53
+        else
+        printf -v port "%s" "${upstream#*#}"
+        fi
+        ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
+        if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
+        port=443;
+        else port=80
+        fi
+        bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
+        echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${upstream} to download ${url}";
+        echo -ne "  ${INFO} ${str} Pending..."
+        cmd_ext="--resolve $domain:$port:$ip"
     fi
-    ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
-    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
-      port=443;
-    else port=80
-    fi
-    bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
-    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${upstream} to download ${url}";
-    echo -ne "  ${INFO} ${str} Pending..."
-    cmd_ext="--resolve $domain:$port:$ip"
   fi
 
   # shellcheck disable=SC2086
