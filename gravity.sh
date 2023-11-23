@@ -553,6 +553,9 @@ gravity_DownloadBlocklistFromUrl() {
         upstream="${upstream%%,*}"
         upstream="${upstream##*[}"
         upstream="${upstream%%]*}"
+        # Trim leading and trailing spaces and tabs
+        upstream="${upstream#"${upstream%%[![:space:]]*}"}"
+        upstream="${upstream%"${upstream##*[![:space:]]}"}"
 
         # Get IP address and port of this upstream server
         local ip_addr port
@@ -567,8 +570,7 @@ gravity_DownloadBlocklistFromUrl() {
         port=443;
         else port=80
         fi
-        bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
-        echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${upstream} to download ${url}";
+        echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead";
         echo -ne "  ${INFO} ${str} Pending..."
         cmd_ext="--resolve $domain:$port:$ip"
     fi
