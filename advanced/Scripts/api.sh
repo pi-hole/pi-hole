@@ -21,14 +21,31 @@
 TestAPIAvailability() {
 
     # as we are running locally, we can get the port value from FTL directly
-    PORT="$(pihole-FTL --config webserver.port)"
-    PORT="${PORT%%,*}"
+    local ports port availabilityResonse
+    ports="$(pihole-FTL --config webserver.port)"
+    port="${ports%%,*}"
 
-    availabilityResonse=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${PORT}/api/auth")
+    # if the port ends with an "s", it is a secure connection
+    if [ "${port#"${port%?}"}" = "s" ]; then
+        # remove the "s" from the port
+        API_PROT="https"
+        API_PORT="${port%?}"
+    elif [ "${port#"${port%?}"}" = "r" ]; then
+        # if the port ends in "r", it is a redirect
+        API_PROT="http"
+        # remove the "r" from the port
+        API_PORT="${port%?}"
+    else
+        API_PROT="http"
+        API_PORT="${port}"
+    fi
 
-    # test if http status code was 200 (OK) or 401 (authentication required)
-    if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 401 ]; then
-        echo "API not available at: http://localhost:${PORT}/api"
+    API_URL="${API_PROT}://localhost:${API_PORT}/api"
+    availabilityResonse=$(curl -skSL -o /dev/null -w "%{http_code}" "${API_URL}/auth")
+
+    # test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
+    if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 308 ] && [ ! "${availabilityResonse}" = 401 ]; then
+        echo "API not available at: ${API_URL}"
         echo "Exiting."
         exit 1
     fi
@@ -54,15 +71,15 @@ Authenthication() {
 }
 
 LoginAPI() {
-	sessionResponse="$(curl --silent -X POST "http://localhost:${PORT}/api/auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
+  sessionResponse="$(curl -skSL -X POST "${API_URL}/auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
 
   if [ -z "${sessionResponse}" ]; then
     echo "No response from FTL server. Please check connectivity"
     exit 1
   fi
-	# obtain validity and session ID from session response
-	validSession=$(echo "${sessionResponse}"| jq .session.valid 2>/dev/null)
-	SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
+  # obtain validity and session ID from session response
+  validSession=$(echo "${sessionResponse}"| jq .session.valid 2>/dev/null)
+  SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
 }
 
 DeleteSession() {
@@ -70,7 +87,7 @@ DeleteSession() {
     # SID is not null (successful authenthication only), delete the session
     if [ "${validSession}" = true ] && [ ! "${SID}" = null ]; then
         # Try to delete the session. Omit the output, but get the http status code
-        deleteResponse=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "http://localhost:${PORT}/api/auth"  -H "Accept: application/json" -H "sid: ${SID}")
+        deleteResponse=$(curl -skSL -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}/auth"  -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
             "200") printf "%b" "A session that was not created cannot be deleted (e.g., empty API password).\n";;
@@ -84,14 +101,14 @@ DeleteSession() {
 GetFTLData() {
   local data response status
   # get the data from querying the API as well as the http status code
-  response=$(curl -s -w "%{http_code}" -X GET "http://localhost:${PORT}/api$1" -H "Accept: application/json" -H "sid: ${SID}" )
+  response=$(curl -skSL -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" )
 
   # status are the last 3 characters
   status=$(printf %s "${response#"${response%???}"}")
   # data is everything from response without the last 3 characters
   data=$(printf %s "${response%???}")
 
-  if [ "${status}" = 200 ]; then
+  if [ "${status}" = 200 ] || [ "${status}" = 308 ]; then
     # response OK
     echo "${data}"
   elif [ "${status}" = 000 ]; then
