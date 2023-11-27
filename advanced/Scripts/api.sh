@@ -25,26 +25,48 @@ TestAPIAvailability() {
     ports="$(pihole-FTL --config webserver.port)"
     port="${ports%%,*}"
 
-    # if the port ends with an "s", it is a secure connection
-    if [ "${port#"${port%?}"}" = "s" ]; then
-        # remove the "s" from the port
-        API_PROT="https"
-        API_PORT="${port%?}"
-    elif [ "${port#"${port%?}"}" = "r" ]; then
-        # if the port ends in "r", it is a redirect
-        API_PROT="http"
-        # remove the "r" from the port
-        API_PORT="${port%?}"
-    else
-        API_PROT="http"
-        API_PORT="${port}"
-    fi
+    # Iterate over comma separated list of ports
+    while [ "${port}" != "${ports}" ]; do
+        # if the port ends with an "s", it is a secure connection
+        if [ "${port#"${port%?}"}" = "s" ]; then
+            # remove the "s" from the port
+            API_PROT="https"
+            API_PORT="${port%?}"
+        elif [ "${port#"${port%?}"}" = "r" ]; then
+            # Ignore this port
+            API_PORT="0"
+        else
+            API_PROT="http"
+            API_PORT="${port}"
+        fi
 
-    API_URL="${API_PROT}://localhost:${API_PORT}/api"
-    availabilityResonse=$(curl -skSL -o /dev/null -w "%{http_code}" "${API_URL}/auth")
+        if [ ! "${API_PORT}" = "0" ]; then
+            # If the port is of form "ip:port", we need to remove everything before
+            # the last ":" in the string, e.g., "[::]:80" -> "80"
+            if [ "${API_PORT#*:}" != "${API_PORT}" ]; then
+                API_PORT="${API_PORT##*:}"
+            fi
 
-    # test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
-    if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 308 ] && [ ! "${availabilityResonse}" = 401 ]; then
+            API_URL="${API_PROT}://localhost:${API_PORT}/api"
+            availabilityResonse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}/auth")
+
+            # test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
+            if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 308 ] && [ ! "${availabilityResonse}" = 401 ]; then
+                API_PORT="0"
+            else
+                # API is available at this port/protocol combination
+                break
+            fi
+        fi
+
+        # remove the first port from the list
+        ports="${ports#*,}"
+        # get the next port
+        port="${ports%%,*}"
+    done
+
+    # if API_PORT is 0, no working API port was found
+    if [ "${API_PORT}" = "0" ]; then
         echo "API not available at: ${API_URL}"
         echo "Exiting."
         exit 1
@@ -71,7 +93,7 @@ Authenthication() {
 }
 
 LoginAPI() {
-  sessionResponse="$(curl -skSL -X POST "${API_URL}/auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
+  sessionResponse="$(curl -skS -X POST "${API_URL}/auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
 
   if [ -z "${sessionResponse}" ]; then
     echo "No response from FTL server. Please check connectivity"
@@ -87,7 +109,7 @@ DeleteSession() {
     # SID is not null (successful authenthication only), delete the session
     if [ "${validSession}" = true ] && [ ! "${SID}" = null ]; then
         # Try to delete the session. Omit the output, but get the http status code
-        deleteResponse=$(curl -skSL -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}/auth"  -H "Accept: application/json" -H "sid: ${SID}")
+        deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}/auth"  -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
             "200") printf "%b" "A session that was not created cannot be deleted (e.g., empty API password).\n";;
@@ -101,7 +123,7 @@ DeleteSession() {
 GetFTLData() {
   local data response status
   # get the data from querying the API as well as the http status code
-  response=$(curl -skSL -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" )
+  response=$(curl -skS -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" )
 
   # status are the last 3 characters
   status=$(printf %s "${response#"${response%???}"}")
