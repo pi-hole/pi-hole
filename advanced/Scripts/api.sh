@@ -26,16 +26,18 @@ TestAPIAvailability() {
     port="${ports%%,*}"
 
     # Iterate over comma separated list of ports
-    while [ "${port}" != "${ports}" ]; do
+    while [ -n "${ports}" ]; do
         # if the port ends with an "s", it is a secure connection
         if [ "${port#"${port%?}"}" = "s" ]; then
             # remove the "s" from the port
             API_PROT="https"
             API_PORT="${port%?}"
         elif [ "${port#"${port%?}"}" = "r" ]; then
-            # Ignore this port
+            # Ignore this port, the client may not be able to follow the
+            # redirected target when FTL is not used as local resolver
             API_PORT="0"
         else
+            # otherwise it is an insecure (plain HTTP) connection
             API_PROT="http"
             API_PORT="${port}"
         fi
@@ -50,8 +52,9 @@ TestAPIAvailability() {
             API_URL="${API_PROT}://localhost:${API_PORT}/api"
             availabilityResonse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}/auth")
 
-            # test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
+            # Test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
             if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 308 ] && [ ! "${availabilityResonse}" = 401 ]; then
+                # API is not available at this port/protocol combination
                 API_PORT="0"
             else
                 # API is available at this port/protocol combination
@@ -59,9 +62,9 @@ TestAPIAvailability() {
             fi
         fi
 
-        # remove the first port from the list
+        # If the loop has not been broken, remove the first port from the list
+        # and get the next port
         ports="${ports#*,}"
-        # get the next port
         port="${ports%%,*}"
     done
 
@@ -192,3 +195,6 @@ secretRead() {
     # restore original terminal settings
     stty "${stty_orig}"
 }
+
+
+TestAPIAvailability
