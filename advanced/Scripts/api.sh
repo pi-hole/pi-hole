@@ -21,62 +21,60 @@
 TestAPIAvailability() {
 
     # as we are running locally, we can get the port value from FTL directly
-    local ports port availabilityResonse
-    ports="$(pihole-FTL --config webserver.port)"
-    port="${ports%%,*}"
+    local chaos_api_list availabilityResonse
 
-    # Iterate over comma separated list of ports
-    while [ -n "${ports}" ]; do
-        # if the port ends with an "s", it is a secure connection
-        if [ "${port#"${port%?}"}" = "s" ]; then
-            # remove the "s" from the port
-            API_PROT="https"
-            API_PORT="${port%?}"
-        elif [ "${port#"${port%?}"}" = "r" ]; then
-            # Ignore this port, the client may not be able to follow the
-            # redirected target when FTL is not used as local resolver
-            API_PORT="0"
+    # Query the API URLs from FTL using CHAOS TXT local.api.ftl
+    # The result is a space-separated enumeration of full URLs
+    # e.g., "http://localhost:80/api" "https://localhost:443/api"
+    chaos_api_list="$(dig +short chaos txt local.api.ftl @127.0.0.1)"
+
+    # If the query was not successful, the variable is empty
+    if [ -z "${chaos_api_list}" ]; then
+        echo "API not available. Please check connectivity"
+        exit 1
+    fi
+
+    # Iterate over space-separated list of URLs
+    while [ -n "${chaos_api_list}" ]; do
+        # Get the first URL
+        API_URL="${chaos_api_list%% *}"
+        # Strip leading and trailing quotes
+        API_URL="${API_URL%\"}"
+        API_URL="${API_URL#\"}"
+
+        # Test if the API is available at this URL
+        availabilityResonse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}auth")
+
+        # Test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
+        if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 308 ] && [ ! "${availabilityResonse}" = 401 ]; then
+            # API is not available at this port/protocol combination
+            API_PORT=""
         else
-            # otherwise it is an insecure (plain HTTP) connection
-            API_PROT="http"
-            API_PORT="${port}"
+            # API is available at this URL combination
+            break
         fi
 
-        if [ ! "${API_PORT}" = "0" ]; then
-            # If the port is of form "ip:port", we need to remove everything before
-            # the last ":" in the string, e.g., "[::]:80" -> "80"
-            if [ "${API_PORT#*:}" != "${API_PORT}" ]; then
-                API_PORT="${API_PORT##*:}"
-            fi
+        # Remove the first URL from the list
+        local last_api_list
+        last_api_list="${chaos_api_list}"
+        chaos_api_list="${chaos_api_list#* }"
 
-            API_URL="${API_PROT}://localhost:${API_PORT}/api"
-            availabilityResonse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}/auth")
-
-            # Test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
-            if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 308 ] && [ ! "${availabilityResonse}" = 401 ]; then
-                # API is not available at this port/protocol combination
-                API_PORT="0"
-            else
-                # API is available at this port/protocol combination
-                break
-            fi
+        # If the list did not change, we are at the last element
+        if [ "${last_api_list}" = "${chaos_api_list}" ]; then
+            # Remove the last element
+            chaos_api_list=""
         fi
-
-        # If the loop has not been broken, remove the first port from the list
-        # and get the next port
-        ports="${ports#*,}"
-        port="${ports%%,*}"
     done
 
-    # if API_PORT is 0, no working API port was found
-    if [ "${API_PORT}" = "0" ]; then
+    # if API_PORT is empty, no working API port was found
+    if [ -n "${API_PORT}" ]; then
         echo "API not available at: ${API_URL}"
         echo "Exiting."
         exit 1
     fi
 }
 
-Authenthication() {
+Authentication() {
     # Try to authenticate
     LoginAPI
 
@@ -96,7 +94,7 @@ Authenthication() {
 }
 
 LoginAPI() {
-  sessionResponse="$(curl -skS -X POST "${API_URL}/auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
+  sessionResponse="$(curl -skS -X POST "${API_URL}auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
 
   if [ -z "${sessionResponse}" ]; then
     echo "No response from FTL server. Please check connectivity"
@@ -108,11 +106,11 @@ LoginAPI() {
 }
 
 DeleteSession() {
-    # if a valid Session exists (no password required or successful authenthication) and
-    # SID is not null (successful authenthication only), delete the session
+    # if a valid Session exists (no password required or successful Authentication) and
+    # SID is not null (successful Authentication only), delete the session
     if [ "${validSession}" = true ] && [ ! "${SID}" = null ]; then
         # Try to delete the session. Omit the output, but get the http status code
-        deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}/auth"  -H "Accept: application/json" -H "sid: ${SID}")
+        deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth"  -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
             "200") printf "%b" "A session that was not created cannot be deleted (e.g., empty API password).\n";;
