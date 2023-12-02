@@ -25,7 +25,7 @@ TestAPIAvailability() {
 
     # Query the API URLs from FTL using CHAOS TXT local.api.ftl
     # The result is a space-separated enumeration of full URLs
-    # e.g., "http://localhost:80/api" "https://localhost:443/api"
+    # e.g., "http://localhost:80/api/" "https://localhost:443/api/"
     chaos_api_list="$(dig +short chaos txt local.api.ftl @127.0.0.1)"
 
     # If the query was not successful, the variable is empty
@@ -45,8 +45,8 @@ TestAPIAvailability() {
         # Test if the API is available at this URL
         availabilityResonse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}auth")
 
-        # Test if http status code was 200 (OK), 308 (redirect, we follow) 401 (authentication required)
-        if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 308 ] && [ ! "${availabilityResonse}" = 401 ]; then
+        # Test if http status code was 200 (OK) or 401 (authentication required)
+        if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 401 ]; then
             # API is not available at this port/protocol combination
             API_PORT=""
         else
@@ -131,7 +131,7 @@ GetFTLData() {
   # data is everything from response without the last 3 characters
   data=$(printf %s "${response%???}")
 
-  if [ "${status}" = 200 ] || [ "${status}" = 308 ]; then
+  if [ "${status}" = 200 ]; then
     # response OK
     echo "${data}"
   elif [ "${status}" = 000 ]; then
@@ -193,6 +193,3 @@ secretRead() {
     # restore original terminal settings
     stty "${stty_orig}"
 }
-
-
-TestAPIAvailability
