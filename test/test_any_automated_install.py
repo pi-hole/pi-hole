@@ -465,7 +465,7 @@ def test_FTL_development_binary_installed_and_responsive_no_errors(host):
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
-    echo "development" > /etc/pihole/ftlbranch
+    echo "development-v6" > /etc/pihole/ftlbranch
     binary="pihole-FTL${funcOutput##*pihole-FTL}"
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
