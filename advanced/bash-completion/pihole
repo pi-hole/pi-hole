@@ -34,10 +34,6 @@ _pihole() {
 			opts_update="--check-only"
 			COMPREPLY=( $(compgen -W "${opts_update}" -- ${cur}) )
 		;;
-		"version")
-			opts_version="\--web \--current \--ftl \--hash \--latest \--pihole"
-			COMPREPLY=( $(compgen -W "${opts_version}" -- ${cur}) )
-        ;;
 		"core"|"admin"|"ftl")
 			if [[ "$prev2" == "checkout" ]]; then
 				opts_checkout="master dev"
