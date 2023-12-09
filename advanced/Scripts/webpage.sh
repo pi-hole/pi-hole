@@ -560,13 +560,13 @@ CustomizeAdLists() {
 
     if CheckUrl "${address}"; then
         if [[ "${args[2]}" == "enable" ]]; then
-            pihole-FTL sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
+            pihole-FTL sqlite3 -ni "${gravityDBfile}" "UPDATE adlist SET enabled = 1 WHERE address = '${address}'"
         elif [[ "${args[2]}" == "disable" ]]; then
-            pihole-FTL sqlite3 "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
+            pihole-FTL sqlite3 -ni "${gravityDBfile}" "UPDATE adlist SET enabled = 0 WHERE address = '${address}'"
         elif [[ "${args[2]}" == "add" ]]; then
-            pihole-FTL sqlite3 "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
+            pihole-FTL sqlite3 -ni "${gravityDBfile}" "INSERT OR IGNORE INTO adlist (address, comment) VALUES ('${address}', '${comment}')"
         elif [[ "${args[2]}" == "del" ]]; then
-            pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
+            pihole-FTL sqlite3 -ni "${gravityDBfile}" "DELETE FROM adlist WHERE address = '${address}'"
         else
             echo "Not permitted"
             return 1
@@ -700,12 +700,12 @@ addAudit()
     done
     # Insert only the domain here. The date_added field will be
     # filled with its default value (date_added = current timestamp)
-    pihole-FTL sqlite3 "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
+    pihole-FTL sqlite3 -ni "${gravityDBfile}" "INSERT INTO domain_audit (domain) VALUES ${domains};"
 }
 
 clearAudit()
 {
-    pihole-FTL sqlite3 "${gravityDBfile}" "DELETE FROM domain_audit;"
+    pihole-FTL sqlite3 -ni "${gravityDBfile}" "DELETE FROM domain_audit;"
 }
 
 SetPrivacyLevel() {
