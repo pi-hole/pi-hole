@@ -46,14 +46,14 @@ GenerateOutput(){
     data="${1}"
 
     # construct a new json for the list results where each object contains the domain and the related type
-    lists_data=$(echo "${data}" | jq '.search.domains | [.[] | {domain: .domain, type: .type}]')
+    lists_data=$(printf %s "${data}" | jq '.search.domains | [.[] | {domain: .domain, type: .type}]')
 
     # construct a new json for the gravity results where each object contains the adlist URL and the related domains
-    gravity_data=$(echo "${data}" | jq '.search.gravity  | group_by(.address) | map({ address: (.[0].address), domains: [.[] | .domain] })')
+    gravity_data=$(printf %s "${data}" | jq '.search.gravity  | group_by(.address) | map({ address: (.[0].address), domains: [.[] | .domain] })')
 
     # number of objects in each json
-    num_gravity=$(echo "${gravity_data}" | jq length )
-    num_lists=$(echo "${lists_data}" | jq length )
+    num_gravity=$(printf %s "${gravity_data}" | jq length )
+    num_lists=$(printf %s "${lists_data}" | jq length )
 
     if [ "${partial}" = true ]; then
       search_type_str="partially"
@@ -66,7 +66,7 @@ GenerateOutput(){
     if [ "${num_lists}" -gt 0 ]; then
         # Convert the data to a csv, each line is a "domain,type" string
         # not using jq's @csv here as it quotes each value individually
-        lists_data_csv=$(echo "${lists_data}" | jq --raw-output '.[] | [.domain, .type] | join(",")' )
+        lists_data_csv=$(printf %s "${lists_data}" | jq --raw-output '.[] | [.domain, .type] | join(",")' )
 
         # Generate output for each csv line, separating line in a domain and type substring at the ','
         echo "${lists_data_csv}" | while read -r line; do
@@ -79,7 +79,7 @@ GenerateOutput(){
     if [ "${num_gravity}" -gt 0 ]; then
         # Convert the data to a csv, each line is a "URL,domain,domain,...." string
         # not using jq's @csv here as it quotes each value individually
-        gravity_data_csv=$(echo "${gravity_data}" | jq --raw-output '.[] | [.address, .domains[]] | join(",")' )
+        gravity_data_csv=$(printf %s "${gravity_data}" | jq --raw-output '.[] | [.address, .domains[]] | join(",")' )
 
         # Generate line-by-line output for each csv line
         echo "${gravity_data_csv}" | while read -r line; do

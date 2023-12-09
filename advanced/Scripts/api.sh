@@ -133,7 +133,7 @@ GetFTLData() {
 
   if [ "${status}" = 200 ]; then
     # response OK
-    echo "${data}"
+    printf %s "${data}"
   elif [ "${status}" = 000 ]; then
     # connection lost
     echo "000"
