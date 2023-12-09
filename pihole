@@ -140,7 +140,6 @@ uninstallFunc() {
 }
 
 versionFunc() {
-  shift
   exec "${PI_HOLE_SCRIPT_DIR}"/version.sh "$@"
 }
 
@@ -508,7 +507,7 @@ Options:
   -up, updatePihole   Update Pi-hole subsystems
                         Add '--check-only' to exit script before update is performed.
   -v, version         Show installed versions of Pi-hole, Web Interface & FTL
-                        Add '-h' for more info on version usage
+                        Use -vv for detailed information.
   uninstall           Uninstall Pi-hole from your system
   status              Display the running status of Pi-hole subsystems
   enable              Enable Pi-hole subsystems
@@ -531,7 +530,7 @@ fi
 need_root=1
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
-  "-v" | "version"              ) versionFunc "$@";;
+  "-v" | "-vv" | "version"      ) versionFunc "$@";;
   "-c" | "chronometer"          ) chronometerFunc "$@";;
   "-q" | "query"                ) queryFunc "$@";;
   "status"                      ) statusFunc "$2";;
