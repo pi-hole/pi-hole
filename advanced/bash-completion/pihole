@@ -35,7 +35,7 @@ _pihole() {
 			COMPREPLY=( $(compgen -W "${opts_update}" -- ${cur}) )
 		;;
 		"version")
-			opts_version="\--admin \--current \--ftl \--hash \--latest \--pihole"
+			opts_version="\--web \--current \--ftl \--hash \--latest \--pihole"
 			COMPREPLY=( $(compgen -W "${opts_version}" -- ${cur}) )
         ;;
 		"core"|"admin"|"ftl")
