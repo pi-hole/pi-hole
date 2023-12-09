@@ -332,7 +332,7 @@ package_manager_detect() {
         # Packages required to run this install script
         INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
         # Packages required to run Pi-hole
-        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq lshw)
+        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq lshw bash-completion)
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm ; then
@@ -349,7 +349,7 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         OS_CHECK_DEPS=(grep bind-utils)
         INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates binutils)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip psmisc libcap nmap-ncat jq lshw)
+        PIHOLE_DEPS=(cronie curl findutils sudo unzip psmisc libcap nmap-ncat jq lshw bash-completion)
 
     # If neither apt-get or yum/dnf package managers were found
     else
