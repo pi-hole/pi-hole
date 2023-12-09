@@ -27,7 +27,13 @@ fi
 
 main() {
     local details
-    details=$1
+    details=false
+
+    # Automatically show detailed information if
+    # at least one of the components is not on master branch
+    if [ ! "${CORE_BRANCH}" = "master" ] || [ ! "${WEB_BRANCH}" = "master" ] || [ ! "${FTL_BRANCH}" = "master" ] ; then
+        details=true
+    fi
 
     if [ "${details}" = true ]; then
         echo "Core"
@@ -49,10 +55,4 @@ main() {
     fi
 }
 
-# Process options (if present)
-case "$1" in
-    "-vv"      ) details=true;;
-    *          ) details=false;;
-esac
-
-main "${details}"
+main
