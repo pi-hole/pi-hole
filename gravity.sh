@@ -41,6 +41,7 @@ VPNList="/etc/openvpn/ipp.txt"
 
 piholeGitDir="/etc/.pihole"
 GRAVITYDB=$(getFTLConfigValue files.gravity)
+GRAVITY_TMPDIR=$(getFTLConfigValue files.gravity_tmp)
 gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
 gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
@@ -48,9 +49,7 @@ domainsExtension="domains"
 curl_connect_timeout=10
 
 
-# Set up tmp dir variable in case it's not configured
-: "${GRAVITY_TMPDIR:=/tmp}"
-
+# Check gravity temp directory
 if [ ! -d "${GRAVITY_TMPDIR}" ] || [ ! -w "${GRAVITY_TMPDIR}" ]; then
   echo -e "  ${COL_LIGHT_RED}Gravity temporary directory does not exist or is not a writeable directory, falling back to /tmp. ${COL_NC}"
   GRAVITY_TMPDIR="/tmp"
