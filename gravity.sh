@@ -48,7 +48,6 @@ gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 domainsExtension="domains"
 curl_connect_timeout=10
 
-
 # Check gravity temp directory
 if [ ! -d "${GRAVITY_TMPDIR}" ] || [ ! -w "${GRAVITY_TMPDIR}" ]; then
   echo -e "  ${COL_LIGHT_RED}Gravity temporary directory does not exist or is not a writeable directory, falling back to /tmp. ${COL_NC}"
@@ -64,7 +63,7 @@ gravityOLDfile="${gravityDIR}/gravity_old.db"
 
 # Generate new SQLite3 file from schema template
 generate_gravity_database() {
-  if ! pihole-FTL sqlite3 "${gravityDBfile}" < "${gravityDBschema}"; then
+  if ! pihole-FTL sqlite3 -ni "${gravityDBfile}" < "${gravityDBschema}"; then
     echo -e "   ${CROSS} Unable to create ${gravityDBfile}"
     return 1
   fi
@@ -79,7 +78,7 @@ gravity_build_tree() {
   echo -ne "  ${INFO} ${str}..."
 
   # The index is intentionally not UNIQUE as poor quality adlists may contain domains more than once
-  output=$( { pihole-FTL sqlite3 "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
+  output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -118,7 +117,7 @@ gravity_swap_databases() {
 
 # Update timestamp when the gravity table was last updated successfully
 update_gravity_timestamp() {
-  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | pihole-FTL sqlite3 -ni "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -163,7 +162,7 @@ database_table_from_file() {
 
   # Get MAX(id) from domainlist when INSERTing into this table
   if [[ "${table}" == "domainlist" ]]; then
-    rowid="$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
+    rowid="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT MAX(id) FROM domainlist;")"
     if [[ -z "$rowid" ]]; then
       rowid=0
     fi
@@ -193,7 +192,7 @@ database_table_from_file() {
   # Store domains in database table specified by ${table}
   # Use printf as .mode and .import need to be on separate lines
   # see https://unix.stackexchange.com/a/445615/83260
-  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | pihole-FTL sqlite3 "${gravityDBfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\n.mode csv\\n.import \"%s\" %s\\n" "${tmpFile}" "${table}" | pihole-FTL sqlite3 -ni "${gravityDBfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -213,7 +212,7 @@ database_table_from_file() {
 
 # Check if a column with name ${2} exists in gravity table with name ${1}
 gravity_column_exists() {
-  output=$( { printf ".timeout 30000\\nSELECT EXISTS(SELECT * FROM pragma_table_info('%s') WHERE name='%s');\\n" "${1}" "${2}" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nSELECT EXISTS(SELECT * FROM pragma_table_info('%s') WHERE name='%s');\\n" "${1}" "${2}" | pihole-FTL sqlite3 -ni "${gravityTEMPfile}"; } 2>&1 )
   if [[ "${output}" == "1" ]]; then
     return 0 # Bash 0 is success
   fi
@@ -228,7 +227,7 @@ database_adlist_number() {
     return;
   fi
 
-  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${2}" "${3}" "${1}" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET number = %i, invalid_domains = %i WHERE id = %i;\\n" "${2}" "${3}" "${1}" | pihole-FTL sqlite3 -ni "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -244,7 +243,7 @@ database_adlist_status() {
     return;
   fi
 
-  output=$( { printf ".timeout 30000\\nUPDATE adlist SET status = %i WHERE id = %i;\\n" "${2}" "${1}" | pihole-FTL sqlite3 "${gravityTEMPfile}"; } 2>&1 )
+  output=$( { printf ".timeout 30000\\nUPDATE adlist SET status = %i WHERE id = %i;\\n" "${2}" "${1}" | pihole-FTL sqlite3 -ni "${gravityTEMPfile}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -362,9 +361,9 @@ gravity_DownloadBlocklists() {
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
-  mapfile -t sources <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
-  mapfile -t sourceIDs <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2> /dev/null)"
-  mapfile -t sourceTypes <<< "$(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2> /dev/null)"
+  mapfile -t sources <<< "$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2> /dev/null)"
+  mapfile -t sourceIDs <<< "$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2> /dev/null)"
+  mapfile -t sourceTypes <<< "$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2> /dev/null)"
 
   # Parse source domains from $sources
   mapfile -t sourceDomains <<< "$(
@@ -393,7 +392,7 @@ gravity_DownloadBlocklists() {
   str="Preparing new gravity database"
   echo -ne "  ${INFO} ${str}..."
   rm "${gravityTEMPfile}" > /dev/null 2>&1
-  output=$( { pihole-FTL sqlite3 "${gravityTEMPfile}" < "${gravityDBschema}"; } 2>&1 )
+  output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" < "${gravityDBschema}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -413,7 +412,7 @@ gravity_DownloadBlocklists() {
     copyGravity="${copyGravity//"${gravityDBfile_default}"/"${gravityDBfile}"}"
   fi
 
-  output=$( { pihole-FTL sqlite3 "${gravityTEMPfile}" <<< "${copyGravity}"; } 2>&1 )
+  output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<< "${copyGravity}"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -663,12 +662,12 @@ gravity_Table_Count() {
   local table="${1}"
   local str="${2}"
   local num
-  num="$(pihole-FTL sqlite3 "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
+  num="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
   if [[ "${table}" == "gravity" ]]; then
     local unique
-    unique="$(pihole-FTL sqlite3 "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
+    unique="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
     echo -e "  ${INFO} Number of ${str}: ${num} (${COL_BOLD}${unique} unique domains${COL_NC})"
-    pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
+    pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"
   fi
@@ -749,7 +748,7 @@ database_recovery() {
   local str="Checking integrity of existing gravity database (this can take a while)"
   local option="${1}"
   echo -ne "  ${INFO} ${str}..."
-  result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA integrity_check" 2>&1)"
+  result="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "PRAGMA integrity_check" 2>&1)"
 
   if [[ ${result} = "ok" ]]; then
     echo -e "${OVER}  ${TICK} ${str} - no errors found"
@@ -757,7 +756,7 @@ database_recovery() {
     str="Checking foreign keys of existing gravity database (this can take a while)"
     echo -ne "  ${INFO} ${str}..."
     unset result
-    result="$(pihole-FTL sqlite3 "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"
+    result="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "PRAGMA foreign_key_check" 2>&1)"
     if [[ -z ${result} ]]; then
       echo -e "${OVER}  ${TICK} ${str} - no errors found"
       if [[ "${option}" != "force" ]]; then
@@ -776,7 +775,7 @@ database_recovery() {
   echo -ne "  ${INFO} ${str}..."
   # We have to remove any possibly existing recovery database or this will fail
   rm -f "${gravityDBfile}.recovered" > /dev/null 2>&1
-  if result="$(pihole-FTL sqlite3 "${gravityDBfile}" ".recover" | pihole-FTL sqlite3 "${gravityDBfile}.recovered" 2>&1)"; then
+  if result="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" ".recover" | pihole-FTL sqlite3 -ni "${gravityDBfile}.recovered" 2>&1)"; then
     echo -e "${OVER}  ${TICK} ${str} - success"
     mv "${gravityDBfile}" "${gravityDBfile}.old"
     mv "${gravityDBfile}.recovered" "${gravityDBfile}"

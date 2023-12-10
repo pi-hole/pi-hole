@@ -718,7 +718,7 @@ dig_at() {
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
-    random_url=$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
+    random_url=$(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
     # Fallback if no non-ABP style domains were found
     if [ -z "${random_url}" ]; then
         random_url="flurry.com"
@@ -1064,7 +1064,7 @@ show_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" \
+        pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1089,7 +1089,7 @@ show_FTL_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        pihole-FTL sqlite3 "${PIHOLE_FTL_DB_FILE}" \
+        pihole-FTL sqlite3 -ni "${PIHOLE_FTL_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1155,7 +1155,7 @@ analyze_gravity_list() {
     fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
-    gravity_updated_raw="$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
+    gravity_updated_raw="$(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
     gravity_updated="$(date -d @"${gravity_updated_raw}")"
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
@@ -1163,7 +1163,7 @@ analyze_gravity_list() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
-    mapfile -t gravity_sample < <(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
+    mapfile -t gravity_sample < <(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
     log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
@@ -1195,7 +1195,7 @@ database_integrity_check(){
 
       log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
       unset result
-      result="$(pihole-FTL sqlite3 "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
+      result="$(pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
       if [[ -z ${result} ]]; then
         log_write "${TICK} No foreign key errors in ${database}"
       else
