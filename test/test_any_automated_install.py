@@ -176,6 +176,12 @@ def test_installPihole_fresh_install_readableFiles(host):
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
     host.run(setup_var_file)
+    # Install FTL's development branch to get the latest features
+    host.run(
+        """
+    echo "development" > /etc/pihole/ftlbranch
+    """
+    )
     install = host.run(
         """
     export TERM=xterm
@@ -431,6 +437,12 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
     host.run(setup_var_file)
+    # Install FTL's development branch to get the latest features
+    host.run(
+        """
+    echo "development" > /etc/pihole/ftlbranch
+    """
+    )
     installWeb = host.run(
         """
     export TERM=xterm
