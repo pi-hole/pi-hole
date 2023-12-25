@@ -18,6 +18,11 @@ upgrade_gravityDB(){
 	piholeDir="${2}"
 	auditFile="${piholeDir}/auditlog.list"
 
+	# Exit early if the database does not exist (e.g. in CI tests)
+	if [[ ! -f "${database}" ]]; then
+		return
+	fi
+
 	# Get database version
 	version="$(pihole-FTL sqlite3 -ni "${database}" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
