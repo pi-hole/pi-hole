@@ -78,7 +78,7 @@ gravity_build_tree() {
   echo -ne "  ${INFO} ${str}..."
 
   # The index is intentionally not UNIQUE as poor quality adlists may contain domains more than once
-  output=$( { time pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } )
+  output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1 )
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -831,6 +831,7 @@ for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
     "-r" | "--repair" ) repairSelector "$3";;
+    "-u" | "--upgrade" ) upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"; exit 0;;
     "-h" | "--help" ) helpFunc;;
   esac
 done
