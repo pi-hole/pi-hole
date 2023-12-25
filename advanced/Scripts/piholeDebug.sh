@@ -547,17 +547,24 @@ ping_gateway() {
     ping_ipv4_or_ipv6 "${protocol}"
     # Check if we are using IPv4 or IPv6
     # Find the default gateways using IPv4 or IPv6
-    local gateway
+    local gateway gateway_addr gateway_iface
 
     log_write "${INFO} Default IPv${protocol} gateway(s):"
 
     while IFS= read -r gateway; do
-        log_write "     ${gateway}"
-    done < <(ip -"${protocol}" route | grep default | cut -d ' ' -f 3)
+        log_write "     $(cut -d ' ' -f 3 <<< "${gateway}")%$(cut -d ' ' -f 5 <<< "${gateway}")"
+    done < <(ip -"${protocol}" route | grep default)
 
-    gateway=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
+    gateway_addr=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
+    gateway_iface=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 5 | head -n 1)
     # If there was at least one gateway
-    if [ -n "${gateway}" ]; then
+    if [ -n "${gateway_addr}" ]; then
+        # Append the interface to the gateway address if it is a link-local address
+        if [[ "${gateway_addr}" =~ ^fe80 ]]; then
+            gateway="${gateway_addr}%${gateway_iface}"
+        else
+            gateway="${gateway_addr}"
+        fi
         # Let the user know we will ping the gateway for a response
         log_write "   * Pinging first gateway ${gateway}..."
         # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
