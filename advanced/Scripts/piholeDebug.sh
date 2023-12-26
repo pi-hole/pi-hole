@@ -764,24 +764,29 @@ dig_at() {
         #          Removes CIDR and everything thereafter (e.g., scope properties)
         addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
         if [ -n "${addresses}" ]; then
-          while IFS= read -r local_address ; do
+            while IFS= read -r local_address ; do
+                # If ${local_address} is an IPv6 link-local address, append the interface name to it
+                if [[ "${local_address}" =~ ^fe80 ]]; then
+                    local_address="${local_address}%${iface}"
+                fi
+
               # Check if Pi-hole can use itself to block a domain
-              if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
-                  # If it can, show success
-                  if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
-                    local_dig="NOERROR"
-                  elif [[ "${local_dig}" == *"status: NXDOMAIN"* ]]; then
-                    local_dig="NXDOMAIN"
-                  else
-                    # Extract the first entry in the answer section from dig's output,
-                    # replacing any multiple spaces and tabs with a single space
-                    local_dig="$(echo "${local_dig}" | grep -A1 "ANSWER SECTION" | grep -v "ANSWER SECTION" | tr -s " \t" " ")"
-                  fi
-                  log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
-              else
-                  # Otherwise, show a failure
-                  log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
-              fi
+                if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
+                    # If it can, show success
+                    if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
+                        local_dig="NOERROR"
+                    elif [[ "${local_dig}" == *"status: NXDOMAIN"* ]]; then
+                        local_dig="NXDOMAIN"
+                    else
+                        # Extract the first entry in the answer section from dig's output,
+                        # replacing any multiple spaces and tabs with a single space
+                        local_dig="$(echo "${local_dig}" | grep -A1 "ANSWER SECTION" | grep -v "ANSWER SECTION" | tr -s " \t" " ")"
+                    fi
+                    log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
+                else
+                    # Otherwise, show a failure
+                    log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
+                fi
           done <<< "${addresses}"
         else
           log_write "${TICK} No IPv${protocol} address available on ${COL_CYAN}${iface}${COL_NC}"
