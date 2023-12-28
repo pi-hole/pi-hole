@@ -152,4 +152,11 @@ upgrade_gravityDB(){
 		pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/17_to_18.sql"
 		version=18
 	fi
+	if [[ "$version" == "18" ]]; then
+		# Modify DELETE triggers to delete BEFORE instead of AFTER to prevent
+		# foreign key constraint violations
+		echo -e "  ${INFO} Upgrading gravity database from version 18 to 19"
+		pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/18_to_19.sql"
+		version=19
+	fi
 }
