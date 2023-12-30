@@ -2177,14 +2177,20 @@ clone_or_update_repos() {
         { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
-        # If the Web interface was installed,
+        # If the Web interface was selected for installation,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            # reset it's repo
-            resetRepo ${webInterfaceDir} || \
-            { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
+            # get the Web git files
+            getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
+            { printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
             exit 1; \
             }
+        # If the Web interface was not selected for installation,
+        else
+            # reset it's repo
+            resetRepo ${webInterfaceDir} || \
+            { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}, did not likely exist before" "${COL_NC}"; }
         fi
+
     # Otherwise, a repair is happening
     else
         # so get git files for Core
