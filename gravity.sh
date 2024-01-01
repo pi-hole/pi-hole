@@ -837,6 +837,24 @@ database_recovery() {
   echo ""
 }
 
+gravity_optimize() {
+    # The ANALYZE command gathers statistics about tables and indices and stores
+    # the collected information in internal tables of the database where the
+    # query optimizer can access the information and use it to help make better
+    # query planning choices
+    local str="Optimizing database"
+    echo -ne "  ${INFO} ${str}..."
+    output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "PRAGMA analysis_limit=0; ANALYZE" 2>&1; } 2>&1 )
+    status="$?"
+
+    if [[ "${status}" -ne 0 ]]; then
+        echo -e "\\n  ${CROSS} Unable to optimize database ${gravityTEMPfile}\\n  ${output}"
+        gravity_Cleanup "error"
+    else
+        echo -e "${OVER}  ${TICK} ${str}"
+    fi
+}
+
 helpFunc() {
   echo "Usage: pihole -g
 Update domains from blocklists specified in adlists.list
@@ -948,6 +966,9 @@ gravity_build_tree
 # Compute numbers to be displayed (do this after building the tree to get the
 # numbers quickly from the tree instead of having to scan the whole database)
 gravity_ShowCount
+
+# Optimize the database
+gravity_optimize
 
 # Migrate rest of the data from old to new database
 # IMPORTANT: Swapping the databases must be the last step before the cleanup
