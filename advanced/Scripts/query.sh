@@ -96,7 +96,7 @@ scanDatabaseTable() {
         # Are there ABP entries on gravity?
         # Return 1 if abp_domain=1 or Zero if abp_domain=0 or not set
         abpquerystr="SELECT EXISTS (SELECT 1 FROM info WHERE property='abp_domains' and value='1')"
-        abpfound="$(pihole-FTL sqlite3 "${gravityDBfile}" "${abpquerystr}")" 2> /dev/null
+        abpfound="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "${abpquerystr}")" 2> /dev/null
 
         # Create search string for ABP entries only if needed
         if [ "${abpfound}" -eq 1 ]; then
@@ -129,7 +129,7 @@ scanDatabaseTable() {
     fi
 
     # Send prepared query to gravity database
-    result="$(pihole-FTL sqlite3 -separator ',' "${gravityDBfile}" "${querystr}")" 2> /dev/null
+    result="$(pihole-FTL sqlite3 -ni -separator ',' "${gravityDBfile}" "${querystr}")" 2> /dev/null
     if [[ -z "${result}" ]]; then
         # Return early when there are no matches in this table
         return
@@ -166,7 +166,7 @@ scanRegexDatabaseTable() {
     list_type="${3:-}"
 
     # Query all regex from the corresponding database tables
-    mapfile -t regexList < <(pihole-FTL sqlite3 "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${list_type}" 2> /dev/null)
+    mapfile -t regexList < <(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT domain FROM domainlist WHERE type = ${list_type}" 2> /dev/null)
 
     # If we have regexps to process
     if [[ "${#regexList[@]}" -ne 0 ]]; then

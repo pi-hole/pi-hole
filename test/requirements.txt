@@ -1,6 +1,6 @@
 pyyaml == 6.0.1
-pytest == 7.4.2
-pytest-xdist == 3.3.1
-pytest-testinfra == 9.0.0
-tox == 4.11.3
+pytest == 7.4.4
+pytest-xdist == 3.5.0
+pytest-testinfra == 10.0.0
+tox == 4.11.4
 
