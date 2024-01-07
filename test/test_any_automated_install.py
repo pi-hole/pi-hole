@@ -239,6 +239,7 @@ def test_FTL_detect_aarch64_no_errors(host):
     mock_command("uname", {"-m": ("aarch64", "0")}, host)
     detectPlatform = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -272,6 +273,7 @@ def test_FTL_detect_armv6_no_errors(host):
     )
     detectPlatform = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -305,6 +307,7 @@ def test_FTL_detect_armv7l_no_errors(host):
     )
     detectPlatform = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -338,6 +341,7 @@ def test_FTL_detect_armv7_no_errors(host):
     )
     detectPlatform = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -371,6 +375,7 @@ def test_FTL_detect_armv8a_no_errors(host):
     )
     detectPlatform = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -393,6 +398,7 @@ def test_FTL_detect_x86_64_no_errors(host):
     """
     detectPlatform = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -415,6 +421,7 @@ def test_FTL_detect_unknown_no_errors(host):
     mock_command("uname", {"-m": ("mips", "0")}, host)
     detectPlatform = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -442,6 +449,7 @@ def test_FTL_download_aarch64_no_errors(host):
     )
     download_binary = host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     FTLinstall "pihole-FTL-aarch64-linux-gnu"
@@ -458,6 +466,7 @@ def test_FTL_development_binary_installed_and_responsive_no_errors(host):
     """
     host.run(
         """
+    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
