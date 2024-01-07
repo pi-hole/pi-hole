@@ -113,9 +113,8 @@ DeleteSession() {
         deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth"  -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
-            "200") printf "%b" "A session that was not created cannot be deleted (e.g., empty API password).\n";;
+            "204") printf "%b" "Session successfully deleted.\n";;
             "401") printf "%b" "Logout attempt without a valid session. Unauthorized!\n";;
-            "410") printf "%b" "Session successfully deleted.\n";;
          esac;
     fi
 
