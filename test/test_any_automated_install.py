@@ -12,6 +12,8 @@ from .conftest import (
     run_script,
 )
 
+FTL_BRANCH = "development-v6"
+
 
 def test_supported_package_manager(host):
     """
@@ -80,11 +82,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     host.run("command -v dnf > /dev/null && dnf install -y man")
     host.run("command -v yum > /dev/null && yum install -y man")
     # Workaround to get FTLv6 installed until it reaches master branch
-    host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    """
-    )
+    host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
     install = host.run(
         """
     export TERM=xterm
@@ -231,49 +229,37 @@ def test_update_package_cache_failure_no_errors(host):
     assert "Error: Unable to update package cache." in updateCache.stdout
 
 
-def test_FTL_detect_aarch64_no_errors(host):
+@pytest.mark.parametrize(
+    "arch,detected_string,supported",
+    [
+        ("aarch64", "AArch64 (64 Bit ARM)", True),
+        ("armv6", "ARMv6", True),
+        ("armv7l", "ARMv7 (or newer)", True),
+        ("armv7", "ARMv7 (or newer)", True),
+        ("armv8a", "ARMv7 (or newer)", True),
+        ("x86_64", "x86_64", True),
+        ("riscv64", "riscv64", True),
+        ("mips", "mips", False),
+    ],
+)
+def test_FTL_detect_no_errors(host, arch, detected_string, supported):
     """
-    confirms only aarch64 package is downloaded for FTL engine
+    confirms only correct package is downloaded for FTL engine
     """
-    # mock uname to return aarch64 platform
-    mock_command("uname", {"-m": ("aarch64", "0")}, host)
-    detectPlatform = host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected AArch64 (64 Bit ARM) architecture"
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv6_no_errors(host):
-    """
-    confirms only armv6 package is downloaded for FTL engine
-    """
-    # mock uname to return armv6 platform
-    mock_command("uname", {"-m": ("armv6", "0")}, host)
-    # mock readelf to respond with armv6l CPU architecture
+    # mock uname to return passed platform
+    mock_command("uname", {"-m": (arch, "0")}, host)
+    # mock readelf to respond with passed CPU architecture
     mock_command_2(
         "readelf",
         {
-            "-A /bin/sh": ("Tag_CPU_arch: armv6", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv6", "0"),
+            "-A /bin/sh": ("Tag_CPU_arch: " + arch, "0"),
+            "-A /usr/bin/sh": ("Tag_CPU_arch: " + arch, "0"),
         },
         host,
     )
+    host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
     detectPlatform = host.run(
         """
-    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
@@ -282,195 +268,30 @@ def test_FTL_detect_armv6_no_errors(host):
     FTLdetect "${binary}" "${theRest}"
     """
     )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv6 architecture"
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv7l_no_errors(host):
-    """
-    confirms only armv7l package is downloaded for FTL engine
-    """
-    # mock uname to return armv7l platform
-    mock_command("uname", {"-m": ("armv7l", "0")}, host)
-    # mock readelf to respond with armv7l CPU architecture
-    mock_command_2(
-        "readelf",
-        {
-            "-A /bin/sh": ("Tag_CPU_arch: armv7l", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv7l", "0"),
-        },
-        host,
-    )
-    detectPlatform = host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (" Detected ARMv7 (or newer) architecture")
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv7_no_errors(host):
-    """
-    confirms only armv7 package is downloaded for FTL engine
-    """
-    # mock uname to return armv7 platform
-    mock_command("uname", {"-m": ("armv7", "0")}, host)
-    # mock readelf to respond with armv7 CPU architecture
-    mock_command_2(
-        "readelf",
-        {
-            "-A /bin/sh": ("Tag_CPU_arch: armv7", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv7", "0"),
-        },
-        host,
-    )
-    detectPlatform = host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + (" Detected ARMv7 (or newer) architecture")
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_armv8a_no_errors(host):
-    """
-    confirms only armv8a package is downloaded for FTL engine
-    """
-    # mock uname to return armv8a platform
-    mock_command("uname", {"-m": ("armv8a", "0")}, host)
-    # mock readelf to respond with armv8a CPU architecture
-    mock_command_2(
-        "readelf",
-        {
-            "-A /bin/sh": ("Tag_CPU_arch: armv8a", "0"),
-            "-A /usr/bin/sh": ("Tag_CPU_arch: armv8a", "0"),
-        },
-        host,
-    )
-    detectPlatform = host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected ARMv7 (or newer) architecture (armv8a)"
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_x86_64_no_errors(host):
-    """
-    confirms only x86_64 package is downloaded for FTL engine
-    """
-    detectPlatform = host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = info_box + " FTL Checks..."
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Detected x86_64 architecture"
-    assert expected_stdout in detectPlatform.stdout
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_detect_unknown_no_errors(host):
-    """confirms only generic package is downloaded for FTL engine"""
-    # mock uname to return generic platform
-    mock_command("uname", {"-m": ("mips", "0")}, host)
-    detectPlatform = host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    funcOutput=$(get_binary_name)
-    binary="pihole-FTL${funcOutput##*pihole-FTL}"
-    theRest="${funcOutput%pihole-FTL*}"
-    FTLdetect "${binary}" "${theRest}"
-    """
-    )
-    expected_stdout = "Not able to detect architecture (unknown: mips)"
-    assert expected_stdout in detectPlatform.stdout
-
-
-def test_FTL_download_aarch64_no_errors(host):
-    """
-    confirms only aarch64 package is downloaded for FTL engine
-    """
-    # mock dialog answers and ensure installer dependencies
-    mock_command("dialog", {"*": ("", "0")}, host)
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    install_dependent_packages ${INSTALLER_DEPS[@]}
-    """
-    )
-    download_binary = host.run(
-        """
-    echo "development-v6" > /etc/pihole/ftlbranch
-    source /opt/pihole/basic-install.sh
-    create_pihole_user
-    FTLinstall "pihole-FTL-aarch64-linux-gnu"
-    """
-    )
-    expected_stdout = tick_box + " Downloading and Installing FTL"
-    assert expected_stdout in download_binary.stdout
-    assert "error" not in download_binary.stdout.lower()
+    if supported:
+        expected_stdout = info_box + " FTL Checks..."
+        assert expected_stdout in detectPlatform.stdout
+        expected_stdout = tick_box + " Detected " + detected_string + " architecture"
+        assert expected_stdout in detectPlatform.stdout
+        expected_stdout = tick_box + " Downloading and Installing FTL"
+        assert expected_stdout in detectPlatform.stdout
+    else:
+        expected_stdout = (
+            "Not able to detect architecture (unknown: " + detected_string + ")"
+        )
+        assert expected_stdout in detectPlatform.stdout
 
 
 def test_FTL_development_binary_installed_and_responsive_no_errors(host):
     """
     confirms FTL development binary is copied and functional in installed location
     """
+    host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
     host.run(
         """
-    echo "development-v6" > /etc/pihole/ftlbranch
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
-    echo "development-v6" > /etc/pihole/ftlbranch
     binary="pihole-FTL${funcOutput##*pihole-FTL}"
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
