@@ -26,7 +26,12 @@ function get_local_hash() {
 }
 
 function get_remote_version() {
-    curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2> /dev/null | jq --raw-output .tag_name || return 1
+    # if ${2} is = "master" we need to use the "latest" endpoint, otherwise, we simply return null
+    if [[ "${2}" == "master" ]]; then
+        curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2> /dev/null | jq --raw-output .tag_name || return 1
+    else
+        echo "null"
+    fi
 }
 
 
@@ -73,7 +78,7 @@ addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
 CORE_HASH="$(get_local_hash /etc/.pihole)"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_HASH" "${CORE_HASH}"
 
-GITHUB_CORE_VERSION="$(get_remote_version pi-hole)"
+GITHUB_CORE_VERSION="$(get_remote_version pi-hole "${CORE_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSION}"
 
 GITHUB_CORE_HASH="$(get_remote_hash pi-hole "${CORE_BRANCH}")"
@@ -91,7 +96,7 @@ addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
 WEB_HASH="$(get_local_hash /var/www/html/admin)"
 addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
 
-GITHUB_WEB_VERSION="$(get_remote_version web)"
+GITHUB_WEB_VERSION="$(get_remote_version web "${WEB_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION}"
 
 GITHUB_WEB_HASH="$(get_remote_hash web "${WEB_BRANCH}")"
@@ -108,7 +113,7 @@ addOrEditKeyValPair "${VERSION_FILE}" "FTL_BRANCH" "${FTL_BRANCH}"
 FTL_HASH="$(pihole-FTL --hash)"
 addOrEditKeyValPair "${VERSION_FILE}" "FTL_HASH" "${FTL_HASH}"
 
-GITHUB_FTL_VERSION="$(get_remote_version FTL)"
+GITHUB_FTL_VERSION="$(get_remote_version FTL "${FTL_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION}"
 
 GITHUB_FTL_HASH="$(get_remote_hash FTL "${FTL_BRANCH}")"
