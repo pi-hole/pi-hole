@@ -817,12 +817,12 @@ If you want to specify a port other than 53, separate it with a hash.\
             printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
             printf -v PIHOLE_DNS_2 "%s" "${piholeDNS##*,}"
 
-            # If the first DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_1="Invalid"
-            if ! valid_ip "${PIHOLE_DNS_1}" || [[ ! "${PIHOLE_DNS_1}" ]]; then
+            # If the first DNS value is invalid (neither IPv4 nor IPv6) or empty, set PIHOLE_DNS_1="Invalid"
+            if ! valid_ip "${PIHOLE_DNS_1}" && ! valid_ip6 "${PIHOLE_DNS_1}" || [[ -z "${PIHOLE_DNS_1}" ]]; then
                 PIHOLE_DNS_1=${strInvalid}
             fi
-            # If the second DNS value is invalid or empty, this if statement will be true and we will set PIHOLE_DNS_2="Invalid"
-            if ! valid_ip "${PIHOLE_DNS_2}" && [[ "${PIHOLE_DNS_2}" ]]; then
+            # If the second DNS value is invalid but not empty, set PIHOLE_DNS_2="Invalid"
+            if ! valid_ip "${PIHOLE_DNS_2}" && ! valid_ip6 "${PIHOLE_DNS_2}" && [[ -n "${PIHOLE_DNS_2}" ]]; then
                 PIHOLE_DNS_2=${strInvalid}
             fi
             # If either of the DNS servers are invalid,
