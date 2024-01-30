@@ -1687,12 +1687,19 @@ update_dialogs() {
 }
 
 check_download_exists() {
+    # Check if the download exists and we can reach the server
     status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
-    if grep -q "404" <<< "$status"; then
-        return 1
-    else
+
+    # Check the status code
+    if grep -q "200" <<< "$status"; then
         return 0
+    elif grep -q "404" <<< "$status"; then
+        return 1
     fi
+
+    # Other error or no status code at all, e.g., no Internet, server not
+    # available/reachable, ...
+    return 2
 }
 
 fully_fetch_repo() {
@@ -1957,10 +1964,8 @@ get_binary_name() {
 }
 
 FTLcheckUpdate() {
-    #In the next section we check to see if FTL is already installed (in case of pihole -r).
-    #If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
-    printf "  %b Checking for existing FTL binary...\\n" "${INFO}"
-
+    # In the next section we check to see if FTL is already installed (in case of pihole -r).
+    # If the installed version matches the latest version, then check the installed sha1sum of the binary vs the remote sha1sum. If they do not match, then download
     local ftlLoc
     ftlLoc=$(command -v pihole-FTL 2>/dev/null)
 
@@ -1979,14 +1984,24 @@ FTLcheckUpdate() {
     local localSha1
 
     if [[ ! "${ftlBranch}" == "master" ]]; then
-        #Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
+        # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         local path
         path="${ftlBranch}/${binary}"
         # shellcheck disable=SC1090
-        if ! check_download_exists "$path"; then
-            printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
-            printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-            return 2
+        check_download_exists "$path"
+        local ret=$?
+        if [ $ret -ne 0 ]; then
+            if [[ $ret -eq 1 ]]; then
+                printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
+                printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+                return 2
+            elif [[ $ret -eq 2 ]]; then
+                printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
+                return 3
+            else
+                printf "  %b Unknown error. Please contact Pi-hole Support\\n" "${CROSS}"
+                return 4
+            fi
         fi
 
         if [[ ${ftlLoc} ]]; then
@@ -2011,12 +2026,14 @@ FTLcheckUpdate() {
             FTLversion=$(/usr/bin/pihole-FTL tag)
             local FTLlatesttag
 
+            # Get the latest version from the GitHub API
             if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
 
+            # Check if the installed version matches the latest version
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
                 return 0
             else
