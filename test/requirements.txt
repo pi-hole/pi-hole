@@ -1,5 +1,5 @@
 pyyaml == 6.0.1
-pytest == 7.4.4
+pytest == 8.0.0
 pytest-xdist == 3.5.0
 pytest-testinfra == 10.0.0
 tox == 4.12.1
