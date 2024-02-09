@@ -10,32 +10,31 @@
 
 function get_local_branch() {
     # Return active branch
-    cd "${1}" 2> /dev/null || return 1
+    cd "${1}" 2>/dev/null || return 1
     git rev-parse --abbrev-ref HEAD || return 1
 }
 
 function get_local_version() {
     # Return active version
-    cd "${1}" 2> /dev/null || return 1
-    git describe --tags --always 2> /dev/null || return 1
+    cd "${1}" 2>/dev/null || return 1
+    git describe --tags --always 2>/dev/null || return 1
 }
 
 function get_local_hash() {
-    cd "${1}" 2> /dev/null || return 1
+    cd "${1}" 2>/dev/null || return 1
     git rev-parse --short=8 HEAD || return 1
 }
 
 function get_remote_version() {
     # if ${2} is = "master" we need to use the "latest" endpoint, otherwise, we simply return null
     if [[ "${2}" == "master" ]]; then
-        curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2> /dev/null | jq --raw-output .tag_name || return 1
+        curl -s "https://api.github.com/repos/pi-hole/${1}/releases/latest" 2>/dev/null | jq --raw-output .tag_name || return 1
     else
         echo "null"
     fi
 }
 
-
-function get_remote_hash(){
+function get_remote_hash() {
     git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 1,8);}' || return 1
 }
 
@@ -57,15 +56,14 @@ chmod 644 "${VERSION_FILE}"
 DOCKER_TAG=$(cat /pihole.docker.tag 2>/dev/null)
 regex='^([0-9]+\.){1,2}(\*|[0-9]+)(-.*)?$|(^nightly$)|(^dev.*$)'
 if [[ ! "${DOCKER_TAG}" =~ $regex ]]; then
-  # DOCKER_TAG does not match the pattern (see https://regex101.com/r/RsENuz/1), so unset it.
-  unset DOCKER_TAG
+    # DOCKER_TAG does not match the pattern (see https://regex101.com/r/RsENuz/1), so unset it.
+    unset DOCKER_TAG
 fi
 
 # used in cronjob
 if [[ "$1" == "reboot" ]]; then
-        sleep 30
+    sleep 30
 fi
-
 
 # get Core versions
 
@@ -83,7 +81,6 @@ addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_VERSION" "${GITHUB_CORE_VERSI
 
 GITHUB_CORE_HASH="$(get_remote_hash pi-hole "${CORE_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
-
 
 # get Web versions
 
@@ -118,7 +115,6 @@ addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_VERSION" "${GITHUB_FTL_VERSION
 
 GITHUB_FTL_HASH="$(get_remote_hash FTL "${FTL_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_HASH" "${GITHUB_FTL_HASH}"
-
 
 # get Docker versions
 

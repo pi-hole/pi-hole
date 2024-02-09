@@ -39,9 +39,9 @@ export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 : "${DIALOG_CANCEL:=1}"
 : "${DIALOG_ESC:=255}"
 
-
 # List of supported DNS servers
-DNS_SERVERS=$(cat << EOM
+DNS_SERVERS=$(
+    cat <<EOM
 Google (ECS, DNSSEC);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
 OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
@@ -61,7 +61,6 @@ coltable="/opt/pihole/COL_TABLE"
 
 # Root of the web server
 webroot="/var/www/html"
-
 
 # We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
 # web is used to set up the Web admin interface.
@@ -107,8 +106,8 @@ runUnattended=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
-        "--reconfigure" ) reconfigure=true;;
-        "--unattended" ) runUnattended=true;;
+    "--reconfigure") reconfigure=true ;;
+    "--unattended") runUnattended=true ;;
     esac
 done
 
@@ -176,7 +175,10 @@ os_check() {
         detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
         # Test via IPv4
-        cmdResult="$(dig -4 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
+        cmdResult="$(
+            dig -4 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1
+            echo $?
+        )"
         # Gets the return code of the previous command (last line)
         digReturnCode="${cmdResult##*$'\n'}"
 
@@ -197,7 +199,10 @@ os_check() {
         if [ "$valid_response" = false ]; then
             unset valid_response
 
-            cmdResult="$(dig -6 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
+            cmdResult="$(
+                dig -6 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1
+                echo $?
+            )"
             # Gets the return code of the previous command (last line)
             digReturnCode="${cmdResult##*$'\n'}"
 
@@ -217,8 +222,7 @@ os_check() {
 
         if [ "$valid_response" = true ]; then
             IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
-            for distro_and_versions in "${supportedOS[@]}"
-            do
+            for distro_and_versions in "${supportedOS[@]}"; do
                 distro_part="${distro_and_versions%%=*}"
                 versions_part="${distro_and_versions##*=}"
 
@@ -226,8 +230,7 @@ os_check() {
                 if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
                     valid_os=true
                     IFS="," read -r -a supportedVer <<<"${versions_part}"
-                    for version in "${supportedVer[@]}"
-                    do
+                    for version in "${supportedVer[@]}"; do
                         if [[ "${detected_version}" =~ $version ]]; then
                             valid_version=true
                             break
@@ -292,17 +295,16 @@ test_dpkg_lock() {
     printf "  %b Waiting for package manager to finish (up to 30 seconds)\\n" "${INFO}"
     # fuser is a program to show which processes use the named files, sockets, or filesystems
     # So while the lock is held,
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1
-    do
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
         # we wait half a second,
         sleep 0.5
         # increase the iterator,
-        ((i=i+1))
+        ((i = i + 1))
         # exit if waiting for more then 30 seconds
         if [[ $i -gt 60 ]]; then
             printf "  %b %bError: Could not verify package manager finished and released lock. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
             printf "       Attempt to install packages manually and retry.\\n"
-            exit 1;
+            exit 1
         fi
     done
     # and then report success once dpkg is unlocked.
@@ -315,7 +317,7 @@ package_manager_detect() {
     # the distro-specific ones below.
 
     # First check to see if apt-get is installed.
-    if is_command apt-get ; then
+    if is_command apt-get; then
         # Set some global variables here
         # We don't set them earlier since the installed package manager might be rpm, so these values would be different
         PKG_MANAGER="apt-get"
@@ -335,9 +337,9 @@ package_manager_detect() {
         PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq lshw bash-completion)
 
     # If apt-get is not found, check for rpm.
-    elif is_command rpm ; then
+    elif is_command rpm; then
         # Then check if dnf or yum is the package manager
-        if is_command dnf ; then
+        if is_command dnf; then
             PKG_MANAGER="dnf"
         else
             PKG_MANAGER="yum"
@@ -370,17 +372,17 @@ is_repo() {
     # If the first argument passed to this function is a directory,
     if [[ -d "${directory}" ]]; then
         # move into the directory
-        pushd "${directory}" &> /dev/null || return 1
+        pushd "${directory}" &>/dev/null || return 1
         # Use git to check if the directory is a repo
         # git -C is not used here to support git versions older than 1.8.4
-        git status --short &> /dev/null || rc=$?
+        git status --short &>/dev/null || rc=$?
     # If the command was not successful,
     else
         # Set a non-zero return code if directory does not exist
         rc=1
     fi
     # Move back into the directory the user started in
-    popd &> /dev/null || return 1
+    popd &>/dev/null || return 1
     # Return the code; if one is not set, return 0
     return "${rc:-0}"
 }
@@ -403,9 +405,9 @@ make_repo() {
         return 1
     fi
     # Clone the repo and return the return code from this command
-    git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
+    git clone -q --depth 20 "${remoteRepo}" "${directory}" &>/dev/null || return $?
     # Move into the directory that was passed as an argument
-    pushd "${directory}" &> /dev/null || return 1
+    pushd "${directory}" &>/dev/null || return 1
     # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
@@ -418,7 +420,7 @@ make_repo() {
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
     # Move back into the original directory
-    popd &> /dev/null || return 1
+    popd &>/dev/null || return 1
     return 0
 }
 
@@ -436,14 +438,14 @@ update_repo() {
     # we only need to make one change here
     local str="Update repo in ${1}"
     # Move into the directory that was passed as an argument
-    pushd "${directory}" &> /dev/null || return 1
+    pushd "${directory}" &>/dev/null || return 1
     # Let the user know what's happening
     printf "  %b %s..." "${INFO}" "${str}"
     # Stash any local commits as they conflict with our working code
-    git stash --all --quiet &> /dev/null || true # Okay for stash failure
-    git clean --quiet --force -d || true # Okay for already clean directory
+    git stash --all --quiet &>/dev/null || true # Okay for stash failure
+    git clean --quiet --force -d || true        # Okay for already clean directory
     # Pull the latest commits
-    git pull --no-rebase --quiet &> /dev/null || return $?
+    git pull --no-rebase --quiet &>/dev/null || return $?
     # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
@@ -455,7 +457,7 @@ update_repo() {
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
     # Move back into the original directory
-    popd &> /dev/null || return 1
+    popd &>/dev/null || return 1
     return 0
 }
 
@@ -475,13 +477,19 @@ getGitFiles() {
         # Show that we're checking it
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         # Update the repo, returning an error message on failure
-        update_repo "${directory}" || { printf "\\n  %b: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+        update_repo "${directory}" || {
+            printf "\\n  %b: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+        }
     # If it's not a .git repo,
     else
         # Show an error
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # Attempt to make the repository, showing an error on failure
-        make_repo "${directory}" "${remoteRepo}" || { printf "\\n  %bError: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+        make_repo "${directory}" "${remoteRepo}" || {
+            printf "\\n  %bError: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+        }
     fi
     echo ""
     # Success via one of the two branches, as the commands would exit if they failed.
@@ -493,19 +501,19 @@ resetRepo() {
     # Use named variables for arguments
     local directory="${1}"
     # Move into the directory
-    pushd "${directory}" &> /dev/null || return 1
+    pushd "${directory}" &>/dev/null || return 1
     # Store the message in a variable
     str="Resetting repository within ${1}..."
     # Show the message
     printf "  %b %s..." "${INFO}" "${str}"
     # Use git to remove the local changes
-    git reset --hard &> /dev/null || return $?
+    git reset --hard &>/dev/null || return $?
     # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
     chmod -R a+rX "${directory}"
     # And show the status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     # Return to where we came from
-    popd &> /dev/null || return 1
+    popd &>/dev/null || return 1
     # Function succeeded, as "git reset" would have triggered a return earlier if it failed
     return 0
 }
@@ -527,12 +535,12 @@ find_IPv4_information() {
     # the variable with just the first field.
     printf -v IPv4bare "$(printf ${route#*src })"
 
-    if ! valid_ip "${IPv4bare}" ; then
+    if ! valid_ip "${IPv4bare}"; then
         IPv4bare="127.0.0.1"
     fi
 
     # Append the CIDR notation to the IP address, if valid_ip fails this should return 127.0.0.1/8
-    IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" |  awk '{print $4}' | awk 'END {print}')
+    IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" | awk '{print $4}' | awk 'END {print}')
 }
 
 # Get available interfaces that are UP
@@ -546,32 +554,32 @@ welcomeDialogs() {
     # Display the welcome dialog using an appropriately sized window via the calculation conducted earlier in the script
     dialog --no-shadow --clear --keep-tite \
         --backtitle "Welcome" \
-            --title "Pi-hole Automated Installer" \
-            --msgbox "\\n\\nThis installer will transform your device into a network-wide ad blocker!" \
-            "${r}" "${c}" \
-            --and-widget --clear \
+        --title "Pi-hole Automated Installer" \
+        --msgbox "\\n\\nThis installer will transform your device into a network-wide ad blocker!" \
+        "${r}" "${c}" \
+        --and-widget --clear \
         --backtitle "Support Pi-hole" \
-            --title "Open Source Software" \
-            --msgbox "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" \
-            "${r}" "${c}" \
-            --and-widget --clear \
+        --title "Open Source Software" \
+        --msgbox "\\n\\nThe Pi-hole is free, but powered by your donations:  https://pi-hole.net/donate/" \
+        "${r}" "${c}" \
+        --and-widget --clear \
         --colors \
-            --backtitle "Initiating network interface" \
-            --title "Static IP Needed" \
-            --no-button "Exit" --yes-button "Continue" \
-            --defaultno \
-            --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n\
+        --backtitle "Initiating network interface" \
+        --title "Static IP Needed" \
+        --no-button "Exit" --yes-button "Continue" \
+        --defaultno \
+        --yesno "\\n\\nThe Pi-hole is a SERVER so it needs a STATIC IP ADDRESS to function properly.\\n\\n\
 \\Zb\\Z1IMPORTANT:\\Zn If you have not already done so, you must ensure that this device has a static IP.\\n\\n\
 Depending on your operating system, there are many ways to achieve this, through DHCP reservation, or by manually assigning one.\\n\\n\
-Please continue when the static addressing has been configured."\
-            "${r}" "${c}" && result=0 || result="$?"
+Please continue when the static addressing has been configured." \
+        "${r}" "${c}" && result=0 || result="$?"
 
-         case "${result}" in
-             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                printf "  %b Installer exited at static IP message.\\n" "${INFO}"
-                exit 1
-                ;;
-         esac
+    case "${result}" in
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b Installer exited at static IP message.\\n" "${INFO}"
+        exit 1
+        ;;
+    esac
 }
 
 # A function that lets the user pick an interface to use with Pi-hole
@@ -609,11 +617,11 @@ chooseInterface() {
 
         result=$?
         case ${result} in
-            "${DIALOG_CANCEL}"|"${DIALOG_ESC}")
-                # Show an error message and exit
-                printf "  %b %s\\n" "${CROSS}" "No interface selected, exiting installer"
-                exit 1
-                ;;
+        "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+            # Show an error message and exit
+            printf "  %b %s\\n" "${CROSS}" "No interface selected, exiting installer"
+            exit 1
+            ;;
         esac
 
         printf "  %b Using interface: %s\\n" "${INFO}" "${PIHOLE_INTERFACE}"
@@ -627,21 +635,21 @@ testIPv6() {
     # first will contain fda2 (ULA)
     printf -v first "%s" "${1%%:*}"
     # value1 will contain 253 which is the decimal value corresponding to 0xFD
-    value1=$(( (0x$first)/256 ))
+    value1=$(((0x$first) / 256))
     # value2 will contain 162 which is the decimal value corresponding to 0xA2
-    value2=$(( (0x$first)%256 ))
+    value2=$(((0x$first) % 256))
     # the ULA test is testing for fc00::/7 according to RFC 4193
-    if (( (value1&254)==252 )); then
+    if (((value1 & 254) == 252)); then
         # echoing result to calling function as return value
         echo "ULA"
     fi
     # the GUA test is testing for 2000::/3 according to RFC 4291
-    if (( (value1&112)==32 )); then
+    if (((value1 & 112) == 32)); then
         # echoing result to calling function as return value
         echo "GUA"
     fi
     # the LL test is testing for fe80::/10 according to RFC 4193
-    if (( (value1)==254 )) && (( (value2&192)==128 )); then
+    if (((value1) == 254)) && (((value2 & 192) == 128)); then
         # echoing result to calling function as return value
         echo "Link-local"
     fi
@@ -699,9 +707,9 @@ valid_ip() {
 
     # Regex matching one IPv4 component, i.e. an integer from 0 to 255.
     # See https://tools.ietf.org/html/rfc1340
-    local ipv4elem="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)";
+    local ipv4elem="(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)"
     # Regex matching an optional port (starting with '#') range of 1-65536
-    local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?";
+    local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?"
     # Build a full IPv4 regex from the above subexpressions
     local regex="^${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}\\.${ipv4elem}${portelem}$"
 
@@ -721,7 +729,7 @@ valid_ip6() {
     # Regex matching an IPv6 CIDR, i.e. 1 to 128
     local v6cidr="(\\/([1-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])){0,1}"
     # Regex matching an optional port (starting with '#') range of 1-65536
-    local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?";
+    local portelem="(#(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3}|0))?"
     # Build a full IPv6 regex from the above subexpressions
     local regex="^(((${ipv6elem}))*((:${ipv6elem}))*::((${ipv6elem}))*((:${ipv6elem}))*|((${ipv6elem}))((:${ipv6elem})){7})${v6cidr}${portelem}$"
 
@@ -745,36 +753,34 @@ setDNS() {
     # and set the new one to newline
     IFS=$'\n'
     # Put the DNS Servers into an array
-    for DNSServer in ${DNS_SERVERS}
-    do
-        DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
+    for DNSServer in ${DNS_SERVERS}; do
+        DNSName="$(cut -d';' -f1 <<<"${DNSServer}")"
         DNSChooseOptions[DNSServerCount]="${DNSName}"
-        (( DNSServerCount=DNSServerCount+1 ))
+        ((DNSServerCount = DNSServerCount + 1))
         DNSChooseOptions[DNSServerCount]=""
-        (( DNSServerCount=DNSServerCount+1 ))
+        ((DNSServerCount = DNSServerCount + 1))
     done
     DNSChooseOptions[DNSServerCount]="Custom"
-    (( DNSServerCount=DNSServerCount+1 ))
+    ((DNSServerCount = DNSServerCount + 1))
     DNSChooseOptions[DNSServerCount]=""
     # Restore the IFS to what it was
     IFS=${OIFS}
     # In a dialog, show the options
     DNSchoices=$(dialog --no-shadow --keep-tite --output-fd 1 \
-                    --cancel-label "Exit" \
-                    --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
+        --cancel-label "Exit" \
+        --menu "Select Upstream DNS Provider. To use your own, select Custom." "${r}" "${c}" 7 \
         "${DNSChooseOptions[@]}")
 
-        result=$?
-        case ${result} in
-            "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            exit 1
-            ;;
-        esac
+    result=$?
+    case ${result} in
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        exit 1
+        ;;
+    esac
 
     # Depending on the user's choice, set the GLOBAL variables to the IP of the respective provider
-    if [[ "${DNSchoices}" == "Custom" ]]
-    then
+    if [[ "${DNSchoices}" == "Custom" ]]; then
         # Loop until we have a valid DNS setting
         until [[ "${DNSSettingsCorrect}" = True ]]; do
             # Signal value, to be used if the user inputs an invalid IP address
@@ -787,7 +793,7 @@ setDNS() {
                     # Otherwise, prepopulate the dialogue with the appropriate DNS value(s)
                     prePopulate=", ${PIHOLE_DNS_2}"
                 fi
-            elif  [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
+            elif [[ "${PIHOLE_DNS_1}" ]] && [[ ! "${PIHOLE_DNS_2}" ]]; then
                 prePopulate="${PIHOLE_DNS_1}"
             elif [[ "${PIHOLE_DNS_1}" ]] && [[ "${PIHOLE_DNS_2}" ]]; then
                 prePopulate="${PIHOLE_DNS_1}, ${PIHOLE_DNS_2}"
@@ -795,23 +801,23 @@ setDNS() {
 
             # Prompt the user to enter custom upstream servers
             piholeDNS=$(dialog --no-shadow --keep-tite --output-fd 1 \
-                            --cancel-label "Exit" \
-                            --backtitle "Specify Upstream DNS Provider(s)" \
-                            --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\
+                --cancel-label "Exit" \
+                --backtitle "Specify Upstream DNS Provider(s)" \
+                --inputbox "Enter your desired upstream DNS provider(s), separated by a comma.\
 If you want to specify a port other than 53, separate it with a hash.\
-\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'"\
-                                "${r}" "${c}" "${prePopulate}")
+\\n\\nFor example '8.8.8.8, 8.8.4.4' or '127.0.0.1#5335'" \
+                "${r}" "${c}" "${prePopulate}")
 
             result=$?
             case ${result} in
-                "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+            "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
                 printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                 exit 1
                 ;;
             esac
 
             # Clean user input and replace whitespace with comma.
-            piholeDNS=$(sed 's/[, \t]\+/,/g' <<< "${piholeDNS}")
+            piholeDNS=$(sed 's/[, \t]\+/,/g' <<<"${piholeDNS}")
 
             # Separate the user input into the two DNS values (separated by a comma)
             printf -v PIHOLE_DNS_1 "%s" "${piholeDNS%%,*}"
@@ -852,16 +858,16 @@ If you want to specify a port other than 53, separate it with a hash.\
                     "${r}" "${c}" && result=0 || result=$?
 
                 case ${result} in
-                    "${DIALOG_OK}")
-                        DNSSettingsCorrect=True
-                        ;;
-                    "${DIALOG_CANCEL}")
-                        DNSSettingsCorrect=False
-                        ;;
-                    "${DIALOG_ESC}")
-                        printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-                        exit 1
-                        ;;
+                "${DIALOG_OK}")
+                    DNSSettingsCorrect=True
+                    ;;
+                "${DIALOG_CANCEL}")
+                    DNSSettingsCorrect=False
+                    ;;
+                "${DIALOG_ESC}")
+                    printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                    exit 1
+                    ;;
                 esac
             fi
         done
@@ -870,13 +876,11 @@ If you want to specify a port other than 53, separate it with a hash.\
         OIFS=$IFS
         # and set the new one to newline
         IFS=$'\n'
-        for DNSServer in ${DNS_SERVERS}
-        do
-            DNSName="$(cut -d';' -f1 <<< "${DNSServer}")"
-            if [[ "${DNSchoices}" == "${DNSName}" ]]
-            then
-                PIHOLE_DNS_1="$(cut -d';' -f2 <<< "${DNSServer}")"
-                PIHOLE_DNS_2="$(cut -d';' -f3 <<< "${DNSServer}")"
+        for DNSServer in ${DNS_SERVERS}; do
+            DNSName="$(cut -d';' -f1 <<<"${DNSServer}")"
+            if [[ "${DNSchoices}" == "${DNSName}" ]]; then
+                PIHOLE_DNS_1="$(cut -d';' -f2 <<<"${DNSServer}")"
+                PIHOLE_DNS_2="$(cut -d';' -f3 <<<"${DNSServer}")"
                 break
             fi
         done
@@ -900,21 +904,21 @@ setLogging() {
         "${r}" "${c}" && result=0 || result=$?
 
     case ${result} in
-        "${DIALOG_OK}")
-            # If they chose yes,
-            printf "  %b Query Logging on.\\n" "${INFO}"
-            QUERY_LOGGING=true
-            ;;
-        "${DIALOG_CANCEL}")
-            # If they chose no,
-            printf "  %b Query Logging off.\\n" "${INFO}"
-            QUERY_LOGGING=false
-            ;;
-        "${DIALOG_ESC}")
-            # User pressed <ESC>
-            printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            exit 1
-            ;;
+    "${DIALOG_OK}")
+        # If they chose yes,
+        printf "  %b Query Logging on.\\n" "${INFO}"
+        QUERY_LOGGING=true
+        ;;
+    "${DIALOG_CANCEL}")
+        # If they chose no,
+        printf "  %b Query Logging off.\\n" "${INFO}"
+        QUERY_LOGGING=false
+        ;;
+    "${DIALOG_ESC}")
+        # User pressed <ESC>
+        printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        exit 1
+        ;;
     esac
 }
 
@@ -931,16 +935,16 @@ setPrivacyLevel() {
         "2" "Hide domains and clients" off \
         "3" "Anonymous mode" off)
 
-        result=$?
-        case ${result} in
-            "${DIALOG_OK}")
-                printf "  %b Using privacy level: %s\\n" "${INFO}" "${PRIVACY_LEVEL}"
-                ;;
-            "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                printf "  %b Cancelled privacy level selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-                exit 1
-                ;;
-        esac
+    result=$?
+    case ${result} in
+    "${DIALOG_OK}")
+        printf "  %b Using privacy level: %s\\n" "${INFO}" "${PRIVACY_LEVEL}"
+        ;;
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b Cancelled privacy level selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        exit 1
+        ;;
+    esac
 }
 
 # A function to display a list of example blocklists for users to select
@@ -960,20 +964,20 @@ chooseBlocklists() {
         "${r}" "${c}" && result=0 || result=$?
 
     case ${result} in
-        "${DIALOG_OK}")
-            # If they chose yes,
-            printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
-            echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
-            ;;
-        "${DIALOG_CANCEL}")
-            # If they chose no,
-            printf "  %b Not installing StevenBlack's Unified Hosts List\\n" "${INFO}"
-            ;;
-        "${DIALOG_ESC}")
-            # User pressed <ESC>
-            printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            exit 1
-            ;;
+    "${DIALOG_OK}")
+        # If they chose yes,
+        printf "  %b Installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+        echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >>"${adlistFile}"
+        ;;
+    "${DIALOG_CANCEL}")
+        # If they chose no,
+        printf "  %b Not installing StevenBlack's Unified Hosts List\\n" "${INFO}"
+        ;;
+    "${DIALOG_ESC}")
+        # User pressed <ESC>
+        printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        exit 1
+        ;;
     esac
     # Create an empty adList file with appropriate permissions.
     if [ ! -f "${adlistFile}" ]; then
@@ -989,9 +993,9 @@ installDefaultBlocklists() {
     # In unattended setup, could be useful to use userdefined blocklist.
     # If this file exists, we avoid overriding it.
     if [[ -f "${adlistFile}" ]]; then
-        return;
+        return
     fi
-        echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >> "${adlistFile}"
+    echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >>"${adlistFile}"
 }
 
 remove_old_dnsmasq_ftl_configs() {
@@ -1033,7 +1037,6 @@ remove_old_pihole_lighttpd_configs() {
     local confavailable="/etc/lighttpd/conf-available/15-pihole-admin.conf"
     local confenabled="/etc/lighttpd/conf-enabled/15-pihole-admin.conf"
 
-
     if [[ -f "${lighttpdConfig}" ]]; then
         sed -i '/include "\/etc\/lighttpd\/conf.d\/pihole-admin.conf"/d' "${lighttpdConfig}"
     fi
@@ -1042,8 +1045,8 @@ remove_old_pihole_lighttpd_configs() {
         rm "${condfd}"
     fi
 
-    if is_command lighty-disable-mod ; then
-        lighty-disable-mod pihole-admin > /dev/null || true
+    if is_command lighty-disable-mod; then
+        lighty-disable-mod pihole-admin >/dev/null || true
     fi
 
     if [[ -f "${confavailable}" ]]; then
@@ -1063,7 +1066,7 @@ clean_existing() {
     # Pop the first argument, and shift all addresses down by one (i.e. ${2} becomes ${1})
     shift
     # Then, we can access all arguments ($@) without including the directory to clean
-    local old_files=( "$@" )
+    local old_files=("$@")
 
     # Remove each script in the old_files array
     for script in "${old_files[@]}"; do
@@ -1101,7 +1104,7 @@ installScripts() {
 
     else
         # Otherwise, show an error and exit
-        printf "%b  %b %s\\n" "${OVER}"  "${CROSS}" "${str}"
+        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
         return 1
     fi
@@ -1117,7 +1120,7 @@ installConfigs() {
     # Install list of DNS servers
     # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
     # Some values may be empty (for example: DNS servers without IPv6 support)
-    echo "${DNS_SERVERS}" > "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
+    echo "${DNS_SERVERS}" >"${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
     chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
     chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
 
@@ -1154,7 +1157,7 @@ install_manpage() {
     # Default location for man files for /usr/local/bin is /usr/local/share/man
     # on lightweight systems may not be present, so check before copying.
     printf "  %b Testing man page installation" "${INFO}"
-    if ! is_command mandb ; then
+    if ! is_command mandb; then
         # if mandb is not present, no manpage support
         printf "%b  %b man not installed\\n" "${OVER}" "${INFO}"
         return
@@ -1199,10 +1202,10 @@ stop_service() {
     # Can softfail, as process may not be installed when this is called
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    if is_command systemctl ; then
-        systemctl stop "${1}" &> /dev/null || true
+    if is_command systemctl; then
+        systemctl stop "${1}" &>/dev/null || true
     else
-        service "${1}" stop &> /dev/null || true
+        service "${1}" stop &>/dev/null || true
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1213,12 +1216,12 @@ restart_service() {
     local str="Restarting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
-    if is_command systemctl ; then
+    if is_command systemctl; then
         # use that to restart the service
-        systemctl restart "${1}" &> /dev/null
+        systemctl restart "${1}" &>/dev/null
     else
         # Otherwise, fall back to the service command
-        service "${1}" restart &> /dev/null
+        service "${1}" restart &>/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1229,12 +1232,12 @@ enable_service() {
     local str="Enabling ${1} service to start on reboot"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
-    if is_command systemctl ; then
+    if is_command systemctl; then
         # use that to enable the service
-        systemctl enable "${1}" &> /dev/null
+        systemctl enable "${1}" &>/dev/null
     else
         #  Otherwise, use update-rc.d to accomplish this
-        update-rc.d "${1}" defaults &> /dev/null
+        update-rc.d "${1}" defaults &>/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1245,24 +1248,24 @@ disable_service() {
     local str="Disabling ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     # If systemctl exists,
-    if is_command systemctl ; then
+    if is_command systemctl; then
         # use that to disable the service
-        systemctl disable "${1}" &> /dev/null
+        systemctl disable "${1}" &>/dev/null
     else
         # Otherwise, use update-rc.d to accomplish this
-        update-rc.d "${1}" disable &> /dev/null
+        update-rc.d "${1}" disable &>/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
 
 check_service_active() {
     # If systemctl exists,
-    if is_command systemctl ; then
+    if is_command systemctl; then
         # use that to check the status of the service
-        systemctl is-enabled "${1}" &> /dev/null
+        systemctl is-enabled "${1}" &>/dev/null
     else
         # Otherwise, fall back to service command
-        service "${1}" status &> /dev/null
+        service "${1}" status &>/dev/null
     fi
 }
 
@@ -1273,7 +1276,7 @@ disable_resolved_stublistener() {
     if check_service_active "systemd-resolved"; then
         # Check if DNSStubListener is enabled
         printf "  %b %b Testing if systemd-resolved DNSStub-Listener is active" "${OVER}" "${INFO}"
-        if ( grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &> /dev/null ); then
+        if (grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &>/dev/null); then
             # Disable the DNSStubListener to unbind it from port 53
             # Note that this breaks dns functionality on host until ftl are up and running
             printf "%b  %b Disabling systemd-resolved DNSStubListener" "${OVER}" "${TICK}"
@@ -1298,14 +1301,14 @@ update_package_cache() {
     local str="Update local cache of available packages"
     printf "  %b %s..." "${INFO}" "${str}"
     # Create a command from the package cache variable
-    if eval "${UPDATE_PKG_CACHE}" &> /dev/null; then
+    if eval "${UPDATE_PKG_CACHE}" &>/dev/null; then
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     else
         # Otherwise, show an error and exit
 
         # In case we used apt-get and apt is also available, we use this as recommendation as we have seen it
         # gives more user-friendly (interactive) advice
-        if [[ ${PKG_MANAGER} == "apt-get" ]] && is_command apt ; then
+        if [[ ${PKG_MANAGER} == "apt-get" ]] && is_command apt; then
             UPDATE_PKG_CACHE="apt update"
         fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1347,11 +1350,11 @@ install_dependent_packages() {
     # amount of download traffic.
     # NOTE: We may be able to use this installArray in the future to create a list of package that were
     # installed by us, and remove only the installed packages, and not the entire list.
-    if is_command apt-get ; then
+    if is_command apt-get; then
         # For each package, check if it's already installed (and if so, don't add it to the installArray)
         for i in "$@"; do
             printf "  %b Checking for %s..." "${INFO}" "${i}"
-            if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &> /dev/null; then
+            if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &>/dev/null; then
                 printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
             else
                 printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
@@ -1364,9 +1367,9 @@ install_dependent_packages() {
             # Running apt-get install with minimal output can cause some issues with
             # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-            printf '%*s\n' "${c}" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -
             "${PKG_INSTALL[@]}" "${installArray[@]}"
-            printf '%*s\n' "${c}" '' | tr " " -;
+            printf '%*s\n' "${c}" '' | tr " " -
             return
         fi
         printf "\\n"
@@ -1377,7 +1380,7 @@ install_dependent_packages() {
     for i in "$@"; do
         # For each package, check if it's already installed (and if so, don't add it to the installArray)
         printf "  %b Checking for %s..." "${INFO}" "${i}"
-        if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
+        if "${PKG_MANAGER}" -q list installed "${i}" &>/dev/null; then
             printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
         else
             printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
@@ -1387,9 +1390,9 @@ install_dependent_packages() {
     # If there's anything to install, install everything in the list.
     if [[ "${#installArray[@]}" -gt 0 ]]; then
         printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-        printf '%*s\n' "${c}" '' | tr " " -;
+        printf '%*s\n' "${c}" '' | tr " " -
         "${PKG_INSTALL[@]}" "${installArray[@]}"
-        printf '%*s\n' "${c}" '' | tr " " -;
+        printf '%*s\n' "${c}" '' | tr " " -
         return
     fi
     printf "\\n"
@@ -1423,9 +1426,9 @@ create_pihole_user() {
     local str="Checking for user 'pihole'"
     printf "  %b %s..." "${INFO}" "${str}"
     # If the pihole user exists,
-    if id -u pihole &> /dev/null; then
+    if id -u pihole &>/dev/null; then
         # and if the pihole group exists,
-        if getent group pihole > /dev/null 2>&1; then
+        if getent group pihole >/dev/null 2>&1; then
             # succeed
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         else
@@ -1452,7 +1455,7 @@ create_pihole_user() {
         printf "%b  %b %s" "${OVER}" "${CROSS}" "${str}"
         local str="Checking for group 'pihole'"
         printf "  %b %s..." "${INFO}" "${str}"
-        if getent group pihole > /dev/null 2>&1; then
+        if getent group pihole >/dev/null 2>&1; then
             # group pihole exists
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             # then create and add her to the pihole group
@@ -1495,7 +1498,7 @@ installLogrotate() {
     if [[ -f ${target} ]]; then
 
         # Account for changed logfile paths from /var/log -> /var/log/pihole/ made in core v5.11.
-        if  grep -q "/var/log/pihole.log" ${target}  ||  grep -q "/var/log/pihole-FTL.log" ${target}; then
+        if grep -q "/var/log/pihole.log" ${target} || grep -q "/var/log/pihole-FTL.log" ${target}; then
             sed -i 's/\/var\/log\/pihole.log/\/var\/log\/pihole\/pihole.log/g' ${target}
             sed -i 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
 
@@ -1572,27 +1575,27 @@ checkSelinux() {
         # Check the default SELinux mode
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
-            enforcing)
-                printf "  %b %bDefault SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${DEFAULT_SELINUX,,}" "${COL_NC}"
-                SELINUX_ENFORCING=1
-                ;;
-            *)  # 'permissive' and 'disabled'
-                printf "  %b %bDefault SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${DEFAULT_SELINUX,,}" "${COL_NC}"
-                ;;
+        enforcing)
+            printf "  %b %bDefault SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${DEFAULT_SELINUX,,}" "${COL_NC}"
+            SELINUX_ENFORCING=1
+            ;;
+        *) # 'permissive' and 'disabled'
+            printf "  %b %bDefault SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${DEFAULT_SELINUX,,}" "${COL_NC}"
+            ;;
         esac
         # Check the current state of SELinux
         CURRENT_SELINUX=$(getenforce)
         case "${CURRENT_SELINUX,,}" in
-            enforcing)
-                printf "  %b %bCurrent SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${CURRENT_SELINUX,,}" "${COL_NC}"
-                SELINUX_ENFORCING=1
-                ;;
-            *)  # 'permissive' and 'disabled'
-                printf "  %b %bCurrent SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${CURRENT_SELINUX,,}" "${COL_NC}"
-                ;;
+        enforcing)
+            printf "  %b %bCurrent SELinux: %s%b\\n" "${CROSS}" "${COL_RED}" "${CURRENT_SELINUX,,}" "${COL_NC}"
+            SELINUX_ENFORCING=1
+            ;;
+        *) # 'permissive' and 'disabled'
+            printf "  %b %bCurrent SELinux: %s%b\\n" "${TICK}" "${COL_GREEN}" "${CURRENT_SELINUX,,}" "${COL_NC}"
+            ;;
         esac
     else
-        echo -e "  ${INFO} ${COL_GREEN}SELinux not detected${COL_NC}";
+        echo -e "  ${INFO} ${COL_GREEN}SELinux not detected${COL_NC}"
     fi
     # Exit the installer if any SELinux checks toggled the flag
     if [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -z "${PIHOLE_SELINUX}" ]]; then
@@ -1601,8 +1604,8 @@ checkSelinux() {
         printf "      This check can be skipped by setting the environment variable %bPIHOLE_SELINUX%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
         printf "      e.g: export PIHOLE_SELINUX=true\\n"
         printf "      By setting this variable to true you acknowledge there may be issues with Pi-hole during or after the install\\n"
-        printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}";
-        exit 1;
+        printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        exit 1
     elif [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -n "${PIHOLE_SELINUX}" ]]; then
         printf "  %b %bSELinux Enforcing detected%b. PIHOLE_SELINUX env variable set - installer will continue\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
     fi
@@ -1612,10 +1615,10 @@ checkSelinux() {
 displayFinalMessage() {
     # TODO: COME BACK TO THIS, WHAT IS GOING ON?
     # If the number of arguments is > 0,
-    if [[ "${#1}" -gt 0 ]] ; then
+    if [[ "${#1}" -gt 0 ]]; then
         # set the password to the first argument.
         pwstring="$1"
-    elif [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]] ; then
+    elif [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
         # Else if the password exists from previous setup, we'll load it later
         pwstring="unchanged"
     else
@@ -1625,7 +1628,6 @@ displayFinalMessage() {
 
     # Store a message in a variable and display it
     additional="View the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
-
 
     # Final completion message to user
     dialog --no-shadow --keep-tite \
@@ -1655,34 +1657,34 @@ update_dialogs() {
 
     # Display the information to the user
     UpdateCmd=$(dialog --no-shadow --keep-tite --output-fd 1 \
-                --cancel-label Exit \
-                --title "Existing Install Detected!" \
-                --menu "\\n\\nWe have detected an existing install.\
+        --cancel-label Exit \
+        --title "Existing Install Detected!" \
+        --menu "\\n\\nWe have detected an existing install.\
 \\n\\nPlease choose from the following options:\
-\\n($strAdd)"\
-                    "${r}" "${c}" 2 \
-    "${opt1a}"  "${opt1b}" \
-    "${opt2a}"  "${opt2b}") || result=$?
+\\n($strAdd)" \
+        "${r}" "${c}" 2 \
+        "${opt1a}" "${opt1b}" \
+        "${opt2a}" "${opt2b}") || result=$?
 
     case ${result} in
-        "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            exit 1
-            ;;
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        exit 1
+        ;;
     esac
 
     # Set the variable based on if the user chooses
     case ${UpdateCmd} in
-        # repair, or
-        "${opt1a}")
-            printf "  %b %s option selected\\n" "${INFO}" "${opt1a}"
-            useUpdateVars=true
-            ;;
-        # reconfigure,
-        "${opt2a}")
-            printf "  %b %s option selected\\n" "${INFO}" "${opt2a}"
-            useUpdateVars=false
-            ;;
+    # repair, or
+    "${opt1a}")
+        printf "  %b %s option selected\\n" "${INFO}" "${opt1a}"
+        useUpdateVars=true
+        ;;
+    # reconfigure,
+    "${opt2a}")
+        printf "  %b %s option selected\\n" "${INFO}" "${opt2a}"
+        useUpdateVars=false
+        ;;
     esac
 }
 
@@ -1691,9 +1693,9 @@ check_download_exists() {
     status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
 
     # Check the status code
-    if grep -q "200" <<< "$status"; then
+    if grep -q "200" <<<"$status"; then
         return 0
-    elif grep -q "404" <<< "$status"; then
+    elif grep -q "404" <<<"$status"; then
         return 1
     fi
 
@@ -1724,7 +1726,7 @@ get_available_branches() {
 
     cd "${directory}" || return 1
     # Get reachable remote branches, but store STDERR as STDOUT variable
-    output=$( { git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1 )
+    output=$({ git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1)
     # echo status for calling function to capture
     echo "$output"
     return
@@ -1740,7 +1742,7 @@ fetch_checkout_pull_branch() {
     # Set the reference for the requested branch, fetch, check it put and pull it
     cd "${directory}" || return 1
     git remote set-branches origin "${branch}" || return 1
-    git stash --all --quiet &> /dev/null || true
+    git stash --all --quiet &>/dev/null || true
     git clean --quiet --force -d || true
     git fetch --quiet || return 1
     checkout_pull_branch "${directory}" "${branch}" || return 1
@@ -1777,27 +1779,31 @@ clone_or_update_repos() {
     if [[ "${reconfigure}" == true ]]; then
         printf "  %b Performing reconfiguration, skipping download of local repos\\n" "${INFO}"
         # Reset the Core repo
-        resetRepo ${PI_HOLE_LOCAL_REPO} || \
-        { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
-        exit 1; \
-        }
+        resetRepo ${PI_HOLE_LOCAL_REPO} ||
+            {
+                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                exit 1
+            }
         # Reset the Web repo
-        resetRepo ${webInterfaceDir} || \
-        { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
-        exit 1; \
-        }
+        resetRepo ${webInterfaceDir} ||
+            {
+                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"
+                exit 1
+            }
     # Otherwise, a repair is happening
     else
         # so get git files for Core
-        getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
-        exit 1; \
-        }
+        getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} ||
+            {
+                printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                exit 1
+            }
         # get the Web git files
-        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-        { printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
-        exit 1; \
-        }
+        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} ||
+            {
+                printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"
+                exit 1
+            }
     fi
 }
 
@@ -1810,13 +1816,16 @@ FTLinstall() {
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Move into the temp ftl directory
-    pushd "$(mktemp -d)" > /dev/null || { printf "Unable to make temporary directory for FTL binary download\\n"; return 1; }
+    pushd "$(mktemp -d)" >/dev/null || {
+        printf "Unable to make temporary directory for FTL binary download\\n"
+        return 1
+    }
     local tempdir
     tempdir="$(pwd)"
     local ftlBranch
     local url
 
-    if [[ -f "/etc/pihole/ftlbranch" ]];then
+    if [[ -f "/etc/pihole/ftlbranch" ]]; then
         ftlBranch=$(</etc/pihole/ftlbranch)
     else
         ftlBranch="master"
@@ -1826,7 +1835,7 @@ FTLinstall() {
     binary="${1}"
 
     # Determine which version of FTL to download
-    if [[ "${ftlBranch}" == "master" ]];then
+    if [[ "${ftlBranch}" == "master" ]]; then
         url="https://github.com/pi-hole/ftl/releases/latest/download"
     else
         url="https://ftl.pi-hole.net/${ftlBranch}"
@@ -1844,13 +1853,16 @@ FTLinstall() {
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
             # Stop pihole-FTL service if available
-            stop_service pihole-FTL &> /dev/null
+            stop_service pihole-FTL &>/dev/null
 
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
 
             # Move back into the original directory the user was in
-            popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
+            popd >/dev/null || {
+                printf "Unable to return to original directory after FTL binary download.\\n"
+                return 1
+            }
 
             # Installed the FTL service
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -1861,7 +1873,10 @@ FTLinstall() {
             return 0
         else
             # Otherwise, the hash download failed, so print and exit.
-            popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
+            popd >/dev/null || {
+                printf "Unable to return to original directory after FTL binary download.\\n"
+                return 1
+            }
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             printf "  %b Error: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
 
@@ -1871,7 +1886,10 @@ FTLinstall() {
         fi
     else
         # Otherwise, the download failed, so print and exit.
-        popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
+        popd >/dev/null || {
+            printf "Unable to return to original directory after FTL binary download.\\n"
+            return 1
+        }
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # The URL could not be found
         printf "  %b Error: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
@@ -1883,9 +1901,9 @@ FTLinstall() {
 }
 
 remove_dir() {
-  # Delete dir
-  rm -r "${1}" > /dev/null 2>&1 || \
-    echo -e "  ${CROSS} Unable to remove ${1}"
+    # Delete dir
+    rm -r "${1}" >/dev/null 2>&1 ||
+        echo -e "  ${CROSS} Unable to remove ${1}"
 }
 
 get_binary_name() {
@@ -1930,7 +1948,7 @@ get_binary_name() {
     elif [[ "${machine}" == "x86_64" ]]; then
         # This gives the processor of packages dpkg installs (for example, "i386")
         local dpkgarch
-        dpkgarch=$(dpkg --print-processor 2> /dev/null || dpkg --print-architecture 2> /dev/null)
+        dpkgarch=$(dpkg --print-processor 2>/dev/null || dpkg --print-architecture 2>/dev/null)
 
         # Special case: This is a 32 bit OS, installed on a 64 bit machine
         # -> change machine processor to download the 32 bit executable
@@ -1971,7 +1989,7 @@ FTLcheckUpdate() {
 
     local ftlBranch
 
-    if [[ -f "/etc/pihole/ftlbranch" ]];then
+    if [[ -f "/etc/pihole/ftlbranch" ]]; then
         ftlBranch=$(</etc/pihole/ftlbranch)
     else
         ftlBranch="master"
@@ -2082,7 +2100,7 @@ make_temporary_log() {
 copy_to_install_log() {
     # Copy the contents of file descriptor 3 into the install log
     # Since we use color codes such as '\e[1;33m', they should be removed
-    sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
+    sed 's/\[[0-9;]\{1,5\}m//g' </proc/$$/fd/3 >"${installLogLoc}"
     chmod 644 "${installLogLoc}"
     chown pihole:pihole "${installLogLoc}"
 }
@@ -2110,8 +2128,8 @@ main() {
         printf "  %b Sudo utility check" "${INFO}"
 
         # If the sudo command exists, try rerunning as admin
-        if is_command sudo ; then
-            printf "%b  %b Sudo utility check\\n" "${OVER}"  "${TICK}"
+        if is_command sudo; then
+            printf "%b  %b Sudo utility check\\n" "${OVER}" "${TICK}"
 
             # when run via curl piping
             if [[ "$0" == "bash" ]]; then
@@ -2230,16 +2248,16 @@ main() {
     # Add password to web UI if there is none
     pw=""
     # If no password is set,
-    if [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]] ; then
+    if [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
         # generate a random password
-        pw=$(tr -dc _A-Z-a-z-0-9 < /dev/urandom | head -c 8)
+        pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
         pihole -a -p "${pw}"
     fi
 
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
-    # but before starting or restarting the ftl service
+    # but before starting or resttarting the ftl service
     disable_resolved_stublistener
 
     printf "  %b Restarting services...\\n" "${INFO}"
@@ -2257,7 +2275,7 @@ main() {
     # can be removed with Pi-hole v6.0
     # To be sure FTL is not running when we move the files we explicitly stop it here
 
-    stop_service pihole-FTL &> /dev/null
+    stop_service pihole-FTL &>/dev/null
 
     if [ ! -d /var/log/pihole/ ]; then
         mkdir -m 0755 /var/log/pihole/
@@ -2271,7 +2289,7 @@ main() {
         # /var/log/pihole-FTL.log.3.gz -> /var/log/pihole/FTL.log.3.gz
         # /var/log/pihole-FTL.log.4.gz -> /var/log/pihole/FTL.log.4.gz
         # /var/log/pihole-FTL.log.5.gz -> /var/log/pihole/FTL.log.5.gz
-        for f in /var/log/pihole-FTL.log*; do mv "$f" "$( sed "s/pihole-/pihole\//" <<< "$f")"; done
+        for f in /var/log/pihole-FTL.log*; do mv "$f" "$(sed "s/pihole-/pihole\//" <<<"$f")"; done
     fi
 
     # Remaining log files
@@ -2292,7 +2310,7 @@ main() {
     fi
 
     # If there is a password
-    if (( ${#pw} > 0 )) ; then
+    if ((${#pw} > 0)); then
         # display the password
         printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
         printf "  %b This can be changed using 'pihole -a -p'\\n\\n" "${INFO}"
@@ -2323,6 +2341,6 @@ main() {
 }
 
 # allow to source this script without running it
-if [[ "${SKIP_INSTALL}" != true ]] ; then
+if [[ "${SKIP_INSTALL}" != true ]]; then
     main "$@"
 fi
