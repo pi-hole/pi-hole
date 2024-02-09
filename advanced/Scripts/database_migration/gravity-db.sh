@@ -18,6 +18,11 @@ upgrade_gravityDB(){
 	piholeDir="${2}"
 	auditFile="${piholeDir}/auditlog.list"
 
+	# Exit early if the database does not exist (e.g. in CI tests)
+	if [[ ! -f "${database}" ]]; then
+		return
+	fi
+
 	# Get database version
 	version="$(pihole-FTL sqlite3 -ni "${database}" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
@@ -140,5 +145,18 @@ upgrade_gravityDB(){
 		echo -e "  ${INFO} Upgrading gravity database from version 16 to 17"
 		pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/16_to_17.sql"
 		version=17
+	fi
+	if [[ "$version" == "17" ]]; then
+		# Add adlist.id to vw_gravity and vw_antigravity
+		echo -e "  ${INFO} Upgrading gravity database from version 17 to 18"
+		pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/17_to_18.sql"
+		version=18
+	fi
+	if [[ "$version" == "18" ]]; then
+		# Modify DELETE triggers to delete BEFORE instead of AFTER to prevent
+		# foreign key constraint violations
+		echo -e "  ${INFO} Upgrading gravity database from version 18 to 19"
+		pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/18_to_19.sql"
+		version=19
 	fi
 }

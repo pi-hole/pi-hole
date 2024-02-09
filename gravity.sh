@@ -831,6 +831,7 @@ for var in "$@"; do
   case "${var}" in
     "-f" | "--force" ) forceDelete=true;;
     "-r" | "--repair" ) repairSelector "$3";;
+    "-u" | "--upgrade" ) upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"; exit 0;;
     "-h" | "--help" ) helpFunc;;
   esac
 done
