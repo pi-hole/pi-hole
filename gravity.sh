@@ -36,9 +36,6 @@ blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
 adListFile="${piholeDir}/adlists.list"
 
-localList="${piholeDir}/local.list"
-VPNList="/etc/openvpn/ipp.txt"
-
 piholeGitDir="/etc/.pihole"
 GRAVITYDB=$(getFTLConfigValue files.gravity)
 GRAVITY_TMPDIR=$(getFTLConfigValue files.gravity_tmp)
@@ -297,12 +294,7 @@ migrate_to_database() {
 
 # Determine if DNS resolution is available before proceeding
 gravity_CheckDNSResolutionAvailable() {
-  local lookupDomain="pi.hole"
-
-  # Determine if $localList does not exist, and ensure it is not empty
-  if [[ ! -e "${localList}" ]] || [[ -s "${localList}" ]]; then
-    lookupDomain="raw.githubusercontent.com"
-  fi
+  local lookupDomain="raw.githubusercontent.com"
 
   # Determine if $lookupDomain is resolvable
   if timeout 4 getent hosts "${lookupDomain}" &> /dev/null; then
@@ -684,18 +676,6 @@ gravity_ShowCount() {
   gravity_Table_Count "vw_regex_whitelist" "regex allowed filters"
 }
 
-# Create "localhost" entries into hosts format
-gravity_generateLocalList() {
-  # Empty $localList if it already exists, otherwise, create it
-  echo "### Do not modify this file, it will be overwritten by pihole -g" > "${localList}"
-  chmod 644 "${localList}"
-
-  # Add additional LAN hosts provided by OpenVPN (if available)
-  if [[ -f "${VPNList}" ]]; then
-    awk -F, '{printf $2"\t"$1".vpn\n"}' "${VPNList}" >> "${localList}"
-  fi
-}
-
 # Trap Ctrl-C
 gravity_Trap() {
   trap '{ echo -e "\\n\\n  ${INFO} ${COL_LIGHT_RED}User-abort detected${COL_NC}"; gravity_Cleanup "error"; }' INT
@@ -882,9 +862,6 @@ if ! gravity_DownloadBlocklists; then
   echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
   exit 1
 fi
-
-# Create local.list
-gravity_generateLocalList
 
 # Update gravity timestamp
 update_gravity_timestamp
