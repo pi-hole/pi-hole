@@ -114,7 +114,7 @@ gravity_swap_databases() {
 
 # Update timestamp when the gravity table was last updated successfully
 update_gravity_timestamp() {
-  output=$({ printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | pihole-FTL sqlite3 -ni -ni "${gravityTEMPfile}"; } 2>&1)
+  output=$({ printf ".timeout 30000\\nINSERT OR REPLACE INTO info (property,value) values ('updated',cast(strftime('%%s', 'now') as int));" | pihole-FTL sqlite3 -ni "${gravityTEMPfile}"; } 2>&1)
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
@@ -352,8 +352,8 @@ gravity_DownloadBlocklists() {
 
   # Retrieve source URLs from gravity database
   # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
-  mapfile -t sources <<<"$(pihole-FTL sqlite3 -ni -ni "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2>/dev/null)"
-  mapfile -t sourceIDs <<<"$(pihole-FTL sqlite3 -ni -ni "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2>/dev/null)"
+  mapfile -t sources <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2>/dev/null)"
+  mapfile -t sourceIDs <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2>/dev/null)"
   mapfile -t sourceTypes <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2>/dev/null)"
 
   # Parse source domains from $sources
@@ -667,12 +667,12 @@ gravity_Table_Count() {
   local table="${1}"
   local str="${2}"
   local num
-  num="$(pihole-FTL sqlite3 -ni -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
+  num="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
   if [[ "${table}" == "gravity" ]]; then
     local unique
-    unique="$(pihole-FTL sqlite3 -ni -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
+    unique="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
     echo -e "  ${INFO} Number of ${str}: ${num} (${COL_BOLD}${unique} unique domains${COL_NC})"
-    pihole-FTL sqlite3 -ni -ni "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
+    pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) VALUES ('gravity_count',${unique});"
   else
     echo -e "  ${INFO} Number of ${str}: ${num}"
   fi
