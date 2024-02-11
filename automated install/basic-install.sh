@@ -2260,6 +2260,11 @@ main() {
     # but before starting or resttarting the ftl service
     disable_resolved_stublistener
 
+    # Check if gravity database needs to be upgraded. If so, do it without rebuilding
+    # gravity altogether. This may be a very long running task needlessly blocking
+    # the update process.
+    /opt/pihole/gravity.sh --upgrade
+
     printf "  %b Restarting services...\\n" "${INFO}"
     # Start services
 
