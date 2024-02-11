@@ -31,7 +31,7 @@ main() {
 
     # Automatically show detailed information if
     # at least one of the components is not on master branch
-    if [ ! "${CORE_BRANCH}" = "master" ] || [ ! "${WEB_BRANCH}" = "master" ] || [ ! "${FTL_BRANCH}" = "master" ] ; then
+    if [ ! "${CORE_BRANCH}" = "master" ] || [ ! "${WEB_BRANCH}" = "master" ] || [ ! "${FTL_BRANCH}" = "master" ]; then
         details=true
     fi
 
