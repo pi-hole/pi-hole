@@ -41,14 +41,14 @@ Options:
 
 GenerateOutput() {
     local data gravity_data lists_data num_gravity num_lists search_type_str
-    local gravity_data_csv lists_data_csv line current_domain
+    local gravity_data_csv lists_data_csv line current_domain url type color
     data="${1}"
 
     # construct a new json for the list results where each object contains the domain and the related type
     lists_data=$(printf %s "${data}" | jq '.search.domains | [.[] | {domain: .domain, type: .type}]')
 
     # construct a new json for the gravity results where each object contains the adlist URL and the related domains
-    gravity_data=$(printf %s "${data}" | jq '.search.gravity  | group_by(.address,.type) | map({ address: (.[0].address), domains: [.[] | .domain] })')
+    gravity_data=$(printf %s "${data}" | jq '.search.gravity  | group_by(.address,.type) | map({ address: (.[0].address), type: (.[0].type), domains: [.[] | .domain] })')
 
     # number of objects in each json
     num_gravity=$(printf %s "${gravity_data}" | jq length)
@@ -78,15 +78,27 @@ GenerateOutput() {
     if [ "${num_gravity}" -gt 0 ]; then
         # Convert the data to a csv, each line is a "URL,domain,domain,...." string
         # not using jq's @csv here as it quotes each value individually
-        gravity_data_csv=$(printf %s "${gravity_data}" | jq --raw-output '.[] | [.address, .domains[]] | join(",")')
+        gravity_data_csv=$(printf %s "${gravity_data}" | jq --raw-output '.[] | [.address, .type, .domains[]] | join(",")')
 
         # Generate line-by-line output for each csv line
         echo "${gravity_data_csv}" | while read -r line; do
+            # Get first part of the line, the URL
+            url=${line%%,*}
+
+            # cut off URL, leaving "type,domain,domain,...."
+            line=${line#*,}
+            type=${line%%,*}
+            # type == "block" -> red, type == "allow" -> green
+            if [ "${type}" = "block" ]; then
+                color="${COL_RED}"
+            else
+                color="${COL_GREEN}"
+            fi
 
             # print adlist URL
-            printf "%s\n\n" "  - ${COL_BLUE}${line%%,*}${COL_NC}"
+            printf "%s (%s)\n\n" "  - ${COL_BLUE}${url}${COL_NC}" "${color}${type}${COL_NC}"
 
-            # cut off URL, leaving "domain,domain,...."
+            # cut off type, leaving "domain,domain,...."
             line=${line#*,}
             # print each domain and remove it from the string until nothing is left
             while [ ${#line} -gt 0 ]; do
