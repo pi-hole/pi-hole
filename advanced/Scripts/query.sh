@@ -48,7 +48,7 @@ GenerateOutput() {
     lists_data=$(printf %s "${data}" | jq '.search.domains | [.[] | {domain: .domain, type: .type}]')
 
     # construct a new json for the gravity results where each object contains the adlist URL and the related domains
-    gravity_data=$(printf %s "${data}" | jq '.search.gravity  | group_by(.address) | map({ address: (.[0].address), domains: [.[] | .domain] })')
+    gravity_data=$(printf %s "${data}" | jq '.search.gravity  | group_by(.address,.type) | map({ address: (.[0].address), domains: [.[] | .domain] })')
 
     # number of objects in each json
     num_gravity=$(printf %s "${gravity_data}" | jq length)
