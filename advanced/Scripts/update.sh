@@ -144,7 +144,7 @@ main() {
     local binary
     binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
 
-    if FTLcheckUpdate "${binary}" > /dev/null; then
+    if FTLcheckUpdate "${binary}"; then
         FTL_update=true
         echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
     else
@@ -155,8 +155,13 @@ main() {
             2)
                 echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_LIGHT_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
                 ;;
+            3)
+                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, cannot reach download server${COL_NC}"
+                exit 1
+                ;;
             *)
                 echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, contact support${COL_NC}"
+                exit 1
         esac
         FTL_update=false
     fi

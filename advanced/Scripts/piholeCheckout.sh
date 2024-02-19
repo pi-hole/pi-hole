@@ -164,7 +164,9 @@ checkout() {
         path="${2}/${binary}"
         oldbranch="$(pihole-FTL -b)"
 
-        if check_download_exists "$path"; then
+        check_download_exists "$path"
+        local ret=$?
+        if [ $ret -eq 0 ]; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
             chmod 644 /etc/pihole/ftlbranch
@@ -175,11 +177,19 @@ checkout() {
             # Update local and remote versions via updatechecker
             /opt/pihole/updatecheck.sh
         else
-            echo "  ${CROSS} Requested branch \"${2}\" is not available"
-            ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
-            echo -e "  ${INFO} Available branches for FTL are:"
-            for e in "${ftlbranches[@]}"; do echo "      - $e"; done
-            exit 1
+            if [[ $ret -eq 1 ]]; then
+                echo "  ${CROSS} Requested branch \"${2}\" is not available"
+                ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+                echo -e "  ${INFO} Available branches for FTL are:"
+                for e in "${ftlbranches[@]}"; do echo "      - $e"; done
+                exit 1
+            elif [[ $ret -eq 2 ]]; then
+                printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
+                exit 1
+            else
+                printf "  %b Unknown error. Please contact Pi-hole Support\\n" "${CROSS}"
+                exit 1
+            fi
         fi
 
     else
