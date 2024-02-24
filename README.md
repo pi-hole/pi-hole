@@ -166,4 +166,191 @@ Some notable features include:
 There are several ways to [access the dashboard](https://discourse.pi-hole.net/t/how-do-i-access-pi-holes-dashboard-admin-interface/3168):
 
 1. `http://pi.hole/admin/` (when using Pi-hole as your DNS server)
-2. `http://<IP_ADDRESS_OF_YOUR_PI_HOLE>/admin/`
+2. `http://<#!/usr/bin/env bash
+# shellcheck disable=SC1090
+
+# Pi-hole: A black hole for Internet advertisements
+# (c) Pi-hole (https://pi-hole.net)
+# Network-wide ad blocking via your own hardware.
+#
+# Installs and Updates Pi-hole
+#
+# This file is copyright under the latest version of the EUPL.
+# Please see LICENSE file for your rights under this license.
+
+# pi-hole.net/donate
+#
+# Install with this command (from your Linux machine):
+#
+# curl -sSL https://install.pi-hole.net | bash
+
+# -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
+# We do not want users to end up with a partially working install, so we exit the script
+# instead of continuing the installation with something broken
+set -e
+
+# Append common folders to the PATH to ensure that all basic commands are available.
+# When using "su" an incomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
+export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+######## VARIABLES #########
+# For better maintainability, we store as much information that can change in variables
+# This allows us to make a change in one place that can propagate to all instances of the variable
+# These variables should all be GLOBAL variables, written in CAPS
+# Local variables will be in lowercase and will exist only within functions
+# It's still a work in progress, so you may see some variance in this guideline until it is complete
+
+# Dialog result codes
+# dialog code values can be set by environment variables, we only override if
+# the env var is not set or empty.
+: "${DIALOG_OK:=0}"
+: "${DIALOG_CANCEL:=1}"
+: "${DIALOG_ESC:=255}"
+
+
+# List of supported DNS servers
+DNS_SERVERS=$(cat << EOM
+Google (ECS, DNSSEC);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
+Level3;4.2.2.1;4.2.2.2;;
+Comodo;8.26.56.26;8.20.247.20;;
+DNS.WATCH (DNSSEC);84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
+Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
+Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
+Quad9 (filtered, ECS, DNSSEC);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
+Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+EOM
+)
+
+# Location for final installation log storage
+installLogLoc="/etc/pihole/install.log"
+# This is an important file as it contains information specific to the machine it's being installed on
+setupVars="/etc/pihole/setupVars.conf"
+# Pi-hole uses lighttpd as a Web server, and this is the config file for it
+lighttpdConfig="/etc/lighttpd/lighttpd.conf"
+# This is a file used for the colorized output
+coltable="/opt/pihole/COL_TABLE"
+
+# Root of the web server
+webroot="/var/www/html"
+
+
+# We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
+# web is used to set up the Web admin interface.
+# Pi-hole contains various setup scripts and files which are critical to the installation.
+# Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
+# Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
+webInterfaceGitUrl="https://github.com/pi-hole/web.git"
+webInterfaceDir="${webroot}/admin"
+piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+PI_HOLE_LOCAL_REPO="/etc/.pihole"
+# List of pihole scripts, stored in an array
+PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
+# This directory is where the Pi-hole scripts will be installed
+PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_BIN_DIR="/usr/local/bin"
+FTL_CONFIG_FILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.conf"
+if [ -z "$useUpdateVars" ]; then
+    useUpdateVars=false
+fi
+
+adlistFile="/etc/pihole/adlists.list"
+# Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
+IPV4_ADDRESS=${IPV4_ADDRESS}
+IPV6_ADDRESS=${IPV6_ADDRESS}
+# Give settings their default values. These may be changed by prompts later in the script.
+QUERY_LOGGING=true
+INSTALL_WEB_INTERFACE=true
+PRIVACY_LEVEL=0
+CACHE_SIZE=10000
+
+if [ -z "${USER}" ]; then
+    USER="$(id -un)"
+fi
+
+# dialog dimensions: Let dialog handle appropriate sizing.
+r=20
+c=70
+
+######## Undocumented Flags. Shhh ########
+# These are undocumented flags; some of which we can use when repairing an installation
+# The runUnattended flag is one example of this
+reconfigure=false
+runUnattended=false
+INSTALL_WEB_SERVER=true
+# Check arguments for the undocumented flags
+
+    stop_service pihole-FTL &> /dev/null
+
+    if [ ! -d /var/log/pihole/ ]; then
+        mkdir -m 0755 /var/log/pihole/
+    fi
+
+    # Special handling for pihole-FTL.log -> pihole/FTL.log
+    if [ -f /var/log/pihole-FTL.log ] && [ ! -L /var/log/pihole-FTL.log ]; then
+        # /var/log/pihole-FTL.log      -> /var/log/pihole/FTL.log
+        # /var/log/pihole-FTL.log.1    -> /var/log/pihole/FTL.log.1
+        # /var/log/pihole-FTL.log.2.gz -> /var/log/pihole/FTL.log.2.gz
+        # /var/log/pihole-FTL.log.3.gz -> /var/log/pihole/FTL.log.3.gz
+        # /var/log/pihole-FTL.log.4.gz -> /var/log/pihole/FTL.log.4.gz
+        # /var/log/pihole-FTL.log.5.gz -> /var/log/pihole/FTL.log.5.gz
+        for f in /var/log/pihole-FTL.log*; do mv "$f" "$( sed "s/pihole-/pihole\//" <<< "$f")"; done
+    fi
+
+    # Remaining log files
+    if [ -f /var/log/pihole.log ] && [ ! -L /var/log/pihole.log ]; then
+        mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
+    fi
+
+    restart_service pihole-FTL
+
+    # Download and compile the aggregated block list
+    runGravity
+
+    # Update local and remote versions via updatechecker
+    /opt/pihole/updatecheck.sh
+
+    if [[ "${useUpdateVars}" == false ]]; then
+        displayFinalMessage "${pw}"
+    fi
+
+    # If the Web interface was installed,
+    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+        # If there is a password,
+        if (( ${#pw} > 0 )) ; then
+            # display the password
+            printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
+            printf "  %b This can be changed using 'pihole -a -p'\\n\\n" "${INFO}"
+        fi
+    fi
+
+    if [[ "${useUpdateVars}" == false ]]; then
+        # If the Web interface was installed,
+        if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+            printf "  %b View the web interface at http://pi.hole/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
+        fi
+        # Explain to the user how to use Pi-hole as their DNS server
+        printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
+        [[ -n "${IPV4_ADDRESS%/*}" ]] && printf "  %b Pi-hole DNS (IPv4): %s\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
+        [[ -n "${IPV6_ADDRESS}" ]] && printf "  %b Pi-hole DNS (IPv6): %s\\n" "${INFO}" "${IPV6_ADDRESS}"
+        printf "  %b If you have not done so already, the above IP should be set to static.\\n" "${INFO}"
+        INSTALL_TYPE="Installation"
+    else
+        INSTALL_TYPE="Update"
+    fi
+
+    # Display where the log file is
+    printf "\\n  %b The install log is located at: %s\\n" "${INFO}" "${installLogLoc}"
+    printf "  %b %b%s complete! %b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${INSTALL_TYPE}" "${COL_NC}"
+
+    if [[ "${INSTALL_TYPE}" == "Update" ]]; then
+        printf "\\n"
+        "${PI_HOLE_BIN_DIR}"/pihole version --current
+    fi
+}
+
+# allow to source this script without running it
+if [[ "${SKIP_INSTALL}" != true ]] ; then
+    main "$@"
+fi>/admin/`
