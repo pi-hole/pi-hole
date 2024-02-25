@@ -64,7 +64,7 @@ lighttpdConfig="/etc/lighttpd/lighttpd.conf"
 coltable="/opt/pihole/COL_TABLE"
 
 # Root of the web server
-webroot="/var/www/html"
+WEB_ROOT="/var/www/html"
 
 
 # We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
@@ -72,9 +72,9 @@ webroot="/var/www/html"
 # Pi-hole contains various setup scripts and files which are critical to the installation.
 # Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
 # Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
-webInterfaceGitUrl="https://github.com/pi-hole/web.git"
-webInterfaceDir="${webroot}/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+webInterfaceGitUrl="https://github.com/Gezzo42/pi-hole-web.git"
+ADMIN_INTERFACE_SUBDIR="admin"
+piholeGitUrl="https://github.com/Gezzo42/pi-hole.git"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # List of pihole scripts, stored in an array
 PI_HOLE_FILES=(chronometer list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
@@ -435,13 +435,13 @@ make_repo() {
     # Clone the repo and return the return code from this command
     git clone -q --depth 20 "${remoteRepo}" "${directory}" &> /dev/null || return $?
     # Move into the directory that was passed as an argument
-    pushd "${directory}" &> /dev/null || return 1
+    pushd "${directory}" || return 1
     # Check current branch. If it is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
     curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
-        # If we're calling make_repo() then it should always be master, we may not need to check.
-        git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
+       # If we're calling make_repo() then it should always be master, we may not need to check.
+       git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
     fi
     # Show a colored message showing it's status
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -1166,6 +1166,28 @@ the \"pihole\" group for full functionality." \
                 ;;
         esac
     fi
+
+    if [[ "${INSTALL_WEB_INTERFACE}" == true && "${INSTALL_WEB_SERVER}" == false ]]; then
+        _ADMIN_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
+                        --backtitle "Pihole Installation" --title "Admin Web Interface" \
+                        --form "\\nEnter the paths or use default ones" \
+                        "${r}" "${c}" 0 \
+                        "web root path:" 1 1 "${WEB_ROOT}" 1 32 19 0 \
+                        "admin interface subdirectory:" 2 1 "${ADMIN_INTERFACE_SUBDIR}" 2 32 19 0)
+        result=$?
+        case ${result} in
+        "${DIALOG_OK}")
+            # Set the path variables
+            WEB_ROOT=${_ADMIN_INTERFACE%$'\n'*}
+            ADMIN_INTERFACE_SUBDIR=${_ADMIN_INTERFACE#*$'\n'}
+            printf "  %b Set the variable WEB_ROOT: %s and ADMIN_INTERFACE_SUBDIR: %s\\n" "${INFO}" "${WEB_ROOT}" "${ADMIN_INTERFACE_SUBDIR}"
+            ;;
+        "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+            printf "  %b Canceled or escape path selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            exit 1
+            ;;
+        esac
+    fi
 }
 
 # A function to display a list of example blocklists for users to select
@@ -1845,6 +1867,8 @@ finalExports() {
     addOrEditKeyValPair "${setupVars}" "DNS_FQDN_REQUIRED" "${DNS_FQDN_REQUIRED:-true}"
     addOrEditKeyValPair "${setupVars}" "DNS_BOGUS_PRIV" "${DNS_BOGUS_PRIV:-true}"
     addOrEditKeyValPair "${setupVars}" "DNSMASQ_LISTENING" "${DNSMASQ_LISTENING:-local}"
+    addOrEditKeyValPair "${setupVars}" "WEB_ROOT" "${WEB_ROOT}"
+    addOrEditKeyValPair "${setupVars}" "ADMIN_INTERFACE_SUBDIR" "${ADMIN_INTERFACE_SUBDIR}"
 
     chmod 644 "${setupVars}"
 
@@ -1906,18 +1930,18 @@ installLogrotate() {
 installPihole() {
     # If the user wants to install the Web interface,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        if [[ ! -d "${webroot}" ]]; then
+        if [[ ! -d "${WEB_ROOT}" ]]; then
             # make the Web directory if necessary
-            install -d -m 0755 ${webroot}
+            install -d -m 0755 ${WEB_ROOT}
         fi
 
         if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
             # Set the owner and permissions
-            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${webroot}
-            chmod 0775 ${webroot}
-            # Repair permissions if webroot is not world readable
+            chown ${LIGHTTPD_USER}:${LIGHTTPD_GROUP} ${WEB_ROOT}
+            chmod 0775 ${WEB_ROOT}
+            # Repair permissions if WEB_ROOT is not world readable
             chmod a+rx /var/www
-            chmod a+rx ${webroot}
+            chmod a+rx ${WEB_ROOT}
             # Give lighttpd access to the pihole group so the web interface can
             # manage the gravity.db database
             usermod -a -G pihole ${LIGHTTPD_USER}
@@ -2027,7 +2051,7 @@ displayFinalMessage() {
     # If the user wants to install the dashboard,
     if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
         # Store a message in a variable and display it
-        additional="View the web interface at http://pi.hole/admin or http://${IPV4_ADDRESS%/*}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
+        additional="View the web interface at http://pi.hole/${ADMIN_INTERFACE_SUBDIR} or http://${IPV4_ADDRESS%/*}/${ADMIN_INTERFACE_SUBDIR}\\n\\nYour Admin Webpage login password is ${pwstring}"
     fi
 
     # Final completion message to user
@@ -2180,8 +2204,8 @@ clone_or_update_repos() {
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # reset it's repo
-            resetRepo ${webInterfaceDir} || \
-            { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
+            resetRepo ${WEB_ROOT}/${ADMIN_INTERFACE_SUBDIR} || \
+            { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${WEB_ROOT}/${ADMIN_INTERFACE_SUBDIR}" "${COL_NC}"; \
             exit 1; \
             }
         fi
@@ -2195,8 +2219,8 @@ clone_or_update_repos() {
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # get the Web git files
-            getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-            { printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
+            getGitFiles ${WEB_ROOT}/${ADMIN_INTERFACE_SUBDIR} ${webInterfaceGitUrl} || \
+            { printf "  %b Unable to clone %s into ${WEB_ROOT}/${ADMIN_INTERFACE_SUBDIR}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
             exit 1; \
             }
         fi
@@ -2760,7 +2784,7 @@ main() {
     if [[ "${useUpdateVars}" == false ]]; then
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-            printf "  %b View the web interface at http://pi.hole/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
+            printf "  %b View the web interface at http://pi.hole/${ADMIN_INTERFACE_SUBDIR} or http://%s/${ADMIN_INTERFACE_SUBDIR}\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
         fi
         # Explain to the user how to use Pi-hole as their DNS server
         printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"

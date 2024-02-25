@@ -27,7 +27,7 @@ readonly setupVars="/etc/pihole/setupVars.conf"
 readonly PI_HOLE_BIN_DIR="/usr/local/bin"
 
 # Root of the web server
-readonly webroot="/var/www/html"
+#readonly webroot="/var/www/html"
 
 # Source utils script
 utilsfile="/opt/pihole/utils.sh"
@@ -646,6 +646,7 @@ Interfaces:
 }
 
 Teleporter() {
+    source "${setupVars}"
     local filename
     filename="${args[2]}"
     if [[ -z "${filename}" ]]; then
@@ -656,7 +657,7 @@ Teleporter() {
         host="${host//./_}"
         filename="pi-hole-${host:-noname}-teleporter_${datetimestamp}.tar.gz"
     fi
-    php "${webroot}/admin/scripts/pi-hole/php/teleporter.php" > "${filename}"
+    php "${WEB_ROOT}/${ADMIN_INTERFACE_SUBDIR}/scripts/pi-hole/php/teleporter.php" > "${filename}"
 }
 
 checkDomain()

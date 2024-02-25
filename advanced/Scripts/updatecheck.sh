@@ -87,14 +87,15 @@ addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
 # get Web versions
 
 if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
+    ADMIN_INTERFACE_DIR=${WEB_ROOT}/${ADMIN_INTERFACE_SUBDIR}
 
-    WEB_VERSION="$(get_local_version /var/www/html/admin)"
+    WEB_VERSION="$(get_local_version ${ADMIN_INTERFACE_DIR})"
     addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
 
-    WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
+    WEB_BRANCH="$(get_local_branch ${ADMIN_INTERFACE_DIR})"
     addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
 
-    WEB_HASH="$(get_local_hash /var/www/html/admin)"
+    WEB_HASH="$(get_local_hash ${ADMIN_INTERFACE_DIR})"
     addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
 
     GITHUB_WEB_VERSION="$(get_remote_version web)"
