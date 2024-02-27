@@ -19,6 +19,8 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly dnscustomfile="/etc/pihole/custom.list"
 readonly dnscustomcnamefile="/etc/dnsmasq.d/05-pihole-custom-cname.conf"
+readonly dnsCustomWildcardDNSFile="/etc/dnsmasq.d/15-pihole-custom-wildcarddns.conf"
+readonly dnsCustomWildcardDNSDir="/etc/dnsmasq.d/15-pihole-custom-wildcarddns.d"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
 
@@ -829,6 +831,143 @@ RemoveCustomCNAMERecord() {
     fi
 }
 
+InitCustomWildcardDNSRecord() {
+    if [[ -f ${dnsCustomWildcardDNSFile} ]]; then
+        return 1;
+    fi
+
+    echo -e "  ${TICK} Init custom Wildcard DNS record..."
+
+    echo "conf-dir=${dnsCustomWildcardDNSDir}" >> "${dnsCustomWildcardDNSFile}"
+    mkdir -p dnsCustomWildcardDNSDir
+}
+
+AddCustomWildcardDNSRecord() {
+    InitCustomWildcardDNSRecord
+
+    echo -e "  ${TICK} Adding custom Wildcard DNS record..."
+
+    wildcardName="${args[2]}"
+    domain="${args[3]}"
+    ip="${args[4]}"
+    enabled="${args[5]}"
+    reload="${args[6]}"
+
+    validWildcardName="$(checkDomain "${wildcardName}")"
+    if [[ -z ${validWildcardName} ]]; then
+        echo "  ${CROSS} Invalid Wildcard DNS Name passed!"
+        exit 1
+    fi
+
+    wildcardFilename="${dnsCustomWildcardDNSDir}/${wildcardName}.conf"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -z "${validDomain}" ]]; then
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    existDomain=$(grep "/${validDomain}/" "${wildcardFilename}" 2> /dev/null)
+    if [[ -n "${existDomain}" ]]; then
+        echo "  ${CROSS} Domain exists!"
+        exit 1
+    fi
+
+    if valid_ip "${ip}" && valid_ip6 "${ip}" ; then
+        echo -e "  ${CROSS} Invalid IP has been passed"
+        exit 1
+    fi
+
+    if [[ ! $enabled == "false" ]]; then
+        enabled=""
+    else
+        enabled="#"
+    fi
+
+    echo "${enabled}address=/${validDomain}/${ip}" >> "${wildcardFilename}"
+
+    # Restart dnsmasq to load new custom CNAME records only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
+UpdateCustomWildcardDNSRecord() {
+    echo -e "  ${TICK} Updating custom Wildcard DNS record..."
+
+    wildcardName="${args[2]}"
+    domain="${args[3]}"
+    ip="${args[4]}"
+    enabled="${args[5]}"
+    reload="${args[6]}"
+
+    wildcardFilename="${dnsCustomWildcardDNSDir}/${wildcardName}.conf"
+
+    if [[ ! -f ${wildcardFilename} ]]; then
+        echo "  ${CROSS} Invalid Name passed!"
+        exit 1
+    fi
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -z "${validDomain}" ]]; then
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    if valid_ip "${ip}" && valid_ip6 "${ip}" ; then
+        echo -e "  ${CROSS} Invalid IP has been passed"
+        exit 1
+    fi
+
+    address=/${domain}/${ip}
+
+    if [[ $enabled == "false" ]]; then
+        sed -i '' -e "s|address=${address}|#address=${address}|" "${wildcardFilename}"
+    else
+        sed -i '' -e "s|#address=${address}|address=${address}|" "${wildcardFilename}"
+    fi
+
+    # Restart dnsmasq to update removed custom CNAME records only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
+RemoveCustomWildcardDNSRecord() {
+    echo -e "  ${TICK} Removing custom Wildcard DNS record..."
+
+    wildcardName="${args[2]}"
+    domain="${args[3]}"
+    reload="${args[4]}"
+
+    wildcardFilename="${dnsCustomWildcardDNSDir}/${wildcardName}.conf"
+
+    if [[ ! -f ${wildcardFilename} ]]; then
+        echo "  ${CROSS} Invalid Name passed!"
+        exit 1
+    fi
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -z "${validDomain}" ]]; then
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    validDomain=$(escapeDots "${validDomain}")
+    sed -i "/address=\/${validDomain}\//Id" "${wildcardFilename}"
+
+    #If a file is empty a system removes it
+    isEmptyFile=$(grep "address=" "${wildcardFilename}" 2> /dev/null)
+    if [[ -z "${isEmptyFile}" ]]; then
+        rm "$wildcardFilename";
+    fi
+
+    # Restart dnsmasq to update removed custom CNAME records only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
 SetRateLimit() {
     local rate_limit_count rate_limit_interval reload
     rate_limit_count="${args[2]}"
@@ -878,6 +1017,9 @@ main() {
         "removecustomdns"     ) RemoveCustomDNSAddress;;
         "addcustomcname"      ) AddCustomCNAMERecord;;
         "removecustomcname"   ) RemoveCustomCNAMERecord;;
+        "addcustomwildcarddns"    ) AddCustomWildcardDNSRecord;;
+        "updatecustomwildcarddns" ) UpdateCustomWildcardDNSRecord;;
+        "removecustomwildcarddns" ) RemoveCustomWildcardDNSRecord;;
         "ratelimit"           ) SetRateLimit;;
         *                     ) helpFunc;;
     esac
