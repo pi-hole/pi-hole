@@ -947,18 +947,22 @@ RemoveCustomWildcardDNSRecord() {
         exit 1
     fi
 
-    validDomain="$(checkDomain "${domain}")"
-    if [[ -z "${validDomain}" ]]; then
-        echo "  ${CROSS} Invalid Domain passed!"
-        exit 1
-    fi
+    if [[ "${domain}" != "*" ]]; then
+        validDomain="$(checkDomain "${domain}")"
+        if [[ -z "${validDomain}" ]]; then
+            echo "  ${CROSS} Invalid Domain passed!"
+            exit 1
+        fi
 
-    validDomain=$(escapeDots "${validDomain}")
-    sed -i "/address=\/${validDomain}\//Id" "${wildcardFilename}"
+        validDomain=$(escapeDots "${validDomain}")
+        sed -i "/address=\/${validDomain}\//Id" "${wildcardFilename}"
 
-    #If a file is empty a system removes it
-    isEmptyFile=$(grep "address=" "${wildcardFilename}" 2> /dev/null)
-    if [[ -z "${isEmptyFile}" ]]; then
+        #If a file is empty a system removes it
+        isEmptyFile=$(grep "address=" "${wildcardFilename}" 2> /dev/null)
+        if [[ -z "${isEmptyFile}" ]]; then
+            rm "$wildcardFilename";
+        fi
+    else
         rm "$wildcardFilename";
     fi
 
