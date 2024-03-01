@@ -839,7 +839,7 @@ InitCustomWildcardDNSRecord() {
     echo -e "  ${TICK} Init custom Wildcard DNS record..."
 
     echo "conf-dir=${dnsCustomWildcardDNSDir}" >> "${dnsCustomWildcardDNSFile}"
-    mkdir -p dnsCustomWildcardDNSDir
+    mkdir -p "${dnsCustomWildcardDNSDir}"
 }
 
 AddCustomWildcardDNSRecord() {
