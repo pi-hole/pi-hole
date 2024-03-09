@@ -27,7 +27,7 @@ colfile="/opt/pihole/COL_TABLE"
 # Source api functions
 . "${PI_HOLE_INSTALL_DIR}/api.sh"
 
-Help(){
+Help() {
     echo "Usage: pihole -q [option] <domain>
 Example: 'pihole -q --partial domain.com'
 Query the adlists for a specified domain
@@ -36,29 +36,28 @@ Options:
   --partial            Search the adlists for partially matching domains
   --all                Return all query matches within the adlists
   -h, --help           Show this help dialog"
-  exit 0
+    exit 0
 }
 
-
-GenerateOutput(){
+GenerateOutput() {
     local data gravity_data lists_data num_gravity num_lists search_type_str
-    local gravity_data_csv lists_data_csv line current_domain
+    local gravity_data_csv lists_data_csv line current_domain url type color
     data="${1}"
 
     # construct a new json for the list results where each object contains the domain and the related type
-    lists_data=$(echo "${data}" | jq '.search.domains | [.[] | {domain: .domain, type: .type}]')
+    lists_data=$(printf %s "${data}" | jq '.search.domains | [.[] | {domain: .domain, type: .type}]')
 
     # construct a new json for the gravity results where each object contains the adlist URL and the related domains
-    gravity_data=$(echo "${data}" | jq '.search.gravity  | group_by(.address) | map({ address: (.[0].address), domains: [.[] | .domain] })')
+    gravity_data=$(printf %s "${data}" | jq '.search.gravity  | group_by(.address,.type) | map({ address: (.[0].address), type: (.[0].type), domains: [.[] | .domain] })')
 
     # number of objects in each json
-    num_gravity=$(echo "${gravity_data}" | jq length )
-    num_lists=$(echo "${lists_data}" | jq length )
+    num_gravity=$(printf %s "${gravity_data}" | jq length)
+    num_lists=$(printf %s "${lists_data}" | jq length)
 
     if [ "${partial}" = true ]; then
-      search_type_str="partially"
+        search_type_str="partially"
     else
-      search_type_str="exactly"
+        search_type_str="exactly"
     fi
 
     # Results from allow/deny list
@@ -66,7 +65,7 @@ GenerateOutput(){
     if [ "${num_lists}" -gt 0 ]; then
         # Convert the data to a csv, each line is a "domain,type" string
         # not using jq's @csv here as it quotes each value individually
-        lists_data_csv=$(echo "${lists_data}" | jq --raw-output '.[] | [.domain, .type] | join(",")' )
+        lists_data_csv=$(printf %s "${lists_data}" | jq --raw-output '.[] | [.domain, .type] | join(",")')
 
         # Generate output for each csv line, separating line in a domain and type substring at the ','
         echo "${lists_data_csv}" | while read -r line; do
@@ -79,18 +78,30 @@ GenerateOutput(){
     if [ "${num_gravity}" -gt 0 ]; then
         # Convert the data to a csv, each line is a "URL,domain,domain,...." string
         # not using jq's @csv here as it quotes each value individually
-        gravity_data_csv=$(echo "${gravity_data}" | jq --raw-output '.[] | [.address, .domains[]] | join(",")' )
+        gravity_data_csv=$(printf %s "${gravity_data}" | jq --raw-output '.[] | [.address, .type, .domains[]] | join(",")')
 
         # Generate line-by-line output for each csv line
         echo "${gravity_data_csv}" | while read -r line; do
+            # Get first part of the line, the URL
+            url=${line%%,*}
+
+            # cut off URL, leaving "type,domain,domain,...."
+            line=${line#*,}
+            type=${line%%,*}
+            # type == "block" -> red, type == "allow" -> green
+            if [ "${type}" = "block" ]; then
+                color="${COL_RED}"
+            else
+                color="${COL_GREEN}"
+            fi
 
             # print adlist URL
-            printf "%s\n\n" "  - ${COL_BLUE}${line%%,*}${COL_NC}"
+            printf "%s (%s)\n\n" "  - ${COL_BLUE}${url}${COL_NC}" "${color}${type}${COL_NC}"
 
-            # cut off URL, leaving "domain,domain,...."
+            # cut off type, leaving "domain,domain,...."
             line=${line#*,}
             # print each domain and remove it from the string until nothing is left
-            while  [ ${#line} -gt 0 ]; do
+            while [ ${#line} -gt 0 ]; do
                 current_domain=${line%%,*}
                 printf '    - %s\n' "${COL_GREEN}${current_domain}${COL_NC}"
                 # we need to remove the current_domain and the comma in two steps because
@@ -103,16 +114,16 @@ GenerateOutput(){
     fi
 }
 
-Main(){
+Main() {
     local data
 
     if [ -z "${domain}" ]; then
-        echo "No domain specified"; exit 1
+        echo "No domain specified"
+        exit 1
     fi
     # domains are lowercased and converted to punycode by FTL since
     # https://github.com/pi-hole/FTL/pull/1715
     # no need to do it here
-
 
     # Test if the authentication endpoint is available
     TestAPIAvailability
@@ -121,14 +132,14 @@ Main(){
     # or b) for the /search endpoint (webserver.api.searchAPIauth) no authentication is required.
     # Therefore, we try to query directly without authentication but do authenticat if 401 is returned
 
-    data=$(GetFTLData "/search/${domain}?N=${max_results}&partial=${partial}")
+    data=$(GetFTLData "search/${domain}?N=${max_results}&partial=${partial}")
 
     if [ "${data}" = 401 ]; then
         # Unauthenticated, so authenticate with the FTL server required
-        Authenthication
+        Authentication
 
         # send query again
-        data=$(GetFTLData "/search/${domain}?N=${max_results}&partial=${partial}")
+        data=$(GetFTLData "search/${domain}?N=${max_results}&partial=${partial}")
     fi
 
     GenerateOutput "${data}"
@@ -137,13 +148,13 @@ Main(){
 
 # Process all options (if present)
 while [ "$#" -gt 0 ]; do
-  case "$1" in
-    "-h" | "--help"     ) Help;;
-    "--partial"         ) partial="true";;
-    "--all"             ) max_results=10000;; # hard-coded FTL limit
-    *                   ) domain=$1;;
-  esac
-  shift
+    case "$1" in
+    "-h" | "--help") Help ;;
+    "--partial") partial="true" ;;
+    "--all") max_results=10000 ;; # hard-coded FTL limit
+    *) domain=$1 ;;
+    esac
+    shift
 done
 
 Main "${domain}"

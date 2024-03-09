@@ -74,7 +74,6 @@ PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
 
 PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
 PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
-PIHOLE_LOCAL_HOSTS_FILE="${PIHOLE_DIRECTORY}/local.list"
 PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
 PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
@@ -547,17 +546,24 @@ ping_gateway() {
     ping_ipv4_or_ipv6 "${protocol}"
     # Check if we are using IPv4 or IPv6
     # Find the default gateways using IPv4 or IPv6
-    local gateway
+    local gateway gateway_addr gateway_iface
 
     log_write "${INFO} Default IPv${protocol} gateway(s):"
 
     while IFS= read -r gateway; do
-        log_write "     ${gateway}"
-    done < <(ip -"${protocol}" route | grep default | cut -d ' ' -f 3)
+        log_write "     $(cut -d ' ' -f 3 <<< "${gateway}")%$(cut -d ' ' -f 5 <<< "${gateway}")"
+    done < <(ip -"${protocol}" route | grep default)
 
-    gateway=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
+    gateway_addr=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
+    gateway_iface=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 5 | head -n 1)
     # If there was at least one gateway
-    if [ -n "${gateway}" ]; then
+    if [ -n "${gateway_addr}" ]; then
+        # Append the interface to the gateway address if it is a link-local address
+        if [[ "${gateway_addr}" =~ ^fe80 ]]; then
+            gateway="${gateway_addr}%${gateway_iface}"
+        else
+            gateway="${gateway_addr}"
+        fi
         # Let the user know we will ping the gateway for a response
         log_write "   * Pinging first gateway ${gateway}..."
         # Try to quietly ping the gateway 3 times, with a timeout of 3 seconds, using numeric output only,
@@ -718,7 +724,7 @@ dig_at() {
     # This helps emulate queries to different domains that a user might query
     # It will also give extra assurance that Pi-hole is correctly resolving and blocking domains
     local random_url
-    random_url=$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
+    random_url=$(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity WHERE domain not like '||%^' ORDER BY RANDOM() LIMIT 1")
     # Fallback if no non-ABP style domains were found
     if [ -z "${random_url}" ]; then
         random_url="flurry.com"
@@ -757,24 +763,29 @@ dig_at() {
         #          Removes CIDR and everything thereafter (e.g., scope properties)
         addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
         if [ -n "${addresses}" ]; then
-          while IFS= read -r local_address ; do
+            while IFS= read -r local_address ; do
+                # If ${local_address} is an IPv6 link-local address, append the interface name to it
+                if [[ "${local_address}" =~ ^fe80 ]]; then
+                    local_address="${local_address}%${iface}"
+                fi
+
               # Check if Pi-hole can use itself to block a domain
-              if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
-                  # If it can, show success
-                  if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
-                    local_dig="NOERROR"
-                  elif [[ "${local_dig}" == *"status: NXDOMAIN"* ]]; then
-                    local_dig="NXDOMAIN"
-                  else
-                    # Extract the first entry in the answer section from dig's output,
-                    # replacing any multiple spaces and tabs with a single space
-                    local_dig="$(echo "${local_dig}" | grep -A1 "ANSWER SECTION" | grep -v "ANSWER SECTION" | tr -s " \t" " ")"
-                  fi
-                  log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
-              else
-                  # Otherwise, show a failure
-                  log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
-              fi
+                if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
+                    # If it can, show success
+                    if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
+                        local_dig="NOERROR"
+                    elif [[ "${local_dig}" == *"status: NXDOMAIN"* ]]; then
+                        local_dig="NXDOMAIN"
+                    else
+                        # Extract the first entry in the answer section from dig's output,
+                        # replacing any multiple spaces and tabs with a single space
+                        local_dig="$(echo "${local_dig}" | grep -A1 "ANSWER SECTION" | grep -v "ANSWER SECTION" | tr -s " \t" " ")"
+                    fi
+                    log_write "${TICK} ${random_url} ${COL_GREEN}is ${local_dig}${COL_NC} on ${COL_CYAN}${iface}${COL_NC} (${COL_CYAN}${local_address}${COL_NC})"
+                else
+                    # Otherwise, show a failure
+                    log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
+                fi
           done <<< "${addresses}"
         else
           log_write "${TICK} No IPv${protocol} address available on ${COL_CYAN}${iface}${COL_NC}"
@@ -1064,7 +1075,7 @@ show_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" \
+        pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1089,7 +1100,7 @@ show_FTL_db_entries() {
     IFS=$'\r\n'
     local entries=()
     mapfile -t entries < <(\
-        pihole-FTL sqlite3 "${PIHOLE_FTL_DB_FILE}" \
+        pihole-FTL sqlite3 -ni "${PIHOLE_FTL_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
@@ -1155,7 +1166,7 @@ analyze_gravity_list() {
     fi
 
     show_db_entries "Info table" "SELECT property,value FROM info" "20 40"
-    gravity_updated_raw="$(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
+    gravity_updated_raw="$(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT value FROM info where property = 'updated'")"
     gravity_updated="$(date -d @"${gravity_updated_raw}")"
     log_write "   Last gravity run finished at: ${COL_CYAN}${gravity_updated}${COL_NC}"
     log_write ""
@@ -1163,7 +1174,7 @@ analyze_gravity_list() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local gravity_sample=()
-    mapfile -t gravity_sample < <(pihole-FTL sqlite3 "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
+    mapfile -t gravity_sample < <(pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" "SELECT domain FROM vw_gravity LIMIT 10")
     log_write "   ${COL_CYAN}----- First 10 Gravity Domains -----${COL_NC}"
 
     for line in "${gravity_sample[@]}"; do
@@ -1195,7 +1206,7 @@ database_integrity_check(){
 
       log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
       unset result
-      result="$(pihole-FTL sqlite3 "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
+      result="$(pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
       if [[ -z ${result} ]]; then
         log_write "${TICK} No foreign key errors in ${database}"
       else
