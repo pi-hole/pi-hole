@@ -865,8 +865,6 @@ make_array_from_file() {
     local limit=${2}
     # A local iterator for testing if we are at the limit above
     local i=0
-    # Set the array to be empty so we can start fresh when the function is used
-    local file_content=()
     # If the file is a directory
     if [[ -d "${filename}" ]]; then
         # do nothing since it cannot be parsed
@@ -878,11 +876,14 @@ make_array_from_file() {
             new_line=$(echo "${line}" | sed -e 's/^\s*#.*$//' -e '/^$/d')
             # If the line still has content (a non-zero value)
             if [[ -n "${new_line}" ]]; then
-                # Put it into the array
-                file_content+=("${new_line}")
-            else
-                # Otherwise, it's a blank line or comment, so do nothing
-                :
+
+                # If the string contains "### CHANGED", highlight this part in red
+                if [[ "${new_line}" == *"### CHANGED"* ]]; then
+                    new_line="${new_line//### CHANGED/${COL_RED}### CHANGED${COL_NC}}"
+                fi
+
+                # Finally, write this line to the log
+                log_write "   ${new_line}"
             fi
             # Increment the iterator +1
             i=$((i+1))
@@ -894,12 +895,6 @@ make_array_from_file() {
                 break
             fi
         done < "${filename}"
-        # Now the we have made an array of the file's content
-        for each_line in "${file_content[@]}"; do
-            # Print each line
-            # At some point, we may want to check the file line-by-line, so that's the reason for an array
-            log_write "   ${each_line}"
-        done
     fi
 }
 
