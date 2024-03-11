@@ -2002,9 +2002,11 @@ FTLcheckUpdate() {
     local localSha1
 
     if [[ ! "${ftlBranch}" == "master" ]]; then
-        # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
+        # This is not the master branch
         local path
         path="${ftlBranch}/${binary}"
+
+        # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
         # shellcheck disable=SC1090
         check_download_exists "$path"
         local ret=$?
@@ -2023,23 +2025,22 @@ FTLcheckUpdate() {
         fi
 
         if [[ ${ftlLoc} ]]; then
-            # We already have a pihole-FTL binary downloaded.
-            # Alt branches don't have a tagged version against them, so just confirm the checksum of the local vs remote to decide whether we download or not
-            remoteSha1=$(curl -sSL --fail "https://ftl.pi-hole.net/${ftlBranch}/${binary}.sha1" | cut -d ' ' -f 1)
-            localSha1=$(sha1sum "$(command -v pihole-FTL)" | cut -d ' ' -f 1)
-
-            if [[ "${remoteSha1}" != "${localSha1}" ]]; then
-                printf "  %b Checksums do not match, downloading from ftl.pi-hole.net.\\n" "${INFO}"
-                return 0
-            else
-                printf "  %b Checksum of installed binary matches remote. No need to download!\\n" "${INFO}"
-                return 1
-            fi
+            # We already have a pihole-FTL binary installed, check if it's the
+            # same as the remote one
+            # Alt branches don't have a tagged version against them, so just
+            # confirm the checksum of the local vs remote to decide whether we
+            # download or not
+            printf "  %b FTL binary already installed. Confirming Checksum...\\n" "${INFO}"
+            checkSumFile="https://ftl.pi-hole.net/${ftlBranch}/${binary}.sha1"
+            # Continue further down...
         else
             return 0
         fi
     else
+        # This is the master branch
         if [[ ${ftlLoc} ]]; then
+            # We already have a pihole-FTL binary installed, check if it's the
+            # same as the remote one
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
             local FTLlatesttag
@@ -2053,25 +2054,39 @@ FTLcheckUpdate() {
 
             # Check if the installed version matches the latest version
             if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+                # If the installed version does not match the latest version,
+                # then download
                 return 0
             else
-                printf "  %b Latest FTL Binary already installed (%s). Confirming Checksum...\\n" "${INFO}" "${FTLlatesttag}"
-
-                remoteSha1=$(curl -sSL --fail "https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1" | cut -d ' ' -f 1)
-                localSha1=$(sha1sum "$(command -v pihole-FTL)" | cut -d ' ' -f 1)
-
-                if [[ "${remoteSha1}" != "${localSha1}" ]]; then
-                    printf "  %b Corruption detected...\\n" "${INFO}"
-                    return 0
-                else
-                    printf "  %b Checksum correct. No need to download!\\n" "${INFO}"
-                    return 1
-                fi
+                # If the installed version matches the latest version, then
+                # check the installed sha1sum of the binary vs the remote
+                # sha1sum. If they do not match, then download
+                printf "  %b Latest FTL binary already installed (%s). Confirming Checksum...\\n" "${INFO}" "${FTLlatesttag}"
+                checkSumFile="https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1"
+                # Continue further down...
             fi
         else
             return 0
         fi
     fi
+
+    # If we reach this point, we need to check the checksum of the local vs
+    # remote to decide whether we download or not
+    remoteSha1=$(curl -sSL --fail "${checkSumFile}" | cut -d ' ' -f 1)
+    localSha1=$(sha1sum "${ftlLoc}" | cut -d ' ' -f 1)
+
+    # Check we downloaded a valid checksum (no 404 or other error like
+    # no DNS resolution)
+    if [[ ! "${remoteSha1}" =~ ^[a-f0-9]{40}$ ]]; then
+        printf "  %b Remote checksum not available, trying to redownload binary...\\n" "${CROSS}"
+        return 0
+    elif [[ "${remoteSha1}" != "${localSha1}" ]]; then
+        printf "  %b Corruption detected, redownloading binary...\\n" "${CROSS}"
+        return 0
+    fi
+
+    printf "  %b Checksum correct. No need to download!\\n" "${INFO}"
+    return 1
 }
 
 # Detect suitable FTL binary platform
