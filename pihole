@@ -11,10 +11,9 @@
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 
-# setupVars and PI_HOLE_BIN_DIR are not readonly here because in some functions (checkout),
+# PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
 # they might get set again when the installer is sourced. This causes an
 # error due to modifying a readonly variable.
-setupVars="/etc/pihole/setupVars.conf"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
@@ -31,10 +30,36 @@ if [ -f "${versionsfile}" ]; then
     source "${versionsfile}"
 fi
 
-webpageFunc() {
-  source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
-  main "$@"
-  exit 0
+# TODO: We can probably remove the reliance on this function too, just tell people to pihole-FTL --config webserver.api.password "password"
+SetWebPassword() {
+    if [ -n "$2" ] ; then
+        readonly PASSWORD="$2"
+        readonly CONFIRM="${PASSWORD}"
+    else
+        # Prevents a bug if the user presses Ctrl+C and it continues to hide the text typed.
+        # So we reset the terminal via stty if the user does press Ctrl+C
+        trap '{ echo -e "\nNot changed" ; stty sane ; exit 1; }' INT
+        read -s -r -p "Enter New Password (Blank for no password): " PASSWORD
+        echo ""
+
+        if [ "${PASSWORD}" == "" ]; then
+            setFTLConfigValue "webserver.api.password" ""
+            echo -e "  ${TICK} Password Removed"
+            exit 0
+        fi
+
+        read -s -r -p "Confirm Password: " CONFIRM
+        echo ""
+    fi
+
+    if [ "${PASSWORD}" == "${CONFIRM}" ] ; then
+        # pihole-FTL will automatically hash the password
+        setFTLConfigValue "webserver.api.password" "${PASSWORD}"
+        echo -e "  ${TICK} New password set"
+    else
+        echo -e "  ${CROSS} Passwords don't match. Your password has not been changed"
+        exit 1
+    fi
 }
 
 listFunc() {
@@ -100,8 +125,7 @@ queryFunc() {
 }
 
 chronometerFunc() {
-  shift
-  "${PI_HOLE_SCRIPT_DIR}"/chronometer.sh "$@"
+  echo "Chronometer is gone, use PADD (https://github.com/pi-hole/PADD)"
   exit 0
 }
 
@@ -116,8 +140,7 @@ uninstallFunc() {
 }
 
 versionFunc() {
-  shift
-  exec "${PI_HOLE_SCRIPT_DIR}"/version.sh "$@"
+  exec "${PI_HOLE_SCRIPT_DIR}"/version.sh
 }
 
 restartDNS() {
@@ -193,11 +216,11 @@ Time:
 
   elif [[ "${1}" == "0" ]]; then
     # Disable Pi-hole
-    if grep -cq "BLOCKING_ENABLED=false" "${setupVars}"; then
+    if ! getFTLConfigValue dns.blocking.active; then
       echo -e "  ${INFO} Blocking already disabled, nothing to do"
       exit 0
     fi
-    if [[ $# > 1 ]]; then
+    if [[ $# -gt 1 ]]; then
       local error=false
       if [[ "${2}" == *"s" ]]; then
         tt=${2%"s"}
@@ -233,19 +256,19 @@ Time:
       fi
 
       local str="Pi-hole Disabled"
-      addOrEditKeyValPair "${setupVars}" "BLOCKING_ENABLED" "false"
+      setFTLConfigValue dns.blocking.active false
     fi
   else
     # Enable Pi-hole
     killall -q pihole-reenable
-    if grep -cq "BLOCKING_ENABLED=true" "${setupVars}"; then
+    if getFTLConfigValue dns.blocking.active; then
       echo -e "  ${INFO} Blocking already enabled, nothing to do"
       exit 0
     fi
     echo -e "  ${INFO} Enabling blocking"
     local str="Pi-hole Enabled"
 
-    addOrEditKeyValPair "${setupVars}" "BLOCKING_ENABLED" "true"
+    setFTLConfigValue dns.blocking.active true
   fi
 
   restartDNS reload-lists
@@ -267,8 +290,7 @@ Options:
     exit 0
   elif [[ "${1}" == "off" ]]; then
     # Disable logging
-    removeKey /etc/dnsmasq.d/01-pihole.conf "log-queries"
-    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "false"
+    setFTLConfigValue dns.queryLogging false
     if [[ "${2}" != "noflush" ]]; then
       # Flush logs
       "${PI_HOLE_BIN_DIR}"/pihole -f
@@ -277,8 +299,7 @@ Options:
     local str="Logging has been disabled!"
   elif [[ "${1}" == "on" ]]; then
     # Enable logging
-    addKey /etc/dnsmasq.d/01-pihole.conf "log-queries"
-    addOrEditKeyValPair "${setupVars}" "QUERY_LOGGING" "true"
+    setFTLConfigValue dns.queryLogging true
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
   else
@@ -323,13 +344,12 @@ analyze_ports() {
 
 statusFunc() {
     # Determine if there is pihole-FTL service is listening
-    local pid port ftl_api_port ftl_pid_file
+    local pid port ftl_pid_file block_status
 
     ftl_pid_file="$(getFTLPIDFile)"
 
     pid="$(getFTLPID ${ftl_pid_file})"
 
-    ftl_api_port="$(getFTLAPIPort)"
     if [[ "$pid" -eq "-1" ]]; then
         case "${1}" in
             "web") echo "-1";;
@@ -337,8 +357,8 @@ statusFunc() {
         esac
         return 0
     else
-        #get the DNS port pihole-FTL is listening on by using FTL's telnet API
-        port="$(echo ">dns-port >quit" | nc 127.0.0.1 "$ftl_api_port")"
+        # get the DNS port pihole-FTL is listening on
+        port="$(getFTLConfigValue dns.port)"
         if [[ "${port}" == "0" ]]; then
             case "${1}" in
                 "web") echo "-1";;
@@ -354,26 +374,17 @@ statusFunc() {
     fi
 
   # Determine if Pi-hole's blocking is enabled
-  if grep -q "BLOCKING_ENABLED=false" /etc/pihole/setupVars.conf; then
-    # A config is commented out
-    case "${1}" in
-      "web") echo 0;;
-      *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
-    esac
-  elif grep -q "BLOCKING_ENABLED=true" /etc/pihole/setupVars.conf;  then
-    # Configs are set
+  block_status=$(getFTLConfigValue dns.blocking.active)
+  if [ ${block_status} == "true" ]; then
     case "${1}" in
       "web") echo "$port";;
       *) echo -e "  ${TICK} Pi-hole blocking is enabled";;
     esac
   else
-    # No configs were found
     case "${1}" in
-      "web") echo -2;;
-      *) echo -e "  ${INFO} Pi-hole blocking will be enabled";;
+      "web") echo 0;;
+      *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
     esac
-    # Enable blocking
-    "${PI_HOLE_BIN_DIR}"/pihole enable
   fi
 exit 0
 }
@@ -401,26 +412,30 @@ tailFunc() {
 }
 
 piholeCheckoutFunc() {
-  if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
-    echo "Usage: pihole checkout [repo] [branch]
-Example: 'pihole checkout master' or 'pihole checkout core dev'
-Switch Pi-hole subsystems to a different GitHub branch
+  if [ -n "${DOCKER_VERSION}" ]; then
+    unsupportedFunc
+  else
+    if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
+      echo "Usage: pihole checkout [repo] [branch]
+  Example: 'pihole checkout master' or 'pihole checkout core dev'
+  Switch Pi-hole subsystems to a different GitHub branch
 
-Repositories:
-  core [branch]       Change the branch of Pi-hole's core subsystem
-  web [branch]        Change the branch of Web Interface subsystem
-  ftl [branch]        Change the branch of Pi-hole's FTL subsystem
+  Repositories:
+    core [branch]       Change the branch of Pi-hole's core subsystem
+    web [branch]        Change the branch of Web Interface subsystem
+    ftl [branch]        Change the branch of Pi-hole's FTL subsystem
 
-Branches:
-  master              Update subsystems to the latest stable release
-  dev                 Update subsystems to the latest development release
-  branchname          Update subsystems to the specified branchname"
-    exit 0
+  Branches:
+    master              Update subsystems to the latest stable release
+    dev                 Update subsystems to the latest development release
+    branchname          Update subsystems to the specified branchname"
+      exit 0
+    fi
+
+    source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
+    shift
+    checkout "$@"
   fi
-
-  source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
-  shift
-  checkout "$@"
 }
 
 tricorderFunc() {
@@ -480,10 +495,9 @@ Debugging Options:
 
 
 Options:
-  -a, admin           Web interface options
-                        Add '-h' for more info on Web Interface usage
-  -c, chronometer     Calculates stats and displays to an LCD
-                        Add '-h' for more info on chronometer usage
+  setpassword [pwd]   Set the password for the web interface
+                        Without optional argument, password is read interactively.
+                        When specifying a password directly, enclose it in single quotes.
   -g, updateGravity   Update the list of ad-serving domains
   -h, --help, help    Show this help dialog
   -l, logging         Specify whether the Pi-hole log should be used
@@ -493,7 +507,6 @@ Options:
   -up, updatePihole   Update Pi-hole subsystems
                         Add '--check-only' to exit script before update is performed.
   -v, version         Show installed versions of Pi-hole, Web Interface & FTL
-                        Add '-h' for more info on version usage
   uninstall           Uninstall Pi-hole from your system
   status              Display the running status of Pi-hole subsystems
   enable              Enable Pi-hole subsystems
@@ -513,13 +526,13 @@ if [[ $# = 0 ]]; then
 fi
 
 # functions that do not require sudo power
+need_root=1
 case "${1}" in
   "-h" | "help" | "--help"      ) helpFunc;;
-  "-v" | "version"              ) versionFunc "$@";;
+  "-v" | "version"              ) versionFunc;;
   "-c" | "chronometer"          ) chronometerFunc "$@";;
   "-q" | "query"                ) queryFunc "$@";;
   "status"                      ) statusFunc "$2";;
-
   "tricorder"                   ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
@@ -532,14 +545,15 @@ case "${1}" in
   "-f" | "flush"                ) ;;
   "-up" | "updatePihole"        ) ;;
   "-r"  | "reconfigure"         ) ;;
-  "-g" | "updateGravity"        ) ;;
   "-l" | "logging"              ) ;;
   "uninstall"                   ) ;;
   "enable"                      ) ;;
   "disable"                     ) ;;
   "-d" | "debug"                ) ;;
   "restartdns"                  ) ;;
-  "-a" | "admin"                ) ;;
+  "-g" | "updateGravity"        ) need_root=0;;
+  "reloaddns"                   ) need_root=0;;
+  "setpassword"                 ) ;;
   "checkout"                    ) ;;
   "updatechecker"               ) ;;
   "arpflush"                    ) ;;
@@ -547,10 +561,27 @@ case "${1}" in
   *                             ) helpFunc;;
 esac
 
-# Must be root to use this tool
-if [[ ! $EUID -eq 0 ]];then
+# Must be root to use this tool for most functions
+if [[ ! $EUID -eq 0 && need_root -eq 1 ]];then
   if [[ -x "$(command -v sudo)" ]]; then
     exec sudo bash "$0" "$@"
+    exit $?
+  else
+    echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
+    exit 1
+  fi
+fi
+
+# In the case of alpine running in a container, the USER variable appears to be blank
+# which prevents the next trap from working correctly. Set it by running whoami
+if [[ -z ${USER} ]]; then
+  USER=$(whoami)
+fi
+
+# Can also be user pihole for other functions
+if [[ ${USER} != "pihole" && need_root -eq 0 ]];then
+  if [[ -x "$(command -v sudo)" ]]; then
+    exec sudo -u pihole bash "$0" "$@"
     exit $?
   else
     echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
@@ -576,7 +607,8 @@ case "${1}" in
   "enable"                      ) piholeEnable 1;;
   "disable"                     ) piholeEnable 0 "$2";;
   "restartdns"                  ) restartDNS "$2";;
-  "-a" | "admin"                ) webpageFunc "$@";;
+  "reloaddns"                   ) restartDNS "reload";;
+  "setpassword"                 ) SetWebPassword "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "updatechecker"               ) shift; updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;

@@ -16,14 +16,11 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # webInterfaceDir set in basic-install.sh
 # piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
-# setupVars set in basic-install.sh
 # check_download_exists sourced from basic-install.sh
 # fully_fetch_repo sourced from basic-install.sh
 # get_available_branches sourced from basic-install.sh
 # fetch_checkout_pull_branch sourced from basic-install.sh
 # checkout_pull_branch sourced from basic-install.sh
-
-source "${setupVars}"
 
 warning1() {
     echo "  Please note that changing branches severely alters your Pi-hole subsystems"
@@ -61,12 +58,11 @@ checkout() {
         echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
         exit 1;
     fi
-    if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
-        if ! is_repo "${webInterfaceDir}" ; then
-            echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
-            echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
-            exit 1;
-        fi
+
+    if ! is_repo "${webInterfaceDir}" ; then
+        echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
+        echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
+        exit 1;
     fi
 
     if [[ -z "${1}" ]]; then
@@ -85,11 +81,9 @@ checkout() {
         echo ""
         echo -e "  ${INFO} Pi-hole Core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
-        if [[ "${INSTALL_WEB_INTERFACE}" == "true" ]]; then
-            echo ""
-            echo -e "  ${INFO} Web interface"
-            fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
-        fi
+        echo ""
+        echo -e "  ${INFO} Web interface"
+        fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
         #echo -e "  ${TICK} Pi-hole Core"
 
         local path
@@ -101,10 +95,8 @@ checkout() {
         echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
         echo -e "  ${INFO} Pi-hole core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
-        if [[ ${INSTALL_WEB_INTERFACE} == "true" ]]; then
-            echo -e "  ${INFO} Web interface"
-            fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
-        fi
+        echo -e "  ${INFO} Web interface"
+        fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
         #echo -e "  ${TICK} Web Interface"
         local path
         path="master/${binary}"
@@ -137,7 +129,7 @@ checkout() {
             exit 1
         fi
         checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
-    elif [[ "${1}" == "web" ]] && [[ "${INSTALL_WEB_INTERFACE}" == "true" ]] ; then
+    elif [[ "${1}" == "web" ]] ; then
         str="Fetching branches from ${webInterfaceGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${webInterfaceDir}" ; then
@@ -172,7 +164,9 @@ checkout() {
         path="${2}/${binary}"
         oldbranch="$(pihole-FTL -b)"
 
-        if check_download_exists "$path"; then
+        check_download_exists "$path"
+        local ret=$?
+        if [ $ret -eq 0 ]; then
             echo "  ${TICK} Branch ${2} exists"
             echo "${2}" > /etc/pihole/ftlbranch
             chmod 644 /etc/pihole/ftlbranch
@@ -183,11 +177,19 @@ checkout() {
             # Update local and remote versions via updatechecker
             /opt/pihole/updatecheck.sh
         else
-            echo "  ${CROSS} Requested branch \"${2}\" is not available"
-            ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
-            echo -e "  ${INFO} Available branches for FTL are:"
-            for e in "${ftlbranches[@]}"; do echo "      - $e"; done
-            exit 1
+            if [[ $ret -eq 1 ]]; then
+                echo "  ${CROSS} Requested branch \"${2}\" is not available"
+                ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
+                echo -e "  ${INFO} Available branches for FTL are:"
+                for e in "${ftlbranches[@]}"; do echo "      - $e"; done
+                exit 1
+            elif [[ $ret -eq 2 ]]; then
+                printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
+                exit 1
+            else
+                printf "  %b Unknown error. Please contact Pi-hole Support\\n" "${CROSS}"
+                exit 1
+            fi
         fi
 
     else
