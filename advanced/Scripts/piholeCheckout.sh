@@ -193,6 +193,19 @@ checkout() {
             FTLinstall "${binary}"
             restart_service pihole-FTL
             enable_service pihole-FTL
+            str="Restarting FTL..."
+            echo -ne "  ${INFO} ${str}"
+            # Wait until name resolution is working again after restarting FTL,
+            # so that the updatechecker can run successfully and does not fail
+            # trying to resolve github.com
+            until getent hosts github.com &> /dev/null; do
+                # Append one dot for each second waiting
+                str="${str}."
+                echo -ne "  ${OVER}  ${INFO} ${str}"
+                sleep 1
+            done
+            echo -e "  ${OVER}  ${TICK} Restarted FTL service"
+
             # Update local and remote versions via updatechecker
             /opt/pihole/updatecheck.sh
         else
