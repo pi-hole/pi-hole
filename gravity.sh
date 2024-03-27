@@ -575,7 +575,7 @@ gravity_DownloadBlocklistFromUrl() {
     else
       # Check if the file has a+r permissions
       permissions=$(stat -c "%a" "$file_path")
-      if [[ $permissions == "??4" || $permissions == "??5" || $permissions == "??6" || $permissions == "??7" ]]; then
+      if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
         # Output that we are using the local file
         echo -e "${OVER}  ${INFO} Using local file ${file_path}"
       else
