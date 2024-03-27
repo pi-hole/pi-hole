@@ -567,14 +567,14 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ $url == "file://"* ]]; then
     # Get the file path
     file_path=$(echo "$url" | cut -d'/' -f3-)
-    # Check if the file exists
-    if [[ ! -e $file_path ]]; then
+    # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
+    if [[ ! -f $file_path ]]; then
       # Output that the file does not exist
       echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
       download=false
     else
-      # Check if the file has a+r permissions
-      permissions=$(stat -c "%a" "$file_path")
+      # Check if the file or a file referenced by the symlink has a+r permissions
+      permissions=$(stat -L -c "%a" "$file_path")
       if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
         # Output that we are using the local file
         echo -e "${OVER}  ${INFO} Using local file ${file_path}"
