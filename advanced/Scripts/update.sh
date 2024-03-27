@@ -11,9 +11,8 @@
 # Please see LICENSE file for your rights under this license.
 
 # Variables
-readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/web.git"
-readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
-readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
+readonly ADMIN_INTERFACE_GIT_URL="https://github.com/Gezzo42/pi-hole-web.git"
+readonly PI_HOLE_GIT_URL="https://github.com/Gezzo42/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
 # shellcheck disable=SC2034
@@ -106,6 +105,7 @@ main() {
 
     # shellcheck disable=1090,2154
     source "${setupVars}"
+    ADMIN_INTERFACE_DIR=${WEB_ROOT}/${ADMIN_INTERFACE_SUBDIR}
 
     # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
     package_manager_detect
@@ -202,7 +202,7 @@ main() {
         echo ""
         echo -e "  ${INFO} Pi-hole Web Admin files out of date, updating local repo."
         getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
-        echo -e "  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
+        echo -e "  ${INFO} If you had made any changes in '${ADMIN_INTERFACE_DIR}', they have been stashed using 'git stash'"
     fi
 
     if [[ "${FTL_update}" == true ]]; then
