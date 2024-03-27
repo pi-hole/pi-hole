@@ -488,7 +488,7 @@ compareLists() {
       echo "  ${INFO} List has been updated"
       database_adlist_status "${adlistID}" "1"
     else
-      echo "  ${INFO} List stayed unchanged"
+      echo "  ${INFO} List stays unchanged"
       database_adlist_status "${adlistID}" "2"
     fi
   else
