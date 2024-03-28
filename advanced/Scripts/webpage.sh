@@ -742,6 +742,33 @@ AddCustomDNSAddress() {
     fi
 }
 
+EditCustomDNSAddress() {
+    echo -e "  ${TICK} Editing custom DNS entry..."
+
+    ip="${args[2]}"
+    host="${args[3]}"
+    reload="${args[4]}"
+
+    validHost="$(checkDomain "${host}")"
+    if [[ -n "${validHost}" ]]; then
+        if valid_ip "${ip}" || valid_ip6 "${ip}" ; then
+            sed -i "/\s\+${validHost}$/Id" "${dnscustomfile}"
+            echo "${ip} ${validHost}" >> "${dnscustomfile}"
+        else
+            echo -e "  ${CROSS} Invalid IP has been passed"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    # Restart dnsmasq to load new custom DNS entries only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
 RemoveCustomDNSAddress() {
     echo -e "  ${TICK} Removing custom DNS entry..."
 
@@ -795,6 +822,34 @@ AddCustomCNAMERecord() {
         exit 1
     fi
     # Restart dnsmasq to load new custom CNAME records only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
+EditCustomCNAMERecord() {
+    echo -e "  ${TICK} Editing custom CNAME record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    reload="${args[4]}"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+            sed -i "/cname=${validDomain},/Id" "${dnscustomcnamefile}"
+            echo "cname=${validDomain},${validTarget}" >> "${dnscustomcnamefile}"
+        else
+            echo "  ${CROSS} Invalid Target Passed!"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    # Restart dnsmasq to update removed custom CNAME records only if $reload not false
     if [[ ! $reload == "false" ]]; then
         RestartDNS
     fi
@@ -875,8 +930,10 @@ main() {
         "clearaudit"          ) clearAudit;;
         "-l" | "privacylevel" ) SetPrivacyLevel;;
         "addcustomdns"        ) AddCustomDNSAddress;;
+        "editcustomdns"       ) EditCustomDNSAddress;;
         "removecustomdns"     ) RemoveCustomDNSAddress;;
         "addcustomcname"      ) AddCustomCNAMERecord;;
+        "editcustomcname"     ) EditCustomCNAMERecord;;
         "removecustomcname"   ) RemoveCustomCNAMERecord;;
         "ratelimit"           ) SetRateLimit;;
         *                     ) helpFunc;;
