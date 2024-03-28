@@ -327,8 +327,6 @@ package_manager_detect() {
         PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
         # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
-        # Update package cache
-        update_package_cache || exit 1
         # Packages required to perform the os_check and FTL binary detection
         OS_CHECK_DEPS=(grep dnsutils binutils)
         # Packages required to run this install script
@@ -1364,6 +1362,8 @@ install_dependent_packages() {
         # If there's anything to install, install everything in the list.
         if [[ "${#installArray[@]}" -gt 0 ]]; then
             test_dpkg_lock
+            # Update package cache
+            update_package_cache || exit 1
             # Running apt-get install with minimal output can cause some issues with
             # requiring user input (e.g password for phpmyadmin see #218)
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
