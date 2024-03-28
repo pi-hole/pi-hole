@@ -2030,7 +2030,7 @@ FTLcheckUpdate() {
             # Alt branches don't have a tagged version against them, so just
             # confirm the checksum of the local vs remote to decide whether we
             # download or not
-            printf "  %b FTL binary already installed. Confirming Checksum...\\n" "${INFO}"
+            printf "  %b FTL binary already installed, verifying integrity...\\n" "${INFO}"
             checkSumFile="https://ftl.pi-hole.net/${ftlBranch}/${binary}.sha1"
             # Continue further down...
         else
@@ -2061,7 +2061,7 @@ FTLcheckUpdate() {
                 # If the installed version matches the latest version, then
                 # check the installed sha1sum of the binary vs the remote
                 # sha1sum. If they do not match, then download
-                printf "  %b Latest FTL binary already installed (%s). Confirming Checksum...\\n" "${INFO}" "${FTLlatesttag}"
+                printf "  %b Latest FTL binary already installed (%s), verifying integrity...\\n" "${INFO}" "${FTLlatesttag}"
                 checkSumFile="https://github.com/pi-hole/FTL/releases/download/${FTLversion%$'\r'}/${binary}.sha1"
                 # Continue further down...
             fi
@@ -2078,14 +2078,14 @@ FTLcheckUpdate() {
     # Check we downloaded a valid checksum (no 404 or other error like
     # no DNS resolution)
     if [[ ! "${remoteSha1}" =~ ^[a-f0-9]{40}$ ]]; then
-        printf "  %b Remote checksum not available, trying to redownload binary...\\n" "${CROSS}"
+        printf "  %b Remote checksum not available, trying to redownload...\\n" "${CROSS}"
         return 0
     elif [[ "${remoteSha1}" != "${localSha1}" ]]; then
-        printf "  %b Corruption detected, redownloading binary...\\n" "${CROSS}"
+        printf "  %b Remote binary is different, downloading...\\n" "${CROSS}"
         return 0
     fi
 
-    printf "  %b Checksum correct. No need to download!\\n" "${INFO}"
+    printf "  %b Local binary up-to-date. No need to download!\\n" "${INFO}"
     return 1
 }
 
