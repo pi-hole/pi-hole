@@ -460,6 +460,7 @@ update_repo() {
     # This helps prevent the wrong value from being assigned if you were to set the variable as a GLOBAL one
     local directory="${1}"
     local curBranch
+    local ref_is_branch
 
     # A variable to store the message we want to display;
     # Again, it's useful to store these in variables in case we need to reuse or change the message;
@@ -472,11 +473,26 @@ update_repo() {
     # Stash any local commits as they conflict with our working code
     git stash --all --quiet &> /dev/null || true # Okay for stash failure
     git clean --quiet --force -d || true # Okay for already clean directory
-    # Pull the latest commits
-    git pull --no-rebase --quiet &> /dev/null || return $?
-    # Check current branch. If it is master, then reset to the latest available tag.
+
+    # Check current branch.
+    # Remove any leading "heads/" as $curBranch is later used to check if local branch is remote branch or tag
+    curBranch=$(git rev-parse --abbrev-ref HEAD| sed "s/^heads\///g")
+
+    # check if the local branch ref is a branch or a tag on remote repo
+    if git show-ref -q --verify "refs/remotes/origin/$curBranch" 2>/dev/null; then
+        ref_is_branch=true
+    elif git show-ref -q --verify "refs/tags/$curBranch" 2>/dev/null; then
+        ref_is_branch=false
+    fi
+
+    # only pull if we are on a branch not a tag
+    if [ "$ref_is_branch" = true ]; then
+        # Pull the latest commits
+        git pull --no-rebase --quiet &> /dev/null || return $?
+    fi
+
+    # If the current branch is master, then reset to the latest available tag.
     # In case extra commits have been added after tagging/release (i.e in case of metadata updates/README.MD tweaks)
-    curBranch=$(git rev-parse --abbrev-ref HEAD)
     if [[ "${curBranch}" == "master" ]]; then
         git reset --hard "$(git describe --abbrev=0 --tags)" || return $?
     fi
@@ -2096,76 +2112,6 @@ check_download_exists() {
     else
         return 0
     fi
-}
-
-fully_fetch_repo() {
-    # Add upstream branches to shallow clone
-    local directory="${1}"
-
-    cd "${directory}" || return 1
-    if is_repo "${directory}"; then
-        git remote set-branches origin '*' || return 1
-        git fetch --quiet || return 1
-    else
-        return 1
-    fi
-    return 0
-}
-
-get_available_branches() {
-    # Return available branches
-    local directory
-    directory="${1}"
-    local output
-
-    cd "${directory}" || return 1
-    # Get reachable remote branches, but store STDERR as STDOUT variable
-    output=$( { git ls-remote --heads --quiet | cut -d'/' -f3- -; } 2>&1 )
-    # echo status for calling function to capture
-    echo "$output"
-    return
-}
-
-fetch_checkout_pull_branch() {
-    # Check out specified branch
-    local directory
-    directory="${1}"
-    local branch
-    branch="${2}"
-
-    # Set the reference for the requested branch, fetch, check it put and pull it
-    cd "${directory}" || return 1
-    git remote set-branches origin "${branch}" || return 1
-    git stash --all --quiet &> /dev/null || true
-    git clean --quiet --force -d || true
-    git fetch --quiet || return 1
-    checkout_pull_branch "${directory}" "${branch}" || return 1
-}
-
-checkout_pull_branch() {
-    # Check out specified branch
-    local directory
-    directory="${1}"
-    local branch
-    branch="${2}"
-    local oldbranch
-
-    cd "${directory}" || return 1
-
-    oldbranch="$(git symbolic-ref HEAD)"
-
-    str="Switching to branch: '${branch}' from '${oldbranch}'"
-    printf "  %b %s" "${INFO}" "$str"
-    git checkout "${branch}" --quiet || return 1
-    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "$str"
-    # Data in the repositories is public anyway so we can make it readable by everyone (+r to keep executable permission if already set by git)
-    chmod -R a+rX "${directory}"
-
-    git_pull=$(git pull --no-rebase || return 1)
-
-    printf "  %b %s\\n" "${INFO}" "${git_pull}"
-
-    return 0
 }
 
 clone_or_update_repos() {

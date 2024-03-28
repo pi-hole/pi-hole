@@ -36,15 +36,17 @@ source "/opt/pihole/COL_TABLE"
 GitCheckUpdateAvail() {
     local directory
     local curBranch
+    local ref_is_tag
     directory="${1}"
     curdir=$PWD
     cd "${directory}" || return
 
     # Fetch latest changes in this repo
-    git fetch --quiet origin
+    git fetch --tags --quiet origin
 
     # Check current branch. If it is master, then check for the latest available tag instead of latest commit.
-    curBranch=$(git rev-parse --abbrev-ref HEAD)
+    # Remove any leading "heads/" as $curBranch is later used to check if local branch is remote branch or tag
+    curBranch=$(git rev-parse --abbrev-ref HEAD| sed "s/^heads\///g")
     if [[ "${curBranch}" == "master" ]]; then
         # get the latest local tag
         LOCAL=$(git describe --abbrev=0 --tags master)
@@ -56,14 +58,26 @@ GitCheckUpdateAvail() {
         # need @{0}
         LOCAL="$(git rev-parse "@{0}")"
 
-        # The suffix @{upstream} to a branchname
-        # (short form <branchname>@{u}) refers
-        # to the branch that the branch specified
-        # by branchname is set to build on top of#
-        # (configured with branch.<name>.remote and
-        # branch.<name>.merge). A missing branchname
-        # defaults to the current one.
-        REMOTE="$(git rev-parse "@{upstream}")"
+        # check if the local branch ref is a branch or a tag on remote repo
+        if git show-ref -q --verify "refs/remotes/origin/$curBranch" 2>/dev/null; then
+            ref_is_tag=false
+        elif git show-ref -q --verify "refs/tags/$curBranch" 2>/dev/null; then
+            ref_is_tag=true
+        fi
+        if [ "$ref_is_tag" = true ]; then
+            # as there is no tracking upstream branch for a checked out tag, there is need to
+            # check for updates
+            REMOTE="${LOCAL}"
+        else
+            # The suffix @{upstream} to a branchname
+            # (short form <branchname>@{u}) refers
+            # to the branch that the branch specified
+            # by branchname is set to build on top of#
+            # (configured with branch.<name>.remote and
+            # branch.<name>.merge). A missing branchname
+            # defaults to the current one.
+            REMOTE="$(git rev-parse "@{upstream}")"
+        fi
     fi
 
 
