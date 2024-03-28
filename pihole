@@ -124,7 +124,7 @@ restartDNS() {
   local svcOption svc str output status pid icon FTL_PID_FILE
   svcOption="${1:-restart}"
 
-  # get the current path to the pihole-FTL.pid
+  # get the current path to the FTL.pid
   FTL_PID_FILE="$(getFTLPIDFile)"
 
   # Determine if we should reload or restart

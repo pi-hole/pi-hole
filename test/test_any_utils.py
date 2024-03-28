@@ -136,7 +136,7 @@ def test_getFTLPIDFile_default(host):
     getFTLPIDFile
     """
     )
-    expected_stdout = "/run/pihole-FTL.pid\n"
+    expected_stdout = "/run/pihole/FTL.pid\n"
     assert expected_stdout == output.stdout
 
 
