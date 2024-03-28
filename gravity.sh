@@ -488,6 +488,7 @@ compareLists() {
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
   local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
+  local file_path permissions ip_addr port blocked=false download=true
 
   # Create temp file to store content on disk instead of RAM
   # We don't use '--suffix' here because not all implementations of mktemp support it, e.g. on Alpine
@@ -591,8 +592,40 @@ gravity_DownloadBlocklistFromUrl() {
     fi
   fi
 
-  # shellcheck disable=SC2086
-  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+  # If we are going to "download" a local file, we first check if the target
+  # file has a+r permission. We explicitly check for all+read because we want
+  # to make sure that the file is readable by everyone and not just the user
+  # running the script.
+  if [[ $url == "file://"* ]]; then
+    # Get the file path
+    file_path=$(echo "$url" | cut -d'/' -f3-)
+    # Check if the file exists and is a regular file (or a symlink to one)
+    if [[ ! -e $file_path ]]; then
+      # Output that the file does not exist
+      echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
+      download=false
+    elif [[ ! -f $file_path ]]; then
+      # Output that the file is not a regular file
+      echo -e "${OVER}  ${CROSS} ${file_path} is not a regular file"
+      download=false
+    else
+      # Check if the file has a+r permissions
+      permissions=$(stat -Lc "%a" "$file_path")
+      if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
+        # Output that we are using the local file
+        echo -e "${OVER}  ${INFO} Using local file ${file_path}"
+      else
+        # Output that the file does not have the correct permissions
+        echo -e "${OVER}  ${CROSS} Cannot read file (file needs to have o+r permission)"
+        download=false
+      fi
+    fi
+  fi
+
+  if [[ "${download}" == true ]]; then
+    # shellcheck disable=SC2086
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+  fi
 
   case $url in
   # Did we "download" a local file?
@@ -601,7 +634,7 @@ gravity_DownloadBlocklistFromUrl() {
       echo -e "${OVER}  ${TICK} ${str} Retrieval successful"
       success=true
     else
-      echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
+      echo -e "${OVER}  ${CROSS} ${str} Retrieval failed / empty list"
     fi
     ;;
   # Did we "download" a remote file?
