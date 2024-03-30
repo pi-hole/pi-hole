@@ -598,7 +598,7 @@ gravity_DownloadBlocklistFromUrl() {
   # running the script.
   if [[ $url == "file://"* ]]; then
     # Get the file path
-    file_path=$(echo "$url" | cut -d'/' -f3-)
+    file_path=$(echo "$url" | cut --delimiter='/' --fields=3-)
     # Check if the file exists and is a regular file (or a symlink to one)
     if [[ ! -e $file_path ]]; then
       # Output that the file does not exist
@@ -610,7 +610,7 @@ gravity_DownloadBlocklistFromUrl() {
       download=false
     else
       # Check if the file has a+r permissions
-      permissions=$(stat -Lc "%a" "$file_path")
+      permissions=$(stat --dereference --format="%a" "$file_path")
       if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
         # Output that we are using the local file
         echo -e "${OVER}  ${INFO} Using local file ${file_path}"
@@ -624,7 +624,7 @@ gravity_DownloadBlocklistFromUrl() {
 
   if [[ "${download}" == true ]]; then
     # shellcheck disable=SC2086
-    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} --silent --location ${compression} ${cmd_ext} ${heisenbergCompensator} --write-out "%{http_code}" "${url}" --output "${listCurlBuffer}" 2>/dev/null)
   fi
 
   case $url in
