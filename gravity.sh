@@ -537,58 +537,62 @@ gravity_DownloadBlocklistFromUrl() {
   # local file or empty
   if [[ $url != "file"* ]] && [[ -n "${domain}" ]]; then
     case $(getFTLConfigValue dns.blocking.mode) in
-        "IP-NODATA-AAAA"|"IP")
-        # Get IP address of this domain
-        ip="$(dig "${domain}" +short)"
-        # Check if this IP matches any IP of the system
-        if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<< "$(ip a)") -gt 0 ]]; then
-            blocked=true
-        fi;;
-        "NXDOMAIN")
-        if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
-            blocked=true
-        fi;;
-        "NODATA")
-        if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +short "${domain}") ]]; then
-            blocked=true
-        fi;;
-        "NULL"|*)
-        if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
-            blocked=true
-        fi;;
+    "IP-NODATA-AAAA" | "IP")
+      # Get IP address of this domain
+      ip="$(dig "${domain}" +short)"
+      # Check if this IP matches any IP of the system
+      if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<<"$(ip a)") -gt 0 ]]; then
+        blocked=true
+      fi
+      ;;
+    "NXDOMAIN")
+      if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
+        blocked=true
+      fi
+      ;;
+    "NODATA")
+      if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +short "${domain}") ]]; then
+        blocked=true
+      fi
+      ;;
+    "NULL" | *)
+      if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
+        blocked=true
+      fi
+      ;;
     esac
 
     if [[ "${blocked}" == true ]]; then
-        # Get first defined upstream server
-        local upstream
-        upstream="$(getFTLConfigValue dns.upstreams)"
+      # Get first defined upstream server
+      local upstream
+      upstream="$(getFTLConfigValue dns.upstreams)"
 
-        # Isolate first upstream server from a string like
-        # [ 1.2.3.4#1234, 5.6.7.8#5678, ... ]
-        upstream="${upstream%%,*}"
-        upstream="${upstream##*[}"
-        upstream="${upstream%%]*}"
-        # Trim leading and trailing spaces and tabs
-        upstream="${upstream#"${upstream%%[![:space:]]*}"}"
-        upstream="${upstream%"${upstream##*[![:space:]]}"}"
+      # Isolate first upstream server from a string like
+      # [ 1.2.3.4#1234, 5.6.7.8#5678, ... ]
+      upstream="${upstream%%,*}"
+      upstream="${upstream##*[}"
+      upstream="${upstream%%]*}"
+      # Trim leading and trailing spaces and tabs
+      upstream="${upstream#"${upstream%%[![:space:]]*}"}"
+      upstream="${upstream%"${upstream##*[![:space:]]}"}"
 
-        # Get IP address and port of this upstream server
-        local ip_addr port
-        printf -v ip_addr "%s" "${upstream%#*}"
-        if [[ ${upstream} != *"#"* ]]; then
-            port=53
-        else
-            printf -v port "%s" "${upstream#*#}"
-        fi
-        ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
-        if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
-            port=443
-        else
-            port=80
-        fi
-        echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead";
-        echo -ne "  ${INFO} ${str} Pending..."
-        cmd_ext="--resolve $domain:$port:$ip"
+      # Get IP address and port of this upstream server
+      local ip_addr port
+      printf -v ip_addr "%s" "${upstream%#*}"
+      if [[ ${upstream} != *"#"* ]]; then
+        port=53
+      else
+        printf -v port "%s" "${upstream#*#}"
+      fi
+      ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
+      if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
+        port=443
+      else
+        port=80
+      fi
+      echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead"
+      echo -ne "  ${INFO} ${str} Pending..."
+      cmd_ext="--resolve $domain:$port:$ip"
     fi
   fi
 
@@ -598,25 +602,21 @@ gravity_DownloadBlocklistFromUrl() {
   # running the script.
   if [[ $url == "file://"* ]]; then
     # Get the file path
-    file_path=$(echo "$url" | cut --delimiter='/' --fields=3-)
-    # Check if the file exists and is a regular file (or a symlink to one)
-    if [[ ! -e $file_path ]]; then
+    file_path=$(echo "$url" | cut -d'/' -f3-)
+    # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
+    if [[ ! -f $file_path ]]; then
       # Output that the file does not exist
       echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
       download=false
-    elif [[ ! -f $file_path ]]; then
-      # Output that the file is not a regular file
-      echo -e "${OVER}  ${CROSS} ${file_path} is not a regular file"
-      download=false
     else
-      # Check if the file has a+r permissions
-      permissions=$(stat --dereference --format="%a" "$file_path")
+      # Check if the file or a file referenced by the symlink has a+r permissions
+      permissions=$(stat -L -c "%a" "$file_path")
       if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
         # Output that we are using the local file
         echo -e "${OVER}  ${INFO} Using local file ${file_path}"
       else
         # Output that the file does not have the correct permissions
-        echo -e "${OVER}  ${CROSS} Cannot read file (file needs to have o+r permission)"
+        echo -e "${OVER}  ${CROSS} Cannot read file (file needs to have a+r permission)"
         download=false
       fi
     fi
@@ -624,7 +624,7 @@ gravity_DownloadBlocklistFromUrl() {
 
   if [[ "${download}" == true ]]; then
     # shellcheck disable=SC2086
-    httpCode=$(curl --connect-timeout ${curl_connect_timeout} --silent --location ${compression} ${cmd_ext} ${heisenbergCompensator} --write-out "%{http_code}" "${url}" --output "${listCurlBuffer}" 2>/dev/null)
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
   fi
 
   case $url in
@@ -898,10 +898,13 @@ Available options:
 
 for var in "$@"; do
   case "${var}" in
-  "-f" | "--force" ) forceDelete=true;;
-  "-r" | "--repair" ) repairSelector "$3";;
-  "-u" | "--upgrade" ) upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"; exit 0;;
-  "-h" | "--help" ) helpFunc;;
+  "-f" | "--force") forceDelete=true ;;
+  "-r" | "--repair") repairSelector "$3" ;;
+  "-u" | "--upgrade")
+    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    exit 0
+    ;;
+  "-h" | "--help") helpFunc ;;
   esac
 done
 
