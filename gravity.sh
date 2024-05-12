@@ -54,6 +54,7 @@ fi
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
+gravityDBfile_default="/etc/pihole/gravity.db"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
@@ -94,7 +95,7 @@ gravity_swap_databases() {
   # Number of available blocks on disk
   availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
   # Number of blocks, used by gravity.db
-  gravityBlocks=$(stat --format "%b" ${gravityDBfile})
+  gravityBlocks=$(stat --format "%b" "${gravityDBfile}")
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
   oldAvail=false
@@ -453,7 +454,7 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}"
+      gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}" "${domain}"
     fi
     echo ""
   done
@@ -485,8 +486,9 @@ compareLists() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}"
+  local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
   local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
+  local file_path permissions ip_addr port blocked=false download=true
 
   # Create temp file to store content on disk instead of RAM
   # We don't use '--suffix' here because not all implementations of mktemp support it, e.g. on Alpine
@@ -531,27 +533,99 @@ gravity_DownloadBlocklistFromUrl() {
     ;;
   esac
 
-  if [[ "${blocked}" == true ]]; then
-    printf -v ip_addr "%s" "${PIHOLE_DNS_1%#*}"
-    if [[ ${PIHOLE_DNS_1} != *"#"* ]]; then
-      port=53
-    else
-      printf -v port "%s" "${PIHOLE_DNS_1#*#}"
+  # Check if this domain is blocked by Pi-hole but only if the domain is not a
+  # local file or empty
+  if [[ $url != "file"* ]] && [[ -n "${domain}" ]]; then
+    case $(getFTLConfigValue dns.blocking.mode) in
+    "IP-NODATA-AAAA" | "IP")
+      # Get IP address of this domain
+      ip="$(dig "${domain}" +short)"
+      # Check if this IP matches any IP of the system
+      if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<<"$(ip a)") -gt 0 ]]; then
+        blocked=true
+      fi
+      ;;
+    "NXDOMAIN")
+      if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
+        blocked=true
+      fi
+      ;;
+    "NODATA")
+      if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +short "${domain}") ]]; then
+        blocked=true
+      fi
+      ;;
+    "NULL" | *)
+      if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
+        blocked=true
+      fi
+      ;;
+    esac
+
+    if [[ "${blocked}" == true ]]; then
+      # Get first defined upstream server
+      local upstream
+      upstream="$(getFTLConfigValue dns.upstreams)"
+
+      # Isolate first upstream server from a string like
+      # [ 1.2.3.4#1234, 5.6.7.8#5678, ... ]
+      upstream="${upstream%%,*}"
+      upstream="${upstream##*[}"
+      upstream="${upstream%%]*}"
+      # Trim leading and trailing spaces and tabs
+      upstream="${upstream#"${upstream%%[![:space:]]*}"}"
+      upstream="${upstream%"${upstream##*[![:space:]]}"}"
+
+      # Get IP address and port of this upstream server
+      local ip_addr port
+      printf -v ip_addr "%s" "${upstream%#*}"
+      if [[ ${upstream} != *"#"* ]]; then
+        port=53
+      else
+        printf -v port "%s" "${upstream#*#}"
+      fi
+      ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
+      if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
+        port=443
+      else
+        port=80
+      fi
+      echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead"
+      echo -ne "  ${INFO} ${str} Pending..."
+      cmd_ext="--resolve $domain:$port:$ip"
     fi
-    ip=$(dig "@${ip_addr}" -p "${port}" +short "${domain}" | tail -1)
-    if [[ $(echo "${url}" | awk -F '://' '{print $1}') = "https" ]]; then
-      port=443
-    else
-      port=80
-    fi
-    bad_list=$(pihole -q -adlist "${domain}" | head -n1 | awk -F 'Match found in ' '{print $2}')
-    echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by ${bad_list%:}. Using DNS on ${PIHOLE_DNS_1} to download ${url}"
-    echo -ne "  ${INFO} ${str} Pending..."
-    cmd_ext="--resolve $domain:$port:$ip"
   fi
 
-  # shellcheck disable=SC2086
-  httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+  # If we are going to "download" a local file, we first check if the target
+  # file has a+r permission. We explicitly check for all+read because we want
+  # to make sure that the file is readable by everyone and not just the user
+  # running the script.
+  if [[ $url == "file://"* ]]; then
+    # Get the file path
+    file_path=$(echo "$url" | cut -d'/' -f3-)
+    # Check if the file exists and is a regular file (i.e. not a socket, fifo, tty, block). Might still be a symlink.
+    if [[ ! -f $file_path ]]; then
+      # Output that the file does not exist
+      echo -e "${OVER}  ${CROSS} ${file_path} does not exist"
+      download=false
+    else
+      # Check if the file or a file referenced by the symlink has a+r permissions
+      permissions=$(stat -L -c "%a" "$file_path")
+      if [[ $permissions == *4 || $permissions == *5 || $permissions == *6 || $permissions == *7 ]]; then
+        # Output that we are using the local file
+        echo -e "${OVER}  ${INFO} Using local file ${file_path}"
+      else
+        # Output that the file does not have the correct permissions
+        echo -e "${OVER}  ${CROSS} Cannot read file (file needs to have a+r permission)"
+        download=false
+      fi
+    fi
+  fi
+
+  if [[ "${download}" == true ]]; then
+    # shellcheck disable=SC2086
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+  fi
 
   case $url in
   # Did we "download" a local file?
@@ -560,7 +634,7 @@ gravity_DownloadBlocklistFromUrl() {
       echo -e "${OVER}  ${TICK} ${str} Retrieval successful"
       success=true
     else
-      echo -e "${OVER}  ${CROSS} ${str} Not found / empty list"
+      echo -e "${OVER}  ${CROSS} ${str} Retrieval failed / empty list"
     fi
     ;;
   # Did we "download" a remote file?
@@ -594,7 +668,7 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${success}" == true ]]; then
     if [[ "${httpCode}" == "304" ]]; then
       # Add domains to database table file
-      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "2"
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
@@ -604,7 +678,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Remove curl buffer file after its use
       rm "${listCurlBuffer}"
       # Add domains to database table file
-      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       # Compare lists, are they identical?
       compareLists "${adlistID}" "${saveLocation}"
       done="true"
@@ -620,7 +694,7 @@ gravity_DownloadBlocklistFromUrl() {
     if [[ -r "${saveLocation}" ]]; then
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
       # Add domains to database table file
-      pihole-FTL ${gravity_type} parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
+      pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
       database_adlist_status "${adlistID}" "3"
     else
       echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
@@ -824,10 +898,13 @@ Available options:
 
 for var in "$@"; do
   case "${var}" in
-  "-f" | "--force" ) forceDelete=true;;
-  "-r" | "--repair" ) repairSelector "$3";;
-  "-u" | "--upgrade" ) upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"; exit 0;;
-  "-h" | "--help" ) helpFunc;;
+  "-f" | "--force") forceDelete=true ;;
+  "-r" | "--repair") repairSelector "$3" ;;
+  "-u" | "--upgrade")
+    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    exit 0
+    ;;
+  "-h" | "--help") helpFunc ;;
   esac
 done
 

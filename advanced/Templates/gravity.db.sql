@@ -27,7 +27,7 @@ CREATE TABLE domainlist
 CREATE TABLE adlist
 (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	address TEXT UNIQUE NOT NULL,
+	address TEXT NOT NULL,
 	enabled BOOLEAN NOT NULL DEFAULT 1,
 	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
 	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
@@ -37,7 +37,8 @@ CREATE TABLE adlist
 	invalid_domains INTEGER NOT NULL DEFAULT 0,
 	status INTEGER NOT NULL DEFAULT 0,
 	abp_entries INTEGER NOT NULL DEFAULT 0,
-	type INTEGER NOT NULL DEFAULT 0
+	type INTEGER NOT NULL DEFAULT 0,
+	UNIQUE(address, type)
 );
 
 CREATE TABLE adlist_by_group
