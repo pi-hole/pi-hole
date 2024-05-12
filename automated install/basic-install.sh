@@ -77,6 +77,7 @@ PI_HOLE_FILES=(list piholeDebug piholeLogFlush setupLCD update version gravity u
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
+PKG_MANAGER_UPDATE=false
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
 fi
@@ -1296,6 +1297,12 @@ disable_resolved_stublistener() {
 update_package_cache() {
     # Update package cache on apt based OSes. Do this every time since
     # it's quick and packages can be updated at any time.
+
+    # Update package cache only once
+    if [[ "${PKG_MANAGER_UPDATE}" == "true" ]]; then
+        return
+    fi
+    PKG_MANAGER_UPDATE=true
 
     # Local, named variables
     local str="Update local cache of available packages"
