@@ -54,7 +54,8 @@ chmod 644 "${VERSION_FILE}"
 
 # if /pihole.docker.tag file exists, we will use it's value later in this script
 DOCKER_TAG=$(cat /pihole.docker.tag 2>/dev/null)
-regex='^([0-9]+\.){1,2}(\*|[0-9]+)(-.*)?$|(^nightly$)|(^dev.*$)'
+release_regex='^([0-9]+\.){1,2}(\*|[0-9]+)(-.*)?$'
+regex=$release_regex'|(^nightly$)|(^dev.*$)'
 if [[ ! "${DOCKER_TAG}" =~ $regex ]]; then
     # DOCKER_TAG does not match the pattern (see https://regex101.com/r/RsENuz/1), so unset it.
     unset DOCKER_TAG
@@ -121,6 +122,12 @@ addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_FTL_HASH" "${GITHUB_FTL_HASH}"
 if [[ "${DOCKER_TAG}" ]]; then
     addOrEditKeyValPair "${VERSION_FILE}" "DOCKER_VERSION" "${DOCKER_TAG}"
 
-    GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole)"
+    # Remote version check only if the tag is a valid release version
+    docker_branch=""
+    if [[ "${DOCKER_TAG}" =~ $release_regex ]]; then
+        docker_branch="master"
+    fi
+
+    GITHUB_DOCKER_VERSION="$(get_remote_version docker-pi-hole "${docker_branch}")"
     addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_DOCKER_VERSION" "${GITHUB_DOCKER_VERSION}"
 fi
