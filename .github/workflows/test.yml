@@ -63,7 +63,6 @@ jobs:
             ubuntu_22,
             ubuntu_23,
             ubuntu_24,
-            centos_8,
             centos_9,
             fedora_39,
             fedora_40,
