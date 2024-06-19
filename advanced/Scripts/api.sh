@@ -75,9 +75,15 @@ TestAPIAvailability() {
 }
 
 Authentication() {
-    # Try to authenticate
-    LoginAPI
+    # Try to read the CLI password (if enabled and readable by the current user)
+    if [ -r /etc/pihole/cli_pw ]; then
+        password=$(cat /etc/pihole/cli_pw)
 
+        # Try to authenticate using the CLI password
+        LoginAPI
+    fi
+
+    # If this did not work, ask the user for the password
     while [ "${validSession}" = false ] || [ -z "${validSession}" ] ; do
         echo "Authentication failed. Please enter your Pi-hole password"
 
@@ -105,7 +111,7 @@ LoginAPI() {
   SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
 }
 
-DeleteSession() {
+LogoutAPI() {
     # if a valid Session exists (no password required or successful Authentication) and
     # SID is not null (successful Authentication only), delete the session
     if [ "${validSession}" = true ] && [ ! "${SID}" = null ]; then
