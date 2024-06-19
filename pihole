@@ -537,12 +537,12 @@ case "${1}" in
   "tricorder"                   ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
-  "-w" | "whitelist"            ) ;;
-  "-b" | "blacklist"            ) ;;
-  "--wild" | "wildcard"         ) ;;
-  "--regex" | "regex"           ) ;;
-  "--white-regex" | "white-regex" ) ;;
-  "--white-wild" | "white-wild"   ) ;;
+  "-a" | "allowlist"            ) need_root=0;;
+  "-b" | "blocklist" | "denylist" ) need_root=0;;
+  "--wild" | "wildcard"         ) need_root=0;;
+  "--regex" | "regex"           ) need_root=0;;
+  "--allow-regex" | "allow-regex" ) need_root=0;;
+  "--allow-wild" | "allow-wild"   ) need_root=0;;
   "-f" | "flush"                ) ;;
   "-up" | "updatePihole"        ) ;;
   "-r"  | "reconfigure"         ) ;;
@@ -592,12 +592,12 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-  "-w" | "whitelist"            ) listFunc "$@";;
-  "-b" | "blacklist"            ) listFunc "$@";;
+  "-a" | "allowlist"            ) listFunc "$@";;
+  "-b" | "blocklist" | "denylist" ) listFunc "$@";;
   "--wild" | "wildcard"         ) listFunc "$@";;
   "--regex" | "regex"           ) listFunc "$@";;
-  "--white-regex" | "white-regex" ) listFunc "$@";;
-  "--white-wild" | "white-wild"   ) listFunc "$@";;
+  "--allow-regex" | "allow-regex" ) listFunc "$@";;
+  "--allow-wild" | "allow-wild"   ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;

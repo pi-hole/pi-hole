@@ -75,12 +75,16 @@ TestAPIAvailability() {
 }
 
 LoginAPI() {
+    if [ -z "${API_URL}" ]; then
+        TestAPIAvailability
+    fi
+
     # Try to read the CLI password (if enabled and readable by the current user)
     if [ -r /etc/pihole/cli_pw ]; then
         password=$(cat /etc/pihole/cli_pw)
 
         # Try to authenticate using the CLI password
-        LoginAPI
+        Authentication
     fi
 
     # If this did not work, ask the user for the password
@@ -91,7 +95,7 @@ LoginAPI() {
         secretRead; printf '\n'
 
         # Try to authenticate again
-        LoginAPI
+        Authentication
     done
 
 }
@@ -142,6 +146,16 @@ GetFTLData() {
     # unauthorized
     echo "401"
   fi
+}
+
+PostFTLData() {
+  local data response status
+  # send the data to the API
+  response=$(curl -skS -w "%{http_code}" -X POST "${API_URL}$1" --data-raw "$2" -H "Accept: application/json" -H "sid: ${SID}" )
+  # status are the last 3 characters
+  status=$(printf %s "${response#"${response%???}"}")
+  # data is everything from response without the last 3 characters
+  printf %s "${response%???}"
 }
 
 secretRead() {
