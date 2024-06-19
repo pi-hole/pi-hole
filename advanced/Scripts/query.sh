@@ -112,6 +112,12 @@ GenerateOutput() {
             printf "\n\n"
         done
     fi
+
+    # If no exact results were found, suggest using partial matching
+    if [ "${num_lists}" -eq 0 ] && [ "${num_gravity}" -eq 0 ] && [ "${partial}" = false ]; then
+        printf "%s\n" "Hint: Try partial matching with"
+        printf "%s\n\n" "  ${COL_GREEN}pihole -q --partial ${domain}${COL_NC}"
+    fi
 }
 
 Main() {
@@ -129,12 +135,14 @@ Main() {
     TestAPIAvailability
 
     # Authenticate with FTL
-    Authentication
+    LoginAPI
 
     # send query again
     data=$(GetFTLData "search/${domain}?N=${max_results}&partial=${partial}")
 
     GenerateOutput "${data}"
+
+    # Delete session
     LogoutAPI
 }
 

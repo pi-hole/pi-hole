@@ -74,7 +74,7 @@ TestAPIAvailability() {
     fi
 }
 
-Authentication() {
+LoginAPI() {
     # Try to read the CLI password (if enabled and readable by the current user)
     if [ -r /etc/pihole/cli_pw ]; then
         password=$(cat /etc/pihole/cli_pw)
@@ -96,7 +96,7 @@ Authentication() {
 
 }
 
-LoginAPI() {
+Authentication() {
   sessionResponse="$(curl -skS -X POST "${API_URL}auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
 
   if [ -z "${sessionResponse}" ]; then
