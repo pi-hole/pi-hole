@@ -391,19 +391,20 @@ exit 0
 
 tailFunc() {
   # Warn user if Pi-hole's logging is disabled
-  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
-  if [[ "${logging_enabled}" == "0" ]]; then
-    # No "log-queries" lines are found.
-    # Commented out lines (such as "#log-queries") are ignored
+  local logging_enabled=$(getFTLConfigValue dns.queryLogging)
+  if [[ "${logging_enabled}" != "true" ]]; then
     echo "  ${CROSS} Warning: Query logging is disabled"
   fi
   echo -e "  ${INFO} Press Ctrl-C to exit"
+
+  # Get logfile path
+  readonly LOGFILE=$(getFTLConfigValue files.log.dnsmasq)
 
   # Strip date from each line
   # Color blocklist/blacklist/wildcard entries as red
   # Color A/AAAA/DHCP strings as white
   # Color everything else as gray
-  tail -f /var/log/pihole/pihole.log | grep --line-buffered "${1}" | sed -E \
+  tail -f $LOGFILE | grep --line-buffered "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
     -e "s,(.*(blacklisted |gravity blocked ).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
