@@ -94,9 +94,6 @@ Authentication() {
         LoginAPI
     done
 
-    # Loop exited, authentication was successful
-    echo "Authentication successful."
-
 }
 
 LoginAPI() {
@@ -119,7 +116,6 @@ LogoutAPI() {
         deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth"  -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
-            "204") printf "%b" "Session successfully deleted.\n";;
             "401") printf "%b" "Logout attempt without a valid session. Unauthorized!\n";;
          esac;
     fi
