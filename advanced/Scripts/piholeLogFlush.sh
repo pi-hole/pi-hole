@@ -11,27 +11,29 @@
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+source "${utilsfile}"
+
 # In case we're running at the same time as a system logrotate, use a
 # separate logrotate state file to prevent stepping on each other's
 # toes.
 STATEFILE="/var/lib/logrotate/pihole"
 
 # Determine database location
-# Obtain DBFILE=... setting from pihole-FTL.db
-# Constructed to return nothing when
-# a) the setting is not present in the config file, or
-# b) the setting is commented out (e.g. "#DBFILE=...")
-FTLconf="/etc/pihole/pihole-FTL.conf"
-if [ -e "$FTLconf" ]; then
-    DBFILE="$(sed -n -e 's/^\s*DBFILE\s*=\s*//p' ${FTLconf})"
-fi
-# Test for empty string. Use standard path in this case.
+DBFILE=$(getFTLConfigValue "files.database")
 if [ -z "$DBFILE" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
+# Determine log file location
+LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
+if [ -z "$LOGFILE" ]; then
+    LOGFILE="/var/log/pihole.log"
+fi
+
 if [[ "$*" != *"quiet"* ]]; then
-    echo -ne "  ${INFO} Flushing /var/log/pihole/pihole.log ..."
+    echo -ne "  ${INFO} Flushing "${LOGFILE}" ..."
 fi
 if [[ "$*" == *"once"* ]]; then
     # Nightly logrotation
@@ -44,9 +46,9 @@ if [[ "$*" == *"once"* ]]; then
         # Note that moving the file is not an option, as
         # dnsmasq would happily continue writing into the
         # moved file (it will have the same file handler)
-        cp -p /var/log/pihole/pihole.log /var/log/pihole/pihole.log.1
-        echo " " > /var/log/pihole/pihole.log
-        chmod 640 /var/log/pihole/pihole.log
+        cp -p "${LOGFILE}" "${LOGFILE}.1"
+        echo " " > "${LOGFILE}"
+        chmod 640 "${LOGFILE}"
     fi
 else
     # Manual flushing
@@ -56,17 +58,21 @@ else
         /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
     else
         # Flush both pihole.log and pihole.log.1 (if existing)
-        echo " " > /var/log/pihole/pihole.log
-        if [ -f /var/log/pihole/pihole.log.1 ]; then
-            echo " " > /var/log/pihole/pihole.log.1
-            chmod 640 /var/log/pihole/pihole.log.1
+        echo " " > "${LOGFILE}"
+        if [ -f "${LOGFILE}.1" ]; then
+            echo " " > "${LOGFILE}.1"
+            chmod 640 "${LOGFILE}.1"
         fi
     fi
+
+    # Stop FTL to make sure it doesn't write to the database while we're deleting data
+    service pihole-FTL stop
+
     # Delete most recent 24 hours from FTL's database, leave even older data intact (don't wipe out all history)
     deleted=$(pihole-FTL sqlite3 -ni "${DBFILE}" "DELETE FROM query_storage WHERE timestamp >= strftime('%s','now')-86400; select changes() from query_storage limit 1")
 
-    # Restart pihole-FTL to force reloading history
-    sudo pihole restartdns
+    # Restart FTL
+    service pihole-FTL restart
 fi
 
 if [[ "$*" != *"quiet"* ]]; then
