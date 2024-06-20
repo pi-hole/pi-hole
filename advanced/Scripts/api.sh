@@ -51,6 +51,12 @@ TestAPIAvailability() {
             API_PORT=""
         else
             # API is available at this URL combination
+
+            if [ "${availabilityResonse}" = 200 ]; then
+                # API is available without authentication
+                needAuth=false
+            fi
+
             break
         fi
 
@@ -75,8 +81,14 @@ TestAPIAvailability() {
 }
 
 LoginAPI() {
+    # If the API URL is not set, test the availability
     if [ -z "${API_URL}" ]; then
         TestAPIAvailability
+    fi
+
+    # Exit early if authentication is not needed
+    if [ "${needAuth}" = false ]; then
+        return
     fi
 
     # Try to read the CLI password (if enabled and readable by the current user)
@@ -86,6 +98,8 @@ LoginAPI() {
         # Try to authenticate using the CLI password
         Authentication
     fi
+
+
 
     # If this did not work, ask the user for the password
     while [ "${validSession}" = false ] || [ -z "${validSession}" ] ; do
