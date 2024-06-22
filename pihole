@@ -572,7 +572,7 @@ fi
 # requires root. If so, exit with an error message.
 if [[ $EUID -ne 0 && ${USER} != "pihole" && need_root -eq 1 ]];then
   echo -e "  ${CROSS} The Pi-hole command requires root privileges, try:"
-  echo -e "      ${COL_GREEN}sudo pihole ${@}${COL_NC}"
+  echo -e "      ${COL_GREEN}sudo pihole $*${COL_NC}"
   exit 1
 fi
 
