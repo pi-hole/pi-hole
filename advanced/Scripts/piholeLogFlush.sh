@@ -29,16 +29,21 @@ fi
 # Determine log file location
 LOGFILE=$(getFTLConfigValue "files.log.dnsmasq")
 if [ -z "$LOGFILE" ]; then
-    LOGFILE="/var/log/pihole.log"
+    LOGFILE="/var/log/pihole/pihole.log"
+fi
+FTLFILE=$(getFTLConfigValue "files.log.ftl")
+if [ -z "$FTLFILE" ]; then
+    FTLFILE="/var/log/pihole/FTL.log"
 fi
 
-if [[ "$*" != *"quiet"* ]]; then
-    echo -ne "  ${INFO} Flushing "${LOGFILE}" ..."
-fi
 if [[ "$*" == *"once"* ]]; then
     # Nightly logrotation
     if command -v /usr/sbin/logrotate >/dev/null; then
         # Logrotate once
+
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -ne "  ${INFO} Running logrotate ..."
+        fi
         /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
     else
         # Copy pihole.log over to pihole.log.1
@@ -46,23 +51,60 @@ if [[ "$*" == *"once"* ]]; then
         # Note that moving the file is not an option, as
         # dnsmasq would happily continue writing into the
         # moved file (it will have the same file handler)
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -ne "  ${INFO} Rotating ${LOGFILE} ..."
+        fi
         cp -p "${LOGFILE}" "${LOGFILE}.1"
         echo " " > "${LOGFILE}"
         chmod 640 "${LOGFILE}"
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -e "${OVER}  ${TICK} Rotated ${LOGFILE} ..."
+        fi
+        # Copy FTL.log over to FTL.log.1
+        # and empty out FTL.log
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -ne "  ${INFO} Rotating ${FTLFILE} ..."
+        fi
+        cp -p "${FTLFILE}" "${FTLFILE}.1"
+        echo " " > "${FTLFILE}"
+        chmod 640 "${FTLFILE}"
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -e "${OVER}  ${TICK} Rotated ${FTLFILE} ..."
+        fi
     fi
 else
     # Manual flushing
-    if command -v /usr/sbin/logrotate >/dev/null; then
-        # Logrotate twice to move all data out of sight of FTL
-        /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate; sleep 3
-        /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
-    else
-        # Flush both pihole.log and pihole.log.1 (if existing)
-        echo " " > "${LOGFILE}"
-        if [ -f "${LOGFILE}.1" ]; then
-            echo " " > "${LOGFILE}.1"
-            chmod 640 "${LOGFILE}.1"
-        fi
+
+    # Flush both pihole.log and pihole.log.1 (if existing)
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -ne "  ${INFO} Flushing ${LOGFILE} ..."
+    fi
+    echo " " > "${LOGFILE}"
+    chmod 640 "${LOGFILE}"
+    if [ -f "${LOGFILE}.1" ]; then
+        echo " " > "${LOGFILE}.1"
+        chmod 640 "${LOGFILE}.1"
+    fi
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Flushed ${LOGFILE} ..."
+    fi
+
+    # Flush both FTL.log and FTL.log.1 (if existing)
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -ne "  ${INFO} Flushing ${FTLFILE} ..."
+    fi
+    echo " " > "${FTLFILE}"
+    chmod 640 "${FTLFILE}"
+    if [ -f "${FTLFILE}.1" ]; then
+        echo " " > "${FTLFILE}.1"
+        chmod 640 "${FTLFILE}.1"
+    fi
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Flushed ${FTLFILE} ..."
+    fi
+
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -ne "  ${INFO} Flushing database, DNS resolution temporarily unavailable ..."
     fi
 
     # Stop FTL to make sure it doesn't write to the database while we're deleting data
@@ -73,9 +115,8 @@ else
 
     # Restart FTL
     service pihole-FTL restart
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Deleted ${deleted} queries from long-term query database"
+    fi
 fi
 
-if [[ "$*" != *"quiet"* ]]; then
-    echo -e "${OVER}  ${TICK} Flushed /var/log/pihole/pihole.log"
-    echo -e "  ${TICK} Deleted ${deleted} queries from database"
-fi
