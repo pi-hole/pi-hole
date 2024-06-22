@@ -472,17 +472,17 @@ unsupportedFunc(){
 
 helpFunc() {
   echo "Usage: pihole [options]
-Example: 'pihole -w -h'
+Example: 'pihole -a -h'
 Add '-h' after specific commands for more information on usage
 
-Whitelist/Blacklist Options:
-  -w, whitelist       Whitelist domain(s)
-  -b, blacklist       Blacklist domain(s)
+Domain Options:
+  -a, allowlist       Allowlist domain(s)
+  -b, denylist        Denylist domain(s)
   --regex, regex      Regex blacklist domains(s)
-  --white-regex       Regex whitelist domains(s)
+  --allow-regex       Regex allowlist domains(s)
   --wild, wildcard    Wildcard blacklist domain(s)
-  --white-wild        Wildcard whitelist domain(s)
-                        Add '-h' for more info on whitelist/blacklist usage
+  --allow-wild        Wildcard allowlist domain(s)
+                        Add '-h' for more info on allowlist/denylist usage
 
 Debugging Options:
   -d, debug           Start a debugging session
