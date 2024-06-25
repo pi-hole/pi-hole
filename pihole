@@ -472,17 +472,17 @@ unsupportedFunc(){
 
 helpFunc() {
   echo "Usage: pihole [options]
-Example: 'pihole -a -h'
+Example: 'pihole allow -h'
 Add '-h' after specific commands for more information on usage
 
 Domain Options:
-  -a, allowlist       Allowlist domain(s)
-  -b, denylist        Denylist domain(s)
-  --regex, regex      Regex denylist domains(s)
-  --allow-regex       Regex allowlist domains(s)
-  --wild, wildcard    Wildcard denylist domain(s)
-  --allow-wild        Wildcard allowlist domain(s)
-                        Add '-h' for more info on allowlist/denylist usage
+  allow, allowlist    Allow domain(s)
+  deny, denylist      Deny domain(s)
+  --regex, regex      Regex deny domains(s)
+  --allow-regex       Regex allow domains(s)
+  --wild, wildcard    Wildcard deny domain(s)
+  --allow-wild        Wildcard allow domain(s)
+                        Add '-h' for more info on allow/deny usage
 
 Debugging Options:
   -d, debug           Start a debugging session
@@ -537,8 +537,8 @@ case "${1}" in
   "tricorder"                   ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
-  "-a" | "allowlist"            ) need_root=0;;
-  "-b" | "blocklist" | "denylist" ) need_root=0;;
+  "allow" | "allowlist"         ) need_root=0;;
+  "deny" | "denylist"           ) need_root=0;;
   "--wild" | "wildcard"         ) need_root=0;;
   "--regex" | "regex"           ) need_root=0;;
   "--allow-regex" | "allow-regex" ) need_root=0;;
@@ -578,8 +578,8 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-  "-a" | "allowlist"            ) listFunc "$@";;
-  "-b" | "blocklist" | "denylist" ) listFunc "$@";;
+  "allow" | "allowlist"         ) listFunc "$@";;
+  "deny" | "denylist"           ) listFunc "$@";;
   "--wild" | "wildcard"         ) listFunc "$@";;
   "--regex" | "regex"           ) listFunc "$@";;
   "--allow-regex" | "allow-regex" ) listFunc "$@";;
@@ -600,4 +600,5 @@ case "${1}" in
   "updatechecker"               ) shift; updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
   "-t" | "tail"                 ) tailFunc "$2";;
+  *                             ) helpFunc;;
 esac

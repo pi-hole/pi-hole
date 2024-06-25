@@ -52,47 +52,43 @@ pihole restartdns\fR [options]
 Available commands and options:
 .br
 
-\fB-w, whitelist\fR [options] [<domain1> <domain2 ...>]
+\fBallow, allowlist\fR [options] [<domain1> <domain2 ...>]
 .br
-    Adds or removes specified domain or domains to the Whitelist
+    Adds or removes specified domain or domains to the Allowlist
 .br
 
-\fB-b, blacklist\fR [options] [<domain1> <domain2 ...>]
+\fBdeny, denylist\fR [options] [<domain1> <domain2 ...>]
 .br
-    Adds or removes specified domain or domains to the blacklist
+    Adds or removes specified domain or domains to the denylist
 .br
 
 \fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
 .br
-    Add or removes specified regex filter to the regex blacklist
+    Add or removes specified regex filter to the regex denylist
 .br
 
-\fB--white-regex\fR [options] [<regex1> <regex2 ...>]
+\fB--allow-regex\fR [options] [<regex1> <regex2 ...>]
 .br
-    Add or removes specified regex filter to the regex whitelist
+    Add or removes specified regex filter to the regex allowlist
 .br
 
 \fB--wild, wildcard\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified domain to the wildcard blacklist
+    Add or removes specified domain to the wildcard denylist
 .br
 
-\fB--white-wild\fR [options] [<domain1> <domain2 ...>]
+\fB--allow-wild\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified domain to the wildcard whitelist
+    Add or removes specified domain to the wildcard allowlist
 .br
 
-    (Whitelist/Blacklist manipulation options):
+    (Allow-/denylist manipulation options):
 .br
-      -d, --delmode     Remove domain(s) from the list
+      not, -d, --delmode  Remove domain(s) from the list
 .br
-      -nr, --noreload   Update list without refreshing dnsmasq
+      -q, --quiet         Make output less verbose
 .br
-      -q, --quiet       Make output less verbose
-.br
-      -l, --list        Display all your listed domains
-.br
-      --nuke            Removes all entries in a list
+      -l, --list          Display all your listed domains
 .br
 
 \fB-d, debug\fR [-a]
@@ -279,17 +275,17 @@ Available commands and options:
 Some usage examples
 .br
 
-Whitelist/blacklist manipulation
+Allow-/denylist manipulation
 .br
 
-\fBpihole -w iloveads.example.com\fR
+\fBpihole allow iloveads.example.com\fR
 .br
-    Adds "iloveads.example.com" to whitelist
+    Allow "iloveads.example.com"
 .br
 
-\fBpihole -b -d noads.example.com\fR
+\fBpihole deny not noads.example.com\fR
 .br
-    Removes "noads.example.com" from blacklist
+    Removes "noads.example.com" from denylist
 .br
 
 \fBpihole --wild example.com\fR

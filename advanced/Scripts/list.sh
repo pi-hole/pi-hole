@@ -47,11 +47,10 @@ Example: 'pihole ${abbrv} site.com', or 'pihole ${abbrv} site1.com site2.com'
 ${typeId^} one or more ${kindId} domains
 
 Options:
-  -d, --delmode       Remove domain(s)
+  not -d, --delmode   Remove domain(s)
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
   -l, --list          Display domains
-  --nuke              Removes all entries in a list
   --comment \"text\"    Add a comment to the domain. If adding multiple domains the same comment will be used for all"
 
   exit 0
@@ -198,13 +197,13 @@ GetComment() {
 
 while (( "$#" )); do
     case "${1}" in
-        "-a" | "allowlist"   ) kindId="exact"; typeId="allow"; abbrv="-a";;
-        "-b" | "denylist"    ) kindId="exact"; typeId="deny"; abbrv="-b";;
+        "allow" | "allowlist" ) kindId="exact"; typeId="allow"; abbrv="allow";;
+        "deny" | "denylist"   ) kindId="exact"; typeId="deny"; abbrv="deny";;
         "--allow-regex" | "allow-regex" ) kindId="regex"; typeId="allow"; abbrv="--allow-regex";;
         "--allow-wild" | "allow-wild" ) kindId="regex"; typeId="allow"; wildcard=true; abbrv="--allow-wild";;
         "--regex" | "regex"   ) kindId="regex"; typeId="deny"; abbrv="--regex";;
         "--wild" | "wildcard" ) kindId="regex"; typeId="deny"; wildcard=true; abbrv="--wild";;
-        "-d" | "--delmode"   ) addmode=false;;
+        "-d" | "not" | "--delmode" ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
         "-l" | "--list"      ) Displaylist;;
