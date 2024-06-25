@@ -166,10 +166,14 @@ PostFTLData() {
   local data response status
   # send the data to the API
   response=$(curl -skS -w "%{http_code}" -X POST "${API_URL}$1" --data-raw "$2" -H "Accept: application/json" -H "sid: ${SID}" )
-  # status are the last 3 characters
-  status=$(printf %s "${response#"${response%???}"}")
   # data is everything from response without the last 3 characters
-  printf %s "${response%???}"
+  if [ "${3}" = "status" ]; then
+    # Keep the status code appended if requested
+    printf %s "${response}"
+  else
+    # Strip the status code
+    printf %s "${response%???}"
+  fi
 }
 
 secretRead() {

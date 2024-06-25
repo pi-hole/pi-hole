@@ -66,7 +66,7 @@ CreateDomainList() {
 }
 
 AddDomain() {
-    local json num
+    local json num data
 
     # Authenticate with the API
     LoginAPI
@@ -113,7 +113,7 @@ AddDomain() {
 }
 
 RemoveDomain() {
-    local json num
+    local json num data status
 
     # Authenticate with the API
     LoginAPI
@@ -130,7 +130,10 @@ RemoveDomain() {
     json=$(jq --null-input --compact-output --arg domains "${domList[*]}" --arg typeId "${typeId}" --arg kindId "${kindId}" '[ $domains | split(" ")[] as $item | {item: $item, type: $typeId, kind: $kindId} ]')
 
     # Send the request
-    data=$(PostFTLData "domains:batchDelete" "${json}")
+    data=$(PostFTLData "domains:batchDelete" "${json}" "status")
+    # Separate the status from the data
+    status=$(printf %s "${data#"${data%???}"}")
+    data=$(printf %s "${data%???}")
 
     # If there is an .error object in the returned data, display it
     local error
@@ -138,12 +141,10 @@ RemoveDomain() {
     if [[ $error != "null" && $error != "" ]]; then
         echo -e "  ${CROSS} Failed to remove domain(s):"
         echo -e "      $(jq <<< "${data}" '.error')"
-    elif [[ "${verbose}" == true ]]; then
-        echo -e "  ${TICK} Removed ${#domList[@]} domain(s):"
-        # Loop through the domains and display them
-        for dom in "${domList[@]}"; do
-            echo -e "    - ${COL_BLUE}${dom}${COL_NC}"
-        done
+    elif [[ "${verbose}" == true && "${status}" == "204" ]]; then
+        echo -e "  ${TICK} Domain(s) removed from the ${kindId} ${typeId}list"
+    elif [[ "${verbose}" == true && "${status}" == "404" ]]; then
+        echo -e "  ${TICK} Requested domain(s) not found on ${kindId} ${typeId}list"
     fi
 
     # Log out
