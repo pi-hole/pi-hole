@@ -47,7 +47,7 @@ Example: 'pihole ${abbrv} site.com', or 'pihole ${abbrv} site1.com site2.com'
 ${typeId^} one or more ${kindId} domains
 
 Options:
-  not -d, --delmode   Remove domain(s)
+  remove, delete, -d  Remove domain(s)
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
   -l, --list          Display domains
@@ -204,7 +204,7 @@ while (( "$#" )); do
         "--allow-wild" | "allow-wild" ) kindId="regex"; typeId="allow"; wildcard=true; abbrv="--allow-wild";;
         "--regex" | "regex"   ) kindId="regex"; typeId="deny"; abbrv="--regex";;
         "--wild" | "wildcard" ) kindId="regex"; typeId="deny"; wildcard=true; abbrv="--wild";;
-        "-d" | "not" | "--delmode" ) addmode=false;;
+        "-d" | "remove" | "delete" ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
         "-l" | "--list"      ) Displaylist;;
