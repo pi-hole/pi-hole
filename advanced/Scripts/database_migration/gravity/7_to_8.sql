@@ -8,12 +8,12 @@ ALTER TABLE "group" RENAME TO "group__";
 
 CREATE TABLE "group"
 (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	enabled BOOLEAN NOT NULL DEFAULT 1,
-	name TEXT UNIQUE NOT NULL,
-	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	description TEXT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    enabled BOOLEAN NOT NULL DEFAULT 1,
+    name TEXT UNIQUE NOT NULL,
+    date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+    date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+    description TEXT
 );
 
 CREATE TRIGGER tr_group_update AFTER UPDATE ON "group"

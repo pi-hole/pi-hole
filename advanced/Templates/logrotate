@@ -1,21 +1,21 @@
 /var/log/pihole/pihole.log {
-	# su #
-	daily
-	copytruncate
-	rotate 5
-	compress
-	delaycompress
-	notifempty
-	nomail
+    # su #
+    daily
+    copytruncate
+    rotate 5
+    compress
+    delaycompress
+    notifempty
+    nomail
 }
 
 /var/log/pihole/FTL.log {
-	# su #
-	weekly
-	copytruncate
-	rotate 3
-	compress
-	delaycompress
-	notifempty
-	nomail
+    # su #
+    weekly
+    copytruncate
+    rotate 3
+    compress
+    delaycompress
+    notifempty
+    nomail
 }
