@@ -1,5 +1,5 @@
-FROM quay.io/centos/centos:stream8
-RUN yum install -y git initscripts
+FROM fedora:40
+RUN dnf install -y git initscripts
 
 ENV GITDIR /etc/.pihole
 ENV SCRIPTDIR /opt/pihole

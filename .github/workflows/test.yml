@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.2
+        uses: actions/checkout@v4.1.7
 
       - name: Check scripts in repository are executable
         run: |
@@ -55,19 +55,19 @@ jobs:
             ubuntu_20,
             ubuntu_22,
             ubuntu_23,
-            centos_8,
+            ubuntu_24,
             centos_9,
-             fedora_38,
             fedora_39,
+            fedora_40,
           ]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.2
+        uses: actions/checkout@v4.1.7
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5.0.0
+        uses: actions/setup-python@v5.1.0
         with:
           python-version: "3.10"
 

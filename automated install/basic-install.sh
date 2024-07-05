@@ -1442,7 +1442,7 @@ installConfigs() {
 
             # Get the version number of lighttpd
             version=$(dpkg-query -f='${Version}\n' --show lighttpd)
-            # Test if that version is greater than or euqal to 1.4.56
+            # Test if that version is greater than or equal to 1.4.56
             if dpkg --compare-versions "$version" "ge" "1.4.56"; then
                 # If it is, then we don't need to disable the modules
                 # (server.modules duplication is ignored in lighttpd 1.4.56+)

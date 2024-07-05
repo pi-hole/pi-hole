@@ -1,79 +1,79 @@
 _pihole() {
-	local cur prev opts opts_admin opts_checkout opts_chronometer opts_debug opts_interface  opts_logging opts_privacy opts_query opts_update opts_version
-	COMPREPLY=()
-	cur="${COMP_WORDS[COMP_CWORD]}"
-	prev="${COMP_WORDS[COMP_CWORD-1]}"
-	prev2="${COMP_WORDS[COMP_CWORD-2]}"
+    local cur prev opts opts_admin opts_checkout opts_chronometer opts_debug opts_interface  opts_logging opts_privacy opts_query opts_update opts_version
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    prev2="${COMP_WORDS[COMP_CWORD-2]}"
 
-	case "${prev}" in
-		"pihole")
-			opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist arpflush"
-			COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-		;;
-		"whitelist"|"blacklist"|"wildcard"|"regex")
-			opts_lists="\--delmode \--noreload \--quiet \--list \--nuke"
-			COMPREPLY=( $(compgen -W "${opts_lists}" -- ${cur}) )
-		;;
-		"admin")
-			opts_admin="celsius fahrenheit interface kelvin password privacylevel"
-			COMPREPLY=( $(compgen -W "${opts_admin}" -- ${cur}) )
-		;;
-		"checkout")
-			opts_checkout="core ftl web master dev"
-			COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
-		;;
-		"chronometer")
-			opts_chronometer="\--exit \--json \--refresh"
-			COMPREPLY=( $(compgen -W "${opts_chronometer}" -- ${cur}) )
-		;;
-		"debug")
-			opts_debug="-a"
-			COMPREPLY=( $(compgen -W "${opts_debug}" -- ${cur}) )
-		;;
-		"logging")
-			opts_logging="on off 'off noflush'"
-			COMPREPLY=( $(compgen -W "${opts_logging}" -- ${cur}) )
-		;;
-		"query")
-			opts_query="-adlist -all -exact"
-			COMPREPLY=( $(compgen -W "${opts_query}" -- ${cur}) )
-		;;
-		"updatePihole"|"-up")
-			opts_update="--check-only"
-			COMPREPLY=( $(compgen -W "${opts_update}" -- ${cur}) )
-		;;
-		"version")
-			opts_version="\--admin \--current \--ftl \--hash \--latest \--pihole"
-			COMPREPLY=( $(compgen -W "${opts_version}" -- ${cur}) )
-		;;
-		"interface")
-			if ( [[ "$prev2" == "admin" ]] || [[ "$prev2" == "-a" ]] ); then
-				opts_interface="$(cat /proc/net/dev | cut -d: -s -f1)"
-				COMPREPLY=( $(compgen -W "${opts_interface}" -- ${cur}) )
-			else
-				return 1
-			fi
-		;;
-		"privacylevel")
-			if ( [[ "$prev2" == "admin" ]] || [[ "$prev2" == "-a" ]] ); then
-				opts_privacy="0 1 2 3"
-				COMPREPLY=( $(compgen -W "${opts_privacy}" -- ${cur}) )
-			else
-				return 1
-			fi
-		;;
-		"core"|"admin"|"ftl")
-			if [[ "$prev2" == "checkout" ]]; then
-				opts_checkout="master dev"
-				COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
-			else
-				return 1
-			fi
-		;;
-		*)
-		return 1
-		;;
-	esac
-	return 0
+    case "${prev}" in
+        "pihole")
+            opts="admin blacklist checkout chronometer debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard whitelist arpflush"
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+        ;;
+        "whitelist"|"blacklist"|"wildcard"|"regex")
+            opts_lists="\--delmode \--noreload \--quiet \--list \--nuke"
+            COMPREPLY=( $(compgen -W "${opts_lists}" -- ${cur}) )
+        ;;
+        "admin")
+            opts_admin="celsius fahrenheit interface kelvin password privacylevel"
+            COMPREPLY=( $(compgen -W "${opts_admin}" -- ${cur}) )
+        ;;
+        "checkout")
+            opts_checkout="core ftl web master dev"
+            COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
+        ;;
+        "chronometer")
+            opts_chronometer="\--exit \--json \--refresh"
+            COMPREPLY=( $(compgen -W "${opts_chronometer}" -- ${cur}) )
+        ;;
+        "debug")
+            opts_debug="-a"
+            COMPREPLY=( $(compgen -W "${opts_debug}" -- ${cur}) )
+        ;;
+        "logging")
+            opts_logging="on off 'off noflush'"
+            COMPREPLY=( $(compgen -W "${opts_logging}" -- ${cur}) )
+        ;;
+        "query")
+            opts_query="-adlist -all -exact"
+            COMPREPLY=( $(compgen -W "${opts_query}" -- ${cur}) )
+        ;;
+        "updatePihole"|"-up")
+            opts_update="--check-only"
+            COMPREPLY=( $(compgen -W "${opts_update}" -- ${cur}) )
+        ;;
+        "version")
+            opts_version="\--admin \--current \--ftl \--hash \--latest \--pihole"
+            COMPREPLY=( $(compgen -W "${opts_version}" -- ${cur}) )
+        ;;
+        "interface")
+            if ( [[ "$prev2" == "admin" ]] || [[ "$prev2" == "-a" ]] ); then
+                opts_interface="$(cat /proc/net/dev | cut -d: -s -f1)"
+                COMPREPLY=( $(compgen -W "${opts_interface}" -- ${cur}) )
+            else
+                return 1
+            fi
+        ;;
+        "privacylevel")
+            if ( [[ "$prev2" == "admin" ]] || [[ "$prev2" == "-a" ]] ); then
+                opts_privacy="0 1 2 3"
+                COMPREPLY=( $(compgen -W "${opts_privacy}" -- ${cur}) )
+            else
+                return 1
+            fi
+        ;;
+        "core"|"admin"|"ftl")
+            if [[ "$prev2" == "checkout" ]]; then
+                opts_checkout="master dev"
+                COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
+            else
+                return 1
+            fi
+        ;;
+        *)
+        return 1
+        ;;
+    esac
+    return 0
 }
 complete -F _pihole pihole
