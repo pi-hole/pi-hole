@@ -45,4 +45,3 @@ jobs:
         run: gh issue edit ${{ github.event.issue.number }} --remove-label ${{ env.stale_label }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
