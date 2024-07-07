@@ -622,6 +622,12 @@ gravity_DownloadBlocklistFromUrl() {
     fi
   fi
 
+  # Check for allowed protocols
+  if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
+    echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified, ignoring list"
+    download=false
+  fi
+
   if [[ "${download}" == true ]]; then
     # shellcheck disable=SC2086
     httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
