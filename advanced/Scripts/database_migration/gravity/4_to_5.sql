@@ -7,9 +7,9 @@ BEGIN TRANSACTION;
 DROP TABLE gravity;
 CREATE TABLE gravity
 (
-	domain TEXT NOT NULL,
-	adlist_id INTEGER NOT NULL REFERENCES adlist (id),
-	PRIMARY KEY(domain, adlist_id)
+    domain TEXT NOT NULL,
+    adlist_id INTEGER NOT NULL REFERENCES adlist (id),
+    PRIMARY KEY(domain, adlist_id)
 );
 
 DROP VIEW vw_gravity;
@@ -22,15 +22,15 @@ CREATE VIEW vw_gravity AS SELECT domain, adlist_by_group.group_id AS group_id
 
 CREATE TABLE client
 (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	ip TEXT NOL NULL UNIQUE
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip TEXT NOL NULL UNIQUE
 );
 
 CREATE TABLE client_by_group
 (
-	client_id INTEGER NOT NULL REFERENCES client (id),
-	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (client_id, group_id)
+    client_id INTEGER NOT NULL REFERENCES client (id),
+    group_id INTEGER NOT NULL REFERENCES "group" (id),
+    PRIMARY KEY (client_id, group_id)
 );
 
 UPDATE info SET value = 5 WHERE property = 'version';

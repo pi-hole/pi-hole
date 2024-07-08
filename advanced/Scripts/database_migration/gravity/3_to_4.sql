@@ -6,13 +6,13 @@ BEGIN TRANSACTION;
 
 CREATE TABLE domainlist
 (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	type INTEGER NOT NULL DEFAULT 0,
-	domain TEXT UNIQUE NOT NULL,
-	enabled BOOLEAN NOT NULL DEFAULT 1,
-	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type INTEGER NOT NULL DEFAULT 0,
+    domain TEXT UNIQUE NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT 1,
+    date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+    date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+    comment TEXT
 );
 
 ALTER TABLE whitelist ADD COLUMN type INTEGER;
@@ -41,9 +41,9 @@ DROP TABLE regex_whitelist_by_group;
 DROP TABLE regex_blacklist_by_group;
 CREATE TABLE domainlist_by_group
 (
-	domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
-	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (domainlist_id, group_id)
+    domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
+    group_id INTEGER NOT NULL REFERENCES "group" (id),
+    PRIMARY KEY (domainlist_id, group_id)
 );
 
 DROP TRIGGER tr_whitelist_update;
