@@ -505,13 +505,13 @@ getGitFiles() {
         # Show that we're checking it
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         # Update the repo, returning an error message on failure
-        update_repo "${directory}" || { printf "\\n  %b: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+        update_repo "${directory}" || { printf "\\n  %bError: could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
     # If it's not a .git repo,
     else
         # Show an error
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # Attempt to make the repository, showing an error on failure
-        make_repo "${directory}" "${remoteRepo}" || { printf "\\n  %bError: Could not make local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
+        make_repo "${directory}" "${remoteRepo}" || { printf "\\n  %bError: could not make local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"; exit 1; }
     fi
     echo ""
     # Success via one of the two branches, as the commands would exit if they failed.
@@ -751,7 +751,7 @@ getStaticIPv4Settings() {
         result=$?
         case ${result} in
             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
         esac
@@ -774,7 +774,7 @@ It is also possible to use a DHCP reservation, but if you are going to do that, 
 
                 case ${result} in
                     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                    printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                    printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                     exit 1
                     ;;
                 esac
@@ -924,7 +924,7 @@ setDNS() {
         result=$?
         case ${result} in
             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
         esac
@@ -962,7 +962,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             result=$?
             case ${result} in
                 "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                 exit 1
                 ;;
             esac
@@ -1016,7 +1016,7 @@ If you want to specify a port other than 53, separate it with a hash.\
                         DNSSettingsCorrect=False
                         ;;
                     "${DIALOG_ESC}")
-                        printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                        printf "  %bEscape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                         exit 1
                         ;;
                 esac
@@ -1069,7 +1069,7 @@ setLogging() {
             ;;
         "${DIALOG_ESC}")
             # User pressed <ESC>
-            printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %bEscape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
@@ -1094,7 +1094,7 @@ setPrivacyLevel() {
                 printf "  %b Using privacy level: %s\\n" "${INFO}" "${PRIVACY_LEVEL}"
                 ;;
             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                printf "  %b Cancelled privacy level selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                printf "  %bCancelled privacy level selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                 exit 1
                 ;;
         esac
@@ -1125,7 +1125,7 @@ setAdminFlag() {
             ;;
         "${DIALOG_ESC}")
             # User pressed <ESC>
-            printf "  %b Escape pressed, exiting installer at Admin Web Interface choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %bEscape pressed, exiting installer at Admin Web Interface choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
@@ -1161,7 +1161,7 @@ the \"pihole\" group for full functionality." \
                 ;;
             "${DIALOG_ESC}")
                 # User pressed <ESC>
-                printf "  %b Escape pressed, exiting installer at web server choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                printf "  %bEscape pressed, exiting installer at web server choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
                 exit 1
                 ;;
         esac
@@ -1196,7 +1196,7 @@ chooseBlocklists() {
             ;;
         "${DIALOG_ESC}")
             # User pressed <ESC>
-            printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %bEscape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
@@ -1345,7 +1345,7 @@ installScripts() {
     else
         # Otherwise, show an error and exit
         printf "%b  %b %s\\n" "${OVER}"  "${CROSS}" "${str}"
-        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+        printf "  %bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
         return 1
     fi
 }
@@ -1366,7 +1366,7 @@ installConfigs() {
     if [[ ! -r "${FTL_CONFIG_FILE}" ]]; then
         install -d -m 0755 ${PI_HOLE_CONFIG_DIR}
         if ! install -T -o pihole -m 664 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.conf" "${FTL_CONFIG_FILE}" &>/dev/null; then
-            printf "  %b Error: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            printf "  %bError: Unable to initialize configuration file %s/pihole-FTL.conf\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
     fi
@@ -1374,7 +1374,7 @@ installConfigs() {
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/custom.list" ]]; then
         if ! install -o root -m 644 /dev/null "${PI_HOLE_CONFIG_DIR}/custom.list" &>/dev/null; then
-            printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
+            printf "  %bError: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}"
             return 1
         fi
     fi
@@ -1630,7 +1630,7 @@ update_package_cache() {
             UPDATE_PKG_CACHE="apt update"
         fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %b Error: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
+        printf "  %bError: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
@@ -2069,7 +2069,7 @@ update_dialogs() {
 
     case ${result} in
         "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-            printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "  %bCancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
             exit 1
             ;;
     esac
@@ -2174,14 +2174,14 @@ clone_or_update_repos() {
         printf "  %b Performing reconfiguration, skipping download of local repos\\n" "${INFO}"
         # Reset the Core repo
         resetRepo ${PI_HOLE_LOCAL_REPO} || \
-        { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
+        { printf "  %bError: unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # reset it's repo
             resetRepo ${webInterfaceDir} || \
-            { printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
+            { printf "  %bError: unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"; \
             exit 1; \
             }
         fi
@@ -2189,14 +2189,14 @@ clone_or_update_repos() {
     else
         # so get git files for Core
         getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} || \
-        { printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
+        { printf "  %bUnable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"; \
         exit 1; \
         }
         # If the Web interface was installed,
         if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
             # get the Web git files
             getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} || \
-            { printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
+            { printf "  %bError: unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"; \
             exit 1; \
             }
         fi
@@ -2260,7 +2260,7 @@ FTLinstall() {
             # Otherwise, the hash download failed, so print and exit.
             popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %b Error: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+            printf "  %bError: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
             return 1
         fi
     else
@@ -2268,7 +2268,7 @@ FTLinstall() {
         popd > /dev/null || { printf "Unable to return to original directory after FTL binary download.\\n"; return 1; }
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # The URL could not be found
-        printf "  %b Error: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+        printf "  %bError: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
         return 1
     fi
 }
