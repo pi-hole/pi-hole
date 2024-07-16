@@ -19,8 +19,12 @@ PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 source "${utilsfile}"
+
+# Source api functions
+readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+source "${apifile}"
 
 versionsfile="/etc/pihole/versions"
 if [ -f "${versionsfile}" ]; then
@@ -205,73 +209,60 @@ restartDNS() {
 
 piholeEnable() {
   if [[ "${2}" == "-h" ]] || [[ "${2}" == "--help" ]]; then
-    echo "Usage: pihole disable [time]
-Example: 'pihole disable', or 'pihole disable 5m'
-Disable Pi-hole subsystems
+    echo "Usage: pihole enable/disable [time]
+Example: 'pihole enable', or 'pihole disable 5m'
+En- or disable Pi-hole subsystems
 
 Time:
-  #s                  Disable Pi-hole functionality for # second(s)
-  #m                  Disable Pi-hole functionality for # minute(s)"
+  #s               En-/disable Pi-hole functionality for # second(s)
+  #m               En-/disable Pi-hole functionality for # minute(s)"
     exit 0
 
-  elif [[ "${1}" == "0" ]]; then
-    # Disable Pi-hole
-    if ! getFTLConfigValue dns.blocking.active; then
-      echo -e "  ${INFO} Blocking already disabled, nothing to do"
-      exit 0
-    fi
-    if [[ $# -gt 1 ]]; then
-      local error=false
-      if [[ "${2}" == *"s" ]]; then
-        tt=${2%"s"}
-        if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
-          local str="Disabling blocking for ${tt} seconds"
-          echo -e "  ${INFO} ${str}..."
-          local str="Blocking will be re-enabled in ${tt} seconds"
-          nohup "${PI_HOLE_SCRIPT_DIR}"/pihole-reenable.sh ${tt} </dev/null &>/dev/null &
-        else
-          local error=true
-        fi
-      elif [[ "${2}" == *"m" ]]; then
-        tt=${2%"m"}
-          if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
-          local str="Disabling blocking for ${tt} minutes"
-          echo -e "  ${INFO} ${str}..."
-          local str="Blocking will be re-enabled in ${tt} minutes"
-          tt=$((${tt}*60))
-          nohup "${PI_HOLE_SCRIPT_DIR}"/pihole-reenable.sh ${tt} </dev/null &>/dev/null &
-        else
-          local error=true
-        fi
-      elif [[ -n "${2}" ]]; then
-        local error=true
-      else
-        echo -e "  ${INFO} Disabling blocking"
-      fi
-
-      if [[ ${error} == true ]];then
-        echo -e "  ${COL_LIGHT_RED}Unknown format for delayed reactivation of the blocking!${COL_NC}"
-        echo -e "  Try 'pihole disable --help' for more information."
-        exit 1
-      fi
-
-      local str="Pi-hole Disabled"
-      setFTLConfigValue dns.blocking.active false
-    fi
-  else
-    # Enable Pi-hole
-    killall -q pihole-reenable
-    if getFTLConfigValue dns.blocking.active; then
-      echo -e "  ${INFO} Blocking already enabled, nothing to do"
-      exit 0
-    fi
-    echo -e "  ${INFO} Enabling blocking"
-    local str="Pi-hole Enabled"
-
-    setFTLConfigValue dns.blocking.active true
   fi
 
-  restartDNS reload-lists
+  # Get timer
+  local tt="null"
+  if [[ $# -gt 1 ]]; then
+    local error=false
+    if [[ "${2}" == *"s" ]]; then
+      tt=${2%"s"}
+      if [[ ! "${tt}" =~ ^-?[0-9]+$ ]];then
+        local error=true
+      fi
+    elif [[ "${2}" == *"m" ]]; then
+      tt=${2%"m"}
+      if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
+        tt=$((${tt}*60))
+      else
+        local error=true
+      fi
+    elif [[ -n "${2}" ]]; then
+      local error=true
+    fi
+
+    if [[ ${error} == true ]];then
+      echo -e "  ${COL_LIGHT_RED}Unknown format for blocking timer!${COL_NC}"
+      echo -e "  Try 'pihole disable --help' for more information."
+      exit 1
+    fi
+  fi
+
+  # Authenticate with the API
+  LoginAPI
+
+  # Send the request
+  data=$(PostFTLData "dns/blocking" "{ \"blocking\": ${1}, \"timer\": ${tt} }")
+
+  # Check the response
+  local extra=" forever"
+  local timer="$(echo "${data}"| jq --raw-output '.timer' )"
+  if [[ "${timer}" != "null" ]]; then
+    extra=" for ${timer}s"
+  fi
+  local str="Pi-hole $(echo "${data}" | jq --raw-output '.blocking')${extra}"
+
+  # Logout from the API
+  LogoutAPI
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -548,8 +539,8 @@ case "${1}" in
   "-r"  | "reconfigure"         ) ;;
   "-l" | "logging"              ) ;;
   "uninstall"                   ) ;;
-  "enable"                      ) ;;
-  "disable"                     ) ;;
+  "enable"                      ) need_root=0;;
+  "disable"                     ) need_root=0;;
   "-d" | "debug"                ) ;;
   "restartdns"                  ) ;;
   "-g" | "updateGravity"        ) ;;
@@ -591,8 +582,8 @@ case "${1}" in
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
-  "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0 "$2";;
+  "enable"                      ) piholeEnable true "$2";;
+  "disable"                     ) piholeEnable false "$2";;
   "restartdns"                  ) restartDNS "$2";;
   "reloaddns"                   ) restartDNS "reload";;
   "setpassword"                 ) SetWebPassword "$@";;
