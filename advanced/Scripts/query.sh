@@ -131,9 +131,6 @@ Main() {
     # https://github.com/pi-hole/FTL/pull/1715
     # no need to do it here
 
-    # Test if the authentication endpoint is available
-    TestAPIAvailability
-
     # Authenticate with FTL
     LoginAPI
 
