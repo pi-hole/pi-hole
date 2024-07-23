@@ -19,8 +19,12 @@ PI_HOLE_BIN_DIR="/usr/local/bin"
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 source "${colfile}"
 
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 source "${utilsfile}"
+
+# Source api functions
+readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+source "${apifile}"
 
 versionsfile="/etc/pihole/versions"
 if [ -f "${versionsfile}" ]; then
@@ -205,73 +209,60 @@ restartDNS() {
 
 piholeEnable() {
   if [[ "${2}" == "-h" ]] || [[ "${2}" == "--help" ]]; then
-    echo "Usage: pihole disable [time]
-Example: 'pihole disable', or 'pihole disable 5m'
-Disable Pi-hole subsystems
+    echo "Usage: pihole enable/disable [time]
+Example: 'pihole enable', or 'pihole disable 5m'
+En- or disable Pi-hole subsystems
 
 Time:
-  #s                  Disable Pi-hole functionality for # second(s)
-  #m                  Disable Pi-hole functionality for # minute(s)"
+  #s               En-/disable Pi-hole functionality for # second(s)
+  #m               En-/disable Pi-hole functionality for # minute(s)"
     exit 0
 
-  elif [[ "${1}" == "0" ]]; then
-    # Disable Pi-hole
-    if ! getFTLConfigValue dns.blocking.active; then
-      echo -e "  ${INFO} Blocking already disabled, nothing to do"
-      exit 0
-    fi
-    if [[ $# -gt 1 ]]; then
-      local error=false
-      if [[ "${2}" == *"s" ]]; then
-        tt=${2%"s"}
-        if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
-          local str="Disabling blocking for ${tt} seconds"
-          echo -e "  ${INFO} ${str}..."
-          local str="Blocking will be re-enabled in ${tt} seconds"
-          nohup "${PI_HOLE_SCRIPT_DIR}"/pihole-reenable.sh ${tt} </dev/null &>/dev/null &
-        else
-          local error=true
-        fi
-      elif [[ "${2}" == *"m" ]]; then
-        tt=${2%"m"}
-          if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
-          local str="Disabling blocking for ${tt} minutes"
-          echo -e "  ${INFO} ${str}..."
-          local str="Blocking will be re-enabled in ${tt} minutes"
-          tt=$((${tt}*60))
-          nohup "${PI_HOLE_SCRIPT_DIR}"/pihole-reenable.sh ${tt} </dev/null &>/dev/null &
-        else
-          local error=true
-        fi
-      elif [[ -n "${2}" ]]; then
-        local error=true
-      else
-        echo -e "  ${INFO} Disabling blocking"
-      fi
-
-      if [[ ${error} == true ]];then
-        echo -e "  ${COL_LIGHT_RED}Unknown format for delayed reactivation of the blocking!${COL_NC}"
-        echo -e "  Try 'pihole disable --help' for more information."
-        exit 1
-      fi
-
-      local str="Pi-hole Disabled"
-      setFTLConfigValue dns.blocking.active false
-    fi
-  else
-    # Enable Pi-hole
-    killall -q pihole-reenable
-    if getFTLConfigValue dns.blocking.active; then
-      echo -e "  ${INFO} Blocking already enabled, nothing to do"
-      exit 0
-    fi
-    echo -e "  ${INFO} Enabling blocking"
-    local str="Pi-hole Enabled"
-
-    setFTLConfigValue dns.blocking.active true
   fi
 
-  restartDNS reload-lists
+  # Get timer
+  local tt="null"
+  if [[ $# -gt 1 ]]; then
+    local error=false
+    if [[ "${2}" == *"s" ]]; then
+      tt=${2%"s"}
+      if [[ ! "${tt}" =~ ^-?[0-9]+$ ]];then
+        local error=true
+      fi
+    elif [[ "${2}" == *"m" ]]; then
+      tt=${2%"m"}
+      if [[ "${tt}" =~ ^-?[0-9]+$ ]];then
+        tt=$((${tt}*60))
+      else
+        local error=true
+      fi
+    elif [[ -n "${2}" ]]; then
+      local error=true
+    fi
+
+    if [[ ${error} == true ]];then
+      echo -e "  ${COL_LIGHT_RED}Unknown format for blocking timer!${COL_NC}"
+      echo -e "  Try 'pihole disable --help' for more information."
+      exit 1
+    fi
+  fi
+
+  # Authenticate with the API
+  LoginAPI
+
+  # Send the request
+  data=$(PostFTLData "dns/blocking" "{ \"blocking\": ${1}, \"timer\": ${tt} }")
+
+  # Check the response
+  local extra=" forever"
+  local timer="$(echo "${data}"| jq --raw-output '.timer' )"
+  if [[ "${timer}" != "null" ]]; then
+    extra=" for ${timer}s"
+  fi
+  local str="Pi-hole $(echo "${data}" | jq --raw-output '.blocking')${extra}"
+
+  # Logout from the API
+  LogoutAPI
 
   echo -e "${OVER}  ${TICK} ${str}"
 }
@@ -391,21 +382,22 @@ exit 0
 
 tailFunc() {
   # Warn user if Pi-hole's logging is disabled
-  local logging_enabled=$(grep -c "^log-queries" /etc/dnsmasq.d/01-pihole.conf)
-  if [[ "${logging_enabled}" == "0" ]]; then
-    # No "log-queries" lines are found.
-    # Commented out lines (such as "#log-queries") are ignored
+  local logging_enabled=$(getFTLConfigValue dns.queryLogging)
+  if [[ "${logging_enabled}" != "true" ]]; then
     echo "  ${CROSS} Warning: Query logging is disabled"
   fi
   echo -e "  ${INFO} Press Ctrl-C to exit"
 
+  # Get logfile path
+  readonly LOGFILE=$(getFTLConfigValue files.log.dnsmasq)
+
   # Strip date from each line
-  # Color blocklist/blacklist/wildcard entries as red
+  # Color blocklist/denylist/wildcard entries as red
   # Color A/AAAA/DHCP strings as white
   # Color everything else as gray
-  tail -f /var/log/pihole/pihole.log | grep --line-buffered "${1}" | sed -E \
+  tail -f $LOGFILE | grep --line-buffered "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
-    -e "s,(.*(blacklisted |gravity blocked ).*),${COL_RED}&${COL_NC}," \
+    -e "s,(.*(denied |gravity blocked ).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
     -e "s,.*,${COL_GRAY}&${COL_NC},"
   exit 0
@@ -471,17 +463,17 @@ unsupportedFunc(){
 
 helpFunc() {
   echo "Usage: pihole [options]
-Example: 'pihole -w -h'
+Example: 'pihole allow -h'
 Add '-h' after specific commands for more information on usage
 
-Whitelist/Blacklist Options:
-  -w, whitelist       Whitelist domain(s)
-  -b, blacklist       Blacklist domain(s)
-  --regex, regex      Regex blacklist domains(s)
-  --white-regex       Regex whitelist domains(s)
-  --wild, wildcard    Wildcard blacklist domain(s)
-  --white-wild        Wildcard whitelist domain(s)
-                        Add '-h' for more info on whitelist/blacklist usage
+Domain Options:
+  allow, allowlist    Allow domain(s)
+  deny, denylist      Deny domain(s)
+  --regex, regex      Regex deny domains(s)
+  --allow-regex       Regex allow domains(s)
+  --wild, wildcard    Wildcard deny domain(s)
+  --allow-wild        Wildcard allow domain(s)
+                        Add '-h' for more info on allow/deny usage
 
 Debugging Options:
   -d, debug           Start a debugging session
@@ -536,23 +528,23 @@ case "${1}" in
   "tricorder"                   ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
-  "-w" | "whitelist"            ) ;;
-  "-b" | "blacklist"            ) ;;
-  "--wild" | "wildcard"         ) ;;
-  "--regex" | "regex"           ) ;;
-  "--white-regex" | "white-regex" ) ;;
-  "--white-wild" | "white-wild"   ) ;;
+  "allow" | "allowlist"         ) need_root=0;;
+  "deny" | "denylist"           ) need_root=0;;
+  "--wild" | "wildcard"         ) need_root=0;;
+  "--regex" | "regex"           ) need_root=0;;
+  "--allow-regex" | "allow-regex" ) need_root=0;;
+  "--allow-wild" | "allow-wild"   ) need_root=0;;
   "-f" | "flush"                ) ;;
   "-up" | "updatePihole"        ) ;;
   "-r"  | "reconfigure"         ) ;;
   "-l" | "logging"              ) ;;
   "uninstall"                   ) ;;
-  "enable"                      ) ;;
-  "disable"                     ) ;;
+  "enable"                      ) need_root=0;;
+  "disable"                     ) need_root=0;;
   "-d" | "debug"                ) ;;
   "restartdns"                  ) ;;
-  "-g" | "updateGravity"        ) need_root=0;;
-  "reloaddns"                   ) need_root=0;;
+  "-g" | "updateGravity"        ) ;;
+  "reloaddns"                   ) ;;
   "setpassword"                 ) ;;
   "checkout"                    ) ;;
   "updatechecker"               ) ;;
@@ -561,42 +553,28 @@ case "${1}" in
   *                             ) helpFunc;;
 esac
 
-# Must be root to use this tool for most functions
-if [[ ! $EUID -eq 0 && need_root -eq 1 ]];then
-  if [[ -x "$(command -v sudo)" ]]; then
-    exec sudo bash "$0" "$@"
-    exit $?
-  else
-    echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
-    exit 1
-  fi
-fi
-
 # In the case of alpine running in a container, the USER variable appears to be blank
 # which prevents the next trap from working correctly. Set it by running whoami
 if [[ -z ${USER} ]]; then
   USER=$(whoami)
 fi
 
-# Can also be user pihole for other functions
-if [[ ${USER} != "pihole" && need_root -eq 0 ]];then
-  if [[ -x "$(command -v sudo)" ]]; then
-    exec sudo -u pihole bash "$0" "$@"
-    exit $?
-  else
-    echo -e "  ${CROSS} sudo is needed to run pihole commands.  Please run this script as root or install sudo."
-    exit 1
-  fi
+# Check if the current user is neither root nor pihole and if the command
+# requires root. If so, exit with an error message.
+if [[ $EUID -ne 0 && ${USER} != "pihole" && need_root -eq 1 ]];then
+  echo -e "  ${CROSS} The Pi-hole command requires root privileges, try:"
+  echo -e "      ${COL_GREEN}sudo pihole $*${COL_NC}"
+  exit 1
 fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-  "-w" | "whitelist"            ) listFunc "$@";;
-  "-b" | "blacklist"            ) listFunc "$@";;
+  "allow" | "allowlist"         ) listFunc "$@";;
+  "deny" | "denylist"           ) listFunc "$@";;
   "--wild" | "wildcard"         ) listFunc "$@";;
   "--regex" | "regex"           ) listFunc "$@";;
-  "--white-regex" | "white-regex" ) listFunc "$@";;
-  "--white-wild" | "white-wild"   ) listFunc "$@";;
+  "--allow-regex" | "allow-regex" ) listFunc "$@";;
+  "--allow-wild" | "allow-wild"   ) listFunc "$@";;
   "-d" | "debug"                ) debugFunc "$@";;
   "-f" | "flush"                ) flushFunc "$@";;
   "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
@@ -604,8 +582,8 @@ case "${1}" in
   "-g" | "updateGravity"        ) updateGravityFunc "$@";;
   "-l" | "logging"              ) piholeLogging "$@";;
   "uninstall"                   ) uninstallFunc;;
-  "enable"                      ) piholeEnable 1;;
-  "disable"                     ) piholeEnable 0 "$2";;
+  "enable"                      ) piholeEnable true "$2";;
+  "disable"                     ) piholeEnable false "$2";;
   "restartdns"                  ) restartDNS "$2";;
   "reloaddns"                   ) restartDNS "reload";;
   "setpassword"                 ) SetWebPassword "$@";;
@@ -613,4 +591,5 @@ case "${1}" in
   "updatechecker"               ) shift; updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
   "-t" | "tail"                 ) tailFunc "$2";;
+  *                             ) helpFunc;;
 esac

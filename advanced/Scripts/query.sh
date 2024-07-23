@@ -112,6 +112,12 @@ GenerateOutput() {
             printf "\n\n"
         done
     fi
+
+    # If no exact results were found, suggest using partial matching
+    if [ "${num_lists}" -eq 0 ] && [ "${num_gravity}" -eq 0 ] && [ "${partial}" = false ]; then
+        printf "%s\n" "Hint: Try partial matching with"
+        printf "%s\n\n" "  ${COL_GREEN}pihole -q --partial ${domain}${COL_NC}"
+    fi
 }
 
 Main() {
@@ -125,25 +131,16 @@ Main() {
     # https://github.com/pi-hole/FTL/pull/1715
     # no need to do it here
 
-    # Test if the authentication endpoint is available
-    TestAPIAvailability
+    # Authenticate with FTL
+    LoginAPI
 
-    # Users can configure FTL in a way, that for accessing a) all endpoints (webserver.api.localAPIauth)
-    # or b) for the /search endpoint (webserver.api.searchAPIauth) no authentication is required.
-    # Therefore, we try to query directly without authentication but do authenticat if 401 is returned
-
+    # send query again
     data=$(GetFTLData "search/${domain}?N=${max_results}&partial=${partial}")
 
-    if [ "${data}" = 401 ]; then
-        # Unauthenticated, so authenticate with the FTL server required
-        Authentication
-
-        # send query again
-        data=$(GetFTLData "search/${domain}?N=${max_results}&partial=${partial}")
-    fi
-
     GenerateOutput "${data}"
-    DeleteSession
+
+    # Delete session
+    LogoutAPI
 }
 
 # Process all options (if present)

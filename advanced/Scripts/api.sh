@@ -21,7 +21,7 @@
 TestAPIAvailability() {
 
     # as we are running locally, we can get the port value from FTL directly
-    local chaos_api_list availabilityResonse
+    local chaos_api_list availabilityResponse
 
     # Query the API URLs from FTL using CHAOS TXT local.api.ftl
     # The result is a space-separated enumeration of full URLs
@@ -43,14 +43,20 @@ TestAPIAvailability() {
         API_URL="${API_URL#\"}"
 
         # Test if the API is available at this URL
-        availabilityResonse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}auth")
+        availabilityResponse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}auth")
 
         # Test if http status code was 200 (OK) or 401 (authentication required)
-        if [ ! "${availabilityResonse}" = 200 ] && [ ! "${availabilityResonse}" = 401 ]; then
+        if [ ! "${availabilityResponse}" = 200 ] && [ ! "${availabilityResponse}" = 401 ]; then
             # API is not available at this port/protocol combination
             API_PORT=""
         else
             # API is available at this URL combination
+
+            if [ "${availabilityResponse}" = 200 ]; then
+                # API is available without authentication
+                needAuth=false
+            fi
+
             break
         fi
 
@@ -74,10 +80,28 @@ TestAPIAvailability() {
     fi
 }
 
-Authentication() {
-    # Try to authenticate
-    LoginAPI
+LoginAPI() {
+    # If the API URL is not set, test the availability
+    if [ -z "${API_URL}" ]; then
+        TestAPIAvailability
+    fi
 
+    # Exit early if authentication is not needed
+    if [ "${needAuth}" = false ]; then
+        return
+    fi
+
+    # Try to read the CLI password (if enabled and readable by the current user)
+    if [ -r /etc/pihole/cli_pw ]; then
+        password=$(cat /etc/pihole/cli_pw)
+
+        # Try to authenticate using the CLI password
+        Authentication
+    fi
+
+
+
+    # If this did not work, ask the user for the password
     while [ "${validSession}" = false ] || [ -z "${validSession}" ] ; do
         echo "Authentication failed. Please enter your Pi-hole password"
 
@@ -85,15 +109,12 @@ Authentication() {
         secretRead; printf '\n'
 
         # Try to authenticate again
-        LoginAPI
+        Authentication
     done
-
-    # Loop exited, authentication was successful
-    echo "Authentication successful."
 
 }
 
-LoginAPI() {
+Authentication() {
   sessionResponse="$(curl -skS -X POST "${API_URL}auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
 
   if [ -z "${sessionResponse}" ]; then
@@ -105,7 +126,7 @@ LoginAPI() {
   SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
 }
 
-DeleteSession() {
+LogoutAPI() {
     # if a valid Session exists (no password required or successful Authentication) and
     # SID is not null (successful Authentication only), delete the session
     if [ "${validSession}" = true ] && [ ! "${SID}" = null ]; then
@@ -113,7 +134,6 @@ DeleteSession() {
         deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth"  -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
-            "204") printf "%b" "Session successfully deleted.\n";;
             "401") printf "%b" "Logout attempt without a valid session. Unauthorized!\n";;
          esac;
     fi
@@ -139,6 +159,20 @@ GetFTLData() {
   elif [ "${status}" = 401 ]; then
     # unauthorized
     echo "401"
+  fi
+}
+
+PostFTLData() {
+  local data response status
+  # send the data to the API
+  response=$(curl -skS -w "%{http_code}" -X POST "${API_URL}$1" --data-raw "$2" -H "Accept: application/json" -H "sid: ${SID}" )
+  # data is everything from response without the last 3 characters
+  if [ "${3}" = "status" ]; then
+    # Keep the status code appended if requested
+    printf %s "${response}"
+  else
+    # Strip the status code
+    printf %s "${response%???}"
   fi
 }
 
