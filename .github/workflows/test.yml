@@ -56,7 +56,6 @@ jobs:
       matrix:
         distro:
           [
-            debian_10,
             debian_11,
             debian_12,
             ubuntu_20,
