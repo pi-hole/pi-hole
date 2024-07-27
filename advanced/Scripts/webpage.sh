@@ -19,6 +19,7 @@ readonly FTLconf="/etc/pihole/pihole-FTL.conf"
 readonly dhcpstaticconfig="/etc/dnsmasq.d/04-pihole-static-dhcp.conf"
 readonly dnscustomfile="/etc/pihole/custom.list"
 readonly dnscustomcnamefile="/etc/dnsmasq.d/05-pihole-custom-cname.conf"
+readonly dnscustomnsfile="/etc/dnsmasq.d/07-pihole-custom-ns.conf"
 
 readonly gravityDBfile="/etc/pihole/gravity.db"
 
@@ -829,6 +830,66 @@ RemoveCustomCNAMERecord() {
     fi
 }
 
+AddCustomNSRecord() {
+    echo -e "  ${TICK} Adding custom NS record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    reload="${args[4]}"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+            if [ "${validDomain}" = "${validTarget}" ]; then
+                echo "  ${CROSS} Domain and target are the same. This would cause a DNS loop."
+                exit 1
+            else
+                echo "server=/${validDomain}/${validTarget}" >> "${dnscustomnsfile}"
+            fi
+        else
+            echo "  ${CROSS} Invalid Target Passed!"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+    # Restart dnsmasq to load new custom NS records only if reload is not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
+RemoveCustomNSRecord() {
+    echo -e "  ${TICK} Removing custom NS record..."
+
+    domain="${args[2]}"
+    target="${args[3]}"
+    reload="${args[4]}"
+
+    validDomain="$(checkDomain "${domain}")"
+    if [[ -n "${validDomain}" ]]; then
+        validTarget="$(checkDomain "${target}")"
+        if [[ -n "${validTarget}" ]]; then
+            validDomain=$(escapeDots "${validDomain}")
+            validTarget=$(escapeDots "${validTarget}")
+            sed -i "/^server=\/${validDomain}\/${validTarget}$/Id" "${dnscustomnsfile}"
+        else
+            echo "  ${CROSS} Invalid Target Passed!"
+            exit 1
+        fi
+    else
+        echo "  ${CROSS} Invalid Domain passed!"
+        exit 1
+    fi
+
+    # Restart dnsmasq to update removed custom NS records only if $reload not false
+    if [[ ! $reload == "false" ]]; then
+        RestartDNS
+    fi
+}
+
 SetRateLimit() {
     local rate_limit_count rate_limit_interval reload
     rate_limit_count="${args[2]}"
@@ -878,6 +939,8 @@ main() {
         "removecustomdns"     ) RemoveCustomDNSAddress;;
         "addcustomcname"      ) AddCustomCNAMERecord;;
         "removecustomcname"   ) RemoveCustomCNAMERecord;;
+        "addcustomns"         ) AddCustomNSRecord;;
+        "removecustomns"      ) RemoveCustomNSRecord;;
         "ratelimit"           ) SetRateLimit;;
         *                     ) helpFunc;;
     esac
