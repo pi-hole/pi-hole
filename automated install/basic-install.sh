@@ -2445,15 +2445,23 @@ FTLcheckUpdate() {
         if [[ ${ftlLoc} ]]; then
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLlatesttag
 
-            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
+            local FTLlatesttag
+            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq -sRr 'fromjson? | .tag_name | values')
+
+            if [ -z "${FTLlatesttag}" ]; then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
 
-            if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+            # Convert version strings into numbers for comparison
+            local convertedFTLversion convertedFTLlatesttag
+            convertedFTLversion="$(VersionConverter "${FTLversion}")"
+            convertedFTLlatesttag="$(VersionConverter "${FTLlatesttag}")"
+
+            if [[ "${convertedFTLversion}" -lt "${convertedFTLlatesttag}" ]]; then
+                # FTL is out of date
                 return 0
             else
                 printf "  %b Latest FTL Binary already installed (%s). Confirming Checksum...\\n" "${INFO}" "${FTLlatesttag}"
@@ -2503,6 +2511,12 @@ copy_to_install_log() {
     # Since we use color codes such as '\e[1;33m', they should be removed
     sed 's/\[[0-9;]\{1,5\}m//g' < /proc/$$/fd/3 > "${installLogLoc}"
     chmod 644 "${installLogLoc}"
+}
+
+# converts a given version string e.g. v3.7.1 to 3007001000 to allow for easier comparison of multi digit version numbers
+# credits https://apple.stackexchange.com/a/123408
+VersionConverter() {
+  echo "$@" | tr -d '[:alpha:]' | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
 }
 
 main() {
