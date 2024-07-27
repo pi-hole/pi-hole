@@ -19,6 +19,8 @@ StartLimitIntervalSec=60s
 User=pihole
 PermissionsStartOnly=true
 AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN
+# Prevents the pihole-FTL process from acquiring more capabilities then the following
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN
 
 ExecStartPre=/opt/pihole/pihole-FTL-prestart.sh
 ExecStart=/usr/bin/pihole-FTL -f
@@ -30,12 +32,44 @@ ExecStopPost=/opt/pihole/pihole-FTL-poststop.sh
 # Use graceful shutdown with a reasonable timeout
 TimeoutStopSec=10s
 
-# Make /usr, /boot, /etc and possibly some more folders read-only...
-ProtectSystem=full
-# ... except /etc/pihole
-# This merely retains r/w access rights, it does not add any new.
-# Must still be writable on the host!
-ReadWriteDirectories=/etc/pihole
+# Let the pihole-FTL process see a read-only view of /opt/pihole when TemporaryFileSystem= is
+# hiding the content of /opt
+BindReadOnlyPaths=/opt/pihole
+# Gives access to /etc/pihole
+ConfigurationDirectory=pihole
+LockPersonality=true
+# Gives access to /var/log/pihole
+LogsDirectory=pihole
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateIPC=true
+# Gives pihole-FTL a private (0700), not shared, per-execution, tmp folder
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+# Hides processes owned by other users from pihole-FTL view
+ProtectProc=invisible
+# Mount the entire file system as read-only. Write access to required folders is provided via
+# {Configuration,Logs,Runtime}Directory= settings
+ProtectSystem=strict
+RemoveIPC=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+# Gives access to /run/pihole, cleared when service is stopped
+RuntimeDirectory=pihole
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# Blacklist using the '~' character the @privileged syscall set
+SystemCallFilter=~@privileged
+# Hides the content of the following folders, which may contain user data, from pihole-FTL view
+TemporaryFileSystem=/media /mnt /opt /run /srv /var
 
 [Install]
 WantedBy=multi-user.target

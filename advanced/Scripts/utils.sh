@@ -108,7 +108,7 @@ getFTLAPIPort(){
 #######################
 getFTLPIDFile() {
   local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-  local DEFAULT_PID_FILE="/run/pihole-FTL.pid"
+  local DEFAULT_PID_FILE="/run/pihole/FTL.pid"
   local FTL_PID_FILE
 
   if [ -s "${FTLCONFFILE}" ]; then
@@ -123,10 +123,10 @@ getFTLPIDFile() {
 }
 
 #######################
-# returns FTL's PID based on the content of the pihole-FTL.pid file
+# returns FTL's PID based on the content of the FTL.pid file
 #
-# Takes one argument: path to pihole-FTL.pid
-# Example getFTLPID "/run/pihole-FTL.pid"
+# Takes one argument: path to FTL.pid
+# Example getFTLPID "/run/pihole/FTL.pid"
 #######################
 getFTLPID() {
     local FTL_PID_FILE="${1}"
