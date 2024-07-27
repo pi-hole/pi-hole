@@ -40,7 +40,7 @@ def test_setupVars_are_sourced_to_global_scope(host):
     """
     setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
     for k, v in SETUPVARS.items():
-        setup_var_file += "{}={}\n".format(k, v)
+        setup_var_file += f"{k}={v}\n"
     setup_var_file += "EOF\n"
     host.run(setup_var_file)
 
@@ -65,7 +65,7 @@ def test_setupVars_are_sourced_to_global_scope(host):
     output = run_script(host, script).stdout
 
     for k, v in SETUPVARS.items():
-        assert "{}={}".format(k, v) in output
+        assert f"{k}={v}" in output
 
 
 def test_setupVars_saved_to_file(host):
@@ -75,7 +75,7 @@ def test_setupVars_saved_to_file(host):
     # dedent works better with this and padding matching script below
     set_setup_vars = "\n"
     for k, v in SETUPVARS.items():
-        set_setup_vars += "    {}={}\n".format(k, v)
+        set_setup_vars += f"    {k}={v}\n"
     host.run(set_setup_vars)
 
     script = dedent(
@@ -99,7 +99,7 @@ def test_setupVars_saved_to_file(host):
     output = run_script(host, script).stdout
 
     for k, v in SETUPVARS.items():
-        assert "{}={}".format(k, v) in output
+        assert f"{k}={v}" in output
 
 
 def test_selinux_not_detected(host):
@@ -137,7 +137,7 @@ def get_directories_recursive(host, directory):
     if directory is None:
         return directory
     # returns all non-hidden subdirs of 'directory'
-    dirs_raw = host.run("find {} -type d -not -path '*/.*'".format(directory))
+    dirs_raw = host.run(f"find {directory} -type d -not -path '*/.*'")
     dirs = list(filter(bool, dirs_raw.stdout.splitlines()))
     return dirs
 
@@ -171,7 +171,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     # create configuration file
     setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
     for k, v in SETUPVARS.items():
-        setup_var_file += "{}={}\n".format(k, v)
+        setup_var_file += f"{k}={v}\n"
     setup_var_file += "INSTALL_WEB_SERVER=true\n"
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
@@ -432,7 +432,7 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
     # create configuration file
     setup_var_file = "cat <<EOF> /etc/pihole/setupVars.conf\n"
     for k, v in SETUPVARS.items():
-        setup_var_file += "{}={}\n".format(k, v)
+        setup_var_file += f"{k}={v}\n"
     setup_var_file += "INSTALL_WEB_SERVER=true\n"
     setup_var_file += "INSTALL_WEB_INTERFACE=true\n"
     setup_var_file += "EOF\n"
