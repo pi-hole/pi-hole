@@ -9,7 +9,7 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
-# Source utils.sh for getFTLPIDFile(), getFTLPID()
+# Source utils.sh for getFTLConfigValue(), getFTLPID()
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck disable=SC1090
@@ -98,7 +98,7 @@ status() {
 trap 'cleanup; exit 1' INT HUP TERM ABRT
 
 # Get FTL's PID file path
-FTL_PID_FILE="$(getFTLPIDFile)"
+FTL_PID_FILE="$(getFTLConfigValue files.pid)"
 
 # Get FTL's current PID
 FTL_PID="$(getFTLPID "${FTL_PID_FILE}")"
