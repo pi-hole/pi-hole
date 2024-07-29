@@ -32,15 +32,3 @@ find /etc/pihole -type d -exec chmod 0755 {} \;
 [ -f /var/log/pihole/FTL.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/FTL.log
 [ -f /var/log/pihole/pihole.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/pihole.log
 [ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
-
-
-# Backward compatibility for user-scripts that still expect log files in /var/log instead of /var/log/pihole
-# Should be removed with Pi-hole v6.0
-if [ ! -f /var/log/pihole.log ]; then
-    ln -sf /var/log/pihole/pihole.log /var/log/pihole.log
-    chown -h pihole:pihole /var/log/pihole.log
-fi
-if [ ! -f /var/log/pihole-FTL.log ]; then
-    ln -sf /var/log/pihole/FTL.log /var/log/pihole-FTL.log
-    chown -h pihole:pihole /var/log/pihole-FTL.log
-fi

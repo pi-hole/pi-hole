@@ -2323,34 +2323,6 @@ main() {
     # the service before enabling causes installer to exit
     enable_service pihole-FTL
 
-    # If this is an update from a previous Pi-hole installation
-    # we need to move any existing `pihole*` logs from `/var/log` to `/var/log/pihole`
-    # if /var/log/pihole.log is not a symlink (set during FTL startup) move the files
-    # can be removed with Pi-hole v6.0
-    # To be sure FTL is not running when we move the files we explicitly stop it here
-
-    stop_service pihole-FTL &>/dev/null
-
-    if [ ! -d /var/log/pihole/ ]; then
-        mkdir -m 0755 /var/log/pihole/
-    fi
-
-    # Special handling for pihole-FTL.log -> pihole/FTL.log
-    if [ -f /var/log/pihole-FTL.log ] && [ ! -L /var/log/pihole-FTL.log ]; then
-        # /var/log/pihole-FTL.log      -> /var/log/pihole/FTL.log
-        # /var/log/pihole-FTL.log.1    -> /var/log/pihole/FTL.log.1
-        # /var/log/pihole-FTL.log.2.gz -> /var/log/pihole/FTL.log.2.gz
-        # /var/log/pihole-FTL.log.3.gz -> /var/log/pihole/FTL.log.3.gz
-        # /var/log/pihole-FTL.log.4.gz -> /var/log/pihole/FTL.log.4.gz
-        # /var/log/pihole-FTL.log.5.gz -> /var/log/pihole/FTL.log.5.gz
-        for f in /var/log/pihole-FTL.log*; do mv "$f" "$(sed "s/pihole-/pihole\//" <<<"$f")"; done
-    fi
-
-    # Remaining log files
-    if [ -f /var/log/pihole.log ] && [ ! -L /var/log/pihole.log ]; then
-        mv /var/log/pihole*.* /var/log/pihole/ 2>/dev/null
-    fi
-
     restart_service pihole-FTL
 
     # Download and compile the aggregated block list
