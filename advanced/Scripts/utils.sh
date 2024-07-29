@@ -82,25 +82,6 @@ removeKey() {
 }
 
 #######################
-# returns path of FTL's PID  file
-#######################
-getFTLPIDFile() {
-  local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-  local DEFAULT_PID_FILE="/run/pihole-FTL.pid"
-  local FTL_PID_FILE
-
-  if [ -s "${FTLCONFFILE}" ]; then
-    # if PIDFILE is not set in pihole-FTL.conf, use the default path
-    FTL_PID_FILE="$({ grep '^PIDFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PID_FILE}"; } | cut -d'=' -f2-)"
-  else
-    # if there is no pihole-FTL.conf, use the default path
-    FTL_PID_FILE="${DEFAULT_PID_FILE}"
-  fi
-
-  echo "${FTL_PID_FILE}"
-}
-
-#######################
 # returns FTL's PID based on the content of the pihole-FTL.pid file
 #
 # Takes one argument: path to pihole-FTL.pid

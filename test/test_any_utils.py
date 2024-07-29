@@ -82,18 +82,6 @@ def test_key_removal_works(host):
     assert expected_stdout == output.stdout
 
 
-def test_getFTLPIDFile_default(host):
-    """Confirms getFTLPIDFile returns the default PID file path"""
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLPIDFile
-    """
-    )
-    expected_stdout = "/run/pihole-FTL.pid\n"
-    assert expected_stdout == output.stdout
-
-
 def test_getFTLPID_default(host):
     """Confirms getFTLPID returns the default value if FTL is not running"""
     output = host.run(
@@ -106,27 +94,7 @@ def test_getFTLPID_default(host):
     assert expected_stdout == output.stdout
 
 
-def test_getFTLPIDFile_and_getFTLPID_custom(host):
-    """Confirms getFTLPIDFile returns a custom PID file path"""
-    host.run(
-        """
-    tmpfile=$(mktemp)
-    echo "PIDFILE=${tmpfile}" > /etc/pihole/pihole-FTL.conf
-    echo "1234" > ${tmpfile}
-    """
-    )
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    FTL_PID_FILE=$(getFTLPIDFile)
-    getFTLPID "${FTL_PID_FILE}"
-    """
-    )
-    expected_stdout = "1234\n"
-    assert expected_stdout == output.stdout
-
-
-def test_getFTLConfigValue_getFTLConfigValue(host):
+def test_setFTLConfigValue_getFTLConfigValue(host):
     """
     Confirms getFTLConfigValue works (also assumes setFTLConfigValue works)
     Requires FTL to be installed, so we do that first

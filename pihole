@@ -152,7 +152,7 @@ restartDNS() {
   svcOption="${1:-restart}"
 
   # get the current path to the pihole-FTL.pid
-  FTL_PID_FILE="$(getFTLPIDFile)"
+  FTL_PID_FILE="$(getFTLConfigValue files.pid)"
 
   # Determine if we should reload or restart
   if [[ "${svcOption}" =~ "reload-lists" ]]; then
@@ -337,7 +337,7 @@ statusFunc() {
     # Determine if there is pihole-FTL service is listening
     local pid port ftl_pid_file block_status
 
-    ftl_pid_file="$(getFTLPIDFile)"
+    ftl_pid_file="$(getFTLConfigValue files.pid)"
 
     pid="$(getFTLPID ${ftl_pid_file})"
 
