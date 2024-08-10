@@ -86,9 +86,9 @@ adlistFile="/etc/pihole/adlists.list"
 IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
-QUERY_LOGGING=true
+QUERY_LOGGING=
 WEBPORT=8080
-PRIVACY_LEVEL=0
+PRIVACY_LEVEL=
 
 # Where old configs go to if a v6 migration is performed
 V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
@@ -2298,6 +2298,15 @@ main() {
         # generate a random password
         pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
         pihole -a -p "${pw}"
+    fi
+
+    # write privacy level and logging to pihole.toml
+    # set on fresh installations by setPrivacyLevel() and setLogging(
+    if [ -n "${QUERY_LOGGING}" ]; then
+        pihole-FTL --config dns.queryLogging "${QUERY_LOGGING}"
+    fi
+    if [ -n "${PRIVACY_LEVEL}" ]; then
+        pihole-FTL --config misc.privacylevel "${PRIVACY_LEVEL}"
     fi
 
     # Migrate existing install to v6.0
