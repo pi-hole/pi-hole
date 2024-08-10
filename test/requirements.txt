@@ -1,4 +1,4 @@
-pyyaml == 6.0.1
+pyyaml == 6.0.2
 pytest == 8.3.2
 pytest-xdist == 3.6.1
 pytest-testinfra == 10.1.1
