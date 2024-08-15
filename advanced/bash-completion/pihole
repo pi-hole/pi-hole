@@ -1,5 +1,5 @@
 _pihole() {
-    local cur prev opts opts_checkout opts_debug  opts_logging opts_query opts_update opts_version
+    local cur prev opts opts_checkout opts_debug opts_logging opts_query opts_update opts_version
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -10,7 +10,7 @@ _pihole() {
             opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard arpflush"
             COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         ;;
-        "allow"|"deny"|"wildcard"|"regex"|"allow-regx"|"allow-wild")
+        "allow"|"deny"|"wildcard"|"regex"|"allow-regex"|"allow-wild")
             opts_lists="\not \--delmode \--quiet \--list \--help"
             COMPREPLY=( $(compgen -W "${opts_lists}" -- ${cur}) )
         ;;
