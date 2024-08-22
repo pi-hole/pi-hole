@@ -408,19 +408,21 @@ piholeCheckoutFunc() {
     unsupportedFunc
   else
     if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
-      echo "Usage: pihole checkout [repo] [branch]
-  Example: 'pihole checkout master' or 'pihole checkout core dev'
-  Switch Pi-hole subsystems to a different GitHub branch
+      echo "Switch Pi-hole subsystems to a different GitHub branch
+    Usage: ${COL_GREEN}pihole checkout${COL_NC} ${COL_YELLOW}shortcut${COL_NC}
+        or ${COL_GREEN}pihole checkout${COL_NC} ${COL_PURPLE}repo${COL_NC} ${COL_CYAN}branch${COL_NC}
+  Example: ${COL_GREEN}pihole checkout${COL_NC} ${COL_YELLOW}master${COL_NC}
+       or  ${COL_GREEN}pihole checkout${COL_NC} ${COL_PURPLE}ftl ${COL_CYAN}development${COL_NC}
 
-  Repositories:
-    core [branch]       Change the branch of Pi-hole's core subsystem
-    web [branch]        Change the branch of Web Interface subsystem
-    ftl [branch]        Change the branch of Pi-hole's FTL subsystem
+  Shortcuts:
+    ${COL_YELLOW}master${COL_NC}            Update all subsystems to the latest stable release
+    ${COL_YELLOW}dev${COL_NC}               Update all subsystems to the latest development release
 
-  Branches:
-    master              Update subsystems to the latest stable release
-    dev                 Update subsystems to the latest development release
-    branchname          Update subsystems to the specified branchname"
+  Individual components:
+    ${COL_PURPLE}core${COL_NC} ${COL_CYAN}branch${COL_NC}       Change the branch of Pi-hole's core subsystem
+    ${COL_PURPLE}web${COL_NC} ${COL_CYAN}branch${COL_NC}        Change the branch of the web interface subsystem
+    ${COL_PURPLE}ftl${COL_NC} ${COL_CYAN}branch${COL_NC}        Change the branch of Pi-hole's FTL subsystem"
+
       exit 0
     fi
 
