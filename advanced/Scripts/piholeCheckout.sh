@@ -10,6 +10,7 @@
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
+SOURCING=true
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # webInterfaceGitUrl set in basic-install.sh
@@ -52,6 +53,13 @@ checkout() {
     # Avoid globbing
     set -f
 
+    # In docker containers, we allow only ftl branches to be checked out
+    # The special shortcuts are prevented as well
+    if [ -n "${DOCKER_VERSION}" ] && [[ "$1" != "ftl" ]]; then
+        echo -e "  ${COL_LIGHT_RED}Error: This feature is not available in Docker installations${COL_NC}"
+        exit 1
+    fi
+
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
         echo -e "  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!"
@@ -77,7 +85,7 @@ checkout() {
 
     if [[ "${1}" == "dev" ]] ; then
         # Shortcut to check out development branches
-        echo -e "  ${INFO} Shortcut \"dev\" detected - checking out development / devel branches..."
+        echo -e "  ${INFO} Shortcut \"${COL_YELLOW}dev${COL_NC}\" detected - checking out development / devel branches..."
         echo ""
         echo -e "  ${INFO} Pi-hole Core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
@@ -92,7 +100,7 @@ checkout() {
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
-        echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
+        echo -e "  ${INFO} Shortcut \"${COL_YELLOW}master${COL_NC}\" detected - checking out master branches..."
         echo -e "  ${INFO} Pi-hole core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
         echo -e "  ${INFO} Web interface"
@@ -123,7 +131,7 @@ checkout() {
         echo ""
         # Have the user choose the branch they want
         if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
-            echo -e "  ${INFO} Requested branch \"${2}\" is not available"
+            echo -e "  ${INFO} Requested branch \"${COL_CYAN}${2}${COL_NC}\" is not available"
             echo -e "  ${INFO} Available branches for Core are:"
             for e in "${corebranches[@]}"; do echo "      - $e"; done
             exit 1
@@ -150,7 +158,7 @@ checkout() {
         echo ""
         # Have the user choose the branch they want
         if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
-            echo -e "  ${INFO} Requested branch \"${2}\" is not available"
+            echo -e "  ${INFO} Requested branch \"${COL_CYAN}${2}${COL_NC}\" is not available"
             echo -e "  ${INFO} Available branches for Web Admin are:"
             for e in "${webbranches[@]}"; do echo "      - $e"; done
             exit 1
@@ -164,6 +172,7 @@ checkout() {
         path="${2}/${binary}"
         oldbranch="$(pihole-FTL -b)"
 
+        echo -e "  ${INFO} Checking for branch ${COL_CYAN}${2}${COL_NC} on https://ftl.pi-hole.net"
         check_download_exists "$path"
         local ret=$?
         if [ $ret -eq 0 ]; then
@@ -172,8 +181,13 @@ checkout() {
             chmod 644 /etc/pihole/ftlbranch
             echo -e "  ${INFO} Switching to branch: \"${2}\" from \"${oldbranch}\""
             FTLinstall "${binary}"
-            restart_service pihole-FTL
-            enable_service pihole-FTL
+            if [ -n "${DOCKER_VERSION}" ]; then
+                # If we are in a Docker container, we cannot restart services
+                echo -e "  ${INFO} FTL branch changed. Please ${COL_BOLD}restart the container${COL_NC} to apply the changes."
+            else
+                restart_service pihole-FTL
+                enable_service pihole-FTL
+            fi
             # Update local and remote versions via updatechecker
             /opt/pihole/updatecheck.sh
         else
@@ -193,7 +207,7 @@ checkout() {
         fi
 
     else
-        echo -e "  ${INFO} Requested option \"${1}\" is not available"
+        echo -e "  ${CROSS} Requested option \"${1}\" is not available"
         exit 1
     fi
 

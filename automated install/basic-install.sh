@@ -16,10 +16,16 @@
 #
 # curl -sSL https://install.pi-hole.net | bash
 
-# -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
-# We do not want users to end up with a partially working install, so we exit the script
-# instead of continuing the installation with something broken
-set -e
+# -e option instructs bash to immediately exit if any command [1] has a non-zero
+# exit status We do not want users to end up with a partially working install,
+# so we exit the script instead of continuing the installation with something
+# broken
+# We do not want this when merely sourcing functions from this function as it
+# would exit the parent script e.g. when check_download_exists() determines that
+# a given branch does not exist returning 1 (= error)
+if [ -z $SOURCING ]; then
+  set -e
+fi
 
 # Append common folders to the PATH to ensure that all basic commands are available.
 # When using "su" an incomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
