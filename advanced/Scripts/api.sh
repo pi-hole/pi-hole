@@ -88,6 +88,9 @@ LoginAPI() {
 
     # Exit early if authentication is not needed
     if [ "${needAuth}" = false ]; then
+        if [ "${1}" = "verbose" ]; then
+            echo "API Authentication: Not needed"
+        fi
         return
     fi
 
@@ -95,8 +98,15 @@ LoginAPI() {
     if [ -r /etc/pihole/cli_pw ]; then
         password=$(cat /etc/pihole/cli_pw)
 
+        if [ "${1}" = "verbose" ]; then
+            echo "API Authentication: Trying to use CLI password"
+        fi
+
         # Try to authenticate using the CLI password
-        Authentication
+        Authentication "${1}"
+
+    elif [ "${1}" = "verbose" ]; then
+        echo "API Authentication: CLI password not available"
     fi
 
 
@@ -109,7 +119,7 @@ LoginAPI() {
         secretRead; printf '\n'
 
         # Try to authenticate again
-        Authentication
+        Authentication "${1}"
     done
 
 }
@@ -124,6 +134,14 @@ Authentication() {
   # obtain validity and session ID from session response
   validSession=$(echo "${sessionResponse}"| jq .session.valid 2>/dev/null)
   SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
+
+  if [ "${1}" = "verbose" ]; then
+    if [ "${validSession}" = true ]; then
+      echo "API Authentication: ${COL_GREEN}Success${COL_NC}"
+    else
+      echo "API Authentication: ${COL_RED}Failed${COL_NC}"
+    fi
+  fi
 }
 
 LogoutAPI() {
@@ -134,10 +152,12 @@ LogoutAPI() {
         deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth"  -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
-            "401") printf "%b" "Logout attempt without a valid session. Unauthorized!\n";;
-         esac;
+            "401") echo "Logout attempt without a valid session. Unauthorized!";;
+            "204") if [ "${1}" = "verbose" ]; then echo "API Logout: ${COL_GREEN}Success${COL_NC} (session deleted)"; fi;;
+        esac;
+    elif [ "${1}" = "verbose" ]; then
+        echo "API Logout: ${COL_GREEN}Success${COL_NC} (no valid session)"
     fi
-
 }
 
 GetFTLData() {
@@ -234,7 +254,8 @@ apiFunc() {
   local data response status status_col
 
   # Authenticate with the API
-  LoginAPI
+  LoginAPI verbose
+  echo ""
 
   echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
   echo ""
@@ -265,5 +286,5 @@ apiFunc() {
   fi
 
   # Delete the session
-  LogoutAPI
+  LogoutAPI verbose
 }
