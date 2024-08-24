@@ -496,6 +496,19 @@ hardware_check() {
     run_and_print_command "lscpu"
 }
 
+list_sensors(){
+    echo_current_diagnostic "Listing system sensors"
+
+    local errmsg="${CROSS} ${COL_RED}Command failed${COL_NC}"
+
+    # Raw input (-R) and slurp (-s) options combined treat a valid JSON or an error message in the same way.
+    # Then the command `fromjson?` tries to convert the raw input into JSON:
+    # - In case of failure (error message), the `// $err` command will output the formatted error message.
+    # - In case of success (valid JSON), it outputs the formatted JSON using indentation and colors (-C).
+    log_write "$(pihole-FTL --sensors 2>&1 | jq -RsrC --indent 4 --arg err "${errmsg}" 'fromjson? // $err')"
+}
+
+
 disk_usage() {
     local file_system
     local hide
@@ -1368,6 +1381,7 @@ diagnose_operating_system
 check_selinux
 check_firewalld
 hardware_check
+list_sensors
 disk_usage
 check_ip_command
 check_networking
