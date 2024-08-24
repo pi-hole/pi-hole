@@ -550,6 +550,7 @@ case "${1}" in
   "updatechecker"               ) ;;
   "arpflush"                    ) ;;
   "-t" | "tail"                 ) ;;
+  "api"                         ) need_root=0;;
   *                             ) helpFunc;;
 esac
 
@@ -591,5 +592,6 @@ case "${1}" in
   "updatechecker"               ) shift; updateCheckFunc "$@";;
   "arpflush"                    ) arpFunc "$@";;
   "-t" | "tail"                 ) tailFunc "$2";;
+  "api"                         ) apiFunc "$2";;
   *                             ) helpFunc;;
 esac

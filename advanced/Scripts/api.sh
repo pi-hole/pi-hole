@@ -146,19 +146,22 @@ GetFTLData() {
   response=$(curl -skS -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" )
 
   # status are the last 3 characters
-  status=$(printf %s "${response#"${response%???}"}")
+  status="${response#"${response%???}"}"
   # data is everything from response without the last 3 characters
-  data=$(printf %s "${response%???}")
+  data="${response%???}"
 
-  if [ "${status}" = 200 ]; then
-    # response OK
-    printf %s "${data}"
-  elif [ "${status}" = 000 ]; then
-    # connection lost
-    echo "000"
-  elif [ "${status}" = 401 ]; then
-    # unauthorized
-    echo "401"
+  if [ "${2}" = "raw" ]; then
+    # return the raw response
+    echo "${response}"
+  else
+    # return only the data
+    if [ "${status}" = 200 ]; then
+        # response OK
+        echo "${data}"
+    else
+        # connection lost
+        echo "${status}"
+    fi
   fi
 }
 
@@ -225,4 +228,42 @@ secretRead() {
 
     # restore original terminal settings
     stty "${stty_orig}"
+}
+
+apiFunc() {
+  local data response status status_col
+
+  # Authenticate with the API
+  LoginAPI
+
+  echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
+  echo ""
+
+  # Get the data from the API
+  response=$(GetFTLData "$1" raw)
+
+  # status are the last 3 characters
+  status="${response#"${response%???}"}"
+  # data is everything from response without the last 3 characters
+  data="${response%???}"
+
+  # Output the status (200 -> green, else red)
+  if [ "${status}" = 200 ]; then
+    status_col="${COL_GREEN}"
+  else
+    status_col="${COL_RED}"
+  fi
+  echo "Status: ${status_col}${status}${COL_NC}"
+
+  # Output the data. Format it with jq if available and data is actually JSON.
+  # Otherwise just print it
+  echo "Data:"
+  if command -v jq >/dev/null && echo "${data}" | jq . >/dev/null 2>&1; then
+    echo "${data}" | jq .
+  else
+    echo "${data}"
+  fi
+
+  # Delete the session
+  LogoutAPI
 }
