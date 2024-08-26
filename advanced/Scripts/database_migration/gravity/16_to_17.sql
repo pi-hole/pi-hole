@@ -8,7 +8,7 @@ ALTER TABLE adlist ADD COLUMN type INTEGER NOT NULL DEFAULT 0;
 
 UPDATE adlist SET type = 0;
 
-CREATE TABLE antigravity
+CREATE TABLE IF NOT EXISTS antigravity
 (
     domain TEXT NOT NULL,
     adlist_id INTEGER NOT NULL REFERENCES adlist (id)
