@@ -411,6 +411,7 @@ piholeCheckoutFunc() {
       echo "Switch Pi-hole subsystems to a different GitHub branch
     Usage: ${COL_GREEN}pihole checkout${COL_NC} ${COL_YELLOW}shortcut${COL_NC}
         or ${COL_GREEN}pihole checkout${COL_NC} ${COL_PURPLE}repo${COL_NC} ${COL_CYAN}branch${COL_NC}
+
   Example: ${COL_GREEN}pihole checkout${COL_NC} ${COL_YELLOW}master${COL_NC}
        or  ${COL_GREEN}pihole checkout${COL_NC} ${COL_PURPLE}ftl ${COL_CYAN}development${COL_NC}
 
