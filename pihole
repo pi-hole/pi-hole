@@ -484,6 +484,7 @@ Debugging Options:
   -t, tail [arg]      View the live output of the Pi-hole log.
                       Add an optional argument to filter the log
                       (regular expressions are supported)
+  api <endpoint>      Query the Pi-hole API at <endpoint>
 
 
 Options:
