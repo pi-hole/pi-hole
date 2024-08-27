@@ -8,6 +8,12 @@ ALTER TABLE adlist ADD COLUMN type INTEGER NOT NULL DEFAULT 0;
 
 UPDATE adlist SET type = 0;
 
+CREATE TABLE IF NOT EXISTS antigravity
+(
+    domain TEXT NOT NULL,
+    adlist_id INTEGER NOT NULL REFERENCES adlist (id)
+);
+
 CREATE VIEW vw_antigravity AS SELECT domain, adlist_by_group.group_id AS group_id
     FROM antigravity
     LEFT JOIN adlist_by_group ON adlist_by_group.adlist_id = antigravity.adlist_id
