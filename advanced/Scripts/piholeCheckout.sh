@@ -77,7 +77,7 @@ checkout() {
 
     if [[ "${1}" == "dev" ]] ; then
         # Shortcut to check out development branches
-        echo -e "  ${INFO} Shortcut \"dev\" detected - checking out development / devel branches..."
+        echo -e "  ${INFO} Shortcut \"${COL_YELLOW}dev${COL_NC}\" detected - checking out development / devel branches..."
         echo ""
         echo -e "  ${INFO} Pi-hole Core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
@@ -92,7 +92,7 @@ checkout() {
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
-        echo -e "  ${INFO} Shortcut \"master\" detected - checking out master branches..."
+        echo -e "  ${INFO} Shortcut \"${COL_YELLOW}master${COL_NC}\" detected - checking out master branches..."
         echo -e "  ${INFO} Pi-hole core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
         echo -e "  ${INFO} Web interface"
@@ -123,7 +123,7 @@ checkout() {
         echo ""
         # Have the user choose the branch they want
         if ! (for e in "${corebranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
-            echo -e "  ${INFO} Requested branch \"${2}\" is not available"
+            echo -e "  ${INFO} Requested branch \"${COL_CYAN}${2}${COL_NC}\" is not available"
             echo -e "  ${INFO} Available branches for Core are:"
             for e in "${corebranches[@]}"; do echo "      - $e"; done
             exit 1
@@ -150,7 +150,7 @@ checkout() {
         echo ""
         # Have the user choose the branch they want
         if ! (for e in "${webbranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
-            echo -e "  ${INFO} Requested branch \"${2}\" is not available"
+            echo -e "  ${INFO} Requested branch \"${COL_CYAN}${2}${COL_NC}\" is not available"
             echo -e "  ${INFO} Available branches for Web Admin are:"
             for e in "${webbranches[@]}"; do echo "      - $e"; done
             exit 1
@@ -161,39 +161,58 @@ checkout() {
     elif [[ "${1}" == "ftl" ]] ; then
         local path
         local oldbranch
+        local existing=false
         path="${2}/${binary}"
         oldbranch="$(pihole-FTL -b)"
 
-        check_download_exists "$path"
-        local ret=$?
-        if [ $ret -eq 0 ]; then
-            echo "  ${TICK} Branch ${2} exists"
+        # Check if requested branch is available
+        echo -e "  ${INFO} Checking for availability of branch ${COL_CYAN}${2}${COL_NC} on GitHub"
+        ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep "refs/heads" | cut -d'/' -f3- -) )
+        # If returned array is empty -> connectivity issue
+        if [[ ${#ftlbranches[@]} -eq 0 ]]; then
+            echo -e "  ${CROSS} Unable to fetch branches from GitHub. Please check your Internet connection and try again later."
+            exit 1
+        fi
+
+        for e in "${ftlbranches[@]}"; do [[ "$e" == "${2}" ]] && existing=true; done
+        if [[ "${existing}" == false ]]; then
+            echo -e "  ${CROSS} Requested branch is not available\n"
+            echo -e "  ${INFO} Available branches are:"
+            for e in "${ftlbranches[@]}"; do echo "      - $e"; done
+            exit 1
+        fi
+        echo -e "  ${TICK} Branch ${2} exists on GitHub"
+
+        echo -e "  ${INFO} Checking for ${COL_YELLOW}${binary}${COL_NC} binary on https://ftl.pi-hole.net"
+
+        if check_download_exists "$path"; then
+            echo "  ${TICK} Binary exists"
             echo "${2}" > /etc/pihole/ftlbranch
             chmod 644 /etc/pihole/ftlbranch
-            echo -e "  ${INFO} Switching to branch: \"${2}\" from \"${oldbranch}\""
+            echo -e "  ${INFO} Switching to branch: ${COL_CYAN}${2}${COL_NC} from ${COL_CYAN}${oldbranch}${COL_NC}"
             FTLinstall "${binary}"
             restart_service pihole-FTL
             enable_service pihole-FTL
             # Update local and remote versions via updatechecker
             /opt/pihole/updatecheck.sh
         else
-            if [[ $ret -eq 1 ]]; then
-                echo "  ${CROSS} Requested branch \"${2}\" is not available"
-                ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep 'heads' | sed 's/refs\/heads\///;s/ //g' | awk '{print $2}') )
-                echo -e "  ${INFO} Available branches for FTL are:"
-                for e in "${ftlbranches[@]}"; do echo "      - $e"; done
+            if [ $? -eq 1 ]; then
+                # Binary for requested branch is not available, may still be
+                # int he process of being built or CI build job failed
+                printf "  %b Binary for requested branch is not available, please try again later.\\n" ${CROSS}
+                printf "      If the issue persists, please contact Pi-hole Support and ask them to re-generate the binary.\\n"
                 exit 1
-            elif [[ $ret -eq 2 ]]; then
+            elif [ $? -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 exit 1
             else
-                printf "  %b Unknown error. Please contact Pi-hole Support\\n" "${CROSS}"
+                printf "  %b Unknown checkout error. Please contact Pi-hole Support\\n" "${CROSS}"
                 exit 1
             fi
         fi
 
     else
-        echo -e "  ${INFO} Requested option \"${1}\" is not available"
+        echo -e "  ${CROSS} Requested option \"${1}\" is not available"
         exit 1
     fi
 
