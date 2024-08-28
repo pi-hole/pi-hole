@@ -1496,6 +1496,7 @@ create_pihole_user() {
 installLogrotate() {
     local str="Installing latest logrotate script"
     local target=/etc/pihole/logrotate
+    local logfileUpdate=false
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
     if [[ -f ${target} ]]; then
@@ -1506,17 +1507,35 @@ installLogrotate() {
             sed -i 's/\/var\/log\/pihole-FTL.log/\/var\/log\/pihole\/FTL.log/g' ${target}
 
             printf "\\n\\t%b Old log file paths updated in existing logrotate file. \\n" "${INFO}"
-            return 3
+            logfileUpdate=true
         fi
 
-        printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
-        # Return value isn't that important, using 2 to indicate that it's not a fatal error but
-        # the function did not complete.
-        return 2
+        # Account for added webserver.log in v6.0
+        if ! grep -q "/var/log/pihole/webserver.log" ${target}; then
+            echo "/var/log/pihole/webserver.log {
+# su #
+weekly
+copytruncate
+rotate 3
+compress
+delaycompress
+notifempty
+nomail
+}" >> ${target}
+
+            printf "\\n\\t%b webserver.log added to logrotate file. \\n" "${INFO}"
+            logfileUpdate=true
+        fi
+        if [[ "${logfileUpdate}" == false ]]; then
+            printf "\\n\\t%b Existing logrotate file found. No changes made.\\n" "${INFO}"
+            return
+        fi
+    else
+        # Copy the file over from the local repo
+        # Logrotate config file must be owned by root and not writable by group or other
+        install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     fi
-    # Copy the file over from the local repo
-    # Logrotate config file must be owned by root and not writable by group or other
-    install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+
     # Different operating systems have different user / group
     # settings for logrotate that makes it impossible to create
     # a static logrotate file that will work with e.g.
