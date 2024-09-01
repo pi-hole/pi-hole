@@ -1,4 +1,6 @@
 FROM quay.io/centos/centos:stream9
+# Disable SELinux
+RUN echo "SELINUX=disabled" > /etc/selinux/config
 RUN yum install -y --allowerasing curl git initscripts
 
 ENV GITDIR=/etc/.pihole
