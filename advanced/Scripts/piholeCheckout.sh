@@ -77,13 +77,13 @@ checkout() {
 
     if [[ "${1}" == "dev" ]] ; then
         # Shortcut to check out development branches
-        echo -e "  ${INFO} Shortcut \"${COL_YELLOW}dev${COL_NC}\" detected - checking out development / devel branches..."
+        echo -e "  ${INFO} Shortcut \"${COL_YELLOW}dev${COL_NC}\" detected - checking out development branches..."
         echo ""
         echo -e "  ${INFO} Pi-hole Core"
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
         echo ""
         echo -e "  ${INFO} Web interface"
-        fetch_checkout_pull_branch "${webInterfaceDir}" "devel" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
+        fetch_checkout_pull_branch "${webInterfaceDir}" "development" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
         #echo -e "  ${TICK} Pi-hole Core"
 
         local path
