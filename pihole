@@ -346,7 +346,7 @@ statusFunc() {
             "web") echo "-1";;
             *) echo -e "  ${CROSS} DNS service is NOT running";;
         esac
-        return 0
+        exit 0
     else
         # get the DNS port pihole-FTL is listening on
         port="$(getFTLConfigValue dns.port)"
@@ -355,7 +355,7 @@ statusFunc() {
                 "web") echo "-1";;
                 *) echo -e "  ${CROSS} DNS service is NOT listening";;
             esac
-            return 0
+            exit 0
         else
             if [[ "${1}" != "web" ]]; then
                 echo -e "  ${TICK} FTL is listening on port ${port}"
@@ -377,7 +377,8 @@ statusFunc() {
       *) echo -e "  ${CROSS} Pi-hole blocking is disabled";;
     esac
   fi
-exit 0
+
+  exit 0
 }
 
 tailFunc() {
