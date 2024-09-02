@@ -104,9 +104,6 @@ main() {
     web_update=false
     FTL_update=false
 
-    # shellcheck disable=1090,2154
-    source "${setupVars}"
-
     # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
     package_manager_detect
     install_dependent_packages "${INSTALLER_DEPS[@]}"
@@ -128,20 +125,18 @@ main() {
         echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
 
-    if [[ "${INSTALL_WEB_INTERFACE}" == true ]]; then
-        if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
-            echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
-            echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
-            exit 1;
-        fi
+    if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
+        echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
+        echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
+        exit 1;
+    fi
 
-        if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
-            web_update=true
-            echo -e "  ${INFO} Web Interface:\\t${COL_YELLOW}update available${COL_NC}"
-        else
-            web_update=false
-            echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
-        fi
+    if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
+        web_update=true
+        echo -e "  ${INFO} Web Interface:\\t${COL_YELLOW}update available${COL_NC}"
+    else
+        web_update=false
+        echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
 
     local funcOutput
@@ -149,7 +144,7 @@ main() {
     local binary
     binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
 
-    if FTLcheckUpdate "${binary}" > /dev/null; then
+    if FTLcheckUpdate "${binary}"; then
         FTL_update=true
         echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
     else
@@ -160,8 +155,13 @@ main() {
             2)
                 echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_LIGHT_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
                 ;;
+            3)
+                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, cannot reach download server${COL_NC}"
+                exit 1
+                ;;
             *)
                 echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, contact support${COL_NC}"
+                exit 1
         esac
         FTL_update=false
     fi

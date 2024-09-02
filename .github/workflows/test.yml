@@ -23,6 +23,13 @@ jobs:
           # If FAIL is 1 then we fail.
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
 
+      - name: Run shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          check_together: 'yes'
+          format: tty
+          severity: error
+
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@master
         with:

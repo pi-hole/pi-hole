@@ -82,64 +82,6 @@ def test_key_removal_works(host):
     assert expected_stdout == output.stdout
 
 
-def test_getFTLAPIPort_default(host):
-    """Confirms getFTLAPIPort returns the default API port"""
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLAPIPort
-    """
-    )
-    expected_stdout = "4711\n"
-    assert expected_stdout == output.stdout
-
-
-def test_getFTLAPIPort_custom(host):
-    """Confirms getFTLAPIPort returns a custom API port"""
-    host.run(
-        """
-    echo "FTLPORT=1234" > /etc/pihole/pihole-FTL.conf
-    """
-    )
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLAPIPort
-    """
-    )
-    expected_stdout = "1234\n"
-    assert expected_stdout == output.stdout
-
-
-def test_getFTLAPIPort_malicious(host):
-    """Confirms getFTLAPIPort returns 4711 if the setting in pihole-FTL.conf contains non-digits"""
-    host.run(
-        """
-    echo "FTLPORT=*$ssdfsd" > /etc/pihole/pihole-FTL.conf
-    """
-    )
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLAPIPort
-    """
-    )
-    expected_stdout = "4711\n"
-    assert expected_stdout == output.stdout
-
-
-def test_getFTLPIDFile_default(host):
-    """Confirms getFTLPIDFile returns the default PID file path"""
-    output = host.run(
-        """
-    source /opt/pihole/utils.sh
-    getFTLPIDFile
-    """
-    )
-    expected_stdout = "/run/pihole-FTL.pid\n"
-    assert expected_stdout == output.stdout
-
-
 def test_getFTLPID_default(host):
     """Confirms getFTLPID returns the default value if FTL is not running"""
     output = host.run(
@@ -152,21 +94,30 @@ def test_getFTLPID_default(host):
     assert expected_stdout == output.stdout
 
 
-def test_getFTLPIDFile_and_getFTLPID_custom(host):
-    """Confirms getFTLPIDFile returns a custom PID file path"""
+def test_setFTLConfigValue_getFTLConfigValue(host):
+    """
+    Confirms getFTLConfigValue works (also assumes setFTLConfigValue works)
+    Requires FTL to be installed, so we do that first
+    (taken from test_FTL_development_binary_installed_and_responsive_no_errors)
+    """
     host.run(
         """
-    tmpfile=$(mktemp)
-    echo "PIDFILE=${tmpfile}" > /etc/pihole/pihole-FTL.conf
-    echo "1234" > ${tmpfile}
+    source /opt/pihole/basic-install.sh
+    create_pihole_user
+    funcOutput=$(get_binary_name)
+    echo "development-v6" > /etc/pihole/ftlbranch
+    binary="pihole-FTL${funcOutput##*pihole-FTL}"
+    theRest="${funcOutput%pihole-FTL*}"
+    FTLdetect "${binary}" "${theRest}"
     """
     )
+
     output = host.run(
         """
     source /opt/pihole/utils.sh
-    FTL_PID_FILE=$(getFTLPIDFile)
-    getFTLPID "${FTL_PID_FILE}"
+    setFTLConfigValue "dns.upstreams" '["9.9.9.9"]' > /dev/null
+    getFTLConfigValue "dns.upstreams"
     """
     )
-    expected_stdout = "1234\n"
-    assert expected_stdout == output.stdout
+
+    assert "[ 9.9.9.9 ]" in output.stdout

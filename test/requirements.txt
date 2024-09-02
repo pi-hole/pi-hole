@@ -3,4 +3,4 @@ pytest == 8.3.2
 pytest-xdist == 3.6.1
 pytest-testinfra == 10.1.1
 tox == 4.18.0
-
+pytest-clarity == 1.0.1
