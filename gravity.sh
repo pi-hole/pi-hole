@@ -309,14 +309,6 @@ gravity_CheckDNSResolutionAvailable() {
   fi
 
 
-  # Determine error output message
-  if pgrep pihole-FTL &>/dev/null; then
-    echo -e "  ${CROSS} DNS resolution is currently unavailable"
-  else
-    echo -e "  ${CROSS} DNS service is not running"
-    "${PIHOLE_COMMAND}" restartdns
-  fi
-
   # Ensure DNS server is given time to be resolvable
   secs="120"
   echo -ne "  ${INFO} Time until retry: ${secs}"
