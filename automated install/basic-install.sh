@@ -177,7 +177,7 @@ os_check() {
         detected_os=$(grep '^ID=' /etc/os-release | cut -d '=' -f2 | tr -d '"')
         detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-        # Test via IPv4
+        # Test via IPv4 and hardcoded nameserver ns1.pi-hole.net
         cmdResult="$(
             dig -4 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1
             echo $?
@@ -198,12 +198,37 @@ os_check() {
             fi
         fi
 
-        # Try again via IPv6
+        # Try again via IPv6 and hardcoded nameserver ns1.pi-hole.net
         if [ "$valid_response" = false ]; then
             unset valid_response
 
             cmdResult="$(
                 dig -6 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1
+                echo $?
+            )"
+            # Gets the return code of the previous command (last line)
+            digReturnCode="${cmdResult##*$'\n'}"
+
+            if [ ! "${digReturnCode}" == "0" ]; then
+                valid_response=false
+            else
+                # Dig returned 0 (success), so get the actual response, and loop through it to determine if the detected variables above are valid
+                response="${cmdResult%%$'\n'*}"
+                # If the value of ${response} is a single 0, then this is the return code, not an actual response.
+                if [ "${response}" == 0 ]; then
+                    valid_response=false
+                else
+                    valid_response=true
+                fi
+            fi
+        fi
+
+        # Try again without hardcoded nameserver
+        if [ "$valid_response" = false ]; then
+            unset valid_response
+
+            cmdResult="$(
+                dig +short -t txt "${remote_os_domain}" 2>&1
                 echo $?
             )"
             # Gets the return code of the previous command (last line)
@@ -259,8 +284,8 @@ os_check() {
                 printf "  %b %bRetrieval of supported OS list failed. %s. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${errStr}" "${COL_NC}"
                 printf "      %bUnable to determine if the detected OS (%s %s) is supported%b\\n" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
                 printf "      Possible causes for this include:\\n"
-                printf "        - Firewall blocking certain DNS lookups from Pi-hole device\\n"
-                printf "        - ns1.pi-hole.net being blocked (required to obtain TXT record from versions.pi-hole.net containing supported operating systems)\\n"
+                printf "        - Firewall blocking DNS lookups from Pi-hole device to ns1.pi-hole.net\\n"
+                printf "        - DNS resolution issues of the host system\\n"
                 printf "        - Other internet connectivity issues\\n"
             else
                 printf "  %b %bUnsupported OS detected: %s %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
