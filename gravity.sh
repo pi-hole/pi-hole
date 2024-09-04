@@ -699,15 +699,17 @@ gravity_ParseFileIntoDomains() {
   # 3) Remove lines starting with ! (ABP Comments)
   # 4) Remove lines starting with [ (ABP Header)
   # 5) Remove lines containing ABP extended CSS selectors ("##", "#!#", "#@#", "#?#") preceded by a letter
-  # 6) Remove comments (text starting with "#", include possible spaces before the hash sign)
-  # 7) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
-  # 8) Remove empty lines
+  # 6) Remove lines containing ABP JavaScript rules ("#%#") preceded by a letter
+  # 7) Remove comments (text starting with "#", include possible spaces before the hash sign)
+  # 8) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
+  # 9) Remove empty lines
 
   sed -i -r \
     -e 's/\r$//' \
     -e 's/\s*!.*//g' \
     -e 's/\s*\[.*//g' \
     -e '/[a-z]\#[$?@]{0,1}\#/d' \
+    -e '/[a-z]\#%\#/d' \
     -e 's/\s*#.*//g' \
     -e 's/^.*\s+//g' \
     -e '/^$/d' "${destination}"
