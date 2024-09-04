@@ -298,49 +298,22 @@ gravity_CheckDNSResolutionAvailable() {
 
   # Determine if $lookupDomain is resolvable
   if timeout 4 getent hosts "${lookupDomain}" &>/dev/null; then
-    # Print confirmation of resolvability if it had previously failed
-    if [[ -n "${secs:-}" ]]; then
-      echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
-    fi
+    echo -e "${OVER}  ${TICK} DNS resolution is available\\n"
     return 0
-  elif [[ -n "${secs:-}" ]]; then
-    echo -e "${OVER}  ${CROSS} DNS resolution is not available"
-    exit 1
-  fi
-
-  # If the /etc/resolv.conf contains resolvers other than 127.0.0.1 then the local dnsmasq will not be queried and pi.hole is NXDOMAIN.
-  # This means that even though name resolution is working, the getent hosts check fails and the holddown timer keeps ticking and eventually fails
-  # So we check the output of the last command and if it failed, attempt to use dig +short as a fallback
-  if timeout 4 dig +short "${lookupDomain}" &>/dev/null; then
-    if [[ -n "${secs:-}" ]]; then
-      echo -e "${OVER}  ${TICK} DNS resolution is now available\\n"
-    fi
-    return 0
-  elif [[ -n "${secs:-}" ]]; then
-    echo -e "${OVER}  ${CROSS} DNS resolution is not available"
-    exit 1
-  fi
-
-  # Determine error output message
-  if pgrep pihole-FTL &>/dev/null; then
-    echo -e "  ${CROSS} DNS resolution is currently unavailable"
   else
-    echo -e "  ${CROSS} DNS service is not running"
-    "${PIHOLE_COMMAND}" restartdns
+    echo -e "  ${CROSS} DNS resolution is currently unavailable"
   fi
 
-  # Ensure DNS server is given time to be resolvable
-  secs="120"
-  echo -ne "  ${INFO} Time until retry: ${secs}"
-  until timeout 1 getent hosts "${lookupDomain}" &>/dev/null; do
-    [[ "${secs:-}" -eq 0 ]] && break
-    echo -ne "${OVER}  ${INFO} Time until retry: ${secs}"
-    : $((secs--))
+  echo -e "  ${INFO} Waiting until DNS resolution is available..."
+  until getent hosts github.com &> /dev/null; do
+  # Append one dot for each second waiting
+    str="${str}."
+    echo -ne "  ${OVER}  ${INFO} ${str}"
     sleep 1
   done
 
-  # Try again
-  gravity_CheckDNSResolutionAvailable
+  # If we reach this point, DNS resolution is available
+  echo -e "${OVER}  ${TICK} DNS resolution is available"
 }
 
 # Retrieve blocklist URLs and parse domains from adlist.list
