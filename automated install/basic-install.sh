@@ -378,14 +378,13 @@ is_repo() {
         pushd "${directory}" &>/dev/null || return 1
         # Use git to check if the directory is a repo
         # git -C is not used here to support git versions older than 1.8.4
-        git status --short &>/dev/null || rc=$?
-    # If the command was not successful,
+        git status --short &> /dev/null || rc=$?
+        # Move back into the directory the user started in
+        popd &> /dev/null || return 1
     else
         # Set a non-zero return code if directory does not exist
         rc=1
     fi
-    # Move back into the directory the user started in
-    popd &>/dev/null || return 1
     # Return the code; if one is not set, return 0
     return "${rc:-0}"
 }
