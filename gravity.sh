@@ -699,7 +699,7 @@ gravity_ParseFileIntoDomains() {
   # 3) Remove lines starting with ! (ABP Comments)
   # 4) Remove lines starting with [ (ABP Header)
   # 5) Remove lines containing ABP extended CSS selectors ("##", "#!#", "#@#", "#?#") preceded by a letter
-  # 6) Remove lines containing ABP JavaScript rules ("#%#") preceded by a letter
+  # 6) Remove lines containing Adguard JavaScript rules ("#%#") preceded by a letter
   # 7) Remove comments (text starting with "#", include possible spaces before the hash sign)
   # 8) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
   # 9) Remove empty lines
