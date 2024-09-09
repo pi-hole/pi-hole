@@ -304,7 +304,8 @@ gravity_CheckDNSResolutionAvailable() {
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   fi
 
-  echo -e "  ${INFO} Waiting until DNS resolution is available..."
+  str="Waiting until DNS resolution is available..."
+  echo -ne "  ${INFO} ${str}"
   until getent hosts github.com &> /dev/null; do
   # Append one dot for each second waiting
     str="${str}."
