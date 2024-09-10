@@ -316,8 +316,10 @@ test_dpkg_lock() {
 
 # Compatibility
 package_manager_detect() {
-    # TODO - pull common packages for both distributions out into a common variable, then add
-    # the distro-specific ones below.
+    # pull common packages for both distributions out into a common variable
+    OS_CHECK_COMMON_DEPS=(grep)
+    PIHOLE_COMMON_DEPS=(curl psmisc sudo unzip jq);
+    INSTALLER_COMMON_DEPS=(git dialog ca-certificates)
 
     # First check to see if apt-get is installed.
     if is_command apt-get; then
@@ -333,11 +335,11 @@ package_manager_detect() {
         # Update package cache
         update_package_cache || exit 1
         # Packages required to perform the os_check and FTL binary detection
-        OS_CHECK_DEPS=(grep dnsutils binutils)
+        OS_CHECK_DEPS=(dnsutils binutils)
         # Packages required to run this install script
-        INSTALLER_DEPS=(git iproute2 dialog ca-certificates)
+        INSTALLER_DEPS=(iproute2)
         # Packages required to run Pi-hole
-        PIHOLE_DEPS=(cron curl iputils-ping psmisc sudo unzip libcap2-bin dns-root-data libcap2 netcat-openbsd procps jq lshw bash-completion)
+        PIHOLE_DEPS=(cron iputils-ping libcap2-bin dns-root-data libcap2 netcat-openbsd procps lshw bash-completion)
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
@@ -352,9 +354,9 @@ package_manager_detect() {
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
-        OS_CHECK_DEPS=(grep bind-utils)
-        INSTALLER_DEPS=(git dialog iproute newt procps-ng chkconfig ca-certificates binutils)
-        PIHOLE_DEPS=(cronie curl findutils sudo unzip psmisc libcap nmap-ncat jq lshw bash-completion)
+        OS_CHECK_DEPS=(bind-utils)
+        INSTALLER_DEPS=(iproute newt procps-ng chkconfig binutils)
+        PIHOLE_DEPS=(cronie findutils libcap nmap-ncat lshw bash-completion)
 
     # If neither apt-get or yum/dnf package managers were found
     else
@@ -2223,7 +2225,7 @@ main() {
 
     # Install packages necessary to perform os_check
     printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
-    install_dependent_packages "${OS_CHECK_DEPS[@]}"
+    install_dependent_packages "${OS_CHECK_COMMON_DEPS[@]}" "${OS_CHECK_DEPS[@]}"
 
     # Check that the installed OS is officially supported - display warning if not
     os_check
@@ -2240,7 +2242,7 @@ main() {
 
     # Install packages used by this installation script
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
-    install_dependent_packages "${INSTALLER_DEPS[@]}"
+    install_dependent_packages "${INSTALLER_COMMON_DEPS[@]}" "${INSTALLER_DEPS[@]}"
 
     # if it's running unattended,
     if [[ "${runUnattended}" == true ]]; then
@@ -2281,7 +2283,7 @@ main() {
     clone_or_update_repos
 
     # Install the Core dependencies
-    local dep_install_list=("${PIHOLE_DEPS[@]}")
+    local dep_install_list=("${PIHOLE_COMMON_DEPS[@]}" "${PIHOLE_DEPS[@]}")
 
     # Install packages used by the actual software
     printf "  %b Checking for / installing Required dependencies for Pi-hole software...\\n" "${INFO}"
