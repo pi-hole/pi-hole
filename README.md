@@ -33,7 +33,9 @@ The Pi-hole® is a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_Sinkhole) th
 
 Those who want to get started quickly and conveniently may install Pi-hole using the following command:
 
-### `curl -sSL https://install.pi-hole.net | bash`
+```bash
+curl -sSL https://install.pi-hole.net | bash
+```
 
 ## Alternative Install Methods
 
