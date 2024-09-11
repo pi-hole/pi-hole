@@ -173,7 +173,7 @@ os_check_dig(){
     local nameserver="$3"
     local response
 
-    response="$(dig "${protocol}" +short -t txt "${domain}" "${nameserver}" 2>&1
+    response="$(dig -"${protocol}" +short -t txt "${domain}" "${nameserver}" 2>&1
     echo $?
     )"
     echo "${response}"
