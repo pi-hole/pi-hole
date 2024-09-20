@@ -93,6 +93,7 @@ If you'd rather not donate (_which is okay!_), there are other ways you can help
 - Spreading the word about our software and how you have benefited from it
 
 ### Contributing via GitHub
+[![Open in DevZero](https://assets.devzero.io/open-in-devzero.svg)](https://www.devzero.io/dashboard/recipes/new?repo-url=https://github.com/pi-hole/pi-hole)
 
 We welcome _everyone_ to contribute to issue reports, suggest new features, and create pull requests.
 
