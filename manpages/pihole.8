@@ -39,8 +39,6 @@ pihole -g\fR
 .br
 pihole status
 .br
-pihole restartdns\fR [options]
-.br
 \fBpihole\fR (\fBenable\fR|\fBdisable\fR [time])
 .br
 \fBpihole\fR \fBcheckout\fR repo [branch]
@@ -234,18 +232,6 @@ Available commands and options:
       #s                Disable Pi-hole functionality for # second(s)
 .br
       #m                Disable Pi-hole functionality for # minute(s)
-.br
-
-\fBrestartdns\fR [options]
-.br
-    Full restart Pi-hole subsystems. Without any options (see below) a full restart causes config file parsing and history re-reading
-.br
-
-    (restart options):
-.br
-      reload            Updates the lists (incl. HOSTS files) and flushes DNS cache. Does not reparse config files
-.br
-      reload-lists      Updates the lists (excl. HOSTS files) WITHOUT flushing the DNS cache. Does not reparse config files
 .br
 
 \fBcheckout\fR [repo] [branch]

@@ -147,66 +147,6 @@ versionFunc() {
   exec "${PI_HOLE_SCRIPT_DIR}"/version.sh
 }
 
-restartDNS() {
-  local svcOption svc str output status pid icon FTL_PID_FILE
-  svcOption="${1:-restart}"
-
-  # get the current path to the pihole-FTL.pid
-  FTL_PID_FILE="$(getFTLConfigValue files.pid)"
-
-  # Determine if we should reload or restart
-  if [[ "${svcOption}" =~ "reload-lists" ]]; then
-    # Reloading of the lists has been requested
-    # Note 1: This will NOT re-read any *.conf files
-    # Note 2: We cannot use killall here as it does
-    #         not know about real-time signals
-
-    pid="$(getFTLPID ${FTL_PID_FILE})"
-    if [[ "$pid" -eq "-1" ]]; then
-      svc="true"
-      str="FTL is not running"
-      icon="${INFO}"
-    else
-      svc="kill -RTMIN ${pid}"
-      str="Reloading DNS lists"
-      icon="${TICK}"
-    fi
-  elif [[ "${svcOption}" =~ "reload" ]]; then
-    # Reloading of the DNS cache has been requested
-    # Note: This will NOT re-read any *.conf files
-    pid="$(getFTLPID ${FTL_PID_FILE})"
-    if [[ "$pid" -eq "-1" ]]; then
-      svc="true"
-      str="FTL is not running"
-      icon="${INFO}"
-    else
-      svc="kill -HUP ${pid}"
-      str="Flushing DNS cache"
-      icon="${TICK}"
-    fi
-  else
-    # A full restart has been requested
-    svc="service pihole-FTL restart"
-    str="Restarting DNS server"
-    icon="${TICK}"
-  fi
-
-  # Print output to Terminal, but not to Web Admin
-  [[ -t 1 ]] && echo -ne "  ${INFO} ${str}..."
-
-  output=$( { ${svc}; } 2>&1 )
-  status="$?"
-
-  if [[ "${status}" -eq 0 ]]; then
-    [[ -t 1 ]] && echo -e "${OVER}  ${icon} ${str}"
-    return 0
-  else
-    [[ ! -t 1 ]] && local OVER=""
-    echo -e "${OVER}  ${CROSS} ${output}"
-    return 1
-  fi
-}
-
 piholeEnable() {
   if [[ "${2}" == "-h" ]] || [[ "${2}" == "--help" ]]; then
     echo "Usage: pihole enable/disable [time]
@@ -298,7 +238,6 @@ Options:
   Try 'pihole logging --help' for more information."
     exit 1
   fi
-  restartDNS
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
@@ -509,9 +448,6 @@ Options:
   enable              Enable Pi-hole subsystems
   disable             Disable Pi-hole subsystems
                         Add '-h' for more info on disable usage
-  restartdns          Full restart Pi-hole subsystems
-                        Add 'reload' to update the lists and flush the cache without restarting the DNS server
-                        Add 'reload-lists' to only update the lists WITHOUT flushing the cache or restarting the DNS server
   checkout            Switch Pi-hole subsystems to a different GitHub branch
                         Add '-h' for more info on checkout usage
   arpflush            Flush information stored in Pi-hole's network tables";
@@ -547,7 +483,6 @@ case "${1}" in
   "enable"                      ) need_root=0;;
   "disable"                     ) need_root=0;;
   "-d" | "debug"                ) ;;
-  "restartdns"                  ) ;;
   "-g" | "updateGravity"        ) ;;
   "reloaddns"                   ) ;;
   "setpassword"                 ) ;;
@@ -590,8 +525,6 @@ case "${1}" in
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable true "$2";;
   "disable"                     ) piholeEnable false "$2";;
-  "restartdns"                  ) restartDNS "$2";;
-  "reloaddns"                   ) restartDNS "reload";;
   "setpassword"                 ) SetWebPassword "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "updatechecker"               ) shift; updateCheckFunc "$@";;
