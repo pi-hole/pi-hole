@@ -147,7 +147,7 @@ versionFunc() {
   exec "${PI_HOLE_SCRIPT_DIR}"/version.sh
 }
 
-restartDNS() {
+reloadDNS() {
   local svcOption svc str output status pid icon FTL_PID_FILE
   svcOption="${1:-restart}"
 
@@ -184,11 +184,6 @@ restartDNS() {
       str="Flushing DNS cache"
       icon="${TICK}"
     fi
-  else
-    # A full restart has been requested
-    svc="service pihole-FTL restart"
-    str="Restarting DNS server"
-    icon="${TICK}"
   fi
 
   # Print output to Terminal, but not to Web Admin
@@ -509,9 +504,8 @@ Options:
   enable              Enable Pi-hole subsystems
   disable             Disable Pi-hole subsystems
                         Add '-h' for more info on disable usage
-  restartdns          Full restart Pi-hole subsystems
-                        Add 'reload' to update the lists and flush the cache without restarting the DNS server
-                        Add 'reload-lists' to only update the lists WITHOUT flushing the cache or restarting the DNS server
+  reloaddns           Update the lists and flush the cache without restarting the DNS server
+  reloaddns-lists     Update the lists WITHOUT flushing the cache or restarting the DNS server
   checkout            Switch Pi-hole subsystems to a different GitHub branch
                         Add '-h' for more info on checkout usage
   arpflush            Flush information stored in Pi-hole's network tables";
@@ -547,9 +541,9 @@ case "${1}" in
   "enable"                      ) need_root=0;;
   "disable"                     ) need_root=0;;
   "-d" | "debug"                ) ;;
-  "restartdns"                  ) ;;
   "-g" | "updateGravity"        ) ;;
   "reloaddns"                   ) ;;
+  "reloaddns-lists"             ) ;;
   "setpassword"                 ) ;;
   "checkout"                    ) ;;
   "updatechecker"               ) ;;
@@ -590,8 +584,8 @@ case "${1}" in
   "uninstall"                   ) uninstallFunc;;
   "enable"                      ) piholeEnable true "$2";;
   "disable"                     ) piholeEnable false "$2";;
-  "restartdns"                  ) restartDNS "$2";;
-  "reloaddns"                   ) restartDNS "reload";;
+  "reloaddns"                   ) reloadDNS "reload";;
+  "reloaddns-lists"             ) reloadDNS "reload-lists";;
   "setpassword"                 ) SetWebPassword "$@";;
   "checkout"                    ) piholeCheckoutFunc "$@";;
   "updatechecker"               ) shift; updateCheckFunc "$@";;

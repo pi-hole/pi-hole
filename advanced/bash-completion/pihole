@@ -7,7 +7,7 @@ _pihole() {
 
     case "${prev}" in
         "pihole")
-            opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query reconfigure regex restartdns status tail uninstall updateGravity updatePihole version wildcard arpflush api"
+            opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query reconfigure regex reloaddns reloaddns-lists status tail uninstall updateGravity updatePihole version wildcard arpflush api"
             COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         ;;
         "allow"|"deny"|"wildcard"|"regex"|"allow-regex"|"allow-wild")
