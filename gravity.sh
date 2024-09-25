@@ -428,7 +428,7 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}" "${domain}"
+      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}" "${domain}"
     fi
     echo ""
   done
@@ -837,12 +837,76 @@ database_recovery() {
   echo ""
 }
 
+gravity_optimize() {
+    # The ANALYZE command gathers statistics about tables and indices and stores
+    # the collected information in internal tables of the database where the
+    # query optimizer can access the information and use it to help make better
+    # query planning choices
+    local str="Optimizing database"
+    echo -ne "  ${INFO} ${str}..."
+    output=$( { pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "PRAGMA analysis_limit=0; ANALYZE" 2>&1; } 2>&1 )
+    status="$?"
+
+    if [[ "${status}" -ne 0 ]]; then
+        echo -e "\\n  ${CROSS} Unable to optimize database ${gravityTEMPfile}\\n  ${output}"
+        gravity_Cleanup "error"
+    else
+        echo -e "${OVER}  ${TICK} ${str}"
+    fi
+}
+
+# Function: timeit
+# Description: Measures the execution time of a given command.
+#
+# Usage:
+#   timeit <command>
+#
+# Parameters:
+#   <command> - The command to be executed and timed.
+#
+# Returns:
+#   The exit status of the executed command.
+#
+# Output:
+#   If the 'timed' variable is set to true, prints the elapsed time in seconds
+#   with millisecond precision.
+#
+# Example:
+#   timeit ls -l
+#
+timeit(){
+  local start_time end_time elapsed_time ret
+
+  # Capture the start time
+  start_time=$(date +%s%3N)
+
+  # Execute the command passed as arguments
+  "$@"
+  ret=$?
+
+  if [[ "${timed:-}" != true ]]; then
+    return $ret
+  fi
+
+  # Capture the end time
+  end_time=$(date +%s%3N)
+
+  # Calculate the elapsed time
+  elapsed_time=$((end_time - start_time))
+
+  # Display the elapsed time
+  printf "  %b--> took %d.%03d seconds%b\n" ${COL_BLUE} $((elapsed_time / 1000)) $((elapsed_time % 1000)) ${COL_NC}
+
+  return $ret
+}
+
 helpFunc() {
   echo "Usage: pihole -g
 Update domains from blocklists specified in adlists.list
 
 Options:
   -f, --force          Force the download of all specified blocklists
+  -t, --timeit         Time the gravity update process
   -h, --help           Show this help dialog"
   exit 0
 }
@@ -879,6 +943,7 @@ Available options:
 for var in "$@"; do
   case "${var}" in
   "-f" | "--force") forceDelete=true ;;
+  "-t" | "--timeit") timed=true ;;
   "-r" | "--repair") repairSelector "$3" ;;
   "-u" | "--upgrade")
     upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
@@ -907,11 +972,11 @@ if [[ "${recreate_database:-}" == true ]]; then
 fi
 
 if [[ "${recover_database:-}" == true ]]; then
-  database_recovery "$4"
+  timeit database_recovery "$4"
 fi
 
 # Move possibly existing legacy files to the gravity database
-if ! migrate_to_database; then
+if ! timeit migrate_to_database; then
   echo -e "   ${CROSS} Unable to migrate to database. Please contact support."
   exit 1
 fi
@@ -925,7 +990,7 @@ if [[ "${forceDelete:-}" == true ]]; then
 fi
 
 # Gravity downloads blocklists next
-if ! gravity_CheckDNSResolutionAvailable; then
+if ! timeit gravity_CheckDNSResolutionAvailable; then
   echo -e "   ${CROSS} Can not complete gravity update, no DNS is available. Please contact support."
   exit 1
 fi
@@ -943,20 +1008,23 @@ chown pihole:pihole "${gravityTEMPfile}"
 chmod g+w "${piholeDir}" "${gravityTEMPfile}"
 
 # Build the tree
-gravity_build_tree
+timeit gravity_build_tree
 
 # Compute numbers to be displayed (do this after building the tree to get the
 # numbers quickly from the tree instead of having to scan the whole database)
-gravity_ShowCount
+timeit gravity_ShowCount
+
+# Optimize the database
+timeit gravity_optimize
 
 # Migrate rest of the data from old to new database
 # IMPORTANT: Swapping the databases must be the last step before the cleanup
-if ! gravity_swap_databases; then
+if ! timeit gravity_swap_databases; then
   echo -e "   ${CROSS} Unable to create database. Please contact support."
   exit 1
 fi
 
-gravity_Cleanup
+timeit gravity_Cleanup
 echo ""
 
 echo "  ${TICK} Done."
