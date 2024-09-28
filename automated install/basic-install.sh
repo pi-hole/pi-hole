@@ -102,6 +102,18 @@ fi
 r=20
 c=70
 
+# Content of Pi-hole's meta package control file
+PIHOLE_META_PACKAGE_CONTROL_DEBIAN=$(
+    cat <<EOM
+Package: pihole-meta
+Version: 0.1
+Maintainer: Pi-hole team <adblock@pi-hole.net>
+Architecture: all
+Description: Pi-hole dependency meta package
+Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+EOM
+)
+
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
@@ -362,10 +374,6 @@ test_dpkg_lock() {
 
 # Compatibility
 package_manager_detect() {
-    # pull common packages for both distributions out into a common variable
-    OS_CHECK_COMMON_DEPS=(grep)
-    PIHOLE_COMMON_DEPS=(curl psmisc sudo unzip jq);
-    INSTALLER_COMMON_DEPS=(git dialog ca-certificates)
 
     # First check to see if apt-get is installed.
     if is_command apt-get; then
@@ -375,17 +383,11 @@ package_manager_detect() {
         # A variable to store the command used to update the package cache
         UPDATE_PKG_CACHE="${PKG_MANAGER} update"
         # The command we will use to actually install packages
-        PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
+        PKG_INSTALL="${PKG_MANAGER} -qq --no-install-recommends install"
         # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # Update package cache
         update_package_cache || exit 1
-        # Packages required to perform the os_check and FTL binary detection
-        OS_CHECK_DEPS=(dnsutils binutils)
-        # Packages required to run this install script
-        INSTALLER_DEPS=(iproute2)
-        # Packages required to run Pi-hole
-        PIHOLE_DEPS=(cron iputils-ping libcap2-bin dns-root-data libcap2 netcat-openbsd procps lshw bash-completion)
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
@@ -397,7 +399,7 @@ package_manager_detect() {
         fi
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-        PKG_INSTALL=("${PKG_MANAGER}" install -y)
+        PKG_INSTALL="${PKG_MANAGER} install -y"
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         OS_CHECK_DEPS=(bind-utils)
@@ -410,6 +412,24 @@ package_manager_detect() {
         printf "  %b No supported package manager found\\n" "${CROSS}"
         # so exit the installer
         exit
+    fi
+}
+
+build_dependency_package(){
+    # This function will build a package that contains all the dependencies needed for Pi-hole
+    mkdir -p /tmp/pihole-meta
+    chmod 0755 /tmp/pihole-meta
+
+    if is_command apt-get; then
+        # move into the directory
+        pushd /tmp &>/dev/null || return 1
+        mkdir -p /tmp/pihole-meta/DEBIAN
+        chmod 0755 /tmp/pihole-meta/DEBIAN
+        touch /tmp/pihole-meta/DEBIAN/control
+        echo "${PIHOLE_META_PACKAGE_CONTROL_DEBIAN}" > /tmp/pihole-meta/DEBIAN/control
+        dpkg-deb --build --root-owner-group pihole-meta
+        # Move back into the directory the user started in
+        popd &> /dev/null || return 1
     fi
 }
 
@@ -1390,61 +1410,20 @@ notify_package_updates_available() {
 }
 
 install_dependent_packages() {
+    # Install meta dependency package
 
-    # Install packages passed in via argument array
-    # No spinner - conflicts with set -e
-    declare -a installArray
-
-    # Debian based package install - debconf will download the entire package list
-    # so we just create an array of packages not currently installed to cut down on the
-    # amount of download traffic.
-    # NOTE: We may be able to use this installArray in the future to create a list of package that were
-    # installed by us, and remove only the installed packages, and not the entire list.
     if is_command apt-get; then
-        # For each package, check if it's already installed (and if so, don't add it to the installArray)
-        for i in "$@"; do
-            printf "  %b Checking for %s..." "${INFO}" "${i}"
-            if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &>/dev/null; then
-                printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
-            else
-                printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
-                installArray+=("${i}")
-            fi
-        done
-        # If there's anything to install, install everything in the list.
-        if [[ "${#installArray[@]}" -gt 0 ]]; then
-            test_dpkg_lock
-            # Running apt-get install with minimal output can cause some issues with
-            # requiring user input (e.g password for phpmyadmin see #218)
-            printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-            printf '%*s\n' "${c}" '' | tr " " -
-            "${PKG_INSTALL[@]}" "${installArray[@]}"
-            printf '%*s\n' "${c}" '' | tr " " -
-            return
+        if [ -f /tmp/pihole-meta.deb ]; then
+            eval "${PKG_INSTALL}" "/tmp/pihole-meta.deb"
+            rm /tmp/pihole-meta.deb
+        else
+            printf "  %b Error: Unable to find dependency meta package.\\n" "${COL_LIGHT_RED}"
+            return 1
         fi
-        printf "\\n"
-        return 0
     fi
 
     # Install Fedora/CentOS packages
-    for i in "$@"; do
-        # For each package, check if it's already installed (and if so, don't add it to the installArray)
-        printf "  %b Checking for %s..." "${INFO}" "${i}"
-        if "${PKG_MANAGER}" -q list installed "${i}" &>/dev/null; then
-            printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
-        else
-            printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
-            installArray+=("${i}")
-        fi
-    done
-    # If there's anything to install, install everything in the list.
-    if [[ "${#installArray[@]}" -gt 0 ]]; then
-        printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-        printf '%*s\n' "${c}" '' | tr " " -
-        "${PKG_INSTALL[@]}" "${installArray[@]}"
-        printf '%*s\n' "${c}" '' | tr " " -
-        return
-    fi
+
     printf "\\n"
     return 0
 }
@@ -2269,9 +2248,12 @@ main() {
     # Notify user of package availability
     notify_package_updates_available
 
-    # Install packages necessary to perform os_check
-    printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
-    install_dependent_packages "${OS_CHECK_COMMON_DEPS[@]}" "${OS_CHECK_DEPS[@]}"
+    # Build dependecy package
+    build_dependency_package
+
+    # Install Pi-hole dependencies
+    printf "  %b Installing required dependencies ...\\n" "${INFO}"
+    install_dependent_packages
 
     # Check that the installed OS is officially supported - display warning if not
     os_check
@@ -2285,10 +2267,6 @@ main() {
         printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
         exit 1
     fi
-
-    # Install packages used by this installation script
-    printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
-    install_dependent_packages "${INSTALLER_COMMON_DEPS[@]}" "${INSTALLER_DEPS[@]}"
 
     # in case of an update
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
@@ -2331,13 +2309,6 @@ main() {
     # Download or update the scripts by updating the appropriate git repos
     clone_or_update_repos
 
-    # Install the Core dependencies
-    local dep_install_list=("${PIHOLE_COMMON_DEPS[@]}" "${PIHOLE_DEPS[@]}")
-
-    # Install packages used by the actual software
-    printf "  %b Checking for / installing Required dependencies for Pi-hole software...\\n" "${INFO}"
-    install_dependent_packages "${dep_install_list[@]}"
-    unset dep_install_list
 
     # Create the pihole user
     create_pihole_user

@@ -12,7 +12,7 @@ from .conftest import (
     run_script,
 )
 
-FTL_BRANCH = "development-v6"
+FTL_BRANCH = "development"
 
 
 def test_supported_package_manager(host):
@@ -480,8 +480,8 @@ def test_os_check_fails(host):
         """
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    install_dependent_packages ${OS_CHECK_DEPS[@]}
-    install_dependent_packages ${INSTALLER_DEPS[@]}
+    build_dependency_package
+    install_dependent_packages
     cat <<EOT > /etc/os-release
 ID=UnsupportedOS
 VERSION_ID="2"
@@ -504,8 +504,8 @@ def test_os_check_passes(host):
         """
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    install_dependent_packages ${OS_CHECK_DEPS[@]}
-    install_dependent_packages ${INSTALLER_DEPS[@]}
+    build_dependency_package
+    install_dependent_packages
     """
     )
     detectOS = host.run(
@@ -518,21 +518,6 @@ def test_os_check_passes(host):
     assert expected_stdout in detectOS.stdout
 
 
-def test_package_manager_has_installer_deps(host):
-    """Confirms OS is able to install the required packages for the installer"""
-    mock_command("dialog", {"*": ("", "0")}, host)
-    output = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    install_dependent_packages ${INSTALLER_DEPS[@]}
-    """
-    )
-
-    assert "No package" not in output.stdout
-    assert output.rc == 0
-
-
 def test_package_manager_has_pihole_deps(host):
     """Confirms OS is able to install the required packages for Pi-hole"""
     mock_command("dialog", {"*": ("", "0")}, host)
@@ -540,24 +525,11 @@ def test_package_manager_has_pihole_deps(host):
         """
     source /opt/pihole/basic-install.sh
     package_manager_detect
-    install_dependent_packages ${PIHOLE_DEPS[@]}
+    build_dependency_package
+    install_dependent_packages
     """
     )
 
     assert "No package" not in output.stdout
     assert output.rc == 0
 
-
-def test_package_manager_has_web_deps(host):
-    """Confirms OS is able to install the required packages for web"""
-    mock_command("dialog", {"*": ("", "0")}, host)
-    output = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    install_dependent_packages ${PIHOLE_WEB_DEPS[@]}
-    """
-    )
-
-    assert "No package" not in output.stdout
-    assert output.rc == 0
