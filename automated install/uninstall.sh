@@ -65,11 +65,23 @@ else
     exit 1
 fi
 
+# The command we will use to auto remove installed dependencies
+PKG_AUTO_REMOVE="${PKG_MANAGER} autoremove"
+
 removeAndPurge() {
     # Purge dependencies
+
+    # We first use the package manager autoremove function
     echo ""
+    echo "  ${INFO} autoremoving packages..."
+    ${SUDO} ${PKG_AUTO_REMOVE}
+    echo ""
+
+    # Then we go over all packages not removed by the autoremove (this might be dangerous)
+    removed_other_dependencies=false
     for i in "${DEPS[@]}"; do
         if package_check "${i}" > /dev/null; then
+            echo "  ${INFO} ${COL_WHITE}${i}${COL_NC} was not be removed by autoremove: ${COL_RED}removing might break other packages!${COL_NC} "
             while true; do
                 read -rp "  ${QST} Do you wish to remove ${COL_WHITE}${i}${COL_NC} from your system? [Y/N] " answer
                 case ${answer} in
@@ -77,14 +89,21 @@ removeAndPurge() {
                         echo -ne "  ${INFO} Removing ${i}...";
                         ${SUDO} "${PKG_REMOVE[@]}" "${i}" &> /dev/null;
                         echo -e "${OVER}  ${INFO} Removed ${i}";
+                        removed_other_dependencies=true
                         break;;
                     [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
                 esac
             done
-        else
-            echo -e "  ${INFO} Package ${i} not installed"
         fi
     done
+
+    # Then we autoremove again if required
+    if [ "$removed_other_dependencies" = true ] ; then
+        echo ""
+        echo "  ${INFO} cleaning dependencies of manually removed packages..."
+        ${SUDO} ${PKG_AUTO_REMOVE}
+        echo ""
+    fi
 
     # Remove dnsmasq config files
     ${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/*-pihole*.conf &> /dev/null
@@ -239,7 +258,7 @@ removeNoPurge() {
 }
 
 ######### SCRIPT ###########
-echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
+echo -e "  ${INFO} Dependencies will be automatically removed if these are not used by other packages"
 while true; do
     echo -e "  ${INFO} ${COL_YELLOW}The following dependencies may have been added by the Pi-hole install:"
     echo -n "    "
@@ -247,7 +266,7 @@ while true; do
         echo -n "${i} "
     done
     echo "${COL_NC}"
-    read -rp "  ${QST} Do you wish to go through each dependency for removal? (Choosing No will leave all dependencies installed) [Y/n] " answer
+    read -rp "  ${QST} Do you wish to remove the dependencies? (Choosing No will leave all dependencies installed) [Y/n] " answer
     case ${answer} in
         [Yy]* ) removeAndPurge; break;;
         [Nn]* ) removeNoPurge; break;;

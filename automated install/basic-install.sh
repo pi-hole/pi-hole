@@ -375,6 +375,8 @@ package_manager_detect() {
         UPDATE_PKG_CACHE="${PKG_MANAGER} update"
         # The command we will use to actually install packages
         PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
+        # The command we will use to mark the installed packages as dependency, so these will be autoremoved in uninstall.sh
+        PKG_MARK=(apt-mark auto)
         # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # Update package cache
@@ -397,6 +399,7 @@ package_manager_detect() {
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
         PKG_INSTALL=("${PKG_MANAGER}" install -y)
+        PKG_MARK=("${PKG_MANAGER}" mark remove)
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         OS_CHECK_DEPS=(bind-utils)
@@ -1418,6 +1421,7 @@ install_dependent_packages() {
             printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
             printf '%*s\n' "${c}" '' | tr " " -
             "${PKG_INSTALL[@]}" "${installArray[@]}"
+            "${PKG_MARK[@]}" "${installArray[@]}"
             printf '%*s\n' "${c}" '' | tr " " -
             return
         fi
@@ -1441,6 +1445,7 @@ install_dependent_packages() {
         printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
         printf '%*s\n' "${c}" '' | tr " " -
         "${PKG_INSTALL[@]}" "${installArray[@]}"
+        "${PKG_MARK[@]}" "${installArray[@]}"
         printf '%*s\n' "${c}" '' | tr " " -
         return
     fi
