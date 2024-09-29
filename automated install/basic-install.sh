@@ -25,6 +25,9 @@ set -e
 # When using "su" an incomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
 export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
+# Trap any errors, then exit
+trap abort INT QUIT TERM
+
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
 # This allows us to make a change in one place that can propagate to all instances of the variable
@@ -193,6 +196,15 @@ show_ascii_berry() {
                 .',,,,,,'.
                   ..'''.${COL_NC}
 "
+}
+
+abort() {
+    echo -e "\\n\\n  ${COL_LIGHT_RED}Installation was interrupted${COL_NC}\\n"
+    echo -e "Pi-hole's dependencies might be already installed. If you want to remove them you can try to\\n"
+    echo -e "a) run 'pihole uninstall' \\n"
+    echo -e "b) Remove the meta-package 'pihole-meta' manually \\n"
+    echo -e "E.g. sudo apt-get remove pihole-meta && apt-get autoremove \\n"
+    exit 1
 }
 
 is_command() {
