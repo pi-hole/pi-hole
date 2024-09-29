@@ -365,7 +365,7 @@ package_manager_detect() {
     OS_CHECK_COMMON_DEPS=(grep)
     PIHOLE_COMMON_DEPS=(curl psmisc sudo unzip jq);
     INSTALLER_COMMON_DEPS=(git dialog ca-certificates)
-
+    DEPENDENCY_NAME="pihole-dependencies"
     # First check to see if apt-get is installed.
     if is_command apt-get; then
         # Set some global variables here
@@ -375,18 +375,12 @@ package_manager_detect() {
         UPDATE_PKG_CACHE="${PKG_MANAGER} update"
         # The command we will use to actually install packages
         PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
-        # The command we will use to mark the installed packages as dependency, so these will be autoremoved in uninstall.sh
-        PKG_MARK=(apt-mark auto)
+        # The dependency package .deb file
+        DEPENDENCY_FILE_NAME="${DEPENDENCY_NAME}.deb"
         # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # Update package cache
         update_package_cache || exit 1
-        # Packages required to perform the os_check and FTL binary detection
-        OS_CHECK_DEPS=(dnsutils binutils)
-        # Packages required to run this install script
-        INSTALLER_DEPS=(iproute2)
-        # Packages required to run Pi-hole
-        PIHOLE_DEPS=(cron iputils-ping libcap2-bin dns-root-data libcap2 netcat-openbsd procps lshw bash-completion)
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
@@ -1391,40 +1385,23 @@ notify_package_updates_available() {
     fi
 }
 
+create_dependency_package() {
+   if is_command dpkg-deb; then
+       dpkg-deb --build . ${DEPENDENCY_FILE_NAME}
+       update_package_cache
+       return 0
+    fi
+}
+
 install_dependent_packages() {
 
     # Install packages passed in via argument array
     # No spinner - conflicts with set -e
     declare -a installArray
 
-    # Debian based package install - debconf will download the entire package list
-    # so we just create an array of packages not currently installed to cut down on the
-    # amount of download traffic.
-    # NOTE: We may be able to use this installArray in the future to create a list of package that were
-    # installed by us, and remove only the installed packages, and not the entire list.
+    # Debian based package install
     if is_command apt-get; then
-        # For each package, check if it's already installed (and if so, don't add it to the installArray)
-        for i in "$@"; do
-            printf "  %b Checking for %s..." "${INFO}" "${i}"
-            if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &>/dev/null; then
-                printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
-            else
-                printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
-                installArray+=("${i}")
-            fi
-        done
-        # If there's anything to install, install everything in the list.
-        if [[ "${#installArray[@]}" -gt 0 ]]; then
-            test_dpkg_lock
-            # Running apt-get install with minimal output can cause some issues with
-            # requiring user input (e.g password for phpmyadmin see #218)
-            printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-            printf '%*s\n' "${c}" '' | tr " " -
-            "${PKG_INSTALL[@]}" "${installArray[@]}"
-            "${PKG_MARK[@]}" "${installArray[@]}"
-            printf '%*s\n' "${c}" '' | tr " " -
-            return
-        fi
+        "${PKG_INSTALL[@]}" "./${DEPENDENCY_FILE_NAME}"
         printf "\\n"
         return 0
     fi
@@ -2272,6 +2249,9 @@ main() {
 
     # Notify user of package availability
     notify_package_updates_available
+
+    # Create pihole-dependency local package based on package manager
+    create_dependency_package
 
     # Install packages necessary to perform os_check
     printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"

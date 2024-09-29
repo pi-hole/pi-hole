@@ -50,7 +50,7 @@ DEPS=("${INSTALLER_COMMON_DEPS[@]}" "${PIHOLE_COMMON_DEPS[@]}" "${OS_CHECK_COMMO
 # Compatibility
 if [ -x "$(command -v apt-get)" ]; then
     # Debian Family
-    PKG_REMOVE=("${PKG_MANAGER}" -y remove --purge)
+    PKG_REMOVE=("${PKG_MANAGER}" -y remove --purge --autoremove)
     package_check() {
         dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
     }
@@ -70,6 +70,12 @@ PKG_AUTO_REMOVE="${PKG_MANAGER} autoremove"
 
 removeAndPurge() {
     # Purge dependencies
+
+    # Remove the debian packages
+    if is_command apt-get; then
+        ${SUDO} "${PKG_REMOVE[@]}" "${DEPENDENCY_NAME}"
+        return 0;
+    fi
 
     # We first use the package manager autoremove function
     echo ""
