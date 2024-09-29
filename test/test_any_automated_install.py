@@ -532,3 +532,25 @@ def test_package_manager_has_pihole_deps(host):
 
     assert "No package" not in output.stdout
     assert output.rc == 0
+
+
+def test_meta_package_uninstall(host):
+    """Confirms OS is able to install and uninstall the Pi-hole meta package"""
+    mock_command("dialog", {"*": ("", "0")}, host)
+    install = host.run(
+        """
+    source /opt/pihole/basic-install.sh
+    package_manager_detect
+    build_dependency_package
+    install_dependent_packages
+    """
+    )
+    assert install.rc == 0
+
+    uninstall = host.run(
+        """
+    source /opt/pihole/uninstall.sh
+    removeMetaPackage
+    """
+    )
+    assert uninstall.rc == 0

@@ -409,6 +409,8 @@ package_manager_detect() {
         PKG_INSTALL="${PKG_MANAGER} -qq --no-install-recommends install"
         # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+        # The command we will use to remove packages (used in the uninstaller)
+        PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
         # Update package cache
         update_package_cache || exit 1
 
@@ -425,7 +427,8 @@ package_manager_detect() {
         PKG_INSTALL="${PKG_MANAGER} install -y"
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
-
+        # The command we will use to remove packages (used in the uninstaller)
+        PKG_REMOVE="${PKG_MANAGER} remove -y"
     # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot install required packages
@@ -483,8 +486,6 @@ build_dependency_package(){
 
         # Remove the build dependencies when we've installed them
         if [ -n "${REMOVE_RPM_BUILD}" ]; then
-            local PKG_REMOVE
-            PKG_REMOVE="${PKG_MANAGER} remove -y"
             eval "${PKG_REMOVE}" "rpm-build"
         fi
 
