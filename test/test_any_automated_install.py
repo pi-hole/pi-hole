@@ -532,4 +532,3 @@ def test_package_manager_has_pihole_deps(host):
 
     assert "No package" not in output.stdout
     assert output.rc == 0
-
