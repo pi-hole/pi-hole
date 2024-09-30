@@ -2434,7 +2434,7 @@ main() {
 
     if [[ "${INSTALL_TYPE}" == "Update" ]]; then
         printf "\\n"
-        "${PI_HOLE_BIN_DIR}"/pihole version --current
+        "${PI_HOLE_BIN_DIR}"/pihole version
     fi
 }
 

@@ -221,6 +221,12 @@ main() {
         echo -e "  ${INFO} Local version file information updated."
     fi
 
+    # if there was only a web update, show the new versions
+    # (on core and FTL updates, this is done as part of the installer run)
+    if [[ "${web_update}" == true &&  "${FTL_update}" == false && "${core_update}" == false ]]; then
+        "${PI_HOLE_BIN_DIR}"/pihole version
+    fi
+
     echo ""
     exit 0
 }
