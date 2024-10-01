@@ -1230,8 +1230,8 @@ install_manpage() {
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
         rm /usr/local/share/man/man5/pihole-FTL.conf.5
     fi
-    if [[ -f "/usr/local/share/man/man5/pihole-FTL.8" ]]; then
-        rm /usr/local/share/man/man5/pihole-FTL.8
+    if [[ -f "/usr/local/share/man/man8/pihole-FTL.8" ]]; then
+        rm /usr/local/share/man/man8/pihole-FTL.8
     fi
 
     if mandb -q &>/dev/null; then
