@@ -505,7 +505,7 @@ Options:
   disable             Disable Pi-hole subsystems
                         Add '-h' for more info on disable usage
   reloaddns           Update the lists and flush the cache without restarting the DNS server
-  reloadlists     Update the lists WITHOUT flushing the cache or restarting the DNS server
+  reloadlists         Update the lists WITHOUT flushing the cache or restarting the DNS server
   checkout            Switch Pi-hole subsystems to a different GitHub branch
                         Add '-h' for more info on checkout usage
   arpflush            Flush information stored in Pi-hole's network tables";
@@ -519,38 +519,38 @@ fi
 # functions that do not require sudo power
 need_root=1
 case "${1}" in
-  "-h" | "help" | "--help"      ) helpFunc;;
-  "-v" | "version"              ) versionFunc;;
-  "-c" | "chronometer"          ) chronometerFunc "$@";;
-  "-q" | "query"                ) queryFunc "$@";;
-  "status"                      ) statusFunc "$2";;
-  "tricorder"                   ) tricorderFunc;;
+  "-h" | "help" | "--help"        ) helpFunc;;
+  "-v" | "version"                ) versionFunc;;
+  "-c" | "chronometer"            ) chronometerFunc "$@";;
+  "-q" | "query"                  ) queryFunc "$@";;
+  "status"                        ) statusFunc "$2";;
+  "tricorder"                     ) tricorderFunc;;
 
   # we need to add all arguments that require sudo power to not trigger the * argument
-  "allow" | "allowlist"         ) need_root=0;;
-  "deny" | "denylist"           ) need_root=0;;
-  "--wild" | "wildcard"         ) need_root=0;;
-  "--regex" | "regex"           ) need_root=0;;
+  "allow" | "allowlist"           ) need_root=0;;
+  "deny" | "denylist"             ) need_root=0;;
+  "--wild" | "wildcard"           ) need_root=0;;
+  "--regex" | "regex"             ) need_root=0;;
   "--allow-regex" | "allow-regex" ) need_root=0;;
   "--allow-wild" | "allow-wild"   ) need_root=0;;
-  "-f" | "flush"                ) ;;
-  "-up" | "updatePihole"        ) ;;
-  "-r"  | "reconfigure"         ) ;;
-  "-l" | "logging"              ) ;;
-  "uninstall"                   ) ;;
-  "enable"                      ) need_root=0;;
-  "disable"                     ) need_root=0;;
-  "-d" | "debug"                ) ;;
-  "-g" | "updateGravity"        ) ;;
-  "reloaddns"                   ) ;;
-  "reloadlists"             ) ;;
-  "setpassword"                 ) ;;
-  "checkout"                    ) ;;
-  "updatechecker"               ) ;;
-  "arpflush"                    ) ;;
-  "-t" | "tail"                 ) ;;
-  "api"                         ) need_root=0;;
-  *                             ) helpFunc;;
+  "-f" | "flush"                  ) ;;
+  "-up" | "updatePihole"          ) ;;
+  "-r"  | "reconfigure"           ) ;;
+  "-l" | "logging"                ) ;;
+  "uninstall"                     ) ;;
+  "enable"                        ) need_root=0;;
+  "disable"                       ) need_root=0;;
+  "-d" | "debug"                  ) ;;
+  "-g" | "updateGravity"          ) ;;
+  "reloaddns"                     ) ;;
+  "reloadlists"                   ) ;;
+  "setpassword"                   ) ;;
+  "checkout"                      ) ;;
+  "updatechecker"                 ) ;;
+  "arpflush"                      ) ;;
+  "-t" | "tail"                   ) ;;
+  "api"                           ) need_root=0;;
+  *                               ) helpFunc;;
 esac
 
 # In the case of alpine running in a container, the USER variable appears to be blank
@@ -569,28 +569,28 @@ fi
 
 # Handle redirecting to specific functions based on arguments
 case "${1}" in
-  "allow" | "allowlist"         ) listFunc "$@";;
-  "deny" | "denylist"           ) listFunc "$@";;
-  "--wild" | "wildcard"         ) listFunc "$@";;
-  "--regex" | "regex"           ) listFunc "$@";;
+  "allow" | "allowlist"           ) listFunc "$@";;
+  "deny" | "denylist"             ) listFunc "$@";;
+  "--wild" | "wildcard"           ) listFunc "$@";;
+  "--regex" | "regex"             ) listFunc "$@";;
   "--allow-regex" | "allow-regex" ) listFunc "$@";;
   "--allow-wild" | "allow-wild"   ) listFunc "$@";;
-  "-d" | "debug"                ) debugFunc "$@";;
-  "-f" | "flush"                ) flushFunc "$@";;
-  "-up" | "updatePihole"        ) updatePiholeFunc "$@";;
-  "-r"  | "reconfigure"         ) reconfigurePiholeFunc;;
-  "-g" | "updateGravity"        ) updateGravityFunc "$@";;
-  "-l" | "logging"              ) piholeLogging "$@";;
-  "uninstall"                   ) uninstallFunc;;
-  "enable"                      ) piholeEnable true "$2";;
-  "disable"                     ) piholeEnable false "$2";;
-  "reloaddns"                   ) reloadDNS "reload";;
-  "reloadlists"             ) reloadDNS "reload-lists";;
-  "setpassword"                 ) SetWebPassword "$@";;
-  "checkout"                    ) piholeCheckoutFunc "$@";;
-  "updatechecker"               ) shift; updateCheckFunc "$@";;
-  "arpflush"                    ) arpFunc "$@";;
-  "-t" | "tail"                 ) tailFunc "$2";;
-  "api"                         ) apiFunc "$2";;
-  *                             ) helpFunc;;
+  "-d" | "debug"                  ) debugFunc "$@";;
+  "-f" | "flush"                  ) flushFunc "$@";;
+  "-up" | "updatePihole"          ) updatePiholeFunc "$@";;
+  "-r"  | "reconfigure"           ) reconfigurePiholeFunc;;
+  "-g" | "updateGravity"          ) updateGravityFunc "$@";;
+  "-l" | "logging"                ) piholeLogging "$@";;
+  "uninstall"                     ) uninstallFunc;;
+  "enable"                        ) piholeEnable true "$2";;
+  "disable"                       ) piholeEnable false "$2";;
+  "reloaddns"                     ) reloadDNS "reload";;
+  "reloadlists"                   ) reloadDNS "reload-lists";;
+  "setpassword"                   ) SetWebPassword "$@";;
+  "checkout"                      ) piholeCheckoutFunc "$@";;
+  "updatechecker"                 ) shift; updateCheckFunc "$@";;
+  "arpflush"                      ) arpFunc "$@";;
+  "-t" | "tail"                   ) tailFunc "$2";;
+  "api"                           ) apiFunc "$2";;
+  *                               ) helpFunc;;
 esac
