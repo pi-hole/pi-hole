@@ -19,8 +19,6 @@ INSERT OR REPLACE INTO adlist SELECT * FROM OLD.adlist;
 DELETE FROM OLD.adlist_by_group WHERE adlist_id NOT IN (SELECT id FROM OLD.adlist);
 INSERT OR REPLACE INTO adlist_by_group SELECT * FROM OLD.adlist_by_group;
 
-INSERT OR REPLACE INTO info SELECT * FROM OLD.info;
-
 INSERT OR REPLACE INTO client SELECT * FROM OLD.client;
 DELETE FROM OLD.client_by_group WHERE client_id NOT IN (SELECT id FROM OLD.client);
 INSERT OR REPLACE INTO client_by_group SELECT * FROM OLD.client_by_group;

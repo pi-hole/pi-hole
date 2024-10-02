@@ -15,20 +15,15 @@ if [[ -f ${coltable} ]]; then
     source ${coltable}
 fi
 
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+source "${utilsfile}"
+
 # Determine database location
-# Obtain DBFILE=... setting from pihole-FTL.db
-# Constructed to return nothing when
-# a) the setting is not present in the config file, or
-# b) the setting is commented out (e.g. "#DBFILE=...")
-FTLconf="/etc/pihole/pihole-FTL.conf"
-if [ -e "$FTLconf" ]; then
-    DBFILE="$(sed -n -e 's/^\s*DBFILE\s*=\s*//p' ${FTLconf})"
-fi
-# Test for empty string. Use standard path in this case.
+DBFILE=$(getFTLConfigValue "files.database")
 if [ -z "$DBFILE" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
-
 
 flushARP(){
     local output
@@ -36,10 +31,17 @@ flushARP(){
         echo -ne "  ${INFO} Flushing network table ..."
     fi
 
+    # Stop FTL to prevent database access
+    if ! output=$(pihole-FTL service stop 2>&1); then
+        echo -e "${OVER}  ${CROSS} Failed to stop FTL"
+        echo "  Output: ${output}"
+        return 1
+    fi
+
     # Truncate network_addresses table in pihole-FTL.db
     # This needs to be done before we can truncate the network table due to
     # foreign key constraints
-    if ! output=$(pihole-FTL sqlite3 "${DBFILE}" "DELETE FROM network_addresses" 2>&1); then
+    if ! output=$(pihole-FTL sqlite3 -ni "${DBFILE}" "DELETE FROM network_addresses" 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to truncate network_addresses table"
         echo "  Database location: ${DBFILE}"
         echo "  Output: ${output}"
@@ -47,9 +49,23 @@ flushARP(){
     fi
 
     # Truncate network table in pihole-FTL.db
-    if ! output=$(pihole-FTL sqlite3 "${DBFILE}" "DELETE FROM network" 2>&1); then
+    if ! output=$(pihole-FTL sqlite3 -ni "${DBFILE}" "DELETE FROM network" 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to truncate network table"
         echo "  Database location: ${DBFILE}"
+        echo "  Output: ${output}"
+        return 1
+    fi
+
+    # Flush ARP cache of the host
+    if ! output=$(ip -s -s neigh flush all 2>&1); then
+        echo -e "${OVER}  ${CROSS} Failed to flush ARP cache"
+        echo "  Output: ${output}"
+        return 1
+    fi
+
+    # Start FTL again
+    if ! output=$(pihole-FTL service restart 2>&1); then
+        echo -e "${OVER}  ${CROSS} Failed to restart FTL"
         echo "  Output: ${output}"
         return 1
     fi

@@ -8,9 +8,9 @@ ALTER TABLE regex RENAME TO regex_blacklist;
 
 CREATE TABLE regex_blacklist_by_group
 (
-	regex_blacklist_id INTEGER NOT NULL REFERENCES regex_blacklist (id),
-	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (regex_blacklist_id, group_id)
+    regex_blacklist_id INTEGER NOT NULL REFERENCES regex_blacklist (id),
+    group_id INTEGER NOT NULL REFERENCES "group" (id),
+    PRIMARY KEY (regex_blacklist_id, group_id)
 );
 
 INSERT INTO regex_blacklist_by_group SELECT * FROM regex_by_group;
@@ -32,19 +32,19 @@ CREATE TRIGGER tr_regex_blacklist_update AFTER UPDATE ON regex_blacklist
 
 CREATE TABLE regex_whitelist
 (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	domain TEXT UNIQUE NOT NULL,
-	enabled BOOLEAN NOT NULL DEFAULT 1,
-	date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
-	comment TEXT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    domain TEXT UNIQUE NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT 1,
+    date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+    date_modified INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int)),
+    comment TEXT
 );
 
 CREATE TABLE regex_whitelist_by_group
 (
-	regex_whitelist_id INTEGER NOT NULL REFERENCES regex_whitelist (id),
-	group_id INTEGER NOT NULL REFERENCES "group" (id),
-	PRIMARY KEY (regex_whitelist_id, group_id)
+    regex_whitelist_id INTEGER NOT NULL REFERENCES regex_whitelist (id),
+    group_id INTEGER NOT NULL REFERENCES "group" (id),
+    PRIMARY KEY (regex_whitelist_id, group_id)
 );
 
 CREATE VIEW vw_regex_whitelist AS SELECT DISTINCT domain

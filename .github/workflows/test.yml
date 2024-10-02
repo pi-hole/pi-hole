@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4.2.0
 
       - name: Check scripts in repository are executable
         run: |
@@ -22,6 +22,13 @@ jobs:
           unset IFS;
           # If FAIL is 1 then we fail.
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
+
+      - name: Run shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          check_together: 'yes'
+          format: tty
+          severity: error
 
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@master
@@ -49,23 +56,24 @@ jobs:
       matrix:
         distro:
           [
-            debian_10,
             debian_11,
+            debian_12,
             ubuntu_20,
             ubuntu_22,
-            centos_8,
+            ubuntu_23,
+            ubuntu_24,
             centos_9,
-            fedora_36,
-            fedora_37,
+            fedora_39,
+            fedora_40,
           ]
     env:
       DISTRO: ${{matrix.distro}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4.2.0
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4.5.0
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: "3.10"
 

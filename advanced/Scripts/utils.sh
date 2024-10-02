@@ -25,6 +25,7 @@
 #
 # Example usage:
 # addOrEditKeyValPair "/etc/pihole/setupVars.conf" "BLOCKING_ENABLED" "true"
+# TODO: We miight not actually need this function in v6
 #######################
 addOrEditKeyValPair() {
   local file="${1}"
@@ -57,7 +58,11 @@ addKey(){
   # touch file to prevent grep error if file does not exist yet
   touch "${file}"
 
-  if ! grep -q "^${key}" "${file}"; then
+  # Match key against entire line, using both anchors. We assume
+  # that the file's keys never have bounding whitespace. Anchors
+  # are necessary to ensure the key is considered absent when it
+  # is a substring of another key present in the file.
+  if ! grep -q "^${key}$" "${file}"; then
     # Key does not exist, add it.
     echo "${key}" >> "${file}"
   fi
@@ -74,48 +79,6 @@ removeKey() {
   local file="${1}"
   local key="${2}"
   sed -i "/^${key}/d" "${file}"
-}
-
-
-#######################
-# returns FTL's current telnet API port based on the setting in /etc/pihole-FTL.conf
-########################
-getFTLAPIPort(){
-    local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-    local DEFAULT_FTL_PORT=4711
-    local ftl_api_port
-
-    if [ -s "$FTLCONFFILE" ]; then
-        # if FTLPORT is not set in pihole-FTL.conf, use the default port
-        ftl_api_port="$({ grep '^FTLPORT=' "${FTLCONFFILE}" || echo "${DEFAULT_FTL_PORT}"; } | cut -d'=' -f2-)"
-        # Exploit prevention: set the port to the default port if there is malicious (non-numeric)
-        # content set in pihole-FTL.conf
-        expr "${ftl_api_port}" : "[^[:digit:]]" > /dev/null && ftl_api_port="${DEFAULT_FTL_PORT}"
-    else
-        # if there is no pihole-FTL.conf, use the default port
-        ftl_api_port="${DEFAULT_FTL_PORT}"
-    fi
-
-    echo "${ftl_api_port}"
-}
-
-#######################
-# returns path of FTL's PID  file
-#######################
-getFTLPIDFile() {
-  local FTLCONFFILE="/etc/pihole/pihole-FTL.conf"
-  local DEFAULT_PID_FILE="/run/pihole-FTL.pid"
-  local FTL_PID_FILE
-
-  if [ -s "${FTLCONFFILE}" ]; then
-    # if PIDFILE is not set in pihole-FTL.conf, use the default path
-    FTL_PID_FILE="$({ grep '^PIDFILE=' "${FTLCONFFILE}" || echo "${DEFAULT_PID_FILE}"; } | cut -d'=' -f2-)"
-  else
-    # if there is no pihole-FTL.conf, use the default path
-    FTL_PID_FILE="${DEFAULT_PID_FILE}"
-  fi
-
-  echo "${FTL_PID_FILE}"
 }
 
 #######################
@@ -140,4 +103,31 @@ getFTLPID() {
     # negative PID to signal this
     FTL_PID=${FTL_PID:=-1}
     echo  "${FTL_PID}"
+}
+
+#######################
+# returns value from FTLs config file using pihole-FTL --config
+#
+# Takes one argument: key
+# Example getFTLConfigValue dns.piholePTR
+#######################
+getFTLConfigValue(){
+  pihole-FTL --config -q "${1}"
+}
+
+#######################
+# sets value in FTLs config file using pihole-FTL --config
+#
+# Takes two arguments: key and value
+# Example setFTLConfigValue dns.piholePTR PI.HOLE
+#
+# Note, for complex values such as dns.upstreams, you should wrap the value in single quotes:
+# setFTLConfigValue dns.upstreams '[ "8.8.8.8" , "8.8.4.4" ]'
+#######################
+setFTLConfigValue(){
+  pihole-FTL --config "${1}" "${2}" >/dev/null
+  if [[ $? -eq 5 ]]; then
+    echo -e "  ${CROSS} ${1} set by environment variable. Please unset it to use this function"
+    exit 5
+  fi
 }

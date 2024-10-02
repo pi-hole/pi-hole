@@ -9,7 +9,7 @@
 # Description:       Enable service provided by pihole-FTL daemon
 ### END INIT INFO
 
-# Source utils.sh for getFTLPIDFile(), getFTLPID()
+# Source utils.sh for getFTLConfigValue(), getFTLPID()
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck disable=SC1090
@@ -37,7 +37,7 @@ start() {
     # Run pre-start script, which pre-creates all expected files with correct permissions
     sh "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
 
-    if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN+eip "/usr/bin/pihole-FTL"; then
+    if setcap CAP_NET_BIND_SERVICE,CAP_NET_RAW,CAP_NET_ADMIN,CAP_SYS_NICE,CAP_IPC_LOCK,CAP_CHOWN,CAP_SYS_TIME+eip "/usr/bin/pihole-FTL"; then
       su -s /bin/sh -c "/usr/bin/pihole-FTL" pihole
     else
       echo "Warning: Starting pihole-FTL as root because setting capabilities is not supported on this system"
@@ -98,7 +98,7 @@ status() {
 trap 'cleanup; exit 1' INT HUP TERM ABRT
 
 # Get FTL's PID file path
-FTL_PID_FILE="$(getFTLPIDFile)"
+FTL_PID_FILE="$(getFTLConfigValue files.pid)"
 
 # Get FTL's current PID
 FTL_PID="$(getFTLPID "${FTL_PID_FILE}")"

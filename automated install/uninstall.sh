@@ -45,11 +45,7 @@ source "${setupVars}"
 package_manager_detect
 
 # Uninstall packages used by the Pi-hole
-DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}" "${OS_CHECK_DEPS[@]}")
-if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-    # Install the Web dependencies
-    DEPS+=("${PIHOLE_WEB_DEPS[@]}")
-fi
+DEPS=("${INSTALLER_COMMON_DEPS[@]}" "${PIHOLE_COMMON_DEPS[@]}" "${OS_CHECK_COMMON_DEPS[@]}" "${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}" "${OS_CHECK_DEPS[@]}")
 
 # Compatibility
 if [ -x "$(command -v apt-get)" ]; then
@@ -192,6 +188,18 @@ removeNoPurge() {
             systemctl stop pihole-FTL
         else
             service pihole-FTL stop
+        fi
+        ${SUDO} rm -f /etc/systemd/system/pihole-FTL.service
+        if [[ -d '/etc/systemd/system/pihole-FTL.service.d' ]]; then
+            read -rp "  ${QST} FTL service override directory /etc/systemd/system/pihole-FTL.service.d detected. Do you wish to remove this from your system? [y/N] " answer
+            case $answer in
+                [yY]*)
+                    echo -ne "  ${INFO} Removing /etc/systemd/system/pihole-FTL.service.d..."
+                    ${SUDO} rm -R /etc/systemd/system/pihole-FTL.service.d
+                    echo -e "${OVER}  ${INFO} Removed /etc/systemd/system/pihole-FTL.service.d"
+                ;;
+                *) echo -e "  ${INFO} Leaving /etc/systemd/system/pihole-FTL.service.d in place.";;
+            esac
         fi
         ${SUDO} rm -f /etc/init.d/pihole-FTL
         ${SUDO} rm -f /usr/bin/pihole-FTL
