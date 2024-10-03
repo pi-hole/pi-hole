@@ -293,7 +293,6 @@ Options:
   Try 'pihole logging --help' for more information."
     exit 1
   fi
-  restartDNS
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
