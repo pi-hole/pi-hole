@@ -120,7 +120,6 @@ EOM
 # Content of Pi-hole's meta package control file on RPM based systems
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
-%define _topdir /tmp/pihole-meta
 Name: pihole-meta
 Version: 0.1
 Release: 1
@@ -199,6 +198,10 @@ show_ascii_berry() {
 }
 
 abort() {
+
+    # remove any leftover build directory that may exist
+    rm -rf /tmp/pihole-meta_*
+
     echo -e "\\n\\n  ${COL_LIGHT_RED}Installation was interrupted${COL_NC}\\n"
     echo -e "Pi-hole's dependencies might be already installed. If you want to remove them you can try to\\n"
     echo -e "a) run 'pihole uninstall' \\n"
@@ -452,24 +455,32 @@ package_manager_detect() {
 
 build_dependency_package(){
     # This function will build a package that contains all the dependencies needed for Pi-hole
-    mkdir -p /tmp/pihole-meta
-    chmod 0755 /tmp/pihole-meta
+
+    # remove any leftover build directory that may exist
+    rm -rf /tmp/pihole-meta_*
+
+    # Create a fresh build directory with random name
+    local tempdir
+    tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXX)"
+    chmod 0755 "${tempdir}"
 
     if is_command apt-get; then
-
         # move into the tmp directory
         pushd /tmp &>/dev/null || return 1
 
+        # remove leftover package if it exists from previous runs
+        rm -f /tmp/pihole-meta.deb
+
         # Prepare directory structure and control file
-        mkdir -p /tmp/pihole-meta/DEBIAN
-        chmod 0755 /tmp/pihole-meta/DEBIAN
-        touch /tmp/pihole-meta/DEBIAN/control
+        mkdir -p "${tempdir}"/DEBIAN
+        chmod 0755 "${tempdir}"/DEBIAN
+        touch "${tempdir}"/DEBIAN/control
 
         # Write the control file
-        echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" > /tmp/pihole-meta/DEBIAN/control
+        echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" > "${tempdir}"/DEBIAN/control
 
         # Build the package
-        dpkg-deb --build --root-owner-group pihole-meta
+        dpkg-deb --build --root-owner-group "${tempdir}" pihole-meta.deb
 
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
@@ -479,10 +490,13 @@ build_dependency_package(){
         # move into the tmp directory
         pushd /tmp &>/dev/null || return 1
 
+        # remove leftover package if it exists from previous runs
+        rm -f /tmp/pihole-meta.rpm
+
         # Prepare directory structure and spec file
-        mkdir -p /tmp/pihole-meta/SPECS
-        touch /tmp/pihole-meta/SPECS/pihole-meta.spec
-        echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" > /tmp/pihole-meta/SPECS/pihole-meta.spec
+        mkdir -p "${tempdir}"/SPECS
+        touch "${tempdir}"/SPECS/pihole-meta.spec
+        echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" > "${tempdir}"/SPECS/pihole-meta.spec
 
         # check if we need to install the build dependencies
         if ! is_command rpmbuild; then
@@ -491,10 +505,10 @@ build_dependency_package(){
         fi
 
         # Build the package
-        rpmbuild -bb /tmp/pihole-meta/SPECS/pihole-meta.spec
+        rpmbuild -bb "${tempdir}"/SPECS/pihole-meta.spec --define "_topdir ${tempdir}"
 
         # Move the package to the /tmp directory
-        mv /tmp/pihole-meta/RPMS/noarch/pihole-meta*.rpm /tmp/pihole-meta.rpm
+        mv "${tempdir}"/RPMS/noarch/pihole-meta*.rpm /tmp/pihole-meta.rpm
 
         # Remove the build dependencies when we've installed them
         if [ -n "${REMOVE_RPM_BUILD}" ]; then
@@ -506,7 +520,7 @@ build_dependency_package(){
     fi
 
     # Remove the build directory
-    rm -rf /tmp/pihole-meta
+    rm -rf "${tempdir}"
 }
 
 # A function for checking if a directory is a git repository
