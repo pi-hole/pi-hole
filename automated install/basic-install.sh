@@ -451,13 +451,20 @@ package_manager_detect() {
 
 build_dependency_package(){
     # This function will build a package that contains all the dependencies needed for Pi-hole
+
+    # remove any leftover build directory that may exist
+    rm -rf /tmp/pihole-meta
+
+    # Create a fresh build directory
     mkdir -p /tmp/pihole-meta
     chmod 0755 /tmp/pihole-meta
 
     if is_command apt-get; then
-
         # move into the tmp directory
         pushd /tmp &>/dev/null || return 1
+
+        # remove leftover package if it exists from previous runs
+        rm -f /tmp/pihole-meta.deb
 
         # Prepare directory structure and control file
         mkdir -p /tmp/pihole-meta/DEBIAN
@@ -477,6 +484,9 @@ build_dependency_package(){
     if is_command rpm; then
         # move into the tmp directory
         pushd /tmp &>/dev/null || return 1
+
+        # remove leftover package if it exists from previous runs
+        rm -f /tmp/pihole-meta.rpm
 
         # Prepare directory structure and spec file
         mkdir -p /tmp/pihole-meta/SPECS
