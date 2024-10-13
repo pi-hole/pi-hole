@@ -7,6 +7,11 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_COLOR: 1
+  PYTHONUNBUFFERED: 1
+  PYTHONUTF8: 1
+
 jobs:
   smoke-tests:
     if: github.event.pull_request.draft == false
