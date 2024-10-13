@@ -77,6 +77,7 @@ PI_HOLE_FILES=(list piholeDebug piholeLogFlush setupLCD update version gravity u
 PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
+PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
 if [ -z "$useUpdateVars" ]; then
     useUpdateVars=false
 fi
@@ -2194,7 +2195,7 @@ migrate_dnsmasq_configs() {
 
     # Exit early if this is already Pi-hole v6.0
     # We decide this on the presence of the file /etc/pihole/pihole.toml
-    if [[ -f /etc/pihole/pihole.toml ]]; then
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
         return 0
     fi
 
@@ -2289,16 +2290,19 @@ main() {
     printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
     install_dependent_packages "${INSTALLER_COMMON_DEPS[@]}" "${INSTALLER_DEPS[@]}"
 
-    # if it's running unattended,
-    if [[ "${runUnattended}" == true ]]; then
-        printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
-        # Use the setup variables
-        useUpdateVars=true
-        # also disable debconf-apt-progress dialogs
-        export DEBIAN_FRONTEND="noninteractive"
-    else
-        # If running attended, show the available options (repair/reconfigure)
-        update_dialogs
+    # in case of an update
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
+        # if it's running unattended,
+        if [[ "${runUnattended}" == true ]]; then
+            printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
+            # Use the setup variables
+            useUpdateVars=true
+            # also disable debconf-apt-progress dialogs
+            export DEBIAN_FRONTEND="noninteractive"
+        else
+            # If running attended, show the available options (repair/reconfigure)
+            update_dialogs
+        fi
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then
