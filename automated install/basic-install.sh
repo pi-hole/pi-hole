@@ -2396,10 +2396,10 @@ main() {
     # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
     # set on fresh installations by setPrivacyLevel() and setLogging(
     if [ -n "${QUERY_LOGGING}" ]; then
-        pihole-FTL --config dns.queryLogging "${QUERY_LOGGING}"
+        setFTLConfigValue "dns.queryLogging" "${QUERY_LOGGING}"
     fi
     if [ -n "${PRIVACY_LEVEL}" ]; then
-        pihole-FTL --config misc.privacylevel "${PRIVACY_LEVEL}"
+        setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
     fi
 
     # Download and compile the aggregated block list
