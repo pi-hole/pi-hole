@@ -38,10 +38,13 @@ GitCheckUpdateAvail() {
     local curBranch
     directory="${1}"
     curdir=$PWD
-    cd "${directory}" || return
+    cd "${directory}" || exit 1
 
     # Fetch latest changes in this repo
-    git fetch --quiet origin
+    if ! git fetch --quiet origin ; then
+        echo -e "\\n  ${COL_LIGHT_RED}Error: Unable to update local repository. Contact Pi-hole Support.${COL_NC}"
+        exit 1
+    fi
 
     # Check current branch. If it is master, then check for the latest available tag instead of latest commit.
     curBranch=$(git rev-parse --abbrev-ref HEAD)
@@ -71,17 +74,17 @@ GitCheckUpdateAvail() {
         echo -e "\\n  ${COL_LIGHT_RED}Error: Local revision could not be obtained, please contact Pi-hole Support"
         echo -e "  Additional debugging output:${COL_NC}"
         git status
-        exit
+        exit 1
     fi
     if [[ "${#REMOTE}" == 0 ]]; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Remote revision could not be obtained, please contact Pi-hole Support"
         echo -e "  Additional debugging output:${COL_NC}"
         git status
-        exit
+        exit 1
     fi
 
     # Change back to original directory
-    cd "${curdir}" || exit
+    cd "${curdir}" || exit 1
 
     if [[ "${LOCAL}" != "${REMOTE}" ]]; then
         # Local branch is behind remote branch -> Update
