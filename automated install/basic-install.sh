@@ -409,7 +409,7 @@ package_manager_detect() {
         # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
         # so exit the installer
-        exit
+        exit 1
     fi
 }
 
