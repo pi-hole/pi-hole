@@ -598,7 +598,8 @@ gravity_DownloadBlocklistFromUrl() {
 
   # Check for allowed protocols
   if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
-    echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified, ignoring list"
+    echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified. Ignoring list."
+    echo -e "Ensure your URL starts with a valid protocol like http:// , https:// or file:// ."
     download=false
   fi
 
