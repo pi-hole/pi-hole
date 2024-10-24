@@ -598,7 +598,9 @@ gravity_DownloadBlocklistFromUrl() {
 
   # Check for allowed protocols
   if [[ $url != "http"* && $url != "https"* && $url != "file"* && $url != "ftp"* && $url != "ftps"* && $url != "sftp"* ]]; then
-    echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified. Ensure your URL starts with a valid protocol like http:// or https://, e.g., try http://localhost/adblock.txt instead of localhost/adblock.txt."
+    echo -e "${OVER}  ${CROSS} ${str} Invalid protocol specified."
+    echo -e "      Ensure your URL starts with a valid protocol like http:// or https://,"
+    echo -e "      e.g., try http://localhost/adblock.txt instead of localhost/adblock.txt."
     download=false
   fi
 
