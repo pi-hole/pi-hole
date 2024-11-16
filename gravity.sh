@@ -425,14 +425,14 @@ gravity_DownloadBlocklists() {
     echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
 
     # Try to attempt a backup restore
-    for i in {1..9}; do
+    for i in {1..10}; do
       if try_restore_backup "${i}"; then
         break
       fi
     done
 
     # If none of the attempts worked, return 1
-    if [[ "${i}" -eq 9 ]]; then
+    if [[ "${i}" -eq 10 ]]; then
       return 1
     fi
 
