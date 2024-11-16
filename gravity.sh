@@ -172,10 +172,7 @@ database_table_from_file() {
   grep -v '^ *#' <"${src}" | while IFS= read -r domain; do
     # Only add non-empty lines
     if [[ -n "${domain}" ]]; then
-      if [[ "${table}" == "domain_audit" ]]; then
-        # domain_audit table format (no enable or modified fields)
-        echo "${rowid},\"${domain}\",${timestamp}" >>"${tmpFile}"
-      elif [[ "${table}" == "adlist" ]]; then
+      if [[ "${table}" == "adlist" ]]; then
         # Adlist table format
         echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${src}\",,0,0,0,0,0" >>"${tmpFile}"
       else
