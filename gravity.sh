@@ -345,6 +345,43 @@ gravity_CheckDNSResolutionAvailable() {
   echo -e "${OVER}  ${TICK} DNS resolution is available"
 }
 
+# Function: try_restore_backup
+# Description: Attempts to restore the previous Pi-hole gravity database from a
+#              backup file. If a backup exists, it copies the backup to the
+#              gravity database file and prepares a new gravity database. If the
+#              restoration is successful, it returns 0. Otherwise, it returns 1.
+# Returns:
+#   0 - If the backup is successfully restored.
+#   1 - If no backup is available or if the restoration fails.
+try_restore_backup () {
+  # Check if a backup exists
+  if [ -f "${gravityBCKfile}.1" ]; then
+    echo -e "  ${INFO} Attempting to restore previous database from backup"
+    cp "${gravityBCKfile}.1" "${gravityDBfile}"
+
+    # If the backup was successfully copied, prepare a new gravity database from
+    # it
+    if [ -f "${gravityDBfile}" ]; then
+      output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${copyGravity}"; } 2>&1)
+      status="$?"
+
+      # Error checking
+      if [[ "${status}" -ne 0 ]]; then
+        echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
+        gravity_Cleanup "error"
+      fi
+
+      echo -e "  ${TICK} Successfully restored from backup (${gravityBCKfile}.1)"
+      return 0
+    else
+      echo -e "  ${CROSS} Unable to restore backup"
+    fi
+  fi
+
+  echo -e "  ${CROSS} No backup available"
+  return 1
+}
+
 # Retrieve blocklist URLs and parse domains from adlist.list
 gravity_DownloadBlocklists() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
@@ -411,7 +448,11 @@ gravity_DownloadBlocklists() {
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
-    return 1
+
+    # Try to attempt a backup restore
+    if ! try_restore_backup; then
+      return 1
+    fi
   fi
   echo -e "${OVER}  ${TICK} ${str}"
 
