@@ -58,6 +58,7 @@ gravityDBfile_default="/etc/pihole/gravity.db"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
+gravityBCKfile="${gravityDIR}/gravity_backup.db"
 
 # Generate new SQLite3 file from schema template
 generate_gravity_database() {
@@ -86,6 +87,15 @@ gravity_build_tree() {
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
+# Rotate gravity backup files
+rotate_gravity_backup() {
+  for i in {9..1}; do
+    if [ -f "${gravityBCKfile}.${i}" ]; then
+      mv "${gravityBCKfile}.${i}" "${gravityBCKfile}.$((i + 1))"
+    fi
+  done
+}
+
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
   str="Swapping databases"
@@ -101,10 +111,28 @@ gravity_swap_databases() {
   oldAvail=false
   if [ "${availableBlocks}" -gt "$((gravityBlocks * 2))" ] && [ -f "${gravityDBfile}" ]; then
     oldAvail=true
-    mv "${gravityDBfile}" "${gravityOLDfile}"
-  else
-    rm "${gravityDBfile}"
+    cp "${gravityDBfile}" "${gravityOLDfile}"
   fi
+
+  # Drop the gravity and antigravity tables + subsequent VACUUM the current
+  # database for compaction
+  output=$({ printf ".timeout 30000\\nDROP TABLE IF EXISTS gravity;\\nDROP TABLE IF EXISTS antigravity;\\nVACUUM;\\n" | pihole-FTL sqlite3 -ni "${gravityDBfile}"; } 2>&1)
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to clean current database for backup\\n  ${output}"
+    rotate=false
+  else
+    # If multiple gravityBCKfile's are present (appended with a number), rotate them
+    # We keep at most 10 backups
+    rotate_gravity_backup
+
+    # Move the old database to the backup location
+    mv "${gravityDBfile}" "${gravityBCKfile}.1"
+  fi
+
+
+  # Move the new database to the correct location
   mv "${gravityTEMPfile}" "${gravityDBfile}"
   echo -e "${OVER}  ${TICK} ${str}"
 
