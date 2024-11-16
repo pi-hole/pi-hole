@@ -121,7 +121,6 @@ gravity_swap_databases() {
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to clean current database for backup\\n  ${output}"
-    rotate=false
   else
     # If multiple gravityBCKfile's are present (appended with a number), rotate them
     # We keep at most 10 backups
@@ -390,32 +389,6 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
   fi
 
-  # Retrieve source URLs from gravity database
-  # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
-  mapfile -t sources <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2>/dev/null)"
-  mapfile -t sourceIDs <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2>/dev/null)"
-  mapfile -t sourceTypes <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2>/dev/null)"
-
-  # Parse source domains from $sources
-  mapfile -t sourceDomains <<<"$(
-    # Logic: Split by folder/port
-    awk -F '[/:]' '{
-      # Remove URL protocol & optional username:password@
-      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
-      if(length($1)>0){print $1}
-      else {print "local"}
-    }' <<<"$(printf '%s\n' "${sources[@]}")" 2>/dev/null
-  )"
-
-  local str="Pulling blocklist source list into range"
-  echo -e "${OVER}  ${TICK} ${str}"
-
-  if [[ -z "${sources[*]}" ]] || [[ -z "${sourceDomains[*]}" ]]; then
-    echo -e "  ${INFO} No source list found, or it is empty"
-    echo ""
-    unset sources
-  fi
-
   local url domain str target compression adlist_type
   echo ""
 
@@ -453,8 +426,37 @@ gravity_DownloadBlocklists() {
     if ! try_restore_backup; then
       return 1
     fi
+
+    echo -e "  ${TICK} ${str}"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
   fi
+
+  # Retrieve source URLs from gravity database
+  # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
+  mapfile -t sources <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2>/dev/null)"
+  mapfile -t sourceIDs <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2>/dev/null)"
+  mapfile -t sourceTypes <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2>/dev/null)"
+
+  # Parse source domains from $sources
+  mapfile -t sourceDomains <<<"$(
+    # Logic: Split by folder/port
+    awk -F '[/:]' '{
+      # Remove URL protocol & optional username:password@
+      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
+      if(length($1)>0){print $1}
+      else {print "local"}
+    }' <<<"$(printf '%s\n' "${sources[@]}")" 2>/dev/null
+  )"
+
+  local str="Pulling blocklist source list into range"
   echo -e "${OVER}  ${TICK} ${str}"
+
+  if [[ -z "${sources[*]}" ]] || [[ -z "${sourceDomains[*]}" ]]; then
+    echo -e "  ${INFO} No source list found, or it is empty"
+    echo ""
+    unset sources
+  fi
 
   # Use compression to reduce the amount of data that is transferred
   # between the Pi-hole and the ad list provider. Use this feature
