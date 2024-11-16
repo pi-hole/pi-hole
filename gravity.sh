@@ -353,10 +353,12 @@ gravity_CheckDNSResolutionAvailable() {
 #   0 - If the backup is successfully restored.
 #   1 - If no backup is available or if the restoration fails.
 try_restore_backup () {
+  local num
+  num=$1
   # Check if a backup exists
-  if [ -f "${gravityBCKfile}.1" ]; then
+  if [ -f "${gravityBCKfile}.${num}" ]; then
     echo -e "  ${INFO} Attempting to restore previous database from backup"
-    cp "${gravityBCKfile}.1" "${gravityDBfile}"
+    cp "${gravityBCKfile}.${num}" "${gravityDBfile}"
 
     # If the backup was successfully copied, prepare a new gravity database from
     # it
@@ -370,14 +372,14 @@ try_restore_backup () {
         gravity_Cleanup "error"
       fi
 
-      echo -e "  ${TICK} Successfully restored from backup (${gravityBCKfile}.1)"
+      echo -e "  ${TICK} Successfully restored from backup (${gravityBCKfile}.${num})"
       return 0
     else
-      echo -e "  ${CROSS} Unable to restore backup"
+      echo -e "  ${CROSS} Unable to restore backup no. ${num}"
     fi
   fi
 
-  echo -e "  ${CROSS} No backup available"
+  echo -e "  ${CROSS} Backup no. ${num} not available"
   return 1
 }
 
@@ -423,7 +425,14 @@ gravity_DownloadBlocklists() {
     echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
 
     # Try to attempt a backup restore
-    if ! try_restore_backup; then
+    for i in {1..9}; do
+      if try_restore_backup "${i}"; then
+        break
+      fi
+    done
+
+    # If none of the attempts worked, return 1
+    if [[ "${i}" -eq 9 ]]; then
       return 1
     fi
 
