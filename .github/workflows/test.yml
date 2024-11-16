@@ -68,8 +68,8 @@ jobs:
             ubuntu_23,
             ubuntu_24,
             centos_9,
-            fedora_39,
             fedora_40,
+            fedora_41,
           ]
     env:
       DISTRO: ${{matrix.distro}}
