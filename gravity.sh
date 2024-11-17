@@ -357,7 +357,7 @@ try_restore_backup () {
   num=$1
   # Check if a backup exists
   if [ -f "${gravityBCKfile}.${num}" ]; then
-    echo -e "  ${INFO} Attempting to restore previous database from backup"
+    echo -e "  ${INFO} Attempting to restore previous database from backup no. ${num}"
     cp "${gravityBCKfile}.${num}" "${gravityDBfile}"
 
     # If the backup was successfully copied, prepare a new gravity database from
