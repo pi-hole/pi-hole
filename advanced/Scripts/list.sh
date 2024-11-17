@@ -192,7 +192,7 @@ GetComment() {
     comment="$1"
     if [[ "${comment}" =~ [^a-zA-Z0-9_\#:/\.,\ -] ]]; then
         echo "  ${CROSS} Found invalid characters in domain comment!"
-        exit
+        exit 1
     fi
 }
 
