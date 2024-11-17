@@ -68,13 +68,6 @@ CREATE TABLE info
 
 INSERT INTO "info" VALUES('version','19');
 
-CREATE TABLE domain_audit
-(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    domain TEXT UNIQUE NOT NULL,
-    date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int))
-);
-
 CREATE TABLE domainlist_by_group
 (
     domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
