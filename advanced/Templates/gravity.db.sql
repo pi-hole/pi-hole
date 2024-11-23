@@ -67,6 +67,11 @@ CREATE TABLE info
 );
 
 INSERT INTO "info" VALUES('version','19');
+/* This is a flag to indicate if gravity was restored from a backup
+    false = not restored,
+    failed = restoration failed due to no backup
+    other string = restoration successful with the string being the backup file used */
+INSERT INTO "info" VALUES('gravity_restored','false');
 
 CREATE TABLE domain_audit
 (

@@ -353,12 +353,13 @@ gravity_CheckDNSResolutionAvailable() {
 #   0 - If the backup is successfully restored.
 #   1 - If no backup is available or if the restoration fails.
 try_restore_backup () {
-  local num
+  local num filename
   num=$1
+  filename="${gravityBCKfile}.${num}"
   # Check if a backup exists
-  if [ -f "${gravityBCKfile}.${num}" ]; then
+  if [ -f "${filename}" ]; then
     echo -e "  ${INFO} Attempting to restore previous database from backup no. ${num}"
-    cp "${gravityBCKfile}.${num}" "${gravityDBfile}"
+    cp "${filename}" "${gravityDBfile}"
 
     # If the backup was successfully copied, prepare a new gravity database from
     # it
@@ -372,6 +373,7 @@ try_restore_backup () {
         gravity_Cleanup "error"
       fi
 
+      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','${filename}');"
       echo -e "  ${TICK} Successfully restored from backup (${gravityBCKfile}.${num})"
       return 0
     else
@@ -434,6 +436,7 @@ gravity_DownloadBlocklists() {
     # If none of the attempts worked, return 1
     if [[ "${i}" -eq 10 ]]; then
       return 1
+      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
     fi
 
     echo -e "  ${TICK} ${str}"
