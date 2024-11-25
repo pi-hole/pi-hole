@@ -59,14 +59,24 @@ gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
 
+fix_owner_permissions() {
+  # Fix ownership and permissions for the specified file
+  # User and group are set to pihole:pihole
+  # Permissions are set to 664 (rw-rw-r--)
+  chown pihole:pihole "${1}"
+  chmod 664 "${1}"
+
+  # Ensure the containing directory is group writable
+  chmod g+w "$(dirname -- "${1}")"
+}
+
 # Generate new SQLite3 file from schema template
 generate_gravity_database() {
   if ! pihole-FTL sqlite3 -ni "${gravityDBfile}" <"${gravityDBschema}"; then
     echo -e "   ${CROSS} Unable to create ${gravityDBfile}"
     return 1
   fi
-  chown pihole:pihole "${gravityDBfile}"
-  chmod g+w "${piholeDir}" "${gravityDBfile}"
+  fix_owner_permissions "${gravityDBfile}"
 }
 
 # Build gravity tree
@@ -412,6 +422,19 @@ gravity_DownloadBlocklists() {
     # Save the file as list.#.domain
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
+
+    # Check if we can write to the save location file
+    if ! touch "${saveLocation}" 2>/dev/null; then
+      echo -e "  ${CROSS} Unable to write to ${saveLocation}"
+      echo "      Please run pihole -g as root"
+      echo ""
+      continue
+    fi
+
+    # Chown the file to the pihole user
+    # This is necessary for the FTL to be able to update the file
+    # when gravity is run from the web interface
+    fix_owner_permissions "${saveLocation}"
 
     echo -e "  ${INFO} Target: ${url}"
     local regex check_url
@@ -996,8 +1019,7 @@ fi
 update_gravity_timestamp
 
 # Ensure proper permissions are set for the database
-chown pihole:pihole "${gravityTEMPfile}"
-chmod g+w "${piholeDir}" "${gravityTEMPfile}"
+fix_owner_permissions "${gravityTEMPfile}"
 
 # Build the tree
 timeit gravity_build_tree
