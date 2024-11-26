@@ -441,11 +441,6 @@ gravity_DownloadBlocklists() {
       continue
     fi
 
-    # Chown the file to the pihole user
-    # This is necessary for the FTL to be able to update the file
-    # when gravity is run from the web interface
-    fix_owner_permissions "${saveLocation}"
-
     echo -e "  ${INFO} Target: ${url}"
     local regex check_url
     # Check for characters NOT allowed in URLs
@@ -746,7 +741,7 @@ gravity_ParseFileIntoDomains() {
     -e 's/^.*\s+//g' \
     -e '/^$/d' "${destination}"
 
-  chmod 644 "${destination}"
+  fix_owner_permissions "${destination}"
 }
 
 # Report number of entries in a table
