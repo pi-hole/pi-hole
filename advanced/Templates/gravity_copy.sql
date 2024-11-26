@@ -9,7 +9,6 @@ DROP TRIGGER tr_client_add;
 DROP TRIGGER tr_adlist_add;
 
 INSERT OR REPLACE INTO "group" SELECT * FROM OLD."group";
-INSERT OR REPLACE INTO domain_audit SELECT * FROM OLD.domain_audit;
 
 INSERT OR REPLACE INTO domainlist SELECT * FROM OLD.domainlist;
 DELETE FROM OLD.domainlist_by_group WHERE domainlist_id NOT IN (SELECT id FROM OLD.domainlist);

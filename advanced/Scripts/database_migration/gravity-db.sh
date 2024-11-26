@@ -13,10 +13,9 @@
 readonly scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
 
 upgrade_gravityDB(){
-    local database piholeDir auditFile version
+    local database piholeDir version
     database="${1}"
     piholeDir="${2}"
-    auditFile="${piholeDir}/auditlog.list"
 
     # Exit early if the database does not exist (e.g. in CI tests)
     if [[ ! -f "${database}" ]]; then
@@ -27,18 +26,11 @@ upgrade_gravityDB(){
     version="$(pihole-FTL sqlite3 -ni "${database}" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
     if [[ "$version" == "1" ]]; then
-        # This migration script upgrades the gravity.db file by
-        # adding the domain_audit table
+        # This migration script upgraded the gravity.db file by
+        # adding the domain_audit table. It is now a no-op
         echo -e "  ${INFO} Upgrading gravity database from version 1 to 2"
         pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/1_to_2.sql"
         version=2
-
-        # Store audit domains in database table
-        if [ -e "${auditFile}" ]; then
-            echo -e "  ${INFO} Migrating content of ${auditFile} into new database"
-            # database_table_from_file is defined in gravity.sh
-            database_table_from_file "domain_audit" "${auditFile}"
-        fi
     fi
     if [[ "$version" == "2" ]]; then
         # This migration script upgrades the gravity.db file by

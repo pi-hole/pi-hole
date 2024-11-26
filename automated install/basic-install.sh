@@ -1430,7 +1430,7 @@ install_dependent_packages() {
     for i in "$@"; do
         # For each package, check if it's already installed (and if so, don't add it to the installArray)
         printf "  %b Checking for %s..." "${INFO}" "${i}"
-        if "${PKG_MANAGER}" -q list installed "${i}" &>/dev/null; then
+        if rpm -q "${i}" &>/dev/null; then
             printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
         else
             printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
@@ -2270,7 +2270,7 @@ main() {
     notify_package_updates_available
 
     # Install packages necessary to perform os_check
-    printf "  %b Checking for / installing Required dependencies for OS Check...\\n" "${INFO}"
+    printf "  %b Checking for / installing required dependencies for OS Check...\\n" "${INFO}"
     install_dependent_packages "${OS_CHECK_COMMON_DEPS[@]}" "${OS_CHECK_DEPS[@]}"
 
     # Check that the installed OS is officially supported - display warning if not
@@ -2287,7 +2287,7 @@ main() {
     fi
 
     # Install packages used by this installation script
-    printf "  %b Checking for / installing Required dependencies for this install script...\\n" "${INFO}"
+    printf "  %b Checking for / installing required dependencies for this install script...\\n" "${INFO}"
     install_dependent_packages "${INSTALLER_COMMON_DEPS[@]}" "${INSTALLER_DEPS[@]}"
 
     # in case of an update
@@ -2335,7 +2335,7 @@ main() {
     local dep_install_list=("${PIHOLE_COMMON_DEPS[@]}" "${PIHOLE_DEPS[@]}")
 
     # Install packages used by the actual software
-    printf "  %b Checking for / installing Required dependencies for Pi-hole software...\\n" "${INFO}"
+    printf "  %b Checking for / installing required dependencies for Pi-hole software...\\n" "${INFO}"
     install_dependent_packages "${dep_install_list[@]}"
     unset dep_install_list
 

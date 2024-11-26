@@ -73,13 +73,6 @@ INSERT INTO "info" VALUES('version','19');
     other string = restoration successful with the string being the backup file used */
 INSERT INTO "info" VALUES('gravity_restored','false');
 
-CREATE TABLE domain_audit
-(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    domain TEXT UNIQUE NOT NULL,
-    date_added INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int))
-);
-
 CREATE TABLE domainlist_by_group
 (
     domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
