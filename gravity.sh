@@ -358,7 +358,7 @@ gravity_DownloadBlocklists() {
     unset sources
   fi
 
-  local url domain str target compression adlist_type
+  local url domain str target compression adlist_type directory
   echo ""
 
   # Prepare new gravity database
@@ -423,18 +423,23 @@ gravity_DownloadBlocklists() {
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
-    # Check if we can write to the save location file
-    if ! touch "${saveLocation}" 2>/dev/null; then
+    # Check if we can write to the save location file without actually creating
+    # it (in case it doesn't exist)
+    # First, check if the directory is writable
+    directory="$(dirname -- "${saveLocation}")"
+    if [ ! -w "${directory}" ]; then
+      echo -e "  ${CROSS} Unable to write to ${directory}"
+      echo "      Please run pihole -g as root"
+      echo ""
+      continue
+    fi
+    # Then, check if the file is writable (if it exists)
+    if [ -e "${saveLocation}" ] && [ ! -w "${saveLocation}" ]; then
       echo -e "  ${CROSS} Unable to write to ${saveLocation}"
       echo "      Please run pihole -g as root"
       echo ""
       continue
     fi
-
-    # Chown the file to the pihole user
-    # This is necessary for the FTL to be able to update the file
-    # when gravity is run from the web interface
-    fix_owner_permissions "${saveLocation}"
 
     echo -e "  ${INFO} Target: ${url}"
     local regex check_url
@@ -464,6 +469,7 @@ compareLists() {
     if ! sha1sum --check --status --strict "${target}.sha1"; then
       # The list changed upstream, we need to update the checksum
       sha1sum "${target}" >"${target}.sha1"
+      fix_owner_permissions "${target}.sha1"
       echo "  ${INFO} List has been updated"
       database_adlist_status "${adlistID}" "1"
     else
@@ -473,6 +479,7 @@ compareLists() {
   else
     # No checksum available, create one for comparing on the next run
     sha1sum "${target}" >"${target}.sha1"
+    fix_owner_permissions "${target}.sha1"
     # We assume here it was changed upstream
     database_adlist_status "${adlistID}" "1"
   fi
@@ -734,7 +741,7 @@ gravity_ParseFileIntoDomains() {
     -e 's/^.*\s+//g' \
     -e '/^$/d' "${destination}"
 
-  chmod 644 "${destination}"
+  fix_owner_permissions "${destination}"
 }
 
 # Report number of entries in a table
