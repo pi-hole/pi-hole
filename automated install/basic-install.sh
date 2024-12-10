@@ -1685,15 +1685,6 @@ installPihole() {
         exit 1
     fi
 
-    # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
-    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
-        # shellcheck disable=SC1091
-        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
-    else
-        printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
-        exit 1
-    fi
-
     remove_old_dnsmasq_ftl_configs
     remove_old_pihole_lighttpd_configs
 
@@ -2425,6 +2416,15 @@ main() {
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
+
+    # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
+    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
+        # shellcheck disable=SC1091
+        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+    else
+        printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
+        exit 1
+    fi
 
     # Copy the temp log file into final log location for storage
     copy_to_install_log
