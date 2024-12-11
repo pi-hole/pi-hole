@@ -65,7 +65,6 @@ jobs:
             debian_12,
             ubuntu_20,
             ubuntu_22,
-            ubuntu_23,
             ubuntu_24,
             centos_9,
             fedora_40,

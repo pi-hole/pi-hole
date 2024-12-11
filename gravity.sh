@@ -59,14 +59,24 @@ gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
 
+fix_owner_permissions() {
+  # Fix ownership and permissions for the specified file
+  # User and group are set to pihole:pihole
+  # Permissions are set to 664 (rw-rw-r--)
+  chown pihole:pihole "${1}"
+  chmod 664 "${1}"
+
+  # Ensure the containing directory is group writable
+  chmod g+w "$(dirname -- "${1}")"
+}
+
 # Generate new SQLite3 file from schema template
 generate_gravity_database() {
   if ! pihole-FTL sqlite3 -ni "${gravityDBfile}" <"${gravityDBschema}"; then
     echo -e "   ${CROSS} Unable to create ${gravityDBfile}"
     return 1
   fi
-  chown pihole:pihole "${gravityDBfile}"
-  chmod g+w "${piholeDir}" "${gravityDBfile}"
+  fix_owner_permissions "${gravityDBfile}"
 }
 
 # Build gravity tree
@@ -172,10 +182,7 @@ database_table_from_file() {
   grep -v '^ *#' <"${src}" | while IFS= read -r domain; do
     # Only add non-empty lines
     if [[ -n "${domain}" ]]; then
-      if [[ "${table}" == "domain_audit" ]]; then
-        # domain_audit table format (no enable or modified fields)
-        echo "${rowid},\"${domain}\",${timestamp}" >>"${tmpFile}"
-      elif [[ "${table}" == "adlist" ]]; then
+      if [[ "${table}" == "adlist" ]]; then
         # Adlist table format
         echo "${rowid},\"${domain}\",1,${timestamp},${timestamp},\"Migrated from ${src}\",,0,0,0,0,0" >>"${tmpFile}"
       else
@@ -351,7 +358,7 @@ gravity_DownloadBlocklists() {
     unset sources
   fi
 
-  local url domain str target compression adlist_type
+  local url domain str target compression adlist_type directory
   echo ""
 
   # Prepare new gravity database
@@ -416,6 +423,24 @@ gravity_DownloadBlocklists() {
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
     activeDomains[$i]="${saveLocation}"
 
+    # Check if we can write to the save location file without actually creating
+    # it (in case it doesn't exist)
+    # First, check if the directory is writable
+    directory="$(dirname -- "${saveLocation}")"
+    if [ ! -w "${directory}" ]; then
+      echo -e "  ${CROSS} Unable to write to ${directory}"
+      echo "      Please run pihole -g as root"
+      echo ""
+      continue
+    fi
+    # Then, check if the file is writable (if it exists)
+    if [ -e "${saveLocation}" ] && [ ! -w "${saveLocation}" ]; then
+      echo -e "  ${CROSS} Unable to write to ${saveLocation}"
+      echo "      Please run pihole -g as root"
+      echo ""
+      continue
+    fi
+
     echo -e "  ${INFO} Target: ${url}"
     local regex check_url
     # Check for characters NOT allowed in URLs
@@ -444,6 +469,7 @@ compareLists() {
     if ! sha1sum --check --status --strict "${target}.sha1"; then
       # The list changed upstream, we need to update the checksum
       sha1sum "${target}" >"${target}.sha1"
+      fix_owner_permissions "${target}.sha1"
       echo "  ${INFO} List has been updated"
       database_adlist_status "${adlistID}" "1"
     else
@@ -453,6 +479,7 @@ compareLists() {
   else
     # No checksum available, create one for comparing on the next run
     sha1sum "${target}" >"${target}.sha1"
+    fix_owner_permissions "${target}.sha1"
     # We assume here it was changed upstream
     database_adlist_status "${adlistID}" "1"
   fi
@@ -714,7 +741,7 @@ gravity_ParseFileIntoDomains() {
     -e 's/^.*\s+//g' \
     -e '/^$/d' "${destination}"
 
-  chmod 644 "${destination}"
+  fix_owner_permissions "${destination}"
 }
 
 # Report number of entries in a table
@@ -999,8 +1026,7 @@ fi
 update_gravity_timestamp
 
 # Ensure proper permissions are set for the database
-chown pihole:pihole "${gravityTEMPfile}"
-chmod g+w "${piholeDir}" "${gravityTEMPfile}"
+fix_owner_permissions "${gravityTEMPfile}"
 
 # Build the tree
 timeit gravity_build_tree
