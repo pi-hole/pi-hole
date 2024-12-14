@@ -25,6 +25,9 @@ set -e
 # When using "su" an incomplete PATH could be passed: https://github.com/pi-hole/pi-hole/issues/3209
 export PATH+=':/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
+# Trap any errors, then exit
+trap abort INT QUIT TERM
+
 ######## VARIABLES #########
 # For better maintainability, we store as much information that can change in variables
 # This allows us to make a change in one place that can propagate to all instances of the variable
@@ -102,6 +105,40 @@ fi
 r=20
 c=70
 
+# Content of Pi-hole's meta package control file on APT based systems
+PIHOLE_META_PACKAGE_CONTROL_APT=$(
+    cat <<EOM
+Package: pihole-meta
+Version: 0.1
+Maintainer: Pi-hole team <adblock@pi-hole.net>
+Architecture: all
+Description: Pi-hole dependency meta package
+Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+EOM
+)
+
+# Content of Pi-hole's meta package control file on RPM based systems
+PIHOLE_META_PACKAGE_CONTROL_RPM=$(
+    cat <<EOM
+Name: pihole-meta
+Version: 0.1
+Release: 1
+License: EUPL
+BuildArch: noarch
+Summary: Pi-hole dependency meta package
+Requires: grep,curl,psmisc,sudo, unzip,jq,git,dialog,ca-certificates, bind-utils, iproute, procps-ng, chkconfig, binutils, cronie, findutils, libcap, nmap-ncat, lshw, bash-completion
+%description
+Pi-hole dependency meta package
+%prep
+%build
+%files
+%install
+%changelog
+* Sun Sep 29 2024 Pi-hole Team - 0.1
+- First version being packaged
+EOM
+)
+
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
@@ -158,6 +195,19 @@ show_ascii_berry() {
                 .',,,,,,'.
                   ..'''.${COL_NC}
 "
+}
+
+abort() {
+
+    # remove any leftover build directory that may exist
+    rm -rf /tmp/pihole-meta_*
+
+    echo -e "\\n\\n  ${COL_LIGHT_RED}Installation was interrupted${COL_NC}\\n"
+    echo -e "Pi-hole's dependencies might be already installed. If you want to remove them you can try to\\n"
+    echo -e "a) run 'pihole uninstall' \\n"
+    echo -e "b) Remove the meta-package 'pihole-meta' manually \\n"
+    echo -e "E.g. sudo apt-get remove pihole-meta && apt-get autoremove \\n"
+    exit 1
 }
 
 is_command() {
@@ -362,10 +412,6 @@ test_dpkg_lock() {
 
 # Compatibility
 package_manager_detect() {
-    # pull common packages for both distributions out into a common variable
-    OS_CHECK_COMMON_DEPS=(grep)
-    PIHOLE_COMMON_DEPS=(curl psmisc sudo unzip jq);
-    INSTALLER_COMMON_DEPS=(git dialog ca-certificates)
 
     # First check to see if apt-get is installed.
     if is_command apt-get; then
@@ -375,17 +421,13 @@ package_manager_detect() {
         # A variable to store the command used to update the package cache
         UPDATE_PKG_CACHE="${PKG_MANAGER} update"
         # The command we will use to actually install packages
-        PKG_INSTALL=("${PKG_MANAGER}" -qq --no-install-recommends install)
+        PKG_INSTALL="${PKG_MANAGER} -qq --no-install-recommends install"
         # grep -c will return 1 if there are no matches. This is an acceptable condition, so we OR TRUE to prevent set -e exiting the script.
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
+        # The command we will use to remove packages (used in the uninstaller)
+        PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
         # Update package cache
         update_package_cache || exit 1
-        # Packages required to perform the os_check and FTL binary detection
-        OS_CHECK_DEPS=(dnsutils binutils)
-        # Packages required to run this install script
-        INSTALLER_DEPS=(iproute2)
-        # Packages required to run Pi-hole
-        PIHOLE_DEPS=(cron iputils-ping libcap2-bin dns-root-data libcap2 netcat-openbsd procps lshw bash-completion)
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
@@ -397,13 +439,11 @@ package_manager_detect() {
         fi
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
-        PKG_INSTALL=("${PKG_MANAGER}" install -y)
+        PKG_INSTALL="${PKG_MANAGER} install -y"
         # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
-        OS_CHECK_DEPS=(bind-utils)
-        INSTALLER_DEPS=(iproute newt procps-ng chkconfig binutils)
-        PIHOLE_DEPS=(cronie findutils libcap nmap-ncat lshw bash-completion)
-
+        # The command we will use to remove packages (used in the uninstaller)
+        PKG_REMOVE="${PKG_MANAGER} remove -y"
     # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot install required packages
@@ -411,6 +451,76 @@ package_manager_detect() {
         # so exit the installer
         exit 1
     fi
+}
+
+build_dependency_package(){
+    # This function will build a package that contains all the dependencies needed for Pi-hole
+
+    # remove any leftover build directory that may exist
+    rm -rf /tmp/pihole-meta_*
+
+    # Create a fresh build directory with random name
+    local tempdir
+    tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXX)"
+    chmod 0755 "${tempdir}"
+
+    if is_command apt-get; then
+        # move into the tmp directory
+        pushd /tmp &>/dev/null || return 1
+
+        # remove leftover package if it exists from previous runs
+        rm -f /tmp/pihole-meta.deb
+
+        # Prepare directory structure and control file
+        mkdir -p "${tempdir}"/DEBIAN
+        chmod 0755 "${tempdir}"/DEBIAN
+        touch "${tempdir}"/DEBIAN/control
+
+        # Write the control file
+        echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" > "${tempdir}"/DEBIAN/control
+
+        # Build the package
+        dpkg-deb --build --root-owner-group "${tempdir}" pihole-meta.deb
+
+        # Move back into the directory the user started in
+        popd &> /dev/null || return 1
+    fi
+
+    if is_command rpm; then
+        # move into the tmp directory
+        pushd /tmp &>/dev/null || return 1
+
+        # remove leftover package if it exists from previous runs
+        rm -f /tmp/pihole-meta.rpm
+
+        # Prepare directory structure and spec file
+        mkdir -p "${tempdir}"/SPECS
+        touch "${tempdir}"/SPECS/pihole-meta.spec
+        echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" > "${tempdir}"/SPECS/pihole-meta.spec
+
+        # check if we need to install the build dependencies
+        if ! is_command rpmbuild; then
+            local REMOVE_RPM_BUILD=true
+            eval "${PKG_INSTALL}" "rpm-build"
+        fi
+
+        # Build the package
+        rpmbuild -bb "${tempdir}"/SPECS/pihole-meta.spec --define "_topdir ${tempdir}"
+
+        # Move the package to the /tmp directory
+        mv "${tempdir}"/RPMS/noarch/pihole-meta*.rpm /tmp/pihole-meta.rpm
+
+        # Remove the build dependencies when we've installed them
+        if [ -n "${REMOVE_RPM_BUILD}" ]; then
+            eval "${PKG_REMOVE}" "rpm-build"
+        fi
+
+        # Move back into the directory the user started in
+        popd &> /dev/null || return 1
+    fi
+
+    # Remove the build directory
+    rm -rf "${tempdir}"
 }
 
 # A function for checking if a directory is a git repository
@@ -1390,60 +1500,29 @@ notify_package_updates_available() {
 }
 
 install_dependent_packages() {
+    # Install meta dependency package
 
-    # Install packages passed in via argument array
-    # No spinner - conflicts with set -e
-    declare -a installArray
-
-    # Debian based package install - debconf will download the entire package list
-    # so we just create an array of packages not currently installed to cut down on the
-    # amount of download traffic.
-    # NOTE: We may be able to use this installArray in the future to create a list of package that were
-    # installed by us, and remove only the installed packages, and not the entire list.
+    # Install Debian/Ubuntu packages
     if is_command apt-get; then
-        # For each package, check if it's already installed (and if so, don't add it to the installArray)
-        for i in "$@"; do
-            printf "  %b Checking for %s..." "${INFO}" "${i}"
-            if dpkg-query -W -f='${Status}' "${i}" 2>/dev/null | grep "ok installed" &>/dev/null; then
-                printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
-            else
-                printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
-                installArray+=("${i}")
-            fi
-        done
-        # If there's anything to install, install everything in the list.
-        if [[ "${#installArray[@]}" -gt 0 ]]; then
-            test_dpkg_lock
-            # Running apt-get install with minimal output can cause some issues with
-            # requiring user input (e.g password for phpmyadmin see #218)
-            printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-            printf '%*s\n' "${c}" '' | tr " " -
-            "${PKG_INSTALL[@]}" "${installArray[@]}"
-            printf '%*s\n' "${c}" '' | tr " " -
-            return
+        if [ -f /tmp/pihole-meta.deb ]; then
+            eval "${PKG_INSTALL}" "/tmp/pihole-meta.deb"
+            rm /tmp/pihole-meta.deb
+        else
+            printf "  %b Error: Unable to find Pi-hole dependency meta package.\\n" "${COL_LIGHT_RED}"
+            return 1
         fi
-        printf "\\n"
-        return 0
     fi
 
     # Install Fedora/CentOS packages
-    for i in "$@"; do
-        # For each package, check if it's already installed (and if so, don't add it to the installArray)
-        printf "  %b Checking for %s..." "${INFO}" "${i}"
-        if rpm -q "${i}" &>/dev/null; then
-            printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
+    if is_command rpm; then
+            if [ -f /tmp/pihole-meta.rpm ]; then
+            eval "${PKG_INSTALL}" "/tmp/pihole-meta.rpm"
+            rm /tmp/pihole-meta.rpm
         else
-            printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
-            installArray+=("${i}")
+            printf "  %b Error: Unable to find Pi-hole dependency meta package.\\n" "${COL_LIGHT_RED}"
+            return 1
         fi
-    done
-    # If there's anything to install, install everything in the list.
-    if [[ "${#installArray[@]}" -gt 0 ]]; then
-        printf "  %b Processing %s install(s) for: %s, please wait...\\n" "${INFO}" "${PKG_MANAGER}" "${installArray[*]}"
-        printf '%*s\n' "${c}" '' | tr " " -
-        "${PKG_INSTALL[@]}" "${installArray[@]}"
-        printf '%*s\n' "${c}" '' | tr " " -
-        return
+
     fi
     printf "\\n"
     return 0
@@ -1603,15 +1682,6 @@ installPihole() {
     # Install base files and web interface
     if ! installScripts; then
         printf "  %b Failure in dependent script copy function.\\n" "${CROSS}"
-        exit 1
-    fi
-
-    # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
-    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
-        # shellcheck disable=SC1091
-        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
-    else
-        printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
         exit 1
     fi
 
@@ -2269,9 +2339,12 @@ main() {
     # Notify user of package availability
     notify_package_updates_available
 
-    # Install packages necessary to perform os_check
-    printf "  %b Checking for / installing required dependencies for OS Check...\\n" "${INFO}"
-    install_dependent_packages "${OS_CHECK_COMMON_DEPS[@]}" "${OS_CHECK_DEPS[@]}"
+    # Build dependency package
+    build_dependency_package
+
+    # Install Pi-hole dependencies
+    printf "  %b Installing required dependencies ...\\n" "${INFO}"
+    install_dependent_packages
 
     # Check that the installed OS is officially supported - display warning if not
     os_check
@@ -2285,10 +2358,6 @@ main() {
         printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
         exit 1
     fi
-
-    # Install packages used by this installation script
-    printf "  %b Checking for / installing required dependencies for this install script...\\n" "${INFO}"
-    install_dependent_packages "${INSTALLER_COMMON_DEPS[@]}" "${INSTALLER_DEPS[@]}"
 
     # in case of an update
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
@@ -2331,13 +2400,6 @@ main() {
     # Download or update the scripts by updating the appropriate git repos
     clone_or_update_repos
 
-    # Install the Core dependencies
-    local dep_install_list=("${PIHOLE_COMMON_DEPS[@]}" "${PIHOLE_DEPS[@]}")
-
-    # Install packages used by the actual software
-    printf "  %b Checking for / installing required dependencies for Pi-hole software...\\n" "${INFO}"
-    install_dependent_packages "${dep_install_list[@]}"
-    unset dep_install_list
 
     # Create the pihole user
     create_pihole_user
@@ -2354,6 +2416,15 @@ main() {
 
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
+
+    # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
+    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
+        # shellcheck disable=SC1091
+        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+    else
+        printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
+        exit 1
+    fi
 
     # Copy the temp log file into final log location for storage
     copy_to_install_log
