@@ -1517,11 +1517,9 @@ install_dependent_packages() {
             printf "  %b Error: Unable to find Pi-hole dependency meta package.\\n" "${COL_LIGHT_RED}"
             return 1
         fi
-    fi
-
     # Install Fedora/CentOS packages
-    if is_command rpm; then
-            if [ -f /tmp/pihole-meta.rpm ]; then
+    elif is_command rpm; then
+        if [ -f /tmp/pihole-meta.rpm ]; then
             eval "${PKG_INSTALL}" "/tmp/pihole-meta.rpm"
             rm /tmp/pihole-meta.rpm
         else
@@ -1529,7 +1527,14 @@ install_dependent_packages() {
             return 1
         fi
 
+    # If neither apt-get or yum/dnf package managers were found
+    else
+        # we cannot install the dependency package
+        printf "  %b No supported package manager found\\n" "${CROSS}"
+        # so exit the installer
+        exit 1
     fi
+
     printf "\\n"
     return 0
 }
