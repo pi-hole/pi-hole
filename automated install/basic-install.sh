@@ -484,9 +484,8 @@ build_dependency_package(){
 
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
-    fi
 
-    if is_command rpm; then
+    elif is_command rpm; then
         # move into the tmp directory
         pushd /tmp &>/dev/null || return 1
 
@@ -517,6 +516,13 @@ build_dependency_package(){
 
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
+
+    # If neither apt-get or yum/dnf package managers were found
+    else
+        # we cannot build required packages
+        printf "  %b No supported package manager found\\n" "${CROSS}"
+        # so exit the installer
+        exit 1
     fi
 
     # Remove the build directory
