@@ -2498,8 +2498,8 @@ main() {
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then
-        # Get the Web interface port, return only the first port
-        WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1)
+        # Get the Web interface port, return only the first port and strip all non-numeric characters
+        WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1 | tr -cd '0-9')
 
         # Display the completion dialog
         displayFinalMessage "${pw}"
