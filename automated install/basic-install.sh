@@ -480,7 +480,16 @@ build_dependency_package(){
         echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" > "${tempdir}"/DEBIAN/control
 
         # Build the package
-        dpkg-deb --build --root-owner-group "${tempdir}" pihole-meta.deb
+        local str="Building dependency package pihole-meta.deb"
+        printf "  %b %s..." "${INFO}" "${str}"
+
+        if dpkg-deb --build --root-owner-group "${tempdir}" pihole-meta.deb  &>/dev/null; then
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        else
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            printf "%b Error: Building pihole-meta.deb failed. %b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            return 1
+        fi
 
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
@@ -504,7 +513,16 @@ build_dependency_package(){
         fi
 
         # Build the package
-        rpmbuild -bb "${tempdir}"/SPECS/pihole-meta.spec --define "_topdir ${tempdir}"
+        local str="Building dependency package pihole-meta.rpm"
+        printf "  %b %s..." "${INFO}" "${str}"
+
+        if rpmbuild -bb "${tempdir}"/SPECS/pihole-meta.spec --define "_topdir ${tempdir}" &>/dev/null; then
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        else
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            printf "%b Error: Building pihole-meta.rpm failed. %b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            return 1
+        fi
 
         # Move the package to the /tmp directory
         mv "${tempdir}"/RPMS/noarch/pihole-meta*.rpm /tmp/pihole-meta.rpm
@@ -1507,23 +1525,37 @@ notify_package_updates_available() {
 
 install_dependent_packages() {
     # Install meta dependency package
+    local str="Installing Pi-hole dependency package"
+    printf "  %b %s..." "${INFO}" "${str}"
 
     # Install Debian/Ubuntu packages
     if is_command apt-get; then
         if [ -f /tmp/pihole-meta.deb ]; then
-            eval "${PKG_INSTALL}" "/tmp/pihole-meta.deb"
-            rm /tmp/pihole-meta.deb
+            if eval "${PKG_INSTALL}" "/tmp/pihole-meta.deb" &>/dev/null; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                rm /tmp/pihole-meta.deb
+            else
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+                return 1
+            fi
         else
-            printf "  %b Error: Unable to find Pi-hole dependency meta package.\\n" "${COL_LIGHT_RED}"
+            printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
             return 1
         fi
     # Install Fedora/CentOS packages
     elif is_command rpm; then
         if [ -f /tmp/pihole-meta.rpm ]; then
-            eval "${PKG_INSTALL}" "/tmp/pihole-meta.rpm"
-            rm /tmp/pihole-meta.rpm
+            if eval "${PKG_INSTALL}" "/tmp/pihole-meta.rpm" &>/dev/null; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                rm /tmp/pihole-meta.rpm
+            else
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+                return 1
+            fi
         else
-            printf "  %b Error: Unable to find Pi-hole dependency meta package.\\n" "${COL_LIGHT_RED}"
+            printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
             return 1
         fi
 
@@ -2354,7 +2386,6 @@ main() {
     build_dependency_package
 
     # Install Pi-hole dependencies
-    printf "  %b Installing required dependencies ...\\n" "${INFO}"
     install_dependent_packages
 
     # Check that the installed OS is officially supported - display warning if not
