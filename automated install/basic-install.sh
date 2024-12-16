@@ -91,7 +91,7 @@ IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
-WEBPORT=8080
+WEBPORT=
 PRIVACY_LEVEL=
 
 # Where old configs go to if a v6 migration is performed
@@ -2498,6 +2498,9 @@ main() {
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then
+        # Get the Web interface port, return only the first port
+        WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1)
+
         # Display the completion dialog
         displayFinalMessage "${pw}"
 
