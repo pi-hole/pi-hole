@@ -2446,7 +2446,7 @@ main() {
     if [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
         # generate a random password
         pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
-        pihole -a -p "${pw}"
+        pihole setpassword "${pw}"
     fi
 
     # Migrate existing install to v6.0
@@ -2494,7 +2494,7 @@ main() {
     if ((${#pw} > 0)); then
         # display the password
         printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
-        printf "  %b This can be changed using 'pihole -a -p'\\n\\n" "${INFO}"
+        printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then

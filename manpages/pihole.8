@@ -7,13 +7,7 @@ Pi-hole : A black-hole for internet advertisements
 
 \fBpihole\fR (\fB-w\fR|\fB-b\fR|\fB--wild\fR|\fB--regex\fR) [options] domain(s)
 .br
-\fBpihole -a\fR \fB-p\fR password
-.br
-\fBpihole -a\fR (\fB-c|-f|-k\fR)
-.br
-\fBpihole -a -i\fR interface
-.br
-\fBpihole -a -l\fR privacylevel
+\fBpihole setpassword\fR password
 .br
 \fBpihole -c\fR [-j|-r|-e]
 .br
@@ -120,25 +114,6 @@ Available commands and options:
                         (regular expressions are supported)
 .br
 
-\fB-a, admin\fR [options]
-.br
-
-    (Admin options):
-.br
-      -p, password      Set Web Interface password
-.br
-      -c, celsius       Set Celsius as preferred temperature unit
-.br
-      -f, fahrenheit    Set Fahrenheit as preferred temperature unit
-.br
-      -k, kelvin        Set Kelvin as preferred temperature unit
-.br
-      -i, interface     Specify dnsmasq's interface listening behavior
-.br
-      -l, privacylevel  <level> Set privacy level
-                        (0 = lowest, 3 = highest)
-.br
-
 \fB-g, updateGravity\fR
 .br
     Update the list of ad-serving domains
@@ -209,6 +184,11 @@ Available commands and options:
 .br
       --hash            Return the GitHub hash from your local
                         repositories
+.br
+
+\fBsetpassword\fR
+.br
+    Set Web Interface password
 .br
 
 \fBuninstall\fR
@@ -303,7 +283,7 @@ Allow-/denylist manipulation
 Changing the Web Interface password
 .br
 
-\fBpihole -a -p ExamplePassword\fR
+\fBpihole setpassword ExamplePassword\fR
 .br
     Change the password to "ExamplePassword"
 .br
