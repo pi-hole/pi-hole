@@ -2490,10 +2490,6 @@ main() {
     # Update local and remote versions via updatechecker
     /opt/pihole/updatecheck.sh
 
-    if [[ "${useUpdateVars}" == false ]]; then
-        displayFinalMessage "${pw}"
-    fi
-
     # If there is a password
     if ((${#pw} > 0)); then
         # display the password
@@ -2502,6 +2498,9 @@ main() {
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then
+        # Display the completion dialog
+        displayFinalMessage "${pw}"
+
         # If the Web interface was installed,
         printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
 
