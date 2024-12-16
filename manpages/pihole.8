@@ -5,13 +5,15 @@ Pi-hole : A black-hole for internet advertisements
 .br
 .SH "SYNOPSIS"
 
-\fBpihole\fR (\fB-w\fR|\fB-b\fR|\fB--wild\fR|\fB--regex\fR) [options] domain(s)
+\fBpihole\fR (\fB-allow\fR|\fB-deny\fR) [options] domain(s)
+.br
+\fBpihole\fR (\fB--allow-regex\fR|\fB--regex\fR) [options] domain(s)
+.br
+\fBpihole\fR (\fB--allow-wild\fR|\fB--wild\fR) [options] domain(s)
 .br
 \fBpihole setpassword\fR password
 .br
-\fBpihole -c\fR [-j|-r|-e]
-.br
-\fBpihole\fR \fB-d\fR [-a]
+\fBpihole\fR \fB-d\fR [-a] [-c]
 .br
 \fBpihole -f
 .br
@@ -19,7 +21,7 @@ pihole -r
 .br
 \fBpihole\fR \fB-t\fR [arg]
 .br
-pihole -g\fR
+\fBpihole -g\fR
 .br
 \fBpihole\fR -\fBq\fR [options]
 .br
@@ -27,19 +29,21 @@ pihole -g\fR
 .br
 \fBpihole -up \fR[--check-only]
 .br
-\fBpihole -v\fR [-p|-a|-f] [-c|-l|-hash]
+\fBpihole -v\fR
 .br
-\fBpihole uninstall
+\fBpihole uninstall\fR
 .br
-pihole status
+\fBpihole status\fR
 .br
-pihole reloaddns\fR
+\fBpihole reloaddns\fR
 .br
-pihole reloadlists\fR
+\fBpihole reloadlists\fR
 .br
 \fBpihole\fR (\fBenable\fR|\fBdisable\fR [time])
 .br
 \fBpihole\fR \fBcheckout\fR repo [branch]
+.br
+\fBpihole\fR \api\fR endpoint
 .br
 \fBpihole\fR \fBhelp\fR
 .br
@@ -93,6 +97,7 @@ Available commands and options:
 .br
 
       -a                Enable automated debugging
+      -c                Include a Pi-hole database integrity check
 .br
 
 \fB-f, flush\fR
@@ -126,11 +131,9 @@ Available commands and options:
 
     (Query options):
 .br
-      -adlist           Print the name of the block list URL
+      -partial          Search the adlists for partially matching domains
 .br
-      -exact            Search the block lists for exact domain matches
-.br
-      -all              Return all query matches within a block list
+      -all              Return all query matches within a adlists
 .br
 
 \fB-h, --help, help\fR
@@ -161,29 +164,9 @@ Available commands and options:
       --check-only      Exit script before update is performed.
 .br
 
-\fB-v, version\fR [repo] [options]
+\fB-v, version\fR
 .br
     Show installed versions of Pi-hole, Web Interface &amp; FTL
-.br
-
-.br
-    (repo options):
-.br
-      -p, --pihole      Only retrieve info regarding Pi-hole repository
-.br
-      -a, --admin       Only retrieve info regarding web
-                        repository
-.br
-      -f, --ftl         Only retrieve info regarding FTL repository
-.br
-    (version options):
-.br
-      -c, --current     Return the current version
-.br
-      -l, --latest      Return the latest version
-.br
-      --hash            Return the GitHub hash from your local
-                        repositories
 .br
 
 \fBsetpassword\fR
@@ -201,14 +184,14 @@ Available commands and options:
     Display the running status of Pi-hole subsystems
 .br
 
-\fBenable\fR
+\fBenable\fR [time]
 .br
-    Enable Pi-hole subsystems
+    Enable Pi-hole blocking, optionally for a set duration
 .br
 
 \fBdisable\fR [time]
 .br
-    Disable Pi-hole subsystems, optionally for a set duration
+    Disable Pi-hole blocking, optionally for a set duration
 .br
 
     (time options):
@@ -250,6 +233,11 @@ Available commands and options:
 .br
       branchname        Update subsystems to the specified branchname
 .br
+
+\fBapi\fR endpoint
+.br
+    Query the Pi-hole API at <endpoint>
+.br
 .SH "EXAMPLE"
 
 Some usage examples
@@ -263,7 +251,7 @@ Allow-/denylist manipulation
     Allow "iloveads.example.com"
 .br
 
-\fBpihole deny not noads.example.com\fR
+\fBpihole deny remove noads.example.com\fR
 .br
     Removes "noads.example.com" from denylist
 .br
@@ -299,9 +287,9 @@ Updating lists from internet sources
 Displaying version information
 .br
 
-\fBpihole -v -a -c\fR
+\fBpihole -v\fR
 .br
-    Display the current version of web
+    Display the current version of Pi-hole
 .br
 
 Temporarily disabling Pi-hole
@@ -330,10 +318,11 @@ Switching Pi-hole subsystem branches
     Flush information stored in Pi-hole's network tables
 .br
 
-.SH "SEE ALSO"
-
-\fBlighttpd\fR(8), \fBpihole-FTL\fR(8)
+\fBpihole api stats/summary\fR
 .br
+    Queries FTL for the stats/summary endpoint
+.br
+
 .SH "COLOPHON"
 
 Get sucked into the latest news and community activity by entering Pi-hole's orbit. Information about Pi-hole, and the latest version of the software can be found at https://pi-hole.net.

@@ -501,6 +501,7 @@ Options:
   uninstall           Uninstall Pi-hole from your system
   status              Display the running status of Pi-hole subsystems
   enable              Enable Pi-hole subsystems
+                        Add '-h' for more info on enable usage
   disable             Disable Pi-hole subsystems
                         Add '-h' for more info on disable usage
   reloaddns           Update the lists and flush the cache without restarting the DNS server
