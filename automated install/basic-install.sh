@@ -91,7 +91,7 @@ IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
-WEBPORT=8080
+WEBPORT=
 PRIVACY_LEVEL=
 
 # Where old configs go to if a v6 migration is performed
@@ -2446,7 +2446,7 @@ main() {
     if [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
         # generate a random password
         pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
-        pihole -a -p "${pw}"
+        pihole setpassword "${pw}"
     fi
 
     # Migrate existing install to v6.0
@@ -2490,18 +2490,20 @@ main() {
     # Update local and remote versions via updatechecker
     /opt/pihole/updatecheck.sh
 
-    if [[ "${useUpdateVars}" == false ]]; then
-        displayFinalMessage "${pw}"
-    fi
-
     # If there is a password
     if ((${#pw} > 0)); then
         # display the password
         printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
-        printf "  %b This can be changed using 'pihole -a -p'\\n\\n" "${INFO}"
+        printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
     fi
 
     if [[ "${useUpdateVars}" == false ]]; then
+        # Get the Web interface port, return only the first port and strip all non-numeric characters
+        WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1 | tr -cd '0-9')
+
+        # Display the completion dialog
+        displayFinalMessage "${pw}"
+
         # If the Web interface was installed,
         printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
 
