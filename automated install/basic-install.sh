@@ -2326,6 +2326,12 @@ migrate_dnsmasq_configs() {
 
     mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
     mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+
+    # Finally, after everything is in place, we can create the new config file
+    # /etc/pihole/pihole.toml
+    # This file will be created with the default settings unless the user has
+    # changed settings via setupVars.conf or the other dnsmasq files moved above
+    pihole-FTL migrate v6
 }
 
 main() {
