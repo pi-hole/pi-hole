@@ -170,8 +170,9 @@ GetFTLData() {
     echo "${response}"
   else
 
-    # status are the last 3 characters  # status are the last 3 characters
-    status="${response#"${response%???}"}"
+    # status are the last 3 characters
+    # not using ${response#"${response%???}"}" here because it's extremely slow on big responses
+    status=$(printf "%s" "${response}" | tail -c 3)
     # data is everything from response without the last 3 characters
     data="${response%???}"
 
@@ -265,7 +266,8 @@ apiFunc() {
   response=$(GetFTLData "$1" raw)
 
   # status are the last 3 characters
-  status="${response#"${response%???}"}"
+  # not using ${response#"${response%???}"}" here because it's extremely slow on big responses
+  status=$(printf "%s" "${response}" | tail -c 3)
   # data is everything from response without the last 3 characters
   data="${response%???}"
 
