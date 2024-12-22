@@ -165,15 +165,16 @@ GetFTLData() {
   # get the data from querying the API as well as the http status code
   response=$(curl -skS -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" )
 
-  # status are the last 3 characters
-  status="${response#"${response%???}"}"
-  # data is everything from response without the last 3 characters
-  data="${response%???}"
-
   if [ "${2}" = "raw" ]; then
     # return the raw response
     echo "${response}"
   else
+
+    # status are the last 3 characters  # status are the last 3 characters
+    status="${response#"${response%???}"}"
+    # data is everything from response without the last 3 characters
+    data="${response%???}"
+
     # return only the data
     if [ "${status}" = 200 ]; then
         # response OK
