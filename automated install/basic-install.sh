@@ -2331,7 +2331,20 @@ migrate_dnsmasq_configs() {
     # /etc/pihole/pihole.toml
     # This file will be created with the default settings unless the user has
     # changed settings via setupVars.conf or the other dnsmasq files moved above
-    pihole-FTL migrate v6
+    str="Migrating Pi-hole configuration to version 6"
+    printf "  %b %s...\\n" "${INFO}"
+    local FTLoutput FTLstatus
+    FTLoutput=$(pihole-FTL migrate v6)
+    FTLstatus=$?
+    if [[ "${FTLstatus}" -eq 0 ]]; then
+        printf "  %b %s\\n" "${TICK}" "${str}"
+    else
+        printf "  %b %s\\n" "${CROSS}" "${str}"
+    fi
+
+    # Print the output of the FTL migration prefacing every line with four
+    # spaces for alignment
+    printf "%b" "${FTLoutput}" | sed 's/^/    /'
 }
 
 main() {
