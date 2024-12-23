@@ -2300,6 +2300,21 @@ copy_to_install_log() {
     chown pihole:pihole "${installLogLoc}"
 }
 
+disableLighttpd() {
+    # Lighttpd is not needed anymore, so disable it
+    # We keep all the configuration files in place, so the user can re-enable it
+    # if needed
+
+    # Check if lighttpd is installed
+    if is_command lighttpd; then
+        # Stop the lighttpd service
+        stop_service lighttpd
+
+        # Disable the lighttpd service
+        disable_service lighttpd
+    fi
+}
+
 migrate_dnsmasq_configs() {
     # Previously, Pi-hole created a number of files in /etc/dnsmasq.d
     # During migration, their content is copied into the new single source of
@@ -2488,6 +2503,9 @@ main() {
     # so this change needs to be made after installation is complete,
     # but before starting or resttarting the ftl service
     disable_resolved_stublistener
+
+    # Disable lighttpd server
+    disableLighttpd
 
     # Check if gravity database needs to be upgraded. If so, do it without rebuilding
     # gravity altogether. This may be a very long running task needlessly blocking
