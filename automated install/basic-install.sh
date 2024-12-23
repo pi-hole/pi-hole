@@ -2407,8 +2407,8 @@ main() {
         exit 1
     fi
 
-    # in case of an update
-    if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
+    # in case of an update (can be a v5 -> v6 or v6 -> v6 update)
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
             printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
