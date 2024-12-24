@@ -2305,8 +2305,8 @@ disableLighttpd() {
     if [[ -t 0 ]]; then
         # The terminal is interactive
         dialog --no-shadow --keep-tite \
-            --title "Pi-hole v6.0 does no longer need lighttpd" \
-            --yesno "Pi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations. In this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}"
+            --title "Pi-hole v6.0 no longer uses lighttpd" \
+           --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\nIn this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}"
         response=$?
     else
         # The terminal is non-interactive, assume yes. Lighttpd will be stopped
