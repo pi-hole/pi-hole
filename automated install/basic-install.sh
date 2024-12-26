@@ -2328,6 +2328,17 @@ migrate_dnsmasq_configs() {
     mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
 }
 
+# Check for availability of either the "service" or "systemctl" commands
+check_service_command() {
+    # Check for the availability of the "service" command
+    if ! is_command service && ! is_command systemctl; then
+        # If neither the "service" nor the "systemctl" command is available, inform the user
+        printf "  %b Neither the service nor the systemctl commands are available\\n" "${CROSS}"
+        printf "      on this machine. This Pi-hole installer cannot continue.\\n"
+        exit 1
+    fi
+}
+
 main() {
     ######## FIRST CHECK ########
     # Must be root to install
@@ -2375,6 +2386,9 @@ main() {
 
     # Check if SELinux is Enforcing and exit before doing anything else
     checkSelinux
+
+    # Check for availability of either the "service" or "systemctl" commands
+    check_service_command
 
     # Check for supported package managers so that we may install dependencies
     package_manager_detect
