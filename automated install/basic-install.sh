@@ -1698,7 +1698,7 @@ install_dependent_packages() {
     for i in "$@"; do
         # For each package, check if it's already installed (and if so, don't add it to the installArray)
         printf "  %b Checking for %s..." "${INFO}" "${i}"
-        if "${PKG_MANAGER}" -q list installed "${i}" &> /dev/null; then
+        if rpm -q "${i}" &> /dev/null; then
             printf "%b  %b Checking for %s\\n" "${OVER}" "${TICK}" "${i}"
         else
             printf "%b  %b Checking for %s (will be installed)\\n" "${OVER}" "${INFO}" "${i}"
