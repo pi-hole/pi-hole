@@ -179,7 +179,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     # Install FTL's development branch to get the latest features
     host.run(
         """
-    echo "development" > /etc/pihole/ftlbranch
+    echo "master" > /etc/pihole/ftlbranch
     """
     )
     install = host.run(
@@ -440,7 +440,7 @@ def test_installPihole_fresh_install_readableBlockpage(host, test_webpage):
     # Install FTL's development branch to get the latest features
     host.run(
         """
-    echo "development" > /etc/pihole/ftlbranch
+    echo "master" > /etc/pihole/ftlbranch
     """
     )
     installWeb = host.run(
@@ -893,7 +893,7 @@ def test_FTL_binary_installed_and_responsive_no_errors(host):
     source /opt/pihole/basic-install.sh
     create_pihole_user
     funcOutput=$(get_binary_name)
-    echo "development" > /etc/pihole/ftlbranch
+    echo "master" > /etc/pihole/ftlbranch
     binary="pihole-FTL${funcOutput##*pihole-FTL}"
     theRest="${funcOutput%pihole-FTL*}"
     FTLdetect "${binary}" "${theRest}"
