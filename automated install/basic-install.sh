@@ -2301,13 +2301,13 @@ copy_to_install_log() {
 }
 
 disableLighttpd() {
+    local response
     # Detect if the terminal is interactive
     if [[ -t 0 ]]; then
         # The terminal is interactive
         dialog --no-shadow --keep-tite \
             --title "Pi-hole v6.0 no longer uses lighttpd" \
-           --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\nIn this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}"
-        response=$?
+           --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\nIn this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}" && response=0 || response="$?"
     else
         # The terminal is non-interactive, assume yes. Lighttpd will be stopped
         # but keeps being installed and can easily be re-enabled by the user
