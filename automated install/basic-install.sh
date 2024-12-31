@@ -2395,6 +2395,9 @@ main() {
         fi
     fi
 
+    # Check that the installed OS is officially supported - display warning if not
+    os_check
+
     # Check if SELinux is Enforcing and exit before doing anything else
     checkSelinux
 
@@ -2412,9 +2415,6 @@ main() {
 
     # Install Pi-hole dependencies
     install_dependent_packages
-
-    # Check that the installed OS is officially supported - display warning if not
-    os_check
 
     # Check if there is a usable FTL binary available on this architecture - do
     # this early on as FTL is a hard dependency for Pi-hole
