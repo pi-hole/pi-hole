@@ -2404,7 +2404,7 @@ main() {
         else
             # Otherwise, tell the user they need to run the script as root, and bail
             printf "%b  %b Sudo utility check\\n" "${OVER}" "${CROSS}"
-            printf "  %b Sudo is needed for the Web Interface to run pihole commands\\n\\n" "${INFO}"
+            printf "  %b Sudo is needed for some pihole commands to run\\n\\n" "${INFO}"
             printf "  %b %bPlease re-run this installer as root${COL_NC}\\n" "${INFO}" "${COL_LIGHT_RED}"
             exit 1
         fi
