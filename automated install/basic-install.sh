@@ -2301,6 +2301,11 @@ copy_to_install_log() {
 }
 
 disableLighttpd() {
+    # Return early when lighttpd is not installed
+    if [[ ! -f /etc/lighttpd/lighttpd.conf ]]; then
+        return
+    fi
+
     local response
     # Detect if the terminal is interactive
     if [[ -t 0 ]]; then
@@ -2344,6 +2349,9 @@ migrate_dnsmasq_configs() {
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
         return 0
     fi
+
+    # Disable lighttpd server during v6 migration
+    disableLighttpd
 
     # Create target directory /etc/pihole/migration_backup_v6
     # and make it owned by pihole:pihole
@@ -2535,9 +2543,6 @@ main() {
     # so this change needs to be made after installation is complete,
     # but before starting or resttarting the ftl service
     disable_resolved_stublistener
-
-    # Disable lighttpd server
-    disableLighttpd
 
     # Check if gravity database needs to be upgraded. If so, do it without rebuilding
     # gravity altogether. This may be a very long running task needlessly blocking
