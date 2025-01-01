@@ -5,9 +5,8 @@ import subprocess
 from textwrap import dedent
 
 IMAGE = "pytest_pihole:test_container"
-
-tick_box = "[\x1b[1;32m\u2713\x1b[0m]"
-cross_box = "[\x1b[1;31m\u2717\x1b[0m]"
+tick_box = "[✓]"
+cross_box = "[✗]"
 info_box = "[i]"
 
 

@@ -25,7 +25,6 @@
 #
 # Example usage:
 # addOrEditKeyValPair "/etc/pihole/setupVars.conf" "BLOCKING_ENABLED" "true"
-# TODO: We miight not actually need this function in v6
 #######################
 addOrEditKeyValPair() {
   local file="${1}"
@@ -42,43 +41,6 @@ addOrEditKeyValPair() {
     # Key does not already exist, add it and it's value
     echo "${key}=${value}" >> "${file}"
   fi
-}
-
-#######################
-# Takes two arguments: file, and key.
-# Adds a key to target file
-#
-# Example usage:
-# addKey "/etc/dnsmasq.d/01-pihole.conf" "log-queries"
-#######################
-addKey(){
-  local file="${1}"
-  local key="${2}"
-
-  # touch file to prevent grep error if file does not exist yet
-  touch "${file}"
-
-  # Match key against entire line, using both anchors. We assume
-  # that the file's keys never have bounding whitespace. Anchors
-  # are necessary to ensure the key is considered absent when it
-  # is a substring of another key present in the file.
-  if ! grep -q "^${key}$" "${file}"; then
-    # Key does not exist, add it.
-    echo "${key}" >> "${file}"
-  fi
-}
-
-#######################
-# Takes two arguments: file, and key.
-# Deletes a key or key/value pair from target file
-#
-# Example usage:
-# removeKey "/etc/pihole/setupVars.conf" "PIHOLE_DNS_1"
-#######################
-removeKey() {
-  local file="${1}"
-  local key="${2}"
-  sed -i "/^${key}/d" "${file}"
 }
 
 #######################

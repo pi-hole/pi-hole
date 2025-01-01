@@ -32,7 +32,7 @@ flushARP(){
     fi
 
     # Stop FTL to prevent database access
-    if ! output=$(pihole-FTL service stop 2>&1); then
+    if ! output=$(service pihole-FTL stop 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to stop FTL"
         echo "  Output: ${output}"
         return 1
@@ -64,7 +64,7 @@ flushARP(){
     fi
 
     # Start FTL again
-    if ! output=$(pihole-FTL service restart 2>&1); then
+    if ! output=$(service pihole-FTL restart 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to restart FTL"
         echo "  Output: ${output}"
         return 1
