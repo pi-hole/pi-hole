@@ -220,14 +220,21 @@ is_command() {
 
 check_os_check_dependencies() {
     # Check if the required dependencies for the OS check are installed
+    local grep_missing=false
+    local dig_missing=false
+
     if ! is_command grep; then
         printf "  %b %bThe Pi-hole installer needs 'grep' but it was not found. Please install it. %b\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
-        exit 1
+        grep_missing=true
     fi
 
     if ! is_command dig; then
         printf "  %b %bThe Pi-hole installer needs 'dig' but it was not found. Please install it. %b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
         printf "      Hint: install 'dnsutils' (apt based distros) or 'bind-utils'(rpm based distros).\\n"
+        dig_missing=true
+    fi
+
+    if [ "$grep_missing" = true ] || [ "$dig_missing" = true ]; then
         exit 1
     fi
 
