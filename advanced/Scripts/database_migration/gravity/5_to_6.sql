@@ -15,4 +15,3 @@ CREATE VIEW vw_adlist AS SELECT DISTINCT address, adlist.id AS id
 UPDATE info SET value = 6 WHERE property = 'version';
 
 COMMIT;
-

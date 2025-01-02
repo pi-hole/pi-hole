@@ -5,305 +5,223 @@
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
 # Network-wide ad blocking via your own hardware.
 #
-# Whitelist and blacklist domains
+# allowlist and denylist domains
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Globals
-piholeDir="/etc/pihole"
-GRAVITYDB="${piholeDir}/gravity.db"
-# Source pihole-FTL from install script
-pihole_FTL="${piholeDir}/pihole-FTL.conf"
-if [[ -f "${pihole_FTL}" ]]; then
-    source "${pihole_FTL}"
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+source "${utilsfile}"
+
+readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+source "${apifile}"
+
+# Determine database location
+DBFILE=$(getFTLConfigValue "files.database")
+if [ -z "$DBFILE" ]; then
+    DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
-# Set this only after sourcing pihole-FTL.conf as the gravity database path may
-# have changed
-gravityDBfile="${GRAVITYDB}"
+# Determine gravity database location
+GRAVITYDB=$(getFTLConfigValue "files.gravity")
+if [ -z "$GRAVITYDB" ]; then
+    GRAVITYDB="/etc/pihole/gravity.db"
+fi
 
-noReloadRequested=false
 addmode=true
 verbose=true
 wildcard=false
-web=false
 
 domList=()
 
 typeId=""
 comment=""
-declare -i domaincount
-domaincount=0
-reload=false
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}
 
-# IDs are hard-wired to domain interpretation in the gravity database scheme
-# Clients (including FTL) will read them through the corresponding views
-readonly whitelist="0"
-readonly blacklist="1"
-readonly regex_whitelist="2"
-readonly regex_blacklist="3"
-
-GetListnameFromTypeId() {
-    if [[ "$1" == "${whitelist}" ]]; then
-        echo "whitelist"
-    elif  [[ "$1" == "${blacklist}" ]]; then
-        echo "blacklist"
-    elif  [[ "$1" == "${regex_whitelist}" ]]; then
-        echo "regex whitelist"
-    elif  [[ "$1" == "${regex_blacklist}" ]]; then
-        echo "regex blacklist"
-    fi
-}
-
-GetListParamFromTypeId() {
-    if [[ "${typeId}" == "${whitelist}" ]]; then
-        echo "w"
-    elif  [[ "${typeId}" == "${blacklist}" ]]; then
-        echo "b"
-    elif  [[ "${typeId}" == "${regex_whitelist}" && "${wildcard}" == true ]]; then
-        echo "-white-wild"
-    elif  [[ "${typeId}" == "${regex_whitelist}" ]]; then
-        echo "-white-regex"
-    elif  [[ "${typeId}" == "${regex_blacklist}" && "${wildcard}" == true ]]; then
-        echo "-wild"
-    elif  [[ "${typeId}" == "${regex_blacklist}" ]]; then
-        echo "-regex"
-    fi
-}
-
 helpFunc() {
-    local listname param
-
-    listname="$(GetListnameFromTypeId "${typeId}")"
-    param="$(GetListParamFromTypeId)"
-
-    echo "Usage: pihole -${param} [options] <domain> <domain2 ...>
-Example: 'pihole -${param} site.com', or 'pihole -${param} site1.com site2.com'
-${listname^} one or more domains
+    echo "Usage: pihole ${abbrv} [options] <domain> <domain2 ...>
+Example: 'pihole ${abbrv} site.com', or 'pihole ${abbrv} site1.com site2.com'
+${typeId^} one or more ${kindId} domains
 
 Options:
-  -d, --delmode       Remove domain(s) from the ${listname}
-  -nr, --noreload     Update ${listname} without reloading the DNS server
+  remove, delete, -d  Remove domain(s)
   -q, --quiet         Make output less verbose
   -h, --help          Show this help dialog
-  -l, --list          Display all your ${listname}listed domains
-  --nuke              Removes all entries in a list
+  -l, --list          Display domains
   --comment \"text\"    Add a comment to the domain. If adding multiple domains the same comment will be used for all"
 
   exit 0
 }
 
-ValidateDomain() {
-    # Convert to lowercase
-    domain="${1,,}"
-    local str validDomain
-
-    # Check validity of domain (don't check for regex entries)
-    if [[ ( "${typeId}" == "${regex_blacklist}" || "${typeId}" == "${regex_whitelist}" ) && "${wildcard}" == false ]]; then
-        validDomain="${domain}"
-    else
-        # Check max length
-        if [[ "${#domain}" -le 253 ]]; then
-            validDomain=$(grep -P "^((-|_)*[a-z\\d]((-|_)*[a-z\\d])*(-|_)*)(\\.(-|_)*([a-z\\d]((-|_)*[a-z\\d])*))*$" <<< "${domain}") # Valid chars check
-            validDomain=$(grep -P "^[^\\.]{1,63}(\\.[^\\.]{1,63})*$" <<< "${validDomain}") # Length of each label
-            # set error string
-            str="is not a valid argument or domain name!"
-        else
-            validDomain=
-            str="is too long!"
-
-        fi
+CreateDomainList() {
+    # Format domain into regex filter if requested
+    local dom=${1}
+    if [[ "${wildcard}" == true ]]; then
+        dom="(\\.|^)${dom//\./\\.}$"
     fi
-
-    if [[ -n "${validDomain}" ]]; then
-        domList=("${domList[@]}" "${validDomain}")
-    else
-        echo -e "  ${CROSS} ${domain} ${str}"
-    fi
-
-    domaincount=$((domaincount+1))
-}
-
-ProcessDomainList() {
-    for dom in "${domList[@]}"; do
-        # Format domain into regex filter if requested
-        if [[ "${wildcard}" == true ]]; then
-            dom="(\\.|^)${dom//\./\\.}$"
-        fi
-
-        # Logic: If addmode then add to desired list and remove from the other;
-        # if delmode then remove from desired list but do not add to the other
-        if ${addmode}; then
-            AddDomain "${dom}"
-        else
-            RemoveDomain "${dom}"
-        fi
-    done
+    domList=("${domList[@]}" "${dom}")
 }
 
 AddDomain() {
-    local domain num requestedListname existingTypeId existingListname
-    domain="$1"
+    local json num data
 
-    # Is the domain in the list we want to add it to?
-    num="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}';")"
-    requestedListname="$(GetListnameFromTypeId "${typeId}")"
+    # Authenticate with the API
+    LoginAPI
 
-    if [[ "${num}" -ne 0 ]]; then
-        existingTypeId="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT type FROM domainlist WHERE domain = '${domain}';")"
-        if [[ "${existingTypeId}" == "${typeId}" ]]; then
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} ${1} already exists in ${requestedListname}, no need to add!"
+    # Prepare request to POST /api/domains/{type}/{kind}
+    # Build JSON object of the following form
+    #  {
+    #    "domain": [ <domains> ],
+    #    "comment": <comment>
+    #  }
+    # where <domains> is an array of domain strings and <comment> is a string
+    # We use jq to build the JSON object
+    json=$(jq --null-input --compact-output --arg domains "${domList[*]}" --arg comment "${comment}" '{domain: $domains | split(" "), comment: $comment}')
+
+    # Send the request
+    data=$(PostFTLData "domains/${typeId}/${kindId}" "${json}")
+
+    # Display domain(s) added
+    # (they are listed in .processed.success, use jq)
+    num=$(echo "${data}" | jq '.processed.success | length')
+    if [[ "${num}" -gt 0 ]] && [[ "${verbose}" == true ]]; then
+        echo -e "  ${TICK} Added ${num} domain(s):"
+        for i in $(seq 0 $((num-1))); do
+            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.success[$i].item")${COL_NC}"
+        done
+    fi
+    # Display failed domain(s)
+    # (they are listed in .processed.errors, use jq)
+    num=$(echo "${data}" | jq '.processed.errors | length')
+    if [[ "${num}" -gt 0 ]] && [[ "${verbose}" == true ]]; then
+        echo -e "  ${CROSS} Failed to add ${num} domain(s):"
+        for i in $(seq 0 $((num-1))); do
+            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.errors[$i].item")${COL_NC}"
+            error=$(echo "${data}" | jq --raw-output ".processed.errors[$i].error")
+            if [[ "${error}" == "UNIQUE constraint failed: domainlist.domain, domainlist.type" ]]; then
+                error="Domain already in the specified list"
             fi
-        else
-            existingListname="$(GetListnameFromTypeId "${existingTypeId}")"
-            pihole-FTL sqlite3 -ni "${gravityDBfile}" "UPDATE domainlist SET type = ${typeId} WHERE domain='${domain}';"
-            if [[ "${verbose}" == true ]]; then
-                echo -e "  ${INFO} ${1} already exists in ${existingListname}, it has been moved to ${requestedListname}!"
-            fi
-        fi
-        return
+            echo -e "      ${error}"
+        done
     fi
 
-    # Domain not found in the table, add it!
-    if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} Adding ${domain} to the ${requestedListname}..."
-    fi
-    reload=true
-    # Insert only the domain here. The enabled and date_added fields will be filled
-    # with their default values (enabled = true, date_added = current timestamp)
-    if [[ -z "${comment}" ]]; then
-        pihole-FTL sqlite3 -ni "${gravityDBfile}" "INSERT INTO domainlist (domain,type) VALUES ('${domain}',${typeId});"
-    else
-        # also add comment when variable has been set through the "--comment" option
-        pihole-FTL sqlite3 -ni "${gravityDBfile}" "INSERT INTO domainlist (domain,type,comment) VALUES ('${domain}',${typeId},'${comment}');"
-    fi
+    # Log out
+    LogoutAPI
 }
 
 RemoveDomain() {
-    local domain num requestedListname
-    domain="$1"
+    local json num data status
 
-    # Is the domain in the list we want to remove it from?
-    num="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT COUNT(*) FROM domainlist WHERE domain = '${domain}' AND type = ${typeId};")"
+    # Authenticate with the API
+    LoginAPI
 
-    requestedListname="$(GetListnameFromTypeId "${typeId}")"
+    # Prepare request to POST /api/domains:batchDelete
+    # Build JSON object of the following form
+    #  [{
+    #    "item": <domain>,
+    #    "type": "${typeId}",
+    #    "kind": "${kindId}",
+    #  }]
+    # where <domain> is the domain string and ${typeId} and ${kindId} are the type and kind IDs
+    # We use jq to build the JSON object)
+    json=$(jq --null-input --compact-output --arg domains "${domList[*]}" --arg typeId "${typeId}" --arg kindId "${kindId}" '[ $domains | split(" ")[] as $item | {item: $item, type: $typeId, kind: $kindId} ]')
 
-    if [[ "${num}" -eq 0 ]]; then
-        if [[ "${verbose}" == true ]]; then
-            echo -e "  ${INFO} ${domain} does not exist in ${requestedListname}, no need to remove!"
-        fi
-        return
+    # Send the request
+    data=$(PostFTLData "domains:batchDelete" "${json}" "status")
+    # Separate the status from the data
+    status=$(printf %s "${data#"${data%???}"}")
+    data=$(printf %s "${data%???}")
+
+    # If there is an .error object in the returned data, display it
+    local error
+    error=$(jq --compact-output <<< "${data}" '.error')
+    if [[ $error != "null" && $error != "" ]]; then
+        echo -e "  ${CROSS} Failed to remove domain(s):"
+        echo -e "      $(jq <<< "${data}" '.error')"
+    elif [[ "${verbose}" == true && "${status}" == "204" ]]; then
+        echo -e "  ${TICK} Domain(s) removed from the ${kindId} ${typeId}list"
+    elif [[ "${verbose}" == true && "${status}" == "404" ]]; then
+        echo -e "  ${TICK} Requested domain(s) not found on ${kindId} ${typeId}list"
     fi
 
-    # Domain found in the table, remove it!
-    if [[ "${verbose}" == true ]]; then
-        echo -e "  ${INFO} Removing ${domain} from the ${requestedListname}..."
-    fi
-    reload=true
-    # Remove it from the current list
-    pihole-FTL sqlite3 -ni "${gravityDBfile}" "DELETE FROM domainlist WHERE domain = '${domain}' AND type = ${typeId};"
+    # Log out
+    LogoutAPI
 }
 
 Displaylist() {
-    local count num_pipes domain enabled status nicedate requestedListname
+    local data
 
-    requestedListname="$(GetListnameFromTypeId "${typeId}")"
-    data="$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT domain,enabled,date_modified FROM domainlist WHERE type = ${typeId};" 2> /dev/null)"
-
-    if [[ -z $data ]]; then
-        echo -e "Not showing empty list"
-    else
-        echo -e "Displaying ${requestedListname}:"
-        count=1
-        while IFS= read -r line
-        do
-            # Count number of pipes seen in this line
-            # This is necessary because we can only detect the pipe separating the fields
-            # from the end backwards as the domain (which is the first field) may contain
-            # pipe symbols as they are perfectly valid regex filter control characters
-            num_pipes="$(grep -c "^" <<< "$(grep -o "|" <<< "${line}")")"
-
-            # Extract domain and enabled status based on the obtained number of pipe characters
-            domain="$(cut -d'|' -f"-$((num_pipes-1))" <<< "${line}")"
-            enabled="$(cut -d'|' -f"$((num_pipes))" <<< "${line}")"
-            datemod="$(cut -d'|' -f"$((num_pipes+1))" <<< "${line}")"
-
-            # Translate boolean status into human readable string
-            if [[ "${enabled}" -eq 1 ]]; then
-                status="enabled"
-            else
-                status="disabled"
-            fi
-
-            # Get nice representation of numerical date stored in database
-            nicedate=$(date --rfc-2822 -d "@${datemod}")
-
-            echo "  ${count}: ${domain} (${status}, last modified ${nicedate})"
-            count=$((count+1))
-        done <<< "${data}"
+    # if either typeId or kindId is empty, we cannot display the list
+    if [[ -z "${typeId}" ]] || [[ -z "${kindId}" ]]; then
+        echo "  ${CROSS} Unable to display list. Please specify a list type and kind."
+        exit 1
     fi
-    exit 0;
-}
 
-NukeList() {
-    count=$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT COUNT(1) FROM domainlist WHERE type = ${typeId};")
-    listname="$(GetListnameFromTypeId "${typeId}")"
-    if [ "$count" -gt 0 ];then
-        pihole-FTL sqlite3 -ni "${gravityDBfile}" "DELETE FROM domainlist WHERE type = ${typeId};"
-        echo "  ${TICK} Removed ${count} domain(s) from the ${listname}"
+    # Authenticate with the API
+    LoginAPI
+
+    # Send the request
+    data=$(GetFTLData "domains/${typeId}/${kindId}")
+
+    # Display the list
+    num=$(echo "${data}" | jq '.domains | length')
+    if [[ "${num}" -gt 0 ]]; then
+        echo -e "  ${TICK} Found ${num} domain(s) in the ${kindId} ${typeId}list:"
+        for i in $(seq 0 $((num-1))); do
+            echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --compact-output ".domains[$i].domain")${COL_NC}"
+            echo -e "      Comment: $(echo "${data}" | jq --compact-output ".domains[$i].comment")"
+            echo -e "      Groups: $(echo "${data}" | jq --compact-output ".domains[$i].groups")"
+            echo -e "      Added: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[$i].date_added")")"
+            echo -e "      Last modified: $(date -d @"$(echo "${data}" | jq --compact-output ".domains[$i].date_modified")")"
+        done
     else
-        echo "  ${INFO} ${listname} already empty. Nothing to do!"
+        echo -e "  ${INFO} No domains found in the ${kindId} ${typeId}list"
     fi
-    exit 0;
+
+    # Log out
+    LogoutAPI
+
+    # Return early without adding/deleting domains
+    exit 0
 }
 
 GetComment() {
     comment="$1"
     if [[ "${comment}" =~ [^a-zA-Z0-9_\#:/\.,\ -] ]]; then
         echo "  ${CROSS} Found invalid characters in domain comment!"
-        exit
+        exit 1
     fi
 }
 
 while (( "$#" )); do
     case "${1}" in
-        "-w" | "whitelist"   ) typeId=0;;
-        "-b" | "blacklist"   ) typeId=1;;
-        "--white-regex" | "white-regex" ) typeId=2;;
-        "--white-wild" | "white-wild" ) typeId=2; wildcard=true;;
-        "--wild" | "wildcard" ) typeId=3; wildcard=true;;
-        "--regex" | "regex"   ) typeId=3;;
-        "-nr"| "--noreload"  ) noReloadRequested=true;;
-        "-d" | "--delmode"   ) addmode=false;;
+        "allow" | "allowlist" ) kindId="exact"; typeId="allow"; abbrv="allow";;
+        "deny" | "denylist"   ) kindId="exact"; typeId="deny"; abbrv="deny";;
+        "--allow-regex" | "allow-regex" ) kindId="regex"; typeId="allow"; abbrv="--allow-regex";;
+        "--allow-wild" | "allow-wild" ) kindId="regex"; typeId="allow"; wildcard=true; abbrv="--allow-wild";;
+        "--regex" | "regex"   ) kindId="regex"; typeId="deny"; abbrv="--regex";;
+        "--wild" | "wildcard" ) kindId="regex"; typeId="deny"; wildcard=true; abbrv="--wild";;
+        "-d" | "remove" | "delete" ) addmode=false;;
         "-q" | "--quiet"     ) verbose=false;;
         "-h" | "--help"      ) helpFunc;;
         "-l" | "--list"      ) Displaylist;;
-        "--nuke"             ) NukeList;;
-        "--web"              ) web=true;;
         "--comment"          ) GetComment "${2}"; shift;;
-        *                    ) ValidateDomain "${1}";;
+        *                    ) CreateDomainList "${1}";;
     esac
     shift
 done
 
 shift
 
-if [[ ${domaincount} == 0 ]]; then
+if [[ ${#domList[@]} == 0 ]]; then
     helpFunc
 fi
 
-ProcessDomainList
-
-# Used on web interface
-if $web; then
-    echo "DONE"
-fi
-
-if [[ ${reload} == true && ${noReloadRequested} == false ]]; then
-    pihole restartdns reload-lists
+if ${addmode}; then
+    AddDomain
+else
+    RemoveDomain
 fi

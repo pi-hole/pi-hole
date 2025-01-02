@@ -40,9 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.2
       - name: Remove 'stale' label
         run: gh issue edit ${{ github.event.issue.number }} --remove-label ${{ env.stale_label }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

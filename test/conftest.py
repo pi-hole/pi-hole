@@ -4,17 +4,9 @@ import testinfra.backend.docker
 import subprocess
 from textwrap import dedent
 
-
-SETUPVARS = {
-    "PIHOLE_INTERFACE": "eth99",
-    "PIHOLE_DNS_1": "4.2.2.1",
-    "PIHOLE_DNS_2": "4.2.2.2",
-}
-
 IMAGE = "pytest_pihole:test_container"
-
-tick_box = "[\x1b[1;32m\u2713\x1b[0m]"
-cross_box = "[\x1b[1;31m\u2717\x1b[0m]"
+tick_box = "[✓]"
+cross_box = "[✗]"
 info_box = "[i]"
 
 

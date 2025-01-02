@@ -13,27 +13,24 @@
 readonly scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
 
 upgrade_gravityDB(){
-    local database piholeDir auditFile version
+    local database piholeDir version
     database="${1}"
     piholeDir="${2}"
-    auditFile="${piholeDir}/auditlog.list"
+
+    # Exit early if the database does not exist (e.g. in CI tests)
+    if [[ ! -f "${database}" ]]; then
+        return
+    fi
 
     # Get database version
     version="$(pihole-FTL sqlite3 -ni "${database}" "SELECT \"value\" FROM \"info\" WHERE \"property\" = 'version';")"
 
     if [[ "$version" == "1" ]]; then
-        # This migration script upgrades the gravity.db file by
-        # adding the domain_audit table
+        # This migration script upgraded the gravity.db file by
+        # adding the domain_audit table. It is now a no-op
         echo -e "  ${INFO} Upgrading gravity database from version 1 to 2"
         pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/1_to_2.sql"
         version=2
-
-        # Store audit domains in database table
-        if [ -e "${auditFile}" ]; then
-            echo -e "  ${INFO} Migrating content of ${auditFile} into new database"
-            # database_table_from_file is defined in gravity.sh
-            database_table_from_file "domain_audit" "${auditFile}"
-        fi
     fi
     if [[ "$version" == "2" ]]; then
         # This migration script upgrades the gravity.db file by
@@ -127,5 +124,31 @@ upgrade_gravityDB(){
         echo -e "  ${INFO} Upgrading gravity database from version 14 to 15"
         pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/14_to_15.sql"
         version=15
+    fi
+    if [[ "$version" == "15" ]]; then
+        # Add column abp_entries to adlist table
+        echo -e "  ${INFO} Upgrading gravity database from version 15 to 16"
+        pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/15_to_16.sql"
+        version=16
+    fi
+    if [[ "$version" == "16" ]]; then
+        # Add antigravity table
+        # Add column type to adlist table (to support adlist types)
+        echo -e "  ${INFO} Upgrading gravity database from version 16 to 17"
+        pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/16_to_17.sql"
+        version=17
+    fi
+    if [[ "$version" == "17" ]]; then
+        # Add adlist.id to vw_gravity and vw_antigravity
+        echo -e "  ${INFO} Upgrading gravity database from version 17 to 18"
+        pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/17_to_18.sql"
+        version=18
+    fi
+    if [[ "$version" == "18" ]]; then
+        # Modify DELETE triggers to delete BEFORE instead of AFTER to prevent
+        # foreign key constraint violations
+        echo -e "  ${INFO} Upgrading gravity database from version 18 to 19"
+        pihole-FTL sqlite3 -ni "${database}" < "${scriptPath}/18_to_19.sql"
+        version=19
     fi
 }

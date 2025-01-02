@@ -18,7 +18,7 @@ StartLimitIntervalSec=60s
 [Service]
 User=pihole
 PermissionsStartOnly=true
-AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_IPC_LOCK CAP_CHOWN CAP_SYS_TIME
 
 ExecStartPre=/opt/pihole/pihole-FTL-prestart.sh
 ExecStart=/usr/bin/pihole-FTL -f
