@@ -107,6 +107,9 @@ main() {
     web_update=false
     FTL_update=false
 
+    # Perform an OS check to ensure we're on an appropriate operating system
+    os_check
+
     # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
     package_manager_detect
     build_dependency_package
