@@ -2301,8 +2301,8 @@ copy_to_install_log() {
 }
 
 disableLighttpd() {
-    # Return early when lighttpd is not installed
-    if [[ ! -f /etc/lighttpd/lighttpd.conf ]]; then
+    # Return early when lighttpd is not active
+    if ! check_service_active lighttpd; then
         return
     fi
 
