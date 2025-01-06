@@ -388,28 +388,6 @@ os_check() {
     fi
 }
 
-# This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
-test_dpkg_lock() {
-    i=0
-    printf "  %b Waiting for package manager to finish (up to 30 seconds)\\n" "${INFO}"
-    # fuser is a program to show which processes use the named files, sockets, or filesystems
-    # So while the lock is held,
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-        # we wait half a second,
-        sleep 0.5
-        # increase the iterator,
-        ((i = i + 1))
-        # exit if waiting for more then 30 seconds
-        if [[ $i -gt 60 ]]; then
-            printf "  %b %bError: Could not verify package manager finished and released lock. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
-            printf "       Attempt to install packages manually and retry.\\n"
-            exit 1
-        fi
-    done
-    # and then report success once dpkg is unlocked.
-    return 0
-}
-
 # Compatibility
 package_manager_detect() {
 
@@ -2300,6 +2278,44 @@ copy_to_install_log() {
     chown pihole:pihole "${installLogLoc}"
 }
 
+disableLighttpd() {
+    # Return early when lighttpd is not active
+    if ! check_service_active lighttpd; then
+        return
+    fi
+
+    local response
+    # Detect if the terminal is interactive
+    if [[ -t 0 ]]; then
+        # The terminal is interactive
+        dialog --no-shadow --keep-tite \
+            --title "Pi-hole v6.0 no longer uses lighttpd" \
+           --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\nIn this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}" && response=0 || response="$?"
+    else
+        # The terminal is non-interactive, assume yes. Lighttpd will be stopped
+        # but keeps being installed and can easily be re-enabled by the user
+        response=0
+    fi
+
+    # If the user does not want to disable lighttpd, return early
+    if [[ "${response}" -ne 0 ]]; then
+        return
+    fi
+
+    # Lighttpd is not needed anymore, so disable it
+    # We keep all the configuration files in place, so the user can re-enable it
+    # if needed
+
+    # Check if lighttpd is installed
+    if is_command lighttpd; then
+        # Stop the lighttpd service
+        stop_service lighttpd
+
+        # Disable the lighttpd service
+        disable_service lighttpd
+    fi
+}
+
 migrate_dnsmasq_configs() {
     # Previously, Pi-hole created a number of files in /etc/dnsmasq.d
     # During migration, their content is copied into the new single source of
@@ -2311,6 +2327,9 @@ migrate_dnsmasq_configs() {
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
         return 0
     fi
+
+    # Disable lighttpd server during v6 migration
+    disableLighttpd
 
     # Create target directory /etc/pihole/migration_backup_v6
     # and make it owned by pihole:pihole
@@ -2346,6 +2365,17 @@ migrate_dnsmasq_configs() {
     # Print the output of the FTL migration prefacing every line with four
     # spaces for alignment
     printf "%b" "${FTLoutput}" | sed 's/^/    /'
+}
+
+# Check for availability of either the "service" or "systemctl" commands
+check_service_command() {
+    # Check for the availability of the "service" command
+    if ! is_command service && ! is_command systemctl; then
+        # If neither the "service" nor the "systemctl" command is available, inform the user
+        printf "  %b Neither the service nor the systemctl commands are available\\n" "${CROSS}"
+        printf "      on this machine. This Pi-hole installer cannot continue.\\n"
+        exit 1
+    fi
 }
 
 main() {
@@ -2396,6 +2426,9 @@ main() {
     # Check if SELinux is Enforcing and exit before doing anything else
     checkSelinux
 
+    # Check for availability of either the "service" or "systemctl" commands
+    check_service_command
+
     # Check for supported package managers so that we may install dependencies
     package_manager_detect
 
@@ -2421,8 +2454,8 @@ main() {
         exit 1
     fi
 
-    # in case of an update
-    if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
+    # in case of an update (can be a v5 -> v6 or v6 -> v6 update)
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
             printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
