@@ -2365,6 +2365,9 @@ migrate_dnsmasq_configs() {
     # Print the output of the FTL migration prefacing every line with four
     # spaces for alignment
     printf "%b" "${FTLoutput}" | sed 's/^/    /'
+
+    # Print a blank line for separation
+    printf "\\n"
 }
 
 # Check for availability of either the "service" or "systemctl" commands
