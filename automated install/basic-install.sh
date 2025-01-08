@@ -2352,14 +2352,14 @@ migrate_dnsmasq_configs() {
     # changed settings via setupVars.conf or the other dnsmasq files moved above
     # During migration, setupVars.conf is moved to /etc/pihole/migration_backup_v6
     str="Migrating Pi-hole configuration to version 6"
-    printf "  %b %s...\\n" "${INFO}"
+    printf "  %b %s...\\n" "${INFO}" "${str}"
     local FTLoutput FTLstatus
     FTLoutput=$(pihole-FTL migrate v6)
     FTLstatus=$?
     if [[ "${FTLstatus}" -eq 0 ]]; then
-        printf "  %b %s\\n" "${TICK}" "${str}"
+        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     else
-        printf "  %b %s\\n" "${CROSS}" "${str}"
+        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
     fi
 
     # Print the output of the FTL migration prefacing every line with four
