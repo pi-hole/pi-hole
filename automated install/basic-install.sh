@@ -2345,6 +2345,29 @@ migrate_dnsmasq_configs() {
 
     mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
     mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+
+    # Finally, after everything is in place, we can create the new config file
+    # /etc/pihole/pihole.toml
+    # This file will be created with the default settings unless the user has
+    # changed settings via setupVars.conf or the other dnsmasq files moved above
+    # During migration, setupVars.conf is moved to /etc/pihole/migration_backup_v6
+    str="Migrating Pi-hole configuration to version 6"
+    printf "  %b %s..." "${INFO}" "${str}"
+    local FTLoutput FTLstatus
+    FTLoutput=$(pihole-FTL migrate v6)
+    FTLstatus=$?
+    if [[ "${FTLstatus}" -eq 0 ]]; then
+        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+    else
+        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+    fi
+
+    # Print the output of the FTL migration prefacing every line with four
+    # spaces for alignment
+    printf "%b" "${FTLoutput}" | sed 's/^/    /'
+
+    # Print a blank line for separation
+    printf "\\n"
 }
 
 # Check for availability of either the "service" or "systemctl" commands
