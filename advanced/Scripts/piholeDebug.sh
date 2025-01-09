@@ -44,6 +44,14 @@ fi
 # shellcheck disable=SC1091
 . /etc/pihole/versions
 
+# Read the value of an FTL config key. The value is printed to stdout.
+get_ftl_conf_value() {
+    local key=$1
+
+    # Obtain setting from FTL directly
+    pihole-FTL --config "${key}"
+}
+
 # FAQ URLs for use in showing the debug log
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
@@ -61,10 +69,10 @@ DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
 PIHOLE_DIRECTORY="/etc/pihole"
 PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
-RUN_DIRECTORY="/run"
 LOG_DIRECTORY="/var/log/pihole"
-HTML_DIRECTORY="/var/www/html"
-WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
+HTML_DIRECTORY="$(get_ftl_conf_value "webserver.paths.webroot")"
+WEBHOME_PATH="$(get_ftl_conf_value "webserver.paths.webhome")"
+WEB_GIT_DIRECTORY="${HTML_DIRECTORY}${WEBHOME_PATH}"
 SHM_DIRECTORY="/dev/shm"
 ETC="/etc"
 
@@ -79,14 +87,6 @@ PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
 PIHOLE_DNSMASQ_CONF_FILE="${PIHOLE_DIRECTORY}/dnsmasq.conf"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
 
-# Read the value of an FTL config key. The value is printed to stdout.
-get_ftl_conf_value() {
-    local key=$1
-
-    # Obtain setting from FTL directly
-    pihole-FTL --config "${key}"
-}
-
 PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 
 PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
@@ -94,7 +94,7 @@ PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
 
-FTL_PID="${RUN_DIRECTORY}/pihole-FTL.pid"
+FTL_PID="$(get_ftl_conf_value "files.pid")"
 
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
