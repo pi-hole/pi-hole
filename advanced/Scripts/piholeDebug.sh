@@ -346,6 +346,9 @@ os_check() {
             fi
         done
 
+        # If it is a docker container, we can assume the OS is supported
+        [ -n "${DOCKER_VERSION}" ] && valid_os=true && valid_version=true
+
         local finalmsg
         if [ "$valid_os" = true ]; then
             log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
