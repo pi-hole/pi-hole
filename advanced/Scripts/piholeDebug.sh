@@ -492,13 +492,25 @@ run_and_print_command() {
 }
 
 hardware_check() {
+    # Note: the checks are skipped if Pi-hole is running in a docker container
+
+    local skip_msg="${INFO} Not enough permissions inside Docker container ${COL_YELLOW}(skipped)${COL_NC}"
+
     echo_current_diagnostic "System hardware configuration"
-    # Store the output of the command in a variable
-    run_and_print_command "lshw -short"
+    if [ -n "${DOCKER_VERSION}" ]; then
+        log_write "${skip_msg}"
+    else
+        # Store the output of the command in a variable
+        run_and_print_command "lshw -short"
+    fi
 
     echo_current_diagnostic "Processor details"
-    # Store the output of the command in a variable
-    run_and_print_command "lscpu"
+    if [ -n "${DOCKER_VERSION}" ]; then
+        log_write "${skip_msg}"
+    else
+        # Store the output of the command in a variable
+        run_and_print_command "lscpu"
+    fi
 }
 
 disk_usage() {
