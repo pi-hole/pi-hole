@@ -823,26 +823,24 @@ dig_at() {
 process_status(){
     # Check to make sure Pi-hole's services are running and active
     echo_current_diagnostic "Pi-hole processes"
+
     # Local iterator
     local i
+
     # For each process,
     for i in "${PIHOLE_PROCESSES[@]}"; do
+        local status_of_process
+
         # If systemd
         if command -v systemctl &> /dev/null; then
             # get its status via systemctl
-            local status_of_process
             status_of_process=$(systemctl is-active "${i}")
         else
             # Otherwise, use the service command and mock the output of `systemctl is-active`
-            local status_of_process
 
-            # If DOCKER_VERSION is set, the output is slightly different (s6 init system on Docker)
+            # If it is a docker container, there is no systemctl or service. Do nothing.
             if [ -n "${DOCKER_VERSION}" ]; then
-                if service "${i}" status | grep -E '^up' &> /dev/null; then
-                    status_of_process="active"
-                else
-                    status_of_process="inactive"
-                fi
+                :
             else
             # non-Docker system
                 if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
@@ -852,8 +850,12 @@ process_status(){
                 fi
             fi
         fi
+
         # and print it out to the user
-        if [[ "${status_of_process}" == "active" ]]; then
+        if [ -n "${DOCKER_VERSION}" ]; then
+            # If it's a Docker container, the test was skipped
+            log_write "${INFO} systemctl/service not installed inside docker container ${COL_YELLOW}(skipped)${COL_NC}"
+        elif [[ "${status_of_process}" == "active" ]]; then
             # If it's active, show it in green
             log_write "${TICK} ${COL_GREEN}${i}${COL_NC} daemon is ${COL_GREEN}${status_of_process}${COL_NC}"
         else
@@ -870,6 +872,8 @@ ftl_full_status(){
     if command -v systemctl &> /dev/null; then
       FTL_status=$(systemctl status --full --no-pager pihole-FTL.service)
       log_write "   ${FTL_status}"
+    elif [ -n "${DOCKER_VERSION}" ]; then
+      log_write "${INFO} systemctl/service not installed inside docker container ${COL_YELLOW}(skipped)${COL_NC}"
     else
       log_write "${INFO} systemctl:  command not found"
     fi
