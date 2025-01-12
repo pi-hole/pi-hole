@@ -58,7 +58,8 @@ gravityDBfile_default="/etc/pihole/gravity.db"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
-gravityBCKfile="${gravityDIR}/gravity_backup.db"
+gravityBCKdir="${gravityDIR}/gravity_backups"
+gravityBCKfile="${gravityBCKdir}/gravity.db"
 
 fix_owner_permissions() {
   # Fix ownership and permissions for the specified file
@@ -132,6 +133,11 @@ gravity_swap_databases() {
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to clean current database for backup\\n  ${output}"
   else
+    # Check if the backup directory exists
+    if [ ! -d "${gravityBCKdir}" ]; then
+      mkdir -p "${gravityBCKdir}"
+    fi
+
     # If multiple gravityBCKfile's are present (appended with a number), rotate them
     # We keep at most 10 backups
     rotate_gravity_backup
@@ -434,11 +440,13 @@ gravity_DownloadBlocklists() {
     echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
 
     # Try to attempt a backup restore
-    for i in {1..10}; do
-      if try_restore_backup "${i}"; then
-        break
-      fi
-    done
+    if [[ -d "${gravityBCKdir}" ]]; then
+      for i in {1..10}; do
+        if try_restore_backup "${i}"; then
+          break
+        fi
+      done
+    fi
 
     # If none of the attempts worked, return 1
     if [[ "${i}" -eq 10 ]]; then
