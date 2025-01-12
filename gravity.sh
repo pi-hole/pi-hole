@@ -450,8 +450,8 @@ gravity_DownloadBlocklists() {
 
     # If none of the attempts worked, return 1
     if [[ "${i}" -eq 10 ]]; then
-      return 1
       pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
+      return 1
     fi
 
     echo -e "  ${TICK} ${str}"
