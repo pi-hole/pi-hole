@@ -202,7 +202,7 @@ compare_local_version_to_git_version() {
         if git status &> /dev/null; then
             # The current version the user is on
             local local_version
-            local_version=$(git describe --tags --abbrev=0 2>&1);
+            local_version=$(git describe --tags --abbrev=0 2> /dev/null);
             # What branch they are on
             local local_branch
             local_branch=$(git rev-parse --abbrev-ref HEAD);
@@ -213,7 +213,13 @@ compare_local_version_to_git_version() {
             local local_status
             local_status=$(git status -s)
             # echo this information out to the user in a nice format
-            log_write "${TICK} Version: ${local_version}"
+            if [ ${local_version} ]; then
+              log_write "${TICK} Version: ${local_version}"
+            elif [ -n "${DOCKER_VERSION}" ]; then
+              log_write "${TICK} Version: Pi-hole Docker Container ${COL_BOLD}${DOCKER_VERSION}${COL_NC}"
+            else
+              log_write "${CROSS} Version: not detected"
+            fi
 
             # Print the repo upstreams
             remotes=$(git remote -v)
