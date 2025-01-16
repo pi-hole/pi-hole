@@ -44,6 +44,14 @@ fi
 # shellcheck disable=SC1091
 . /etc/pihole/versions
 
+# Read the value of an FTL config key. The value is printed to stdout.
+get_ftl_conf_value() {
+    local key=$1
+
+    # Obtain setting from FTL directly
+    pihole-FTL --config "${key}"
+}
+
 # FAQ URLs for use in showing the debug log
 FAQ_HARDWARE_REQUIREMENTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/${COL_NC}"
 FAQ_HARDWARE_REQUIREMENTS_PORTS="${COL_CYAN}https://docs.pi-hole.net/main/prerequisites/#ports${COL_NC}"
@@ -61,10 +69,10 @@ DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
 PIHOLE_DIRECTORY="/etc/pihole"
 PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 BIN_DIRECTORY="/usr/local/bin"
-RUN_DIRECTORY="/run"
 LOG_DIRECTORY="/var/log/pihole"
-HTML_DIRECTORY="/var/www/html"
-WEB_GIT_DIRECTORY="${HTML_DIRECTORY}/admin"
+HTML_DIRECTORY="$(get_ftl_conf_value "webserver.paths.webroot")"
+WEBHOME_PATH="$(get_ftl_conf_value "webserver.paths.webhome")"
+WEB_GIT_DIRECTORY="${HTML_DIRECTORY}${WEBHOME_PATH}"
 SHM_DIRECTORY="/dev/shm"
 ETC="/etc"
 
@@ -79,14 +87,6 @@ PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
 PIHOLE_DNSMASQ_CONF_FILE="${PIHOLE_DIRECTORY}/dnsmasq.conf"
 PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
 
-# Read the value of an FTL config key. The value is printed to stdout.
-get_ftl_conf_value() {
-    local key=$1
-
-    # Obtain setting from FTL directly
-    pihole-FTL --config "${key}"
-}
-
 PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 
 PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
@@ -94,7 +94,7 @@ PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
 PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
 
-FTL_PID="${RUN_DIRECTORY}/pihole-FTL.pid"
+FTL_PID="$(get_ftl_conf_value "files.pid")"
 
 PIHOLE_LOG="${LOG_DIRECTORY}/pihole.log"
 PIHOLE_LOG_GZIPS="${LOG_DIRECTORY}/pihole.log.[0-9].*"
@@ -202,7 +202,7 @@ compare_local_version_to_git_version() {
         if git status &> /dev/null; then
             # The current version the user is on
             local local_version
-            local_version=$(git describe --tags --abbrev=0);
+            local_version=$(git describe --tags --abbrev=0 2> /dev/null);
             # What branch they are on
             local local_branch
             local_branch=$(git rev-parse --abbrev-ref HEAD);
@@ -213,7 +213,13 @@ compare_local_version_to_git_version() {
             local local_status
             local_status=$(git status -s)
             # echo this information out to the user in a nice format
-            log_write "${TICK} Version: ${local_version}"
+            if [ ${local_version} ]; then
+              log_write "${TICK} Version: ${local_version}"
+            elif [ -n "${DOCKER_VERSION}" ]; then
+              log_write "${TICK} Version: Pi-hole Docker Container ${COL_BOLD}${DOCKER_VERSION}${COL_NC}"
+            else
+              log_write "${CROSS} Version: not detected"
+            fi
 
             # Print the repo upstreams
             remotes=$(git remote -v)
@@ -345,6 +351,9 @@ os_check() {
                 break
             fi
         done
+
+        # If it is a docker container, we can assume the OS is supported
+        [ -n "${DOCKER_VERSION}" ] && valid_os=true && valid_version=true
 
         local finalmsg
         if [ "$valid_os" = true ]; then
@@ -489,13 +498,25 @@ run_and_print_command() {
 }
 
 hardware_check() {
+    # Note: the checks are skipped if Pi-hole is running in a docker container
+
+    local skip_msg="${INFO} Not enough permissions inside Docker container ${COL_YELLOW}(skipped)${COL_NC}"
+
     echo_current_diagnostic "System hardware configuration"
-    # Store the output of the command in a variable
-    run_and_print_command "lshw -short"
+    if [ -n "${DOCKER_VERSION}" ]; then
+        log_write "${skip_msg}"
+    else
+        # Store the output of the command in a variable
+        run_and_print_command "lshw -short"
+    fi
 
     echo_current_diagnostic "Processor details"
-    # Store the output of the command in a variable
-    run_and_print_command "lscpu"
+    if [ -n "${DOCKER_VERSION}" ]; then
+        log_write "${skip_msg}"
+    else
+        # Store the output of the command in a variable
+        run_and_print_command "lscpu"
+    fi
 }
 
 disk_usage() {
@@ -808,26 +829,24 @@ dig_at() {
 process_status(){
     # Check to make sure Pi-hole's services are running and active
     echo_current_diagnostic "Pi-hole processes"
+
     # Local iterator
     local i
+
     # For each process,
     for i in "${PIHOLE_PROCESSES[@]}"; do
+        local status_of_process
+
         # If systemd
         if command -v systemctl &> /dev/null; then
             # get its status via systemctl
-            local status_of_process
             status_of_process=$(systemctl is-active "${i}")
         else
             # Otherwise, use the service command and mock the output of `systemctl is-active`
-            local status_of_process
 
-            # If DOCKER_VERSION is set, the output is slightly different (s6 init system on Docker)
+            # If it is a docker container, there is no systemctl or service. Do nothing.
             if [ -n "${DOCKER_VERSION}" ]; then
-                if service "${i}" status | grep -E '^up' &> /dev/null; then
-                    status_of_process="active"
-                else
-                    status_of_process="inactive"
-                fi
+                :
             else
             # non-Docker system
                 if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
@@ -837,8 +856,12 @@ process_status(){
                 fi
             fi
         fi
+
         # and print it out to the user
-        if [[ "${status_of_process}" == "active" ]]; then
+        if [ -n "${DOCKER_VERSION}" ]; then
+            # If it's a Docker container, the test was skipped
+            log_write "${INFO} systemctl/service not installed inside docker container ${COL_YELLOW}(skipped)${COL_NC}"
+        elif [[ "${status_of_process}" == "active" ]]; then
             # If it's active, show it in green
             log_write "${TICK} ${COL_GREEN}${i}${COL_NC} daemon is ${COL_GREEN}${status_of_process}${COL_NC}"
         else
@@ -855,6 +878,8 @@ ftl_full_status(){
     if command -v systemctl &> /dev/null; then
       FTL_status=$(systemctl status --full --no-pager pihole-FTL.service)
       log_write "   ${FTL_status}"
+    elif [ -n "${DOCKER_VERSION}" ]; then
+      log_write "${INFO} systemctl/service not installed inside docker container ${COL_YELLOW}(skipped)${COL_NC}"
     else
       log_write "${INFO} systemctl:  command not found"
     fi
@@ -1317,19 +1342,16 @@ upload_to_tricorder() {
         curl_to_tricorder
         # If we're not running in automated mode,
     else
-        # if not being called from the web interface
-        if [[ ! "${WEBCALL}" ]]; then
-            echo ""
-            # give the user a choice of uploading it or not
-            # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
-            read -r -p "[?] Would you like to upload the log? [y/N] " response
-            case ${response} in
-                # If they say yes, run our function for uploading the log
-                [yY][eE][sS]|[yY]) curl_to_tricorder;;
-                # If they choose no, just exit out of the script
-                *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
-            esac
-        fi
+        echo ""
+        # give the user a choice of uploading it or not
+        # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
+        read -r -p "[?] Would you like to upload the log? [y/N] " response
+        case ${response} in
+            # If they say yes, run our function for uploading the log
+            [yY][eE][sS]|[yY]) curl_to_tricorder;;
+            # If they choose no, just exit out of the script
+            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
+        esac
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token
     # along with some additional useful information
@@ -1349,13 +1371,8 @@ upload_to_tricorder() {
     # If no token was generated
     else
         # Show an error and some help instructions
-        # Skip this if being called from web interface and automatic mode was not chosen (users opt-out to upload)
-        if [[ "${WEBCALL}" ]] && [[ ! "${AUTOMATED}" ]]; then
-            :
-        else
-            log_write "${CROSS} ${COL_RED}There was an error uploading your debug log.${COL_NC}"
-            log_write "   * Please try again or contact the Pi-hole team for assistance."
-        fi
+        log_write "${CROSS} ${COL_RED}There was an error uploading your debug log.${COL_NC}"
+        log_write "   * Please try again or contact the Pi-hole team for assistance."
     fi
     # Finally, show where the log file is no matter the outcome of the function so users can look at it
     log_write "   * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
