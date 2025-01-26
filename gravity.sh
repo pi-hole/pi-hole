@@ -366,7 +366,7 @@ gravity_CheckDNSResolutionAvailable() {
 #   0 - If the backup is successfully restored.
 #   1 - If no backup is available or if the restoration fails.
 try_restore_backup () {
-  local num filename
+  local num filename timestamp
   num=$1
   filename="${gravityBCKfile}.${num}"
   # Check if a backup exists
@@ -386,8 +386,15 @@ try_restore_backup () {
         gravity_Cleanup "error"
       fi
 
-      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','${filename}');"
-      echo -e "  ${TICK} Successfully restored from backup (${gravityBCKfile}.${num})"
+      # Get the timestamp of the backup file in a human-readable format
+      # Note that this timestamp will be in the server timezone, this may be
+      # GMT, e.g., on a Raspberry Pi where the default timezone has never been
+      # changed
+      timestamp=$(date -r "${filename}" "+%Y-%m-%d %H:%M:%S %Z")
+
+      # Add a record to the info table to indicate that the gravity database was restored
+      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','${timestamp}');"
+      echo -e "  ${TICK} Successfully restored from backup (${gravityBCKfile}.${num} at ${timestamp})"
       return 0
     else
       echo -e "  ${CROSS} Unable to restore backup no. ${num}"
