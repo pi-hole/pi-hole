@@ -388,28 +388,6 @@ os_check() {
     fi
 }
 
-# This function waits for dpkg to unlock, which signals that the previous apt-get command has finished.
-test_dpkg_lock() {
-    i=0
-    printf "  %b Waiting for package manager to finish (up to 30 seconds)\\n" "${INFO}"
-    # fuser is a program to show which processes use the named files, sockets, or filesystems
-    # So while the lock is held,
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-        # we wait half a second,
-        sleep 0.5
-        # increase the iterator,
-        ((i = i + 1))
-        # exit if waiting for more then 30 seconds
-        if [[ $i -gt 60 ]]; then
-            printf "  %b %bError: Could not verify package manager finished and released lock. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${COL_NC}"
-            printf "       Attempt to install packages manually and retry.\\n"
-            exit 1
-        fi
-    done
-    # and then report success once dpkg is unlocked.
-    return 0
-}
-
 # Compatibility
 package_manager_detect() {
 
@@ -2301,6 +2279,11 @@ copy_to_install_log() {
 }
 
 disableLighttpd() {
+    # Return early when lighttpd is not active
+    if ! check_service_active lighttpd; then
+        return
+    fi
+
     local response
     # Detect if the terminal is interactive
     if [[ -t 0 ]]; then
@@ -2345,6 +2328,9 @@ migrate_dnsmasq_configs() {
         return 0
     fi
 
+    # Disable lighttpd server during v6 migration
+    disableLighttpd
+
     # Create target directory /etc/pihole/migration_backup_v6
     # and make it owned by pihole:pihole
     mkdir -p "${V6_CONF_MIGRATION_DIR}"
@@ -2359,6 +2345,29 @@ migrate_dnsmasq_configs() {
 
     mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
     mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+
+    # Finally, after everything is in place, we can create the new config file
+    # /etc/pihole/pihole.toml
+    # This file will be created with the default settings unless the user has
+    # changed settings via setupVars.conf or the other dnsmasq files moved above
+    # During migration, setupVars.conf is moved to /etc/pihole/migration_backup_v6
+    str="Migrating Pi-hole configuration to version 6"
+    printf "  %b %s..." "${INFO}" "${str}"
+    local FTLoutput FTLstatus
+    FTLoutput=$(pihole-FTL migrate v6)
+    FTLstatus=$?
+    if [[ "${FTLstatus}" -eq 0 ]]; then
+        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+    else
+        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+    fi
+
+    # Print the output of the FTL migration prefacing every line with four
+    # spaces for alignment
+    printf "%b" "${FTLoutput}" | sed 's/^/    /'
+
+    # Print a blank line for separation
+    printf "\\n"
 }
 
 # Check for availability of either the "service" or "systemctl" commands
@@ -2535,9 +2544,6 @@ main() {
     # so this change needs to be made after installation is complete,
     # but before starting or resttarting the ftl service
     disable_resolved_stublistener
-
-    # Disable lighttpd server
-    disableLighttpd
 
     # Check if gravity database needs to be upgraded. If so, do it without rebuilding
     # gravity altogether. This may be a very long running task needlessly blocking
