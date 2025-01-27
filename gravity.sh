@@ -58,6 +58,8 @@ gravityDBfile_default="/etc/pihole/gravity.db"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
+gravityBCKdir="${gravityDIR}/gravity_backups"
+gravityBCKfile="${gravityBCKdir}/gravity.db"
 
 fix_owner_permissions() {
   # Fix ownership and permissions for the specified file
@@ -96,6 +98,15 @@ gravity_build_tree() {
   echo -e "${OVER}  ${TICK} ${str}"
 }
 
+# Rotate gravity backup files
+rotate_gravity_backup() {
+  for i in {9..1}; do
+    if [ -f "${gravityBCKfile}.${i}" ]; then
+      mv "${gravityBCKfile}.${i}" "${gravityBCKfile}.$((i + 1))"
+    fi
+  done
+}
+
 # Copy data from old to new database file and swap them
 gravity_swap_databases() {
   str="Swapping databases"
@@ -111,10 +122,32 @@ gravity_swap_databases() {
   oldAvail=false
   if [ "${availableBlocks}" -gt "$((gravityBlocks * 2))" ] && [ -f "${gravityDBfile}" ]; then
     oldAvail=true
-    mv "${gravityDBfile}" "${gravityOLDfile}"
-  else
-    rm "${gravityDBfile}"
+    cp "${gravityDBfile}" "${gravityOLDfile}"
   fi
+
+  # Drop the gravity and antigravity tables + subsequent VACUUM the current
+  # database for compaction
+  output=$({ printf ".timeout 30000\\nDROP TABLE IF EXISTS gravity;\\nDROP TABLE IF EXISTS antigravity;\\nVACUUM;\\n" | pihole-FTL sqlite3 -ni "${gravityDBfile}"; } 2>&1)
+  status="$?"
+
+  if [[ "${status}" -ne 0 ]]; then
+    echo -e "\\n  ${CROSS} Unable to clean current database for backup\\n  ${output}"
+  else
+    # Check if the backup directory exists
+    if [ ! -d "${gravityBCKdir}" ]; then
+      mkdir -p "${gravityBCKdir}"
+    fi
+
+    # If multiple gravityBCKfile's are present (appended with a number), rotate them
+    # We keep at most 10 backups
+    rotate_gravity_backup
+
+    # Move the old database to the backup location
+    mv "${gravityDBfile}" "${gravityBCKfile}.1"
+  fi
+
+
+  # Move the new database to the correct location
   mv "${gravityTEMPfile}" "${gravityDBfile}"
   echo -e "${OVER}  ${TICK} ${str}"
 
@@ -324,38 +357,60 @@ gravity_CheckDNSResolutionAvailable() {
   echo -e "${OVER}  ${TICK} DNS resolution is available"
 }
 
+# Function: try_restore_backup
+# Description: Attempts to restore the previous Pi-hole gravity database from a
+#              backup file. If a backup exists, it copies the backup to the
+#              gravity database file and prepares a new gravity database. If the
+#              restoration is successful, it returns 0. Otherwise, it returns 1.
+# Returns:
+#   0 - If the backup is successfully restored.
+#   1 - If no backup is available or if the restoration fails.
+try_restore_backup () {
+  local num filename timestamp
+  num=$1
+  filename="${gravityBCKfile}.${num}"
+  # Check if a backup exists
+  if [ -f "${filename}" ]; then
+    echo -e "  ${INFO} Attempting to restore previous database from backup no. ${num}"
+    cp "${filename}" "${gravityDBfile}"
+
+    # If the backup was successfully copied, prepare a new gravity database from
+    # it
+    if [ -f "${gravityDBfile}" ]; then
+      output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" <<<"${copyGravity}"; } 2>&1)
+      status="$?"
+
+      # Error checking
+      if [[ "${status}" -ne 0 ]]; then
+        echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
+        gravity_Cleanup "error"
+      fi
+
+      # Get the timestamp of the backup file in a human-readable format
+      # Note that this timestamp will be in the server timezone, this may be
+      # GMT, e.g., on a Raspberry Pi where the default timezone has never been
+      # changed
+      timestamp=$(date -r "${filename}" "+%Y-%m-%d %H:%M:%S %Z")
+
+      # Add a record to the info table to indicate that the gravity database was restored
+      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','${timestamp}');"
+      echo -e "  ${TICK} Successfully restored from backup (${gravityBCKfile}.${num} at ${timestamp})"
+      return 0
+    else
+      echo -e "  ${CROSS} Unable to restore backup no. ${num}"
+    fi
+  fi
+
+  echo -e "  ${CROSS} Backup no. ${num} not available"
+  return 1
+}
+
 # Retrieve blocklist URLs and parse domains from adlist.list
 gravity_DownloadBlocklists() {
   echo -e "  ${INFO} ${COL_BOLD}Neutrino emissions detected${COL_NC}..."
 
   if [[ "${gravityDBfile}" != "${gravityDBfile_default}" ]]; then
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
-  fi
-
-  # Retrieve source URLs from gravity database
-  # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
-  mapfile -t sources <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2>/dev/null)"
-  mapfile -t sourceIDs <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2>/dev/null)"
-  mapfile -t sourceTypes <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2>/dev/null)"
-
-  # Parse source domains from $sources
-  mapfile -t sourceDomains <<<"$(
-    # Logic: Split by folder/port
-    awk -F '[/:]' '{
-      # Remove URL protocol & optional username:password@
-      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
-      if(length($1)>0){print $1}
-      else {print "local"}
-    }' <<<"$(printf '%s\n' "${sources[@]}")" 2>/dev/null
-  )"
-
-  local str="Pulling blocklist source list into range"
-  echo -e "${OVER}  ${TICK} ${str}"
-
-  if [[ -z "${sources[*]}" ]] || [[ -z "${sourceDomains[*]}" ]]; then
-    echo -e "  ${INFO} No source list found, or it is empty"
-    echo ""
-    unset sources
   fi
 
   local url domain str target compression adlist_type directory
@@ -390,9 +445,52 @@ gravity_DownloadBlocklists() {
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
-    return 1
+
+    # Try to attempt a backup restore
+    if [[ -d "${gravityBCKdir}" ]]; then
+      for i in {1..10}; do
+        if try_restore_backup "${i}"; then
+          break
+        fi
+      done
+    fi
+
+    # If none of the attempts worked, return 1
+    if [[ "${i}" -eq 10 ]]; then
+      pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
+      return 1
+    fi
+
+    echo -e "  ${TICK} ${str}"
+  else
+    echo -e "${OVER}  ${TICK} ${str}"
   fi
+
+  # Retrieve source URLs from gravity database
+  # We source only enabled adlists, SQLite3 stores boolean values as 0 (false) or 1 (true)
+  mapfile -t sources <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT address FROM vw_adlist;" 2>/dev/null)"
+  mapfile -t sourceIDs <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT id FROM vw_adlist;" 2>/dev/null)"
+  mapfile -t sourceTypes <<<"$(pihole-FTL sqlite3 -ni "${gravityDBfile}" "SELECT type FROM vw_adlist;" 2>/dev/null)"
+
+  # Parse source domains from $sources
+  mapfile -t sourceDomains <<<"$(
+    # Logic: Split by folder/port
+    awk -F '[/:]' '{
+      # Remove URL protocol & optional username:password@
+      gsub(/(.*:\/\/|.*:.*@)/, "", $0)
+      if(length($1)>0){print $1}
+      else {print "local"}
+    }' <<<"$(printf '%s\n' "${sources[@]}")" 2>/dev/null
+  )"
+
+  local str="Pulling blocklist source list into range"
   echo -e "${OVER}  ${TICK} ${str}"
+
+  if [[ -z "${sources[*]}" ]] || [[ -z "${sourceDomains[*]}" ]]; then
+    echo -e "  ${INFO} No source list found, or it is empty"
+    echo ""
+    unset sources
+  fi
 
   # Use compression to reduce the amount of data that is transferred
   # between the Pi-hole and the ad list provider. Use this feature
