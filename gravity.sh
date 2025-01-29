@@ -414,7 +414,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
   fi
 
-  local url domain str target compression adlist_type directory curlVersion
+  local url domain str target compression adlist_type directory curlVersion success
   echo ""
 
   # Prepare new gravity database
@@ -448,16 +448,18 @@ gravity_DownloadBlocklists() {
     echo -e "\\n  ${CROSS} Unable to copy data from ${gravityDBfile} to ${gravityTEMPfile}\\n  ${output}"
 
     # Try to attempt a backup restore
+    success=false
     if [[ -d "${gravityBCKdir}" ]]; then
       for i in {1..10}; do
         if try_restore_backup "${i}"; then
+          success=true
           break
         fi
       done
     fi
 
     # If none of the attempts worked, return 1
-    if [[ "${i}" -eq 10 ]]; then
+    if [[ "${success}" == false ]]; then
       pihole-FTL sqlite3 "${gravityTEMPfile}" "INSERT OR REPLACE INTO info (property,value) values ('gravity_restored','failed');"
       return 1
     fi
