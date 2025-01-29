@@ -414,7 +414,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
   fi
 
-  local url domain str target compression adlist_type directory
+  local url domain str target compression adlist_type directory curlVersion
   echo ""
 
   # Prepare new gravity database
@@ -496,7 +496,8 @@ gravity_DownloadBlocklists() {
   # Use compression to reduce the amount of data that is transferred
   # between the Pi-hole and the ad list provider. Use this feature
   # only if it is supported by the locally available version of curl
-  if curl -V | grep -q "Features:.* libz"; then
+  curlVersion=$(curl -V)
+  if echo "${curlVersion}" | grep -q "Features:.* libz"; then
     compression="--compressed"
     echo -e "  ${INFO} Using libz compression\n"
   else
@@ -508,11 +509,11 @@ gravity_DownloadBlocklists() {
   # comparing the version string being >= 7.68.0 (released Jan 2020)
   # https://github.com/curl/curl/pull/4543 followed by
   # https://github.com/curl/curl/pull/4678
-  if curl -V | grep -q "curl 7\.[6-9][8-9]"; then
+  if echo "${curlVersion}" | grep -q "curl 7\.[6-9][8-9]"; then
     etag_support=true
   else
     # Check if the version is >= 8
-    if curl -V | grep -q "curl 8"; then
+    if echo "${curlVersion}" | grep -q "curl 8"; then
       etag_support=true
     fi
   fi
