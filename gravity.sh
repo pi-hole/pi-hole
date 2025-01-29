@@ -534,7 +534,7 @@ gravity_DownloadBlocklists() {
 
     # Save the file as list.#.domain
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
-    activeDomains[$i]="${saveLocation}"
+    activeDomains[i]="${saveLocation}"
 
     # Check if we can write to the save location file without actually creating
     # it (in case it doesn't exist)
@@ -1055,7 +1055,7 @@ timeit(){
   elapsed_time=$((end_time - start_time))
 
   # Display the elapsed time
-  printf "  %b--> took %d.%03d seconds%b\n" ${COL_BLUE} $((elapsed_time / 1000)) $((elapsed_time % 1000)) ${COL_NC}
+  printf "  %b--> took %d.%03d seconds%b\n" "${COL_BLUE}" $((elapsed_time / 1000)) $((elapsed_time % 1000)) "${COL_NC}"
 
   return $ret
 }
