@@ -30,6 +30,9 @@ PIHOLE_COMMAND="/usr/local/bin/${basename}"
 
 piholeDir="/etc/${basename}"
 
+# Gravity aux files directory
+listsCacheDir="${piholeDir}/listsCache"
+
 # Legacy (pre v5.0) list file locations
 whitelistFile="${piholeDir}/whitelist.txt"
 blacklistFile="${piholeDir}/blacklist.txt"
@@ -520,8 +523,8 @@ gravity_DownloadBlocklists() {
     fi
 
     # Save the file as list.#.domain
-    saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
-    activeDomains[$i]="${saveLocation}"
+    saveLocation="${listsCacheDir}/list.${id}.${domain}.${domainsExtension}"
+    activeDomains[i]="${saveLocation}"
 
     # Check if we can write to the save location file without actually creating
     # it (in case it doesn't exist)
@@ -1022,6 +1025,28 @@ timeit(){
   return $ret
 }
 
+migrate_to_listsCache_dir() {
+  # If the ${listsCacheDir} directory already exists, this has been done before
+  if [[ -d "${listsCacheDir}" ]]; then
+    return
+  fi
+
+  # If not, we need to migrate the old files to the new directory
+  local str="Migrating the list's cache directory to new location"
+  echo -ne "  ${INFO} ${str}..."
+  mkdir -p "${listsCacheDir}"
+
+  # Move the old files to the new directory
+  if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
+    echo -e "${OVER}  ${TICK} ${str}"
+  else
+    echo -e "${OVER}  ${CROSS} ${str}"
+  fi
+
+  # Update the list's paths in the corresponding .sha1 files to the new location
+  sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1
+}
+
 helpFunc() {
   echo "Usage: pihole -g
 Update domains from blocklists specified in adlists.list
@@ -1097,6 +1122,9 @@ if [[ "${recover_database:-}" == true ]]; then
   timeit database_recovery "$4"
 fi
 
+# Migrate scattered list files to the new cache directory
+migrate_to_listsCache_dir
+
 # Move possibly existing legacy files to the gravity database
 if ! timeit migrate_to_database; then
   echo -e "   ${CROSS} Unable to migrate to database. Please contact support."
@@ -1107,7 +1135,7 @@ if [[ "${forceDelete:-}" == true ]]; then
   str="Deleting existing list cache"
   echo -ne "${INFO} ${str}..."
 
-  rm /etc/pihole/list.* 2>/dev/null || true
+  rm "${listsCacheDir}/list.*" 2>/dev/null || true
   echo -e "${OVER}  ${TICK} ${str}"
 fi
 
