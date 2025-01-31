@@ -414,7 +414,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
   fi
 
-  local url domain str target compression adlist_type directory curlVersion success
+  local url domain str target compression adlist_type directory curlVersion curlVersionConv success
   echo ""
 
   # Prepare new gravity database
@@ -511,13 +511,9 @@ gravity_DownloadBlocklists() {
   # comparing the version string being >= 7.68.0 (released Jan 2020)
   # https://github.com/curl/curl/pull/4543 followed by
   # https://github.com/curl/curl/pull/4678
-  if echo "${curlVersion}" | grep -q "curl 7\.[6-9][8-9]"; then
+  curlVersionConv=$(versionConverter "$(echo "${curlVersion}" | sed -nE 's/curl ([0-9.]+).*/\1/p')")
+  if [[ "${curlVersionConv}" -ge 7068000000 ]]; then
     etag_support=true
-  else
-    # Check if the version is >= 8
-    if echo "${curlVersion}" | grep -q "curl 8"; then
-      etag_support=true
-    fi
   fi
 
   # Loop through $sources and download each one

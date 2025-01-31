@@ -93,3 +93,15 @@ setFTLConfigValue(){
     exit 5
   fi
 }
+
+#######################
+# converts a given version string e.g. v3.7.1 to 3007001000 to allow for easier
+# comparison of multi digit version numbers
+#
+# Credits https://apple.stackexchange.com/a/123408
+#
+# Example usage: versionConverter "v3.7.1"
+#######################
+versionConverter() {
+  echo "$@" | tr -d '[:alpha:]' | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
+}
