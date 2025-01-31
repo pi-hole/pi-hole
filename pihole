@@ -31,6 +31,14 @@ if [ -f "${versionsfile}" ]; then
     source "${versionsfile}"
 fi
 
+is_command() {
+    # Checks to see if the given command (passed as a string argument) exists on the system.
+    # The function returns 0 (success) if the command exists, and 1 if it doesn't.
+    local check_command="$1"
+
+    command -v "${check_command}" >/dev/null 2>&1
+}
+
 webpageFunc() {
   source "${PI_HOLE_SCRIPT_DIR}/webpage.sh"
   main "$@"
@@ -159,7 +167,11 @@ restartDNS() {
     fi
   else
     # A full restart has been requested
-    svc="service pihole-FTL restart"
+    if is_command systemctl ; then
+        svc="systemctl restart pihole-FTL"
+    else
+        svc="service pihole-FTL restart"
+    fi
     str="Restarting DNS server"
     icon="${TICK}"
   fi

@@ -3,7 +3,9 @@
 pihole-FTL - Pi-hole : The Faster-Than-Light (FTL) Engine
 .br
 .SH "SYNOPSIS"
-\fBservice pihole-FTL \fR(\fBstart\fR|\fBstop\fR|\fBrestart\fR)
+\fBsystemctl \fR(\fBstart\fR|\fBstop\fR|\fBrestart\fR) \fBpihole-FTL\fR when you're using systemd, or
+.br
+\fBservice pihole-FTL \fR(\fBstart\fR|\fBstop\fR|\fBrestart\fR) on system with SysV init
 .br
 
 \fBpihole-FTL debug\fR
@@ -42,17 +44,17 @@ Pi-hole : The Faster-Than-Light (FTL) Engine is a lightweight, purpose-built dae
 Usage
 .br
 
-\fBservice pihole-FTL start\fR
+\fBsystemctl start pihole-FTL\fR or \fBservice pihole-FTL start\fR
 .br
     Start the pihole-FTL daemon
 .br
 
-\fBservice pihole-FTL stop\fR
+\fBsystemctl stop pihole-FTL\fR or \fBservice pihole-FTL stop\fR
 .br
     Stop the pihole-FTL daemon
 .br
 
-\fBservice pihole-FTL restart\fR
+\fBsystemctl restart pihole-FTL\fR or \fBservice pihole-FTL restart\fR
 .br
     If the pihole-FTP daemon is running, stop and then start, otherwise start.
 .br
