@@ -849,6 +849,7 @@ gravity_Table_Count() {
   local table="${1}"
   local str="${2}"
   local num
+  num="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT id FROM ${table};")"
   num="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
   if [[ "${table}" == "gravity" ]]; then
     local unique
