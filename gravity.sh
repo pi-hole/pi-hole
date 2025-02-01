@@ -844,12 +844,12 @@ gravity_ParseFileIntoDomains() {
   fix_owner_permissions "${destination}"
 }
 
-# Report number of entries in a table
+# Report number of DISTINCT entries in a table or view
 gravity_Table_Count() {
   local table="${1}"
   local str="${2}"
   local num
-  num="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM ${table};")"
+  num="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT id FROM ${table};")"
   if [[ "${table}" == "gravity" ]]; then
     local unique
     unique="$(pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "SELECT COUNT(*) FROM (SELECT DISTINCT domain FROM ${table});")"
