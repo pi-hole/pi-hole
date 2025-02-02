@@ -414,7 +414,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
   fi
 
-  local url domain str target compression adlist_type directory curlVersion success
+  local url domain str target compression adlist_type directory success
   echo ""
 
   # Prepare new gravity database
@@ -498,8 +498,7 @@ gravity_DownloadBlocklists() {
   # Use compression to reduce the amount of data that is transferred
   # between the Pi-hole and the ad list provider. Use this feature
   # only if it is supported by the locally available version of curl
-  curlVersion=$(curl -V)
-  if echo "${curlVersion}" | grep -q "Features:.* libz"; then
+  if curl -V | grep -q "Features:.* libz"; then
     compression="--compressed"
     echo -e "  ${INFO} Using libz compression\n"
   else
