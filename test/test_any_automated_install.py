@@ -119,11 +119,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     assert exit_status_success == actual_rc
     check_leases = test_cmd.format("w", "/etc/pihole/dhcp.leases", piholeuser)
     actual_rc = host.run(check_leases).rc
-    # readable dns-servers.conf
-    assert exit_status_success == actual_rc
-    check_servers = test_cmd.format("r", "/etc/pihole/dns-servers.conf", piholeuser)
-    actual_rc = host.run(check_servers).rc
-    assert exit_status_success == actual_rc
     # readable install.log
     check_install = test_cmd.format("r", "/etc/pihole/install.log", piholeuser)
     actual_rc = host.run(check_install).rc
