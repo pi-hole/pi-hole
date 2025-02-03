@@ -94,8 +94,9 @@ removePiholeFiles() {
     echo -e "  ${TICK} Removed config files"
 
     # Restore Resolved
-    if [[ -e /etc/systemd/resolved.conf.orig ]]; then
-        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
+    if [[ -e /etc/systemd/resolved.conf.orig ]] || [[ -e /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf ]]; then
+        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf &> /dev/null || true
+        ${SUDO} rm -f /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf
         systemctl reload-or-restart systemd-resolved
     fi
 

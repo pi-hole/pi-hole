@@ -1436,20 +1436,15 @@ disable_resolved_stublistener() {
     printf "  %b Testing if systemd-resolved is enabled\\n" "${INFO}"
     # Check if Systemd-resolved's DNSStubListener is enabled and active on port 53
     if check_service_active "systemd-resolved"; then
-        # Check if DNSStubListener is enabled
-        printf "  %b %b Testing if systemd-resolved DNSStub-Listener is active" "${OVER}" "${INFO}"
-        if (grep -E '#?DNSStubListener=yes' /etc/systemd/resolved.conf &>/dev/null); then
-            # Disable the DNSStubListener to unbind it from port 53
-            # Note that this breaks dns functionality on host until ftl are up and running
-            printf "%b  %b Disabling systemd-resolved DNSStubListener" "${OVER}" "${TICK}"
-            # Make a backup of the original /etc/systemd/resolved.conf
-            # (This will need to be restored on uninstallation)
-            sed -r -i.orig 's/#?DNSStubListener=yes/DNSStubListener=no/g' /etc/systemd/resolved.conf
-            printf " and restarting systemd-resolved\\n"
-            systemctl reload-or-restart systemd-resolved
-        else
-            printf "%b  %b Systemd-resolved does not need to be restarted\\n" "${OVER}" "${INFO}"
-        fi
+        # Disable the DNSStubListener to unbind it from port 53
+        # Note that this breaks dns functionality on host until FTL is up and running
+        printf "%b  %b Disabling systemd-resolved DNSStubListener\\n" "${OVER}" "${TICK}"
+        mkdir -p /etc/systemd/resolved.conf.d
+        cat > /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf << EOF
+[Resolve]
+DNSStubListener=no
+EOF
+        systemctl reload-or-restart systemd-resolved
     else
         printf "%b  %b Systemd-resolved is not enabled\\n" "${OVER}" "${INFO}"
     fi
