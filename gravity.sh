@@ -44,6 +44,7 @@ gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
 
 domainsExtension="domains"
 curl_connect_timeout=10
+etag_support=false
 
 # Check gravity temp directory
 if [ ! -d "${GRAVITY_TMPDIR}" ] || [ ! -w "${GRAVITY_TMPDIR}" ]; then
@@ -504,6 +505,15 @@ gravity_DownloadBlocklists() {
     compression=""
     echo -e "  ${INFO} Libz compression not available\n"
   fi
+
+  # Check if etag is supported by the locally available version of curl
+  # (available as of curl 7.68.0, released Jan 2020)
+  # https://github.com/curl/curl/pull/4543 +
+  # https://github.com/curl/curl/pull/4678
+  if curl --help all | grep -q "etag-save"; then
+    etag_support=true
+  fi
+
   # Loop through $sources and download each one
   for ((i = 0; i < "${#sources[@]}"; i++)); do
     url="${sources[$i]}"
@@ -521,7 +531,7 @@ gravity_DownloadBlocklists() {
 
     # Save the file as list.#.domain
     saveLocation="${piholeDir}/list.${id}.${domain}.${domainsExtension}"
-    activeDomains[$i]="${saveLocation}"
+    activeDomains[i]="${saveLocation}"
 
     # Check if we can write to the save location file without actually creating
     # it (in case it doesn't exist)
@@ -588,7 +598,7 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
-  local heisenbergCompensator="" listCurlBuffer str httpCode success="" ip cmd_ext
+  local modifiedOptions="" listCurlBuffer str httpCode success="" ip cmd_ext
   local file_path permissions ip_addr port blocked=false download=true
 
   # Create temp file to store content on disk instead of RAM
@@ -597,12 +607,37 @@ gravity_DownloadBlocklistFromUrl() {
   mv "${listCurlBuffer}" "${listCurlBuffer%.*}.phgpb"
   listCurlBuffer="${listCurlBuffer%.*}.phgpb"
 
-  # Determine if $saveLocation has read permission
-  if [[ -r "${saveLocation}" && $url != "file"* ]]; then
-    # Have curl determine if a remote file has been modified since last retrieval
-    # Uses "Last-Modified" header, which certain web servers do not provide (e.g: raw github urls)
-    # Note: Don't do this for local files, always download them
-    heisenbergCompensator="-z ${saveLocation}"
+  # For all remote files, we try to determine if the file has changed to skip
+  # downloading them whenever possible.
+  if [[ $url != "file"* ]]; then
+    # Use the HTTP ETag header to determine if the file has changed if supported
+    # by curl. Using ETags is supported by raw.githubusercontent.com URLs.
+    if [[ "${etag_support}" == true ]]; then
+      # Save HTTP ETag to the specified file. An ETag is a caching related header,
+      # usually returned in a response. If no ETag is sent by the server, an empty
+      # file is created and can later be used consistently.
+      modifiedOptions="--etag-save ${saveLocation}.etag"
+
+      if [[ -f "${saveLocation}.etag" ]]; then
+        # This option makes a conditional HTTP request for the specific ETag read
+        # from the given file by sending a custom If-None-Match header using the
+        # stored ETag. This way, the server will only send the file if it has
+        # changed since the last request.
+        modifiedOptions="${modifiedOptions} --etag-compare ${saveLocation}.etag"
+      fi
+    fi
+
+    # Add If-Modified-Since header to the request if we did already download the
+    # file once
+    if [[ -f "${saveLocation}" ]]; then
+      # Request a file that has been modified later than the given time and
+      # date. We provide a file here which makes curl use the modification
+      # timestamp (mtime) of this file.
+      # Interstingly, this option is not supported by raw.githubusercontent.com
+      # URLs, however, it is still supported by many older web servers which may
+      # not support the HTTP ETag method so we keep it as a fallback.
+      modifiedOptions="${modifiedOptions} -z ${saveLocation}"
+    fi
   fi
 
   str="Status:"
@@ -732,7 +767,7 @@ gravity_DownloadBlocklistFromUrl() {
 
   if [[ "${download}" == true ]]; then
     # shellcheck disable=SC2086
-    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${heisenbergCompensator} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${modifiedOptions} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
   fi
 
   case $url in
@@ -1017,7 +1052,7 @@ timeit(){
   elapsed_time=$((end_time - start_time))
 
   # Display the elapsed time
-  printf "  %b--> took %d.%03d seconds%b\n" ${COL_BLUE} $((elapsed_time / 1000)) $((elapsed_time % 1000)) ${COL_NC}
+  printf "  %b--> took %d.%03d seconds%b\n" "${COL_BLUE}" $((elapsed_time / 1000)) $((elapsed_time % 1000)) "${COL_NC}"
 
   return $ret
 }
