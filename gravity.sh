@@ -900,10 +900,10 @@ gravity_ShowCount() {
   # Here we use the table "gravity" instead of the view "vw_gravity" for speed.
   # It's safe to replace it here, because right after a gravity run both will show the exactly same number of domains.
   gravity_Table_Count "gravity" "gravity domains"
-  gravity_Table_Count "domainlist WHERE type = 1" "exact denied domains"
-  gravity_Table_Count "domainlist WHERE type = 3" "regex denied filters"
-  gravity_Table_Count "domainlist WHERE type = 0" "exact allowed domains"
-  gravity_Table_Count "domainlist WHERE type = 2" "regex allowed filters"
+  gravity_Table_Count "domainlist WHERE type = 1 AND enabled = 1" "exact denied domains"
+  gravity_Table_Count "domainlist WHERE type = 3 AND enabled = 1" "regex denied filters"
+  gravity_Table_Count "domainlist WHERE type = 0 AND enabled = 1" "exact allowed domains"
+  gravity_Table_Count "domainlist WHERE type = 2 AND enabled = 1" "regex allowed filters"
 }
 
 # Trap Ctrl-C
