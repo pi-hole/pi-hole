@@ -1279,13 +1279,6 @@ installConfigs() {
     # Ensure that permissions are correctly set
     chown -R pihole:pihole /etc/pihole
 
-    # Install list of DNS servers
-    # Format: Name;Primary IPv4;Secondary IPv4;Primary IPv6;Secondary IPv6
-    # Some values may be empty (for example: DNS servers without IPv6 support)
-    echo "${DNS_SERVERS}" >"${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
-    chmod 644 "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
-    chown pihole:pihole "${PI_HOLE_CONFIG_DIR}/dns-servers.conf"
-
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
         if ! install -D -T -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
