@@ -1907,7 +1907,7 @@ checkout_pull_branch() {
     return 0
 }
 
-clone_or_update_repos() {
+clone_or_reset_repos() {
     # If the user wants to repair/update,
     if [[ "${repair}" == true ]]; then
         printf "  %b Resetting local repos\\n" "${INFO}"
@@ -2469,8 +2469,8 @@ main() {
         # Setup adlist file if not exists
         installDefaultBlocklists
     fi
-    # Download or update the scripts by updating the appropriate git repos
-    clone_or_update_repos
+    # Download or reset the appropriate git repos depending on the 'repair' flag
+    clone_or_reset_repos
 
 
     # Create the pihole user
