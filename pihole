@@ -107,11 +107,11 @@ updatePiholeFunc() {
   fi
 }
 
-reconfigurePiholeFunc() {
+repairPiholeFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
     unsupportedFunc
   else
-    /etc/.pihole/automated\ install/basic-install.sh --reconfigure
+    /etc/.pihole/automated\ install/basic-install.sh --repair
     exit 0;
   fi
 }
@@ -476,7 +476,7 @@ Debugging Options:
                         Add '-c' or '--check-database' to include a Pi-hole database integrity check
                         Add '-a' to automatically upload the log to tricorder.pi-hole.net
   -f, flush           Flush the Pi-hole log
-  -r, reconfigure     Reconfigure or Repair Pi-hole subsystems
+  -r, repair          Repair Pi-hole subsystems
   -t, tail [arg]      View the live output of the Pi-hole log.
                       Add an optional argument to filter the log
                       (regular expressions are supported)
@@ -533,7 +533,7 @@ case "${1}" in
   "--allow-wild" | "allow-wild"   ) need_root=0;;
   "-f" | "flush"                  ) ;;
   "-up" | "updatePihole"          ) ;;
-  "-r"  | "reconfigure"           ) ;;
+  "-r"  | "repair"                ) ;;
   "-l" | "logging"                ) ;;
   "uninstall"                     ) ;;
   "enable"                        ) need_root=0;;
@@ -576,7 +576,7 @@ case "${1}" in
   "-d" | "debug"                  ) debugFunc "$@";;
   "-f" | "flush"                  ) flushFunc "$@";;
   "-up" | "updatePihole"          ) updatePiholeFunc "$@";;
-  "-r"  | "reconfigure"           ) reconfigurePiholeFunc;;
+  "-r"  | "repair"                ) repairPiholeFunc;;
   "-g" | "updateGravity"          ) updateGravityFunc "$@";;
   "-l" | "logging"                ) piholeLogging "$@";;
   "uninstall"                     ) uninstallFunc;;
