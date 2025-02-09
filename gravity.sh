@@ -97,6 +97,7 @@ gravity_build_tree() {
 
   if [[ "${status}" -ne 0 ]]; then
     echo -e "\\n  ${CROSS} Unable to build gravity tree in ${gravityTEMPfile}\\n  ${output}"
+    echo -e "  ${INFO} If you have a large amount of domains, make sure your Pi-hole has enough RAM available\\n"
     return 1
   fi
   echo -e "${OVER}  ${TICK} ${str}"
