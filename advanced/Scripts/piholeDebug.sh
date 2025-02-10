@@ -1221,7 +1221,7 @@ database_integrity_check(){
     local database="${1}"
 
     log_write "${INFO} Checking integrity of ${database} ... (this can take several minutes)"
-    result="$(pihole-FTL "${database}" "PRAGMA integrity_check" 2>&1 & spinner)"
+    result="$(pihole-FTL sqlite3 -ni "${database}" "PRAGMA integrity_check" 2>&1 & spinner)"
     if [[ ${result} = "ok" ]]; then
       log_write "${TICK} Integrity of ${database} intact"
 
