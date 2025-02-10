@@ -1137,7 +1137,7 @@ show_FTL_db_entries() {
 }
 
 check_dhcp_servers() {
-    echo_current_diagnostic "Discovering active DHCP servers (takes 10 seconds)"
+    echo_current_diagnostic "Discovering active DHCP servers (takes 6 seconds)"
 
     OLD_IFS="$IFS"
     IFS=$'\n'
