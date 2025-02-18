@@ -38,72 +38,25 @@ fi
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# setupVars set in basic-install.sh
-source "${setupVars}"
 
 # package_manager_detect() sourced from basic-install.sh
 package_manager_detect
 
-# Uninstall packages used by the Pi-hole
-DEPS=("${INSTALLER_DEPS[@]}" "${PIHOLE_DEPS[@]}" "${OS_CHECK_DEPS[@]}")
-if [[ "${INSTALL_WEB_SERVER}" == true ]]; then
-    # Install the Web dependencies
-    DEPS+=("${PIHOLE_WEB_DEPS[@]}")
-fi
 
-# Compatibility
-if [ -x "$(command -v apt-get)" ]; then
-    # Debian Family
-    PKG_REMOVE=("${PKG_MANAGER}" -y remove --purge)
-    package_check() {
-        dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -c "ok installed"
-    }
-elif [ -x "$(command -v rpm)" ]; then
-    # Fedora Family
-    PKG_REMOVE=("${PKG_MANAGER}" remove -y)
-    package_check() {
-        rpm -qa | grep "^$1-" > /dev/null
-    }
-else
-    echo -e "  ${CROSS} OS distribution not supported"
-    exit 1
-fi
-
-removeAndPurge() {
-    # Purge dependencies
+removeMetaPackage() {
+    # Purge Pi-hole meta package
     echo ""
-    for i in "${DEPS[@]}"; do
-        if package_check "${i}" > /dev/null; then
-            while true; do
-                read -rp "  ${QST} Do you wish to remove ${COL_WHITE}${i}${COL_NC} from your system? [Y/N] " answer
-                case ${answer} in
-                    [Yy]* )
-                        echo -ne "  ${INFO} Removing ${i}...";
-                        ${SUDO} "${PKG_REMOVE[@]}" "${i}" &> /dev/null;
-                        echo -e "${OVER}  ${INFO} Removed ${i}";
-                        break;;
-                    [Nn]* ) echo -e "  ${INFO} Skipped ${i}"; break;;
-                esac
-            done
-        else
-            echo -e "  ${INFO} Package ${i} not installed"
-        fi
-    done
+    echo -ne "  ${INFO} Removing Pi-hole meta package...";
+    eval "${SUDO}" "${PKG_REMOVE}" "pihole-meta" &> /dev/null;
+    echo -e "${OVER}  ${INFO} Removed Pi-hole meta package";
 
-    # Remove dnsmasq config files
-    ${SUDO} rm -f /etc/dnsmasq.conf /etc/dnsmasq.conf.orig /etc/dnsmasq.d/*-pihole*.conf &> /dev/null
-    echo -e "  ${TICK} Removing dnsmasq config files"
-
-    # Call removeNoPurge to remove Pi-hole specific files
-    removeNoPurge
 }
 
-removeNoPurge() {
+removePiholeFiles() {
     # Only web directories/files that are created by Pi-hole should be removed
     echo -ne "  ${INFO} Removing Web Interface..."
     ${SUDO} rm -rf /var/www/html/admin &> /dev/null
-    ${SUDO} rm -rf /var/www/html/pihole &> /dev/null
-    ${SUDO} rm -f /var/www/html/index.lighttpd.orig &> /dev/null
+
 
     # If the web directory is empty after removing these files, then the parent html directory can be removed.
     if [ -d "/var/www/html" ]; then
@@ -130,45 +83,6 @@ removeNoPurge() {
         echo -e "  ${TICK} Removed /etc/cron.d/pihole"
     fi
 
-    if package_check lighttpd > /dev/null; then
-        # Attempt to preserve backwards compatibility with older versions
-        if [[ -f /etc/lighttpd/lighttpd.conf.orig ]]; then
-            ${SUDO} mv /etc/lighttpd/lighttpd.conf.orig /etc/lighttpd/lighttpd.conf
-        fi
-
-        if [[ -f /etc/lighttpd/external.conf ]]; then
-            ${SUDO} rm /etc/lighttpd/external.conf
-        fi
-
-        # Fedora-based
-        if [[ -f /etc/lighttpd/conf.d/pihole-admin.conf ]]; then
-            ${SUDO} rm /etc/lighttpd/conf.d/pihole-admin.conf
-            conf=/etc/lighttpd/lighttpd.conf
-            tconf=/tmp/lighttpd.conf.$$
-            if awk '!/^include "\/etc\/lighttpd\/conf\.d\/pihole-admin\.conf"$/{print}' \
-              $conf > $tconf && mv $tconf $conf; then
-                :
-            else
-                rm $tconf
-            fi
-            ${SUDO} chown root:root $conf
-            ${SUDO} chmod 644 $conf
-        fi
-
-        # Debian-based
-        if [[ -f /etc/lighttpd/conf-available/pihole-admin.conf ]]; then
-            if is_command lighty-disable-mod ; then
-                ${SUDO} lighty-disable-mod pihole-admin > /dev/null || true
-            fi
-            ${SUDO} rm /etc/lighttpd/conf-available/15-pihole-admin.conf
-        fi
-
-        echo -e "  ${TICK} Removed lighttpd configs"
-    fi
-
-    ${SUDO} rm -f /etc/dnsmasq.d/adList.conf &> /dev/null
-    ${SUDO} rm -f /etc/dnsmasq.d/01-pihole.conf &> /dev/null
-    ${SUDO} rm -f /etc/dnsmasq.d/06-rfc6761.conf &> /dev/null
     ${SUDO} rm -rf /var/log/*pihole* &> /dev/null
     ${SUDO} rm -rf /var/log/pihole/*pihole* &> /dev/null
     ${SUDO} rm -rf /etc/pihole/ &> /dev/null
@@ -180,8 +94,9 @@ removeNoPurge() {
     echo -e "  ${TICK} Removed config files"
 
     # Restore Resolved
-    if [[ -e /etc/systemd/resolved.conf.orig ]]; then
-        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf
+    if [[ -e /etc/systemd/resolved.conf.orig ]] || [[ -e /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf ]]; then
+        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf &> /dev/null || true
+        ${SUDO} rm -f /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf
         systemctl reload-or-restart systemd-resolved
     fi
 
@@ -238,23 +153,11 @@ removeNoPurge() {
        If you need help, reach out to us on GitHub, Discourse, Reddit or Twitter
        Reinstall at any time: ${COL_WHITE}curl -sSL https://install.pi-hole.net | bash${COL_NC}
 
-      ${COL_LIGHT_RED}Please reset the DNS on your router/clients to restore internet connectivity
+      ${COL_LIGHT_RED}Please reset the DNS on your router/clients to restore internet connectivity${COL_NC}
+      ${INFO} Pi-hole's meta package has been removed, use the 'autoremove' function from your package manager to remove unused dependencies${COL_NC}
       ${COL_LIGHT_GREEN}Uninstallation Complete! ${COL_NC}"
 }
 
 ######### SCRIPT ###########
-echo -e "  ${INFO} Be sure to confirm if any dependencies should not be removed"
-while true; do
-    echo -e "  ${INFO} ${COL_YELLOW}The following dependencies may have been added by the Pi-hole install:"
-    echo -n "    "
-    for i in "${DEPS[@]}"; do
-        echo -n "${i} "
-    done
-    echo "${COL_NC}"
-    read -rp "  ${QST} Do you wish to go through each dependency for removal? (Choosing No will leave all dependencies installed) [Y/n] " answer
-    case ${answer} in
-        [Yy]* ) removeAndPurge; break;;
-        [Nn]* ) removeNoPurge; break;;
-        * ) removeAndPurge; break;;
-    esac
-done
+removeMetaPackage
+removePiholeFiles

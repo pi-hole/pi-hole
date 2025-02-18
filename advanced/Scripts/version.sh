@@ -8,9 +8,9 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Source the setupvars config file
-# shellcheck disable=SC1091
-. /etc/pihole/setupVars.conf
+# Ignore warning about `local` being undefinded in POSIX
+# shellcheck disable=SC3043
+# https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
 
 # Source the versions file poupulated by updatechecker.sh
 cachedVersions="/etc/pihole/versions"
@@ -25,126 +25,34 @@ else
     . "$cachedVersions"
 fi
 
-getLocalVersion() {
-    case ${1} in
-        "Pi-hole"   )  echo "${CORE_VERSION:=N/A}";;
-        "web"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_VERSION:=N/A}";;
-        "FTL"       )  echo "${FTL_VERSION:=N/A}";;
-    esac
-}
+main() {
+    local details
+    details=false
 
-getLocalHash() {
-    case ${1} in
-        "Pi-hole"   )  echo "${CORE_HASH:=N/A}";;
-        "web"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_HASH:=N/A}";;
-        "FTL"       )  echo "${FTL_HASH:=N/A}";;
-    esac
-}
-
-getRemoteHash(){
-    case ${1} in
-        "Pi-hole"   )  echo "${GITHUB_CORE_HASH:=N/A}";;
-        "web"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_HASH:=N/A}";;
-        "FTL"       )  echo "${GITHUB_FTL_HASH:=N/A}";;
-    esac
-}
-
-getRemoteVersion(){
-    case ${1} in
-        "Pi-hole"   )  echo "${GITHUB_CORE_VERSION:=N/A}";;
-        "web"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${GITHUB_WEB_VERSION:=N/A}";;
-        "FTL"       )  echo "${GITHUB_FTL_VERSION:=N/A}";;
-    esac
-}
-
-getLocalBranch(){
-    case ${1} in
-        "Pi-hole"   )  echo "${CORE_BRANCH:=N/A}";;
-        "web"  )  [ "${INSTALL_WEB_INTERFACE}" = true ] && echo "${WEB_BRANCH:=N/A}";;
-        "FTL"       )  echo "${FTL_BRANCH:=N/A}";;
-    esac
-}
-
-versionOutput() {
-    if [ "$1" = "web" ] && [ "${INSTALL_WEB_INTERFACE}" != true ]; then
-        echo "  WebAdmin not installed"
-        return 1
+    # Automatically show detailed information if
+    # at least one of the components is not on master branch
+    if [ ! "${CORE_BRANCH}" = "master" ] || [ ! "${WEB_BRANCH}" = "master" ] || [ ! "${FTL_BRANCH}" = "master" ]; then
+        details=true
     fi
 
-    [ "$2" = "-c" ] || [ "$2" = "--current" ] || [ -z "$2" ] && current=$(getLocalVersion "${1}") && branch=$(getLocalBranch "${1}")
-    [ "$2" = "-l" ] || [ "$2" = "--latest" ] || [ -z "$2" ] && latest=$(getRemoteVersion "${1}")
-    if [ "$2" = "--hash" ]; then
-        [ "$3" = "-c" ] || [ "$3" = "--current" ] || [ -z "$3" ] && curHash=$(getLocalHash "${1}") && branch=$(getLocalBranch "${1}")
-        [ "$3" = "-l" ] || [ "$3" = "--latest" ] || [ -z "$3" ] && latHash=$(getRemoteHash "${1}") && branch=$(getLocalBranch "${1}")
-    fi
-
-    # We do not want to show the branch name when we are on master,
-    # blank out the variable in this case
-    if [ "$branch" = "master" ]; then
-        branch=""
+    if [ "${details}" = true ]; then
+        echo "Core"
+        echo "    Version is ${CORE_VERSION:=N/A} (Latest: ${GITHUB_CORE_VERSION:=N/A})"
+        echo "    Branch is ${CORE_BRANCH:=N/A}"
+        echo "    Hash is ${CORE_HASH:=N/A} (Latest: ${GITHUB_CORE_HASH:=N/A})"
+        echo "Web"
+        echo "    Version is ${WEB_VERSION:=N/A} (Latest: ${GITHUB_WEB_VERSION:=N/A})"
+        echo "    Branch is ${WEB_BRANCH:=N/A}"
+        echo "    Hash is ${WEB_HASH:=N/A} (Latest: ${GITHUB_WEB_HASH:=N/A})"
+        echo "FTL"
+        echo "    Version is ${FTL_VERSION:=N/A} (Latest: ${GITHUB_FTL_VERSION:=N/A})"
+        echo "    Branch is ${FTL_BRANCH:=N/A}"
+        echo "    Hash is ${FTL_HASH:=N/A} (Latest: ${GITHUB_FTL_HASH:=N/A})"
     else
-        branch="$branch "
+        echo "Core version is ${CORE_VERSION:=N/A} (Latest: ${GITHUB_CORE_VERSION:=N/A})"
+        echo "Web version is ${WEB_VERSION:=N/A} (Latest: ${GITHUB_WEB_VERSION:=N/A})"
+        echo "FTL version is ${FTL_VERSION:=N/A} (Latest: ${GITHUB_FTL_VERSION:=N/A})"
     fi
-
-    if [ -n "$current" ] && [ -n "$latest" ]; then
-        output="${1} version is $branch$current (Latest: $latest)"
-    elif [ -n "$current" ] && [ -z "$latest" ]; then
-        output="Current ${1} version is $branch$current"
-    elif [ -z "$current" ] && [ -n "$latest" ]; then
-        output="Latest ${1} version is $latest"
-    elif [ -n "$curHash" ] && [ -n "$latHash" ]; then
-        output="Local ${1} hash is $curHash (Remote: $latHash)"
-    elif [ -n "$curHash" ] && [ -z "$latHash" ]; then
-        output="Current local ${1} hash is $curHash"
-    elif [ -z "$curHash" ] && [ -n "$latHash" ]; then
-        output="Latest remote ${1} hash is $latHash"
-    elif [ -z "$curHash" ] && [ -z "$latHash" ]; then
-        output="Hashes for ${1} not available"
-    else
-        errorOutput
-        return 1
-    fi
-
-    [ -n "$output" ] && echo "  $output"
 }
 
-errorOutput() {
-    echo "  Invalid Option! Try 'pihole -v --help' for more information."
-    exit 1
-}
-
-defaultOutput() {
-    versionOutput "Pi-hole" "$@"
-
-    if [ "${INSTALL_WEB_INTERFACE}" = true ]; then
-        versionOutput "web" "$@"
-    fi
-
-    versionOutput "FTL" "$@"
-}
-
-helpFunc() {
-    echo "Usage: pihole -v [repo | option] [option]
-Example: 'pihole -v -p -l'
-Show Pi-hole, Admin Console & FTL versions
-
-Repositories:
-  -p, --pihole         Only retrieve info regarding Pi-hole repository
-  -a, --admin          Only retrieve info regarding web repository
-  -f, --ftl            Only retrieve info regarding FTL repository
-
-Options:
-  -c, --current        Return the current version
-  -l, --latest         Return the latest version
-  --hash               Return the GitHub hash from your local repositories
-  -h, --help           Show this help dialog"
-  exit 0
-}
-
-case "${1}" in
-    "-p" | "--pihole"    ) shift; versionOutput "Pi-hole" "$@";;
-    "-a" | "--admin"     ) shift; versionOutput "web" "$@";;
-    "-f" | "--ftl"       ) shift; versionOutput "FTL" "$@";;
-    "-h" | "--help"      ) helpFunc;;
-    *                    ) defaultOutput "$@";;
-esac
+main

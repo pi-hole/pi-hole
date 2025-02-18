@@ -5,19 +5,15 @@ Pi-hole : A black-hole for internet advertisements
 .br
 .SH "SYNOPSIS"
 
-\fBpihole\fR (\fB-w\fR|\fB-b\fR|\fB--wild\fR|\fB--regex\fR) [options] domain(s)
+\fBpihole\fR (\fB-allow\fR|\fB-deny\fR) [options] domain(s)
 .br
-\fBpihole -a\fR \fB-p\fR password
+\fBpihole\fR (\fB--allow-regex\fR|\fB--regex\fR) [options] domain(s)
 .br
-\fBpihole -a\fR (\fB-c|-f|-k\fR)
+\fBpihole\fR (\fB--allow-wild\fR|\fB--wild\fR) [options] domain(s)
 .br
-\fBpihole -a -i\fR interface
+\fBpihole setpassword\fR password
 .br
-\fBpihole -a -l\fR privacylevel
-.br
-\fBpihole -c\fR [-j|-r|-e]
-.br
-\fBpihole\fR \fB-d\fR [-a]
+\fBpihole\fR \fB-d\fR [-a] [-c]
 .br
 \fBpihole -f
 .br
@@ -25,7 +21,7 @@ pihole -r
 .br
 \fBpihole\fR \fB-t\fR [arg]
 .br
-pihole -g\fR
+\fBpihole -g\fR
 .br
 \fBpihole\fR -\fBq\fR [options]
 .br
@@ -33,17 +29,21 @@ pihole -g\fR
 .br
 \fBpihole -up \fR[--check-only]
 .br
-\fBpihole -v\fR [-p|-a|-f] [-c|-l|-hash]
+\fBpihole -v\fR
 .br
-\fBpihole uninstall
+\fBpihole uninstall\fR
 .br
-pihole status
+\fBpihole status\fR
 .br
-pihole restartdns\fR [options]
+\fBpihole reloaddns\fR
+.br
+\fBpihole reloadlists\fR
 .br
 \fBpihole\fR (\fBenable\fR|\fBdisable\fR [time])
 .br
 \fBpihole\fR \fBcheckout\fR repo [branch]
+.br
+\fBpihole\fR \api\fR endpoint
 .br
 \fBpihole\fR \fBhelp\fR
 .br
@@ -52,47 +52,43 @@ pihole restartdns\fR [options]
 Available commands and options:
 .br
 
-\fB-w, whitelist\fR [options] [<domain1> <domain2 ...>]
+\fBallow, allowlist\fR [options] [<domain1> <domain2 ...>]
 .br
-    Adds or removes specified domain or domains to the Whitelist
+    Adds or removes specified domain or domains to the Allowlist
 .br
 
-\fB-b, blacklist\fR [options] [<domain1> <domain2 ...>]
+\fBdeny, denylist\fR [options] [<domain1> <domain2 ...>]
 .br
-    Adds or removes specified domain or domains to the blacklist
+    Adds or removes specified domain or domains to the denylist
 .br
 
 \fB--regex, regex\fR [options] [<regex1> <regex2 ...>]
 .br
-    Add or removes specified regex filter to the regex blacklist
+    Add or removes specified regex filter to the regex denylist
 .br
 
-\fB--white-regex\fR [options] [<regex1> <regex2 ...>]
+\fB--allow-regex\fR [options] [<regex1> <regex2 ...>]
 .br
-    Add or removes specified regex filter to the regex whitelist
+    Add or removes specified regex filter to the regex allowlist
 .br
 
 \fB--wild, wildcard\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified domain to the wildcard blacklist
+    Add or removes specified domain to the wildcard denylist
 .br
 
-\fB--white-wild\fR [options] [<domain1> <domain2 ...>]
+\fB--allow-wild\fR [options] [<domain1> <domain2 ...>]
 .br
-    Add or removes specified domain to the wildcard whitelist
+    Add or removes specified domain to the wildcard allowlist
 .br
 
-    (Whitelist/Blacklist manipulation options):
+    (Allow-/denylist manipulation options):
 .br
-      -d, --delmode     Remove domain(s) from the list
+      not, -d, --delmode  Remove domain(s) from the list
 .br
-      -nr, --noreload   Update list without refreshing dnsmasq
+      -q, --quiet         Make output less verbose
 .br
-      -q, --quiet       Make output less verbose
-.br
-      -l, --list        Display all your listed domains
-.br
-      --nuke            Removes all entries in a list
+      -l, --list          Display all your listed domains
 .br
 
 \fB-d, debug\fR [-a]
@@ -101,6 +97,7 @@ Available commands and options:
 .br
 
       -a                Enable automated debugging
+      -c                Include a Pi-hole database integrity check
 .br
 
 \fB-f, flush\fR
@@ -122,39 +119,6 @@ Available commands and options:
                         (regular expressions are supported)
 .br
 
-\fB-a, admin\fR [options]
-.br
-
-    (Admin options):
-.br
-      -p, password      Set Web Interface password
-.br
-      -c, celsius       Set Celsius as preferred temperature unit
-.br
-      -f, fahrenheit    Set Fahrenheit as preferred temperature unit
-.br
-      -k, kelvin        Set Kelvin as preferred temperature unit
-.br
-      -i, interface     Specify dnsmasq's interface listening behavior
-.br
-      -l, privacylevel  <level> Set privacy level
-                        (0 = lowest, 3 = highest)
-.br
-
-\fB-c, chronometer\fR	[options]
-.br
-    Calculates stats and displays to an LCD
-.br
-
-    (Chronometer Options):
-.br
-      -j, --json        Output stats as JSON formatted string
-.br
-      -r, --refresh     Set update frequency (in seconds)
-.br
-      -e, --exit        Output stats and exit without refreshing
-.br
-
 \fB-g, updateGravity\fR
 .br
     Update the list of ad-serving domains
@@ -167,11 +131,9 @@ Available commands and options:
 
     (Query options):
 .br
-      -adlist           Print the name of the block list URL
+      -partial          Search the adlists for partially matching domains
 .br
-      -exact            Search the block lists for exact domain matches
-.br
-      -all              Return all query matches within a block list
+      -all              Return all query matches within a adlists
 .br
 
 \fB-h, --help, help\fR
@@ -202,29 +164,14 @@ Available commands and options:
       --check-only      Exit script before update is performed.
 .br
 
-\fB-v, version\fR [repo] [options]
+\fB-v, version\fR
 .br
     Show installed versions of Pi-hole, Web Interface &amp; FTL
 .br
 
+\fBsetpassword\fR
 .br
-    (repo options):
-.br
-      -p, --pihole      Only retrieve info regarding Pi-hole repository
-.br
-      -a, --admin       Only retrieve info regarding web
-                        repository
-.br
-      -f, --ftl         Only retrieve info regarding FTL repository
-.br
-    (version options):
-.br
-      -c, --current     Return the current version
-.br
-      -l, --latest      Return the latest version
-.br
-      --hash            Return the GitHub hash from your local
-                        repositories
+    Set Web Interface password
 .br
 
 \fBuninstall\fR
@@ -237,14 +184,14 @@ Available commands and options:
     Display the running status of Pi-hole subsystems
 .br
 
-\fBenable\fR
+\fBenable\fR [time]
 .br
-    Enable Pi-hole subsystems
+    Enable Pi-hole blocking, optionally for a set duration
 .br
 
 \fBdisable\fR [time]
 .br
-    Disable Pi-hole subsystems, optionally for a set duration
+    Disable Pi-hole blocking, optionally for a set duration
 .br
 
     (time options):
@@ -254,16 +201,14 @@ Available commands and options:
       #m                Disable Pi-hole functionality for # minute(s)
 .br
 
-\fBrestartdns\fR [options]
+\fBreloaddns\fR
 .br
-    Full restart Pi-hole subsystems. Without any options (see below) a full restart causes config file parsing and history re-reading
+    Update the lists and flush the cache without restarting the DNS server
 .br
 
-    (restart options):
+\fBreloadlists\fR
 .br
-      reload            Updates the lists (incl. HOSTS files) and flushes DNS cache. Does not reparse config files
-.br
-      reload-lists      Updates the lists (excl. HOSTS files) WITHOUT flushing the DNS cache. Does not reparse config files
+    Update the lists WITHOUT flushing the cache or restarting the DNS server
 .br
 
 \fBcheckout\fR [repo] [branch]
@@ -288,22 +233,27 @@ Available commands and options:
 .br
       branchname        Update subsystems to the specified branchname
 .br
+
+\fBapi\fR endpoint
+.br
+    Query the Pi-hole API at <endpoint>
+.br
 .SH "EXAMPLE"
 
 Some usage examples
 .br
 
-Whitelist/blacklist manipulation
+Allow-/denylist manipulation
 .br
 
-\fBpihole -w iloveads.example.com\fR
+\fBpihole allow iloveads.example.com\fR
 .br
-    Adds "iloveads.example.com" to whitelist
+    Allow "iloveads.example.com"
 .br
 
-\fBpihole -b -d noads.example.com\fR
+\fBpihole deny remove noads.example.com\fR
 .br
-    Removes "noads.example.com" from blacklist
+    Removes "noads.example.com" from denylist
 .br
 
 \fBpihole --wild example.com\fR
@@ -321,7 +271,7 @@ Whitelist/blacklist manipulation
 Changing the Web Interface password
 .br
 
-\fBpihole -a -p ExamplePassword\fR
+\fBpihole setpassword ExamplePassword\fR
 .br
     Change the password to "ExamplePassword"
 .br
@@ -337,9 +287,9 @@ Updating lists from internet sources
 Displaying version information
 .br
 
-\fBpihole -v -a -c\fR
+\fBpihole -v\fR
 .br
-    Display the current version of web
+    Display the current version of Pi-hole
 .br
 
 Temporarily disabling Pi-hole
@@ -368,10 +318,11 @@ Switching Pi-hole subsystem branches
     Flush information stored in Pi-hole's network tables
 .br
 
-.SH "SEE ALSO"
-
-\fBlighttpd\fR(8), \fBpihole-FTL\fR(8)
+\fBpihole api stats/summary\fR
 .br
+    Queries FTL for the stats/summary endpoint
+.br
+
 .SH "COLOPHON"
 
 Get sucked into the latest news and community activity by entering Pi-hole's orbit. Information about Pi-hole, and the latest version of the software can be found at https://pi-hole.net.
