@@ -2122,7 +2122,7 @@ get_binary_name() {
         else
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
         fi
-        l_binary="pihole-FTL-linux-386"
+        l_binary="pihole-FTL-386"
     fi
 
     # Returning a string value via echo
