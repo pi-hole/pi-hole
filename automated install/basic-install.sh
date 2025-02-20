@@ -1766,7 +1766,7 @@ displayFinalMessage() {
     if [[ "${#1}" -gt 0 ]]; then
         # set the password to the first argument.
         pwstring="$1"
-    elif [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
+    elif [[ -n $(pihole-FTL --config webserver.api.pwhash) ]]; then
         # Else if the password exists from previous setup, we'll load it later
         pwstring="unchanged"
     else
@@ -2518,7 +2518,7 @@ main() {
     # Add password to web UI if there is none
     pw=""
     # If no password is set,
-    if [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
+    if [[ -z $(pihole-FTL --config webserver.api.pwhash) ]]; then
         # generate a random password
         pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
         pihole setpassword "${pw}"
@@ -2549,9 +2549,14 @@ main() {
 
     restart_service pihole-FTL
 
-    # write privacy level and logging to pihole.toml
+    # apply settings to pihole.toml
     # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
-    # set on fresh installations by setPrivacyLevel() and setLogging(
+    # set on fresh installations by setDNS() and setPrivacyLevel() and setLogging()
+    if [ -n "${PIHOLE_DNS_1}" ]; then
+        local string="\"${PIHOLE_DNS_1}\""
+        [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
+        setFTLConfigValue "dns.upstreams" "[ $string ]"
+    fi
     if [ -n "${QUERY_LOGGING}" ]; then
         setFTLConfigValue "dns.queryLogging" "${QUERY_LOGGING}"
     fi
