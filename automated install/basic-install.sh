@@ -2549,9 +2549,14 @@ main() {
 
     restart_service pihole-FTL
 
-    # write privacy level and logging to pihole.toml
+    # apply settings to pihole.toml
     # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
-    # set on fresh installations by setPrivacyLevel() and setLogging(
+    # set on fresh installations by setDNS() and setPrivacyLevel() and setLogging()
+    if [ -n "${PIHOLE_DNS_1}" ]; then
+        local string="\"${PIHOLE_DNS_1}\""
+        [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
+        setFTLConfigValue "dns.upstreams" "[ $string ]"
+    fi
     if [ -n "${QUERY_LOGGING}" ]; then
         setFTLConfigValue "dns.queryLogging" "${QUERY_LOGGING}"
     fi
