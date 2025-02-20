@@ -1766,7 +1766,7 @@ displayFinalMessage() {
     if [[ "${#1}" -gt 0 ]]; then
         # set the password to the first argument.
         pwstring="$1"
-    elif [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
+    elif [[ -n $(pihole-FTL --config webserver.api.pwhash) ]]; then
         # Else if the password exists from previous setup, we'll load it later
         pwstring="unchanged"
     else
@@ -2518,7 +2518,7 @@ main() {
     # Add password to web UI if there is none
     pw=""
     # If no password is set,
-    if [[ $(pihole-FTL --config webserver.api.pwhash) == '""' ]]; then
+    if [[ -z $(pihole-FTL --config webserver.api.pwhash) ]]; then
         # generate a random password
         pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
         pihole setpassword "${pw}"
