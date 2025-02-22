@@ -1476,7 +1476,10 @@ notify_package_updates_available() {
     # Store the list of packages in a variable
     updatesToInstall=$(eval "${PKG_COUNT}")
 
-    if [[ -d "/lib/modules/$(uname -r)" ]]; then
+    # Determine if this is being run in a LXC, if so then ignore kernel update check but still do package update check
+    isLXC=$(grep -q "lxc" /proc/1/environ && echo 1 || echo 0)
+
+    if [[ -d "/lib/modules/$(uname -r)" ]] || [[ "$isLXC" -eq 1 ]]; then
         if [[ "${updatesToInstall}" -eq 0 ]]; then
             printf "%b  %b %s... up to date!\\n\\n" "${OVER}" "${TICK}" "${str}"
         else
