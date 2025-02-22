@@ -93,6 +93,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 QUERY_LOGGING=
 WEBPORT=
 PRIVACY_LEVEL=
+v5_to_v6_update=false
 
 # Where old configs go to if a v6 migration is performed
 V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
@@ -2356,6 +2357,8 @@ migrate_dnsmasq_configs() {
 
     # Print a blank line for separation
     printf "\\n"
+
+    v5_to_v6_update=true
 }
 
 # Check for availability of either the "service" or "systemctl" commands
@@ -2515,17 +2518,10 @@ main() {
     # Copy the temp log file into final log location for storage
     copy_to_install_log
 
-    # Add password to web UI if there is none
-    pw=""
-    # If no password is set,
-    if [[ -z $(pihole-FTL --config webserver.api.pwhash) ]]; then
-        # generate a random password
-        pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
-        pihole setpassword "${pw}"
-    fi
 
     # Migrate existing install to v6.0
     migrate_dnsmasq_configs
+
 
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
@@ -2548,6 +2544,15 @@ main() {
     enable_service pihole-FTL
 
     restart_service pihole-FTL
+
+    # Add password to web UI if there is none
+    pw=""
+    # If this is a fresh installation and no password is set,
+    if [[ ${v5_to_v6_update} = false && -z $(getFTLConfigValue webserver.api.pwhash) ]]; then
+        # generate a random password
+        pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
+        pihole setpassword "${pw}"
+    fi
 
     # apply settings to pihole.toml
     # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
