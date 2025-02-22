@@ -1161,27 +1161,23 @@ installDefaultBlocklists() {
     echo "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts" >>"${adlistFile}"
 }
 
-remove_old_dnsmasq_ftl_configs() {
-    # Local, named variables
+move_old_dnsmasq_ftl_configs() {
+    # Create migration directory /etc/pihole/migration_backup_v6
+    # and make it owned by pihole:pihole
+    mkdir -p "${V6_CONF_MIGRATION_DIR}"
+    chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
+
+    # Move all conf files originally created by Pi-hole into this directory
+    # - 01-pihole.conf
+    # - 02-pihole-dhcp.conf
+    # - 04-pihole-static-dhcp.conf
+    # - 05-pihole-custom-cname.conf
+    # - 06-rfc6761.conf
+    mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
+
+    # If the dnsmasq main config file exists
     local dnsmasq_conf="/etc/dnsmasq.conf"
-    local pihole_01="/etc/dnsmasq.d/01-pihole.conf"
-    local rfc6761_06="/etc/dnsmasq.d/06-rfc6761.conf"
-    local pihole_dhcp_02="/etc/dnsmasq.d/02-pihole-dhcp.conf"
-
-    # pihole-FTL does some fancy stuff with config these days, and so we can remove some old config files
-    if [[ -f "${pihole_01}" ]]; then
-        rm "${pihole_01}"
-    fi
-
-    if [[ -f "${rfc6761_06}" ]]; then
-        rm "${rfc6761_06}"
-    fi
-
-    if [[ -f "${pihole_dhcp_02}" ]]; then
-        rm "${pihole_dhcp_02}"
-    fi
-
-    # If the dnsmasq config file exists
     if [[ -f "${dnsmasq_conf}" ]]; then
         # There should not be anything custom in here for Pi-hole users
         # It is no longer needed, but we'll back it up instead of deleting it just in case
@@ -1695,7 +1691,8 @@ installPihole() {
         exit 1
     fi
 
-    remove_old_dnsmasq_ftl_configs
+    # Move old dnsmasq files to $V6_CONF_MIGRATION_DIR for later migration via migrate_dnsmasq_configs()
+    move_old_dnsmasq_ftl_configs
     remove_old_pihole_lighttpd_configs
 
     # Install config files
@@ -2320,25 +2317,10 @@ migrate_dnsmasq_configs() {
     # Disable lighttpd server during v6 migration
     disableLighttpd
 
-    # Create target directory /etc/pihole/migration_backup_v6
-    # and make it owned by pihole:pihole
-    mkdir -p "${V6_CONF_MIGRATION_DIR}"
-    chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
-
-    # Move all conf files originally created by Pi-hole into this directory
-    # - 01-pihole.conf
-    # - 02-pihole-dhcp.conf
-    # - 04-pihole-static-dhcp.conf
-    # - 05-pihole-custom-cname.conf
-    # - 06-rfc6761.conf
-
-    mv /etc/dnsmasq.d/0{1,2,4,5}-pihole*.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
-    mv /etc/dnsmasq.d/06-rfc6761.conf "${V6_CONF_MIGRATION_DIR}/" 2>/dev/null || true
-
-    # Finally, after everything is in place, we can create the new config file
-    # /etc/pihole/pihole.toml
+    # move_old_dnsmasq_ftl_configs() moved everything is in place,
+    # so we can create the new config file /etc/pihole/pihole.toml
     # This file will be created with the default settings unless the user has
-    # changed settings via setupVars.conf or the other dnsmasq files moved above
+    # changed settings via setupVars.conf or the other dnsmasq files moved before
     # During migration, setupVars.conf is moved to /etc/pihole/migration_backup_v6
     str="Migrating Pi-hole configuration to version 6"
     printf "  %b %s..." "${INFO}" "${str}"
