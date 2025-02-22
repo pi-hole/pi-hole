@@ -398,7 +398,10 @@ tailFunc() {
 
 piholeCheckoutFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
-    unsupportedFunc
+    echo -e "${CROSS} Function not supported in Docker images"
+    echo "Please build a custom image following the steps at"
+    echo "https://github.com/pi-hole/docker-pi-hole?tab=readme-ov-file#building-the-image-locally"
+    exit 0
   else
     if [[ "$2" == "-h" ]] || [[ "$2" == "--help" ]]; then
       echo "Switch Pi-hole subsystems to a different GitHub branch
