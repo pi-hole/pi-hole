@@ -1208,12 +1208,12 @@ remove_old_pihole_lighttpd_configs() {
         lighty-disable-mod pihole-admin >/dev/null || true
     fi
 
-    if [[ -f "${confavailable}" ]]; then
-        rm "${confavailable}"
+    if [[ -f "${confenabled}" || -L "${confenabled}" ]]; then
+        rm "${confenabled}"
     fi
 
-    if [[ -f "${confenabled}" ]]; then
-        rm "${confenabled}"
+    if [[ -f "${confavailable}" ]]; then
+        rm "${confavailable}"
     fi
 }
 
