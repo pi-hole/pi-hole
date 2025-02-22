@@ -2312,8 +2312,8 @@ migrate_dnsmasq_configs() {
     # avoid conflicts with other services on this system
 
     # Exit early if this is already Pi-hole v6.0
-    # We decide this on the presence of the file /etc/pihole/pihole.toml
-    if [[ -f "${PI_HOLE_V6_CONFIG}" ]]; then
+    # We decide this on the non-existence of the file /etc/pihole/setupVars.conf (either moved by previous migration or fresh install)
+    if [[ ! -f "/etc/pihole/setupVars.conf" ]]; then
         return 0
     fi
 
