@@ -1082,7 +1082,7 @@ migrate_to_listsCache_dir() {
   fi
 
   # Update the list's paths in the corresponding .sha1 files to the new location
-  sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1
+  sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1 2>/dev/null
 }
 
 helpFunc() {
