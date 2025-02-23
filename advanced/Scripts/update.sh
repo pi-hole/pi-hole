@@ -12,7 +12,6 @@
 
 # Variables
 readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/web.git"
-readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
@@ -26,12 +25,18 @@ CHECK_ONLY=false
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # shellcheck disable=SC1091
 source "/opt/pihole/COL_TABLE"
+# shellcheck disable=SC1091
+source "${PI_HOLE_INSTALL_DIR}/utils.sh"
 
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
 # getGitFiles() sourced from basic-install.sh
 # FTLcheckUpdate() sourced from basic-install.sh
+# getFTLConfigValue() sourced from utils.sh
+
+# Honour configured paths for the web application.
+readonly ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 
 GitCheckUpdateAvail() {
     local directory
@@ -209,7 +214,7 @@ main() {
         echo ""
         echo -e "  ${INFO} Pi-hole Web Admin files out of date, updating local repo."
         getGitFiles "${ADMIN_INTERFACE_DIR}" "${ADMIN_INTERFACE_GIT_URL}"
-        echo -e "  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
+        echo -e "  ${INFO} If you had made any changes in '${ADMIN_INTERFACE_DIR}', they have been stashed using 'git stash'"
     fi
 
     if [[ "${FTL_update}" == true ]]; then
