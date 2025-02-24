@@ -25,7 +25,7 @@ chmod 0755 /etc/pihole /var/log/pihole
 
 # allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
 # credits https://stackoverflow.com/a/11512211
-find /etc/pihole -type d -exec chmod 0755 {} \;
+find /etc/pihole/ -type d -exec chmod 0755 {} \;
 
 # Touch files to ensure they exist (create if non-existing, preserve if existing)
 [ -f "${FTL_PID_FILE}" ] || install -D -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
