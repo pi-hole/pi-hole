@@ -12,9 +12,9 @@ FTL_PID_FILE="$(getFTLConfigValue files.pid)"
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
 mkdir -p /var/log/pihole
 chown -R pihole:pihole /etc/pihole /var/log/pihole
-find /etc/pihole /var/log/pihole -type d -exec chmod 0755 {} +
-find /etc/pihole /var/log/pihole -type f ! \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0640 {} +
-find /etc/pihole /var/log/pihole -type f -name '*.pem' -o -name '*.crt' -exec chmod 0600 {} +
+find /etc/pihole/ /var/log/pihole/ -type d -exec chmod 0755 {} +
+find /etc/pihole/ /var/log/pihole/ -type f ! \( -name '*.pem' -o -name '*.crt' \) -exec chmod 0640 {} +
+find /etc/pihole/ /var/log/pihole/ -type f -name '*.pem' -o -name '*.crt' -exec chmod 0600 {} +
 
 # Logrotate config file need to be owned by root
 chown root:root /etc/pihole/logrotate
