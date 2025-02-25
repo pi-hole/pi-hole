@@ -97,6 +97,50 @@ GitCheckUpdateAvail() {
     fi
 }
 
+updateWarnDialog() {
+    # Display the warning dialog
+
+    local core_str web_str ftl_str
+
+    if [[ "${core_update}" == true ]]; then
+        core_str="Core: \\Zb\\Z1update available\\Zn"
+    else
+        core_str="Core: \\Zb\\Z4up to date\\Zn"
+    fi
+    if [[ "${web_update}" == true ]]; then
+        web_str="Web Interface: \\Zb\\Z1update available\\Zn"
+    else
+        web_str="Web Interface: \\Zb\\Z4up to date\\Zn"
+    fi
+    if [[ "${FTL_update}" == true ]]; then
+        ftl_str="FTL: \\Zb\\Z1update available\\Zn"
+    else
+        ftl_str="FTL: \\Zb\\Z4up to date\\Zn"
+    fi
+    # shellcheck disable=SC2154 # Variables "${r}" "${c}" are defined in the main script
+    dialog --no-shadow --clear --keep-tite \
+        --colors \
+        --backtitle "Updating Pi-hole" \
+        --title "Warning" \
+        --no-button "Exit" --yes-button "Continue" \
+        --defaultno \
+        --yesno "\\nThe following Pi-hole components are going to be updated.\\n\\n\\n\
+        $core_str\\n\
+        $web_str\\n\
+        $ftl_str\\n\\n\\n\
+\\Zb\\Z1IMPORTANT:\\Zn Make a (teleporter) backup of your system!\\n\\n\
+Updates can come with significant changes. Please read the changelog carefully.\\n\\n\\n\
+Please confirm you want to start the update process." \
+        "${r}" "${c}" && result=0 || result="$?"
+
+    case "${result}" in
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b User canceled the update process.\\n" "${INFO}"
+        exit 1
+        ;;
+    esac
+}
+
 main() {
     local basicError="\\n  ${COL_LIGHT_RED}Unable to complete update, please contact Pi-hole Support${COL_NC}"
     local core_update
@@ -196,6 +240,11 @@ main() {
     if [[ "${CHECK_ONLY}" == true ]]; then
         echo ""
         exit 0
+    fi
+
+    # if there is any update, show the warning dialog and ask for confirmation
+    if [[ "${core_update}" == true || "${web_update}" == true || "${FTL_update}" == true ]]; then
+        updateWarnDialog
     fi
 
     if [[ "${core_update}" == true ]]; then
