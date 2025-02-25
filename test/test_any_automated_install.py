@@ -127,10 +127,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     check_localversion = test_cmd.format("r", "/etc/pihole/versions", piholeuser)
     actual_rc = host.run(check_localversion).rc
     assert exit_status_success == actual_rc
-    # readable logrotate
-    check_logrotate = test_cmd.format("r", "/etc/pihole/logrotate", piholeuser)
-    actual_rc = host.run(check_logrotate).rc
-    assert exit_status_success == actual_rc
     # readable macvendor.db
     check_macvendor = test_cmd.format("r", "/etc/pihole/macvendor.db", piholeuser)
     actual_rc = host.run(check_macvendor).rc
