@@ -23,9 +23,6 @@ chmod 0644 /etc/pihole/logrotate
 # allow all users to enter the directories
 chmod 0755 /etc/pihole /var/log/pihole
 
-# allow all users read version file
-chmod 0664 /etc/pihole/versions
-
 # allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
 # credits https://stackoverflow.com/a/11512211
 find /etc/pihole/ -type d -exec chmod 0755 {} \;
