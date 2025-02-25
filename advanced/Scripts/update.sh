@@ -218,7 +218,7 @@ main() {
     fi
 
     if [[ "${FTL_update}" == true || "${core_update}" == true ]]; then
-        ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --reconfigure --unattended || \
+        ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --repair --unattended || \
             echo -e "${basicError}" && exit 1
     fi
 
