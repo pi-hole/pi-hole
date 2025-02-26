@@ -108,14 +108,14 @@ updateWarnDialog() {
         core_str="Core: \\Zb\\Z4up to date\\Zn"
     fi
     if [[ "${web_update}" == true ]]; then
-        web_str="Web Interface: \\Zb\\Z1update available\\Zn"
+        web_str="Web:  \\Zb\\Z1update available\\Zn"
     else
-        web_str="Web Interface: \\Zb\\Z4up to date\\Zn"
+        web_str="Web:  \\Zb\\Z4up to date\\Zn"
     fi
     if [[ "${FTL_update}" == true ]]; then
-        ftl_str="FTL: \\Zb\\Z1update available\\Zn"
+        ftl_str="FTL:  \\Zb\\Z1update available\\Zn"
     else
-        ftl_str="FTL: \\Zb\\Z4up to date\\Zn"
+        ftl_str="FTL:  \\Zb\\Z4up to date\\Zn"
     fi
     # shellcheck disable=SC2154 # Variables "${r}" "${c}" are defined in the main script
     dialog --no-shadow --clear --keep-tite \
@@ -129,7 +129,7 @@ updateWarnDialog() {
         $web_str\\n\
         $ftl_str\\n\\n\\n\
 \\Zb\\Z1IMPORTANT:\\Zn Make a (teleporter) backup of your system!\\n\\n\
-Updates can come with significant changes. Please read the changelog carefully.\\n\\n\\n\
+Updates can come with significant changes. Please read the changelog at https://pi-hole.net/blog carefully.\\n\\n\\n\
 Please confirm you want to start the update process." \
         "${r}" "${c}" && result=0 || result="$?"
 
