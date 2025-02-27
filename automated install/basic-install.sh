@@ -1476,12 +1476,12 @@ notify_package_updates_available() {
     # Store the list of packages in a variable
     updatesToInstall=$(eval "${PKG_COUNT}")
 
-        if [[ "${updatesToInstall}" -eq 0 ]]; then
-            printf "%b  %b %s... up to date!\\n\\n" "${OVER}" "${TICK}" "${str}"
-        else
-            printf "%b  %b %s... %s updates available\\n" "${OVER}" "${TICK}" "${str}" "${updatesToInstall}"
-            printf "  %b %bIt is recommended to update your OS after installing the Pi-hole!%b\\n\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-        fi
+    if [[ "${updatesToInstall}" -eq 0 ]]; then
+        printf "%b  %b %s... up to date!\\n\\n" "${OVER}" "${TICK}" "${str}"
+    else
+        printf "%b  %b %s... %s updates available\\n" "${OVER}" "${TICK}" "${str}" "${updatesToInstall}"
+        printf "  %b %bIt is recommended to update your OS after installing the Pi-hole!%b\\n\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+    fi
 }
 
 install_dependent_packages() {
