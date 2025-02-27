@@ -34,6 +34,12 @@ TestAPIAvailability() {
         exit 1
     fi
 
+    # If an error occurred, the variable starts with ;;
+    if [ "${chaos_api_list#;;}" != "${chaos_api_list}" ]; then
+        echo "Communication error. Is FTL running?"
+        exit 1
+    fi
+
     # Iterate over space-separated list of URLs
     while [ -n "${chaos_api_list}" ]; do
         # Get the first URL

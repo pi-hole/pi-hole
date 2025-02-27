@@ -1355,9 +1355,9 @@ stop_service() {
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     if is_command systemctl; then
-        systemctl stop "${1}" &>/dev/null || true
+        systemctl -q stop "${1}" || true
     else
-        service "${1}" stop &>/dev/null || true
+        service "${1}" stop >/dev/null || true
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1370,10 +1370,10 @@ restart_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to restart the service
-        systemctl restart "${1}" &>/dev/null
+        systemctl -q restart "${1}"
     else
         # Otherwise, fall back to the service command
-        service "${1}" restart &>/dev/null
+        service "${1}" restart >/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1386,10 +1386,10 @@ enable_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to enable the service
-        systemctl enable "${1}" &>/dev/null
+        systemctl -q enable "${1}"
     else
         #  Otherwise, use update-rc.d to accomplish this
-        update-rc.d "${1}" defaults &>/dev/null
+        update-rc.d "${1}" defaults >/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1402,10 +1402,10 @@ disable_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to disable the service
-        systemctl disable "${1}" &>/dev/null
+        systemctl -q disable "${1}"
     else
         # Otherwise, use update-rc.d to accomplish this
-        update-rc.d "${1}" disable &>/dev/null
+        update-rc.d "${1}" disable >/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1414,7 +1414,7 @@ check_service_active() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to check the status of the service
-        systemctl is-enabled "${1}" &>/dev/null
+        systemctl -q is-enabled "${1}" 2>/dev/null
     else
         # Otherwise, fall back to service command
         service "${1}" status &>/dev/null
@@ -1999,7 +1999,7 @@ FTLinstall() {
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
             # Stop pihole-FTL service if available
-            stop_service pihole-FTL &>/dev/null
+            stop_service pihole-FTL >/dev/null
 
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL

@@ -689,7 +689,7 @@ migrate_to_listsCache_dir() {
   else
     echo -e "${OVER}  ${CROSS} ${str}"
   fi
-  sed -i "s|${piholeDir}/|${listsCacheDir}/|g" "${listsCacheDir}"/*.sha1
+
 }
 
 helpFunc() {
