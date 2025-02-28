@@ -143,12 +143,12 @@ EOM
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
-reconfigure=false
+repair=false
 runUnattended=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
-    "--reconfigure") reconfigure=true ;;
+    "--repair") repair=true ;;
     "--unattended") runUnattended=true ;;
     esac
 done
@@ -1112,7 +1112,7 @@ setPrivacyLevel() {
 
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {
-    # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
+    # Back up any existing adlist file, on the off chance that it exists.
     if [[ -f "${adlistFile}" ]]; then
         mv "${adlistFile}" "${adlistFile}.old"
     fi
@@ -1785,55 +1785,6 @@ displayFinalMessage() {
 \\n${additional}" "${r}" "${c}"
 }
 
-update_dialogs() {
-    # If pihole -r "reconfigure" option was selected,
-    if [[ "${reconfigure}" = true ]]; then
-        # set some variables that will be used
-        opt1a="Repair"
-        opt1b="This will retain existing settings"
-        strAdd="You will remain on the same version"
-    else
-        # Otherwise, set some variables with different values
-        opt1a="Update"
-        opt1b="This will retain existing settings."
-        strAdd="You will be updated to the latest version."
-    fi
-    opt2a="Reconfigure"
-    opt2b="Resets Pi-hole and allows re-selecting settings."
-
-    # Display the information to the user
-    UpdateCmd=$(dialog --no-shadow --keep-tite --output-fd 1 \
-        --cancel-label Exit \
-        --title "Existing Install Detected!" \
-        --menu "\\n\\nWe have detected an existing install.\
-\\n\\nPlease choose from the following options:\
-\\n($strAdd)" \
-        "${r}" "${c}" 2 \
-        "${opt1a}" "${opt1b}" \
-        "${opt2a}" "${opt2b}") || result=$?
-
-    case ${result} in
-    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-        printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        exit 1
-        ;;
-    esac
-
-    # Set the variable based on if the user chooses
-    case ${UpdateCmd} in
-    # repair, or
-    "${opt1a}")
-        printf "  %b %s option selected\\n" "${INFO}" "${opt1a}"
-        useUpdateVars=true
-        ;;
-    # reconfigure,
-    "${opt2a}")
-        printf "  %b %s option selected\\n" "${INFO}" "${opt2a}"
-        useUpdateVars=false
-        ;;
-    esac
-}
-
 check_download_exists() {
     # Check if the download exists and we can reach the server
     local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
@@ -1920,10 +1871,10 @@ checkout_pull_branch() {
     return 0
 }
 
-clone_or_update_repos() {
-    # If the user wants to reconfigure,
-    if [[ "${reconfigure}" == true ]]; then
-        printf "  %b Performing reconfiguration, skipping download of local repos\\n" "${INFO}"
+clone_or_reset_repos() {
+    # If the user wants to repair/update,
+    if [[ "${repair}" == true ]]; then
+        printf "  %b Resetting local repos\\n" "${INFO}"
         # Reset the Core repo
         resetRepo ${PI_HOLE_LOCAL_REPO} ||
             {
@@ -1936,7 +1887,7 @@ clone_or_update_repos() {
                 printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"
                 exit 1
             }
-    # Otherwise, a repair is happening
+    # Otherwise, a fresh installation is happening
     else
         # so get git files for Core
         getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} ||
@@ -2430,18 +2381,15 @@ main() {
         exit 1
     fi
 
-    # in case of an update (can be a v5 -> v6 or v6 -> v6 update)
+    # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
+        # retain settings
+        useUpdateVars=true
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
             printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
-            # Use the setup variables
-            useUpdateVars=true
             # also disable debconf-apt-progress dialogs
             export DEBIAN_FRONTEND="noninteractive"
-        else
-            # If running attended, show the available options (repair/reconfigure)
-            update_dialogs
         fi
     fi
 
@@ -2468,8 +2416,8 @@ main() {
         # Setup adlist file if not exists
         installDefaultBlocklists
     fi
-    # Download or update the scripts by updating the appropriate git repos
-    clone_or_update_repos
+    # Download or reset the appropriate git repos depending on the 'repair' flag
+    clone_or_reset_repos
 
 
     # Create the pihole user
