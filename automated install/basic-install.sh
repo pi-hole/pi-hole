@@ -1787,40 +1787,6 @@ displayFinalMessage() {
 \\n${additional}" "${r}" "${c}"
 }
 
-repair_dialog() {
-    # pihole -r/--repair option was selected
-    # set some variables that will be used
-    opt1a="Repair"
-    opt1b="This will retain existing settings"
-    strAdd="You will remain on the same version"
-
-    # Display the information to the user
-    UpdateCmd=$(dialog --no-shadow --keep-tite --output-fd 1 \
-        --cancel-label Exit \
-        --title "Existing Install Detected!" \
-        --menu "\\n\\nWe have detected an existing install.\
-\\n\\nPlease choose from the following options:\
-\\n($strAdd)" \
-        "${r}" "${c}" 1 \
-        "${opt1a}" "${opt1b}") || result=$?
-
-    case ${result} in
-    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-        printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        exit 1
-        ;;
-    esac
-
-    # Set the variable based on if the user chooses
-    case ${UpdateCmd} in
-    # repair
-    "${opt1a}")
-        printf "  %b %s option selected\\n" "${INFO}" "${opt1a}"
-        useUpdateVars=true
-        ;;
-    esac
-}
-
 check_download_exists() {
     # Check if the download exists and we can reach the server
     local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
@@ -2430,19 +2396,15 @@ main() {
         exit 1
     fi
 
-    # in case of an update (can be a v5 -> v6 or v6 -> v6 update)
+    # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
+        # retain settings
+        useUpdateVars=true
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
             printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
-            # Use the setup variables
-            useUpdateVars=true
             # also disable debconf-apt-progress dialogs
             export DEBIAN_FRONTEND="noninteractive"
-        else
-            # If running attended, show the available options (repair/cancel)
-            # if repair is selected useUpdateVars will be 'true'
-            repair_dialog
         fi
     fi
 
