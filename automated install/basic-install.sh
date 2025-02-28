@@ -215,19 +215,20 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
-os_check_dig(){
+os_check_dig() {
     local protocol="$1"
     local domain="$2"
     local nameserver="$3"
     local response
 
-    response="$(dig -"${protocol}" +short -t txt "${domain}" "${nameserver}" 2>&1
-    echo $?
+    response="$(
+        dig -"${protocol}" +short -t txt "${domain}" "${nameserver}" 2>&1
+        echo $?
     )"
     echo "${response}"
 }
 
-os_check_dig_response(){
+os_check_dig_response() {
     # Checks the reply from the dig command to determine if it's a valid response
     local digReply="$1"
     local response
@@ -428,7 +429,7 @@ package_manager_detect() {
     fi
 }
 
-build_dependency_package(){
+build_dependency_package() {
     # This function will build a package that contains all the dependencies needed for Pi-hole
 
     # remove any leftover build directory that may exist
@@ -452,13 +453,13 @@ build_dependency_package(){
         touch "${tempdir}"/DEBIAN/control
 
         # Write the control file
-        echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" > "${tempdir}"/DEBIAN/control
+        echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" >"${tempdir}"/DEBIAN/control
 
         # Build the package
         local str="Building dependency package pihole-meta.deb"
         printf "  %b %s..." "${INFO}" "${str}"
 
-        if dpkg-deb --build --root-owner-group "${tempdir}" pihole-meta.deb  &>/dev/null; then
+        if dpkg-deb --build --root-owner-group "${tempdir}" pihole-meta.deb &>/dev/null; then
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         else
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -467,7 +468,7 @@ build_dependency_package(){
         fi
 
         # Move back into the directory the user started in
-        popd &> /dev/null || return 1
+        popd &>/dev/null || return 1
 
     elif is_command rpm; then
         # move into the tmp directory
@@ -479,7 +480,7 @@ build_dependency_package(){
         # Prepare directory structure and spec file
         mkdir -p "${tempdir}"/SPECS
         touch "${tempdir}"/SPECS/pihole-meta.spec
-        echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" > "${tempdir}"/SPECS/pihole-meta.spec
+        echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" >"${tempdir}"/SPECS/pihole-meta.spec
 
         # check if we need to install the build dependencies
         if ! is_command rpmbuild; then
@@ -508,7 +509,7 @@ build_dependency_package(){
         fi
 
         # Move back into the directory the user started in
-        popd &> /dev/null || return 1
+        popd &>/dev/null || return 1
 
     # If neither apt-get or yum/dnf package managers were found
     else
@@ -535,9 +536,9 @@ is_repo() {
         pushd "${directory}" &>/dev/null || return 1
         # Use git to check if the directory is a repo
         # git -C is not used here to support git versions older than 1.8.4
-        git status --short &> /dev/null || rc=$?
+        git status --short &>/dev/null || rc=$?
         # Move back into the directory the user started in
-        popd &> /dev/null || return 1
+        popd &>/dev/null || return 1
     else
         # Set a non-zero return code if directory does not exist
         rc=1
@@ -1426,7 +1427,7 @@ disable_resolved_stublistener() {
         # Note that this breaks dns functionality on host until FTL is up and running
         printf "%b  %b Disabling systemd-resolved DNSStubListener\\n" "${OVER}" "${TICK}"
         mkdir -p /etc/systemd/resolved.conf.d
-        cat > /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf << EOF
+        cat >/etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf <<EOF
 [Resolve]
 DNSStubListener=no
 EOF
@@ -1644,7 +1645,7 @@ compress
 delaycompress
 notifempty
 nomail
-}" >> ${target}
+}" >>${target}
 
             printf "\\n\\t%b webserver.log added to logrotate file. \\n" "${INFO}"
             logfileUpdate=true
@@ -2190,7 +2191,7 @@ disableLighttpd() {
         # The terminal is interactive
         dialog --no-shadow --keep-tite \
             --title "Pi-hole v6.0 no longer uses lighttpd" \
-           --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\nIn this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}" && response=0 || response="$?"
+            --yesno "\\n\\nPi-hole v6.0 has its own embedded web server so lighttpd is no longer needed *unless* you have custom configurations.\\n\\nIn this case, you can opt-out of disabling lighttpd and pihole-FTL will try to bind to an alternative port such as 8080.\\n\\nDo you want to disable lighttpd (recommended)?" "${r}" "${c}" && response=0 || response="$?"
     else
         # The terminal is non-interactive, assume yes. Lighttpd will be stopped
         # but keeps being installed and can easily be re-enabled by the user
@@ -2463,7 +2464,7 @@ main() {
     if [[ "${fresh_install}" == true ]]; then
 
         # Get the Web interface port, return only the first port and strip all non-numeric characters
-        WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1 | tr -cd '0-9')
+        WEBPORT=$(getFTLConfigValue webserver.port | cut -d, -f1 | tr -cd '0-9')
 
         # If this is a fresh install, we will set a random password.
         # Users can change this password after installation if they wish

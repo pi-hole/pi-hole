@@ -10,13 +10,11 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-
 # The basic usage steps are
 # 1) Test Availability of the API
 # 2) Try to authenticate (read password if needed)
 # 3) Get the data from the API endpoint
 # 4) Delete the session
-
 
 TestAPIAvailability() {
 
@@ -154,7 +152,8 @@ LoginAPI() {
         fi
 
         # secretly read the password
-        secretRead; printf '\n'
+        secretRead
+        printf '\n'
 
         if [ "${needTOTP}" = true ]; then
             echo "Please enter the correct second factor:"
@@ -197,56 +196,56 @@ LogoutAPI() {
     # SID is not null (successful Authentication only), delete the session
     if [ "${validSession}" = true ] && [ ! "${SID}" = null ]; then
         # Try to delete the session. Omit the output, but get the http status code
-        deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth"  -H "Accept: application/json" -H "sid: ${SID}")
+        deleteResponse=$(curl -skS -o /dev/null -w "%{http_code}" -X DELETE "${API_URL}auth" -H "Accept: application/json" -H "sid: ${SID}")
 
         case "${deleteResponse}" in
-            "401") echo "Logout attempt without a valid session. Unauthorized!";;
-            "204") if [ "${1}" = "verbose" ]; then echo "API Logout: ${COL_GREEN}Success${COL_NC} (session deleted)"; fi;;
-        esac;
+        "401") echo "Logout attempt without a valid session. Unauthorized!" ;;
+        "204") if [ "${1}" = "verbose" ]; then echo "API Logout: ${COL_GREEN}Success${COL_NC} (session deleted)"; fi ;;
+        esac
     elif [ "${1}" = "verbose" ]; then
         echo "API Logout: ${COL_GREEN}Success${COL_NC} (no valid session)"
     fi
 }
 
 GetFTLData() {
-  local data response status
-  # get the data from querying the API as well as the http status code
-  response=$(curl -skS -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}" )
+    local data response status
+    # get the data from querying the API as well as the http status code
+    response=$(curl -skS -w "%{http_code}" -X GET "${API_URL}$1" -H "Accept: application/json" -H "sid: ${SID}")
 
-  if [ "${2}" = "raw" ]; then
-    # return the raw response
-    echo "${response}"
-  else
-
-    # status are the last 3 characters
-    # not using ${response#"${response%???}"}" here because it's extremely slow on big responses
-    status=$(printf "%s" "${response}" | tail -c 3)
-    # data is everything from response without the last 3 characters
-    data="${response%???}"
-
-    # return only the data
-    if [ "${status}" = 200 ]; then
-        # response OK
-        echo "${data}"
+    if [ "${2}" = "raw" ]; then
+        # return the raw response
+        echo "${response}"
     else
-        # connection lost
-        echo "${status}"
+
+        # status are the last 3 characters
+        # not using ${response#"${response%???}"}" here because it's extremely slow on big responses
+        status=$(printf "%s" "${response}" | tail -c 3)
+        # data is everything from response without the last 3 characters
+        data="${response%???}"
+
+        # return only the data
+        if [ "${status}" = 200 ]; then
+            # response OK
+            echo "${data}"
+        else
+            # connection lost
+            echo "${status}"
+        fi
     fi
-  fi
 }
 
 PostFTLData() {
-  local data response status
-  # send the data to the API
-  response=$(curl -skS -w "%{http_code}" -X POST "${API_URL}$1" --data-raw "$2" -H "Accept: application/json" -H "sid: ${SID}" )
-  # data is everything from response without the last 3 characters
-  if [ "${3}" = "status" ]; then
-    # Keep the status code appended if requested
-    printf %s "${response}"
-  else
-    # Strip the status code
-    printf %s "${response%???}"
-  fi
+    local data response status
+    # send the data to the API
+    response=$(curl -skS -w "%{http_code}" -X POST "${API_URL}$1" --data-raw "$2" -H "Accept: application/json" -H "sid: ${SID}")
+    # data is everything from response without the last 3 characters
+    if [ "${3}" = "status" ]; then
+        # Keep the status code appended if requested
+        printf %s "${response}"
+    else
+        # Strip the status code
+        printf %s "${response%???}"
+    fi
 }
 
 secretRead() {
@@ -258,18 +257,16 @@ secretRead() {
     # `-s` option (suppressing the input) or
     # `-n` option (reading n chars)
 
-
     # This workaround changes the terminal characteristics to not echo input and later resets this option
     # credits https://stackoverflow.com/a/4316765
     # showing asterisk instead of password
     # https://stackoverflow.com/a/24600839
     # https://unix.stackexchange.com/a/464963
 
-
     # Save current terminal settings (needed for later restore after password prompt)
     stty_orig=$(stty -g)
 
-    stty -echo # do not echo user input
+    stty -echo                # do not echo user input
     stty -icanon min 1 time 0 # disable canonical mode https://man7.org/linux/man-pages/man3/termios.3.html
 
     unset password
@@ -277,20 +274,20 @@ secretRead() {
     unset charcount
     charcount=0
     while key=$(dd ibs=1 count=1 2>/dev/null); do #read one byte of input
-        if [ "${key}" = "$(printf '\0' | tr -d '\0')" ] ; then
+        if [ "${key}" = "$(printf '\0' | tr -d '\0')" ]; then
             # Enter - accept password
             break
         fi
-        if [ "${key}" = "$(printf '\177')" ] ; then
+        if [ "${key}" = "$(printf '\177')" ]; then
             # Backspace
-            if [ $charcount -gt 0 ] ; then
-                charcount=$((charcount-1))
+            if [ $charcount -gt 0 ]; then
+                charcount=$((charcount - 1))
                 printf '\b \b'
                 password="${password%?}"
             fi
         else
             # any other character
-            charcount=$((charcount+1))
+            charcount=$((charcount + 1))
             printf '*'
             password="$password$key"
         fi
@@ -301,41 +298,41 @@ secretRead() {
 }
 
 apiFunc() {
-  local data response status status_col
+    local data response status status_col
 
-  # Authenticate with the API
-  LoginAPI verbose
-  echo ""
+    # Authenticate with the API
+    LoginAPI verbose
+    echo ""
 
-  echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
-  echo ""
+    echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
+    echo ""
 
-  # Get the data from the API
-  response=$(GetFTLData "$1" raw)
+    # Get the data from the API
+    response=$(GetFTLData "$1" raw)
 
-  # status are the last 3 characters
-  # not using ${response#"${response%???}"}" here because it's extremely slow on big responses
-  status=$(printf "%s" "${response}" | tail -c 3)
-  # data is everything from response without the last 3 characters
-  data="${response%???}"
+    # status are the last 3 characters
+    # not using ${response#"${response%???}"}" here because it's extremely slow on big responses
+    status=$(printf "%s" "${response}" | tail -c 3)
+    # data is everything from response without the last 3 characters
+    data="${response%???}"
 
-  # Output the status (200 -> green, else red)
-  if [ "${status}" = 200 ]; then
-    status_col="${COL_GREEN}"
-  else
-    status_col="${COL_RED}"
-  fi
-  echo "Status: ${status_col}${status}${COL_NC}"
+    # Output the status (200 -> green, else red)
+    if [ "${status}" = 200 ]; then
+        status_col="${COL_GREEN}"
+    else
+        status_col="${COL_RED}"
+    fi
+    echo "Status: ${status_col}${status}${COL_NC}"
 
-  # Output the data. Format it with jq if available and data is actually JSON.
-  # Otherwise just print it
-  echo "Data:"
-  if command -v jq >/dev/null && echo "${data}" | jq . >/dev/null 2>&1; then
-    echo "${data}" | jq .
-  else
-    echo "${data}"
-  fi
+    # Output the data. Format it with jq if available and data is actually JSON.
+    # Otherwise just print it
+    echo "Data:"
+    if command -v jq >/dev/null && echo "${data}" | jq . >/dev/null 2>&1; then
+        echo "${data}" | jq .
+    else
+        echo "${data}"
+    fi
 
-  # Delete the session
-  LogoutAPI verbose
+    # Delete the session
+    LogoutAPI verbose
 }

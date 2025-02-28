@@ -55,7 +55,7 @@ if [[ "$*" == *"once"* ]]; then
             echo -ne "  ${INFO} Rotating ${LOGFILE} ..."
         fi
         cp -p "${LOGFILE}" "${LOGFILE}.1"
-        echo " " > "${LOGFILE}"
+        echo " " >"${LOGFILE}"
         chmod 640 "${LOGFILE}"
         if [[ "$*" != *"quiet"* ]]; then
             echo -e "${OVER}  ${TICK} Rotated ${LOGFILE} ..."
@@ -66,7 +66,7 @@ if [[ "$*" == *"once"* ]]; then
             echo -ne "  ${INFO} Rotating ${FTLFILE} ..."
         fi
         cp -p "${FTLFILE}" "${FTLFILE}.1"
-        echo " " > "${FTLFILE}"
+        echo " " >"${FTLFILE}"
         chmod 640 "${FTLFILE}"
         if [[ "$*" != *"quiet"* ]]; then
             echo -e "${OVER}  ${TICK} Rotated ${FTLFILE} ..."
@@ -79,10 +79,10 @@ else
     if [[ "$*" != *"quiet"* ]]; then
         echo -ne "  ${INFO} Flushing ${LOGFILE} ..."
     fi
-    echo " " > "${LOGFILE}"
+    echo " " >"${LOGFILE}"
     chmod 640 "${LOGFILE}"
     if [ -f "${LOGFILE}.1" ]; then
-        echo " " > "${LOGFILE}.1"
+        echo " " >"${LOGFILE}.1"
         chmod 640 "${LOGFILE}.1"
     fi
     if [[ "$*" != *"quiet"* ]]; then
@@ -93,10 +93,10 @@ else
     if [[ "$*" != *"quiet"* ]]; then
         echo -ne "  ${INFO} Flushing ${FTLFILE} ..."
     fi
-    echo " " > "${FTLFILE}"
+    echo " " >"${FTLFILE}"
     chmod 640 "${FTLFILE}"
     if [ -f "${FTLFILE}.1" ]; then
-        echo " " > "${FTLFILE}.1"
+        echo " " >"${FTLFILE}.1"
         chmod 640 "${FTLFILE}.1"
     fi
     if [[ "$*" != *"quiet"* ]]; then
@@ -119,4 +119,3 @@ else
         echo -e "${OVER}  ${TICK} Deleted ${deleted} queries from long-term query database"
     fi
 fi
-

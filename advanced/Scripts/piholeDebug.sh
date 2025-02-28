@@ -106,27 +106,27 @@ RESOLVCONF="${ETC}/resolv.conf"
 DNSMASQ_CONF="${ETC}/dnsmasq.conf"
 
 # Store Pi-hole's processes in an array for easy use and parsing
-PIHOLE_PROCESSES=( "pihole-FTL" )
+PIHOLE_PROCESSES=("pihole-FTL")
 
 # Store the required directories in an array so it can be parsed through
 REQUIRED_FILES=("${PIHOLE_CRON_FILE}"
-"${PIHOLE_INSTALL_LOG_FILE}"
-"${PIHOLE_RAW_BLOCKLIST_FILES}"
-"${PIHOLE_LOCAL_HOSTS_FILE}"
-"${PIHOLE_LOGROTATE_FILE}"
-"${PIHOLE_FTL_CONF_FILE}"
-"${PIHOLE_DNSMASQ_CONF_FILE}"
-"${PIHOLE_COMMAND}"
-"${PIHOLE_COLTABLE_FILE}"
-"${FTL_PID}"
-"${PIHOLE_LOG}"
-"${PIHOLE_LOG_GZIPS}"
-"${PIHOLE_DEBUG_LOG}"
-"${PIHOLE_FTL_LOG}"
-"${PIHOLE_WEBSERVER_LOG}"
-"${RESOLVCONF}"
-"${DNSMASQ_CONF}"
-"${PIHOLE_VERSIONS_FILE}")
+    "${PIHOLE_INSTALL_LOG_FILE}"
+    "${PIHOLE_RAW_BLOCKLIST_FILES}"
+    "${PIHOLE_LOCAL_HOSTS_FILE}"
+    "${PIHOLE_LOGROTATE_FILE}"
+    "${PIHOLE_FTL_CONF_FILE}"
+    "${PIHOLE_DNSMASQ_CONF_FILE}"
+    "${PIHOLE_COMMAND}"
+    "${PIHOLE_COLTABLE_FILE}"
+    "${FTL_PID}"
+    "${PIHOLE_LOG}"
+    "${PIHOLE_LOG_GZIPS}"
+    "${PIHOLE_DEBUG_LOG}"
+    "${PIHOLE_FTL_LOG}"
+    "${PIHOLE_WEBSERVER_LOG}"
+    "${RESOLVCONF}"
+    "${DNSMASQ_CONF}"
+    "${PIHOLE_VERSIONS_FILE}")
 
 DISCLAIMER="This process collects information from your Pi-hole, and optionally uploads it to a unique and random directory on tricorder.pi-hole.net.
 
@@ -135,7 +135,7 @@ The intent of this script is to allow users to self-diagnose their installations
 NOTE: All log files auto-delete after 48 hours and ONLY the Pi-hole developers can access your data via the given token. We have taken these extra steps to secure your data and will work to further reduce any personal information gathered.
 "
 
-show_disclaimer(){
+show_disclaimer() {
     log_write "${DISCLAIMER}"
 }
 
@@ -158,7 +158,7 @@ log_write() {
 
 copy_to_debug_log() {
     # Copy the contents of file descriptor 3 into the debug log
-    cat /proc/$$/fd/3 > "${PIHOLE_DEBUG_LOG}"
+    cat /proc/$$/fd/3 >"${PIHOLE_DEBUG_LOG}"
 }
 
 initialize_debug() {
@@ -196,16 +196,16 @@ compare_local_version_to_git_version() {
     # If the pihole git directory exists,
     if [[ -d "${git_dir}" ]]; then
         # move into it
-        cd "${git_dir}" || \
-        # If not, show an error
-        log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
-        if git status &> /dev/null; then
+        cd "${git_dir}" ||
+            # If not, show an error
+            log_write "${COL_RED}Could not cd into ${git_dir}$COL_NC"
+        if git status &>/dev/null; then
             # The current version the user is on
             local local_version
-            local_version=$(git describe --tags --abbrev=0 2> /dev/null);
+            local_version=$(git describe --tags --abbrev=0 2>/dev/null)
             # What branch they are on
             local local_branch
-            local_branch=$(git rev-parse --abbrev-ref HEAD);
+            local_branch=$(git rev-parse --abbrev-ref HEAD)
             # The commit they are on
             local local_commit
             local_commit=$(git describe --long --dirty --tags --always)
@@ -214,11 +214,11 @@ compare_local_version_to_git_version() {
             local_status=$(git status -s)
             # echo this information out to the user in a nice format
             if [ ${local_version} ]; then
-              log_write "${TICK} Version: ${local_version}"
+                log_write "${TICK} Version: ${local_version}"
             elif [ -n "${DOCKER_VERSION}" ]; then
-              log_write "${TICK} Version: Pi-hole Docker Container ${COL_BOLD}${DOCKER_VERSION}${COL_NC}"
+                log_write "${TICK} Version: Pi-hole Docker Container ${COL_BOLD}${DOCKER_VERSION}${COL_NC}"
             else
-              log_write "${CROSS} Version: not detected"
+                log_write "${CROSS} Version: not detected"
             fi
 
             # Print the repo upstreams
@@ -238,13 +238,13 @@ compare_local_version_to_git_version() {
             log_write "${INFO} Commit: ${local_commit}"
             # if `local_status` is non-null, then the repo is not clean, display details here
             if [[ ${local_status} ]]; then
-              # Replace new lines in the status with 12 spaces to make the output cleaner
-              log_write "${INFO} Status: ${local_status//$'\n'/'\n            '}"
-              local local_diff
-              local_diff=$(git diff)
-              if [[ ${local_diff} ]]; then
-                log_write "${INFO} Diff: ${local_diff//$'\n'/'\n          '}"
-              fi
+                # Replace new lines in the status with 12 spaces to make the output cleaner
+                log_write "${INFO} Status: ${local_status//$'\n'/'\n            '}"
+                local local_diff
+                local_diff=$(git diff)
+                if [[ ${local_diff} ]]; then
+                    log_write "${INFO} Diff: ${local_diff//$'\n'/'\n          '}"
+                fi
             fi
         # If git status failed,
         else
@@ -268,7 +268,6 @@ check_ftl_version() {
     FTL_VERSION=$(pihole-FTL version)
     FTL_BRANCH=$(pihole-FTL branch)
     FTL_COMMIT=$(pihole-FTL --hash)
-
 
     log_write "${TICK} Version: ${FTL_VERSION}"
 
@@ -305,7 +304,10 @@ os_check() {
     detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
     detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
-    cmdResult="$(dig -4 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
+    cmdResult="$(
+        dig -4 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1
+        echo $?
+    )"
     #Get the return code of the previous command (last line)
     digReturnCode="${cmdResult##*$'\n'}"
 
@@ -319,7 +321,10 @@ os_check() {
         log_write "${CROSS} dig response: ${response}"
         log_write "${INFO} Retrying via IPv6"
 
-        cmdResult="$(dig -6 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
+        cmdResult="$(
+            dig -6 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1
+            echo $?
+        )"
         #Get the return code of the previous command (last line)
         digReturnCode="${cmdResult##*$'\n'}"
 
@@ -333,16 +338,14 @@ os_check() {
         log_write "${CROSS} Error: ${COL_RED}dig command failed - Unable to check OS${COL_NC}"
     else
         IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
-        for distro_and_versions in "${supportedOS[@]}"
-        do
+        for distro_and_versions in "${supportedOS[@]}"; do
             distro_part="${distro_and_versions%%=*}"
             versions_part="${distro_and_versions##*=}"
 
             if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
                 valid_os=true
                 IFS="," read -r -a supportedVer <<<"${versions_part}"
-                for version in "${supportedVer[@]}"
-                do
+                for version in "${supportedVer[@]}"; do
                     if [[ "${detected_version}" =~ $version ]]; then
                         valid_version=true
                         break
@@ -388,7 +391,7 @@ diagnose_operating_system() {
     [ -n "${DOCKER_VERSION}" ] && log_write "${INFO} Pi-hole Docker Container: ${DOCKER_VERSION}"
 
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
-    if ls /etc/*release 1> /dev/null 2>&1; then
+    if ls /etc/*release 1>/dev/null 2>&1; then
         # display the attributes to the user from the function made earlier
         os_check
     else
@@ -405,25 +408,25 @@ check_selinux() {
         # If a SELinux configuration file was found, check the default SELinux mode.
         DEFAULT_SELINUX=$(awk -F= '/^SELINUX=/ {print $2}' /etc/selinux/config)
         case "${DEFAULT_SELINUX,,}" in
-            enforcing)
-                log_write "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
-                ;;
-            *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}";
-                ;;
+        enforcing)
+            log_write "${CROSS} ${COL_RED}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+            ;;
+        *) # 'permissive' and 'disabled'
+            log_write "${TICK} ${COL_GREEN}Default SELinux: $DEFAULT_SELINUX${COL_NC}"
+            ;;
         esac
         # Check the current state of SELinux
         CURRENT_SELINUX=$(getenforce)
         case "${CURRENT_SELINUX,,}" in
-            enforcing)
-                log_write "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
-                ;;
-            *)  # 'permissive' and 'disabled'
-                log_write "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}";
-                ;;
+        enforcing)
+            log_write "${CROSS} ${COL_RED}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+            ;;
+        *) # 'permissive' and 'disabled'
+            log_write "${TICK} ${COL_GREEN}Current SELinux: $CURRENT_SELINUX${COL_NC}"
+            ;;
         esac
     else
-        log_write "${INFO} ${COL_GREEN}SELinux not detected${COL_NC}";
+        log_write "${INFO} ${COL_GREEN}SELinux not detected${COL_NC}"
     fi
 }
 
@@ -432,11 +435,11 @@ check_firewalld() {
     # FirewallD is not configured by the installer and is the responsibility of the user
     echo_current_diagnostic "FirewallD"
     # Check if FirewallD service is enabled
-    if command -v systemctl &> /dev/null; then
+    if command -v systemctl &>/dev/null; then
         # get its status via systemctl
         local firewalld_status
         firewalld_status=$(systemctl is-active firewalld)
-        log_write "${INFO} ${COL_GREEN}Firewalld service ${firewalld_status}${COL_NC}";
+        log_write "${INFO} ${COL_GREEN}Firewalld service ${firewalld_status}${COL_NC}"
         if [ "${firewalld_status}" == "active" ]; then
             # test common required service ports
             local firewalld_enabled_services
@@ -444,7 +447,7 @@ check_firewalld() {
             local firewalld_expected_services=("http" "dns" "dhcp" "dhcpv6")
             for i in "${firewalld_expected_services[@]}"; do
                 if [[ "${firewalld_enabled_services}" =~ ${i} ]]; then
-                    log_write "${TICK} ${COL_GREEN}  Allow Service: ${i}${COL_NC}";
+                    log_write "${TICK} ${COL_GREEN}  Allow Service: ${i}${COL_NC}"
                 else
                     log_write "${CROSS} ${COL_RED}  Allow Service: ${i}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
                 fi
@@ -453,12 +456,12 @@ check_firewalld() {
             local firewalld_zones
             firewalld_zones=$(firewall-cmd --get-zones)
             if [[ "${firewalld_zones}" =~ "ftl" ]]; then
-                log_write "${TICK} ${COL_GREEN}FTL Custom Zone Detected${COL_NC}";
+                log_write "${TICK} ${COL_GREEN}FTL Custom Zone Detected${COL_NC}"
                 # check FTL custom zone interface: lo
                 local firewalld_ftl_zone_interfaces
                 firewalld_ftl_zone_interfaces=$(firewall-cmd --zone=ftl --list-interfaces)
                 if [[ "${firewalld_ftl_zone_interfaces}" =~ "lo" ]]; then
-                    log_write "${TICK} ${COL_GREEN}  Local Interface Detected${COL_NC}";
+                    log_write "${TICK} ${COL_GREEN}  Local Interface Detected${COL_NC}"
                 else
                     log_write "${CROSS} ${COL_RED}  Local Interface Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
                 fi
@@ -466,7 +469,7 @@ check_firewalld() {
                 local firewalld_ftl_zone_ports
                 firewalld_ftl_zone_ports=$(firewall-cmd --zone=ftl --list-ports)
                 if [[ "${firewalld_ftl_zone_ports}" =~ "4711/tcp" ]]; then
-                    log_write "${TICK} ${COL_GREEN}  FTL Port 4711/tcp Detected${COL_NC}";
+                    log_write "${TICK} ${COL_GREEN}  FTL Port 4711/tcp Detected${COL_NC}"
                 else
                     log_write "${CROSS} ${COL_RED}  FTL Port 4711/tcp Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
                 fi
@@ -475,7 +478,7 @@ check_firewalld() {
             fi
         fi
     else
-        log_write "${TICK} ${COL_GREEN}Firewalld service not detected${COL_NC}";
+        log_write "${TICK} ${COL_GREEN}Firewalld service not detected${COL_NC}"
     fi
 }
 
@@ -534,9 +537,9 @@ disk_usage() {
 
     # only show those lines not containing a sensitive phrase
     for line in "${file_system[@]}"; do
-      if [[ ! $line =~ $hide ]]; then
-        log_write "   ${line}"
-      fi
+        if [[ ! $line =~ $hide ]]; then
+            log_write "   ${line}"
+        fi
     done
 }
 
@@ -574,7 +577,7 @@ ping_gateway() {
     log_write "${INFO} Default IPv${protocol} gateway(s):"
 
     while IFS= read -r gateway; do
-        log_write "     $(cut -d ' ' -f 3 <<< "${gateway}")%$(cut -d ' ' -f 5 <<< "${gateway}")"
+        log_write "     $(cut -d ' ' -f 3 <<<"${gateway}")%$(cut -d ' ' -f 5 <<<"${gateway}")"
     done < <(ip -"${protocol}" route | grep default)
 
     gateway_addr=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
@@ -652,8 +655,8 @@ check_required_ports() {
     ports_in_use=()
     # Sort the addresses and remove duplicates
     while IFS= read -r line; do
-        ports_in_use+=( "$line" )
-    done < <( ss --listening --numeric --tcp --udp --processes --no-header )
+        ports_in_use+=("$line")
+    done < <(ss --listening --numeric --tcp --udp --processes --no-header)
 
     local ports_configured
     # Get all configured ports
@@ -676,10 +679,10 @@ check_required_ports() {
 
         # Check if the right services are using the right ports
         if [[ ${ports_configured[*]} =~ $(echo "${port_number}" | rev | cut -d: -f1 | rev) ]]; then
-            compare_port_to_service_assigned  "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
+            compare_port_to_service_assigned "${ftl}" "${service_name}" "${protocol_type}:${port_number}"
         else
             # If it's not a default port that Pi-hole needs, just print it out for the user to see
-            log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}";
+            log_write "    ${protocol_type}:${port_number} is in use by ${service_name:=<unknown>}"
         fi
     done
 }
@@ -775,7 +778,7 @@ dig_at() {
     #          Removes everything after the interface name
     interfaces="$(ip link show | sed "/ master /d;/UP/!d;s/^[0-9]*: //g;s/@.*//g;s/: <.*//g;")"
 
-    while IFS= read -r iface ; do
+    while IFS= read -r iface; do
         # Get addresses of current interface
         # sed logic breakdown:
         #     /inet(|6) /!d;
@@ -786,13 +789,13 @@ dig_at() {
         #          Removes CIDR and everything thereafter (e.g., scope properties)
         addresses="$(ip address show dev "${iface}" | sed "/${sed_selector} /!d;s/^.*${sed_selector} //g;s/\/.*$//g;")"
         if [ -n "${addresses}" ]; then
-            while IFS= read -r local_address ; do
+            while IFS= read -r local_address; do
                 # If ${local_address} is an IPv6 link-local address, append the interface name to it
                 if [[ "${local_address}" =~ ^fe80 ]]; then
                     local_address="${local_address}%${iface}"
                 fi
 
-              # Check if Pi-hole can use itself to block a domain
+                # Check if Pi-hole can use itself to block a domain
                 if local_dig="$(dig +tries=1 +time=2 -"${protocol}" "${random_url}" @"${local_address}" "${record_type}")"; then
                     # If it can, show success
                     if [[ "${local_dig}" == *"status: NOERROR"* ]]; then
@@ -809,11 +812,11 @@ dig_at() {
                     # Otherwise, show a failure
                     log_write "${CROSS} ${COL_RED}Failed to resolve${COL_NC} ${random_url} on ${COL_RED}${iface}${COL_NC} (${COL_RED}${local_address}${COL_NC})"
                 fi
-          done <<< "${addresses}"
+            done <<<"${addresses}"
         else
-          log_write "${TICK} No IPv${protocol} address available on ${COL_CYAN}${iface}${COL_NC}"
+            log_write "${TICK} No IPv${protocol} address available on ${COL_CYAN}${iface}${COL_NC}"
         fi
-    done <<< "${interfaces}"
+    done <<<"${interfaces}"
 
     # Finally, we need to make sure legitimate queries can out to the Internet using an external, public DNS server
     # We are using the static remote_url here instead of a random one because we know it works with IPv4 and IPv6
@@ -826,7 +829,7 @@ dig_at() {
     fi
 }
 
-process_status(){
+process_status() {
     # Check to make sure Pi-hole's services are running and active
     echo_current_diagnostic "Pi-hole processes"
 
@@ -838,7 +841,7 @@ process_status(){
         local status_of_process
 
         # If systemd
-        if command -v systemctl &> /dev/null; then
+        if command -v systemctl &>/dev/null; then
             # get its status via systemctl
             status_of_process=$(systemctl is-active "${i}")
         else
@@ -848,8 +851,8 @@ process_status(){
             if [ -n "${DOCKER_VERSION}" ]; then
                 :
             else
-            # non-Docker system
-                if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
+                # non-Docker system
+                if service "${i}" status | grep -E 'is\srunning' &>/dev/null; then
                     status_of_process="active"
                 else
                     status_of_process="inactive"
@@ -871,17 +874,17 @@ process_status(){
     done
 }
 
-ftl_full_status(){
+ftl_full_status() {
     # if using systemd print the full status of pihole-FTL
     echo_current_diagnostic "Pi-hole-FTL full status"
     local FTL_status
-    if command -v systemctl &> /dev/null; then
-      FTL_status=$(systemctl status --full --no-pager pihole-FTL.service)
-      log_write "   ${FTL_status}"
+    if command -v systemctl &>/dev/null; then
+        FTL_status=$(systemctl status --full --no-pager pihole-FTL.service)
+        log_write "   ${FTL_status}"
     elif [ -n "${DOCKER_VERSION}" ]; then
-      log_write "${INFO} systemctl/service not installed inside docker container ${COL_YELLOW}(skipped)${COL_NC}"
+        log_write "${INFO} systemctl/service not installed inside docker container ${COL_YELLOW}(skipped)${COL_NC}"
     else
-      log_write "${INFO} systemctl:  command not found"
+        log_write "${INFO} systemctl:  command not found"
     fi
 }
 
@@ -898,7 +901,7 @@ make_array_from_file() {
         :
     else
         # Otherwise, read the file line by line
-        while IFS= read -r line;do
+        while IFS= read -r line; do
             # Otherwise, strip out comments and blank lines
             new_line=$(echo "${line}" | sed -e 's/^\s*#.*$//' -e '/^$/d')
             # If the line still has content (a non-zero value)
@@ -913,7 +916,7 @@ make_array_from_file() {
                 log_write "   ${new_line}"
             fi
             # Increment the iterator +1
-            i=$((i+1))
+            i=$((i + 1))
             # but if the limit of lines we want to see is exceeded
             if [[ -z ${limit} ]]; then
                 # do nothing
@@ -921,7 +924,7 @@ make_array_from_file() {
             elif [[ $i -eq ${limit} ]]; then
                 break
             fi
-        done < "${filename}"
+        done <"${filename}"
     fi
 }
 
@@ -936,7 +939,7 @@ parse_file() {
         #shellcheck disable=SC2016
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
-        read -r -a file_info <<< "$filename"
+        read -r -a file_info <<<"$filename"
     fi
     # Set a named variable for better readability
     local file_lines
@@ -944,7 +947,7 @@ parse_file() {
     for file_lines in "${file_info[@]}"; do
         if [[ -n "${file_lines}" ]]; then
             # skip empty and comment lines line
-            [[ "${file_lines}" =~ ^[[:space:]]*\#.*$  || ! "${file_lines}" ]] && continue
+            [[ "${file_lines}" =~ ^[[:space:]]*\#.*$ || ! "${file_lines}" ]] && continue
             # remove the password hash from the output (*"pwhash = "*)
             [[ "${file_lines}" == *"pwhash ="* ]] && file_lines=$(echo "${file_lines}" | sed -e 's/\(pwhash = \).*/\1<removed>/')
             # otherwise, display the lines of the file
@@ -972,7 +975,7 @@ dir_check() {
     # For each file in the directory,
     for filename in ${directory}; do
         # check if exists first; if it does,
-        if ls "${filename}" 1> /dev/null 2>&1; then
+        if ls "${filename}" 1>/dev/null 2>&1; then
             # do nothing
             true
             return
@@ -1002,10 +1005,10 @@ list_files_in_dir() {
         if [[ -d "${dir_to_parse}/${each_file}" ]]; then
             # If it's a directory, do nothing
             :
-        elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] || \
-            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] || \
+        elif [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_DEBUG_LOG}" ]] ||
+            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_RAW_BLOCKLIST_FILES}" ]] ||
+            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_INSTALL_LOG_FILE}" ]] ||
+            [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG}" ]] ||
             [[ "${dir_to_parse}/${each_file}" == "${PIHOLE_LOG_GZIPS}" ]]; then
             :
         elif [[ "${dir_to_parse}" == "${DNSMASQ_D_DIRECTORY}" ]]; then
@@ -1020,14 +1023,16 @@ list_files_in_dir() {
                     log_write "\\n${COL_GREEN}$(ls -lhd "${dir_to_parse}"/"${each_file}")${COL_NC}"
                     # Check if the file we want to view has a limit (because sometimes we just need a little bit of info from the file, not the entire thing)
                     case "${dir_to_parse}/${each_file}" in
-                        # If it's Web server log, give the first and last 25 lines
-                        "${PIHOLE_WEBSERVER_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 25
-                            ;;
-                        # Same for the FTL log
-                        "${PIHOLE_FTL_LOG}") head_tail_log "${dir_to_parse}/${each_file}" 35
-                            ;;
-                        # parse the file into an array in case we ever need to analyze it line-by-line
-                        *) make_array_from_file "${dir_to_parse}/${each_file}";
+                    # If it's Web server log, give the first and last 25 lines
+                    "${PIHOLE_WEBSERVER_LOG}")
+                        head_tail_log "${dir_to_parse}/${each_file}" 25
+                        ;;
+                    # Same for the FTL log
+                    "${PIHOLE_FTL_LOG}")
+                        head_tail_log "${dir_to_parse}/${each_file}" 35
+                        ;;
+                    # parse the file into an array in case we ever need to analyze it line-by-line
+                    *) make_array_from_file "${dir_to_parse}/${each_file}" ;;
                     esac
                 else
                     # Otherwise, do nothing since it's not a file needed for Pi-hole so we don't care about it
@@ -1096,12 +1101,12 @@ show_db_entries() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local entries=()
-    mapfile -t entries < <(\
+    mapfile -t entries < <(
         pihole-FTL sqlite3 -ni "${PIHOLE_GRAVITY_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
-            "${query}"\
+            "${query}"
     )
 
     for line in "${entries[@]}"; do
@@ -1121,12 +1126,12 @@ show_FTL_db_entries() {
     OLD_IFS="$IFS"
     IFS=$'\r\n'
     local entries=()
-    mapfile -t entries < <(\
+    mapfile -t entries < <(
         pihole-FTL sqlite3 -ni "${PIHOLE_FTL_DB_FILE}" \
             -cmd ".headers on" \
             -cmd ".mode column" \
             -cmd ".width ${widths}" \
-            "${query}"\
+            "${query}"
     )
 
     for line in "${entries[@]}"; do
@@ -1142,7 +1147,10 @@ check_dhcp_servers() {
     OLD_IFS="$IFS"
     IFS=$'\n'
     local entries=()
-    mapfile -t entries < <(pihole-FTL dhcp-discover & spinner)
+    mapfile -t entries < <(
+        pihole-FTL dhcp-discover &
+        spinner
+    )
 
     for line in "${entries[@]}"; do
         log_write "   ${line}"
@@ -1216,39 +1224,44 @@ analyze_ftl_db() {
     fi
 }
 
-database_integrity_check(){
+database_integrity_check() {
     local result
     local database="${1}"
 
     log_write "${INFO} Checking integrity of ${database} ... (this can take several minutes)"
-    result="$(pihole-FTL sqlite3 -ni "${database}" "PRAGMA integrity_check" 2>&1 & spinner)"
+    result="$(
+        pihole-FTL sqlite3 -ni "${database}" "PRAGMA integrity_check" 2>&1 &
+        spinner
+    )"
     if [[ ${result} = "ok" ]]; then
-      log_write "${TICK} Integrity of ${database} intact"
+        log_write "${TICK} Integrity of ${database} intact"
 
-
-      log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
-      unset result
-      result="$(pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 & spinner)"
-      if [[ -z ${result} ]]; then
-        log_write "${TICK} No foreign key errors in ${database}"
-      else
-        log_write "${CROSS} ${COL_RED}Foreign key errors in ${database} found.${COL_NC}"
-        while IFS= read -r line ; do
-            log_write "    $line"
-        done <<< "$result"
-      fi
+        log_write "${INFO} Checking foreign key constraints of ${database} ... (this can take several minutes)"
+        unset result
+        result="$(
+            pihole-FTL sqlite3 -ni "${database}" -cmd ".headers on" -cmd ".mode column" "PRAGMA foreign_key_check" 2>&1 &
+            spinner
+        )"
+        if [[ -z ${result} ]]; then
+            log_write "${TICK} No foreign key errors in ${database}"
+        else
+            log_write "${CROSS} ${COL_RED}Foreign key errors in ${database} found.${COL_NC}"
+            while IFS= read -r line; do
+                log_write "    $line"
+            done <<<"$result"
+        fi
 
     else
-      log_write "${CROSS} ${COL_RED}Integrity errors in ${database} found.\n${COL_NC}"
-      while IFS= read -r line ; do
-        log_write "    $line"
-      done <<< "$result"
+        log_write "${CROSS} ${COL_RED}Integrity errors in ${database} found.\n${COL_NC}"
+        while IFS= read -r line; do
+            log_write "    $line"
+        done <<<"$result"
     fi
 
 }
 
 # Show a text spinner during a long process run
-spinner(){
+spinner() {
     # Show the spinner only if there is a tty
     if tty -s; then
         # PID of the most recent background process
@@ -1262,18 +1275,18 @@ spinner(){
         _start=$(date +%s)
 
         # Hide the cursor
-        tput civis > /dev/tty
+        tput civis >/dev/tty
 
         # ensures cursor is visible again, in case of premature exit
         trap 'tput cnorm > /dev/tty' EXIT
 
         while [ -d /proc/$_PID ]; do
-            _elapsed=$(( $(date +%s) - _start ))
+            _elapsed=$(($(date +%s) - _start))
             # use hours only if needed
             if [ "$_elapsed" -lt 3600 ]; then
-                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d" $((_elapsed/60)) $((_elapsed%60)) >"$(tty)"
+                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d" $((_elapsed / 60)) $((_elapsed % 60)) >"$(tty)"
             else
-                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d:%02d" $((_elapsed/3600)) $(((_elapsed/60)%60)) $((_elapsed%60)) >"$(tty)"
+                printf "\r${_spin:_i++%${#_spin}:1} %02d:%02d:%02d" $((_elapsed / 3600)) $(((_elapsed / 60) % 60)) $((_elapsed % 60)) >"$(tty)"
             fi
             sleep 0.25
         done
@@ -1282,25 +1295,25 @@ spinner(){
         printf "\r" >"$(tty)"
 
         # Restore cursor visibility
-        tput cnorm > /dev/tty
+        tput cnorm >/dev/tty
     fi
 }
 
 analyze_pihole_log() {
-  echo_current_diagnostic "Pi-hole log"
-  local pihole_log_permissions
-  local queryLogging
+    echo_current_diagnostic "Pi-hole log"
+    local pihole_log_permissions
+    local queryLogging
 
-  queryLogging="$(get_ftl_conf_value "dns.queryLogging")"
-  if [[ "${queryLogging}" == "false" ]]; then
-      # Inform user that logging has been disabled and pihole.log does not contain queries
-      log_write "${INFO} Query logging is disabled"
-      log_write ""
-  fi
+    queryLogging="$(get_ftl_conf_value "dns.queryLogging")"
+    if [[ "${queryLogging}" == "false" ]]; then
+        # Inform user that logging has been disabled and pihole.log does not contain queries
+        log_write "${INFO} Query logging is disabled"
+        log_write ""
+    fi
 
-  pihole_log_permissions=$(ls -lhd "${PIHOLE_LOG}")
-  log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
-  head_tail_log "${PIHOLE_LOG}" 20
+    pihole_log_permissions=$(ls -lhd "${PIHOLE_LOG}")
+    log_write "${COL_GREEN}${pihole_log_permissions}${COL_NC}"
+    head_tail_log "${PIHOLE_LOG}" 20
 }
 
 curl_to_tricorder() {
@@ -1317,7 +1330,6 @@ curl_to_tricorder() {
         fi
     fi
 }
-
 
 upload_to_tricorder() {
     local username="pihole"
@@ -1347,10 +1359,13 @@ upload_to_tricorder() {
         # Users can review the log file locally (or the output of the script since they are the same) and try to self-diagnose their problem
         read -r -p "[?] Would you like to upload the log? [y/N] " response
         case ${response} in
-            # If they say yes, run our function for uploading the log
-            [yY][eE][sS]|[yY]) curl_to_tricorder;;
-            # If they choose no, just exit out of the script
-            *) log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n";exit;
+        # If they say yes, run our function for uploading the log
+        [yY][eE][sS] | [yY]) curl_to_tricorder ;;
+        # If they choose no, just exit out of the script
+        *)
+            log_write "    * Log will ${COL_GREEN}NOT${COL_NC} be uploaded to tricorder.\\n    * A local copy of the debug log can be found at: ${COL_CYAN}${PIHOLE_DEBUG_LOG}${COL_NC}\\n"
+            exit
+            ;;
         esac
     fi
     # Check if tricorder.pi-hole.net is reachable and provide token

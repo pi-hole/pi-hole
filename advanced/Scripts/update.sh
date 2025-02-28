@@ -41,7 +41,7 @@ GitCheckUpdateAvail() {
     cd "${directory}" || exit 1
 
     # Fetch latest changes in this repo
-    if ! git fetch --quiet origin ; then
+    if ! git fetch --quiet origin; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Unable to update local repository. Contact Pi-hole Support.${COL_NC}"
         exit 1
     fi
@@ -68,7 +68,6 @@ GitCheckUpdateAvail() {
         # defaults to the current one.
         REMOTE="$(git rev-parse "@{upstream}")"
     fi
-
 
     if [[ "${#LOCAL}" == 0 ]]; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Local revision could not be obtained, please contact Pi-hole Support"
@@ -116,15 +115,15 @@ main() {
     install_dependent_packages
 
     # This is unlikely
-    if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
+    if ! is_repo "${PI_HOLE_FILES_DIR}"; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!"
         echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
-        exit 1;
+        exit 1
     fi
 
     echo -e "  ${INFO} Checking for updates..."
 
-    if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}" ; then
+    if GitCheckUpdateAvail "${PI_HOLE_FILES_DIR}"; then
         core_update=true
         echo -e "  ${INFO} Pi-hole Core:\\t${COL_YELLOW}update available${COL_NC}"
     else
@@ -132,13 +131,13 @@ main() {
         echo -e "  ${INFO} Pi-hole Core:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
 
-    if ! is_repo "${ADMIN_INTERFACE_DIR}" ; then
+    if ! is_repo "${ADMIN_INTERFACE_DIR}"; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
         echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
-        exit 1;
+        exit 1
     fi
 
-    if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}" ; then
+    if GitCheckUpdateAvail "${ADMIN_INTERFACE_DIR}"; then
         web_update=true
         echo -e "  ${INFO} Web Interface:\\t${COL_YELLOW}update available${COL_NC}"
     else
@@ -156,19 +155,20 @@ main() {
         echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
     else
         case $? in
-            1)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
-                ;;
-            2)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_LIGHT_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
-                ;;
-            3)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, cannot reach download server${COL_NC}"
-                exit 1
-                ;;
-            *)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, contact support${COL_NC}"
-                exit 1
+        1)
+            echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+            ;;
+        2)
+            echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_LIGHT_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
+            ;;
+        3)
+            echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, cannot reach download server${COL_NC}"
+            exit 1
+            ;;
+        *)
+            echo -e "  ${INFO} FTL:\\t\\t${COL_LIGHT_RED}Something has gone wrong, contact support${COL_NC}"
+            exit 1
+            ;;
         esac
         FTL_update=false
     fi
@@ -218,7 +218,7 @@ main() {
     fi
 
     if [[ "${FTL_update}" == true || "${core_update}" == true ]]; then
-        ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --repair --unattended || \
+        ${PI_HOLE_FILES_DIR}/automated\ install/basic-install.sh --repair --unattended ||
             echo -e "${basicError}" && exit 1
     fi
 
@@ -230,7 +230,7 @@ main() {
 
     # if there was only a web update, show the new versions
     # (on core and FTL updates, this is done as part of the installer run)
-    if [[ "${web_update}" == true &&  "${FTL_update}" == false && "${core_update}" == false ]]; then
+    if [[ "${web_update}" == true && "${FTL_update}" == false && "${core_update}" == false ]]; then
         "${PI_HOLE_BIN_DIR}"/pihole version
     fi
 

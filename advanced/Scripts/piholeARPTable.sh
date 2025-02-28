@@ -25,7 +25,7 @@ if [ -z "$DBFILE" ]; then
     DBFILE="/etc/pihole/pihole-FTL.db"
 fi
 
-flushARP(){
+flushARP() {
     local output
     if [[ "${args[1]}" != "quiet" ]]; then
         echo -ne "  ${INFO} Flushing network table ..."
@@ -78,5 +78,5 @@ flushARP(){
 args=("$@")
 
 case "${args[0]}" in
-    "arpflush"            ) flushARP;;
+"arpflush") flushARP ;;
 esac
