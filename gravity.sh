@@ -92,7 +92,8 @@ gravity_build_tree() {
   echo -ne "  ${INFO} ${str}..."
 
   # The index is intentionally not UNIQUE as poor quality adlists may contain domains more than once
-  output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1)
+  # We use temp_store = FILE to avoid memory exhaustion on large databases
+  output=$({ pihole-FTL sqlite3 -ni "${gravityTEMPfile}" "PRAGMA temp_store = FILE; CREATE INDEX idx_gravity ON gravity (domain, adlist_id);"; } 2>&1)
   status="$?"
 
   if [[ "${status}" -ne 0 ]]; then
