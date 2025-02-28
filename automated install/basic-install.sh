@@ -89,7 +89,6 @@ IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
-WEBPORT=
 PRIVACY_LEVEL=
 
 # Where old configs go to if a v6 migration is performed
@@ -1754,34 +1753,6 @@ checkSelinux() {
     fi
 }
 
-# Installation complete message with instructions for the user
-displayFinalMessage() {
-    # TODO: COME BACK TO THIS, WHAT IS GOING ON?
-    # If the number of arguments is > 0,
-    if [[ "${#1}" -gt 0 ]]; then
-        # set the password to the first argument.
-        pwstring="$1"
-    elif [[ -n $(pihole-FTL --config webserver.api.pwhash) ]]; then
-        # Else if the password exists from previous setup, we'll load it later
-        pwstring="unchanged"
-    else
-        # Else, inform the user that there is no set password.
-        pwstring="NOT SET"
-    fi
-
-    # Store a message in a variable and display it
-    additional="View the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
-
-    # Final completion message to user
-    dialog --no-shadow --keep-tite \
-        --title "Installation Complete!" \
-        --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
-\\n\\nIPv4:	${IPV4_ADDRESS%/*}\
-\\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
-\\nIf you have not done so already, the above IP should be set to static.\
-\\n${additional}" "${r}" "${c}"
-}
-
 check_download_exists() {
     # Check if the download exists and we can reach the server
     local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
@@ -2414,7 +2385,6 @@ main() {
     # Download or reset the appropriate git repos depending on the 'repair' flag
     clone_or_reset_repos
 
-
     # Create the pihole user
     create_pihole_user
 
@@ -2443,10 +2413,8 @@ main() {
     # Copy the temp log file into final log location for storage
     copy_to_install_log
 
-
     # Migrate existing install to v6.0
     migrate_dnsmasq_configs
-
 
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
@@ -2470,28 +2438,25 @@ main() {
 
     restart_service pihole-FTL
 
-    # Add password to web UI if there is none
-    pw=""
-    # If this is a fresh installation and no password is set,
-    if [[ ${v5_to_v6_update} = false && -z $(getFTLConfigValue webserver.api.pwhash) ]]; then
-        # generate a random password
-        pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
-        pihole setpassword "${pw}"
-    fi
+    if [[ "${fresh_install}" == true ]]; then
+        # apply settings to pihole.toml
+        # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
+        # set on fresh installations by setDNS() and setPrivacyLevel() and setLogging()
 
-    # apply settings to pihole.toml
-    # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
-    # set on fresh installations by setDNS() and setPrivacyLevel() and setLogging()
-    if [ -n "${PIHOLE_DNS_1}" ]; then
-        local string="\"${PIHOLE_DNS_1}\""
-        [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
-        setFTLConfigValue "dns.upstreams" "[ $string ]"
-    fi
-    if [ -n "${QUERY_LOGGING}" ]; then
-        setFTLConfigValue "dns.queryLogging" "${QUERY_LOGGING}"
-    fi
-    if [ -n "${PRIVACY_LEVEL}" ]; then
-        setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
+        # Upstreams may be needed in order to run gravity.sh
+        if [ -n "${PIHOLE_DNS_1}" ]; then
+            local string="\"${PIHOLE_DNS_1}\""
+            [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
+            setFTLConfigValue "dns.upstreams" "[ $string ]"
+        fi
+
+        if [ -n "${QUERY_LOGGING}" ]; then
+            setFTLConfigValue "dns.queryLogging" "${QUERY_LOGGING}"
+        fi
+
+        if [ -n "${PRIVACY_LEVEL}" ]; then
+            setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
+        fi
     fi
 
     # Download and compile the aggregated block list
@@ -2500,28 +2465,35 @@ main() {
     # Update local and remote versions via updatechecker
     /opt/pihole/updatecheck.sh
 
-    # If there is a password
-    if ((${#pw} > 0)); then
-        # display the password
-        printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
-        printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
-    fi
-
     if [[ "${fresh_install}" == true ]]; then
+
         # Get the Web interface port, return only the first port and strip all non-numeric characters
         WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1 | tr -cd '0-9')
 
-        # Display the completion dialog
-        displayFinalMessage "${pw}"
-
-        # If the Web interface was installed,
-        printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
+        # If this is a fresh install, we will set a random password.
+        # Users can change this password after installation if they wish
+        pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
+        pihole setpassword "${pw}" > /dev/null
 
         # Explain to the user how to use Pi-hole as their DNS server
-        printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
+        printf "\\n  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
         [[ -n "${IPV4_ADDRESS%/*}" ]] && printf "  %b Pi-hole DNS (IPv4): %s\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
         [[ -n "${IPV6_ADDRESS}" ]] && printf "  %b Pi-hole DNS (IPv6): %s\\n" "${INFO}" "${IPV6_ADDRESS}"
         printf "  %b If you have not done so already, the above IP should be set to static.\\n" "${INFO}"
+
+        printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
+        printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
+        printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
+
+        # Final dialog message to the user
+        dialog --no-shadow --keep-tite \
+            --title "Installation Complete!" \
+            --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
+\\n\\nIPv4:	${IPV4_ADDRESS%/*}\
+\\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
+\\nIf you have not done so already, the above IP should be set to static.\
+\\nView the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}" "${r}" "${c}"
+
         INSTALL_TYPE="Installation"
     else
         INSTALL_TYPE="Update"
