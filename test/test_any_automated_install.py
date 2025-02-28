@@ -89,10 +89,10 @@ def test_installPihole_fresh_install_readableFiles(host):
     export DEBIAN_FRONTEND=noninteractive
     umask 0027
     runUnattended=true
-    useUpdateVars=true
+    fresh_install=false
     source /opt/pihole/basic-install.sh > /dev/null
     runUnattended=true
-    useUpdateVars=true
+    fresh_install=false
     main
     /opt/pihole/pihole-FTL-prestart.sh
     """

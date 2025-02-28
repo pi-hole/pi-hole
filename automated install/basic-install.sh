@@ -81,9 +81,7 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
-if [ -z "$useUpdateVars" ]; then
-    useUpdateVars=false
-fi
+fresh_install=true
 
 adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
@@ -93,7 +91,6 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 QUERY_LOGGING=
 WEBPORT=
 PRIVACY_LEVEL=
-v5_to_v6_update=false
 
 # Where old configs go to if a v6 migration is performed
 V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
@@ -2290,8 +2287,6 @@ migrate_dnsmasq_configs() {
 
     # Print a blank line for separation
     printf "\\n"
-
-    v5_to_v6_update=true
 }
 
 # Check for availability of either the "service" or "systemctl" commands
@@ -2384,7 +2379,7 @@ main() {
     # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
         # retain settings
-        useUpdateVars=true
+        fresh_install=false
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
             printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
@@ -2393,7 +2388,7 @@ main() {
         fi
     fi
 
-    if [[ "${useUpdateVars}" == false ]]; then
+    if [[ "${fresh_install}" == true ]]; then
         # Display welcome dialogs
         welcomeDialogs
         # Create directory for Pi-hole storage (/etc/pihole/)
@@ -2512,7 +2507,7 @@ main() {
         printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
     fi
 
-    if [[ "${useUpdateVars}" == false ]]; then
+    if [[ "${fresh_install}" == true ]]; then
         # Get the Web interface port, return only the first port and strip all non-numeric characters
         WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1 | tr -cd '0-9')
 
