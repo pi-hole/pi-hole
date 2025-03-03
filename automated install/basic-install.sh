@@ -156,7 +156,9 @@ EOM
 # The runUnattended flag is one example of this
 repair=false
 runUnattended=false
-PIHOLE_SKIP_FTL_CHECK=false
+if [ -z "$PIHOLE_SKIP_FTL_CHECK" ]; then
+    PIHOLE_SKIP_FTL_CHECK=false
+fi
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
