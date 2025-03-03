@@ -2228,7 +2228,7 @@ main() {
     # Check if there is a usable FTL binary available on this architecture - do
     # this early on as FTL is a hard dependency for Pi-hole
     # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
-    if [ ! "${PIHOLE_SKIP_FTL_CHECK}" = true ]; then
+    if [ "${PIHOLE_SKIP_FTL_CHECK}" != true ]; then
         # Get the binary name for the current architecture
         local funcOutput
         funcOutput=$(get_binary_name) #Store output of get_binary_name here
@@ -2237,6 +2237,8 @@ main() {
             printf "  %b Upgrade/install aborted\\n" "${CROSS}" "${DISTRO_NAME}"
             exit 1
         fi
+    else
+        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping architecture check%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
 
     if [[ "${fresh_install}" == false ]]; then
@@ -2279,7 +2281,7 @@ main() {
 
     # Download and install FTL
     # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
-    if [ ! "${PIHOLE_SKIP_FTL_CHECK}" = true ]; then
+    if [ "${PIHOLE_SKIP_FTL_CHECK}" != true ]; then
         local binary
         binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
         local theRest
@@ -2288,6 +2290,8 @@ main() {
             printf "  %b FTL Engine not installed\\n" "${CROSS}"
             exit 1
         fi
+    else
+        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping FTL binary installation%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
 
     # Install and log everything to a file
