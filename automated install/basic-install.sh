@@ -2101,17 +2101,22 @@ FTLcheckUpdate() {
             # same as the remote one
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLlatesttag
 
-            # Get the latest version from the GitHub API
-            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
+            local FTLlatesttag
+            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq -sRr 'fromjson? | .tag_name | values')
+
+            if [ -z "${FTLlatesttag}" ]; then
                 # There was an issue while retrieving the latest version
                 printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
                 return 3
             fi
 
-            # Check if the installed version matches the latest version
-            if [[ "${FTLversion}" != "${FTLlatesttag}" ]]; then
+            # Convert version strings into numbers for comparison
+            local convertedFTLversion convertedFTLlatesttag
+            convertedFTLversion="$(VersionConverter "${FTLversion}")"
+            convertedFTLlatesttag="$(VersionConverter "${FTLlatesttag}")"
+
+            if [[ "${convertedFTLversion}" -lt "${convertedFTLlatesttag}" ]]; then
                 # If the installed version does not match the latest version,
                 # then download
                 return 0
@@ -2264,6 +2269,12 @@ check_service_command() {
         printf "      on this machine. This Pi-hole installer cannot continue.\\n"
         exit 1
     fi
+}
+
+# converts a given version string e.g. v3.7.1 to 3007001000 to allow for easier comparison of multi digit version numbers
+# credits https://apple.stackexchange.com/a/123408
+VersionConverter() {
+  echo "$@" | tr -d '[:alpha:]' | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
 }
 
 main() {
