@@ -27,20 +27,20 @@
 # addOrEditKeyValPair "/etc/pihole/setupVars.conf" "BLOCKING_ENABLED" "true"
 #######################
 addOrEditKeyValPair() {
-  local file="${1}"
-  local key="${2}"
-  local value="${3}"
+    local file="${1}"
+    local key="${2}"
+    local value="${3}"
 
-  # touch file to prevent grep error if file does not exist yet
-  touch "${file}"
+    # touch file to prevent grep error if file does not exist yet
+    touch "${file}"
 
-  if grep -q "^${key}=" "${file}"; then
-    # Key already exists in file, modify the value
-    sed -i "/^${key}=/c\\${key}=${value}" "${file}"
-  else
-    # Key does not already exist, add it and it's value
-    echo "${key}=${value}" >> "${file}"
-  fi
+    if grep -q "^${key}=" "${file}"; then
+        # Key already exists in file, modify the value
+        sed -i "/^${key}=/c\\${key}=${value}" "${file}"
+    else
+        # Key does not already exist, add it and it's value
+        echo "${key}=${value}" >>"${file}"
+    fi
 }
 
 #######################
@@ -58,13 +58,13 @@ getFTLPID() {
         FTL_PID="$(cat "${FTL_PID_FILE}")"
         # Exploit prevention: unset the variable if there is malicious content
         # Verify that the value read from the file is numeric
-        expr "${FTL_PID}" : "[^[:digit:]]" > /dev/null && unset FTL_PID
+        expr "${FTL_PID}" : "[^[:digit:]]" >/dev/null && unset FTL_PID
     fi
 
     # If FTL is not running, or the PID file contains malicious stuff, substitute
     # negative PID to signal this
     FTL_PID=${FTL_PID:=-1}
-    echo  "${FTL_PID}"
+    echo "${FTL_PID}"
 }
 
 #######################
@@ -73,8 +73,8 @@ getFTLPID() {
 # Takes one argument: key
 # Example getFTLConfigValue dns.piholePTR
 #######################
-getFTLConfigValue(){
-  pihole-FTL --config -q "${1}"
+getFTLConfigValue() {
+    pihole-FTL --config -q "${1}"
 }
 
 #######################
@@ -86,10 +86,10 @@ getFTLConfigValue(){
 # Note, for complex values such as dns.upstreams, you should wrap the value in single quotes:
 # setFTLConfigValue dns.upstreams '[ "8.8.8.8" , "8.8.4.4" ]'
 #######################
-setFTLConfigValue(){
-  pihole-FTL --config "${1}" "${2}" >/dev/null
-  if [[ $? -eq 5 ]]; then
-    echo -e "  ${CROSS} ${1} set by environment variable. Please unset it to use this function"
-    exit 5
-  fi
+setFTLConfigValue() {
+    pihole-FTL --config "${1}" "${2}" >/dev/null
+    if [[ $? -eq 5 ]]; then
+        echo -e "  ${CROSS} ${1} set by environment variable. Please unset it to use this function"
+        exit 5
+    fi
 }

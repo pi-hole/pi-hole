@@ -13,8 +13,11 @@ source "/opt/pihole/COL_TABLE"
 while true; do
     read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " answer
     case ${answer} in
-        [Yy]* ) break;;
-        * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
+    [Yy]*) break ;;
+    *)
+        echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"
+        exit 0
+        ;;
     esac
 done
 
@@ -42,26 +45,24 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # package_manager_detect() sourced from basic-install.sh
 package_manager_detect
 
-
 removeMetaPackage() {
     # Purge Pi-hole meta package
     echo ""
-    echo -ne "  ${INFO} Removing Pi-hole meta package...";
-    eval "${SUDO}" "${PKG_REMOVE}" "pihole-meta" &> /dev/null;
-    echo -e "${OVER}  ${INFO} Removed Pi-hole meta package";
+    echo -ne "  ${INFO} Removing Pi-hole meta package..."
+    eval "${SUDO}" "${PKG_REMOVE}" "pihole-meta" &>/dev/null
+    echo -e "${OVER}  ${INFO} Removed Pi-hole meta package"
 
 }
 
 removePiholeFiles() {
     # Only web directories/files that are created by Pi-hole should be removed
     echo -ne "  ${INFO} Removing Web Interface..."
-    ${SUDO} rm -rf /var/www/html/admin &> /dev/null
-
+    ${SUDO} rm -rf /var/www/html/admin &>/dev/null
 
     # If the web directory is empty after removing these files, then the parent html directory can be removed.
     if [ -d "/var/www/html" ]; then
         if [[ ! "$(ls -A /var/www/html)" ]]; then
-            ${SUDO} rm -rf /var/www/html &> /dev/null
+            ${SUDO} rm -rf /var/www/html &>/dev/null
         fi
     fi
     echo -e "${OVER}  ${TICK} Removed Web Interface"
@@ -78,30 +79,30 @@ removePiholeFiles() {
     fi
 
     # Attempt to preserve backwards compatibility with older versions
-    if [[ -f /etc/cron.d/pihole ]];then
-        ${SUDO} rm -f /etc/cron.d/pihole &> /dev/null
+    if [[ -f /etc/cron.d/pihole ]]; then
+        ${SUDO} rm -f /etc/cron.d/pihole &>/dev/null
         echo -e "  ${TICK} Removed /etc/cron.d/pihole"
     fi
 
-    ${SUDO} rm -rf /var/log/*pihole* &> /dev/null
-    ${SUDO} rm -rf /var/log/pihole/*pihole* &> /dev/null
-    ${SUDO} rm -rf /etc/pihole/ &> /dev/null
-    ${SUDO} rm -rf /etc/.pihole/ &> /dev/null
-    ${SUDO} rm -rf /opt/pihole/ &> /dev/null
-    ${SUDO} rm -f /usr/local/bin/pihole &> /dev/null
-    ${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null
-    ${SUDO} rm -f /etc/sudoers.d/pihole &> /dev/null
+    ${SUDO} rm -rf /var/log/*pihole* &>/dev/null
+    ${SUDO} rm -rf /var/log/pihole/*pihole* &>/dev/null
+    ${SUDO} rm -rf /etc/pihole/ &>/dev/null
+    ${SUDO} rm -rf /etc/.pihole/ &>/dev/null
+    ${SUDO} rm -rf /opt/pihole/ &>/dev/null
+    ${SUDO} rm -f /usr/local/bin/pihole &>/dev/null
+    ${SUDO} rm -f /etc/bash_completion.d/pihole &>/dev/null
+    ${SUDO} rm -f /etc/sudoers.d/pihole &>/dev/null
     echo -e "  ${TICK} Removed config files"
 
     # Restore Resolved
     if [[ -e /etc/systemd/resolved.conf.orig ]] || [[ -e /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf ]]; then
-        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf &> /dev/null || true
+        ${SUDO} cp -p /etc/systemd/resolved.conf.orig /etc/systemd/resolved.conf &>/dev/null || true
         ${SUDO} rm -f /etc/systemd/resolved.conf.d/90-pi-hole-disable-stub-listener.conf
         systemctl reload-or-restart systemd-resolved
     fi
 
     # Remove FTL
-    if command -v pihole-FTL &> /dev/null; then
+    if command -v pihole-FTL &>/dev/null; then
         echo -ne "  ${INFO} Removing pihole-FTL..."
         if [[ -x "$(command -v systemctl)" ]]; then
             systemctl stop pihole-FTL
@@ -112,12 +113,12 @@ removePiholeFiles() {
         if [[ -d '/etc/systemd/system/pihole-FTL.service.d' ]]; then
             read -rp "  ${QST} FTL service override directory /etc/systemd/system/pihole-FTL.service.d detected. Do you wish to remove this from your system? [y/N] " answer
             case $answer in
-                [yY]*)
-                    echo -ne "  ${INFO} Removing /etc/systemd/system/pihole-FTL.service.d..."
-                    ${SUDO} rm -R /etc/systemd/system/pihole-FTL.service.d
-                    echo -e "${OVER}  ${INFO} Removed /etc/systemd/system/pihole-FTL.service.d"
+            [yY]*)
+                echo -ne "  ${INFO} Removing /etc/systemd/system/pihole-FTL.service.d..."
+                ${SUDO} rm -R /etc/systemd/system/pihole-FTL.service.d
+                echo -e "${OVER}  ${INFO} Removed /etc/systemd/system/pihole-FTL.service.d"
                 ;;
-                *) echo -e "  ${INFO} Leaving /etc/systemd/system/pihole-FTL.service.d in place.";;
+            *) echo -e "  ${INFO} Leaving /etc/systemd/system/pihole-FTL.service.d in place." ;;
             esac
         fi
         ${SUDO} rm -f /etc/init.d/pihole-FTL
@@ -133,16 +134,16 @@ removePiholeFiles() {
     fi
 
     # If the pihole user exists, then remove
-    if id "pihole" &> /dev/null; then
-        if ${SUDO} userdel -r pihole 2> /dev/null; then
+    if id "pihole" &>/dev/null; then
+        if ${SUDO} userdel -r pihole 2>/dev/null; then
             echo -e "  ${TICK} Removed 'pihole' user"
         else
             echo -e "  ${CROSS} Unable to remove 'pihole' user"
         fi
     fi
     # If the pihole group exists, then remove
-    if getent group "pihole" &> /dev/null; then
-        if ${SUDO} groupdel pihole 2> /dev/null; then
+    if getent group "pihole" &>/dev/null; then
+        if ${SUDO} groupdel pihole 2>/dev/null; then
             echo -e "  ${TICK} Removed 'pihole' group"
         else
             echo -e "  ${CROSS} Unable to remove 'pihole' group"

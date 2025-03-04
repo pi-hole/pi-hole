@@ -53,7 +53,7 @@ Options:
   -l, --list          Display domains
   --comment \"text\"    Add a comment to the domain. If adding multiple domains the same comment will be used for all"
 
-  exit 0
+    exit 0
 }
 
 CreateDomainList() {
@@ -89,7 +89,7 @@ AddDomain() {
     num=$(echo "${data}" | jq '.processed.success | length')
     if [[ "${num}" -gt 0 ]] && [[ "${verbose}" == true ]]; then
         echo -e "  ${TICK} Added ${num} domain(s):"
-        for i in $(seq 0 $((num-1))); do
+        for i in $(seq 0 $((num - 1))); do
             echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.success[$i].item")${COL_NC}"
         done
     fi
@@ -98,7 +98,7 @@ AddDomain() {
     num=$(echo "${data}" | jq '.processed.errors | length')
     if [[ "${num}" -gt 0 ]] && [[ "${verbose}" == true ]]; then
         echo -e "  ${CROSS} Failed to add ${num} domain(s):"
-        for i in $(seq 0 $((num-1))); do
+        for i in $(seq 0 $((num - 1))); do
             echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --raw-output ".processed.errors[$i].item")${COL_NC}"
             error=$(echo "${data}" | jq --raw-output ".processed.errors[$i].error")
             if [[ "${error}" == "UNIQUE constraint failed: domainlist.domain, domainlist.type" ]]; then
@@ -137,10 +137,10 @@ RemoveDomain() {
 
     # If there is an .error object in the returned data, display it
     local error
-    error=$(jq --compact-output <<< "${data}" '.error')
+    error=$(jq --compact-output '.error' <<<"${data}")
     if [[ $error != "null" && $error != "" ]]; then
         echo -e "  ${CROSS} Failed to remove domain(s):"
-        echo -e "      $(jq <<< "${data}" '.error')"
+        echo -e "      $(jq <<<"${data}" '.error')"
     elif [[ "${verbose}" == true && "${status}" == "204" ]]; then
         echo -e "  ${TICK} Domain(s) removed from the ${kindId} ${typeId}list"
     elif [[ "${verbose}" == true && "${status}" == "404" ]]; then
@@ -170,7 +170,7 @@ Displaylist() {
     num=$(echo "${data}" | jq '.domains | length')
     if [[ "${num}" -gt 0 ]]; then
         echo -e "  ${TICK} Found ${num} domain(s) in the ${kindId} ${typeId}list:"
-        for i in $(seq 0 $((num-1))); do
+        for i in $(seq 0 $((num - 1))); do
             echo -e "    - ${COL_BLUE}$(echo "${data}" | jq --compact-output ".domains[$i].domain")${COL_NC}"
             echo -e "      Comment: $(echo "${data}" | jq --compact-output ".domains[$i].comment")"
             echo -e "      Groups: $(echo "${data}" | jq --compact-output ".domains[$i].groups")"
@@ -196,20 +196,49 @@ GetComment() {
     fi
 }
 
-while (( "$#" )); do
+while (("$#")); do
     case "${1}" in
-        "allow" | "allowlist" ) kindId="exact"; typeId="allow"; abbrv="allow";;
-        "deny" | "denylist"   ) kindId="exact"; typeId="deny"; abbrv="deny";;
-        "--allow-regex" | "allow-regex" ) kindId="regex"; typeId="allow"; abbrv="--allow-regex";;
-        "--allow-wild" | "allow-wild" ) kindId="regex"; typeId="allow"; wildcard=true; abbrv="--allow-wild";;
-        "--regex" | "regex"   ) kindId="regex"; typeId="deny"; abbrv="--regex";;
-        "--wild" | "wildcard" ) kindId="regex"; typeId="deny"; wildcard=true; abbrv="--wild";;
-        "-d" | "remove" | "delete" ) addmode=false;;
-        "-q" | "--quiet"     ) verbose=false;;
-        "-h" | "--help"      ) helpFunc;;
-        "-l" | "--list"      ) Displaylist;;
-        "--comment"          ) GetComment "${2}"; shift;;
-        *                    ) CreateDomainList "${1}";;
+    "allow" | "allowlist")
+        kindId="exact"
+        typeId="allow"
+        abbrv="allow"
+        ;;
+    "deny" | "denylist")
+        kindId="exact"
+        typeId="deny"
+        abbrv="deny"
+        ;;
+    "--allow-regex" | "allow-regex")
+        kindId="regex"
+        typeId="allow"
+        abbrv="--allow-regex"
+        ;;
+    "--allow-wild" | "allow-wild")
+        kindId="regex"
+        typeId="allow"
+        wildcard=true
+        abbrv="--allow-wild"
+        ;;
+    "--regex" | "regex")
+        kindId="regex"
+        typeId="deny"
+        abbrv="--regex"
+        ;;
+    "--wild" | "wildcard")
+        kindId="regex"
+        typeId="deny"
+        wildcard=true
+        abbrv="--wild"
+        ;;
+    "-d" | "remove" | "delete") addmode=false ;;
+    "-q" | "--quiet") verbose=false ;;
+    "-h" | "--help") helpFunc ;;
+    "-l" | "--list") Displaylist ;;
+    "--comment")
+        GetComment "${2}"
+        shift
+        ;;
+    *) CreateDomainList "${1}" ;;
     esac
     shift
 done
