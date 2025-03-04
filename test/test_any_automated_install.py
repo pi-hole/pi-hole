@@ -89,10 +89,10 @@ def test_installPihole_fresh_install_readableFiles(host):
     export DEBIAN_FRONTEND=noninteractive
     umask 0027
     runUnattended=true
-    useUpdateVars=true
+    fresh_install=false
     source /opt/pihole/basic-install.sh > /dev/null
     runUnattended=true
-    useUpdateVars=true
+    fresh_install=false
     main
     /opt/pihole/pihole-FTL-prestart.sh
     """
@@ -126,10 +126,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     # readable versions
     check_localversion = test_cmd.format("r", "/etc/pihole/versions", piholeuser)
     actual_rc = host.run(check_localversion).rc
-    assert exit_status_success == actual_rc
-    # readable logrotate
-    check_logrotate = test_cmd.format("r", "/etc/pihole/logrotate", piholeuser)
-    actual_rc = host.run(check_logrotate).rc
     assert exit_status_success == actual_rc
     # readable macvendor.db
     check_macvendor = test_cmd.format("r", "/etc/pihole/macvendor.db", piholeuser)

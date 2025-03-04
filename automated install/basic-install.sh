@@ -81,9 +81,7 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
-if [ -z "$useUpdateVars" ]; then
-    useUpdateVars=false
-fi
+fresh_install=true
 
 adlistFile="/etc/pihole/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
@@ -91,9 +89,7 @@ IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
-WEBPORT=
 PRIVACY_LEVEL=
-v5_to_v6_update=false
 
 # Where old configs go to if a v6 migration is performed
 V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
@@ -143,12 +139,12 @@ EOM
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
-reconfigure=false
+repair=false
 runUnattended=false
 # Check arguments for the undocumented flags
 for var in "$@"; do
     case "$var" in
-    "--reconfigure") reconfigure=true ;;
+    "--repair") repair=true ;;
     "--unattended") runUnattended=true ;;
     esac
 done
@@ -1112,7 +1108,7 @@ setPrivacyLevel() {
 
 # A function to display a list of example blocklists for users to select
 chooseBlocklists() {
-    # Back up any existing adlist file, on the off chance that it exists. Useful in case of a reconfigure.
+    # Back up any existing adlist file, on the off chance that it exists.
     if [[ -f "${adlistFile}" ]]; then
         mv "${adlistFile}" "${adlistFile}.old"
     fi
@@ -1355,9 +1351,9 @@ stop_service() {
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
     if is_command systemctl; then
-        systemctl stop "${1}" &>/dev/null || true
+        systemctl -q stop "${1}" || true
     else
-        service "${1}" stop &>/dev/null || true
+        service "${1}" stop >/dev/null || true
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1370,10 +1366,10 @@ restart_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to restart the service
-        systemctl restart "${1}" &>/dev/null
+        systemctl -q restart "${1}"
     else
         # Otherwise, fall back to the service command
-        service "${1}" restart &>/dev/null
+        service "${1}" restart >/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1386,10 +1382,10 @@ enable_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to enable the service
-        systemctl enable "${1}" &>/dev/null
+        systemctl -q enable "${1}"
     else
         #  Otherwise, use update-rc.d to accomplish this
-        update-rc.d "${1}" defaults &>/dev/null
+        update-rc.d "${1}" defaults >/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1402,10 +1398,10 @@ disable_service() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to disable the service
-        systemctl disable "${1}" &>/dev/null
+        systemctl -q disable "${1}"
     else
         # Otherwise, use update-rc.d to accomplish this
-        update-rc.d "${1}" disable &>/dev/null
+        update-rc.d "${1}" disable >/dev/null
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1414,7 +1410,7 @@ check_service_active() {
     # If systemctl exists,
     if is_command systemctl; then
         # use that to check the status of the service
-        systemctl is-enabled "${1}" &>/dev/null
+        systemctl -q is-enabled "${1}" 2>/dev/null
     else
         # Otherwise, fall back to service command
         service "${1}" status &>/dev/null
@@ -1473,16 +1469,11 @@ notify_package_updates_available() {
     # Store the list of packages in a variable
     updatesToInstall=$(eval "${PKG_COUNT}")
 
-    if [[ -d "/lib/modules/$(uname -r)" ]]; then
-        if [[ "${updatesToInstall}" -eq 0 ]]; then
-            printf "%b  %b %s... up to date!\\n\\n" "${OVER}" "${TICK}" "${str}"
-        else
-            printf "%b  %b %s... %s updates available\\n" "${OVER}" "${TICK}" "${str}" "${updatesToInstall}"
-            printf "  %b %bIt is recommended to update your OS after installing the Pi-hole!%b\\n\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-        fi
+    if [[ "${updatesToInstall}" -eq 0 ]]; then
+        printf "%b  %b %s... up to date!\\n\\n" "${OVER}" "${TICK}" "${str}"
     else
-        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "      Kernel update detected. If the install fails, please reboot and try again\\n"
+        printf "%b  %b %s... %s updates available\\n" "${OVER}" "${TICK}" "${str}" "${updatesToInstall}"
+        printf "  %b %bIt is recommended to update your OS after installing the Pi-hole!%b\\n\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
     fi
 }
 
@@ -1757,83 +1748,6 @@ checkSelinux() {
     fi
 }
 
-# Installation complete message with instructions for the user
-displayFinalMessage() {
-    # TODO: COME BACK TO THIS, WHAT IS GOING ON?
-    # If the number of arguments is > 0,
-    if [[ "${#1}" -gt 0 ]]; then
-        # set the password to the first argument.
-        pwstring="$1"
-    elif [[ -n $(pihole-FTL --config webserver.api.pwhash) ]]; then
-        # Else if the password exists from previous setup, we'll load it later
-        pwstring="unchanged"
-    else
-        # Else, inform the user that there is no set password.
-        pwstring="NOT SET"
-    fi
-
-    # Store a message in a variable and display it
-    additional="View the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pwstring}"
-
-    # Final completion message to user
-    dialog --no-shadow --keep-tite \
-        --title "Installation Complete!" \
-        --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
-\\n\\nIPv4:	${IPV4_ADDRESS%/*}\
-\\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
-\\nIf you have not done so already, the above IP should be set to static.\
-\\n${additional}" "${r}" "${c}"
-}
-
-update_dialogs() {
-    # If pihole -r "reconfigure" option was selected,
-    if [[ "${reconfigure}" = true ]]; then
-        # set some variables that will be used
-        opt1a="Repair"
-        opt1b="This will retain existing settings"
-        strAdd="You will remain on the same version"
-    else
-        # Otherwise, set some variables with different values
-        opt1a="Update"
-        opt1b="This will retain existing settings."
-        strAdd="You will be updated to the latest version."
-    fi
-    opt2a="Reconfigure"
-    opt2b="Resets Pi-hole and allows re-selecting settings."
-
-    # Display the information to the user
-    UpdateCmd=$(dialog --no-shadow --keep-tite --output-fd 1 \
-        --cancel-label Exit \
-        --title "Existing Install Detected!" \
-        --menu "\\n\\nWe have detected an existing install.\
-\\n\\nPlease choose from the following options:\
-\\n($strAdd)" \
-        "${r}" "${c}" 2 \
-        "${opt1a}" "${opt1b}" \
-        "${opt2a}" "${opt2b}") || result=$?
-
-    case ${result} in
-    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-        printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-        exit 1
-        ;;
-    esac
-
-    # Set the variable based on if the user chooses
-    case ${UpdateCmd} in
-    # repair, or
-    "${opt1a}")
-        printf "  %b %s option selected\\n" "${INFO}" "${opt1a}"
-        useUpdateVars=true
-        ;;
-    # reconfigure,
-    "${opt2a}")
-        printf "  %b %s option selected\\n" "${INFO}" "${opt2a}"
-        useUpdateVars=false
-        ;;
-    esac
-}
-
 check_download_exists() {
     # Check if the download exists and we can reach the server
     local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
@@ -1920,10 +1834,10 @@ checkout_pull_branch() {
     return 0
 }
 
-clone_or_update_repos() {
-    # If the user wants to reconfigure,
-    if [[ "${reconfigure}" == true ]]; then
-        printf "  %b Performing reconfiguration, skipping download of local repos\\n" "${INFO}"
+clone_or_reset_repos() {
+    # If the user wants to repair/update,
+    if [[ "${repair}" == true ]]; then
+        printf "  %b Resetting local repos\\n" "${INFO}"
         # Reset the Core repo
         resetRepo ${PI_HOLE_LOCAL_REPO} ||
             {
@@ -1936,7 +1850,7 @@ clone_or_update_repos() {
                 printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"
                 exit 1
             }
-    # Otherwise, a repair is happening
+    # Otherwise, a fresh installation is happening
     else
         # so get git files for Core
         getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} ||
@@ -1999,7 +1913,7 @@ FTLinstall() {
             curl -sSL "https://ftl.pi-hole.net/macvendor.db" -o "${PI_HOLE_CONFIG_DIR}/macvendor.db" || true
 
             # Stop pihole-FTL service if available
-            stop_service pihole-FTL &>/dev/null
+            stop_service pihole-FTL >/dev/null
 
             # Install the new version with the correct permissions
             install -T -m 0755 "${binary}" /usr/bin/pihole-FTL
@@ -2339,8 +2253,6 @@ migrate_dnsmasq_configs() {
 
     # Print a blank line for separation
     printf "\\n"
-
-    v5_to_v6_update=true
 }
 
 # Check for availability of either the "service" or "systemctl" commands
@@ -2430,22 +2342,19 @@ main() {
         exit 1
     fi
 
-    # in case of an update (can be a v5 -> v6 or v6 -> v6 update)
+    # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
     if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
+        # retain settings
+        fresh_install=false
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
             printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
-            # Use the setup variables
-            useUpdateVars=true
             # also disable debconf-apt-progress dialogs
             export DEBIAN_FRONTEND="noninteractive"
-        else
-            # If running attended, show the available options (repair/reconfigure)
-            update_dialogs
         fi
     fi
 
-    if [[ "${useUpdateVars}" == false ]]; then
+    if [[ "${fresh_install}" == true ]]; then
         # Display welcome dialogs
         welcomeDialogs
         # Create directory for Pi-hole storage (/etc/pihole/)
@@ -2468,9 +2377,8 @@ main() {
         # Setup adlist file if not exists
         installDefaultBlocklists
     fi
-    # Download or update the scripts by updating the appropriate git repos
-    clone_or_update_repos
-
+    # Download or reset the appropriate git repos depending on the 'repair' flag
+    clone_or_reset_repos
 
     # Create the pihole user
     create_pihole_user
@@ -2500,10 +2408,8 @@ main() {
     # Copy the temp log file into final log location for storage
     copy_to_install_log
 
-
     # Migrate existing install to v6.0
     migrate_dnsmasq_configs
-
 
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
@@ -2527,28 +2433,25 @@ main() {
 
     restart_service pihole-FTL
 
-    # Add password to web UI if there is none
-    pw=""
-    # If this is a fresh installation and no password is set,
-    if [[ ${v5_to_v6_update} = false && -z $(getFTLConfigValue webserver.api.pwhash) ]]; then
-        # generate a random password
-        pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
-        pihole setpassword "${pw}"
-    fi
+    if [[ "${fresh_install}" == true ]]; then
+        # apply settings to pihole.toml
+        # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
+        # set on fresh installations by setDNS() and setPrivacyLevel() and setLogging()
 
-    # apply settings to pihole.toml
-    # needs to be done after FTL service has been started, otherwise pihole.toml does not exist
-    # set on fresh installations by setDNS() and setPrivacyLevel() and setLogging()
-    if [ -n "${PIHOLE_DNS_1}" ]; then
-        local string="\"${PIHOLE_DNS_1}\""
-        [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
-        setFTLConfigValue "dns.upstreams" "[ $string ]"
-    fi
-    if [ -n "${QUERY_LOGGING}" ]; then
-        setFTLConfigValue "dns.queryLogging" "${QUERY_LOGGING}"
-    fi
-    if [ -n "${PRIVACY_LEVEL}" ]; then
-        setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
+        # Upstreams may be needed in order to run gravity.sh
+        if [ -n "${PIHOLE_DNS_1}" ]; then
+            local string="\"${PIHOLE_DNS_1}\""
+            [ -n "${PIHOLE_DNS_2}" ] && string+=", \"${PIHOLE_DNS_2}\""
+            setFTLConfigValue "dns.upstreams" "[ $string ]"
+        fi
+
+        if [ -n "${QUERY_LOGGING}" ]; then
+            setFTLConfigValue "dns.queryLogging" "${QUERY_LOGGING}"
+        fi
+
+        if [ -n "${PRIVACY_LEVEL}" ]; then
+            setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
+        fi
     fi
 
     # Download and compile the aggregated block list
@@ -2557,28 +2460,35 @@ main() {
     # Update local and remote versions via updatechecker
     /opt/pihole/updatecheck.sh
 
-    # If there is a password
-    if ((${#pw} > 0)); then
-        # display the password
-        printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
-        printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
-    fi
+    if [[ "${fresh_install}" == true ]]; then
 
-    if [[ "${useUpdateVars}" == false ]]; then
         # Get the Web interface port, return only the first port and strip all non-numeric characters
         WEBPORT=$(getFTLConfigValue webserver.port|cut -d, -f1 | tr -cd '0-9')
 
-        # Display the completion dialog
-        displayFinalMessage "${pw}"
-
-        # If the Web interface was installed,
-        printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
+        # If this is a fresh install, we will set a random password.
+        # Users can change this password after installation if they wish
+        pw=$(tr -dc _A-Z-a-z-0-9 </dev/urandom | head -c 8)
+        pihole setpassword "${pw}" > /dev/null
 
         # Explain to the user how to use Pi-hole as their DNS server
-        printf "  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
+        printf "\\n  %b You may now configure your devices to use the Pi-hole as their DNS server\\n" "${INFO}"
         [[ -n "${IPV4_ADDRESS%/*}" ]] && printf "  %b Pi-hole DNS (IPv4): %s\\n" "${INFO}" "${IPV4_ADDRESS%/*}"
         [[ -n "${IPV6_ADDRESS}" ]] && printf "  %b Pi-hole DNS (IPv6): %s\\n" "${INFO}" "${IPV6_ADDRESS}"
         printf "  %b If you have not done so already, the above IP should be set to static.\\n" "${INFO}"
+
+        printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
+        printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
+        printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
+
+        # Final dialog message to the user
+        dialog --no-shadow --keep-tite \
+            --title "Installation Complete!" \
+            --msgbox "Configure your devices to use the Pi-hole as their DNS server using:\
+\\n\\nIPv4:	${IPV4_ADDRESS%/*}\
+\\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
+\\nIf you have not done so already, the above IP should be set to static.\
+\\nView the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}" "${r}" "${c}"
+
         INSTALL_TYPE="Installation"
     else
         INSTALL_TYPE="Update"
