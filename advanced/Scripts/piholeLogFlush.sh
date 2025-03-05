@@ -35,6 +35,10 @@ FTLFILE=$(getFTLConfigValue "files.log.ftl")
 if [ -z "$FTLFILE" ]; then
     FTLFILE="/var/log/pihole/FTL.log"
 fi
+WEBFILE=$(getFTLConfigValue "files.log.webserver")
+if [ -z "$WEBFILE" ]; then
+    WEBFILE="/var/log/pihole/webserver.log"
+fi
 
 if [[ "$*" == *"once"* ]]; then
     # Nightly logrotation
@@ -71,6 +75,17 @@ if [[ "$*" == *"once"* ]]; then
         if [[ "$*" != *"quiet"* ]]; then
             echo -e "${OVER}  ${TICK} Rotated ${FTLFILE} ..."
         fi
+        # Copy webserver.log over to webserver.log.1
+        # and empty out webserver.log
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -ne "  ${INFO} Rotating ${WEBFILE} ..."
+        fi
+        cp -p "${WEBFILE}" "${WEBFILE}.1"
+        echo " " > "${WEBFILE}"
+        chmod 640 "${WEBFILE}"
+        if [[ "$*" != *"quiet"* ]]; then
+            echo -e "${OVER}  ${TICK} Rotated ${WEBFILE} ..."
+        fi
     fi
 else
     # Manual flushing
@@ -101,6 +116,20 @@ else
     fi
     if [[ "$*" != *"quiet"* ]]; then
         echo -e "${OVER}  ${TICK} Flushed ${FTLFILE} ..."
+    fi
+
+    # Flush both webserver.log and webserver.log.1 (if existing)
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -ne "  ${INFO} Flushing ${WEBFILE} ..."
+    fi
+    echo " " > "${WEBFILE}"
+    chmod 640 "${WEBFILE}"
+    if [ -f "${WEBFILE}.1" ]; then
+        echo " " > "${WEBFILE}.1"
+        chmod 640 "${WEBFILE}.1"
+    fi
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Flushed ${WEBFILE} ..."
     fi
 
     if [[ "$*" != *"quiet"* ]]; then
