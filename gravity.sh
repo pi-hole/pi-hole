@@ -541,20 +541,20 @@ gravity_DownloadBlocklists() {
     # it (in case it doesn't exist)
     # First, check if the directory is writable
     directory="$(dirname -- "${saveLocation}")"
-    directory_permissions=$(stat -c %a ${directory})
-    if [ $directory_permissions -lt 700 ]; then
+    if [ $(stat -c %a "${directory}") -lt 700 ]; then
       echo -e "  ${CROSS} Unable to write to ${directory}"
       echo "      Please run pihole -g as root"
       echo ""
       continue
     fi
-    # Then, check if the file is writable (if it exists)
-    saveLocation_permissions=$(stat -c %a ${saveLocation})
-    if [ -e "${saveLocation}" ] && [ ${saveLocation_permissions} -lt 600 ]; then
-      echo -e "  ${CROSS} Unable to write to ${saveLocation}"
-      echo "      Please run pihole -g as root"
-      echo ""
-      continue
+    # Check if the file exists and if so, if it is writable
+    if [ -e "${saveLocation}" ]; then
+      if [ $(stat -c %a "${saveLocation}") -lt 600 ]; then
+        echo -e "  ${CROSS} Unable to write to ${saveLocation}"
+        echo "      Please run pihole -g as root"
+        echo ""
+        continue
+      fi
     fi
 
     echo -e "  ${INFO} Target: ${url}"
