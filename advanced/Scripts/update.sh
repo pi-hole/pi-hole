@@ -149,31 +149,37 @@ main() {
         echo -e "  ${INFO} Web Interface:\\t${COL_GREEN}up to date${COL_NC}"
     fi
 
-    local funcOutput
-    funcOutput=$(get_binary_name) #Store output of get_binary_name here
-    local binary
-    binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
+    # Allow the user to skip this check if they are using a self-compiled FTL binary from an unsupported architecture
+    if [ "${PIHOLE_SKIP_FTL_CHECK}" != true ]; then
+        local funcOutput
+        funcOutput=$(get_binary_name) #Store output of get_binary_name here
+        local binary
+        binary="pihole-FTL${funcOutput##*pihole-FTL}" #binary name will be the last line of the output of get_binary_name (it always begins with pihole-FTL)
 
-    if FTLcheckUpdate "${binary}" &>/dev/null; then
-        FTL_update=true
-        echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
+        if FTLcheckUpdate "${binary}" &>/dev/null; then
+            FTL_update=true
+            echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}update available${COL_NC}"
+        else
+            case $? in
+                1)
+                    echo -e "  ${INFO} FTL:\\t\\t${COL_GREEN}up to date${COL_NC}"
+                    ;;
+                2)
+                    echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
+                    exit 1
+                    ;;
+                3)
+                    echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, cannot reach download server${COL_NC}"
+                    exit 1
+                    ;;
+                *)
+                    echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, contact support${COL_NC}"
+                    exit 1
+            esac
+            FTL_update=false
+        fi
     else
-        case $? in
-            1)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_GREEN}up to date${COL_NC}"
-                ;;
-            2)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
-                exit 1
-                ;;
-            3)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, cannot reach download server${COL_NC}"
-                exit 1
-                ;;
-            *)
-                echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, contact support${COL_NC}"
-                exit 1
-        esac
+        echo -e "  ${INFO} FTL:\\t\\t${COL_YELLOW}PIHOLE_SKIP_FTL_CHECK env variable set to true - update check skipped${COL_NC}"
         FTL_update=false
     fi
 

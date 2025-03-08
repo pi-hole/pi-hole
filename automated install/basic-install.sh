@@ -2238,7 +2238,7 @@ main() {
             exit 1
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping architecture check%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping architecture check%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     if [[ "${fresh_install}" == false ]]; then
@@ -2291,7 +2291,7 @@ main() {
             exit 1
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping FTL binary installation%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping FTL binary installation%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     # Install and log everything to a file
