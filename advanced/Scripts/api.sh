@@ -21,7 +21,7 @@
 TestAPIAvailability() {
 
     # as we are running locally, we can get the port value from FTL directly
-    local chaos_api_list availabilityResponse
+    local chaos_api_list authResponse authStatus authData
 
     # Query the API URLs from FTL using CHAOS TXT local.api.ftl
     # The result is a space-separated enumeration of full URLs
@@ -49,19 +49,28 @@ TestAPIAvailability() {
         API_URL="${API_URL#\"}"
 
         # Test if the API is available at this URL
-        availabilityResponse=$(curl -skS -o /dev/null -w "%{http_code}" "${API_URL}auth")
+        authResponse=$(curl --connect-timeout 2 -skS -w "%{http_code}" "${API_URL}auth")
+
+        # authStatus are the last 3 characters
+        # not using ${authResponse#"${authResponse%???}"}" here because it's extremely slow on big responses
+        authStatus=$(printf "%s" "${authResponse}" | tail -c 3)
+        # data is everything from response without the last 3 characters
+        authData=$(printf %s "${authResponse%???}")
 
         # Test if http status code was 200 (OK) or 401 (authentication required)
-        if [ ! "${availabilityResponse}" = 200 ] && [ ! "${availabilityResponse}" = 401 ]; then
+        if [ ! "${authStatus}" = 200 ] && [ ! "${authStatus}" = 401 ]; then
             # API is not available at this port/protocol combination
             API_PORT=""
         else
             # API is available at this URL combination
 
-            if [ "${availabilityResponse}" = 200 ]; then
+            if [ "${authStatus}" = 200 ]; then
                 # API is available without authentication
                 needAuth=false
             fi
+
+            # Check if 2FA is required
+            needTOTP=$(echo "${authData}"| jq --raw-output .session.totp 2>/dev/null)
 
             break
         fi
@@ -108,21 +117,50 @@ LoginAPI() {
             echo "API Authentication: Trying to use CLI password"
         fi
 
-        # Try to authenticate using the CLI password
-        Authentication "${1}"
-
+        # If we can read the CLI password, we can skip 2FA even when it's required otherwise
+        needTOTP=false
     elif [ "${1}" = "verbose" ]; then
         echo "API Authentication: CLI password not available"
     fi
 
+    if [ -z "${password}" ]; then
+        # no password read from CLI file
+        echo "Please enter your password:"
+        # secretly read the password
+        secretRead; printf '\n'
+    fi
 
+    if [ "${needTOTP}" = true ]; then
+        # 2FA required
+        echo "Please enter the correct second factor."
+        echo "(Can be any number if you used the app password)"
+        read -r totp
+    fi
 
-    # If this did not work, ask the user for the password
-    while [ "${validSession}" = false ] || [ -z "${validSession}" ] ; do
+    # Try to authenticate using the supplied password (CLI file or user input) and TOTP
+    Authentication "${1}"
+
+    # Try to login again until the session is valid
+    while [ ! "${validSession}" = true ]  ; do
         echo "Authentication failed. Please enter your Pi-hole password"
+
+        # Print the error message if there is one
+        if  [ ! "${sessionError}" = "null"  ] && [ "${1}" = "verbose" ]; then
+            echo "Error: ${sessionError}"
+        fi
+        # Print the session message if there is one
+        if  [ ! "${sessionMessage}" = "null" ] && [ "${1}" = "verbose" ]; then
+            echo "Error: ${sessionMessage}"
+        fi
 
         # secretly read the password
         secretRead; printf '\n'
+
+        if [ "${needTOTP}" = true ]; then
+            echo "Please enter the correct second factor:"
+            echo "(Can be any number if you used the app password)"
+            read -r totp
+        fi
 
         # Try to authenticate again
         Authentication "${1}"
@@ -131,23 +169,27 @@ LoginAPI() {
 }
 
 Authentication() {
-  sessionResponse="$(curl -skS -X POST "${API_URL}auth" --user-agent "Pi-hole cli " --data "{\"password\":\"${password}\"}" )"
+    sessionResponse="$(curl --connect-timeout 2 -skS -X POST "${API_URL}auth" --user-agent "Pi-hole cli" --data "{\"password\":\"${password}\", \"totp\":${totp:-null}}" )"
 
-  if [ -z "${sessionResponse}" ]; then
-    echo "No response from FTL server. Please check connectivity"
-    exit 1
-  fi
-  # obtain validity and session ID from session response
-  validSession=$(echo "${sessionResponse}"| jq .session.valid 2>/dev/null)
-  SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
-
-  if [ "${1}" = "verbose" ]; then
-    if [ "${validSession}" = true ]; then
-      echo "API Authentication: ${COL_GREEN}Success${COL_NC}"
-    else
-      echo "API Authentication: ${COL_RED}Failed${COL_NC}"
+    if [ -z "${sessionResponse}" ]; then
+        echo "No response from FTL server. Please check connectivity"
+        exit 1
     fi
-  fi
+    # obtain validity, session ID and sessionMessage from session response
+    validSession=$(echo "${sessionResponse}"| jq .session.valid 2>/dev/null)
+    SID=$(echo "${sessionResponse}"| jq --raw-output .session.sid 2>/dev/null)
+    sessionMessage=$(echo "${sessionResponse}"| jq --raw-output .session.message 2>/dev/null)
+
+    # obtain the error message from the session response
+    sessionError=$(echo "${sessionResponse}"| jq --raw-output .error.message 2>/dev/null)
+
+    if [ "${1}" = "verbose" ]; then
+        if [ "${validSession}" = true ]; then
+            echo "API Authentication: ${COL_GREEN}Success${COL_NC}"
+        else
+            echo "API Authentication: ${COL_RED}Failed${COL_NC}"
+        fi
+    fi
 }
 
 LogoutAPI() {
