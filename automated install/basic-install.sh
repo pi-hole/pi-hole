@@ -2350,7 +2350,7 @@ main() {
             exit 1
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping architecture check%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping architecture check%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
@@ -2406,7 +2406,7 @@ main() {
             exit 1
         fi
     else
-        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping FTL binary installation%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %bPIHOLE_SKIP_FTL_CHECK env variable set to true - skipping FTL binary installation%b\\n" "${INFO}" "${COL_YELLOW}" "${COL_NC}"
     fi
 
     # Install and log everything to a file
