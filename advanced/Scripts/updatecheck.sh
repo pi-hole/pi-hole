@@ -100,6 +100,23 @@ addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_VERSION" "${GITHUB_WEB_VERSION
 GITHUB_WEB_HASH="$(get_remote_hash web "${WEB_BRANCH}")"
 addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_WEB_HASH" "${GITHUB_WEB_HASH}"
 
+# get PADD versions
+
+PADD_VERSION="$(get_local_version /etc/.padd)"
+addOrEditKeyValPair "${VERSION_FILE}" "PADD_VERSION" "${PADD_VERSION}"
+
+PADD_BRANCH="$(get_local_branch /etc/.padd)"
+addOrEditKeyValPair "${VERSION_FILE}" "PADD_BRANCH" "${PADD_BRANCH}"
+
+PADD_HASH="$(get_local_hash /etc/.padd)"
+addOrEditKeyValPair "${VERSION_FILE}" "PADD_HASH" "${PADD_HASH}"
+
+GITHUB_PADD_VERSION="$(get_remote_version PADD "${PADD_BRANCH}")"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_PADD_VERSION" "${GITHUB_PADD_VERSION}"
+
+GITHUB_PADD_HASH="$(get_remote_hash PADD "${PADD_BRANCH}")"
+addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_PADD_HASH" "${GITHUB_PADD_HASH}"
+
 # get FTL versions
 
 FTL_VERSION="$(pihole-FTL version)"

@@ -65,11 +65,14 @@ coltable="/opt/pihole/COL_TABLE"
 # Root of the web server
 webroot="/var/www/html"
 
-# We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
+# We clone (or update) three git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
+# PADD is used to keep padd.sh, the replacement for Chronometer.
 # web is used to set up the Web admin interface.
 # Pi-hole contains various setup scripts and files which are critical to the installation.
 # Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
-# Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
+# Three notable scripts are gravity.sh (used to generate the HOSTS file), advanced/Scripts/webpage.sh (used to install the Web admin interface), and padd.sh (used to display Pi-hole stats via command line, Chronometer's replacement)
+PADD_LOCAL_REPO="/etc/.padd"
+paddGitUrl="https://github.com/pi-hole/PADD.git"
 webInterfaceGitUrl="https://github.com/pi-hole/web.git"
 webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
@@ -1263,6 +1266,32 @@ installScripts() {
         printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
         return 1
     fi
+
+    local strPadd="Installing script from ${PADD_LOCAL_REPO}"
+    printf "  %b %s..." "${INFO}" "${strPadd}"
+
+    # Clear out PADD file from PI_HOLE_BIN_DIR
+    rm -rf "${PI_HOLE_BIN_DIR}/padd" &> /dev/null
+
+    # Install padd.sh from local PADD repository as /usr/local/bin/padd
+    if is_repo "${PADD_LOCAL_REPO}"; then
+        # move into the directory
+        cd "${PADD_LOCAL_REPO}"
+        # Install the scripts by:
+        #  -o setting the owner to the user
+        #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
+        #
+        # We put PADD in PI_HOLE_BIN_DIR the same as is done for pi-hole/docker-pi-hole.
+        # By using -T we can drop the .sh suffix.
+        install -o "${USER}" -Dm755 -T "${PADD_LOCAL_REPO}/padd.sh" "${PI_HOLE_BIN_DIR}/padd"
+        printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${strPadd}"
+
+    else
+        # Otherwise, show an error and exit
+        printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PADD_LOCAL_REPO}" "${COL_NC}"
+        return 1
+    fi
 }
 
 # Install the configs from PI_HOLE_LOCAL_REPO to their various locations
@@ -1850,6 +1879,12 @@ clone_or_reset_repos() {
                 printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"
                 exit 1
             }
+        # Reset the PADD repo
+        resetRepo ${PADD_LOCAL_REPO} ||
+            {
+                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PADD_LOCAL_REPO}" "${COL_NC}"
+                exit 1
+            }
     # Otherwise, a fresh installation is happening
     else
         # so get git files for Core
@@ -1862,6 +1897,12 @@ clone_or_reset_repos() {
         getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} ||
             {
                 printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"
+                exit 1
+            }
+        # get the PADD git files
+        getGitFiles ${PADD_LOCAL_REPO} ${paddGitUrl} ||
+            {
+                printf "  %b Unable to clone %s into ${PADD_LOCAL_REPO}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${paddGitUrl}" "${COL_NC}"
                 exit 1
             }
     fi
