@@ -15,6 +15,8 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/web.git"
 readonly ADMIN_INTERFACE_DIR="/var/www/html/admin"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+readonly PADD_LOCAL_REPO="/etc/.padd"
+readonly PADD_GIT_URL="https://github.com/pi-hole/PADD.git"
 
 # shellcheck disable=SC2034
 SKIP_INSTALL=true
@@ -102,10 +104,12 @@ main() {
     local core_update
     local web_update
     local FTL_update
+    local PADD_update
 
     core_update=false
     web_update=false
     FTL_update=false
+    PADD_update=false
 
     # Perform an OS check to ensure we're on an appropriate operating system
     os_check
@@ -144,6 +148,20 @@ main() {
     else
         web_update=false
         echo -e "  ${INFO} Web Interface:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
+    fi
+
+    if ! is_repo "${PADD_LOCAL_REPO}" ; then
+        echo -e "\\n  ${COL_LIGHT_RED}Error: PADD repo is missing from system!"
+        echo -e "  Please re-run install script from https://pi-hole.net${COL_NC}"
+        exit 1;
+    fi
+
+    if GitCheckUpdateAvail "${PADD_LOCAL_REPO}" ; then
+        PADD_update=true
+        echo -e "  ${INFO} PADD:\\t${COL_YELLOW}update available${COL_NC}"
+    else
+        PADD_update=false
+        echo -e "  ${INFO} PADD:\\t${COL_LIGHT_GREEN}up to date${COL_NC}"
     fi
 
     local funcOutput
@@ -212,6 +230,13 @@ main() {
         echo -e "  ${INFO} If you had made any changes in '/var/www/html/admin/', they have been stashed using 'git stash'"
     fi
 
+    if [[ "${PADD_update}" == true ]]; then
+        echo ""
+        echo -e "  ${INFO} PADD is out of date, updating local repo."
+        getGitFiles "${PADD_LOCAL_REPO}" "${PADD_GIT_URL}"
+        echo -e "  ${INFO} If you had made any changes in '/etc/.padd/', they have been stashed using 'git stash'"
+    fi
+
     if [[ "${FTL_update}" == true ]]; then
         echo ""
         echo -e "  ${INFO} FTL out of date, it will be updated by the installer."
@@ -222,7 +247,7 @@ main() {
             echo -e "${basicError}" && exit 1
     fi
 
-    if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
+    if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true || "${PADD_update}" == true ]]; then
         # Update local and remote versions via updatechecker
         /opt/pihole/updatecheck.sh
         echo -e "  ${INFO} Local version file information updated."
@@ -230,7 +255,13 @@ main() {
 
     # if there was only a web update, show the new versions
     # (on core and FTL updates, this is done as part of the installer run)
-    if [[ "${web_update}" == true &&  "${FTL_update}" == false && "${core_update}" == false ]]; then
+    if [[ "${web_update}" == true &&  "${FTL_update}" == false && "${core_update}" == false && "${PADD_update}" == false ]]; then
+        "${PI_HOLE_BIN_DIR}"/pihole version
+    fi
+
+    # if there was only a PADD update, show the new versions
+    # (on core and FTL updates, this is done as part of the installer run)
+    if [[ "${PADD_update}" == true && "${web_update}" == false &&  "${FTL_update}" == false && "${core_update}" == false ]]; then
         "${PI_HOLE_BIN_DIR}"/pihole version
     fi
 

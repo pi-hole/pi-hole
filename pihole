@@ -126,8 +126,9 @@ queryFunc() {
   exit 0
 }
 
-chronometerFunc() {
-  echo "Chronometer is gone, use PADD (https://github.com/pi-hole/PADD)"
+paddFunc() {
+  shift
+  "${PI_HOLE_BIN_DIR}"/padd "$@"
   exit 0
 }
 
@@ -418,7 +419,8 @@ piholeCheckoutFunc() {
   Individual components:
     ${COL_PURPLE}core${COL_NC} ${COL_CYAN}branch${COL_NC}       Change the branch of Pi-hole's core subsystem
     ${COL_PURPLE}web${COL_NC} ${COL_CYAN}branch${COL_NC}        Change the branch of the web interface subsystem
-    ${COL_PURPLE}ftl${COL_NC} ${COL_CYAN}branch${COL_NC}        Change the branch of Pi-hole's FTL subsystem"
+    ${COL_PURPLE}ftl${COL_NC} ${COL_CYAN}branch${COL_NC}        Change the branch of Pi-hole's FTL subsystem
+    ${COL_PURPLE}PADD${COL_NC} ${COL_CYAN}branch${COL_NC}       Change the branch of Pi-hole's PADD subsystem"
 
       exit 0
     fi
@@ -490,6 +492,9 @@ Options:
   setpassword [pwd]   Set the password for the web interface
                         Without optional argument, password is read interactively.
                         When specifying a password directly, enclose it in single quotes.
+  -c, padd            Chronometer is now PADD (Pi-hole® Ad Detection Display)
+                        Calculates stats and displays to an LCD.
+                        Add '-h' for more info on PADD usage
   -g, updateGravity   Update the list of ad-serving domains
   -h, --help, help    Show this help dialog
   -l, logging         Specify whether the Pi-hole log should be used
@@ -522,7 +527,7 @@ need_root=1
 case "${1}" in
   "-h" | "help" | "--help"        ) helpFunc;;
   "-v" | "version"                ) versionFunc;;
-  "-c" | "chronometer"            ) chronometerFunc "$@";;
+  "-c" | "padd"                   ) paddFunc "$@";;
   "-q" | "query"                  ) queryFunc "$@";;
   "status"                        ) statusFunc "$2";;
   "tricorder"                     ) tricorderFunc;;

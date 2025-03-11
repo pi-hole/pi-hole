@@ -66,6 +66,12 @@ removePiholeFiles() {
     fi
     echo -e "${OVER}  ${TICK} Removed Web Interface"
 
+    # Only files in the PADD directory should be removed
+    echo -ne "  ${INFO} Removing PADD..."
+    ${SUDO} rm -rf /etc/.padd &> /dev/null
+    ${SUDO} rm -f /usr/local/bin/padd &> /dev/null
+    echo -e "${OVER}  ${TICK} Removed PADD"
+
     # Attempt to preserve backwards compatibility with older versions
     # to guarantee no additional changes were made to /etc/crontab after
     # the installation of pihole, /etc/crontab.pihole should be permanently
