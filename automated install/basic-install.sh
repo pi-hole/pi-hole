@@ -148,9 +148,7 @@ pkgdesc="Pi-hole dependency meta package"
 url="https://pi-hole.net"
 arch="noarch"
 license="EUPL-1.2"
-depends="bash bind-tools curl dnsmasq git iproute2 lighttpd logrotate \
-         netcat-openbsd php php-cgi php-curl php-json php-openssl \
-         php-session php-sqlite3 procps sudo unzip"
+depends="bash bind-tools binutils coreutils curl git grep iproute2-ss jq libcap logrotate ncurses nmap-ncat procps-ng psmisc shadow sudo tzdata unzip wget"
 makedepends=""
 source=""
 subpackages=""
