@@ -823,11 +823,11 @@ gravity_DownloadBlocklistFromUrl() {
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
     elif [[ -s "${listCurlBuffer}" ]]; then
-      # Determine if blocklist is non-standard and parse as appropriate
-      gravity_ParseFileIntoDomains "${listCurlBuffer}" "${saveLocation}"
-      # Remove curl buffer file after its use
-      rm "${listCurlBuffer}"
-      # Compare lists if are they identical
+      # Move the downloaded list to the final location
+      mv "${listCurlBuffer}" "${saveLocation}"
+      # Ensure the file has the correct permissions
+      fix_owner_permissions "${saveLocation}"
+      # Compare lists if they are identical
       compareLists "${adlistID}" "${saveLocation}"
       # Add domains to database table file
       pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
@@ -854,37 +854,6 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_status "${adlistID}" "4"
     fi
   fi
-}
-
-# Parse source files into domains format
-gravity_ParseFileIntoDomains() {
-  local src="${1}" destination="${2}"
-
-  # Remove comments and print only the domain name
-  # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
-  # This helps with that and makes it easier to read
-  # It also helps with debugging so each stage of the script can be researched more in depth
-  # 1) Convert all characters to lowercase
-  tr '[:upper:]' '[:lower:]' <"${src}" >"${destination}"
-
-  # 2) Remove carriage returns
-  # 3) Remove lines starting with ! (ABP Comments)
-  # 4) Remove lines starting with [ (ABP Header)
-  # 5) Remove lines containing ABP extended CSS selectors ("##", "#$#", "#@#", "#?#") and Adguard JavaScript (#%#) preceded by a letter
-  # 6) Remove comments (text starting with "#", include possible spaces before the hash sign)
-  # 7) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
-  # 8) Remove empty lines
-
-  sed -i -r \
-    -e 's/\r$//' \
-    -e 's/\s*!.*//g' \
-    -e 's/\s*\[.*//g' \
-    -e '/[a-z]\#[$?@%]{0,3}\#/d' \
-    -e 's/\s*#.*//g' \
-    -e 's/^.*\s+//g' \
-    -e '/^$/d' "${destination}"
-
-  fix_owner_permissions "${destination}"
 }
 
 # Report number of entries in a table
