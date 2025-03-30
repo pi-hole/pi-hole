@@ -12,7 +12,7 @@
 # shellcheck disable=SC3043
 # https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
 
-# Source the versions file poupulated by updatechecker.sh
+# Source the versions file populated by updatechecker.sh
 cachedVersions="/etc/pihole/versions"
 
 if [ -f ${cachedVersions} ]; then

@@ -11,7 +11,7 @@ FTL_PID_FILE="$(getFTLConfigValue files.pid)"
 
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
 mkdir -p /var/log/pihole
-chown -R pihole:pihole /etc/pihole /var/log/pihole
+chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
 # allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
 find /etc/pihole/ /var/log/pihole/ -type d -exec chmod 0755 {} +
 # Set all files (except TLS-related ones) to u+rw g+r
@@ -26,4 +26,5 @@ chown root:root /etc/pihole/logrotate
 [ -f "${FTL_PID_FILE}" ] || install -D -m 644 -o pihole -g pihole /dev/null "${FTL_PID_FILE}"
 [ -f /var/log/pihole/FTL.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/FTL.log
 [ -f /var/log/pihole/pihole.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/pihole.log
+[ -f /var/log/pihole/webserver.log ] || install -m 640 -o pihole -g pihole /dev/null /var/log/pihole/webserver.log
 [ -f /etc/pihole/dhcp.leases ] || install -m 644 -o pihole -g pihole /dev/null /etc/pihole/dhcp.leases
