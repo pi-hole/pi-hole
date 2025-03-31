@@ -48,10 +48,15 @@ main() {
         echo "    Version is ${FTL_VERSION:=N/A} (Latest: ${GITHUB_FTL_VERSION:=N/A})"
         echo "    Branch is ${FTL_BRANCH:=N/A}"
         echo "    Hash is ${FTL_HASH:=N/A} (Latest: ${GITHUB_FTL_HASH:=N/A})"
+        echo "PADD"
+        echo "    Version is ${PADD_VERSION:=N/A} (Latest: ${GITHUB_PADD_VERSION:=N/A})"
+        echo "    Branch is ${PADD_BRANCH:=N/A}"
+        echo "    Hash is ${PADD_HASH:=N/A} (Latest: ${GITHUB_PADD_HASH:=N/A})"
     else
         echo "Core version is ${CORE_VERSION:=N/A} (Latest: ${GITHUB_CORE_VERSION:=N/A})"
         echo "Web version is ${WEB_VERSION:=N/A} (Latest: ${GITHUB_WEB_VERSION:=N/A})"
         echo "FTL version is ${FTL_VERSION:=N/A} (Latest: ${GITHUB_FTL_VERSION:=N/A})"
+        echo "PADD version is ${PADD_VERSION:=N/A} (Latest: ${GITHUB_PADD_VERSION:=N/A})"
     fi
 }
 

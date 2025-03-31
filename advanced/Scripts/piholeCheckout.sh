@@ -12,6 +12,8 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
+# paddGitUrl set in basic-install.sh
+# PADD_LOCAL_REPO set in basic-install.sh
 # webInterfaceGitUrl set in basic-install.sh
 # webInterfaceDir set in basic-install.sh
 # piholeGitURL set in basic-install.sh
@@ -42,6 +44,7 @@ warning1() {
 checkout() {
     local corebranches
     local webbranches
+    local paddbranches
 
     # Check if FTL is installed - do this early on as FTL is a hard dependency for Pi-hole
     local funcOutput
@@ -65,6 +68,12 @@ checkout() {
         exit 1;
     fi
 
+    if ! is_repo "${PADD_LOCAL_REPO}" ; then
+        echo -e "  ${COL_LIGHT_RED}Error: PADD repo is missing from system!"
+        echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
+        exit 1;
+    fi
+
     if [[ -z "${1}" ]]; then
         echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}"
         echo -e "  Try 'pihole checkout --help' for more information."
@@ -84,7 +93,9 @@ checkout() {
         echo ""
         echo -e "  ${INFO} Web interface"
         fetch_checkout_pull_branch "${webInterfaceDir}" "development" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
-        #echo -e "  ${TICK} Pi-hole Core"
+        echo ""
+        echo -e "  ${INFO} PADD"
+        fetch_checkout_pull_branch "${PADD_LOCAL_REPO}" "development" || { echo "  ${CROSS} Unable to pull PADD development branch"; exit 1; }
 
         local path
         path="development/${binary}"
@@ -97,7 +108,9 @@ checkout() {
         fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
         echo -e "  ${INFO} Web interface"
         fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
-        #echo -e "  ${TICK} Web Interface"
+        echo -e "  ${INFO} PADD"
+        fetch_checkout_pull_branch "${PADD_LOCAL_REPO}" "master" || { echo "  ${CROSS} Unable to pull PADD master branch"; exit 1; }
+
         local path
         path="master/${binary}"
         echo "master" > /etc/pihole/ftlbranch
@@ -156,6 +169,33 @@ checkout() {
             exit 1
         fi
         checkout_pull_branch "${webInterfaceDir}" "${2}"
+    elif [[ "${1}" == "PADD" ]] ; then
+        str="Fetching branches from ${paddGitUrl}"
+        echo -ne "  ${INFO} $str"
+        if ! fully_fetch_repo "${PADD_LOCAL_REPO}" ; then
+            echo -e "${OVER}  ${CROSS} $str"
+            exit 1
+        fi
+        paddbranches=($(get_available_branches "${PADD_LOCAL_REPO}"))
+
+        if [[ "${paddbranches[*]}" == *"master"* ]]; then
+            echo -e "${OVER}  ${TICK} $str"
+            echo -e "  ${INFO} ${#paddbranches[@]} branches available for PADD"
+        else
+            # Print STDERR output from get_available_branches
+            echo -e "${OVER}  ${CROSS} $str\\n\\n${paddbranches[*]}"
+            exit 1
+        fi
+
+        echo ""
+        # Have the user choose the branch they want
+        if ! (for e in "${paddbranches[@]}"; do [[ "$e" == "${2}" ]] && exit 0; done); then
+            echo -e "  ${INFO} Requested branch \"${COL_CYAN}${2}${COL_NC}\" is not available"
+            echo -e "  ${INFO} Available branches for PADD are:"
+            for e in "${paddbranches[@]}"; do echo "      - $e"; done
+            exit 1
+        fi
+        checkout_pull_branch "${PADD_LOCAL_REPO}" "${2}"
         # Update local and remote versions via updatechecker
         /opt/pihole/updatecheck.sh
     elif [[ "${1}" == "ftl" ]] ; then

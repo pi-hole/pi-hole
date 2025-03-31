@@ -119,6 +119,32 @@ Available commands and options:
                         (regular expressions are supported)
 .br
 
+\fB-c, padd\fR	[options]
+.br
+    Chronometer is now PADD (Pi-hole® Ad Detection Display)
+    Calculates stats and displays to an LCD.
+    Add '-h' for more info on PADD usage
+.br
+
+    (PADD Options):
+.br
+      --xoff [num]    set the x-offset, reference is the upper left corner, disables auto-centering
+.br
+      --yoff [num]    set the y-offset, reference is the upper left corner, disables auto-centering
+.br
+      --server <DOMAIN|IP>    domain or IP of your Pi-hole (default: localhost)
+.br
+      --secret <password>     your Pi-hole's password, required to access the API
+.br
+      --2fa <2fa>             your Pi-hole's 2FA code, if 2FA is enabled
+.br
+      -j, --json              output stats as JSON formatted string and exit
+.br
+      -v, --version           show PADD version info
+.br
+      -h, --help              display this help text
+.br
+
 \fB-g, updateGravity\fR
 .br
     Update the list of ad-serving domains
