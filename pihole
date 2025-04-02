@@ -17,21 +17,21 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
-source "${colfile}"
+. "${colfile}"
 
 readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-source "${utilsfile}"
+. "${utilsfile}"
 
 # Source api functions
 readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
-source "${apifile}"
+. "${apifile}"
 
 versionsfile="/etc/pihole/versions"
 if [ -f "${versionsfile}" ]; then
     # Only source versionsfile if the file exits
     # fixes a warning during installation where versionsfile does not exist yet
     # but gravity calls `pihole -status` and thereby sourcing the file
-    source "${versionsfile}"
+    . "${versionsfile}"
 fi
 
 # TODO: We can probably remove the reliance on this function too, just tell people to pihole-FTL --config webserver.api.password "password"
@@ -423,7 +423,7 @@ piholeCheckoutFunc() {
       exit 0
     fi
 
-    source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
+    . "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
     shift
     checkout "$@"
   fi

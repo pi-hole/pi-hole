@@ -10,7 +10,7 @@
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+. "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # webInterfaceGitUrl set in basic-install.sh
 # webInterfaceDir set in basic-install.sh

@@ -12,12 +12,12 @@
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
-    source ${coltable}
+    . ${coltable}
 fi
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-source "${utilsfile}"
+. "${utilsfile}"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")

@@ -12,10 +12,10 @@
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-source "${utilsfile}"
+. "${utilsfile}"
 
 readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
-source "${apifile}"
+. "${apifile}"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
@@ -39,7 +39,7 @@ typeId=""
 comment=""
 
 colfile="/opt/pihole/COL_TABLE"
-source ${colfile}
+. ${colfile}
 
 helpFunc() {
     echo "Usage: pihole ${abbrv} [options] <domain> <domain2 ...>
