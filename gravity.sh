@@ -17,13 +17,13 @@ PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck disable=SC1090
-. "${utilsfile}"
+source "${utilsfile}"
 
 coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 # shellcheck disable=SC1090
-. "${coltable}"
+source "${coltable}"
 # shellcheck disable=SC1091
-. "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
+source "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
 PIHOLE_COMMAND="/usr/local/bin/${basename}"
