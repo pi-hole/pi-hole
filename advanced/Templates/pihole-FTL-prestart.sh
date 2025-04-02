@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # Source utils.sh for getFTLConfigValue()
 PI_HOLE_SCRIPT_DIR='/opt/pihole'

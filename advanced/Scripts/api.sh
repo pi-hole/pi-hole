@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # shellcheck disable=SC3043 #https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
 
 # Pi-hole: A black hole for Internet advertisements

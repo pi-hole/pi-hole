@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # Determine if terminal is capable of showing colors
 if [ -t 1 ] && [ "$(tput colors)" -ge 8 ]; then
   # Bold and underline may not show up on all clients
