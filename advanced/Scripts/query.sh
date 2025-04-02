@@ -22,10 +22,10 @@ domain=""
 
 # Source color table
 colfile="/opt/pihole/COL_TABLE"
-. "${colfile}"
+source "${colfile}"
 
 # Source api functions
-. "${PI_HOLE_INSTALL_DIR}/api.sh"
+source "${PI_HOLE_INSTALL_DIR}/api.sh"
 
 Help() {
     echo "Usage: pihole -q [option] <domain>
