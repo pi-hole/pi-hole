@@ -2266,6 +2266,34 @@ check_service_command() {
     fi
 }
 
+# Check for existing NTP service
+existing_ntp_active() {
+    # Test for existing ntp services on fresh installs
+    #
+    # Leaves Pi-hole's ntp service active if a minimal NTP / SNTP service such
+    # as timesyncd is operating, or if a more advanced ntp service is used only
+    # in "one-shot" mode such as ntpdate, ntpd -g or chronyd -q.
+    #
+    # But disables it in the following cases:
+
+    # If a clock dispiplining ntp client (chrony, ntp, ntpsec)
+    # is already operating.
+    for ntp_service in "chronyd" "ntpd"; do
+        if check_service_active "$ntp_service"; then
+            return 0
+        fi
+    done
+
+    # Or as a backup, if any other server (other than Pi-hole) is listening on udp port 123
+    if is_command "lsof"; then
+        if grep ":ntp" <<< "$(lsof -c ^pihole -iUDP:123)"; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 main() {
     ######## FIRST CHECK ########
     # Must be root to install
@@ -2451,6 +2479,16 @@ main() {
 
         if [ -n "${PRIVACY_LEVEL}" ]; then
             setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
+        fi
+    fi
+
+    # Disable Pi-hole's ntp services if another ntp server or clock disciplining client is active
+    if [[ "${fresh_install}" == true ]]; then
+        if existing_ntp_active; then
+            setFTLConfigValue "ntp.ipv4.active" "false"
+            setFTLConfigValue "ntp.ipv6.active" "false"
+            setFTLConfigValue "ntp.sync.active" "false"
+            printf "  %b An existing NTP service was detected. NTP features have not been enabled\\n" "${INFO}"
         fi
     fi
 
