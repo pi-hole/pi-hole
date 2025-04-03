@@ -40,7 +40,7 @@ function get_remote_hash() {
 
 # Source the utils file for addOrEditKeyValPair()
 # shellcheck disable=SC1091
-source /opt/pihole/utils.sh
+. /opt/pihole/utils.sh
 
 # Remove the below three legacy files if they exist
 rm -f "/etc/pihole/GitHubVersions"

@@ -152,7 +152,7 @@ done
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
     # source it
-    source "${coltable}"
+    . "${coltable}"
 # Otherwise,
 else
     # Set these values so the installer can still run in color
@@ -2399,7 +2399,7 @@ main() {
     # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
     if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
         # shellcheck disable=SC1091
-        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+        . "${PI_HOLE_INSTALL_DIR}/utils.sh"
     else
         printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
         exit 1

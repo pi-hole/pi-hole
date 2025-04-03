@@ -9,11 +9,11 @@
 # Please see LICENSE file for your rights under this license.
 
 colfile="/opt/pihole/COL_TABLE"
-source ${colfile}
+. ${colfile}
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-source "${utilsfile}"
+. "${utilsfile}"
 
 # In case we're running at the same time as a system logrotate, use a
 # separate logrotate state file to prevent stepping on each other's

@@ -27,7 +27,7 @@ PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
-    source ${PIHOLE_COLTABLE_FILE}
+    . ${PIHOLE_COLTABLE_FILE}
 else
     COL_NC='\e[0m' # No Color
     COL_RED='\e[1;91m'
@@ -42,7 +42,7 @@ else
 fi
 
 # shellcheck disable=SC1091
-source /etc/pihole/versions
+. /etc/pihole/versions
 
 # Read the value of an FTL config key. The value is printed to stdout.
 get_ftl_conf_value() {

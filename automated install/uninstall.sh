@@ -8,7 +8,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-source "/opt/pihole/COL_TABLE"
+. "/opt/pihole/COL_TABLE"
 
 while true; do
     read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " answer
@@ -37,7 +37,7 @@ fi
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+. "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # package_manager_detect() sourced from basic-install.sh
 package_manager_detect
