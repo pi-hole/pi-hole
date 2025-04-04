@@ -39,6 +39,7 @@ else
 fi
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# shellcheck disable=SC2034
 SKIP_INSTALL="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
