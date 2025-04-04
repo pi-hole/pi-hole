@@ -572,7 +572,7 @@ gravity_DownloadBlocklists() {
     echo ""
   done
 
-  gravity_Blackbody=true
+  DownloadBlocklists_done=true
 }
 
 compareLists() {
@@ -932,13 +932,13 @@ gravity_Cleanup() {
   # invalid_domains location
   rm "${GRAVITY_TMPDIR}"/*.ph-non-domains 2>/dev/null
 
-  # Ensure this function only runs when gravity_SetDownloadOptions() has completed
-  if [[ "${gravity_Blackbody:-}" == true ]]; then
-    # Remove any unused .domains files
-    for file in "${piholeDir}"/*."${domainsExtension}"; do
-      # If list is not in active array, then remove it
+  # Ensure this function only runs when gravity_DownloadBlocklists() has completed
+  if [[ "${DownloadBlocklists_done:-}" == true ]]; then
+    # Remove any unused .domains/.etag/.sha files
+    for file in "${listsCacheDir}"/*."${domainsExtension}"; do
+      # If list is not in active array, then remove it and all associated files
       if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
-        rm -f "${file}" 2>/dev/null ||
+        rm -f "${file}"* 2>/dev/null ||
           echo -e "  ${CROSS} Failed to remove ${file##*/}"
       fi
     done
