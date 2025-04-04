@@ -1752,7 +1752,8 @@ checkSelinux() {
 
 check_download_exists() {
     # Check if the download exists and we can reach the server
-    local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
+    local status
+    status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
 
     # Check the status code
     if grep -q "200" <<<"$status"; then
@@ -2069,13 +2070,13 @@ FTLcheckUpdate() {
         path="${ftlBranch}/${binary}"
 
         # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
-        # shellcheck disable=SC1090
         if ! check_download_exists "$path"; then
-            if [ $? -eq 1 ]; then
+            local status
+            status=$?
+            if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
                 printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-                return 2
-            elif [ $? -eq 2 ]; then
+            elif [ "${status}" -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 return 3
             else
