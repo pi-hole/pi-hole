@@ -17,12 +17,12 @@ cachedVersions="/etc/pihole/versions"
 
 if [ -f ${cachedVersions} ]; then
     # shellcheck disable=SC1090
-    source "$cachedVersions"
+    . "$cachedVersions"
 else
     echo "Could not find /etc/pihole/versions. Running update now."
     pihole updatechecker
     # shellcheck disable=SC1090
-    source "$cachedVersions"
+    . "$cachedVersions"
 fi
 
 main() {

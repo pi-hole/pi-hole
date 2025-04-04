@@ -42,7 +42,7 @@ else
 fi
 
 # shellcheck disable=SC1091
-source /etc/pihole/versions
+. /etc/pihole/versions
 
 # Read the value of an FTL config key. The value is printed to stdout.
 get_ftl_conf_value() {
