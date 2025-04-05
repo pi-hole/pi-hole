@@ -2481,6 +2481,8 @@ main() {
         printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
         printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
         printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
+        printf "  %b To allow your user to use all CLI functions without authentication, refer to\\n" "${INFO}"
+        printf "    our documentation at: https://docs.pi-hole.net/main/post-install/\\n\\n"
 
         # Final dialog message to the user
         dialog --no-shadow --keep-tite \
@@ -2489,7 +2491,11 @@ main() {
 \\n\\nIPv4:	${IPV4_ADDRESS%/*}\
 \\nIPv6:	${IPV6_ADDRESS:-"Not Configured"}\
 \\nIf you have not done so already, the above IP should be set to static.\
-\\nView the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}" "${r}" "${c}"
+\\nView the web interface at http://pi.hole/admin:${WEBPORT} or http://${IPV4_ADDRESS%/*}:${WEBPORT}/admin\\n\\nYour Admin Webpage login password is ${pw}\
+\\n
+\\n
+\\nTo allow your user to use all CLI functions without authentication,\
+\\nrefer to https://docs.pi-hole.net/main/post-install/" "${r}" "${c}"
 
         INSTALL_TYPE="Installation"
     else
