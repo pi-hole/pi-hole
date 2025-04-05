@@ -9,6 +9,9 @@
 # Please see LICENSE file for your rights under this license.
 
 source "/opt/pihole/COL_TABLE"
+source "/opt/pihole/utils.sh"
+
+readonly ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 
 while true; do
     read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " answer
@@ -53,17 +56,9 @@ removeMetaPackage() {
 }
 
 removePiholeFiles() {
-    # Only web directories/files that are created by Pi-hole should be removed
+    # Remove the web interface of Pi-hole
     echo -ne "  ${INFO} Removing Web Interface..."
-    ${SUDO} rm -rf /var/www/html/admin &> /dev/null
-
-
-    # If the web directory is empty after removing these files, then the parent html directory can be removed.
-    if [ -d "/var/www/html" ]; then
-        if [[ ! "$(ls -A /var/www/html)" ]]; then
-            ${SUDO} rm -rf /var/www/html &> /dev/null
-        fi
-    fi
+    ${SUDO} rm -rf "${ADMIN_INTERFACE_DIR}" &> /dev/null
     echo -e "${OVER}  ${TICK} Removed Web Interface"
 
     # Attempt to preserve backwards compatibility with older versions
