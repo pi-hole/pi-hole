@@ -592,6 +592,6 @@ case "${1}" in
   "updatechecker"                 ) shift; updateCheckFunc "$@";;
   "arpflush"                      ) arpFunc "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
-  "api"                           ) apiFunc "$2";;
+  "api"                           ) shift; apiFunc "$@";;
   *                               ) helpFunc;;
 esac
