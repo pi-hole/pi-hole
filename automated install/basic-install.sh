@@ -57,7 +57,7 @@ Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
-DNS_SERVERSv6ONLY=$(
+DNS_SERVERS_IPV6_ONLY=$(
     cat <<EOM
 Google (ECS, DNSSEC);2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
 OpenDNS (ECS, DNSSEC);2620:119:35::35;2620:119:53::53
@@ -748,7 +748,7 @@ Do you wish to continue with an IPv6-only installation?\\n\\n" \
         esac
     fi
 
-    DNS_SERVERS="$DNS_SERVERSv6ONLY"
+    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
     printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
 }
 
