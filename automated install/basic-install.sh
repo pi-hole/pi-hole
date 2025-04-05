@@ -57,6 +57,17 @@ Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
+DNS_SERVERS_IPV6_ONLY=$(
+    cat <<EOM
+Google (ECS, DNSSEC);2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+OpenDNS (ECS, DNSSEC);2620:119:35::35;2620:119:53::53
+Quad9 (filtered, DNSSEC);2620:fe::fe;2620:fe::9
+Quad9 (unfiltered, no DNSSEC);2620:fe::10;2620:fe::fe:10
+Quad9 (filtered, ECS, DNSSEC);2620:fe::11;2620:fe::fe:11
+Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
+EOM
+)
+
 # Location for final installation log storage
 installLogLoc="/etc/pihole/install.log"
 # This is a file used for the colorized output
@@ -687,8 +698,15 @@ find_IPv4_information() {
     local route
     local IPv4bare
 
-    # Find IP used to route to outside world by checking the route to Google's public DNS server
-    route=$(ip route get 8.8.8.8)
+    # Test if IPv4 is routable
+    if ip route get 8.8.8.8 &>/dev/null; then
+        # Find IP used to route to outside world by checking the route to Google's public DNS server
+        route="$(ip route get 8.8.8.8)"
+    else
+        printf "  %b No IPv4 route was detected.\n" "${INFO}"
+        IPV4_ADDRESS=""
+        return
+    fi
 
     # Get just the interface IPv4 address
     # shellcheck disable=SC2059,SC2086
@@ -702,6 +720,38 @@ find_IPv4_information() {
 
     # Append the CIDR notation to the IP address, if valid_ip fails this should return 127.0.0.1/8
     IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" | awk '{print $4}' | awk 'END {print}')
+}
+
+check_ipv6_only() {
+    if [ "$PIHOLE_IPV6_ONLY" != true ]; then
+        # Test for connectivity to github
+        # (users will need DNS64 and NAT64 capability on their system)
+        if curl -s https://github.com/pi-hole/pi-hole 2>&1 > /dev/null; then
+            printf "  %b Connectivity to github.com confirmed.\\n" "${INFO}"
+        else
+            printf "  %b Unable to reach github.com on IPv6 only system exiting.\\n" "${INFO}"
+            exit 1
+        fi
+
+        dialog --no-shadow --output-fd 1 \
+--no-button "Exit" --yes-button "Install IPv6 ONLY" \
+--defaultno \
+--yesno "\\n\\nWARNING - no valid IPv4 route detected.\\n\\n\
+This may be due to a temporary connectivity issue.\\n\
+Or you may be installing on an IPv6 only system.\\n\\n\
+Do you wish to continue with an IPv6-only installation?\\n\\n" \
+        "${r}" "${c}" && result=0 || result="$?"
+
+        case "${result}" in
+        "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+            printf "  %b Installer exited at IPv6 only message.\\n" "${INFO}"
+            exit 1
+        ;;
+        esac
+    fi
+
+    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
+    printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
 }
 
 # Get available interfaces that are UP
@@ -858,6 +908,9 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
+    if [ "$IPV4_ADDRESS" == "" ] && [ "$IPV6_ADDRESS" != "" ]; then
+        check_ipv6_only
+    fi
 }
 
 # Check an IP address to see if it is a valid one
