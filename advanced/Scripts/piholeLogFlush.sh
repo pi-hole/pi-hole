@@ -40,6 +40,37 @@ if [ -z "$WEBFILE" ]; then
     WEBFILE="/var/log/pihole/webserver.log"
 fi
 
+# Helper function to handle log rotation for a single file
+rotate_log() {
+    local logfile="$1"
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -ne "  ${INFO} Rotating ${logfile} ..."
+    fi
+    cp -p "${logfile}" "${logfile}.1"
+    echo " " > "${logfile}"
+    chmod 640 "${logfile}"
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Rotated ${logfile} ..."
+    fi
+}
+
+# Helper function to handle log flushing for a single file
+flush_log() {
+    local logfile="$1"
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -ne "  ${INFO} Flushing ${logfile} ..."
+    fi
+    echo " " > "${logfile}"
+    chmod 640 "${logfile}"
+    if [ -f "${logfile}.1" ]; then
+        echo " " > "${logfile}.1"
+        chmod 640 "${logfile}.1"
+    fi
+    if [[ "$*" != *"quiet"* ]]; then
+        echo -e "${OVER}  ${TICK} Flushed ${logfile} ..."
+    fi
+}
+
 if [[ "$*" == *"once"* ]]; then
     # Nightly logrotation
     if command -v /usr/sbin/logrotate >/dev/null; then
@@ -50,87 +81,16 @@ if [[ "$*" == *"once"* ]]; then
         fi
         /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
     else
-        # Copy pihole.log over to pihole.log.1
-        # and empty out pihole.log
-        # Note that moving the file is not an option, as
-        # dnsmasq would happily continue writing into the
-        # moved file (it will have the same file handler)
-        if [[ "$*" != *"quiet"* ]]; then
-            echo -ne "  ${INFO} Rotating ${LOGFILE} ..."
-        fi
-        cp -p "${LOGFILE}" "${LOGFILE}.1"
-        echo " " > "${LOGFILE}"
-        chmod 640 "${LOGFILE}"
-        if [[ "$*" != *"quiet"* ]]; then
-            echo -e "${OVER}  ${TICK} Rotated ${LOGFILE} ..."
-        fi
-        # Copy FTL.log over to FTL.log.1
-        # and empty out FTL.log
-        if [[ "$*" != *"quiet"* ]]; then
-            echo -ne "  ${INFO} Rotating ${FTLFILE} ..."
-        fi
-        cp -p "${FTLFILE}" "${FTLFILE}.1"
-        echo " " > "${FTLFILE}"
-        chmod 640 "${FTLFILE}"
-        if [[ "$*" != *"quiet"* ]]; then
-            echo -e "${OVER}  ${TICK} Rotated ${FTLFILE} ..."
-        fi
-        # Copy webserver.log over to webserver.log.1
-        # and empty out webserver.log
-        if [[ "$*" != *"quiet"* ]]; then
-            echo -ne "  ${INFO} Rotating ${WEBFILE} ..."
-        fi
-        cp -p "${WEBFILE}" "${WEBFILE}.1"
-        echo " " > "${WEBFILE}"
-        chmod 640 "${WEBFILE}"
-        if [[ "$*" != *"quiet"* ]]; then
-            echo -e "${OVER}  ${TICK} Rotated ${WEBFILE} ..."
-        fi
+        # Handle rotation for each log file
+        rotate_log "${LOGFILE}"
+        rotate_log "${FTLFILE}"
+        rotate_log "${WEBFILE}"
     fi
 else
     # Manual flushing
-
-    # Flush both pihole.log and pihole.log.1 (if existing)
-    if [[ "$*" != *"quiet"* ]]; then
-        echo -ne "  ${INFO} Flushing ${LOGFILE} ..."
-    fi
-    echo " " > "${LOGFILE}"
-    chmod 640 "${LOGFILE}"
-    if [ -f "${LOGFILE}.1" ]; then
-        echo " " > "${LOGFILE}.1"
-        chmod 640 "${LOGFILE}.1"
-    fi
-    if [[ "$*" != *"quiet"* ]]; then
-        echo -e "${OVER}  ${TICK} Flushed ${LOGFILE} ..."
-    fi
-
-    # Flush both FTL.log and FTL.log.1 (if existing)
-    if [[ "$*" != *"quiet"* ]]; then
-        echo -ne "  ${INFO} Flushing ${FTLFILE} ..."
-    fi
-    echo " " > "${FTLFILE}"
-    chmod 640 "${FTLFILE}"
-    if [ -f "${FTLFILE}.1" ]; then
-        echo " " > "${FTLFILE}.1"
-        chmod 640 "${FTLFILE}.1"
-    fi
-    if [[ "$*" != *"quiet"* ]]; then
-        echo -e "${OVER}  ${TICK} Flushed ${FTLFILE} ..."
-    fi
-
-    # Flush both webserver.log and webserver.log.1 (if existing)
-    if [[ "$*" != *"quiet"* ]]; then
-        echo -ne "  ${INFO} Flushing ${WEBFILE} ..."
-    fi
-    echo " " > "${WEBFILE}"
-    chmod 640 "${WEBFILE}"
-    if [ -f "${WEBFILE}.1" ]; then
-        echo " " > "${WEBFILE}.1"
-        chmod 640 "${WEBFILE}.1"
-    fi
-    if [[ "$*" != *"quiet"* ]]; then
-        echo -e "${OVER}  ${TICK} Flushed ${WEBFILE} ..."
-    fi
+    flush_log "${LOGFILE}"
+    flush_log "${FTLFILE}"
+    flush_log "${WEBFILE}"
 
     if [[ "$*" != *"quiet"* ]]; then
         echo -ne "  ${INFO} Flushing database, DNS resolution temporarily unavailable ..."
