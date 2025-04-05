@@ -9,6 +9,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+# shellcheck disable=SC1090
+
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 
 # PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
@@ -247,12 +249,14 @@ Time:
   data=$(PostFTLData "dns/blocking" "{ \"blocking\": ${1}, \"timer\": ${tt} }")
 
   # Check the response
-  local extra=" forever"
-  local timer="$(echo "${data}"| jq --raw-output '.timer' )"
+  local extra timer
+  extra=" forever"
+  timer="$(echo "${data}"| jq --raw-output '.timer' )"
   if [[ "${timer}" != "null" ]]; then
     extra=" for ${timer}s"
   fi
-  local str="Pi-hole $(echo "${data}" | jq --raw-output '.blocking')${extra}"
+  local str
+  str="Pi-hole $(echo "${data}" | jq --raw-output '.blocking')${extra}"
 
   # Logout from the API
   LogoutAPI
@@ -375,14 +379,16 @@ statusFunc() {
 
 tailFunc() {
   # Warn user if Pi-hole's logging is disabled
-  local logging_enabled=$(getFTLConfigValue dns.queryLogging)
+  local logging_enabled
+  logging_enabled=$(getFTLConfigValue dns.queryLogging)
   if [[ "${logging_enabled}" != "true" ]]; then
     echo "  ${CROSS} Warning: Query logging is disabled"
   fi
   echo -e "  ${INFO} Press Ctrl-C to exit"
 
   # Get logfile path
-  readonly LOGFILE=$(getFTLConfigValue files.log.dnsmasq)
+  readonly LOGFILE
+  LOGFILE=$(getFTLConfigValue files.log.dnsmasq)
 
   # Strip date from each line
   # Color blocklist/denylist/wildcard entries as red

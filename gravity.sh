@@ -306,7 +306,7 @@ migrate_to_database() {
     fi
 
     # Check if gravity database needs to be updated
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
 
     # Migrate list files to new database
     if [ -e "${adListFile}" ]; then
@@ -334,7 +334,7 @@ migrate_to_database() {
   fi
 
   # Check if gravity database needs to be updated
-  upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+  upgrade_gravityDB "${gravityDBfile}"
 }
 
 # Determine if DNS resolution is available before proceeding
@@ -1131,7 +1131,7 @@ for var in "$@"; do
   "-t" | "--timeit") timed=true ;;
   "-r" | "--repair") repairSelector "$3" ;;
   "-u" | "--upgrade")
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
     exit 0
     ;;
   "-h" | "--help") helpFunc ;;

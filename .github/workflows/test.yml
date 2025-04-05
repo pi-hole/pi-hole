@@ -33,7 +33,7 @@ jobs:
         with:
           check_together: 'yes'
           format: tty
-          severity: error
+          severity: warning
 
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@master

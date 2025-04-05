@@ -7,6 +7,7 @@
 #
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
+# shellcheck disable=SC1090
 
 colfile="/opt/pihole/COL_TABLE"
 source ${colfile}

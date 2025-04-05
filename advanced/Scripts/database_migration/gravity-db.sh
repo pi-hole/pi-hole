@@ -13,9 +13,8 @@
 readonly scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
 
 upgrade_gravityDB(){
-    local database piholeDir version
+    local database version
     database="${1}"
-    piholeDir="${2}"
 
     # Exit early if the database does not exist (e.g. in CI tests)
     if [[ ! -f "${database}" ]]; then
