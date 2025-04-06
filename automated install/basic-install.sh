@@ -2413,6 +2413,15 @@ main() {
     # Migrate existing install to v6.0
     migrate_dnsmasq_configs
 
+    # Cleanup old v5 sudoers file if it exists
+    sudoers_file="/etc/sudoers.d/pihole"
+    if [[ -f "${sudoers_file}" ]]; then
+        # only remove the file if it contains the Pi-hole header
+        if grep -q "Pi-hole: A black hole for Internet advertisements" "${sudoers_file}"; then
+            rm -f "${sudoers_file}"
+        fi
+    fi
+
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
