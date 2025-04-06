@@ -36,7 +36,8 @@ source "${PI_HOLE_INSTALL_DIR}/utils.sh"
 # getFTLConfigValue() sourced from utils.sh
 
 # Honour configured paths for the web application.
-readonly ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
+ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
+readonly ADMIN_INTERFACE_DIR
 
 GitCheckUpdateAvail() {
     local directory
