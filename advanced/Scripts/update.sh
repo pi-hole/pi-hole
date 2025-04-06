@@ -21,7 +21,6 @@ SKIP_INSTALL=true
 # when --check-only is passed to this script, it will not perform the actual update
 CHECK_ONLY=false
 
-# shellcheck disable=SC1090
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # shellcheck disable=SC1091
 source "/opt/pihole/COL_TABLE"

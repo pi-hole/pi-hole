@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
+
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2019 Pi-hole, LLC (https://pi-hole.net)

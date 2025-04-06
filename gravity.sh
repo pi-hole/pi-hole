@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -16,11 +15,9 @@ export LC_ALL=C
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-# shellcheck disable=SC1090
 . "${utilsfile}"
 
 coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
-# shellcheck disable=SC1090
 . "${coltable}"
 # shellcheck disable=SC1091
 . "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
