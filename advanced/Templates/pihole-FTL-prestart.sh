@@ -12,8 +12,9 @@ FTL_PID_FILE="$(getFTLConfigValue files.pid)"
 # Ensure that permissions are set so that pihole-FTL can edit all necessary files
 mkdir -p /var/log/pihole
 chown -R pihole:pihole /etc/pihole/ /var/log/pihole/
-# allow all users read version file
-chmod 0664 /etc/pihole/versions
+
+# allow all users read version file (and use pihole -v)
+chmod 0644 /etc/pihole/versions
 
 # allow pihole to access subdirs in /etc/pihole (sets execution bit on dirs)
 find /etc/pihole/ /var/log/pihole/ -type d -exec chmod 0755 {} +
