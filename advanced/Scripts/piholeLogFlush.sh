@@ -9,10 +9,12 @@
 # Please see LICENSE file for your rights under this license.
 
 colfile="/opt/pihole/COL_TABLE"
+# shellcheck source="./COL_TABLE"
 source ${colfile}
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source="./utils.sh"
 source "${utilsfile}"
 
 # In case we're running at the same time as a system logrotate, use a

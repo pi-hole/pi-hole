@@ -153,6 +153,7 @@ done
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
     # source it
+    # shellcheck source="../advanced/Scripts/COL_TABLE"
     source "${coltable}"
 # Otherwise,
 else
@@ -1871,7 +1872,6 @@ clone_or_reset_repos() {
 
 # Download FTL binary to random temp directory and install FTL binary
 # Disable directive for SC2120 a value _can_ be passed to this function, but it is passed from an external script that sources this one
-# shellcheck disable=SC2120
 FTLinstall() {
     # Local, named variables
     local str="Downloading and Installing FTL"
@@ -2400,7 +2400,7 @@ main() {
 
     # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
     if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
-        # shellcheck disable=SC1091
+        # shellcheck source="../advanced/Scripts/utils.sh"
         source "${PI_HOLE_INSTALL_DIR}/utils.sh"
     else
         printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"

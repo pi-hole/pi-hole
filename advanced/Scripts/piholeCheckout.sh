@@ -11,6 +11,7 @@
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 # shellcheck disable=SC2034
 SKIP_INSTALL="true"
+# shellcheck source="../../automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # webInterfaceGitUrl set in basic-install.sh
@@ -218,7 +219,7 @@ checkout() {
             if [ $status -eq 1 ]; then
                 # Binary for requested branch is not available, may still be
                 # int he process of being built or CI build job failed
-                printf "  %b Binary for requested branch is not available, please try again later.\\n" ${CROSS}
+                printf "  %b Binary for requested branch is not available, please try again later.\\n" "${CROSS}"
                 printf "      If the issue persists, please contact Pi-hole Support and ask them to re-generate the binary.\\n"
                 exit 1
             elif [ $status -eq 2 ]; then

@@ -11,11 +11,13 @@
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
+# shellcheck source="./COL_TABLE"
     source ${coltable}
 fi
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source="./utils.sh"
 source "${utilsfile}"
 
 # Determine database location

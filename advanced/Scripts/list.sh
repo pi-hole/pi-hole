@@ -11,9 +11,11 @@
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source="./utils.sh"
 source "${utilsfile}"
 
 readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+# shellcheck source="./api.sh"
 source "${apifile}"
 
 # Determine database location
@@ -38,6 +40,7 @@ typeId=""
 comment=""
 
 colfile="/opt/pihole/COL_TABLE"
+# shellcheck source="./COL_TABLE"
 source ${colfile}
 
 helpFunc() {

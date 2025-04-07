@@ -39,7 +39,7 @@ function get_remote_hash() {
 }
 
 # Source the utils file for addOrEditKeyValPair()
-# shellcheck disable=SC1091
+# shellcheck source="./utils.sh"
 . /opt/pihole/utils.sh
 
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")

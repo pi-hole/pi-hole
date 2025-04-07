@@ -17,13 +17,16 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
+# shellcheck source=./advanced/Scripts/COL_TABLE.sh
 source "${colfile}"
 
 readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source=./advanced/Scripts/utils.sh
 source "${utilsfile}"
 
 # Source api functions
 readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+# shellcheck source=./advanced/Scripts/api.sh
 source "${apifile}"
 
 versionsfile="/etc/pihole/versions"
@@ -31,6 +34,7 @@ if [ -f "${versionsfile}" ]; then
     # Only source versionsfile if the file exits
     # fixes a warning during installation where versionsfile does not exist yet
     # but gravity calls `pihole -status` and thereby sourcing the file
+    # shellcheck source=/dev/null
     source "${versionsfile}"
 fi
 
