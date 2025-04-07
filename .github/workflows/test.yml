@@ -38,13 +38,6 @@ jobs:
           severity: warning
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - if: ${{ runner.debug == '1' && !cancelled() }}
-        name: Upload artifact with ShellCheck defects in SARIF format
-        uses: actions/upload-artifact@v4
-        with:
-          name: Differential ShellCheck SARIF
-          path: ${{ steps.ShellCheck.outputs.sarif }}
-
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@master
         with:
