@@ -42,7 +42,8 @@ function get_remote_hash() {
 # shellcheck disable=SC1091
 . /opt/pihole/utils.sh
 
-readonly ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
+ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
+readonly ADMIN_INTERFACE_DIR
 
 # Remove the below three legacy files if they exist
 rm -f "/etc/pihole/GitHubVersions"

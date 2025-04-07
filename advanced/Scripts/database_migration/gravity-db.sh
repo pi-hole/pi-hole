@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
+
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2019 Pi-hole, LLC (https://pi-hole.net)
@@ -13,9 +13,8 @@
 readonly scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
 
 upgrade_gravityDB(){
-    local database piholeDir version
+    local database version
     database="${1}"
-    piholeDir="${2}"
 
     # Exit early if the database does not exist (e.g. in CI tests)
     if [[ ! -f "${database}" ]]; then

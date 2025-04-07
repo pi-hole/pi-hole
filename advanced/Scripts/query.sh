@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC1090
+
 
 # Ignore warning about `local` being undefinded in POSIX
 # shellcheck disable=SC3043

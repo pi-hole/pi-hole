@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -16,11 +15,9 @@ export LC_ALL=C
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-# shellcheck disable=SC1090
 . "${utilsfile}"
 
 coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
-# shellcheck disable=SC1090
 . "${coltable}"
 # shellcheck disable=SC1091
 . "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
@@ -306,7 +303,7 @@ migrate_to_database() {
     fi
 
     # Check if gravity database needs to be updated
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
 
     # Migrate list files to new database
     if [ -e "${adListFile}" ]; then
@@ -334,7 +331,7 @@ migrate_to_database() {
   fi
 
   # Check if gravity database needs to be updated
-  upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+  upgrade_gravityDB "${gravityDBfile}"
 }
 
 # Determine if DNS resolution is available before proceeding
@@ -1100,7 +1097,7 @@ for var in "$@"; do
   "-t" | "--timeit") timed=true ;;
   "-r" | "--repair") repairSelector "$3" ;;
   "-u" | "--upgrade")
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
     exit 0
     ;;
   "-h" | "--help") helpFunc ;;

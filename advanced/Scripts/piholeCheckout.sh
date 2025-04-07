@@ -9,6 +9,7 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# shellcheck disable=SC2034
 SKIP_INSTALL="true"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
@@ -59,6 +60,7 @@ checkout() {
         exit 1;
     fi
 
+    # shellcheck disable=SC2154
     if ! is_repo "${webInterfaceDir}" ; then
         echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
         echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
@@ -103,13 +105,14 @@ checkout() {
         echo "master" > /etc/pihole/ftlbranch
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "core" ]] ; then
+        # shellcheck disable=SC2154
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        corebranches=($(get_available_branches "${PI_HOLE_FILES_DIR}"))
+        mapfile -t corebranches < <(get_available_branches "${PI_HOLE_FILES_DIR}")
 
         if [[ "${corebranches[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
@@ -130,13 +133,14 @@ checkout() {
         fi
         checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
     elif [[ "${1}" == "web" ]] ; then
+        # shellcheck disable=SC2154
         str="Fetching branches from ${webInterfaceGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${webInterfaceDir}" ; then
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        webbranches=($(get_available_branches "${webInterfaceDir}"))
+        mapfile -t webbranches < <(get_available_branches "${webInterfaceDir}")
 
         if [[ "${webbranches[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
@@ -167,7 +171,7 @@ checkout() {
 
         # Check if requested branch is available
         echo -e "  ${INFO} Checking for availability of branch ${COL_CYAN}${2}${COL_NC} on GitHub"
-        ftlbranches=( $(git ls-remote https://github.com/pi-hole/ftl | grep "refs/heads" | cut -d'/' -f3- -) )
+        mapfile -t ftlbranches < <(git ls-remote https://github.com/pi-hole/ftl | grep "refs/heads" | cut -d'/' -f3- -)
         # If returned array is empty -> connectivity issue
         if [[ ${#ftlbranches[@]} -eq 0 ]]; then
             echo -e "  ${CROSS} Unable to fetch branches from GitHub. Please check your Internet connection and try again later."
@@ -209,13 +213,15 @@ checkout() {
             # Update local and remote versions via updatechecker
             /opt/pihole/updatecheck.sh
         else
-            if [ $? -eq 1 ]; then
+            local status
+            status=$?
+            if [ $status -eq 1 ]; then
                 # Binary for requested branch is not available, may still be
                 # int he process of being built or CI build job failed
                 printf "  %b Binary for requested branch is not available, please try again later.\\n" ${CROSS}
                 printf "      If the issue persists, please contact Pi-hole Support and ask them to re-generate the binary.\\n"
                 exit 1
-            elif [ $? -eq 2 ]; then
+            elif [ $status -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 exit 1
             else

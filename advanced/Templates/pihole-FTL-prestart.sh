@@ -3,7 +3,6 @@
 # Source utils.sh for getFTLConfigValue()
 PI_HOLE_SCRIPT_DIR='/opt/pihole'
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-# shellcheck disable=SC1090
 . "${utilsfile}"
 
 # Get file paths

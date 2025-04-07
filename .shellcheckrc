@@ -1,0 +1,1 @@
+disable=SC1090,SC1091 # Ignore warnings about being unable to follow sourced files
