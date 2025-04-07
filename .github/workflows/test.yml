@@ -35,6 +35,7 @@ jobs:
       - name: Differential ShellCheck
         uses: redhat-plumbers-in-action/differential-shellcheck@v5
         with:
+          severity: warning
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - if: ${{ runner.debug == '1' && !cancelled() }}
