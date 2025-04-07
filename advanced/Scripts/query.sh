@@ -17,10 +17,11 @@ domain=""
 
 # Source color table
 colfile="/opt/pihole/COL_TABLE"
-# shellcheck source="./COL_TABLE"
+# shellcheck source="./advanced/Scripts/COL_TABLE"
 . "${colfile}"
 
 # Source api functions
+# shellcheck source="./advanced/Scripts/api.sh"
 . "${PI_HOLE_INSTALL_DIR}/api.sh"
 
 Help() {

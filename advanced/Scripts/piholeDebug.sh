@@ -26,7 +26,7 @@ PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
-# shellcheck source=./COL_TABLE
+# shellcheck source=./advanced/Scripts/COL_TABLE
     source ${PIHOLE_COLTABLE_FILE}
 else
     COL_NC='\e[0m' # No Color

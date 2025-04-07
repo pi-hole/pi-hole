@@ -17,7 +17,7 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
-# shellcheck source=./advanced/Scripts/COL_TABLE.sh
+# shellcheck source=./advanced/Scripts/COL_TABLE
 source "${colfile}"
 
 readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
@@ -431,6 +431,7 @@ piholeCheckoutFunc() {
       exit 0
     fi
 
+    #shellcheck source=./advanced/Scripts/piholeCheckout.sh
     source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
     shift
     checkout "$@"

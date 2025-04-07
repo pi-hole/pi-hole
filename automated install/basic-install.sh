@@ -153,7 +153,7 @@ done
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
     # source it
-    # shellcheck source="../advanced/Scripts/COL_TABLE"
+    # shellcheck source="./advanced/Scripts/COL_TABLE"
     source "${coltable}"
 # Otherwise,
 else
@@ -2399,7 +2399,7 @@ main() {
 
     # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
     if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
-        # shellcheck source="../advanced/Scripts/utils.sh"
+        # shellcheck source="./advanced/Scripts/utils.sh"
         source "${PI_HOLE_INSTALL_DIR}/utils.sh"
     else
         printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"

@@ -20,11 +20,11 @@ SKIP_INSTALL=true
 # when --check-only is passed to this script, it will not perform the actual update
 CHECK_ONLY=false
 
-# shellcheck source="../../automated install/basic-install.sh"
+# shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# shellcheck source=./COL_TABLE
+# shellcheck source=./advanced/Scripts/COL_TABLE
 source "/opt/pihole/COL_TABLE"
-# shellcheck source="./utils.sh"
+# shellcheck source="./advanced/Scripts/utils.sh"
 source "${PI_HOLE_INSTALL_DIR}/utils.sh"
 
 # is_repo() sourced from basic-install.sh

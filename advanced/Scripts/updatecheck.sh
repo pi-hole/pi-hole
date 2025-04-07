@@ -39,7 +39,7 @@ function get_remote_hash() {
 }
 
 # Source the utils file for addOrEditKeyValPair()
-# shellcheck source="./utils.sh"
+# shellcheck source="./advanced/Scripts/utils.sh"
 . /opt/pihole/utils.sh
 
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")

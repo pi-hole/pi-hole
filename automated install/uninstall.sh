@@ -8,9 +8,9 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# shellcheck source="../advanced/Scripts/COL_TABLE"
+# shellcheck source="./advanced/Scripts/COL_TABLE"
 source "/opt/pihole/COL_TABLE"
-# shellcheck source="../advanced/Scripts/utils.sh"
+# shellcheck source="./advanced/Scripts/utils.sh"
 source "/opt/pihole/utils.sh"
 
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
@@ -43,7 +43,7 @@ fi
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
-# shellcheck source="./basic-install.sh"
+# shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # package_manager_detect() sourced from basic-install.sh
