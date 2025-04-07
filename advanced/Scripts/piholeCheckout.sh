@@ -9,7 +9,6 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-# shellcheck disable=SC2034
 SKIP_INSTALL="true"
 # shellcheck source="../../automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
@@ -61,7 +60,6 @@ checkout() {
         exit 1;
     fi
 
-    # shellcheck disable=SC2154
     if ! is_repo "${webInterfaceDir}" ; then
         echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
         echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
@@ -106,7 +104,6 @@ checkout() {
         echo "master" > /etc/pihole/ftlbranch
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "core" ]] ; then
-        # shellcheck disable=SC2154
         str="Fetching branches from ${piholeGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
@@ -134,7 +131,6 @@ checkout() {
         fi
         checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
     elif [[ "${1}" == "web" ]] ; then
-        # shellcheck disable=SC2154
         str="Fetching branches from ${webInterfaceGitUrl}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${webInterfaceDir}" ; then

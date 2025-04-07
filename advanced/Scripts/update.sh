@@ -15,7 +15,6 @@ readonly ADMIN_INTERFACE_GIT_URL="https://github.com/pi-hole/web.git"
 readonly PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 
-# shellcheck disable=SC2034
 SKIP_INSTALL=true
 
 # when --check-only is passed to this script, it will not perform the actual update

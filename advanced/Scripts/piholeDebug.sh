@@ -935,7 +935,6 @@ parse_file() {
     # Get the lines that are in the file(s) and store them in an array for parsing later
     local file_info
     if [[ -f "$filename" ]]; then
-        #shellcheck disable=SC2016
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
         read -r -a file_info <<< "$filename"

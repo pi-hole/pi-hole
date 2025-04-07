@@ -769,7 +769,6 @@ chooseInterface() {
             # All further interfaces are deselected
             status="OFF"
         done
-        # shellcheck disable=SC2086
         # Disable check for double quote here as we are passing a string with spaces
         PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --cancel-label "Exit" --ok-label "Select" \
