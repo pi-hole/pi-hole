@@ -8,7 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# shellcheck source=/dev/null
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # -u a reference to any variable you haven't previously defined
@@ -27,6 +26,7 @@ PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
+# shellcheck source=./advanced/Scripts/COL_TABLE
     source ${PIHOLE_COLTABLE_FILE}
 else
     COL_NC='\e[0m' # No Color
@@ -41,7 +41,7 @@ else
     #OVER="\r\033[K"
 fi
 
-# shellcheck disable=SC1091
+# shellcheck source=/dev/null
 . /etc/pihole/versions
 
 # Read the value of an FTL config key. The value is printed to stdout.
@@ -213,7 +213,7 @@ compare_local_version_to_git_version() {
             local local_status
             local_status=$(git status -s)
             # echo this information out to the user in a nice format
-            if [ ${local_version} ]; then
+            if [ "${local_version}" ]; then
               log_write "${TICK} Version: ${local_version}"
             elif [ -n "${DOCKER_VERSION}" ]; then
               log_write "${TICK} Version: Pi-hole Docker Container ${COL_BOLD}${DOCKER_VERSION}${COL_NC}"
@@ -488,7 +488,9 @@ run_and_print_command() {
     local output
     output=$(${cmd} 2>&1)
     # If the command was successful,
-    if [[ $? -eq 0 ]]; then
+    local return_code
+    return_code=$?
+    if [[ "${return_code}" -eq 0 ]]; then
         # show the output
         log_write "${output}"
     else
@@ -933,7 +935,6 @@ parse_file() {
     # Get the lines that are in the file(s) and store them in an array for parsing later
     local file_info
     if [[ -f "$filename" ]]; then
-        #shellcheck disable=SC2016
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
         read -r -a file_info <<< "$filename"

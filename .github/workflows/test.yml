@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0 # Differential ShellCheck requires full git history
 
       - name: Check scripts in repository are executable
         run: |
@@ -28,12 +30,12 @@ jobs:
           # If FAIL is 1 then we fail.
           [[ $FAIL == 1 ]] && exit 1 || echo "Scripts are executable!"
 
-      - name: Run shellcheck
-        uses: ludeeus/action-shellcheck@master
+      - name: Differential ShellCheck
+        uses: redhat-plumbers-in-action/differential-shellcheck@v5
         with:
-          check_together: 'yes'
-          format: tty
           severity: warning
+          display-engine: sarif-fmt
+
 
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@master

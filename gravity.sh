@@ -15,11 +15,13 @@ export LC_ALL=C
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source=./advanced/Scripts/utils.sh
 . "${utilsfile}"
 
 coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
+# shellcheck source=./advanced/Scripts/COL_TABLE
 . "${coltable}"
-# shellcheck disable=SC1091
+# shellcheck source=./advanced/Scripts/database_migration/gravity-db.sh
 . "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
@@ -767,8 +769,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
-    # shellcheck disable=SC2086
-    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${modifiedOptions} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L "${compression}" "${cmd_ext}" "${modifiedOptions}" -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
   fi
 
   case $url in
