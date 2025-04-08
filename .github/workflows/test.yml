@@ -16,8 +16,6 @@ jobs:
   smoke-tests:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    permissions:
-      security-events: write # required by Differential ShellCheck
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
@@ -36,7 +34,8 @@ jobs:
         uses: redhat-plumbers-in-action/differential-shellcheck@v5
         with:
           severity: warning
-          token: ${{ secrets.GITHUB_TOKEN }}
+          display-engine: sarif-fmt
+
 
       - name: Spell-Checking
         uses: codespell-project/actions-codespell@master
