@@ -121,6 +121,7 @@ repairPiholeFunc() {
 }
 
 updateGravityFunc() {
+  shift
   exec "${PI_HOLE_SCRIPT_DIR}"/gravity.sh "$@"
 }
 
@@ -460,6 +461,7 @@ tricorderFunc() {
 }
 
 updateCheckFunc() {
+  shift
   "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh "$@"
   exit 0
 }
@@ -598,7 +600,7 @@ case "${1}" in
   "reloadlists"                   ) reloadDNS "reload-lists";;
   "setpassword"                   ) SetWebPassword "$@";;
   "checkout"                      ) piholeCheckoutFunc "$@";;
-  "updatechecker"                 ) shift; updateCheckFunc "$@";;
+  "updatechecker"                 ) updateCheckFunc "$@";;
   "arpflush"                      ) arpFunc "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
   "api"                           ) apiFunc "$2";;
