@@ -601,7 +601,7 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
-  local modifiedOptions="" listCurlBuffer str httpCode success="" ip cmd_ext
+  local modifiedOptions=() listCurlBuffer str httpCode success="" ip cmd_ext
   local file_path permissions ip_addr port blocked=false download=true
 
   # Create temp file to store content on disk instead of RAM
@@ -619,14 +619,14 @@ gravity_DownloadBlocklistFromUrl() {
       # Save HTTP ETag to the specified file. An ETag is a caching related header,
       # usually returned in a response. If no ETag is sent by the server, an empty
       # file is created and can later be used consistently.
-      modifiedOptions="--etag-save ${saveLocation}.etag"
+      modifiedOptions=("${modifiedOptions[@]}" --etag-save "${saveLocation}".etag)
 
       if [[ -f "${saveLocation}.etag" ]]; then
         # This option makes a conditional HTTP request for the specific ETag read
         # from the given file by sending a custom If-None-Match header using the
         # stored ETag. This way, the server will only send the file if it has
         # changed since the last request.
-        modifiedOptions="${modifiedOptions} --etag-compare ${saveLocation}.etag"
+        modifiedOptions=("${modifiedOptions[@]}" --etag-compare "${saveLocation}".etag)
       fi
     fi
 
@@ -639,7 +639,7 @@ gravity_DownloadBlocklistFromUrl() {
       # Interstingly, this option is not supported by raw.githubusercontent.com
       # URLs, however, it is still supported by many older web servers which may
       # not support the HTTP ETag method so we keep it as a fallback.
-      modifiedOptions="${modifiedOptions} -z ${saveLocation}"
+      modifiedOptions=("${modifiedOptions[@]}" -z "${saveLocation}")
     fi
   fi
 
@@ -769,9 +769,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
-    # See https://github.com/pi-hole/pi-hole/issues/6159 for justification of the below disable directive
-    # shellcheck disable=SC2086
-    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${modifiedOptions} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} "${modifiedOptions[@]}" -w "%{http_code}" ${url} -o ${listCurlBuffer} 2>/dev/null)
   fi
 
   case $url in
