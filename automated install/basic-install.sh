@@ -49,11 +49,21 @@ Google (ECS, DNSSEC);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:
 OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
-DNS.WATCH (DNSSEC);84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
 Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
 Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
 Quad9 (filtered, ECS, DNSSEC);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
 Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+EOM
+)
+
+DNS_SERVERS_IPV6_ONLY=$(
+    cat <<EOM
+Google (ECS, DNSSEC);2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+OpenDNS (ECS, DNSSEC);2620:119:35::35;2620:119:53::53
+Quad9 (filtered, DNSSEC);2620:fe::fe;2620:fe::9
+Quad9 (unfiltered, no DNSSEC);2620:fe::10;2620:fe::fe:10
+Quad9 (filtered, ECS, DNSSEC);2620:fe::11;2620:fe::fe:11
+Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
@@ -686,7 +696,11 @@ find_IPv4_information() {
     local IPv4bare
 
     # Find IP used to route to outside world by checking the route to Google's public DNS server
-    route=$(ip route get 8.8.8.8)
+    if ! route="$(ip route get 8.8.8.8 2> /dev/null)"; then
+        printf "  %b No IPv4 route was detected.\n" "${INFO}"
+        IPV4_ADDRESS=""
+        return
+    fi
 
     # Get just the interface IPv4 address
     # shellcheck disable=SC2059,SC2086
@@ -700,6 +714,28 @@ find_IPv4_information() {
 
     # Append the CIDR notation to the IP address, if valid_ip fails this should return 127.0.0.1/8
     IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" | awk '{print $4}' | awk 'END {print}')
+}
+
+confirm_ipv6_only() {
+    # Confirm from user before IPv6 only install
+
+    dialog --no-shadow --output-fd 1 \
+--no-button "Exit" --yes-button "Install IPv6 ONLY" \
+--yesno "\\n\\nWARNING - no valid IPv4 route detected.\\n\\n\
+This may be due to a temporary connectivity issue,\\n\
+or you may be installing on an IPv6 only system.\\n\\n\
+Do you wish to continue with an IPv6-only installation?\\n\\n" \
+        "${r}" "${c}" && result=0 || result="$?"
+
+    case "${result}" in
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b Installer exited at IPv6 only message.\\n" "${INFO}"
+        exit 1
+    ;;
+    esac
+
+    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
+    printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
 }
 
 # Get available interfaces that are UP
@@ -856,6 +892,9 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
+    if [ "$IPV4_ADDRESS" == "" ] && [ "$IPV6_ADDRESS" != "" ]; then
+        confirm_ipv6_only
+    fi
 }
 
 # Check an IP address to see if it is a valid one
