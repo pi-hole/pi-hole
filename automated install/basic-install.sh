@@ -90,6 +90,7 @@ PI_HOLE_INSTALL_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
+CRON_D_DIR="/etc/cron.d"
 fresh_install=true
 
 adlistFile="/etc/pihole/adlists.list"
@@ -145,6 +146,55 @@ Pi-hole dependency meta package
 %changelog
 * Sun Sep 29 2024 Pi-hole Team - 0.1
 - First version being packaged
+EOM
+)
+
+# Content of Pi-hole's meta package control file on Alpine Linux
+PIHOLE_META_PACKAGE_CONTROL_APK=$(
+    cat <<'EOM'
+# Contributor: Pi-hole team <adblock@pi-hole.net>
+# Maintainer: Pi-hole team <adblock@pi-hole.net>
+pkgname=pihole-meta
+pkgver=0.1
+pkgrel=1
+pkgdesc="Pi-hole dependency meta package"
+url="https://pi-hole.net"
+arch="noarch"
+license="EUPL-1.2"
+depends="bash bind-tools binutils coreutils curl git grep iproute2-ss jq libcap logrotate ncurses nmap-ncat procps-ng psmisc shadow sudo tzdata unzip wget bash-completion dialog git"
+makedepends=""
+source=""
+subpackages=""
+install=""
+options="!check"  # No tests for meta package
+
+prepare() {
+    mkdir -p "${srcdir}"
+}
+
+build() {
+    :
+}
+
+package() {
+    # Create required directories with proper paths
+    mkdir -p "${pkgdir}/usr/share/doc/${pkgname}"
+    mkdir -p "${pkgdir}/etc/pihole"
+
+    # Create and install README file with proper permissions
+    cat > "${pkgdir}/usr/share/doc/${pkgname}/README" << INNEREOF
+Pi-hole Meta Package
+===================
+
+This package provides dependencies required for Pi-hole installation.
+For more information, visit https://pi-hole.net
+INNEREOF
+    chmod 644 "${pkgdir}/usr/share/doc/${pkgname}/README"
+
+    # Create marker file to track Alpine installation
+    touch "${pkgdir}/etc/pihole/alpine_install"
+    chmod 644 "${pkgdir}/etc/pihole/alpine_install"
+}
 EOM
 )
 
@@ -262,7 +312,20 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} remove -y"
-    # If neither apt-get or yum/dnf package managers were found
+
+    # If rpm is not found, check for apk.
+    elif is_command apk; then
+        PKG_MANAGER="apk"
+        PKG_INSTALL="${PKG_MANAGER} add --no-cache"
+        PKG_INSTALL_LOCAL="${PKG_MANAGER} add --no-cache --allow-untrusted"
+        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+        PKG_COUNT="${PKG_MANAGER} upgrade --simulate | grep '^Upgrading' | wc -l"
+        PKG_REMOVE="${PKG_MANAGER} del -r"
+        # Alpine-specific paths
+        CRON_D_DIR="/etc/periodic/daily"
+        update_package_cache || exit 1
+
+    # If none of apt-get, yum/dnf, or apk package managers were found
     else
         # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -279,7 +342,7 @@ build_dependency_package(){
 
     # Create a fresh build directory with random name
     local tempdir
-    tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXX)"
+    tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXXX)"
     chmod 0755 "${tempdir}"
 
     if is_command apt-get; then
@@ -353,7 +416,135 @@ build_dependency_package(){
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
 
-    # If neither apt-get or yum/dnf package managers were found
+    elif is_command apk; then
+        # move into the tmp directory
+        pushd /tmp &>/dev/null || return 1
+
+        # Track files we create/modify for cleanup
+        local installed_files=()
+        local return_code=0
+
+        # remove leftover package if it exists from previous runs
+        rm -f /tmp/pihole-meta.apk
+
+        # Remove doas-sudo-shim and install sudo if needed
+        if apk info -e doas-sudo-shim >/dev/null 2>&1; then
+            printf "  %b Removing doas-sudo-shim and installing sudo..." "${INFO}"
+            if eval "${PKG_REMOVE}" "doas-sudo-shim" >/dev/null && eval "${PKG_INSTALL}" "sudo" >/dev/null; then
+                printf "%b  %b Done\\n" "${OVER}" "${TICK}"
+            else
+                printf "%b  %b Failed\\n" "${OVER}" "${CROSS}"
+                return_code=1
+            fi
+        fi
+
+        # Create build user and group if they don't exist
+        if ! getent group abuild >/dev/null; then
+            addgroup -S abuild
+            installed_files+=("group:abuild")
+        fi
+        if ! getent passwd builder >/dev/null; then
+            adduser -S -D -G abuild -h /var/lib/builder -s /bin/sh builder
+            installed_files+=("user:builder")
+        fi
+
+        # Create necessary directories and prepare build environment
+        printf "  %b Setting up build environment..." "${INFO}"
+        mkdir -p /var/lib/builder/pihole-meta
+        mkdir -p /var/lib/builder/.abuild
+        mkdir -p /etc/pihole
+        chown -R builder:abuild /var/lib/builder
+        # Track Alpine-specific changes
+        touch /etc/pihole/alpine_installed_files
+        touch /etc/pihole/alpine_modified_files
+        printf "%b  %b Done\\n" "${OVER}" "${TICK}"
+
+        # Generate abuild keys for builder user if they don't exist
+        printf "  %b Generating abuild keys..." "${INFO}"
+
+        # Generate keys and capture the output
+        # builder does not trust keys if created under a permissive umask
+        original_umask="$(umask)"
+        umask 0002
+        key_output=$(su builder -c "cd /var/lib/builder/.abuild && abuild-keygen -n" 2>&1)
+        if [ $? -ne 0 ]; then
+            printf "%b  %b Failed to generate keys\\n" "${OVER}" "${CROSS}"
+            return_code=1
+            return ${return_code}
+        fi
+
+        # Extract the private key path from the output
+        private_key=$(echo "$key_output" | grep "PACKAGER_PRIVKEY=" | cut -d'"' -f2)
+        if [ -n "$private_key" ] && [ -f "$private_key" ]; then
+            # Update abuild.conf with the exact key path from output
+            cat > /var/lib/builder/.abuild/abuild.conf << EOF
+PACKAGER_PRIVKEY="$private_key"
+PACKAGER="builder <builder@localhost>"
+EOF
+            chmod 600 /var/lib/builder/.abuild/abuild.conf
+            chown -R builder:abuild /var/lib/builder/.abuild
+
+            # Copy public key to system keys
+            public_key="${private_key}.pub"
+            if [ -f "$public_key" ]; then
+                mkdir -p /etc/apk/keys
+                cp "$public_key" /etc/apk/keys/
+                printf "%b  %b Done\\n" "${OVER}" "${TICK}"
+            else
+                printf "%b  %b Failed to find public key\\n" "${OVER}" "${CROSS}"
+                return_code=1
+                return ${return_code}
+            fi
+        else
+            printf "%b  %b Failed to find private key\\n" "${OVER}" "${CROSS}"
+            return_code=1
+            return ${return_code}
+        fi
+
+        # Write the APKBUILD file
+        printf "  %b Creating APKBUILD..." "${INFO}"
+        echo "${PIHOLE_META_PACKAGE_CONTROL_APK}" > /var/lib/builder/pihole-meta/APKBUILD
+        chown -R builder:abuild /var/lib/builder/pihole-meta
+        printf "%b  %b Done\\n" "${OVER}" "${TICK}"
+
+        # Install build dependencies
+        printf "  %b Installing build dependencies..." "${INFO}"
+        if ! ${PKG_INSTALL} --no-cache abuild build-base >/dev/null 2>&1; then
+            printf "%b  %b Failed to install dependencies\\n" "${OVER}" "${CROSS}"
+            return_code=1
+            return ${return_code}
+        fi
+        printf "%b  %b Done\\n" "${OVER}" "${TICK}"
+
+        # Build the package
+        printf "  %b Building Pi-hole meta package..." "${INFO}"
+        printf "\\n"  # Add newline before abuild output
+
+        # Run the build as the builder user with repository operations disabled
+
+        if ! su builder -c "cd /var/lib/builder/pihole-meta && REPODEST=/var/lib/builder/packages abuild -F -K -r"; then
+            printf "%b  %b Build failed\\n" "${OVER}" "${CROSS}"
+            return_code=1
+            return ${return_code}
+        fi
+        umask "$original_umask"
+
+        # Copy the built package to /tmp
+        if [ -f /var/lib/builder/packages/builder/x86_64/pihole-meta-0.1-r1.apk ]; then
+            cp /var/lib/builder/packages/builder/x86_64/pihole-meta-0.1-r1.apk /tmp/pihole-meta.apk
+            printf "  %b Package built successfully\\n" "${TICK}"
+        else
+            printf "  %b Failed to find built package\\n" "${CROSS}"
+            return_code=1
+        fi
+
+        # Move back into the directory the user started in
+        popd &> /dev/null || return 1
+
+        # Clean up temporary build directory
+        rm -rf /tmp/pkg-build
+
+    # If none of apt-get, yum/dnf, or apk package managers were found
     else
         # we cannot build required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -1165,7 +1356,12 @@ installConfigs() {
         # Load final service
         systemctl daemon-reload
     else
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
+        install -T -Dm 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
+        if is_command rc-update; then
+            rc-update add pihole-FTL default
+        else
+            update-rc.d pihole-FTL defaults
+        fi
     fi
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
@@ -1187,14 +1383,14 @@ install_manpage() {
     fi
     if [[ ! -d "/usr/local/share/man/man8" ]]; then
         # if not present, create man8 directory
-        install -d -m 755 /usr/local/share/man/man8
+        install -Dm 755 -d /usr/local/share/man/man8
     fi
     if [[ ! -d "/usr/local/share/man/man5" ]]; then
         # if not present, create man5 directory
-        install -d -m 755 /usr/local/share/man/man5
+        install -Dm 755 -d /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -Dm 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
 
     # remove previously installed man pages
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
@@ -1223,8 +1419,12 @@ stop_service() {
     printf "  %b %s..." "${INFO}" "${str}"
     if is_command systemctl; then
         systemctl -q stop "${1}" || true
-    else
+    elif is_command rc-service; then
+        rc-service "${1}" stop || true
+    elif is_command service; then
         service "${1}" stop >/dev/null || true
+    else
+        printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}" && return
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1238,9 +1438,13 @@ restart_service() {
     if is_command systemctl; then
         # use that to restart the service
         systemctl -q restart "${1}"
-    else
-        # Otherwise, fall back to the service command
+    elif is_command rc-service; then
+        rc-service "${1}" restart
+    # Otherwise, fall back to the service command
+    elif is_command service; then
         service "${1}" restart >/dev/null
+    else
+        printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}" && return
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
 }
@@ -1254,6 +1458,8 @@ enable_service() {
     if is_command systemctl; then
         # use that to enable the service
         systemctl -q enable "${1}"
+    elif is_command rc-update; then
+        rc-update add "${1}" default >/dev/null
     else
         #  Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" defaults >/dev/null
@@ -1270,6 +1476,8 @@ disable_service() {
     if is_command systemctl; then
         # use that to disable the service
         systemctl -q disable "${1}"
+    elif is_command rc-update; then
+        rc-update delete "${1}" default >/dev/null
     else
         # Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" disable >/dev/null
@@ -1282,9 +1490,13 @@ check_service_active() {
     if is_command systemctl; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
-    else
-        # Otherwise, fall back to service command
+    elif is_command rc-service; then
+        rc-service "${1}" status &>/dev/null
+    # Otherwise, fall back to service command
+    elif is_command service; then
         service "${1}" status &>/dev/null
+    else
+        false
     fi
 }
 
@@ -1324,6 +1536,8 @@ update_package_cache() {
         # gives more user-friendly (interactive) advice
         if [[ ${PKG_MANAGER} == "apt-get" ]] && is_command apt; then
             UPDATE_PKG_CACHE="apt update"
+        elif [[ ${PKG_MANAGER} == "apk" ]] && is_command apk; then
+            UPDATE_PKG_CACHE="apk update"
         fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         printf "  %b Error: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
@@ -1383,8 +1597,34 @@ install_dependent_packages() {
             printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
             return 1
         fi
+    # Install Alpine Linux packages
+    elif is_command apk; then
+        if [ -f /tmp/pihole-meta.apk ]; then
+            # Update repository cache to include our local repository
+            if ! apk update >/dev/null 2>&1; then
+                printf "%b  %b Failed to update repository cache\\n" "${OVER}" "${CROSS}"
+                return 1
+            fi
 
-    # If neither apt-get or yum/dnf package managers were found
+            # Install the package
+            if eval "${PKG_INSTALL_LOCAL}" "/tmp/pihole-meta.apk"; then
+                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                rm /tmp/pihole-meta.apk
+
+                # Clean up local repository entry
+                if grep -q "^/var/lib/builder/packages/pkg/x86_64" "/etc/apk/repositories"; then
+                    sed -i '\#^/var/lib/builder/packages/pkg/x86_64#d' "/etc/apk/repositories"
+                fi
+            else
+                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+                return 1
+            fi
+        else
+            printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+            return 1
+        fi
+    # If no supported package manager found
     else
         # we cannot install the dependency package
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -1403,11 +1643,11 @@ installCron() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
     # File must not be world or group writeable and must be owned by root
-    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    install -Dm 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron ${CRON_D_DIR}/pihole
     # Randomize gravity update time
-    sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
+    sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" ${CRON_D_DIR}/pihole
     # Randomize update checker time
-    sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" /etc/cron.d/pihole
+    sed -i "s/59 17/$((1 + RANDOM % 58)) $((12 + RANDOM % 8))/" ${CRON_D_DIR}/pihole
     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
 }
 
@@ -1433,12 +1673,14 @@ create_pihole_user() {
             printf "  %b %s..." "${INFO}" "${str}"
             local str="Creating group 'pihole'"
             # if group can be created
-            if groupadd pihole; then
+            if (groupadd pihole 2>/dev/null) ||\
+               (addgroup pihole 2>/dev/null) ; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 local str="Adding user 'pihole' to group 'pihole'"
                 printf "  %b %s..." "${INFO}" "${str}"
                 # if pihole user can be added to group pihole
-                if usermod -g pihole pihole; then
+                if (usermod -g pihole pihole) ||\
+                   (addgroup pihole pihole); then
                     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 else
                     printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1458,7 +1700,8 @@ create_pihole_user() {
             # then create and add her to the pihole group
             local str="Creating user 'pihole'"
             printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-            if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+            if (useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole 2>/dev/null) ||\
+               (adduser -D -s /usr/sbin/nologin pihole pihole 2>/dev/null); then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1468,12 +1711,14 @@ create_pihole_user() {
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
             local str="Creating group 'pihole'"
             # if group can be created
-            if groupadd pihole; then
+            if (groupadd pihole 2>/dev/null) ||\
+               (addgroup pihole 2>/dev/null); then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 # create and add pihole user to the pihole group
                 local str="Creating user 'pihole'"
                 printf "%b  %b %s..." "${OVER}" "${INFO}" "${str}"
-                if useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole; then
+                if (useradd -r --no-user-group -g pihole -s /usr/sbin/nologin pihole 2>/dev/null) ||\
+                   (adduser -D -s /usr/sbin/nologin pihole pihole 2>/dev/null); then
                     printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
                 else
                     printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
@@ -1527,7 +1772,7 @@ nomail
     else
         # Copy the file over from the local repo
         # Logrotate config file must be owned by root and not writable by group or other
-        install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+        install -o root -g root -Dm 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
     fi
 
     # Different operating systems have different user / group
@@ -1777,7 +2022,7 @@ FTLinstall() {
         curl -sSL --fail "${url}/${binary}.sha1" -o "${binary}.sha1"
 
         # If we downloaded binary file (as opposed to text),
-        if sha1sum --status --quiet -c "${binary}".sha1; then
+        if sha1sum -c "${binary}".sha1 >/dev/null; then
             printf "transferred... "
 
             # Before stopping FTL, we download the macvendor database
@@ -1944,6 +2189,7 @@ FTLcheckUpdate() {
             if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
                 printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+                return 2
             elif [ "${status}" -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 return 3
@@ -2126,12 +2372,12 @@ migrate_dnsmasq_configs() {
     printf "\\n"
 }
 
-# Check for availability of either the "service" or "systemctl" commands
+# Check for availability of the "service" command
 check_service_command() {
     # Check for the availability of the "service" command
-    if ! is_command service && ! is_command systemctl; then
-        # If neither the "service" nor the "systemctl" command is available, inform the user
-        printf "  %b Neither the service nor the systemctl commands are available\\n" "${CROSS}"
+    if ! is_command service && ! is_command systemctl && ! is_command rc-service; then
+        # If none of the service, systemctl, or rc-service commands are available, inform the user
+        printf "  %b No supported service management command found\\n" "${CROSS}"
         printf "      on this machine. This Pi-hole installer cannot continue.\\n"
         exit 1
     fi
@@ -2227,7 +2473,7 @@ main() {
         # Display welcome dialogs
         welcomeDialogs
         # Create directory for Pi-hole storage (/etc/pihole/)
-        install -d -m 755 "${PI_HOLE_CONFIG_DIR}"
+        install -Dm 755 -d "${PI_HOLE_CONFIG_DIR}"
         # Determine available interfaces
         get_available_interfaces
         # Find interfaces and let the user choose one

@@ -22,6 +22,7 @@ def test_supported_package_manager(host):
     # break supported package managers
     host.run("rm -rf /usr/bin/apt-get")
     host.run("rm -rf /usr/bin/rpm")
+    host.run("rm -rf /sbin/apk")
     package_manager_detect = host.run(
         """
     source /opt/pihole/basic-install.sh
@@ -77,10 +78,21 @@ def test_installPihole_fresh_install_readableFiles(host):
         },
         host,
     )
+    mock_command_2(
+        "rc-service",
+        {
+            "rc-service pihole-FTL enable": ("", "0"),
+            "rc-service pihole-FTL restart": ("", "0"),
+            "rc-service pihole-FTL start": ("", "0"),
+            "*": ('echo "rc-service call with $@"', "0"),
+        },
+        host,
+    )
     # try to install man
     host.run("command -v apt-get > /dev/null && apt-get install -qq man")
     host.run("command -v dnf > /dev/null && dnf install -y man")
     host.run("command -v yum > /dev/null && yum install -y man")
+    host.run("command -v apk > /dev/null && apk add mandoc man-pages")
     # Workaround to get FTLv6 installed until it reaches master branch
     host.run('echo "' + FTL_BRANCH + '" > /etc/pihole/ftlbranch')
     install = host.run(
@@ -105,7 +117,7 @@ def test_installPihole_fresh_install_readableFiles(host):
         maninstalled = False
     piholeuser = "pihole"
     exit_status_success = 0
-    test_cmd = 'su --shell /bin/bash --command "test -{0} {1}" -p {2}'
+    test_cmd = 'su -s /bin/bash -c "test -{0} {1}" -p {2}'
     # check files in /etc/pihole for read, write and execute permission
     check_etc = test_cmd.format("r", "/etc/pihole", piholeuser)
     actual_rc = host.run(check_etc).rc
@@ -164,13 +176,26 @@ def test_installPihole_fresh_install_readableFiles(host):
         actual_rc = host.run(check_man).rc
         assert exit_status_success == actual_rc
     # check not readable cron file
-    check_sudo = test_cmd.format("x", "/etc/cron.d/", piholeuser)
+    directories = get_directories_recursive(host, "/etc")
+    cron_d_dir = ""
+    for directory in directories:
+        if directory == "/etc/cron.d":
+            cron_d_dir = "/etc/cron.d"
+            cron_d_pihole = "/etc/cron.d/pihole"
+            break
+        else:
+            if directory == "/etc/periodic":
+                cron_d_dir = "/etc/periodic/daily"
+                cron_d_pihole = "/etc/periodic/daily/pihole"
+                break
+    assert cron_d_dir != ""
+    check_sudo = test_cmd.format("x", cron_d_dir, piholeuser)
     actual_rc = host.run(check_sudo).rc
     assert exit_status_success == actual_rc
-    check_sudo = test_cmd.format("r", "/etc/cron.d/", piholeuser)
+    check_sudo = test_cmd.format("r", cron_d_dir, piholeuser)
     actual_rc = host.run(check_sudo).rc
     assert exit_status_success == actual_rc
-    check_sudo = test_cmd.format("r", "/etc/cron.d/pihole", piholeuser)
+    check_sudo = test_cmd.format("r", cron_d_pihole, piholeuser)
     actual_rc = host.run(check_sudo).rc
     assert exit_status_success == actual_rc
     directories = get_directories_recursive(host, "/etc/.pihole/")
