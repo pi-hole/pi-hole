@@ -73,6 +73,8 @@ jobs:
             fedora_40,
             fedora_41,
             fedora_42,
+            alpine_3_21,
+            alpine_3_22,
           ]
     env:
       DISTRO: ${{matrix.distro}}
