@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC3043 #https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -88,8 +87,8 @@ getFTLConfigValue(){
 #######################
 setFTLConfigValue(){
   pihole-FTL --config "${1}" "${2}" >/dev/null
-  if [[ $? -eq 5 ]]; then
-    echo -e "  ${CROSS} ${1} set by environment variable. Please unset it to use this function"
+  if [ $? -eq 5 ]; then
+    printf "  %s %s set by environment variable. Please unset it to use this function\n" "${CROSS}" "${1}"
     exit 5
   fi
 }

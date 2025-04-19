@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) Pi-hole (https://pi-hole.net)
@@ -49,11 +48,21 @@ Google (ECS, DNSSEC);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:
 OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
-DNS.WATCH (DNSSEC);84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
 Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
 Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
 Quad9 (filtered, ECS, DNSSEC);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
 Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+EOM
+)
+
+DNS_SERVERS_IPV6_ONLY=$(
+    cat <<EOM
+Google (ECS, DNSSEC);2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+OpenDNS (ECS, DNSSEC);2620:119:35::35;2620:119:53::53
+Quad9 (filtered, DNSSEC);2620:fe::fe;2620:fe::9
+Quad9 (unfiltered, no DNSSEC);2620:fe::10;2620:fe::fe:10
+Quad9 (filtered, ECS, DNSSEC);2620:fe::11;2620:fe::fe:11
+Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
@@ -111,6 +120,8 @@ Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
 Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron | cron-daemon,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+Section: contrib/metapackages
+Priority: optional
 EOM
 )
 
@@ -152,6 +163,7 @@ done
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
     # source it
+    # shellcheck source="./advanced/Scripts/COL_TABLE"
     source "${coltable}"
 # Otherwise,
 else
@@ -686,7 +698,11 @@ find_IPv4_information() {
     local IPv4bare
 
     # Find IP used to route to outside world by checking the route to Google's public DNS server
-    route=$(ip route get 8.8.8.8)
+    if ! route="$(ip route get 8.8.8.8 2> /dev/null)"; then
+        printf "  %b No IPv4 route was detected.\n" "${INFO}"
+        IPV4_ADDRESS=""
+        return
+    fi
 
     # Get just the interface IPv4 address
     # shellcheck disable=SC2059,SC2086
@@ -700,6 +716,28 @@ find_IPv4_information() {
 
     # Append the CIDR notation to the IP address, if valid_ip fails this should return 127.0.0.1/8
     IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" | awk '{print $4}' | awk 'END {print}')
+}
+
+confirm_ipv6_only() {
+    # Confirm from user before IPv6 only install
+
+    dialog --no-shadow --output-fd 1 \
+--no-button "Exit" --yes-button "Install IPv6 ONLY" \
+--yesno "\\n\\nWARNING - no valid IPv4 route detected.\\n\\n\
+This may be due to a temporary connectivity issue,\\n\
+or you may be installing on an IPv6 only system.\\n\\n\
+Do you wish to continue with an IPv6-only installation?\\n\\n" \
+        "${r}" "${c}" && result=0 || result="$?"
+
+    case "${result}" in
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b Installer exited at IPv6 only message.\\n" "${INFO}"
+        exit 1
+    ;;
+    esac
+
+    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
+    printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
 }
 
 # Get available interfaces that are UP
@@ -767,7 +805,6 @@ chooseInterface() {
             # All further interfaces are deselected
             status="OFF"
         done
-        # shellcheck disable=SC2086
         # Disable check for double quote here as we are passing a string with spaces
         PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --cancel-label "Exit" --ok-label "Select" \
@@ -856,6 +893,9 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
+    if [ "$IPV4_ADDRESS" == "" ] && [ "$IPV6_ADDRESS" != "" ]; then
+        confirm_ipv6_only
+    fi
 }
 
 # Check an IP address to see if it is a valid one
@@ -1750,7 +1790,8 @@ checkSelinux() {
 
 check_download_exists() {
     # Check if the download exists and we can reach the server
-    local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
+    local status
+    status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
 
     # Check the status code
     if grep -q "200" <<<"$status"; then
@@ -1869,7 +1910,6 @@ clone_or_reset_repos() {
 
 # Download FTL binary to random temp directory and install FTL binary
 # Disable directive for SC2120 a value _can_ be passed to this function, but it is passed from an external script that sources this one
-# shellcheck disable=SC2120
 FTLinstall() {
     # Local, named variables
     local str="Downloading and Installing FTL"
@@ -2067,13 +2107,13 @@ FTLcheckUpdate() {
         path="${ftlBranch}/${binary}"
 
         # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
-        # shellcheck disable=SC1090
         if ! check_download_exists "$path"; then
-            if [ $? -eq 1 ]; then
+            local status
+            status=$?
+            if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
                 printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-                return 2
-            elif [ $? -eq 2 ]; then
+            elif [ "${status}" -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 return 3
             else
@@ -2398,7 +2438,7 @@ main() {
 
     # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
     if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
-        # shellcheck disable=SC1091
+        # shellcheck source="./advanced/Scripts/utils.sh"
         source "${PI_HOLE_INSTALL_DIR}/utils.sh"
     else
         printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
@@ -2410,6 +2450,15 @@ main() {
 
     # Migrate existing install to v6.0
     migrate_dnsmasq_configs
+
+    # Cleanup old v5 sudoers file if it exists
+    sudoers_file="/etc/sudoers.d/pihole"
+    if [[ -f "${sudoers_file}" ]]; then
+        # only remove the file if it contains the Pi-hole header
+        if grep -q "Pi-hole: A black hole for Internet advertisements" "${sudoers_file}"; then
+            rm -f "${sudoers_file}"
+        fi
+    fi
 
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,

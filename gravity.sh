@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -16,13 +15,13 @@ export LC_ALL=C
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-# shellcheck disable=SC1090
+# shellcheck source=./advanced/Scripts/utils.sh
 . "${utilsfile}"
 
 coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
-# shellcheck disable=SC1090
+# shellcheck source=./advanced/Scripts/COL_TABLE
 . "${coltable}"
-# shellcheck disable=SC1091
+# shellcheck source=./advanced/Scripts/database_migration/gravity-db.sh
 . "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
@@ -58,7 +57,7 @@ fi
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
-gravityDBfile_default="/etc/pihole/gravity.db"
+gravityDBfile_default="${piholeDir}/gravity.db"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
@@ -306,7 +305,7 @@ migrate_to_database() {
     fi
 
     # Check if gravity database needs to be updated
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
 
     # Migrate list files to new database
     if [ -e "${adListFile}" ]; then
@@ -334,7 +333,7 @@ migrate_to_database() {
   fi
 
   # Check if gravity database needs to be updated
-  upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+  upgrade_gravityDB "${gravityDBfile}"
 }
 
 # Determine if DNS resolution is available before proceeding
@@ -572,7 +571,7 @@ gravity_DownloadBlocklists() {
     echo ""
   done
 
-  gravity_Blackbody=true
+  DownloadBlocklists_done=true
 }
 
 compareLists() {
@@ -770,6 +769,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
+    # See https://github.com/pi-hole/pi-hole/issues/6159 for justification of the below disable directive
     # shellcheck disable=SC2086
     httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${modifiedOptions} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
   fi
@@ -821,11 +821,11 @@ gravity_DownloadBlocklistFromUrl() {
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
     elif [[ -s "${listCurlBuffer}" ]]; then
-      # Determine if blocklist is non-standard and parse as appropriate
-      gravity_ParseFileIntoDomains "${listCurlBuffer}" "${saveLocation}"
-      # Remove curl buffer file after its use
-      rm "${listCurlBuffer}"
-      # Compare lists if are they identical
+      # Move the downloaded list to the final location
+      mv "${listCurlBuffer}" "${saveLocation}"
+      # Ensure the file has the correct permissions
+      fix_owner_permissions "${saveLocation}"
+      # Compare lists if they are identical
       compareLists "${adlistID}" "${saveLocation}"
       # Add domains to database table file
       pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
@@ -852,37 +852,6 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_status "${adlistID}" "4"
     fi
   fi
-}
-
-# Parse source files into domains format
-gravity_ParseFileIntoDomains() {
-  local src="${1}" destination="${2}"
-
-  # Remove comments and print only the domain name
-  # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
-  # This helps with that and makes it easier to read
-  # It also helps with debugging so each stage of the script can be researched more in depth
-  # 1) Convert all characters to lowercase
-  tr '[:upper:]' '[:lower:]' <"${src}" >"${destination}"
-
-  # 2) Remove carriage returns
-  # 3) Remove lines starting with ! (ABP Comments)
-  # 4) Remove lines starting with [ (ABP Header)
-  # 5) Remove lines containing ABP extended CSS selectors ("##", "#$#", "#@#", "#?#") and Adguard JavaScript (#%#) preceded by a letter
-  # 6) Remove comments (text starting with "#", include possible spaces before the hash sign)
-  # 7) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
-  # 8) Remove empty lines
-
-  sed -i -r \
-    -e 's/\r$//' \
-    -e 's/\s*!.*//g' \
-    -e 's/\s*\[.*//g' \
-    -e '/[a-z]\#[$?@%]{0,3}\#/d' \
-    -e 's/\s*#.*//g' \
-    -e 's/^.*\s+//g' \
-    -e '/^$/d' "${destination}"
-
-  fix_owner_permissions "${destination}"
 }
 
 # Report number of entries in a table
@@ -932,13 +901,13 @@ gravity_Cleanup() {
   # invalid_domains location
   rm "${GRAVITY_TMPDIR}"/*.ph-non-domains 2>/dev/null
 
-  # Ensure this function only runs when gravity_SetDownloadOptions() has completed
-  if [[ "${gravity_Blackbody:-}" == true ]]; then
-    # Remove any unused .domains files
-    for file in "${piholeDir}"/*."${domainsExtension}"; do
-      # If list is not in active array, then remove it
+  # Ensure this function only runs when gravity_DownloadBlocklists() has completed
+  if [[ "${DownloadBlocklists_done:-}" == true ]]; then
+    # Remove any unused .domains/.etag/.sha files
+    for file in "${listsCacheDir}"/*."${domainsExtension}"; do
+      # If list is not in active array, then remove it and all associated files
       if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
-        rm -f "${file}" 2>/dev/null ||
+        rm -f "${file}"* 2>/dev/null ||
           echo -e "  ${CROSS} Failed to remove ${file##*/}"
       fi
     done
@@ -1131,7 +1100,7 @@ for var in "$@"; do
   "-t" | "--timeit") timed=true ;;
   "-r" | "--repair") repairSelector "$3" ;;
   "-u" | "--upgrade")
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
     exit 0
     ;;
   "-h" | "--help") helpFunc ;;
