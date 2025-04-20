@@ -646,32 +646,6 @@ gravity_DownloadBlocklistFromUrl() {
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
   blocked=false
-  case $(getFTLConfigValue dns.blocking.mode) in
-  "IP-NODATA-AAAA" | "IP")
-    # Get IP address of this domain
-    ip="$(dig "${domain}" +short)"
-    # Check if this IP matches any IP of the system
-    if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<<"$(ip a)") -gt 0 ]]; then
-      blocked=true
-    fi
-    ;;
-  "NXDOMAIN")
-    if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
-      blocked=true
-    fi
-    ;;
-  "NODATA")
-    if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +short "${domain}") ]]; then
-      blocked=true
-    fi
-    ;;
-  "NULL" | *)
-    if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
-      blocked=true
-    fi
-    ;;
-  esac
-
   # Check if this domain is blocked by Pi-hole but only if the domain is not a
   # local file or empty
   if [[ $url != "file"* ]] && [[ -n "${domain}" ]]; then
