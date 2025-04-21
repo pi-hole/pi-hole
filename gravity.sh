@@ -126,7 +126,7 @@ gravity_swap_databases() {
   oldAvail=false
   if [ "${availableBlocks}" -gt "$((gravityBlocks * 2))" ] && [ -f "${gravityDBfile}" ]; then
     oldAvail=true
-    cp "${gravityDBfile}" "${gravityOLDfile}"
+    cp -p "${gravityDBfile}" "${gravityOLDfile}"
   fi
 
   # Drop the gravity and antigravity tables + subsequent VACUUM the current
@@ -140,6 +140,7 @@ gravity_swap_databases() {
     # Check if the backup directory exists
     if [ ! -d "${gravityBCKdir}" ]; then
       mkdir -p "${gravityBCKdir}"
+      chown pihole:pihole "${gravityBCKdir}"
     fi
 
     # If multiple gravityBCKfile's are present (appended with a number), rotate them
@@ -1016,6 +1017,7 @@ migrate_to_listsCache_dir() {
   local str="Migrating the list's cache directory to new location"
   echo -ne "  ${INFO} ${str}..."
   mkdir -p "${listsCacheDir}"
+  chown pihole:pihole "${listsCacheDir}"
 
   # Move the old files to the new directory
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
