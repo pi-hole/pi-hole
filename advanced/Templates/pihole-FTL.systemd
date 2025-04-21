@@ -28,7 +28,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 ExecStopPost=/opt/pihole/pihole-FTL-poststop.sh
 
 # Use graceful shutdown with a reasonable timeout
-TimeoutStopSec=10s
+TimeoutStopSec=60s
 
 # Make /usr, /boot, /etc and possibly some more folders read-only...
 ProtectSystem=full
