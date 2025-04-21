@@ -226,7 +226,7 @@ GetFTLData() {
     # return only the data
     if [ "${status}" = 200 ]; then
         # response OK
-        echo "${data}"
+        printf %s "${data}"
     else
         # connection lost
         echo "${status}"
