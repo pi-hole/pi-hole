@@ -417,7 +417,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
   fi
 
-  local url domain str target compression adlist_type directory success
+  local url domain str compression adlist_type directory success
   echo ""
 
   # Prepare new gravity database
@@ -566,7 +566,7 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}" "${domain}"
+      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${compression}" "${adlist_type}" "${domain}"
     fi
     echo ""
   done
@@ -600,7 +600,7 @@ compareLists() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
+  local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
   local modifiedOptions="" listCurlBuffer str httpCode success="" ip cmd_ext
   local file_path permissions ip_addr port blocked=false download=true
 
