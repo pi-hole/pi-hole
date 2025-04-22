@@ -601,7 +601,7 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
-  local listCurlBuffer str httpCode success="" ip customUpstreamResolver
+  local listCurlBuffer str httpCode success="" ip customUpstreamResolver=""
   local file_path permissions ip_addr port blocked=false download=true
   # modifiedOptions is an array to store all the options used to check if the adlist has been changed upstream
   local modifiedOptions=()
