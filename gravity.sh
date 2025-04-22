@@ -601,7 +601,7 @@ compareLists() {
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
   local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
-  local modifiedOptions=() listCurlBuffer str httpCode success="" ip cmd_ext
+  local modifiedOptions=() listCurlBuffer str httpCode success="" ip customUpstreamResolver
   local file_path permissions ip_addr port blocked=false download=true
 
   # Create temp file to store content on disk instead of RAM
@@ -705,7 +705,7 @@ gravity_DownloadBlocklistFromUrl() {
       fi
       echo -e "${OVER}  ${CROSS} ${str} ${domain} is blocked by one of your lists. Using DNS server ${upstream} instead"
       echo -ne "  ${INFO} ${str} Pending..."
-      cmd_ext="--resolve $domain:$port:$ip"
+      customUpstreamResolver="--resolve $domain:$port:$ip"
     fi
   fi
 
@@ -743,7 +743,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
-    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L "${compression}" "${cmd_ext}" "${modifiedOptions[@]}" -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
+    httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L "${compression}" "${customUpstreamResolver}" "${modifiedOptions[@]}" -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
   fi
 
   case $url in
