@@ -348,7 +348,7 @@ gravity_CheckDNSResolutionAvailable() {
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   fi
 
-  str="Waiting 120 seconds if DNS resolution becomes available..."
+  str="Waiting up to 120 seconds for DNS resolution..."
   echo -ne "  ${INFO} ${str}"
 
  # Default DNS timeout is two seconds, plus 1 second for each dot > 120 seconds
