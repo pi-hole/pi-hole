@@ -359,8 +359,7 @@ gravity_CheckDNSResolutionAvailable() {
         break
       fi
       # Append one dot for each second waiting
-      str="${str}."
-      echo -ne "  ${OVER}  ${INFO} ${str}"
+      echo -ne "."
       sleep 1
   done
 
