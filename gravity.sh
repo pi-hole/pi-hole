@@ -351,7 +351,8 @@ gravity_CheckDNSResolutionAvailable() {
   str="Waiting 120 seconds if DNS resolution becomes available..."
   echo -ne "  ${INFO} ${str}"
 
-  for ((i = 0; i < 120; i++)); do
+ # Default DNS timeout is two seconds, plus 1 second for each dot > 120 seconds
+  for ((i = 0; i < 40; i++)); do
       if getent hosts github.com &> /dev/null; then
         # If we reach this point, DNS resolution is available
         echo -e "${OVER}  ${TICK} DNS resolution is available"
