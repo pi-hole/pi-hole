@@ -348,17 +348,24 @@ gravity_CheckDNSResolutionAvailable() {
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   fi
 
-  str="Waiting until DNS resolution is available..."
+  str="Waiting up to 120 seconds for DNS resolution..."
   echo -ne "  ${INFO} ${str}"
-  until getent hosts github.com &> /dev/null; do
-  # Append one dot for each second waiting
-    str="${str}."
-    echo -ne "  ${OVER}  ${INFO} ${str}"
-    sleep 1
+
+ # Default DNS timeout is two seconds, plus 1 second for each dot > 120 seconds
+  for ((i = 0; i < 40; i++)); do
+      if getent hosts github.com &> /dev/null; then
+        # If we reach this point, DNS resolution is available
+        echo -e "${OVER}  ${TICK} DNS resolution is available"
+        break
+      fi
+      # Append one dot for each second waiting
+      echo -ne "."
+      sleep 1
   done
 
-  # If we reach this point, DNS resolution is available
-  echo -e "${OVER}  ${TICK} DNS resolution is available"
+  # DNS resolution is still unavailable after 120 seconds
+  return 1
+
 }
 
 # Function: try_restore_backup
@@ -1081,6 +1088,12 @@ for var in "$@"; do
   esac
 done
 
+# Check if DNS is available, no need to do any database manipulation if we're not able to download adlists
+if ! timeit gravity_CheckDNSResolutionAvailable; then
+  echo -e "   ${CROSS} No DNS resolution available. Please contact support."
+  exit 1
+fi
+
 # Remove OLD (backup) gravity file, if it exists
 if [[ -f "${gravityOLDfile}" ]]; then
   rm "${gravityOLDfile}"
@@ -1121,11 +1134,6 @@ if [[ "${forceDelete:-}" == true ]]; then
 fi
 
 # Gravity downloads blocklists next
-if ! timeit gravity_CheckDNSResolutionAvailable; then
-  echo -e "   ${CROSS} Can not complete gravity update, no DNS is available. Please contact support."
-  exit 1
-fi
-
 if ! gravity_DownloadBlocklists; then
   echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
   exit 1
