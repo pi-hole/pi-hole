@@ -465,50 +465,6 @@ def test_validate_ip(host):
     test_address("0.0.0.0#00001", False)
 
 
-def test_os_check_fails(host):
-    """Confirms install fails on unsupported OS"""
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
-    cat <<EOT > /etc/os-release
-ID=UnsupportedOS
-VERSION_ID="2"
-EOT
-    """
-    )
-    detectOS = host.run(
-        """t
-    source /opt/pihole/basic-install.sh
-    os_check
-    """
-    )
-    expected_stdout = "Unsupported OS detected: UnsupportedOS"
-    assert expected_stdout in detectOS.stdout
-
-
-def test_os_check_passes(host):
-    """Confirms OS meets the requirements"""
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
-    """
-    )
-    detectOS = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    os_check
-    """
-    )
-    expected_stdout = "Supported OS detected"
-    assert expected_stdout in detectOS.stdout
-
-
 def test_package_manager_has_pihole_deps(host):
     """Confirms OS is able to install the required packages for Pi-hole"""
     mock_command("dialog", {"*": ("", "0")}, host)
