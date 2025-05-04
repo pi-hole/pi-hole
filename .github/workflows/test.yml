@@ -72,6 +72,7 @@ jobs:
             centos_10,
             fedora_40,
             fedora_41,
+            fedora_42,
           ]
     env:
       DISTRO: ${{matrix.distro}}

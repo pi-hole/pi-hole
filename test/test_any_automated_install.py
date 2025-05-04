@@ -245,6 +245,7 @@ def test_FTL_detect_no_errors(host, arch, detected_string, supported):
         {
             "-A /bin/sh": ("Tag_CPU_arch: " + arch, "0"),
             "-A /usr/bin/sh": ("Tag_CPU_arch: " + arch, "0"),
+            "-A /usr/sbin/sh": ("Tag_CPU_arch: " + arch, "0"),
         },
         host,
     )
