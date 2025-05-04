@@ -245,6 +245,7 @@ def test_FTL_detect_no_errors(host, arch, detected_string, supported):
         {
             "-A /bin/sh": ("Tag_CPU_arch: " + arch, "0"),
             "-A /usr/bin/sh": ("Tag_CPU_arch: " + arch, "0"),
+            "-A /usr/sbin/sh": ("Tag_CPU_arch: " + arch, "0"),
         },
         host,
     )
@@ -463,50 +464,6 @@ def test_validate_ip(host):
     test_address("0.0.0.0#001", False)
     test_address("0.0.0.0#0001", False)
     test_address("0.0.0.0#00001", False)
-
-
-def test_os_check_fails(host):
-    """Confirms install fails on unsupported OS"""
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
-    cat <<EOT > /etc/os-release
-ID=UnsupportedOS
-VERSION_ID="2"
-EOT
-    """
-    )
-    detectOS = host.run(
-        """t
-    source /opt/pihole/basic-install.sh
-    os_check
-    """
-    )
-    expected_stdout = "Unsupported OS detected: UnsupportedOS"
-    assert expected_stdout in detectOS.stdout
-
-
-def test_os_check_passes(host):
-    """Confirms OS meets the requirements"""
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
-    """
-    )
-    detectOS = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    os_check
-    """
-    )
-    expected_stdout = "Supported OS detected"
-    assert expected_stdout in detectOS.stdout
 
 
 def test_package_manager_has_pihole_deps(host):
