@@ -99,6 +99,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
 PRIVACY_LEVEL=
+PIHOLE_INTERFACE=
 
 # Where old configs go to if a v6 migration is performed
 V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
@@ -2328,6 +2329,10 @@ main() {
 
         if [ -n "${PRIVACY_LEVEL}" ]; then
             setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
+        fi
+
+        if [ -n "${PIHOLE_INTERFACE}" ]; then
+            setFTLConfigValue "dns.interface" "${PIHOLE_INTERFACE}"
         fi
     fi
 
