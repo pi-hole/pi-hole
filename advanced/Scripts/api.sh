@@ -301,19 +301,19 @@ secretRead() {
 }
 
 apiFunc() {
-  local data response status status_col verbose
+  local data response status status_col verbosity
 
-  # Define if the output will be verbose (default) or silent
-  verbose="verbose"
-  if [ "$1" = "silent" ] || [ "$1" = "-s" ]; then
-    verbose=""
+  # Define if the output will be silent (default) or verbose
+  verbosity="silent"
+  if [ "$1" = "verbose" ]; then
+    verbosity="verbose"
     shift
   fi
 
   # Authenticate with the API
-  LoginAPI "${verbose}"
+  LoginAPI "${verbosity}"
 
-  if [ "${verbose}" = "verbose" ]; then
+  if [ "${verbosity}" = "verbose" ]; then
     echo ""
     echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
     echo ""
@@ -336,13 +336,13 @@ apiFunc() {
   fi
 
   # Only print the status in verbose mode or if the status is not 200
-  if [ "${verbose}" = "verbose" ] || [ "${status}" != 200 ]; then
+  if [ "${verbosity}" = "verbose" ] || [ "${status}" != 200 ]; then
     echo "Status: ${status_col}${status}${COL_NC}"
   fi
 
   # Output the data. Format it with jq if available and data is actually JSON.
   # Otherwise just print it
-  if [ "${verbose}" = "verbose" ]; then
+  if [ "${verbosity}" = "verbose" ]; then
     echo "Data:"
   fi
 
@@ -353,5 +353,5 @@ apiFunc() {
   fi
 
   # Delete the session
-  LogoutAPI "${verbose}"
+  LogoutAPI "${verbosity}"
 }
