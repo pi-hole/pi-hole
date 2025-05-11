@@ -20,7 +20,7 @@
 TestAPIAvailability() {
 
     # as we are running locally, we can get the port value from FTL directly
-    local chaos_api_list authResponse authStatus authData
+    local chaos_api_list authResponse authStatus authData apiAvailable
 
     # Query the API URLs from FTL using CHAOS TXT local.api.ftl
     # The result is a space-separated enumeration of full URLs
@@ -57,38 +57,39 @@ TestAPIAvailability() {
         authData=$(printf %s "${authResponse%???}")
 
         # Test if http status code was 200 (OK) or 401 (authentication required)
-        if [ ! "${authStatus}" = 200 ] && [ ! "${authStatus}" = 401 ]; then
-            # API is not available at this port/protocol combination
-            API_PORT=""
-        else
-            # API is available at this URL combination
+        if [ "${authStatus}" = 200 ]; then
+            # API is available without authentication
+            apiAvailable=true
+            needAuth=false
+            break
 
-            if [ "${authStatus}" = 200 ]; then
-                # API is available without authentication
-                needAuth=false
-            fi
-
+        elif [ "${authStatus}" = 401 ]; then
+            # API is available with authentication
+            apiAvailable=true
+            needAuth=true
             # Check if 2FA is required
             needTOTP=$(echo "${authData}"| jq --raw-output .session.totp 2>/dev/null)
-
             break
-        fi
 
-        # Remove the first URL from the list
-        local last_api_list
-        last_api_list="${chaos_api_list}"
-        chaos_api_list="${chaos_api_list#* }"
+        else
+            # API is not available at this port/protocol combination
+            apiAvailable=false
+            # Remove the first URL from the list
+            local last_api_list
+            last_api_list="${chaos_api_list}"
+            chaos_api_list="${chaos_api_list#* }"
 
-        # If the list did not change, we are at the last element
-        if [ "${last_api_list}" = "${chaos_api_list}" ]; then
-            # Remove the last element
-            chaos_api_list=""
+            # If the list did not change, we are at the last element
+            if [ "${last_api_list}" = "${chaos_api_list}" ]; then
+                # Remove the last element
+                chaos_api_list=""
+            fi
         fi
     done
 
-    # if API_PORT is empty, no working API port was found
-    if [ -n "${API_PORT}" ]; then
-        echo "API not available at: ${API_URL}"
+    # if apiAvailable is false, no working API was found
+    if [ "${apiAvailable}" = false ]; then
+        echo "API not available. Please check FTL.log"
         echo "Exiting."
         exit 1
     fi
