@@ -116,11 +116,11 @@ c=70
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: 0.2
+Version: 0.3
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron | cron-daemon,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
 Section: contrib/metapackages
 Priority: optional
 EOM
