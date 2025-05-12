@@ -139,8 +139,7 @@ gravity_swap_databases() {
   else
     # Check if the backup directory exists
     if [ ! -d "${gravityBCKdir}" ]; then
-      mkdir -p "${gravityBCKdir}"
-      chown pihole:pihole "${gravityBCKdir}"
+      mkdir -p "${gravityBCKdir}" && chown pihole:pihole "${gravityBCKdir}"
     fi
 
     # If multiple gravityBCKfile's are present (appended with a number), rotate them
@@ -1016,8 +1015,7 @@ migrate_to_listsCache_dir() {
   # If not, we need to migrate the old files to the new directory
   local str="Migrating the list's cache directory to new location"
   echo -ne "  ${INFO} ${str}..."
-  mkdir -p "${listsCacheDir}"
-  chown pihole:pihole "${listsCacheDir}"
+  mkdir -p "${listsCacheDir}" && chown pihole:pihole "${listsCacheDir}"
 
   # Move the old files to the new directory
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
