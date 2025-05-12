@@ -47,14 +47,15 @@ TestAPIAvailability() {
         API_URL="${API_URL%\"}"
         API_URL="${API_URL#\"}"
 
-        # Test if the API is available at this URL
-        authResponse=$(curl --connect-timeout 2 -skS -w "%{http_code}" "${API_URL}auth")
+        # Test if the API is available at this URL, include delimiter for ease in splitting payload
+        authResponse=$(curl --connect-timeout 2 -skS -w ">>%{http_code}" "${API_URL}auth")
 
-        # authStatus are the last 3 characters
-        # not using ${authResponse#"${authResponse%???}"}" here because it's extremely slow on big responses
-        authStatus=$(printf "%s" "${authResponse}" | tail -c 3)
-        # data is everything from response without the last 3 characters
-        authData=$(printf %s "${authResponse%???}")
+        # authStatus is the response http_code, eg. 200, 401.
+        # Shell parameter expansion, remove everything up to and including the >> delim
+        authStatus=${authResponse#*>>}
+        # data is everything from response
+        # Shell parameter expansion, remove the >> delim and everything after
+        authData=${authResponse%>>*}
 
         # Test if http status code was 200 (OK) or 401 (authentication required)
         if [ "${authStatus}" = 200 ]; then
