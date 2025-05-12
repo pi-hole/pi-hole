@@ -1972,12 +1972,14 @@ FTLcheckUpdate() {
             # same as the remote one
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLlatesttag
 
             # Get the latest version from the GitHub API
-            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
+            local FTLlatesttag
+            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq -sRr 'fromjson? | .tag_name | values')
+
+            if [ -z "${FTLlatesttag}" ]; then
                 # There was an issue while retrieving the latest version
-                printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
+                printf "  %b Failed to retrieve latest FTL release metadata\\n" "${CROSS}"
                 return 3
             fi
 
@@ -1995,6 +1997,7 @@ FTLcheckUpdate() {
                 # Continue further down...
             fi
         else
+            # FTL not installed, then download
             return 0
         fi
     fi
