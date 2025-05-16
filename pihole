@@ -493,6 +493,7 @@ Debugging Options:
                       Add an optional argument to filter the log
                       (regular expressions are supported)
   api <endpoint>      Query the Pi-hole API at <endpoint>
+                        Precede <endpoint> with 'verbose' option to show authentication and status messages
 
 
 Options:
@@ -601,6 +602,6 @@ case "${1}" in
   "updatechecker"                 ) shift; updateCheckFunc "$@";;
   "arpflush"                      ) arpFunc "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
-  "api"                           ) apiFunc "$2";;
+  "api"                           ) shift; apiFunc "$@";;
   *                               ) helpFunc;;
 esac

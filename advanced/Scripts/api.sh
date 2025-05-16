@@ -302,14 +302,23 @@ secretRead() {
 }
 
 apiFunc() {
-  local data response status status_col
+  local data response status status_col verbosity
+
+  # Define if the output will be silent (default) or verbose
+  verbosity="silent"
+  if [ "$1" = "verbose" ]; then
+    verbosity="verbose"
+    shift
+  fi
 
   # Authenticate with the API
-  LoginAPI verbose
-  echo ""
+  LoginAPI "${verbosity}"
 
-  echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
-  echo ""
+  if [ "${verbosity}" = "verbose" ]; then
+    echo ""
+    echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
+    echo ""
+  fi
 
   # Get the data from the API
   response=$(GetFTLData "$1" raw)
@@ -326,11 +335,18 @@ apiFunc() {
   else
     status_col="${COL_RED}"
   fi
-  echo "Status: ${status_col}${status}${COL_NC}"
+
+  # Only print the status in verbose mode or if the status is not 200
+  if [ "${verbosity}" = "verbose" ] || [ "${status}" != 200 ]; then
+    echo "Status: ${status_col}${status}${COL_NC}"
+  fi
 
   # Output the data. Format it with jq if available and data is actually JSON.
   # Otherwise just print it
-  echo "Data:"
+  if [ "${verbosity}" = "verbose" ]; then
+    echo "Data:"
+  fi
+
   if command -v jq >/dev/null && echo "${data}" | jq . >/dev/null 2>&1; then
     echo "${data}" | jq .
   else
@@ -338,5 +354,5 @@ apiFunc() {
   fi
 
   # Delete the session
-  LogoutAPI verbose
+  LogoutAPI "${verbosity}"
 }
