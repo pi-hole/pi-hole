@@ -10,3 +10,6 @@ __pycache__
 .idea/
 *.iml
 .vscode/
+.venv/
+.fleet/
+.cache/

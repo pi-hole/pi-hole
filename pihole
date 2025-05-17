@@ -17,13 +17,16 @@ readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 readonly colfile="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
+# shellcheck source=./advanced/Scripts/COL_TABLE
 source "${colfile}"
 
 readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source=./advanced/Scripts/utils.sh
 source "${utilsfile}"
 
 # Source api functions
 readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+# shellcheck source=./advanced/Scripts/api.sh
 source "${apifile}"
 
 versionsfile="/etc/pihole/versions"
@@ -31,6 +34,7 @@ if [ -f "${versionsfile}" ]; then
     # Only source versionsfile if the file exits
     # fixes a warning during installation where versionsfile does not exist yet
     # but gravity calls `pihole -status` and thereby sourcing the file
+    # shellcheck source=/dev/null
     source "${versionsfile}"
 fi
 
@@ -247,12 +251,14 @@ Time:
   data=$(PostFTLData "dns/blocking" "{ \"blocking\": ${1}, \"timer\": ${tt} }")
 
   # Check the response
-  local extra=" forever"
-  local timer="$(echo "${data}"| jq --raw-output '.timer' )"
+  local extra timer
+  extra=" forever"
+  timer="$(echo "${data}"| jq --raw-output '.timer' )"
   if [[ "${timer}" != "null" ]]; then
     extra=" for ${timer}s"
   fi
-  local str="Pi-hole $(echo "${data}" | jq --raw-output '.blocking')${extra}"
+  local str
+  str="Pi-hole $(echo "${data}" | jq --raw-output '.blocking')${extra}"
 
   # Logout from the API
   LogoutAPI
@@ -375,14 +381,16 @@ statusFunc() {
 
 tailFunc() {
   # Warn user if Pi-hole's logging is disabled
-  local logging_enabled=$(getFTLConfigValue dns.queryLogging)
+  local logging_enabled
+  logging_enabled=$(getFTLConfigValue dns.queryLogging)
   if [[ "${logging_enabled}" != "true" ]]; then
     echo "  ${CROSS} Warning: Query logging is disabled"
   fi
   echo -e "  ${INFO} Press Ctrl-C to exit"
 
   # Get logfile path
-  readonly LOGFILE=$(getFTLConfigValue files.log.dnsmasq)
+  readonly LOGFILE
+  LOGFILE=$(getFTLConfigValue files.log.dnsmasq)
 
   # Strip date from each line
   # Color blocklist/denylist/wildcard entries as red
@@ -423,6 +431,7 @@ piholeCheckoutFunc() {
       exit 0
     fi
 
+    #shellcheck source=./advanced/Scripts/piholeCheckout.sh
     source "${PI_HOLE_SCRIPT_DIR}"/piholeCheckout.sh
     shift
     checkout "$@"
@@ -484,6 +493,7 @@ Debugging Options:
                       Add an optional argument to filter the log
                       (regular expressions are supported)
   api <endpoint>      Query the Pi-hole API at <endpoint>
+                        Precede <endpoint> with 'verbose' option to show authentication and status messages
 
 
 Options:
@@ -592,6 +602,6 @@ case "${1}" in
   "updatechecker"                 ) shift; updateCheckFunc "$@";;
   "arpflush"                      ) arpFunc "$@";;
   "-t" | "tail"                   ) tailFunc "$2";;
-  "api"                           ) apiFunc "$2";;
+  "api"                           ) shift; apiFunc "$@";;
   *                               ) helpFunc;;
 esac

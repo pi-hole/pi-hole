@@ -1,9 +1,4 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC1090
-
-# Ignore warning about `local` being undefinded in POSIX
-# shellcheck disable=SC3043
-# https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2023 Pi-hole, LLC (https://pi-hole.net)
@@ -22,9 +17,11 @@ domain=""
 
 # Source color table
 colfile="/opt/pihole/COL_TABLE"
+# shellcheck source="./advanced/Scripts/COL_TABLE"
 . "${colfile}"
 
 # Source api functions
+# shellcheck source="./advanced/Scripts/api.sh"
 . "${PI_HOLE_INSTALL_DIR}/api.sh"
 
 Help() {

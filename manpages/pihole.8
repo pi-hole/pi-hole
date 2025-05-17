@@ -23,7 +23,7 @@ pihole -r
 .br
 \fBpihole -g\fR
 .br
-\fBpihole\fR -\fBq\fR [options]
+\fBpihole\fR \fB-q\fR [options]
 .br
 \fBpihole\fR \fB-l\fR (\fBon|off|off noflush\fR)
 .br
@@ -43,7 +43,7 @@ pihole -r
 .br
 \fBpihole\fR \fBcheckout\fR repo [branch]
 .br
-\fBpihole\fR \api\fR endpoint
+\fBpihole\fR \fBapi\fR [verbose] endpoint
 .br
 \fBpihole\fR \fBhelp\fR
 .br
@@ -234,10 +234,14 @@ Available commands and options:
       branchname        Update subsystems to the specified branchname
 .br
 
-\fBapi\fR endpoint
+\fBapi\fR [verbose] endpoint
 .br
     Query the Pi-hole API at <endpoint>
 .br
+
+      verbose           Show authentication and status messages
+.br
+
 .SH "EXAMPLE"
 
 Some usage examples
@@ -321,6 +325,11 @@ Switching Pi-hole subsystem branches
 \fBpihole api stats/summary\fR
 .br
     Queries FTL for the stats/summary endpoint
+.br
+
+\fBpihole api verbose stats/summary\fR
+.br
+    Same as above, but shows authentication and status messages
 .br
 
 .SH "COLOPHON"
