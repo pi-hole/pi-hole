@@ -57,6 +57,59 @@ removeMetaPackage() {
     eval "${SUDO}" "${PKG_REMOVE}" "pihole-meta" &> /dev/null;
     echo -e "${OVER}  ${INFO} Removed Pi-hole meta package";
 
+    # Handle Alpine-specific cleanup if needed
+    if is_command apk && [ -f "/etc/pihole/alpine_installed_files" ]; then
+        echo -ne "  ${INFO} Cleaning up Alpine-specific files..."
+
+        # Read and process installed files
+        while IFS= read -r line; do
+            case "$line" in
+                "user:"*)
+                    deluser "${line#user:}" &>/dev/null
+                    ;;
+                "group:"*)
+                    delgroup "${line#group:}" &>/dev/null
+                    ;;
+                *)
+                    # For regular files, just remove them if they're our dedicated files
+                    if [[ "$line" != "/etc/apk/repositories" ]]; then
+                        rm -rf "$line" &>/dev/null
+                    fi
+                    ;;
+            esac
+        done < "/etc/pihole/alpine_installed_files"
+
+        # Handle modified system files carefully
+        while IFS= read -r file; do
+            case "$file" in
+                "/etc/apk/repositories")
+                    if [ -f "/etc/pihole/alpine_repo_line" ]; then
+                        # Read our original line
+                        repo_line=$(cat "/etc/pihole/alpine_repo_line")
+                        # Remove only our exact line from repositories file
+                        sed -i "\\#^${repo_line}\$#d" "$file"
+                    fi
+                    ;;
+                *)
+                    # For any other modified files, check if they match backup before restoring
+                    if [ -f "${file}.pihole.bak" ]; then
+                        if diff -q "$file" "${file}.pihole.bak" >/dev/null 2>&1; then
+                            # Files are identical, safe to restore backup
+                            mv "${file}.pihole.bak" "$file"
+                        else
+                            # Files differ, keep user's version and just remove backup
+                            rm -f "${file}.pihole.bak"
+                        fi
+                    fi
+                    ;;
+            esac
+        done < "/etc/pihole/alpine_modified_files"
+
+        # Remove tracking files
+        rm -f /etc/pihole/alpine_installed_files /etc/pihole/alpine_modified_files /etc/pihole/alpine_repo_line
+
+        echo -e "${OVER}  ${INFO} Cleaned up Alpine-specific files"
+    fi
 }
 
 removePiholeFiles() {
