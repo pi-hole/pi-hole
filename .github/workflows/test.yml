@@ -73,6 +73,7 @@ jobs:
             fedora_40,
             fedora_41,
             fedora_42,
+            opensuse_leap_15_6,
           ]
     env:
       DISTRO: ${{matrix.distro}}

@@ -135,7 +135,7 @@ Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: grep,curl,psmisc,sudo, unzip,jq,git,dialog,ca-certificates, bind-utils, iproute, procps-ng, chkconfig, binutils, cronie, findutils, libcap, nmap-ncat, lshw, bash-completion
+Requires: grep, curl, psmisc, sudo, unzip, jq, git, dialog, ca-certificates, bind-utils, iproute, procps-ng, chkconfig, binutils, cronie, findutils, libcap, nmap-ncat, lshw, bash-completion
 %description
 Pi-hole dependency meta package
 %prep
@@ -144,6 +144,28 @@ Pi-hole dependency meta package
 %install
 %changelog
 * Sun Sep 29 2024 Pi-hole Team - 0.1
+- First version being packaged
+EOM
+)
+
+# Content of Pi-hole's meta package control file on RPM based systems adjusted for SUSE package names
+PIHOLE_META_PACKAGE_CONTROL_SUSE=$(
+    cat <<EOM
+Name: pihole-meta
+Version: 0.1
+Release: 1
+License: EUPL
+BuildArch: noarch
+Summary: Pi-hole dependency meta package
+Requires: grep, curl, psmisc, sudo, unzip, jq, git, dialog, ca-certificates, bind-utils, iproute, procps, binutils, cronie, findutils, libcap2, ncat, lshw, bash-completion
+%description
+Pi-hole dependency meta package
+%prep
+%build
+%files
+%install
+%changelog
+* Sat Apr 26 2025 Pi-hole Team - 0.1
 - First version being packaged
 EOM
 )
@@ -249,20 +271,34 @@ package_manager_detect() {
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
-        # Then check if dnf or yum is the package manager
+        # Then check if dnf, zypper or yum is the package manager
         if is_command dnf; then
             PKG_MANAGER="dnf"
-        else
+            # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
+            PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
+        elif is_command zypper; then
+            PKG_MANAGER="zypper"
+            # Count lines beginning with "v", see above for explanation of OR TRUE
+            PKG_COUNT="${PKG_MANAGER} list-updates | grep -c '^v ' || true"
+            # SUSE requires locally built rpm packages to be signed by default
+            PKG_INSTALL_LOCAL="${PKG_MANAGER} --no-gpg-checks install -y"
+        elif is_command "yum"; then
             PKG_MANAGER="yum"
+            # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
+            PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
+        else
+            # we cannot install required packages, even though rpm was detected
+            printf "  %b rpm as low-level package manager detected\\n" "${INFO}"
+            printf "  %b No supported high-level package manager found (Supported: dnf, yum, zypper)\\n" "${CROSS}"
+            # so exit the installer
+            exit 1
         fi
 
         # These variable names match the ones for apt-get. See above for an explanation of what they are for.
         PKG_INSTALL="${PKG_MANAGER} install -y"
-        # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
-        PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} remove -y"
-    # If neither apt-get or yum/dnf package managers were found
+    # If neither apt-get or yum/dnf/zypper package managers were found
     else
         # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -322,7 +358,11 @@ build_dependency_package(){
         # Prepare directory structure and spec file
         mkdir -p "${tempdir}"/SPECS
         touch "${tempdir}"/SPECS/pihole-meta.spec
-        echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" > "${tempdir}"/SPECS/pihole-meta.spec
+        if is_command zypper; then
+            echo "${PIHOLE_META_PACKAGE_CONTROL_SUSE}" > "${tempdir}"/SPECS/pihole-meta.spec
+        else
+            echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" > "${tempdir}"/SPECS/pihole-meta.spec
+        fi
 
         # check if we need to install the build dependencies
         if ! is_command rpmbuild; then
@@ -353,7 +393,7 @@ build_dependency_package(){
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
 
-    # If neither apt-get or yum/dnf package managers were found
+    # If neither apt-get or yum/dnf/zypper package managers were found
     else
         # we cannot build required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -1371,20 +1411,31 @@ install_dependent_packages() {
     # Install Fedora/CentOS packages
     elif is_command rpm; then
         if [ -f /tmp/pihole-meta.rpm ]; then
-            if eval "${PKG_INSTALL}" "/tmp/pihole-meta.rpm" &>/dev/null; then
-                printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
-                rm /tmp/pihole-meta.rpm
+            if is_command zypper; then
+                if eval "${PKG_INSTALL_LOCAL}" "/tmp/pihole-meta.rpm" &>/dev/null; then
+                    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                    rm /tmp/pihole-meta.rpm
+                else
+                    printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                    printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+                    return 1
+                fi
             else
-                printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
-                return 1
+                if eval "${PKG_INSTALL}" "/tmp/pihole-meta.rpm" &>/dev/null; then
+                    printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+                    rm /tmp/pihole-meta.rpm
+                else
+                    printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+                    printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+                    return 1
+                fi
             fi
         else
             printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
             return 1
         fi
 
-    # If neither apt-get or yum/dnf package managers were found
+    # If neither apt-get or yum/dnf/zypper package managers were found
     else
         # we cannot install the dependency package
         printf "  %b No supported package manager found\\n" "${CROSS}"
