@@ -1152,8 +1152,7 @@ installConfigs() {
     fi
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
-    # Follow debhelper logic, which checks for /run/systemd/system to derive whether systemd is the init system
-    if [[ -d '/run/systemd/system' ]]; then
+    if ps -p 1 -o comm= | grep -q systemd; then
         install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
