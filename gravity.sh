@@ -356,7 +356,7 @@ gravity_CheckDNSResolutionAvailable() {
       if getent hosts github.com &> /dev/null; then
         # If we reach this point, DNS resolution is available
         echo -e "${OVER}  ${TICK} DNS resolution is available"
-        break
+        return 0
       fi
       # Append one dot for each second waiting
       echo -ne "."
