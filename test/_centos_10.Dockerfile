@@ -1,4 +1,7 @@
-FROM buildpack-deps:bullseye-scm
+FROM quay.io/centos/centos:stream10
+# Disable SELinux
+RUN echo "SELINUX=disabled" > /etc/selinux/config
+RUN yum install -y --allowerasing curl git initscripts
 
 ENV GITDIR=/etc/.pihole
 ENV SCRIPTDIR=/opt/pihole

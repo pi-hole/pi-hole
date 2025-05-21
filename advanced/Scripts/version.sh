@@ -8,20 +8,16 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# Ignore warning about `local` being undefinded in POSIX
-# shellcheck disable=SC3043
-# https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
-
 # Source the versions file populated by updatechecker.sh
 cachedVersions="/etc/pihole/versions"
 
 if [ -f ${cachedVersions} ]; then
-    # shellcheck disable=SC1090
+    # shellcheck source=/dev/null
     . "$cachedVersions"
 else
     echo "Could not find /etc/pihole/versions. Running update now."
     pihole updatechecker
-    # shellcheck disable=SC1090
+     # shellcheck source=/dev/null
     . "$cachedVersions"
 fi
 

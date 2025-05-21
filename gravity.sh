@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -16,13 +15,13 @@ export LC_ALL=C
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 # Source utils.sh for GetFTLConfigValue
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
-# shellcheck disable=SC1090
+# shellcheck source=./advanced/Scripts/utils.sh
 . "${utilsfile}"
 
 coltable="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
-# shellcheck disable=SC1090
+# shellcheck source=./advanced/Scripts/COL_TABLE
 . "${coltable}"
-# shellcheck disable=SC1091
+# shellcheck source=./advanced/Scripts/database_migration/gravity-db.sh
 . "/etc/.pihole/advanced/Scripts/database_migration/gravity-db.sh"
 
 basename="pihole"
@@ -58,7 +57,7 @@ fi
 # Set this only after sourcing pihole-FTL.conf as the gravity database path may
 # have changed
 gravityDBfile="${GRAVITYDB}"
-gravityDBfile_default="/etc/pihole/gravity.db"
+gravityDBfile_default="${piholeDir}/gravity.db"
 gravityTEMPfile="${GRAVITYDB}_temp"
 gravityDIR="$(dirname -- "${gravityDBfile}")"
 gravityOLDfile="${gravityDIR}/gravity_old.db"
@@ -127,7 +126,7 @@ gravity_swap_databases() {
   oldAvail=false
   if [ "${availableBlocks}" -gt "$((gravityBlocks * 2))" ] && [ -f "${gravityDBfile}" ]; then
     oldAvail=true
-    cp "${gravityDBfile}" "${gravityOLDfile}"
+    cp -p "${gravityDBfile}" "${gravityOLDfile}"
   fi
 
   # Drop the gravity and antigravity tables + subsequent VACUUM the current
@@ -140,7 +139,7 @@ gravity_swap_databases() {
   else
     # Check if the backup directory exists
     if [ ! -d "${gravityBCKdir}" ]; then
-      mkdir -p "${gravityBCKdir}"
+      mkdir -p "${gravityBCKdir}" && chown pihole:pihole "${gravityBCKdir}"
     fi
 
     # If multiple gravityBCKfile's are present (appended with a number), rotate them
@@ -306,7 +305,7 @@ migrate_to_database() {
     fi
 
     # Check if gravity database needs to be updated
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
 
     # Migrate list files to new database
     if [ -e "${adListFile}" ]; then
@@ -334,7 +333,7 @@ migrate_to_database() {
   fi
 
   # Check if gravity database needs to be updated
-  upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+  upgrade_gravityDB "${gravityDBfile}"
 }
 
 # Determine if DNS resolution is available before proceeding
@@ -349,17 +348,24 @@ gravity_CheckDNSResolutionAvailable() {
     echo -e "  ${CROSS} DNS resolution is currently unavailable"
   fi
 
-  str="Waiting until DNS resolution is available..."
+  str="Waiting up to 120 seconds for DNS resolution..."
   echo -ne "  ${INFO} ${str}"
-  until getent hosts github.com &> /dev/null; do
-  # Append one dot for each second waiting
-    str="${str}."
-    echo -ne "  ${OVER}  ${INFO} ${str}"
-    sleep 1
+
+ # Default DNS timeout is two seconds, plus 1 second for each dot > 120 seconds
+  for ((i = 0; i < 40; i++)); do
+      if getent hosts github.com &> /dev/null; then
+        # If we reach this point, DNS resolution is available
+        echo -e "${OVER}  ${TICK} DNS resolution is available"
+        return 0
+      fi
+      # Append one dot for each second waiting
+      echo -ne "."
+      sleep 1
   done
 
-  # If we reach this point, DNS resolution is available
-  echo -e "${OVER}  ${TICK} DNS resolution is available"
+  # DNS resolution is still unavailable after 120 seconds
+  return 1
+
 }
 
 # Function: try_restore_backup
@@ -418,7 +424,7 @@ gravity_DownloadBlocklists() {
     echo -e "  ${INFO} Storing gravity database in ${COL_BOLD}${gravityDBfile}${COL_NC}"
   fi
 
-  local url domain str target compression adlist_type directory success
+  local url domain str compression adlist_type directory success
   echo ""
 
   # Prepare new gravity database
@@ -567,12 +573,12 @@ gravity_DownloadBlocklists() {
     if [[ "${check_url}" =~ ${regex} ]]; then
       echo -e "  ${CROSS} Invalid Target"
     else
-      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${target}" "${compression}" "${adlist_type}" "${domain}"
+      timeit gravity_DownloadBlocklistFromUrl "${url}" "${sourceIDs[$i]}" "${saveLocation}" "${compression}" "${adlist_type}" "${domain}"
     fi
     echo ""
   done
 
-  gravity_Blackbody=true
+  DownloadBlocklists_done=true
 }
 
 compareLists() {
@@ -601,7 +607,7 @@ compareLists() {
 
 # Download specified URL and perform checks on HTTP status and file content
 gravity_DownloadBlocklistFromUrl() {
-  local url="${1}" adlistID="${2}" saveLocation="${3}" target="${4}" compression="${5}" gravity_type="${6}" domain="${7}"
+  local url="${1}" adlistID="${2}" saveLocation="${3}" compression="${4}" gravity_type="${5}" domain="${6}"
   local modifiedOptions="" listCurlBuffer str httpCode success="" ip cmd_ext
   local file_path permissions ip_addr port blocked=false download=true
 
@@ -647,32 +653,6 @@ gravity_DownloadBlocklistFromUrl() {
   str="Status:"
   echo -ne "  ${INFO} ${str} Pending..."
   blocked=false
-  case $(getFTLConfigValue dns.blocking.mode) in
-  "IP-NODATA-AAAA" | "IP")
-    # Get IP address of this domain
-    ip="$(dig "${domain}" +short)"
-    # Check if this IP matches any IP of the system
-    if [[ -n "${ip}" && $(grep -Ec "inet(|6) ${ip}" <<<"$(ip a)") -gt 0 ]]; then
-      blocked=true
-    fi
-    ;;
-  "NXDOMAIN")
-    if [[ $(dig "${domain}" | grep "NXDOMAIN" -c) -ge 1 ]]; then
-      blocked=true
-    fi
-    ;;
-  "NODATA")
-    if [[ $(dig "${domain}" | grep "NOERROR" -c) -ge 1 ]] && [[ -z $(dig +short "${domain}") ]]; then
-      blocked=true
-    fi
-    ;;
-  "NULL" | *)
-    if [[ $(dig "${domain}" +short | grep "0.0.0.0" -c) -ge 1 ]]; then
-      blocked=true
-    fi
-    ;;
-  esac
-
   # Check if this domain is blocked by Pi-hole but only if the domain is not a
   # local file or empty
   if [[ $url != "file"* ]] && [[ -n "${domain}" ]]; then
@@ -770,6 +750,7 @@ gravity_DownloadBlocklistFromUrl() {
   fi
 
   if [[ "${download}" == true ]]; then
+    # See https://github.com/pi-hole/pi-hole/issues/6159 for justification of the below disable directive
     # shellcheck disable=SC2086
     httpCode=$(curl --connect-timeout ${curl_connect_timeout} -s -L ${compression} ${cmd_ext} ${modifiedOptions} -w "%{http_code}" "${url}" -o "${listCurlBuffer}" 2>/dev/null)
   fi
@@ -821,11 +802,11 @@ gravity_DownloadBlocklistFromUrl() {
       done="true"
     # Check if $listCurlBuffer is a non-zero length file
     elif [[ -s "${listCurlBuffer}" ]]; then
-      # Determine if blocklist is non-standard and parse as appropriate
-      gravity_ParseFileIntoDomains "${listCurlBuffer}" "${saveLocation}"
-      # Remove curl buffer file after its use
-      rm "${listCurlBuffer}"
-      # Compare lists if are they identical
+      # Move the downloaded list to the final location
+      mv "${listCurlBuffer}" "${saveLocation}"
+      # Ensure the file has the correct permissions
+      fix_owner_permissions "${saveLocation}"
+      # Compare lists if they are identical
       compareLists "${adlistID}" "${saveLocation}"
       # Add domains to database table file
       pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
@@ -852,37 +833,6 @@ gravity_DownloadBlocklistFromUrl() {
       database_adlist_status "${adlistID}" "4"
     fi
   fi
-}
-
-# Parse source files into domains format
-gravity_ParseFileIntoDomains() {
-  local src="${1}" destination="${2}"
-
-  # Remove comments and print only the domain name
-  # Most of the lists downloaded are already in hosts file format but the spacing/formatting is not contiguous
-  # This helps with that and makes it easier to read
-  # It also helps with debugging so each stage of the script can be researched more in depth
-  # 1) Convert all characters to lowercase
-  tr '[:upper:]' '[:lower:]' <"${src}" >"${destination}"
-
-  # 2) Remove carriage returns
-  # 3) Remove lines starting with ! (ABP Comments)
-  # 4) Remove lines starting with [ (ABP Header)
-  # 5) Remove lines containing ABP extended CSS selectors ("##", "#$#", "#@#", "#?#") and Adguard JavaScript (#%#) preceded by a letter
-  # 6) Remove comments (text starting with "#", include possible spaces before the hash sign)
-  # 7) Remove leading tabs, spaces, etc. (Also removes leading IP addresses)
-  # 8) Remove empty lines
-
-  sed -i -r \
-    -e 's/\r$//' \
-    -e 's/\s*!.*//g' \
-    -e 's/\s*\[.*//g' \
-    -e '/[a-z]\#[$?@%]{0,3}\#/d' \
-    -e 's/\s*#.*//g' \
-    -e 's/^.*\s+//g' \
-    -e '/^$/d' "${destination}"
-
-  fix_owner_permissions "${destination}"
 }
 
 # Report number of entries in a table
@@ -932,13 +882,13 @@ gravity_Cleanup() {
   # invalid_domains location
   rm "${GRAVITY_TMPDIR}"/*.ph-non-domains 2>/dev/null
 
-  # Ensure this function only runs when gravity_SetDownloadOptions() has completed
-  if [[ "${gravity_Blackbody:-}" == true ]]; then
-    # Remove any unused .domains files
-    for file in "${piholeDir}"/*."${domainsExtension}"; do
-      # If list is not in active array, then remove it
+  # Ensure this function only runs when gravity_DownloadBlocklists() has completed
+  if [[ "${DownloadBlocklists_done:-}" == true ]]; then
+    # Remove any unused .domains/.etag/.sha files
+    for file in "${listsCacheDir}"/*."${domainsExtension}"; do
+      # If list is not in active array, then remove it and all associated files
       if [[ ! "${activeDomains[*]}" == *"${file}"* ]]; then
-        rm -f "${file}" 2>/dev/null ||
+        rm -f "${file}"* 2>/dev/null ||
           echo -e "  ${CROSS} Failed to remove ${file##*/}"
       fi
     done
@@ -1072,7 +1022,7 @@ migrate_to_listsCache_dir() {
   # If not, we need to migrate the old files to the new directory
   local str="Migrating the list's cache directory to new location"
   echo -ne "  ${INFO} ${str}..."
-  mkdir -p "${listsCacheDir}"
+  mkdir -p "${listsCacheDir}" && chown pihole:pihole "${listsCacheDir}"
 
   # Move the old files to the new directory
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then
@@ -1131,12 +1081,18 @@ for var in "$@"; do
   "-t" | "--timeit") timed=true ;;
   "-r" | "--repair") repairSelector "$3" ;;
   "-u" | "--upgrade")
-    upgrade_gravityDB "${gravityDBfile}" "${piholeDir}"
+    upgrade_gravityDB "${gravityDBfile}"
     exit 0
     ;;
   "-h" | "--help") helpFunc ;;
   esac
 done
+
+# Check if DNS is available, no need to do any database manipulation if we're not able to download adlists
+if ! timeit gravity_CheckDNSResolutionAvailable; then
+  echo -e "   ${CROSS} No DNS resolution available. Please contact support."
+  exit 1
+fi
 
 # Remove OLD (backup) gravity file, if it exists
 if [[ -f "${gravityOLDfile}" ]]; then
@@ -1178,11 +1134,6 @@ if [[ "${forceDelete:-}" == true ]]; then
 fi
 
 # Gravity downloads blocklists next
-if ! timeit gravity_CheckDNSResolutionAvailable; then
-  echo -e "   ${CROSS} Can not complete gravity update, no DNS is available. Please contact support."
-  exit 1
-fi
-
 if ! gravity_DownloadBlocklists; then
   echo -e "   ${CROSS} Unable to create gravity database. Please try again later. If the problem persists, please contact support."
   exit 1

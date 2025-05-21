@@ -43,8 +43,8 @@ CREATE TABLE adlist
 
 CREATE TABLE adlist_by_group
 (
-    adlist_id INTEGER NOT NULL REFERENCES adlist (id),
-    group_id INTEGER NOT NULL REFERENCES "group" (id),
+    adlist_id INTEGER NOT NULL REFERENCES adlist (id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (adlist_id, group_id)
 );
 
@@ -75,8 +75,8 @@ INSERT INTO "info" VALUES('gravity_restored','false');
 
 CREATE TABLE domainlist_by_group
 (
-    domainlist_id INTEGER NOT NULL REFERENCES domainlist (id),
-    group_id INTEGER NOT NULL REFERENCES "group" (id),
+    domainlist_id INTEGER NOT NULL REFERENCES domainlist (id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (domainlist_id, group_id)
 );
 
@@ -91,8 +91,8 @@ CREATE TABLE client
 
 CREATE TABLE client_by_group
 (
-    client_id INTEGER NOT NULL REFERENCES client (id),
-    group_id INTEGER NOT NULL REFERENCES "group" (id),
+    client_id INTEGER NOT NULL REFERENCES client (id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES "group" (id) ON DELETE CASCADE,
     PRIMARY KEY (client_id, group_id)
 );
 

@@ -1,4 +1,5 @@
-FROM buildpack-deps:bullseye-scm
+FROM fedora:42
+RUN dnf install -y git initscripts
 
 ENV GITDIR=/etc/.pihole
 ENV SCRIPTDIR=/opt/pihole
