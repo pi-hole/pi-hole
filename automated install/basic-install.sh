@@ -228,6 +228,13 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+is_pid1() {
+    # Checks to see if the given command runs as PID 1
+    local is_pid1="$1"
+
+    ps -p 1 -o comm= | grep -q "${is_pid1}"
+}
+
 # Compatibility
 package_manager_detect() {
 
@@ -1152,7 +1159,7 @@ installConfigs() {
     fi
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
-    if ps -p 1 -o comm= | grep -q systemd; then
+    if is_pid1 systemd; then
         install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
@@ -1220,9 +1227,12 @@ stop_service() {
     # Can softfail, as process may not be installed when this is called
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
+        # use that to restart the service
         systemctl -q stop "${1}" || true
     else
+        # Otherwise, fall back to the service command
         service "${1}" stop >/dev/null || true
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
@@ -1233,8 +1243,8 @@ restart_service() {
     # Local, named variables
     local str="Restarting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
         # use that to restart the service
         systemctl -q restart "${1}"
     else
@@ -1249,8 +1259,8 @@ enable_service() {
     # Local, named variables
     local str="Enabling ${1} service to start on reboot"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to enable the service
         systemctl -q enable "${1}"
     else
@@ -1265,8 +1275,8 @@ disable_service() {
     # Local, named variables
     local str="Disabling ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to disable the service
         systemctl -q disable "${1}"
     else
@@ -1277,8 +1287,8 @@ disable_service() {
 }
 
 check_service_active() {
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
     else
