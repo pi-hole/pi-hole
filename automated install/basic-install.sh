@@ -116,11 +116,11 @@ c=70
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: 0.3
+Version: 0.4
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron | cron-daemon,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,netcat-openbsd,procps,psmisc,sudo,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -130,12 +130,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.1
+Version: 0.2
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: grep,curl,psmisc,sudo, unzip,jq,git,dialog,ca-certificates, bind-utils, iproute, procps-ng, chkconfig, binutils, cronie, findutils, libcap, nmap-ncat, lshw, bash-completion
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,nmap-ncat,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -143,6 +143,9 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Wed May 28 2025 Pi-hole Team - 0.2
+- Add gawk to the list of dependencies
+
 * Sun Sep 29 2024 Pi-hole Team - 0.1
 - First version being packaged
 EOM
