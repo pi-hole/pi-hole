@@ -235,7 +235,9 @@ is_pid1() {
     # Checks to see if the given command runs as PID 1
     local is_pid1="$1"
 
-    ps -p 1 -o comm= | grep -q "${is_pid1}"
+    # select PID 1, format output to show only CMD column without header
+    # quietly grep for a match on the function passed parameter
+    ps --pid 1 --format comm= | grep -q "${is_pid1}"
 }
 
 # Compatibility
