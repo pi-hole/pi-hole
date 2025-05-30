@@ -70,7 +70,7 @@ def test_installPihole_fresh_install_readableFiles(host):
     mock_command_2(
         "ps",
         {
-            "-p 1": ("systemd", "0"),
+            "--pid 1": ("systemd", "0"),
         },
         host,
     )
