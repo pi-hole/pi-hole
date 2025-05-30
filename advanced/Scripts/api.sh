@@ -19,13 +19,19 @@
 
 TestAPIAvailability() {
 
+    local chaos_api_list authResponse authStatus authData apiAvailable DNSport
+
     # as we are running locally, we can get the port value from FTL directly
-    local chaos_api_list authResponse authStatus authData apiAvailable
+    readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+    # shellcheck source=./advanced/Scripts/utils.sh
+    . "${utilsfile}"
+
+    DNSport=$(getFTLConfigValue dns.port)
 
     # Query the API URLs from FTL using CHAOS TXT local.api.ftl
     # The result is a space-separated enumeration of full URLs
     # e.g., "http://localhost:80/api/" "https://localhost:443/api/"
-    chaos_api_list="$(dig +short chaos txt local.api.ftl @127.0.0.1)"
+    chaos_api_list="$(dig +short -p "${DNSport}" chaos txt local.api.ftl @127.0.0.1)"
 
     # If the query was not successful, the variable is empty
     if [ -z "${chaos_api_list}" ]; then
