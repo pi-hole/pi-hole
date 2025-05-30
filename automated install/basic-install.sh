@@ -116,11 +116,11 @@ c=70
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: 0.3
+Version: 0.4
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron | cron-daemon,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,netcat-openbsd,procps,psmisc,sudo,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -130,12 +130,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.1
+Version: 0.2
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: grep,curl,psmisc,sudo, unzip,jq,git,dialog,ca-certificates, bind-utils, iproute, procps-ng, chkconfig, binutils, cronie, findutils, libcap, nmap-ncat, lshw, bash-completion
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,nmap-ncat,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -143,6 +143,9 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Wed May 28 2025 Pi-hole Team - 0.2
+- Add gawk to the list of dependencies
+
 * Sun Sep 29 2024 Pi-hole Team - 0.1
 - First version being packaged
 EOM
@@ -226,6 +229,15 @@ is_command() {
     local check_command="$1"
 
     command -v "${check_command}" >/dev/null 2>&1
+}
+
+is_pid1() {
+    # Checks to see if the given command runs as PID 1
+    local is_pid1="$1"
+
+    # select PID 1, format output to show only CMD column without header
+    # quietly grep for a match on the function passed parameter
+    ps --pid 1 --format comm= | grep -q "${is_pid1}"
 }
 
 # Compatibility
@@ -1152,7 +1164,7 @@ installConfigs() {
     fi
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
-    if ps -p 1 -o comm= | grep -q systemd; then
+    if is_pid1 systemd; then
         install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
@@ -1220,9 +1232,12 @@ stop_service() {
     # Can softfail, as process may not be installed when this is called
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
+        # use that to restart the service
         systemctl -q stop "${1}" || true
     else
+        # Otherwise, fall back to the service command
         service "${1}" stop >/dev/null || true
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
@@ -1233,8 +1248,8 @@ restart_service() {
     # Local, named variables
     local str="Restarting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
         # use that to restart the service
         systemctl -q restart "${1}"
     else
@@ -1249,8 +1264,8 @@ enable_service() {
     # Local, named variables
     local str="Enabling ${1} service to start on reboot"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to enable the service
         systemctl -q enable "${1}"
     else
@@ -1265,8 +1280,8 @@ disable_service() {
     # Local, named variables
     local str="Disabling ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to disable the service
         systemctl -q disable "${1}"
     else
@@ -1277,8 +1292,8 @@ disable_service() {
 }
 
 check_service_active() {
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
     else
