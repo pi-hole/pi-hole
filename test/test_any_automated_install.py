@@ -66,6 +66,14 @@ def test_installPihole_fresh_install_readableFiles(host):
     mock_command("dialog", {"*": ("", "0")}, host)
     # mock git pull
     mock_command_passthrough("git", {"pull": ("", "0")}, host)
+    # mock PID 1 to pretend to be systemd
+    mock_command_2(
+        "ps",
+        {
+            "--pid 1": ("systemd", "0"),
+        },
+        host,
+    )
     # mock systemctl to not start FTL
     mock_command_2(
         "systemctl",
@@ -73,6 +81,7 @@ def test_installPihole_fresh_install_readableFiles(host):
             "enable pihole-FTL": ("", "0"),
             "restart pihole-FTL": ("", "0"),
             "start pihole-FTL": ("", "0"),
+            "stop pihole-FTL": ("", "0"),
             "*": ('echo "systemctl call with $@"', "0"),
         },
         host,
@@ -130,13 +139,6 @@ def test_installPihole_fresh_install_readableFiles(host):
     # readable macvendor.db
     check_macvendor = test_cmd.format("r", "/etc/pihole/macvendor.db", piholeuser)
     actual_rc = host.run(check_macvendor).rc
-    assert exit_status_success == actual_rc
-    # check readable and executable /etc/init.d/pihole-FTL
-    check_init = test_cmd.format("x", "/etc/init.d/pihole-FTL", piholeuser)
-    actual_rc = host.run(check_init).rc
-    assert exit_status_success == actual_rc
-    check_init = test_cmd.format("r", "/etc/init.d/pihole-FTL", piholeuser)
-    actual_rc = host.run(check_init).rc
     assert exit_status_success == actual_rc
     # check readable and executable manpages
     if maninstalled is True:
@@ -245,6 +247,7 @@ def test_FTL_detect_no_errors(host, arch, detected_string, supported):
         {
             "-A /bin/sh": ("Tag_CPU_arch: " + arch, "0"),
             "-A /usr/bin/sh": ("Tag_CPU_arch: " + arch, "0"),
+            "-A /usr/sbin/sh": ("Tag_CPU_arch: " + arch, "0"),
         },
         host,
     )
@@ -463,50 +466,6 @@ def test_validate_ip(host):
     test_address("0.0.0.0#001", False)
     test_address("0.0.0.0#0001", False)
     test_address("0.0.0.0#00001", False)
-
-
-def test_os_check_fails(host):
-    """Confirms install fails on unsupported OS"""
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
-    cat <<EOT > /etc/os-release
-ID=UnsupportedOS
-VERSION_ID="2"
-EOT
-    """
-    )
-    detectOS = host.run(
-        """t
-    source /opt/pihole/basic-install.sh
-    os_check
-    """
-    )
-    expected_stdout = "Unsupported OS detected: UnsupportedOS"
-    assert expected_stdout in detectOS.stdout
-
-
-def test_os_check_passes(host):
-    """Confirms OS meets the requirements"""
-    host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
-    """
-    )
-    detectOS = host.run(
-        """
-    source /opt/pihole/basic-install.sh
-    os_check
-    """
-    )
-    expected_stdout = "Supported OS detected"
-    assert expected_stdout in detectOS.stdout
 
 
 def test_package_manager_has_pihole_deps(host):

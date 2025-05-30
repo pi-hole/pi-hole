@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -12,9 +11,11 @@
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source="./advanced/Scripts/utils.sh"
 source "${utilsfile}"
 
 readonly apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
+# shellcheck source="./advanced/Scripts/api.sh"
 source "${apifile}"
 
 # Determine database location
@@ -39,6 +40,7 @@ typeId=""
 comment=""
 
 colfile="/opt/pihole/COL_TABLE"
+# shellcheck source="./advanced/Scripts/COL_TABLE"
 source ${colfile}
 
 helpFunc() {

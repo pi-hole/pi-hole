@@ -8,7 +8,18 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+# shellcheck source="./advanced/Scripts/COL_TABLE"
 source "/opt/pihole/COL_TABLE"
+# shellcheck source="./advanced/Scripts/utils.sh"
+source "/opt/pihole/utils.sh"
+
+SKIP_INSTALL="true"
+# shellcheck source="./automated install/basic-install.sh"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+# stop_service() is defined in basic-install.sh
+
+ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
+readonly ADMIN_INTERFACE_DIR
 
 while true; do
     read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " answer
@@ -37,6 +48,7 @@ fi
 
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
+# shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
 # package_manager_detect() sourced from basic-install.sh
@@ -53,17 +65,9 @@ removeMetaPackage() {
 }
 
 removePiholeFiles() {
-    # Only web directories/files that are created by Pi-hole should be removed
+    # Remove the web interface of Pi-hole
     echo -ne "  ${INFO} Removing Web Interface..."
-    ${SUDO} rm -rf /var/www/html/admin &> /dev/null
-
-
-    # If the web directory is empty after removing these files, then the parent html directory can be removed.
-    if [ -d "/var/www/html" ]; then
-        if [[ ! "$(ls -A /var/www/html)" ]]; then
-            ${SUDO} rm -rf /var/www/html &> /dev/null
-        fi
-    fi
+    ${SUDO} rm -rf "${ADMIN_INTERFACE_DIR}" &> /dev/null
     echo -e "${OVER}  ${TICK} Removed Web Interface"
 
     # Attempt to preserve backwards compatibility with older versions
@@ -103,11 +107,7 @@ removePiholeFiles() {
     # Remove FTL
     if command -v pihole-FTL &> /dev/null; then
         echo -ne "  ${INFO} Removing pihole-FTL..."
-        if [[ -x "$(command -v systemctl)" ]]; then
-            systemctl stop pihole-FTL
-        else
-            service pihole-FTL stop
-        fi
+        stop_service pihole-FTL
         ${SUDO} rm -f /etc/systemd/system/pihole-FTL.service
         if [[ -d '/etc/systemd/system/pihole-FTL.service.d' ]]; then
             read -rp "  ${QST} FTL service override directory /etc/systemd/system/pihole-FTL.service.d detected. Do you wish to remove this from your system? [y/N] " answer

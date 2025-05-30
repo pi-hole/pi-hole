@@ -1,0 +1,2 @@
+external-sources=true # allow shellcheck to read external sources
+disable=SC3043 #disable SC3043: In POSIX sh, local is undefined.

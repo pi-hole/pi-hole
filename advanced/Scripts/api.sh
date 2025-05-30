@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
-# shellcheck disable=SC3043 #https://github.com/koalaman/shellcheck/wiki/SC3043#exceptions
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2017 Pi-hole, LLC (https://pi-hole.net)
@@ -20,13 +19,19 @@
 
 TestAPIAvailability() {
 
+    local chaos_api_list authResponse authStatus authData apiAvailable DNSport
+
     # as we are running locally, we can get the port value from FTL directly
-    local chaos_api_list authResponse authStatus authData
+    readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+    # shellcheck source=./advanced/Scripts/utils.sh
+    . "${utilsfile}"
+
+    DNSport=$(getFTLConfigValue dns.port)
 
     # Query the API URLs from FTL using CHAOS TXT local.api.ftl
     # The result is a space-separated enumeration of full URLs
     # e.g., "http://localhost:80/api/" "https://localhost:443/api/"
-    chaos_api_list="$(dig +short chaos txt local.api.ftl @127.0.0.1)"
+    chaos_api_list="$(dig +short -p "${DNSport}" chaos txt local.api.ftl @127.0.0.1)"
 
     # If the query was not successful, the variable is empty
     if [ -z "${chaos_api_list}" ]; then
@@ -48,48 +53,50 @@ TestAPIAvailability() {
         API_URL="${API_URL%\"}"
         API_URL="${API_URL#\"}"
 
-        # Test if the API is available at this URL
-        authResponse=$(curl --connect-timeout 2 -skS -w "%{http_code}" "${API_URL}auth")
+        # Test if the API is available at this URL, include delimiter for ease in splitting payload
+        authResponse=$(curl --connect-timeout 2 -skS -w ">>%{http_code}" "${API_URL}auth")
 
-        # authStatus are the last 3 characters
-        # not using ${authResponse#"${authResponse%???}"}" here because it's extremely slow on big responses
-        authStatus=$(printf "%s" "${authResponse}" | tail -c 3)
-        # data is everything from response without the last 3 characters
-        authData=$(printf %s "${authResponse%???}")
+        # authStatus is the response http_code, eg. 200, 401.
+        # Shell parameter expansion, remove everything up to and including the >> delim
+        authStatus=${authResponse#*>>}
+        # data is everything from response
+        # Shell parameter expansion, remove the >> delim and everything after
+        authData=${authResponse%>>*}
 
         # Test if http status code was 200 (OK) or 401 (authentication required)
-        if [ ! "${authStatus}" = 200 ] && [ ! "${authStatus}" = 401 ]; then
-            # API is not available at this port/protocol combination
-            API_PORT=""
-        else
-            # API is available at this URL combination
+        if [ "${authStatus}" = 200 ]; then
+            # API is available without authentication
+            apiAvailable=true
+            needAuth=false
+            break
 
-            if [ "${authStatus}" = 200 ]; then
-                # API is available without authentication
-                needAuth=false
-            fi
-
+        elif [ "${authStatus}" = 401 ]; then
+            # API is available with authentication
+            apiAvailable=true
+            needAuth=true
             # Check if 2FA is required
             needTOTP=$(echo "${authData}"| jq --raw-output .session.totp 2>/dev/null)
-
             break
-        fi
 
-        # Remove the first URL from the list
-        local last_api_list
-        last_api_list="${chaos_api_list}"
-        chaos_api_list="${chaos_api_list#* }"
+        else
+            # API is not available at this port/protocol combination
+            apiAvailable=false
+            # Remove the first URL from the list
+            local last_api_list
+            last_api_list="${chaos_api_list}"
+            chaos_api_list="${chaos_api_list#* }"
 
-        # If the list did not change, we are at the last element
-        if [ "${last_api_list}" = "${chaos_api_list}" ]; then
-            # Remove the last element
-            chaos_api_list=""
+            # If the list did not change, we are at the last element
+            if [ "${last_api_list}" = "${chaos_api_list}" ]; then
+                # Remove the last element
+                chaos_api_list=""
+            fi
         fi
     done
 
-    # if API_PORT is empty, no working API port was found
-    if [ -n "${API_PORT}" ]; then
-        echo "API not available at: ${API_URL}"
+    # if apiAvailable is false, no working API was found
+    if [ "${apiAvailable}" = false ]; then
+        echo "API not available. Please check FTL.log"
         echo "Exiting."
         exit 1
     fi
@@ -227,7 +234,7 @@ GetFTLData() {
     # return only the data
     if [ "${status}" = 200 ]; then
         # response OK
-        echo "${data}"
+        printf %s "${data}"
     else
         # connection lost
         echo "${status}"
@@ -301,14 +308,23 @@ secretRead() {
 }
 
 apiFunc() {
-  local data response status status_col
+  local data response status status_col verbosity
+
+  # Define if the output will be silent (default) or verbose
+  verbosity="silent"
+  if [ "$1" = "verbose" ]; then
+    verbosity="verbose"
+    shift
+  fi
 
   # Authenticate with the API
-  LoginAPI verbose
-  echo ""
+  LoginAPI "${verbosity}"
 
-  echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
-  echo ""
+  if [ "${verbosity}" = "verbose" ]; then
+    echo ""
+    echo "Requesting: ${COL_PURPLE}GET ${COL_CYAN}${API_URL}${COL_YELLOW}$1${COL_NC}"
+    echo ""
+  fi
 
   # Get the data from the API
   response=$(GetFTLData "$1" raw)
@@ -325,11 +341,18 @@ apiFunc() {
   else
     status_col="${COL_RED}"
   fi
-  echo "Status: ${status_col}${status}${COL_NC}"
+
+  # Only print the status in verbose mode or if the status is not 200
+  if [ "${verbosity}" = "verbose" ] || [ "${status}" != 200 ]; then
+    echo "Status: ${status_col}${status}${COL_NC}"
+  fi
 
   # Output the data. Format it with jq if available and data is actually JSON.
   # Otherwise just print it
-  echo "Data:"
+  if [ "${verbosity}" = "verbose" ]; then
+    echo "Data:"
+  fi
+
   if command -v jq >/dev/null && echo "${data}" | jq . >/dev/null 2>&1; then
     echo "${data}" | jq .
   else
@@ -337,5 +360,5 @@ apiFunc() {
   fi
 
   # Delete the session
-  LogoutAPI verbose
+  LogoutAPI "${verbosity}"
 }

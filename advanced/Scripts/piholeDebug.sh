@@ -8,7 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# shellcheck source=/dev/null
 
 # -e option instructs bash to immediately exit if any command [1] has a non-zero exit status
 # -u a reference to any variable you haven't previously defined
@@ -27,6 +26,7 @@ PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
+# shellcheck source=./advanced/Scripts/COL_TABLE
     source ${PIHOLE_COLTABLE_FILE}
 else
     COL_NC='\e[0m' # No Color
@@ -41,7 +41,7 @@ else
     #OVER="\r\033[K"
 fi
 
-# shellcheck disable=SC1091
+# shellcheck source=/dev/null
 . /etc/pihole/versions
 
 # Read the value of an FTL config key. The value is printed to stdout.
@@ -213,7 +213,7 @@ compare_local_version_to_git_version() {
             local local_status
             local_status=$(git status -s)
             # echo this information out to the user in a nice format
-            if [ ${local_version} ]; then
+            if [ "${local_version}" ]; then
               log_write "${TICK} Version: ${local_version}"
             elif [ -n "${DOCKER_VERSION}" ]; then
               log_write "${TICK} Version: Pi-hole Docker Container ${COL_BOLD}${DOCKER_VERSION}${COL_NC}"
@@ -296,91 +296,12 @@ check_component_versions() {
     check_ftl_version
 }
 
-os_check() {
-    # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
-    # and determines whether or not the script is running on one of those systems
-    local remote_os_domain valid_os valid_version detected_os detected_version cmdResult digReturnCode response
-    remote_os_domain=${OS_CHECK_DOMAIN_NAME:-"versions.pi-hole.net"}
-
-    detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
-    detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
-
-    cmdResult="$(dig -4 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
-    #Get the return code of the previous command (last line)
-    digReturnCode="${cmdResult##*$'\n'}"
-
-    # Extract dig response
-    response="${cmdResult%%$'\n'*}"
-
-    if [ "${digReturnCode}" -ne 0 ]; then
-        log_write "${INFO} Distro: ${detected_os^}"
-        log_write "${INFO} Version: ${detected_version}"
-        log_write "${CROSS} dig IPv4 return code: ${COL_RED}${digReturnCode}${COL_NC}"
-        log_write "${CROSS} dig response: ${response}"
-        log_write "${INFO} Retrying via IPv6"
-
-        cmdResult="$(dig -6 +short -t txt "${remote_os_domain}" @ns1.pi-hole.net 2>&1; echo $?)"
-        #Get the return code of the previous command (last line)
-        digReturnCode="${cmdResult##*$'\n'}"
-
-        # Extract dig response
-        response="${cmdResult%%$'\n'*}"
-    fi
-    # If also no success via IPv6
-    if [ "${digReturnCode}" -ne 0 ]; then
-        log_write "${CROSS} dig IPv6 return code: ${COL_RED}${digReturnCode}${COL_NC}"
-        log_write "${CROSS} dig response: ${response}"
-        log_write "${CROSS} Error: ${COL_RED}dig command failed - Unable to check OS${COL_NC}"
-    else
-        IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
-        for distro_and_versions in "${supportedOS[@]}"
-        do
-            distro_part="${distro_and_versions%%=*}"
-            versions_part="${distro_and_versions##*=}"
-
-            if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
-                valid_os=true
-                IFS="," read -r -a supportedVer <<<"${versions_part}"
-                for version in "${supportedVer[@]}"
-                do
-                    if [[ "${detected_version}" =~ $version ]]; then
-                        valid_version=true
-                        break
-                    fi
-                done
-                break
-            fi
-        done
-
-        # If it is a docker container, we can assume the OS is supported
-        [ -n "${DOCKER_VERSION}" ] && valid_os=true && valid_version=true
-
-        local finalmsg
-        if [ "$valid_os" = true ]; then
-            log_write "${TICK} Distro:  ${COL_GREEN}${detected_os^}${COL_NC}"
-
-            if [ "$valid_version" = true ]; then
-                log_write "${TICK} Version: ${COL_GREEN}${detected_version}${COL_NC}"
-                finalmsg="${TICK} ${COL_GREEN}Distro and version supported${COL_NC}"
-            else
-                log_write "${CROSS} Version: ${COL_RED}${detected_version}${COL_NC}"
-                finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is supported but version ${detected_version} is currently unsupported ${COL_NC}(${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
-            fi
-        else
-            log_write "${CROSS} Distro:  ${COL_RED}${detected_os^}${COL_NC}"
-            finalmsg="${CROSS} Error: ${COL_RED}${detected_os^} is not a supported distro ${COL_NC}(${FAQ_HARDWARE_REQUIREMENTS})${COL_NC}"
-        fi
-
-        # Print dig response and the final check result
-        log_write "${TICK} dig return code: ${COL_GREEN}${digReturnCode}${COL_NC}"
-        log_write "${INFO} dig response: ${response}"
-        log_write "${finalmsg}"
-    fi
-}
-
 diagnose_operating_system() {
     # error message in a variable so we can easily modify it later (or reuse it)
     local error_msg="Distribution unknown -- most likely you are on an unsupported platform and may run into issues."
+    local detected_os
+    local detected_version
+
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
@@ -389,8 +310,13 @@ diagnose_operating_system() {
 
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
     if ls /etc/*release 1> /dev/null 2>&1; then
-        # display the attributes to the user from the function made earlier
-        os_check
+        # display the attributes to the user
+
+        detected_os=$(grep "\bID\b" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+        detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
+
+        log_write "${INFO} Distro: ${detected_os^}"
+        log_write "${INFO} Version: ${detected_version}"
     else
         # If it doesn't exist, it's not a system we currently support and link to FAQ
         log_write "${CROSS} ${COL_RED}${error_msg}${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS})"
@@ -488,7 +414,9 @@ run_and_print_command() {
     local output
     output=$(${cmd} 2>&1)
     # If the command was successful,
-    if [[ $? -eq 0 ]]; then
+    local return_code
+    return_code=$?
+    if [[ "${return_code}" -eq 0 ]]; then
         # show the output
         log_write "${output}"
     else
@@ -933,7 +861,6 @@ parse_file() {
     # Get the lines that are in the file(s) and store them in an array for parsing later
     local file_info
     if [[ -f "$filename" ]]; then
-        #shellcheck disable=SC2016
         IFS=$'\r\n' command eval 'file_info=( $(cat "${filename}") )'
     else
         read -r -a file_info <<< "$filename"

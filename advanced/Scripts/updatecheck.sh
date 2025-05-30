@@ -39,8 +39,11 @@ function get_remote_hash() {
 }
 
 # Source the utils file for addOrEditKeyValPair()
-# shellcheck disable=SC1091
+# shellcheck source="./advanced/Scripts/utils.sh"
 . /opt/pihole/utils.sh
+
+ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
+readonly ADMIN_INTERFACE_DIR
 
 # Remove the below three legacy files if they exist
 rm -f "/etc/pihole/GitHubVersions"
@@ -85,13 +88,13 @@ addOrEditKeyValPair "${VERSION_FILE}" "GITHUB_CORE_HASH" "${GITHUB_CORE_HASH}"
 
 # get Web versions
 
-WEB_VERSION="$(get_local_version /var/www/html/admin)"
+WEB_VERSION="$(get_local_version "${ADMIN_INTERFACE_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "WEB_VERSION" "${WEB_VERSION}"
 
-WEB_BRANCH="$(get_local_branch /var/www/html/admin)"
+WEB_BRANCH="$(get_local_branch "${ADMIN_INTERFACE_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "WEB_BRANCH" "${WEB_BRANCH}"
 
-WEB_HASH="$(get_local_hash /var/www/html/admin)"
+WEB_HASH="$(get_local_hash "${ADMIN_INTERFACE_DIR}")"
 addOrEditKeyValPair "${VERSION_FILE}" "WEB_HASH" "${WEB_HASH}"
 
 GITHUB_WEB_VERSION="$(get_remote_version web "${WEB_BRANCH}")"

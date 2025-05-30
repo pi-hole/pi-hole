@@ -1,7 +1,5 @@
-FROM quay.io/centos/centos:stream9
-# Disable SELinux
-RUN echo "SELINUX=disabled" > /etc/selinux/config
-RUN yum install -y --allowerasing curl git
+FROM fedora:42
+RUN dnf install -y git gawk
 
 ENV GITDIR=/etc/.pihole
 ENV SCRIPTDIR=/opt/pihole

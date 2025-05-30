@@ -1,4 +1,4 @@
-FROM quay.io/centos/centos:stream9
+FROM quay.io/centos/centos:stream10
 # Disable SELinux
 RUN echo "SELINUX=disabled" > /etc/selinux/config
 RUN yum install -y --allowerasing curl git

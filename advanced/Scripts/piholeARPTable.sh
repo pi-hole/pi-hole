@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) 2019 Pi-hole, LLC (https://pi-hole.net)
@@ -12,12 +11,21 @@
 
 coltable="/opt/pihole/COL_TABLE"
 if [[ -f ${coltable} ]]; then
+# shellcheck source="./advanced/Scripts/COL_TABLE"
     source ${coltable}
 fi
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source=./advanced/Scripts/utils.sh
 source "${utilsfile}"
+
+readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+SKIP_INSTALL="true"
+# shellcheck source="./automated install/basic-install.sh"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+# stop_service() is defined in basic-install.sh
+# restart_service() is defined in basic-install.sh
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
@@ -32,7 +40,7 @@ flushARP(){
     fi
 
     # Stop FTL to prevent database access
-    if ! output=$(service pihole-FTL stop 2>&1); then
+    if ! output=$(stop_service pihole-FTL 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to stop FTL"
         echo "  Output: ${output}"
         return 1
@@ -64,7 +72,7 @@ flushARP(){
     fi
 
     # Start FTL again
-    if ! output=$(service pihole-FTL restart 2>&1); then
+    if ! output=$(restart_service pihole-FTL 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to restart FTL"
         echo "  Output: ${output}"
         return 1

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1090
 
 # Pi-hole: A black hole for Internet advertisements
 # (c) Pi-hole (https://pi-hole.net)
@@ -49,11 +48,21 @@ Google (ECS, DNSSEC);8.8.8.8;8.8.4.4;2001:4860:4860:0:0:0:0:8888;2001:4860:4860:
 OpenDNS (ECS, DNSSEC);208.67.222.222;208.67.220.220;2620:119:35::35;2620:119:53::53
 Level3;4.2.2.1;4.2.2.2;;
 Comodo;8.26.56.26;8.20.247.20;;
-DNS.WATCH (DNSSEC);84.200.69.80;84.200.70.40;2001:1608:10:25:0:0:1c04:b12f;2001:1608:10:25:0:0:9249:d69b
 Quad9 (filtered, DNSSEC);9.9.9.9;149.112.112.112;2620:fe::fe;2620:fe::9
 Quad9 (unfiltered, no DNSSEC);9.9.9.10;149.112.112.10;2620:fe::10;2620:fe::fe:10
 Quad9 (filtered, ECS, DNSSEC);9.9.9.11;149.112.112.11;2620:fe::11;2620:fe::fe:11
 Cloudflare (DNSSEC);1.1.1.1;1.0.0.1;2606:4700:4700::1111;2606:4700:4700::1001
+EOM
+)
+
+DNS_SERVERS_IPV6_ONLY=$(
+    cat <<EOM
+Google (ECS, DNSSEC);2001:4860:4860:0:0:0:0:8888;2001:4860:4860:0:0:0:0:8844
+OpenDNS (ECS, DNSSEC);2620:119:35::35;2620:119:53::53
+Quad9 (filtered, DNSSEC);2620:fe::fe;2620:fe::9
+Quad9 (unfiltered, no DNSSEC);2620:fe::10;2620:fe::fe:10
+Quad9 (filtered, ECS, DNSSEC);2620:fe::11;2620:fe::fe:11
+Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
@@ -90,6 +99,7 @@ IPV6_ADDRESS=${IPV6_ADDRESS}
 # Give settings their default values. These may be changed by prompts later in the script.
 QUERY_LOGGING=
 PRIVACY_LEVEL=
+PIHOLE_INTERFACE=
 
 # Where old configs go to if a v6 migration is performed
 V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
@@ -106,11 +116,13 @@ c=70
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: 0.1
+Version: 0.4
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,netcat-openbsd,procps,psmisc,sudo,unzip
+Section: contrib/metapackages
+Priority: optional
 EOM
 )
 
@@ -118,12 +130,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.1
+Version: 0.2
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: grep,curl,psmisc,sudo, unzip,jq,git,dialog,ca-certificates, bind-utils, iproute, procps-ng, chkconfig, binutils, cronie, findutils, libcap, nmap-ncat, lshw, bash-completion
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,nmap-ncat,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -131,6 +143,9 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Wed May 28 2025 Pi-hole Team - 0.2
+- Add gawk to the list of dependencies
+
 * Sun Sep 29 2024 Pi-hole Team - 0.1
 - First version being packaged
 EOM
@@ -152,6 +167,7 @@ done
 # If the color table file exists,
 if [[ -f "${coltable}" ]]; then
     # source it
+    # shellcheck source="./advanced/Scripts/COL_TABLE"
     source "${coltable}"
 # Otherwise,
 else
@@ -215,174 +231,13 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
-os_check_dig(){
-    local protocol="$1"
-    local domain="$2"
-    local nameserver="$3"
-    local response
+is_pid1() {
+    # Checks to see if the given command runs as PID 1
+    local is_pid1="$1"
 
-    response="$(dig -"${protocol}" +short -t txt "${domain}" "${nameserver}" 2>&1
-    echo $?
-    )"
-    echo "${response}"
-}
-
-os_check_dig_response(){
-    # Checks the reply from the dig command to determine if it's a valid response
-    local digReply="$1"
-    local response
-
-    # Dig returned 0 (success), so get the actual response, and loop through it to determine if the detected variables above are valid
-    response="${digReply%%$'\n'*}"
-    # If the value of ${response} is a single 0, then this is the return code, not an actual response.
-    if [ "${response}" == 0 ]; then
-        echo false
-    else
-        echo true
-    fi
-}
-
-os_check() {
-    if [ "$PIHOLE_SKIP_OS_CHECK" != true ]; then
-        # This function gets a list of supported OS versions from a TXT record at versions.pi-hole.net
-        # and determines whether or not the script is running on one of those systems
-        local remote_os_domain valid_os valid_version valid_response detected_os detected_version display_warning cmdResult digReturnCode response
-        local piholeNameserver="@ns1.pi-hole.net"
-        remote_os_domain=${OS_CHECK_DOMAIN_NAME:-"versions.pi-hole.net"}
-
-        detected_os=$(grep '^ID=' /etc/os-release | cut -d '=' -f2 | tr -d '"')
-        detected_version=$(grep VERSION_ID /etc/os-release | cut -d '=' -f2 | tr -d '"')
-
-        # Test via IPv4 and hardcoded nameserver ns1.pi-hole.net
-        cmdResult=$(os_check_dig 4 "${remote_os_domain}" "${piholeNameserver}")
-
-        # Gets the return code of the previous command (last line)
-        digReturnCode="${cmdResult##*$'\n'}"
-
-        if [ ! "${digReturnCode}" == "0" ]; then
-            valid_response=false
-        else
-            valid_response=$(os_check_dig_response cmdResult)
-        fi
-
-        # Try again via IPv6 and hardcoded nameserver ns1.pi-hole.net
-        if [ "$valid_response" = false ]; then
-            unset valid_response
-            unset cmdResult
-            unset digReturnCode
-
-            cmdResult=$(os_check_dig 6 "${remote_os_domain}" "${piholeNameserver}")
-            # Gets the return code of the previous command (last line)
-            digReturnCode="${cmdResult##*$'\n'}"
-
-            if [ ! "${digReturnCode}" == "0" ]; then
-                valid_response=false
-            else
-                valid_response=$(os_check_dig_response cmdResult)
-            fi
-        fi
-
-        # Try again without hardcoded nameserver
-        if [ "$valid_response" = false ]; then
-            unset valid_response
-            unset cmdResult
-            unset digReturnCode
-
-            cmdResult=$(os_check_dig 4 "${remote_os_domain}")
-            # Gets the return code of the previous command (last line)
-            digReturnCode="${cmdResult##*$'\n'}"
-
-            if [ ! "${digReturnCode}" == "0" ]; then
-                valid_response=false
-            else
-                valid_response=$(os_check_dig_response cmdResult)
-            fi
-        fi
-
-        if [ "$valid_response" = false ]; then
-            unset valid_response
-            unset cmdResult
-            unset digReturnCode
-
-            cmdResult=$(os_check_dig 6 "${remote_os_domain}")
-            # Gets the return code of the previous command (last line)
-            digReturnCode="${cmdResult##*$'\n'}"
-
-            if [ ! "${digReturnCode}" == "0" ]; then
-                valid_response=false
-            else
-                valid_response=$(os_check_dig_response cmdResult)
-            fi
-        fi
-
-        if [ "$valid_response" = true ]; then
-            response="${cmdResult%%$'\n'*}"
-            IFS=" " read -r -a supportedOS < <(echo "${response}" | tr -d '"')
-            for distro_and_versions in "${supportedOS[@]}"; do
-                distro_part="${distro_and_versions%%=*}"
-                versions_part="${distro_and_versions##*=}"
-
-                # If the distro part is a (case-insensitive) substring of the computer OS
-                if [[ "${detected_os^^}" =~ ${distro_part^^} ]]; then
-                    valid_os=true
-                    IFS="," read -r -a supportedVer <<<"${versions_part}"
-                    for version in "${supportedVer[@]}"; do
-                        if [[ "${detected_version}" =~ $version ]]; then
-                            valid_version=true
-                            break
-                        fi
-                    done
-                    break
-                fi
-            done
-        fi
-
-        if [ "$valid_os" = true ] && [ "$valid_version" = true ] && [ "$valid_response" = true ]; then
-            display_warning=false
-        fi
-
-        if [ "$display_warning" != false ]; then
-            if [ "$valid_response" = false ]; then
-
-                if [ "${digReturnCode}" -eq 0 ]; then
-                    errStr="dig succeeded, but response was blank. Please contact support"
-                else
-                    errStr="dig failed with return code ${digReturnCode}"
-                fi
-                printf "  %b %bRetrieval of supported OS list failed. %s. %b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${errStr}" "${COL_NC}"
-                printf "      %bUnable to determine if the detected OS (%s %s) is supported%b\\n" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
-                printf "      Possible causes for this include:\\n"
-                printf "        - Firewall blocking DNS lookups from Pi-hole device to ns1.pi-hole.net\\n"
-                printf "        - DNS resolution issues of the host system\\n"
-                printf "        - Other internet connectivity issues\\n"
-            else
-                printf "  %b %bUnsupported OS detected: %s %s%b\\n" "${CROSS}" "${COL_LIGHT_RED}" "${detected_os^}" "${detected_version}" "${COL_NC}"
-                printf "      If you are seeing this message and you do have a supported OS, please contact support.\\n"
-            fi
-            printf "\\n"
-            printf "      %bhttps://docs.pi-hole.net/main/prerequisites/#supported-operating-systems%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
-            printf "\\n"
-            printf "      If you wish to attempt to continue anyway, you can try one of the following commands to skip this check:\\n"
-            printf "\\n"
-            printf "      e.g: If you are seeing this message on a fresh install, you can run:\\n"
-            printf "             %bcurl -sSL https://install.pi-hole.net | sudo PIHOLE_SKIP_OS_CHECK=true bash%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
-            printf "\\n"
-            printf "           If you are seeing this message after having run pihole -up:\\n"
-            printf "             %bsudo PIHOLE_SKIP_OS_CHECK=true pihole -r%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
-            printf "           (In this case, your previous run of pihole -up will have already updated the local repository)\\n"
-            printf "\\n"
-            printf "      It is possible that the installation will still fail at this stage due to an unsupported configuration.\\n"
-            printf "      If that is the case, you can feel free to ask the community on Discourse with the %bCommunity Help%b category:\\n" "${COL_LIGHT_RED}" "${COL_NC}"
-            printf "      %bhttps://discourse.pi-hole.net/c/bugs-problems-issues/community-help/%b\\n" "${COL_LIGHT_GREEN}" "${COL_NC}"
-            printf "\\n"
-            exit 1
-
-        else
-            printf "  %b %bSupported OS detected%b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-        fi
-    else
-        printf "  %b %bPIHOLE_SKIP_OS_CHECK env variable set to true - installer will continue%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-    fi
+    # select PID 1, format output to show only CMD column without header
+    # quietly grep for a match on the function passed parameter
+    ps --pid 1 --format comm= | grep -q "${is_pid1}"
 }
 
 # Compatibility
@@ -686,7 +541,11 @@ find_IPv4_information() {
     local IPv4bare
 
     # Find IP used to route to outside world by checking the route to Google's public DNS server
-    route=$(ip route get 8.8.8.8)
+    if ! route="$(ip route get 8.8.8.8 2> /dev/null)"; then
+        printf "  %b No IPv4 route was detected.\n" "${INFO}"
+        IPV4_ADDRESS=""
+        return
+    fi
 
     # Get just the interface IPv4 address
     # shellcheck disable=SC2059,SC2086
@@ -702,10 +561,32 @@ find_IPv4_information() {
     IPV4_ADDRESS=$(ip -oneline -family inet address show | grep "${IPv4bare}/" | awk '{print $4}' | awk 'END {print}')
 }
 
+confirm_ipv6_only() {
+    # Confirm from user before IPv6 only install
+
+    dialog --no-shadow --output-fd 1 \
+--no-button "Exit" --yes-button "Install IPv6 ONLY" \
+--yesno "\\n\\nWARNING - no valid IPv4 route detected.\\n\\n\
+This may be due to a temporary connectivity issue,\\n\
+or you may be installing on an IPv6 only system.\\n\\n\
+Do you wish to continue with an IPv6-only installation?\\n\\n" \
+        "${r}" "${c}" && result=0 || result="$?"
+
+    case "${result}" in
+    "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
+        printf "  %b Installer exited at IPv6 only message.\\n" "${INFO}"
+        exit 1
+    ;;
+    esac
+
+    DNS_SERVERS="$DNS_SERVERS_IPV6_ONLY"
+    printf "  %b Proceeding with IPv6 only installation.\\n" "${INFO}"
+}
+
 # Get available interfaces that are UP
 get_available_interfaces() {
     # There may be more than one so it's all stored in a variable
-    availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+    availableInterfaces=$(ip --oneline link show up | awk '{print $2}' |  grep -v "^lo" | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 # A function for displaying the dialogs the user sees when first running the installer
@@ -767,7 +648,6 @@ chooseInterface() {
             # All further interfaces are deselected
             status="OFF"
         done
-        # shellcheck disable=SC2086
         # Disable check for double quote here as we are passing a string with spaces
         PIHOLE_INTERFACE=$(dialog --no-shadow --keep-tite --output-fd 1 \
             --cancel-label "Exit" --ok-label "Select" \
@@ -856,6 +736,9 @@ collect_v4andv6_information() {
     printf "  %b IPv4 address: %s\\n" "${INFO}" "${IPV4_ADDRESS}"
     find_IPv6_information
     printf "  %b IPv6 address: %s\\n" "${INFO}" "${IPV6_ADDRESS}"
+    if [ "$IPV4_ADDRESS" == "" ] && [ "$IPV6_ADDRESS" != "" ]; then
+        confirm_ipv6_only
+    fi
 }
 
 # Check an IP address to see if it is a valid one
@@ -1281,8 +1164,7 @@ installConfigs() {
     fi
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
-    # Follow debhelper logic, which checks for /run/systemd/system to derive whether systemd is the init system
-    if [[ -d '/run/systemd/system' ]]; then
+    if is_pid1 systemd; then
         install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
@@ -1350,9 +1232,12 @@ stop_service() {
     # Can softfail, as process may not be installed when this is called
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
+        # use that to restart the service
         systemctl -q stop "${1}" || true
     else
+        # Otherwise, fall back to the service command
         service "${1}" stop >/dev/null || true
     fi
     printf "%b  %b %s...\\n" "${OVER}" "${TICK}" "${str}"
@@ -1363,8 +1248,8 @@ restart_service() {
     # Local, named variables
     local str="Restarting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
         # use that to restart the service
         systemctl -q restart "${1}"
     else
@@ -1379,8 +1264,8 @@ enable_service() {
     # Local, named variables
     local str="Enabling ${1} service to start on reboot"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to enable the service
         systemctl -q enable "${1}"
     else
@@ -1395,8 +1280,8 @@ disable_service() {
     # Local, named variables
     local str="Disabling ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to disable the service
         systemctl -q disable "${1}"
     else
@@ -1407,8 +1292,8 @@ disable_service() {
 }
 
 check_service_active() {
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
     else
@@ -1750,7 +1635,8 @@ checkSelinux() {
 
 check_download_exists() {
     # Check if the download exists and we can reach the server
-    local status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
+    local status
+    status=$(curl --head --silent "https://ftl.pi-hole.net/${1}" | head -n 1)
 
     # Check the status code
     if grep -q "200" <<<"$status"; then
@@ -1869,7 +1755,6 @@ clone_or_reset_repos() {
 
 # Download FTL binary to random temp directory and install FTL binary
 # Disable directive for SC2120 a value _can_ be passed to this function, but it is passed from an external script that sources this one
-# shellcheck disable=SC2120
 FTLinstall() {
     # Local, named variables
     local str="Downloading and Installing FTL"
@@ -2067,13 +1952,13 @@ FTLcheckUpdate() {
         path="${ftlBranch}/${binary}"
 
         # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
-        # shellcheck disable=SC1090
         if ! check_download_exists "$path"; then
-            if [ $? -eq 1 ]; then
+            local status
+            status=$?
+            if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
                 printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
-                return 2
-            elif [ $? -eq 2 ]; then
+            elif [ "${status}" -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 return 3
             else
@@ -2101,12 +1986,14 @@ FTLcheckUpdate() {
             # same as the remote one
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLlatesttag
 
             # Get the latest version from the GitHub API
-            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
+            local FTLlatesttag
+            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq -sRr 'fromjson? | .tag_name | values')
+
+            if [ -z "${FTLlatesttag}" ]; then
                 # There was an issue while retrieving the latest version
-                printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
+                printf "  %b Failed to retrieve latest FTL release metadata\\n" "${CROSS}"
                 return 3
             fi
 
@@ -2124,6 +2011,7 @@ FTLcheckUpdate() {
                 # Continue further down...
             fi
         else
+            # FTL not installed, then download
             return 0
         fi
     fi
@@ -2329,8 +2217,6 @@ main() {
     # Install Pi-hole dependencies
     install_dependent_packages
 
-    # Check that the installed OS is officially supported - display warning if not
-    os_check
 
     # Check if there is a usable FTL binary available on this architecture - do
     # this early on as FTL is a hard dependency for Pi-hole
@@ -2398,7 +2284,7 @@ main() {
 
     # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
     if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
-        # shellcheck disable=SC1091
+        # shellcheck source="./advanced/Scripts/utils.sh"
         source "${PI_HOLE_INSTALL_DIR}/utils.sh"
     else
         printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
@@ -2411,16 +2297,28 @@ main() {
     # Migrate existing install to v6.0
     migrate_dnsmasq_configs
 
+    # Cleanup old v5 sudoers file if it exists
+    sudoers_file="/etc/sudoers.d/pihole"
+    if [[ -f "${sudoers_file}" ]]; then
+        # only remove the file if it contains the Pi-hole header
+        if grep -q "Pi-hole: A black hole for Internet advertisements" "${sudoers_file}"; then
+            rm -f "${sudoers_file}"
+        fi
+    fi
+
     # Check for and disable systemd-resolved-DNSStubListener before reloading resolved
     # DNSStubListener needs to remain in place for installer to download needed files,
     # so this change needs to be made after installation is complete,
     # but before starting or resttarting the ftl service
     disable_resolved_stublistener
 
-    # Check if gravity database needs to be upgraded. If so, do it without rebuilding
-    # gravity altogether. This may be a very long running task needlessly blocking
-    # the update process.
-    /opt/pihole/gravity.sh --upgrade
+    if [[ "${fresh_install}" == false ]]; then
+        # Check if gravity database needs to be upgraded. If so, do it without rebuilding
+        # gravity altogether. This may be a very long running task needlessly blocking
+        # the update process.
+        # Only do this on updates, not on fresh installs as the database does not exit yet
+        /opt/pihole/gravity.sh --upgrade
+    fi
 
     printf "  %b Restarting services...\\n" "${INFO}"
     # Start services
@@ -2451,6 +2349,10 @@ main() {
 
         if [ -n "${PRIVACY_LEVEL}" ]; then
             setFTLConfigValue "misc.privacylevel" "${PRIVACY_LEVEL}"
+        fi
+
+        if [ -n "${PIHOLE_INTERFACE}" ]; then
+            setFTLConfigValue "dns.interface" "${PIHOLE_INTERFACE}"
         fi
     fi
 
