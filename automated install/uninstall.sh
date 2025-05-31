@@ -13,6 +13,11 @@ source "/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "/opt/pihole/utils.sh"
 
+SKIP_INSTALL="true"
+# shellcheck source="./automated install/basic-install.sh"
+source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+# stop_service() is defined in basic-install.sh
+
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 readonly ADMIN_INTERFACE_DIR
 
@@ -155,11 +160,7 @@ removePiholeFiles() {
     # Remove FTL
     if command -v pihole-FTL &> /dev/null; then
         echo -ne "  ${INFO} Removing pihole-FTL..."
-        if [[ -x "$(command -v systemctl)" ]]; then
-            systemctl stop pihole-FTL
-        else
-            service pihole-FTL stop
-        fi
+        stop_service pihole-FTL
         ${SUDO} rm -f /etc/systemd/system/pihole-FTL.service
         if [[ -d '/etc/systemd/system/pihole-FTL.service.d' ]]; then
             read -rp "  ${QST} FTL service override directory /etc/systemd/system/pihole-FTL.service.d detected. Do you wish to remove this from your system? [y/N] " answer

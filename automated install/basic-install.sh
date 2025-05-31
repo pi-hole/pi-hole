@@ -117,11 +117,11 @@ c=70
 PIHOLE_META_PACKAGE_CONTROL_APT=$(
     cat <<EOM
 Package: pihole-meta
-Version: 0.2
+Version: 0.4
 Maintainer: Pi-hole team <adblock@pi-hole.net>
 Architecture: all
 Description: Pi-hole dependency meta package
-Depends: grep,dnsutils,binutils,git,iproute2,dialog,ca-certificates,cron,curl,iputils-ping,psmisc,sudo,unzip,libcap2-bin,dns-root-data,libcap2,netcat-openbsd,procps,jq,lshw,bash-completion
+Depends: awk,bash-completion,binutils,ca-certificates,cron|cron-daemon,curl,dialog,dnsutils,dns-root-data,git,grep,iproute2,iputils-ping,jq,libcap2,libcap2-bin,lshw,netcat-openbsd,procps,psmisc,sudo,unzip
 Section: contrib/metapackages
 Priority: optional
 EOM
@@ -131,12 +131,12 @@ EOM
 PIHOLE_META_PACKAGE_CONTROL_RPM=$(
     cat <<EOM
 Name: pihole-meta
-Version: 0.1
+Version: 0.2
 Release: 1
 License: EUPL
 BuildArch: noarch
 Summary: Pi-hole dependency meta package
-Requires: grep,curl,psmisc,sudo, unzip,jq,git,dialog,ca-certificates, bind-utils, iproute, procps-ng, chkconfig, binutils, cronie, findutils, libcap, nmap-ncat, lshw, bash-completion
+Requires: bash-completion,bind-utils,binutils,ca-certificates,chkconfig,cronie,curl,dialog,findutils,gawk,git,grep,iproute,jq,libcap,lshw,nmap-ncat,procps-ng,psmisc,sudo,unzip
 %description
 Pi-hole dependency meta package
 %prep
@@ -144,6 +144,9 @@ Pi-hole dependency meta package
 %files
 %install
 %changelog
+* Wed May 28 2025 Pi-hole Team - 0.2
+- Add gawk to the list of dependencies
+
 * Sun Sep 29 2024 Pi-hole Team - 0.1
 - First version being packaged
 EOM
@@ -276,6 +279,15 @@ is_command() {
     local check_command="$1"
 
     command -v "${check_command}" >/dev/null 2>&1
+}
+
+is_pid1() {
+    # Checks to see if the given command runs as PID 1
+    local is_pid1="$1"
+
+    # select PID 1, format output to show only CMD column without header
+    # quietly grep for a match on the function passed parameter
+    ps --pid 1 --format comm= | grep -q "${is_pid1}"
 }
 
 # Compatibility
@@ -765,7 +777,7 @@ Do you wish to continue with an IPv6-only installation?\\n\\n" \
 # Get available interfaces that are UP
 get_available_interfaces() {
     # There may be more than one so it's all stored in a variable
-    availableInterfaces=$(ip --oneline link show up | grep -v "lo" | awk '{print $2}' | cut -d':' -f1 | cut -d'@' -f1)
+    availableInterfaces=$(ip --oneline link show up | awk '{print $2}' |  grep -v "^lo" | cut -d':' -f1 | cut -d'@' -f1)
 }
 
 # A function for displaying the dialogs the user sees when first running the installer
@@ -1343,8 +1355,7 @@ installConfigs() {
     fi
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
-    # Follow debhelper logic, which checks for /run/systemd/system to derive whether systemd is the init system
-    if [[ -d '/run/systemd/system' ]]; then
+    if is_pid1 systemd; then
         install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
@@ -1417,7 +1428,9 @@ stop_service() {
     # Can softfail, as process may not be installed when this is called
     local str="Stopping ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
+        # use that to restart the service
         systemctl -q stop "${1}" || true
     elif is_command rc-service; then
         rc-service "${1}" stop || true
@@ -1434,8 +1447,8 @@ restart_service() {
     # Local, named variables
     local str="Restarting ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID 1,
+    if is_pid1 systemd; then
         # use that to restart the service
         systemctl -q restart "${1}"
     elif is_command rc-service; then
@@ -1454,8 +1467,8 @@ enable_service() {
     # Local, named variables
     local str="Enabling ${1} service to start on reboot"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to enable the service
         systemctl -q enable "${1}"
     elif is_command rc-update; then
@@ -1472,8 +1485,8 @@ disable_service() {
     # Local, named variables
     local str="Disabling ${1} service"
     printf "  %b %s..." "${INFO}" "${str}"
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to disable the service
         systemctl -q disable "${1}"
     elif is_command rc-update; then
@@ -1486,8 +1499,8 @@ disable_service() {
 }
 
 check_service_active() {
-    # If systemctl exists,
-    if is_command systemctl; then
+    # If systemd is PID1,
+    if is_pid1 systemd; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
     elif is_command rc-service; then
@@ -2218,12 +2231,14 @@ FTLcheckUpdate() {
             # same as the remote one
             local FTLversion
             FTLversion=$(/usr/bin/pihole-FTL tag)
-            local FTLlatesttag
 
             # Get the latest version from the GitHub API
-            if ! FTLlatesttag=$(curl -sI https://github.com/pi-hole/FTL/releases/latest | grep --color=never -i Location: | awk -F / '{print $NF}' | tr -d '[:cntrl:]'); then
+            local FTLlatesttag
+            FTLlatesttag=$(curl -s https://api.github.com/repos/pi-hole/FTL/releases/latest | jq -sRr 'fromjson? | .tag_name | values')
+
+            if [ -z "${FTLlatesttag}" ]; then
                 # There was an issue while retrieving the latest version
-                printf "  %b Failed to retrieve latest FTL release metadata" "${CROSS}"
+                printf "  %b Failed to retrieve latest FTL release metadata\\n" "${CROSS}"
                 return 3
             fi
 
@@ -2241,6 +2256,7 @@ FTLcheckUpdate() {
                 # Continue further down...
             fi
         else
+            # FTL not installed, then download
             return 0
         fi
     fi
@@ -2541,10 +2557,13 @@ main() {
     # but before starting or resttarting the ftl service
     disable_resolved_stublistener
 
-    # Check if gravity database needs to be upgraded. If so, do it without rebuilding
-    # gravity altogether. This may be a very long running task needlessly blocking
-    # the update process.
-    /opt/pihole/gravity.sh --upgrade
+    if [[ "${fresh_install}" == false ]]; then
+        # Check if gravity database needs to be upgraded. If so, do it without rebuilding
+        # gravity altogether. This may be a very long running task needlessly blocking
+        # the update process.
+        # Only do this on updates, not on fresh installs as the database does not exit yet
+        /opt/pihole/gravity.sh --upgrade
+    fi
 
     printf "  %b Restarting services...\\n" "${INFO}"
     # Start services

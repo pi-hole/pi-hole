@@ -126,7 +126,7 @@ gravity_swap_databases() {
   oldAvail=false
   if [ "${availableBlocks}" -gt "$((gravityBlocks * 2))" ] && [ -f "${gravityDBfile}" ]; then
     oldAvail=true
-    cp "${gravityDBfile}" "${gravityOLDfile}"
+    cp -p "${gravityDBfile}" "${gravityOLDfile}"
   fi
 
   # Drop the gravity and antigravity tables + subsequent VACUUM the current
@@ -139,7 +139,7 @@ gravity_swap_databases() {
   else
     # Check if the backup directory exists
     if [ ! -d "${gravityBCKdir}" ]; then
-      mkdir -p "${gravityBCKdir}"
+      mkdir -p "${gravityBCKdir}" && chown pihole:pihole "${gravityBCKdir}"
     fi
 
     # If multiple gravityBCKfile's are present (appended with a number), rotate them
@@ -356,7 +356,7 @@ gravity_CheckDNSResolutionAvailable() {
       if getent hosts github.com &> /dev/null; then
         # If we reach this point, DNS resolution is available
         echo -e "${OVER}  ${TICK} DNS resolution is available"
-        break
+        return 0
       fi
       # Append one dot for each second waiting
       echo -ne "."
@@ -1022,7 +1022,7 @@ migrate_to_listsCache_dir() {
   # If not, we need to migrate the old files to the new directory
   local str="Migrating the list's cache directory to new location"
   echo -ne "  ${INFO} ${str}..."
-  mkdir -p "${listsCacheDir}"
+  mkdir -p "${listsCacheDir}" && chown pihole:pihole "${listsCacheDir}"
 
   # Move the old files to the new directory
   if mv "${piholeDir}"/list.* "${listsCacheDir}/" 2>/dev/null; then

@@ -1,5 +1,5 @@
 FROM fedora:42
-RUN dnf install -y git initscripts
+RUN dnf install -y git gawk
 
 ENV GITDIR=/etc/.pihole
 ENV SCRIPTDIR=/opt/pihole
