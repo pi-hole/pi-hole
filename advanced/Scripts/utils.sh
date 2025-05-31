@@ -73,7 +73,7 @@ getFTLPID() {
 # Example getFTLConfigValue dns.piholePTR
 #######################
 getFTLConfigValue(){
-  pihole-FTL --config -q "${1}"
+  /usr/bin/pihole-FTL --config -q "${1}"
 }
 
 #######################
