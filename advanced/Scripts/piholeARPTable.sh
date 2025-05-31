@@ -20,13 +20,6 @@ utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source=./advanced/Scripts/utils.sh
 source "${utilsfile}"
 
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-SKIP_INSTALL="true"
-# shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# stop_service() is defined in basic-install.sh
-# restart_service() is defined in basic-install.sh
-
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
 if [ -z "$DBFILE" ]; then
@@ -40,7 +33,7 @@ flushARP(){
     fi
 
     # Stop FTL to prevent database access
-    if ! output=$(stop_service pihole-FTL 2>&1); then
+    if ! output=$(service pihole-FTL stop 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to stop FTL"
         echo "  Output: ${output}"
         return 1
@@ -72,7 +65,7 @@ flushARP(){
     fi
 
     # Start FTL again
-    if ! output=$(restart_service pihole-FTL 2>&1); then
+    if ! output=$(service pihole-FTL restart 2>&1); then
         echo -e "${OVER}  ${CROSS} Failed to restart FTL"
         echo "  Output: ${output}"
         return 1
