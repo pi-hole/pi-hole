@@ -13,7 +13,8 @@ source "/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "/opt/pihole/utils.sh"
 
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+PI_HOLE_FILES_DIR="/etc/.pihole"
+readonly PI_HOLE_FILES_DIR
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
