@@ -389,8 +389,8 @@ tailFunc() {
   echo -e "  ${INFO} Press Ctrl-C to exit"
 
   # Get logfile path
-  readonly LOGFILE
   LOGFILE=$(getFTLConfigValue files.log.dnsmasq)
+  readonly LOGFILE
 
   # Strip date from each line
   # Color blocklist/denylist/wildcard entries as red
