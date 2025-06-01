@@ -17,12 +17,6 @@ utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${utilsfile}"
 
-SKIP_INSTALL="true"
-# shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# stop_service() is defined in basic-install.sh
-# restart_service() is defined in basic-install.sh
-
 # In case we're running at the same time as a system logrotate, use a
 # separate logrotate state file to prevent stepping on each other's
 # toes.
@@ -110,14 +104,13 @@ else
     fi
 
     # Stop FTL to make sure it doesn't write to the database while we're deleting data
-    stop_service pihole-FTL >/dev/null
-
+    service pihole-FTL stop
 
     # Delete most recent 24 hours from FTL's database, leave even older data intact (don't wipe out all history)
     deleted=$(pihole-FTL sqlite3 -ni "${DBFILE}" "DELETE FROM query_storage WHERE timestamp >= strftime('%s','now')-86400; select changes() from query_storage limit 1")
 
     # Restart FTL
-    restart_service pihole-FTL >/dev/null
+    service pihole-FTL restart
     if [[ "$*" != *"quiet"* ]]; then
         echo -e "${OVER}  ${TICK} Deleted ${deleted} queries from long-term query database"
     fi
