@@ -13,12 +13,6 @@ source "/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "/opt/pihole/utils.sh"
 
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
-SKIP_INSTALL="true"
-# shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-# stop_service() is defined in basic-install.sh
-
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 readonly ADMIN_INTERFACE_DIR
 
@@ -51,7 +45,7 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
-
+# stop_service() is defined in basic-install.sh
 # package_manager_detect() sourced from basic-install.sh
 package_manager_detect
 

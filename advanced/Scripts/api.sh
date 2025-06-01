@@ -22,9 +22,8 @@ TestAPIAvailability() {
     local chaos_api_list authResponse authStatus authData apiAvailable DNSport
 
     # as we are running locally, we can get the port value from FTL directly
-    readonly utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
     # shellcheck source=./advanced/Scripts/utils.sh
-    . "${utilsfile}"
+    . "/opt/pihole/utils.sh"
 
     DNSport=$(getFTLConfigValue dns.port)
 

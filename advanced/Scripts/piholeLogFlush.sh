@@ -12,15 +12,12 @@ colfile="/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/COL_TABLE"
 source ${colfile}
 
-readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
-source "${utilsfile}"
+source "/opt/pihole/utils.sh"
 
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+source "/etc/.pihole/automated install/basic-install.sh"
 # stop_service() is defined in basic-install.sh
 # restart_service() is defined in basic-install.sh
 
