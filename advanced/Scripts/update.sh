@@ -112,12 +112,6 @@ main() {
     web_update=false
     FTL_update=false
 
-
-    # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
-
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
         echo -e "\\n  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!"
