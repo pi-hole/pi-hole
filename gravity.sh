@@ -118,9 +118,12 @@ gravity_swap_databases() {
 
   # Swap databases and remove or conditionally rename old database
   # Number of available blocks on disk
-  availableBlocks=$(stat -f --format "%a" "${gravityDIR}")
+  # Busybox Compat: `stat` long flags unsupported
+  #   -f flag is short form of --file-system.
+  #   -c flag is short form of --format.
+  availableBlocks=$(stat -f -c "%a" "${gravityDIR}")
   # Number of blocks, used by gravity.db
-  gravityBlocks=$(stat --format "%b" "${gravityDBfile}")
+  gravityBlocks=$(stat -c "%b" "${gravityDBfile}")
   # Only keep the old database if available disk space is at least twice the size of the existing gravity.db.
   # Better be safe than sorry...
   oldAvail=false
