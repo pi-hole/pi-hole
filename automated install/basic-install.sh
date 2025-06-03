@@ -66,8 +66,14 @@ Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
+# This directory is where the Pi-hole scripts will be installed
+PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PI_HOLE_BIN_DIR="/usr/local/bin"
+
 # Location for final installation log storage
-installLogLoc="/etc/pihole/install.log"
+installLogLoc="${PI_HOLE_CONFIG_DIR}/install.log"
 # This is a file used for the colorized output
 coltable="/opt/pihole/COL_TABLE"
 
@@ -82,17 +88,12 @@ webroot="/var/www/html"
 webInterfaceGitUrl="https://github.com/pi-hole/web.git"
 webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
-PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # List of pihole scripts, stored in an array
 PI_HOLE_FILES=(list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
-# This directory is where the Pi-hole scripts will be installed
-PI_HOLE_INSTALL_DIR="/opt/pihole"
-PI_HOLE_CONFIG_DIR="/etc/pihole"
-PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
 fresh_install=true
 
-adlistFile="/etc/pihole/adlists.list"
+adlistFile="${PI_HOLE_CONFIG_DIR}/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
 IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
@@ -102,7 +103,7 @@ PRIVACY_LEVEL=
 PIHOLE_INTERFACE=
 
 # Where old configs go to if a v6 migration is performed
-V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
+V6_CONF_MIGRATION_DIR="${PI_HOLE_CONFIG_DIR}/migration_backup_v6"
 
 if [ -z "${USER}" ]; then
     USER="$(id -un)"
@@ -859,6 +860,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             esac
 
             # Clean user input and replace whitespace with comma.
+            # shellcheck disable=SC2001
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<<"${piholeDNS}")
 
             # Separate the user input into the two DNS values (separated by a comma)
@@ -1501,7 +1503,7 @@ create_pihole_user() {
 # Install the logrotate script
 installLogrotate() {
     local str="Installing latest logrotate script"
-    local target=/etc/pihole/logrotate
+    local target=${PI_HOLE_CONFIG_DIR}/logrotate
     local logfileUpdate=false
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
@@ -1766,16 +1768,14 @@ FTLinstall() {
     local tempdir
     tempdir="$(pwd)"
     local ftlBranch
-    local url
 
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
     else
         ftlBranch="master"
     fi
 
-    local binary
-    binary="${1}"
+    local binary="${1}"
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]]; then
@@ -1925,7 +1925,7 @@ get_binary_name() {
     fi
 
     # Returning a string value via echo
-    echo ${l_binary}
+    echo "${l_binary}"
 }
 
 FTLcheckUpdate() {
@@ -1936,8 +1936,8 @@ FTLcheckUpdate() {
 
     local ftlBranch
 
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
     else
         ftlBranch="master"
     fi
@@ -2119,7 +2119,7 @@ migrate_dnsmasq_configs() {
 
     # Exit early if this is already Pi-hole v6.0
     # We decide this on the non-existence of the file /etc/pihole/setupVars.conf (either moved by previous migration or fresh install)
-    if [[ ! -f "/etc/pihole/setupVars.conf" ]]; then
+    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/setupVars.conf" ]]; then
         return 0
     fi
 

@@ -68,7 +68,7 @@ CRON_D_DIRECTORY="/etc/cron.d"
 DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
 PIHOLE_DIRECTORY="/etc/pihole"
 PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
-BIN_DIRECTORY="/usr/local/bin"
+PI_HOLE_BIN_DIR="/usr/local/bin"
 LOG_DIRECTORY="/var/log/pihole"
 HTML_DIRECTORY="$(get_ftl_conf_value "webserver.paths.webroot")"
 WEBHOME_PATH="$(get_ftl_conf_value "webserver.paths.webhome")"
@@ -91,8 +91,7 @@ PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 
 PIHOLE_FTL_DB_FILE="$(get_ftl_conf_value "files.database")"
 
-PIHOLE_COMMAND="${BIN_DIRECTORY}/pihole"
-PIHOLE_COLTABLE_FILE="${BIN_DIRECTORY}/COL_TABLE"
+PIHOLE_COMMAND="${PI_HOLE_BIN_DIR}/pihole"
 
 FTL_PID="$(get_ftl_conf_value "files.pid")"
 
