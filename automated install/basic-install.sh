@@ -154,6 +154,34 @@ Pi-hole dependency meta package
 EOM
 )
 
+# List of required packages on APK based systems
+PIHOLE_META_VERSION_APK=0.1
+PIHOLE_META_DEPS_APK=(
+    bash
+    bash-completion
+    bind-tools
+    binutils
+    coreutils
+    cronie
+    curl
+    dialog
+    git
+    grep
+    iproute2-ss
+    jq
+    libcap
+    logrotate
+    ncurses
+    nmap-ncat
+    procps-ng
+    psmisc
+    shadow
+    sudo
+    tzdata
+    unzip
+    wget
+)
+
 ######## Undocumented Flags. Shhh ########
 # These are undocumented flags; some of which we can use when repairing an installation
 # The runUnattended flag is one example of this
@@ -271,7 +299,15 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} remove -y"
-    # If neither apt-get or yum/dnf package managers were found
+
+    # If neither apt-get or yum/dnf package managers were found, check for apk.
+    elif is_command apk; then
+        PKG_MANAGER="apk"
+        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+        PKG_INSTALL="${PKG_MANAGER} add"
+        PKG_COUNT="${PKG_MANAGER} list --upgradable -q | wc -l"
+        PKG_REMOVE="${PKG_MANAGER} del"
+
     else
         # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -282,13 +318,20 @@ package_manager_detect() {
 
 build_dependency_package(){
     # This function will build a package that contains all the dependencies needed for Pi-hole
+    if is_command apk ; then
+        local str="APK based system detected. Dependencies will be installed using a virtual package named pihole-meta"
+        printf "  %b %s...\\n" "${INFO}" "${str}"
+        return 0
+    fi
 
     # remove any leftover build directory that may exist
     rm -rf /tmp/pihole-meta_*
 
     # Create a fresh build directory with random name
+    # Busybox Compat: `mktemp` long flags unsupported
+    #   -d flag is short form of --directory
     local tempdir
-    tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXX)"
+    tempdir="$(mktemp -d /tmp/pihole-meta_XXXXX)"
     chmod 0755 "${tempdir}"
 
     if is_command apt-get; then
@@ -1177,7 +1220,12 @@ installConfigs() {
         # Load final service
         systemctl daemon-reload
     else
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
+        local INIT="service"
+        if is_command openrc; then
+            INIT="openrc"
+        fi
+
+        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.${INIT}" '/etc/init.d/pihole-FTL'
     fi
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
     install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
@@ -1266,6 +1314,8 @@ enable_service() {
     if is_command systemctl; then
         # use that to enable the service
         systemctl -q enable "${1}"
+    elif is_command openrc; then
+        rc-update add "${1}" "${2:-default}" &> /dev/null
     else
         #  Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" defaults >/dev/null
@@ -1282,6 +1332,8 @@ disable_service() {
     if is_command systemctl; then
         # use that to disable the service
         systemctl -q disable "${1}"
+    elif is_command openrc; then
+        rc-update del "${1}" "${2:-default}" &> /dev/null
     else
         # Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" disable >/dev/null
@@ -1294,6 +1346,8 @@ check_service_active() {
     if is_command systemctl; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
+    elif is_command openrc; then
+        rc-status default boot | grep -q "${1}"
     else
         # Otherwise, fall back to service command
         service "${1}" status &>/dev/null
@@ -1395,8 +1449,10 @@ install_dependent_packages() {
             printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_RED}"
             return 1
         fi
-
-    # If neither apt-get or yum/dnf package managers were found
+    # Install Alpine packages
+    elif is_command apk; then
+        ${PKG_INSTALL} -q -t "pihole-meta=${PIHOLE_META_VERSION_APK}" "${PIHOLE_META_DEPS_APK[@]}" &> /dev/null &&
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     else
         # we cannot install the dependency package
         printf "  %b No supported package manager found\\n" "${CROSS}"
