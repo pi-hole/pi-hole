@@ -114,6 +114,7 @@ main() {
 
 
     # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
+    check_fresh_install
     package_manager_detect
     build_dependency_package
     install_dependent_packages
