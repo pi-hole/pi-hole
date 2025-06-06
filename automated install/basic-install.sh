@@ -1849,9 +1849,18 @@ get_binary_name() {
 
     # If the machine is aarch64 (armv8)
     if [[ "${machine}" == "aarch64" ]]; then
-        # If AArch64 is found (e.g., BCM2711 in Raspberry Pi 4)
-        printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
-        l_binary="pihole-FTL-arm64"
+        if [[ "$(getconf LONG_BIT)" == "64" ]]; then
+            # If the OS is 64 bit, we use the arm64 binary
+            printf "%b  %b Detected AArch64 (64 Bit ARM) architecture\\n" "${OVER}" "${TICK}"
+            l_binary="pihole-FTL-arm64"
+        else
+            # If the OS is 32 bit, we use the armv7 binary (aarch64 is actually armv8)
+            # Even though the machine is 64 bit capable, this makes debugging
+            # very hard as 32bit tools like gdb, etc. cannot analyze the 64 bit
+            # binary. See FTL issue #2494 for such an example.
+            printf "%b  %b Detected AArch64 (64 Bit ARM) architecture with 32 bit OS\\n" "${OVER}" "${TICK}"
+            l_binary="pihole-FTL-armv7"
+        fi
     elif [[ "${machine}" == "arm"* ]]; then
         # ARM 32 bit
         # Get supported processor from other binaries installed on the system
