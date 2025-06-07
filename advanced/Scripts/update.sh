@@ -27,6 +27,7 @@ source "/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${PI_HOLE_INSTALL_DIR}/utils.sh"
 
+# check_for_meta_package() sourced from basic-install.sh
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
@@ -112,11 +113,16 @@ main() {
     web_update=false
     FTL_update=false
 
+    # used as a signal to exit check_for_meta_package() early when
+    # the meta package is found as new data has NOT been downloaded yet
+    IS_UPDATE=true
 
-    # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
+    # Check for supported package managers and install needed dependencies if missing
+    if ! check_for_meta_package; then
+        package_manager_detect
+        build_dependency_package
+        install_dependent_packages
+    fi
 
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
