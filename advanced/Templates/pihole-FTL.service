@@ -57,9 +57,9 @@ start() {
 stop() {
   if is_running; then
     kill "${FTL_PID}"
-    # Give FTL 60 seconds to gracefully stop
+    # Give FTL 120 seconds to gracefully stop
     i=1
-    while [ "${i}" -le 60 ]; do
+    while [ "${i}" -le 120 ]; do
       if ! is_running; then
         break
       fi
