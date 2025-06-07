@@ -113,10 +113,8 @@ main() {
     FTL_update=false
 
 
-    # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
+    # Check for supported package managers and install needed dependencies if missing
+    check_for_meta_package
 
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then

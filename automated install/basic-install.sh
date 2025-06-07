@@ -231,6 +231,10 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+VersionConverter() {
+  echo "$@" | tr -d '[:alpha:]' | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
+}
+
 # Compatibility
 package_manager_detect() {
 
@@ -247,8 +251,6 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-        # Update package cache
-        update_package_cache || exit 1
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
@@ -366,6 +368,109 @@ build_dependency_package(){
 
     # Remove the build directory
     rm -rf "${tempdir}"
+}
+
+# Check for pihole-meta package and install or upgrade as needed
+check_for_meta_package(){
+
+    local installed_version version_to_be_installed
+
+    local str="Checking for Pi-hole dependency package"
+    printf "  %b %s..." "${INFO}" "${str}"
+
+    # Debian/Ubuntu check for pihole-meta package
+    if is_command apt-get; then
+        if [[ $(dpkg -s pihole-meta 2> /dev/null) ]]; then
+
+           # could potentially exit early here if running from update.sh 
+           # as this check should garuantee dependencies are installed
+           # and the next if statement will always be true when running
+           # from the beginning of update.sh as no new information has been downloaded yet.
+
+           # get installed version
+           installed_version=$(dpkg -s pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
+           # get version of meta package from basic-install.sh
+           version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" | grep '^Version:' | cut -d' ' -f2)
+
+           installed_version="$(VersionConverter "${installed_version}")"
+           version_to_be_installed="$(VersionConverter "${version_to_be_installed}")"
+
+           if [[ version_to_be_installed -eq installed_version ]]; then
+              # do nothing as the newest available pihole-meta package is installed
+              # this check would allow the install script to run a bit quicker
+              # after update.sh has passed control to basic-install.sh
+              printf "already installed and up to date\\n"
+           elif [[ version_to_be_installed -gt installed_version ]]; then
+               # install the new pihole-meta package
+               printf "needs to be updated\\n"
+               package_manager_detect
+               update_package_cache || exit 1
+               notify_package_updates_available
+               build_dependency_package
+               install_dependent_packages
+           fi
+        else
+            # install the pihole-meta package as this is likely 
+            # a fresh install or was removed inadvertently
+            printf "not installed\\n"
+            package_manager_detect
+            update_package_cache || exit 1
+            notify_package_updates_available
+            build_dependency_package
+            install_dependent_packages
+        fi
+
+    # Fedora/CentOS check for pihole-meta package
+    elif is_command rpm; then
+        if [[ $(rpm -q pihole-meta 2>/dev/null) ]]; then
+
+            # could potentially exit early here if running from update.sh
+            # as this check should garuantee dependencies are installed
+            # and the next if statement will always be true when running
+            # from the beginning of update.sh as no new information has been downloaded yet.
+
+            # get installed version
+            installed_version=$(rpm -q pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
+            # get version of meta package from basic-install.sh
+            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" | grep '^Version:' | cut -d' ' -f2)
+
+            installed_version="$(VersionConverter "${installed_version}")"
+            version_to_be_installed="$(VersionConverter "${version_to_be_installed}")"
+
+            if [[ version_to_be_installed -eq installed_version ]]; then
+                # do nothing as the newest available pihole-meta package is installed
+                # this check would allow the install script to run a bit quicker
+                # after update.sh has passed control to basic-install.sh
+                printf "already installed and up to date\\n"
+            elif [[ version_to_be_installed -gt installed_version ]]; then
+                # install the new pihole-meta package
+                printf "needs to be updated\\n"
+                package_manager_detect
+                notify_package_updates_available
+                build_dependency_package
+                install_dependent_packages
+            fi
+        else
+            # install the pihole-meta package as this is likely 
+            # a fresh install or was removed inadvertently
+            printf "not installed\\n"
+            package_manager_detect
+            notify_package_updates_available
+            build_dependency_package
+            install_dependent_packages
+        fi
+
+    # If neither apt-get or yum/dnf package managers were found
+    else
+        # we cannot install the dependency package
+        printf "  %b No supported package manager found\\n" "${CROSS}"
+        # so exit the installer
+        exit 1
+    fi
+
+    printf "\\n"
+    return 0
+
 }
 
 # A function for checking if a directory is a git repository
@@ -2193,17 +2298,8 @@ main() {
     # Check for availability of either the "service" or "systemctl" commands
     check_service_command
 
-    # Check for supported package managers so that we may install dependencies
-    package_manager_detect
-
-    # Notify user of package availability
-    notify_package_updates_available
-
-    # Build dependency package
-    build_dependency_package
-
-    # Install Pi-hole dependencies
-    install_dependent_packages
+    # Check for supported package managers and install needed dependencies
+    check_for_meta_package
 
 
     # Check if there is a usable FTL binary available on this architecture - do
