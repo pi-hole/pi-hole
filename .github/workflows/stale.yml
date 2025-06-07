@@ -24,7 +24,7 @@ jobs:
           days-before-close: 5
           stale-issue-message: 'This issue is stale because it has been open 30 days with no activity. Please comment or update this issue or it will be closed in 5 days.'
           stale-issue-label: '${{ env.stale_label }}'
-          exempt-issue-labels: 'Internal, Fixed in next release, Bug: Confirmed, Documentation Needed'
+          exempt-issue-labels: 'Internal, Fixed in next release, Bug: Confirmed, Documentation Needed, never-stale'
           exempt-all-issue-assignees: true
           operations-per-run: 300
           close-issue-reason: 'not_planned'
