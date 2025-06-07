@@ -383,7 +383,7 @@ check_for_meta_package(){
         if [[ $(dpkg -s pihole-meta 2> /dev/null) ]]; then
 
            # could potentially exit early here if running from update.sh 
-           # as this check should garuantee dependencies are installed
+           # as this check should guarantee dependencies are installed
            # and the next if statement will always be true when running
            # from the beginning of update.sh as no new information has been downloaded yet.
 
@@ -425,7 +425,7 @@ check_for_meta_package(){
         if [[ $(rpm -q pihole-meta 2>/dev/null) ]]; then
 
             # could potentially exit early here if running from update.sh
-            # as this check should garuantee dependencies are installed
+            # as this check should guarantee dependencies are installed
             # and the next if statement will always be true when running
             # from the beginning of update.sh as no new information has been downloaded yet.
 
