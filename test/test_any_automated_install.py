@@ -472,9 +472,7 @@ def test_package_manager_has_pihole_deps(host):
     output = host.run(
         """
     source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
+    check_for_meta_package
     """
     )
 
@@ -488,9 +486,7 @@ def test_meta_package_uninstall(host):
     install = host.run(
         """
     source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
+    check_for_meta_package
     """
     )
     assert install.rc == 0
