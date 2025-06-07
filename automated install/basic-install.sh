@@ -66,8 +66,14 @@ Cloudflare (DNSSEC);2606:4700:4700::1111;2606:4700:4700::1001
 EOM
 )
 
+# This directory is where the Pi-hole scripts will be installed
+PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
+PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PI_HOLE_BIN_DIR="/usr/local/bin"
+
 # Location for final installation log storage
-installLogLoc="/etc/pihole/install.log"
+installLogLoc="${PI_HOLE_CONFIG_DIR}/install.log"
 # This is a file used for the colorized output
 coltable="/opt/pihole/COL_TABLE"
 
@@ -82,17 +88,12 @@ webroot="/var/www/html"
 webInterfaceGitUrl="https://github.com/pi-hole/web.git"
 webInterfaceDir="${webroot}/admin"
 piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
-PI_HOLE_LOCAL_REPO="/etc/.pihole"
 # List of pihole scripts, stored in an array
 PI_HOLE_FILES=(list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
-# This directory is where the Pi-hole scripts will be installed
-PI_HOLE_INSTALL_DIR="/opt/pihole"
-PI_HOLE_CONFIG_DIR="/etc/pihole"
-PI_HOLE_BIN_DIR="/usr/local/bin"
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
 fresh_install=true
 
-adlistFile="/etc/pihole/adlists.list"
+adlistFile="${PI_HOLE_CONFIG_DIR}/adlists.list"
 # Pi-hole needs an IP address; to begin, these variables are empty since we don't know what the IP is until this script can run
 IPV4_ADDRESS=${IPV4_ADDRESS}
 IPV6_ADDRESS=${IPV6_ADDRESS}
@@ -102,7 +103,7 @@ PRIVACY_LEVEL=
 PIHOLE_INTERFACE=
 
 # Where old configs go to if a v6 migration is performed
-V6_CONF_MIGRATION_DIR="/etc/pihole/migration_backup_v6"
+V6_CONF_MIGRATION_DIR="${PI_HOLE_CONFIG_DIR}/migration_backup_v6"
 
 if [ -z "${USER}" ]; then
     USER="$(id -un)"
@@ -149,6 +150,34 @@ Pi-hole dependency meta package
 * Sun Sep 29 2024 Pi-hole Team - 0.1
 - First version being packaged
 EOM
+)
+
+# List of required packages on APK based systems
+PIHOLE_META_VERSION_APK=0.1
+PIHOLE_META_DEPS_APK=(
+    bash
+    bash-completion
+    bind-tools
+    binutils
+    coreutils
+    cronie
+    curl
+    dialog
+    git
+    grep
+    iproute2-ss
+    jq
+    libcap
+    logrotate
+    ncurses
+    nmap-ncat
+    procps-ng
+    psmisc
+    shadow
+    sudo
+    tzdata
+    unzip
+    wget
 )
 
 ######## Undocumented Flags. Shhh ########
@@ -265,7 +294,15 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} remove -y"
-    # If neither apt-get or yum/dnf package managers were found
+
+    # If neither apt-get or yum/dnf package managers were found, check for apk.
+    elif is_command apk; then
+        PKG_MANAGER="apk"
+        UPDATE_PKG_CACHE="${PKG_MANAGER} update"
+        PKG_INSTALL="${PKG_MANAGER} add"
+        PKG_COUNT="${PKG_MANAGER} list --upgradable -q | wc -l"
+        PKG_REMOVE="${PKG_MANAGER} del"
+
     else
         # we cannot install required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -276,13 +313,18 @@ package_manager_detect() {
 
 build_dependency_package(){
     # This function will build a package that contains all the dependencies needed for Pi-hole
+    if is_command apk ; then
+        local str="APK based system detected. Dependencies will be installed using a virtual package named pihole-meta"
+        printf "  %b %s...\\n" "${INFO}" "${str}"
+        return 0
+    fi
 
     # remove any leftover build directory that may exist
     rm -rf /tmp/pihole-meta_*
 
     # Create a fresh build directory with random name
     local tempdir
-    tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXX)"
+    tempdir="$(mktemp -d /tmp/pihole-meta_XXXXX)"
     chmod 0755 "${tempdir}"
 
     if is_command apt-get; then
@@ -355,8 +397,6 @@ build_dependency_package(){
 
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
-
-    # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot build required packages
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -850,6 +890,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             esac
 
             # Clean user input and replace whitespace with comma.
+            # shellcheck disable=SC2001
             piholeDNS=$(sed 's/[, \t]\+/,/g' <<<"${piholeDNS}")
 
             # Separate the user input into the two DNS values (separated by a comma)
@@ -1166,6 +1207,8 @@ installConfigs() {
 
         # Load final service
         systemctl daemon-reload
+    elif is_command openrc; then
+        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.openrc" "/etc/init.d/pihole-FTL"
     else
         install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
     fi
@@ -1256,6 +1299,8 @@ enable_service() {
     if is_command systemctl; then
         # use that to enable the service
         systemctl -q enable "${1}"
+    elif is_command openrc; then
+        rc-update add "${1}" "${2:-default}" &> /dev/null
     else
         #  Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" defaults >/dev/null
@@ -1272,6 +1317,8 @@ disable_service() {
     if is_command systemctl; then
         # use that to disable the service
         systemctl -q disable "${1}"
+    elif is_command openrc; then
+        rc-update del "${1}" "${2:-default}" &> /dev/null
     else
         # Otherwise, use update-rc.d to accomplish this
         update-rc.d "${1}" disable >/dev/null
@@ -1284,6 +1331,8 @@ check_service_active() {
     if is_command systemctl; then
         # use that to check the status of the service
         systemctl -q is-enabled "${1}" 2>/dev/null
+    elif is_command openrc; then
+        rc-status default boot | grep -q "${1}"
     else
         # Otherwise, fall back to service command
         service "${1}" status &>/dev/null
@@ -1385,8 +1434,10 @@ install_dependent_packages() {
             printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
             return 1
         fi
-
-    # If neither apt-get or yum/dnf package managers were found
+    # Install Alpine packages
+    elif is_command apk; then
+        ${PKG_INSTALL} -q -t "pihole-meta=$PIHOLE_META_VERSION_APK" "${PIHOLE_META_DEPS_APK[@]}" &> /dev/null &&
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
     else
         # we cannot install the dependency package
         printf "  %b No supported package manager found\\n" "${CROSS}"
@@ -1491,7 +1542,7 @@ create_pihole_user() {
 # Install the logrotate script
 installLogrotate() {
     local str="Installing latest logrotate script"
-    local target=/etc/pihole/logrotate
+    local target=${PI_HOLE_CONFIG_DIR}/logrotate
     local logfileUpdate=false
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
@@ -1756,16 +1807,14 @@ FTLinstall() {
     local tempdir
     tempdir="$(pwd)"
     local ftlBranch
-    local url
 
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
     else
         ftlBranch="master"
     fi
 
-    local binary
-    binary="${1}"
+    local binary="${1}"
 
     # Determine which version of FTL to download
     if [[ "${ftlBranch}" == "master" ]]; then
@@ -1911,7 +1960,7 @@ get_binary_name() {
     fi
 
     # Returning a string value via echo
-    echo ${l_binary}
+    echo "${l_binary}"
 }
 
 FTLcheckUpdate() {
@@ -1922,8 +1971,8 @@ FTLcheckUpdate() {
 
     local ftlBranch
 
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
     else
         ftlBranch="master"
     fi
@@ -2100,7 +2149,7 @@ migrate_dnsmasq_configs() {
 
     # Exit early if this is already Pi-hole v6.0
     # We decide this on the non-existence of the file /etc/pihole/setupVars.conf (either moved by previous migration or fresh install)
-    if [[ ! -f "/etc/pihole/setupVars.conf" ]]; then
+    if [[ ! -f "${PI_HOLE_CONFIG_DIR}/setupVars.conf" ]]; then
         return 0
     fi
 
@@ -2217,7 +2266,7 @@ main() {
     fi
 
     # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
-    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "${PI_HOLE_CONFIG_DIR}/setupVars.conf" ]]; then
         # retain settings
         fresh_install=false
         # if it's running unattended,
