@@ -231,8 +231,14 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
-# Compatibility
-package_manager_detect() {
+# Check for Pi-hole dependencies via package managers (apt-get or yum/dnf).
+# Returns 0 if pihole-meta package is-found/not-upgradeable |OR| 1 if pihole-meta package is not-found/is-upgradable.
+check_for_dependencies() {
+
+    local installed_version version_to_be_installed
+
+    local str="Checking for Pi-hole dependency package"
+    printf "  %b %s..." "${INFO}" "${str}"
 
     # First check to see if apt-get is installed.
     if is_command apt-get; then
@@ -247,9 +253,24 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-        # Update package cache
-        update_package_cache || exit 1
 
+        # Check for pihole-meta package
+        if [[ $(dpkg -s pihole-meta 2> /dev/null) ]]; then
+            # we can check $DEPEND_CHECK to know if we are sourced from Pi-hole
+            # script and can exit early as the meta package hasn't change yet
+            if [[ "${DEPEND_CHECK}" == true ]]; then
+                printf " found.\n"
+                return 0
+            fi
+            # get currently installed version
+            installed_version=$(dpkg -s pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
+            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_APT}" | grep '^Version:' | cut -d' ' -f2)
+        else
+            # install the pihole-meta package as it is likely a fresh install or removed inadvertently
+            printf " not installed.\n"
+            # return 1 early as we need to install
+            return 1
+        fi
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
         # Then check if dnf or yum is the package manager
@@ -265,6 +286,19 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} remove -y"
+
+        if [[ $(rpm -q pihole-meta 2>/dev/null) ]]; then
+            if [[ "${DEPEND_CHECK}" == true ]]; then
+                printf " found.\n"
+                return 0
+            fi
+
+            installed_version=$(rpm -q pihole-meta 2> /dev/null | grep '^Version:' | cut -d' ' -f2)
+            version_to_be_installed=$(echo "${PIHOLE_META_PACKAGE_CONTROL_RPM}" | grep '^Version:' | cut -d' ' -f2)
+        else
+            printf " not installed."
+            return 1
+        fi
     # If neither apt-get or yum/dnf package managers were found
     else
         # we cannot install required packages
@@ -272,6 +306,38 @@ package_manager_detect() {
         # so exit the installer
         exit 1
     fi
+
+    local installed_version_number version_number_to_be_installed
+
+    # convert version number so it is easier to compare
+    installed_version_number="$(VersionConverter "${installed_version}")"
+    version_number_to_be_installed="$(VersionConverter "${version_to_be_installed}")"
+
+    # If we make it here, pihole-meta package is installed so we should
+    # check to make sure we aren't installing the same version again
+    # needlessly during an update when basic-install.sh is running
+    if [[ version_number_to_be_installed -eq installed_version_number ]]; then
+        # do nothing as the newest available pihole-meta package is installed
+        printf " already installed and up to date.\n"
+        return 0
+    # Check for upgrade the pihole-meta package
+    elif [[ version_number_to_be_installed -gt installed_version_number ]]; then
+        printf " needs to be upgraded.\n"
+        return 1
+    # Also check for a lower version number as there is potential
+    # to end up here when going from Development branch back to Master branch
+    elif [[ version_number_to_be_installed -lt installed_version_number ]]; then
+        printf " needs to be downgraded.\n"
+
+        # remove currently installed meta package as version is higher than what is to soon be installed
+        local downgrade_str="Removing previously installed Pi-hole dependency package"
+        printf "  %b %s..." "${INFO}" "${downgrade_str}"
+        eval "${PKG_REMOVE}" "pihole-meta" &>/dev/null
+        printf "done.\n"
+        # reinstall the pihole-meta package
+        return 1
+    fi
+
 }
 
 build_dependency_package(){
@@ -2193,17 +2259,23 @@ main() {
     # Check for availability of either the "service" or "systemctl" commands
     check_service_command
 
-    # Check for supported package managers so that we may install dependencies
-    package_manager_detect
+    # Check for supported package managers and if pihole-meta package is installed
+    if ! check_for_dependencies; then
 
-    # Notify user of package availability
-    notify_package_updates_available
+        # Update package cache on debian based systems before installing OR exit if fail
+        if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+            update_package_cache || exit 1
+        fi
 
-    # Build dependency package
-    build_dependency_package
+        # Notify user if other package updates are available
+        notify_package_updates_available
 
-    # Install Pi-hole dependencies
-    install_dependent_packages
+        # Build dependency package (pihole-meta)
+        build_dependency_package
+
+        # Install Pi-hole meta package and any missing dependencies
+        install_dependent_packages
+    fi
 
 
     # Check if there is a usable FTL binary available on this architecture - do
