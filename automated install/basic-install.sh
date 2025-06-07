@@ -382,7 +382,7 @@ check_for_meta_package(){
     if is_command apt-get; then
         if [[ $(dpkg -s pihole-meta 2> /dev/null) ]]; then
 
-           # could potentially exit early here if running from update.sh 
+           # could potentially exit early here if running from update.sh
            # as this check should guarantee dependencies are installed
            # and the next if statement will always be true when running
            # from the beginning of update.sh as no new information has been downloaded yet.
@@ -410,7 +410,7 @@ check_for_meta_package(){
                install_dependent_packages
            fi
         else
-            # install the pihole-meta package as this is likely 
+            # install the pihole-meta package as this is likely
             # a fresh install or was removed inadvertently
             printf "not installed\\n"
             package_manager_detect
@@ -451,7 +451,7 @@ check_for_meta_package(){
                 install_dependent_packages
             fi
         else
-            # install the pihole-meta package as this is likely 
+            # install the pihole-meta package as this is likely
             # a fresh install or was removed inadvertently
             printf "not installed\\n"
             package_manager_detect
