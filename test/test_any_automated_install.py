@@ -89,10 +89,8 @@ def test_installPihole_fresh_install_readableFiles(host):
     export DEBIAN_FRONTEND=noninteractive
     umask 0027
     runUnattended=true
-    fresh_install=false
     source /opt/pihole/basic-install.sh > /dev/null
     runUnattended=true
-    fresh_install=false
     main
     /opt/pihole/pihole-FTL-prestart.sh
     """
@@ -473,6 +471,7 @@ def test_package_manager_has_pihole_deps(host):
         """
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    update_package_cache
     build_dependency_package
     install_dependent_packages
     """
@@ -489,6 +488,7 @@ def test_meta_package_uninstall(host):
         """
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    update_package_cache
     build_dependency_package
     install_dependent_packages
     """
