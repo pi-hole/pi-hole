@@ -471,6 +471,7 @@ def test_package_manager_has_pihole_deps(host):
         """
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    update_package_cache
     build_dependency_package
     install_dependent_packages
     """
@@ -487,6 +488,7 @@ def test_meta_package_uninstall(host):
         """
     source /opt/pihole/basic-install.sh
     package_manager_detect
+    update_package_cache
     build_dependency_package
     install_dependent_packages
     """

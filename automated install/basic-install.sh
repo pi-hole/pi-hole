@@ -254,10 +254,6 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-        # Update package cache only on fresh installs
-        if [[ "${fresh_install}" == true ]]; then
-            update_package_cache || exit 1
-        fi
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
@@ -2207,6 +2203,11 @@ main() {
 
     # Check for supported package managers so that we may install dependencies
     package_manager_detect
+
+    # Update package cache only on fresh installs and apt based systems
+    if [[ "${fresh_install}" == true ]] && is_command apt-get; then
+            update_package_cache || exit 1
+    fi
 
     # Notify user of package availability
     notify_package_updates_available
