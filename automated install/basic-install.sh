@@ -223,6 +223,12 @@ abort() {
     exit 1
 }
 
+# converts a given version string e.g. v3.7.1 to 3007001000 to allow for easier comparison of multi digit version numbers
+# credits https://apple.stackexchange.com/a/123408
+VersionConverter() {
+  echo "$@" | tr -d '[:alpha:]' | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
+}
+
 is_command() {
     # Checks to see if the given command (passed as a string argument) exists on the system.
     # The function returns 0 (success) if the command exists, and 1 if it doesn't.
