@@ -8,9 +8,8 @@ updates:
     time: "10:00"
   open-pull-requests-limit: 10
   target-branch: development
-  versioning-strategy: increase
   groups:
-    github-actions:
+    github-actions-dependencies:
       patterns:
         - "*"
 - package-ecosystem: pip
@@ -21,8 +20,7 @@ updates:
     time: "10:00"
   open-pull-requests-limit: 10
   target-branch: development
-  versioning-strategy: increase
   groups:
-    github-actions:
+    python-dependencies:
       patterns:
         - "*"
