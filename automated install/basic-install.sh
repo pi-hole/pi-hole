@@ -357,7 +357,7 @@ build_dependency_package(){
     tempdir="$(mktemp --directory /tmp/pihole-meta_XXXXX)"
     chmod 0755 "${tempdir}"
 
-    if is_command apt-get; then
+    if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
         # move into the tmp directory
         pushd /tmp &>/dev/null || return 1
 
@@ -387,7 +387,7 @@ build_dependency_package(){
         # Move back into the directory the user started in
         popd &> /dev/null || return 1
 
-    elif is_command rpm; then
+    elif [[ "${PKG_MANAGER}" == "dnf" ]] || [[ "${PKG_MANAGER}" == "yum" ]]; then
         # move into the tmp directory
         pushd /tmp &>/dev/null || return 1
 
@@ -1428,7 +1428,7 @@ install_dependent_packages() {
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Install Debian/Ubuntu packages
-    if is_command apt-get; then
+    if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
         if [ -f /tmp/pihole-meta.deb ]; then
             if eval "${PKG_INSTALL}" "/tmp/pihole-meta.deb" &>/dev/null; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
@@ -1443,7 +1443,7 @@ install_dependent_packages() {
             return 1
         fi
     # Install Fedora/CentOS packages
-    elif is_command rpm; then
+    elif [[ "${PKG_MANAGER}" == "dnf" ]] || [[ "${PKG_MANAGER}" == "yum" ]]; then
         if [ -f /tmp/pihole-meta.rpm ]; then
             if eval "${PKG_INSTALL}" "/tmp/pihole-meta.rpm" &>/dev/null; then
                 printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
