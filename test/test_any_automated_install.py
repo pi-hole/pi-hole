@@ -25,7 +25,7 @@ def test_supported_package_manager(host):
     package_manager_detect = host.run(
         """
     source /opt/pihole/basic-install.sh
-    package_manager_detect
+    check_for_dependencies
     """
     )
     expected_stdout = cross_box + " No supported package manager found"
@@ -191,11 +191,15 @@ def test_update_package_cache_success_no_errors(host):
     """
     confirms package cache was updated without any errors
     """
+    # check_for_dependencies() will return 1 if pihole-meta package is not found.
     updateCache = host.run(
         """
     source /opt/pihole/basic-install.sh
-    package_manager_detect
-    update_package_cache
+    if ! check_for_dependencies; then
+        update_package_cache
+    else
+        return 1
+    fi
     """
     )
     expected_stdout = tick_box + " Update local cache of available packages"
@@ -207,12 +211,16 @@ def test_update_package_cache_failure_no_errors(host):
     """
     confirms package cache was not updated
     """
+    # check_for_dependencies() will return 1 if pihole-meta package is not found.
     mock_command("apt-get", {"update": ("", "1")}, host)
     updateCache = host.run(
         """
     source /opt/pihole/basic-install.sh
-    package_manager_detect
-    update_package_cache
+    if ! check_for_dependencies; then
+        update_package_cache
+    else
+        return 1
+    fi
     """
     )
     expected_stdout = cross_box + " Update local cache of available packages"
@@ -468,13 +476,20 @@ def test_validate_ip(host):
 
 def test_package_manager_has_pihole_deps(host):
     """Confirms OS is able to install the required packages for Pi-hole"""
+    # check_for_dependencies() will return 1 if pihole-meta package is not found.
     mock_command("dialog", {"*": ("", "0")}, host)
     output = host.run(
         """
     source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
+    if ! check_for_dependencies; then
+        if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+            update_package_cache || exit 1
+        fi
+        build_dependency_package
+        install_dependent_packages
+    else
+        return 1
+    fi
     """
     )
 
@@ -484,21 +499,33 @@ def test_package_manager_has_pihole_deps(host):
 
 def test_meta_package_uninstall(host):
     """Confirms OS is able to install and uninstall the Pi-hole meta package"""
+    # check_for_dependencies() will return 0 if pihole-meta package is found OR 1 if pihole-meta package is not found.
     mock_command("dialog", {"*": ("", "0")}, host)
     install = host.run(
         """
     source /opt/pihole/basic-install.sh
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
+    if ! check_for_dependencies; then
+        if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+            update_package_cache || exit 1
+        fi
+        build_dependency_package
+        install_dependent_packages
+    else
+        return 1
+    fi
     """
     )
     assert install.rc == 0
 
     uninstall = host.run(
         """
+    DEPEND_CHECK=true
     source /opt/pihole/uninstall.sh
-    removeMetaPackage
+    if check_for_dependencies; then
+        removeMetaPackage
+    else
+        return 1
+    fi
     """
     )
     assert uninstall.rc == 0
