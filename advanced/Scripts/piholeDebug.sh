@@ -388,14 +388,6 @@ check_firewalld() {
                 else
                     log_write "${CROSS} ${COL_RED}  Local Interface Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
                 fi
-                # check FTL custom zone port: 4711
-                local firewalld_ftl_zone_ports
-                firewalld_ftl_zone_ports=$(firewall-cmd --zone=ftl --list-ports)
-                if [[ "${firewalld_ftl_zone_ports}" =~ "4711/tcp" ]]; then
-                    log_write "${TICK} ${COL_GREEN}  FTL Port 4711/tcp Detected${COL_NC}";
-                else
-                    log_write "${CROSS} ${COL_RED}  FTL Port 4711/tcp Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
-                fi
             else
                 log_write "${CROSS} ${COL_RED}FTL Custom Zone Not Detected${COL_NC} (${FAQ_HARDWARE_REQUIREMENTS_FIREWALLD})"
             fi
