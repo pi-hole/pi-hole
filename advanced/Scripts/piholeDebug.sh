@@ -367,7 +367,7 @@ check_firewalld() {
             # test common required service ports
             local firewalld_enabled_services
             firewalld_enabled_services=$(firewall-cmd --list-services)
-            local firewalld_expected_services=("http" "dns" "dhcp" "dhcpv6")
+            local firewalld_expected_services=("http" "https" "dns" "dhcp" "dhcpv6" "ntp")
             for i in "${firewalld_expected_services[@]}"; do
                 if [[ "${firewalld_enabled_services}" =~ ${i} ]]; then
                     log_write "${TICK} ${COL_GREEN}  Allow Service: ${i}${COL_NC}";
