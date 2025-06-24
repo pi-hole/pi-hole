@@ -26,7 +26,7 @@ source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 warning1() {
     echo "  Please note that changing branches severely alters your Pi-hole subsystems"
     echo "  Features that work on the master branch, may not on a development branch"
-    echo -e "  ${COL_LIGHT_RED}This feature is NOT supported unless a Pi-hole developer explicitly asks!${COL_NC}"
+    echo -e "  ${COL_RED}This feature is NOT supported unless a Pi-hole developer explicitly asks!${COL_NC}"
     read -r -p "  Have you read and understood this? [y/N] " response
     case "${response}" in
         [yY][eE][sS]|[yY])
@@ -55,19 +55,19 @@ checkout() {
 
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
-        echo -e "  ${COL_LIGHT_RED}Error: Core Pi-hole repo is missing from system!"
+        echo -e "  ${COL_RED}Error: Core Pi-hole repo is missing from system!"
         echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
         exit 1;
     fi
 
     if ! is_repo "${webInterfaceDir}" ; then
-        echo -e "  ${COL_LIGHT_RED}Error: Web Admin repo is missing from system!"
+        echo -e "  ${COL_RED}Error: Web Admin repo is missing from system!"
         echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
         exit 1;
     fi
 
     if [[ -z "${1}" ]]; then
-        echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}"
+        echo -e "  ${COL_RED}Invalid option${COL_NC}"
         echo -e "  Try 'pihole checkout --help' for more information."
         exit 1
     fi
@@ -238,7 +238,7 @@ checkout() {
         if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
             exit 0
         else
-            echo -e "  ${COL_LIGHT_RED} Error: Unable to complete update, please contact support${COL_NC}"
+            echo -e "  ${COL_RED} Error: Unable to complete update, please contact support${COL_NC}"
             exit 1
         fi
     fi
