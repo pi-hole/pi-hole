@@ -497,16 +497,25 @@ ping_gateway() {
     ping_ipv4_or_ipv6 "${protocol}"
     # Check if we are using IPv4 or IPv6
     # Find the default gateways using IPv4 or IPv6
-    local gateway gateway_addr gateway_iface
+    local gateway gateway_addr gateway_iface default_route
 
     log_write "${INFO} Default IPv${protocol} gateway(s):"
 
-    while IFS= read -r gateway; do
-        log_write "     $(cut -d ' ' -f 3 <<< "${gateway}")%$(cut -d ' ' -f 5 <<< "${gateway}")"
-    done < <(ip -"${protocol}" route | grep default)
+    while IFS= read -r default_route; do
+        gateway_addr=$(jq -r '.gateway' <<< "${default_route}")
+        gateway_iface=$(jq -r '.dev' <<< "${default_route}")
+        log_write "     ${gateway_addr}%${gateway_iface}"
+    done < <(ip -j -"${protocol}" route | jq -c '.[] | select(.dst == "default")')
 
-    gateway_addr=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 3 | head -n 1)
-    gateway_iface=$(ip -"${protocol}" route | grep default | cut -d ' ' -f 5 | head -n 1)
+    # Find the first default route
+    default_route=$(ip -j -"${protocol}" route show default)
+    if echo "$default_route" | grep 'gateway' | grep -q 'dev'; then
+        gateway_addr=$(echo "$default_route" | jq -r -c '.[0].gateway')
+        gateway_iface=$(echo "$default_route" | jq -r -c '.[0].dev')
+    else
+        log_write "     Unable to determine gateway address for IPv${protocol}"
+    fi
+
     # If there was at least one gateway
     if [ -n "${gateway_addr}" ]; then
         # Append the interface to the gateway address if it is a link-local address
