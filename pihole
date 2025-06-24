@@ -238,7 +238,7 @@ Time:
     fi
 
     if [[ ${error} == true ]];then
-      echo -e "  ${COL_LIGHT_RED}Unknown format for blocking timer!${COL_NC}"
+      echo -e "  ${COL_RED}Unknown format for blocking timer!${COL_NC}"
       echo -e "  Try 'pihole disable --help' for more information."
       exit 1
     fi
@@ -293,7 +293,7 @@ Options:
     echo -e "  ${INFO} Enabling logging..."
     local str="Logging has been enabled!"
   else
-    echo -e "  ${COL_LIGHT_RED}Invalid option${COL_NC}
+    echo -e "  ${COL_RED}Invalid option${COL_NC}
   Try 'pihole logging --help' for more information."
     exit 1
   fi

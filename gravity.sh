@@ -50,7 +50,7 @@ etag_support=false
 
 # Check gravity temp directory
 if [ ! -d "${GRAVITY_TMPDIR}" ] || [ ! -w "${GRAVITY_TMPDIR}" ]; then
-  echo -e "  ${COL_LIGHT_RED}Gravity temporary directory does not exist or is not a writeable directory, falling back to /tmp. ${COL_NC}"
+  echo -e "  ${COL_RED}Gravity temporary directory does not exist or is not a writeable directory, falling back to /tmp. ${COL_NC}"
   GRAVITY_TMPDIR="/tmp"
 fi
 
@@ -821,13 +821,13 @@ gravity_DownloadBlocklistFromUrl() {
   if [[ "${done}" != "true" ]]; then
     # Determine if cached list has read permission
     if [[ -r "${saveLocation}" ]]; then
-      echo -e "  ${CROSS} List download failed: ${COL_LIGHT_GREEN}using previously cached list${COL_NC}"
+      echo -e "  ${CROSS} List download failed: ${COL_GREEN}using previously cached list${COL_NC}"
       # Set list status to "download-failed/cached"
       database_adlist_status "${adlistID}" "3"
       # Add domains to database table file
       pihole-FTL "${gravity_type}" parseList "${saveLocation}" "${gravityTEMPfile}" "${adlistID}"
     else
-      echo -e "  ${CROSS} List download failed: ${COL_LIGHT_RED}no cached list available${COL_NC}"
+      echo -e "  ${CROSS} List download failed: ${COL_RED}no cached list available${COL_NC}"
       # Manually reset these two numbers because we do not call parseList here
       database_adlist_number "${adlistID}" 0 0
       database_adlist_status "${adlistID}" "4"
@@ -864,7 +864,7 @@ gravity_ShowCount() {
 
 # Trap Ctrl-C
 gravity_Trap() {
-  trap '{ echo -e "\\n\\n  ${INFO} ${COL_LIGHT_RED}User-abort detected${COL_NC}"; gravity_Cleanup "error"; }' INT
+  trap '{ echo -e "\\n\\n  ${INFO} ${COL_RED}User-abort detected${COL_NC}"; gravity_Cleanup "error"; }' INT
 }
 
 # Clean up after Gravity upon exit or cancellation

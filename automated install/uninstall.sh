@@ -17,10 +17,10 @@ ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfig
 readonly ADMIN_INTERFACE_DIR
 
 while true; do
-    read -rp "  ${QST} Are you sure you would like to remove ${COL_WHITE}Pi-hole${COL_NC}? [y/N] " answer
+    read -rp "  ${QST} Are you sure you would like to remove ${COL_BOLD}Pi-hole${COL_NC}? [y/N] " answer
     case ${answer} in
         [Yy]* ) break;;
-        * ) echo -e "${OVER}  ${COL_LIGHT_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
+        * ) echo -e "${OVER}  ${COL_GREEN}Uninstall has been canceled${COL_NC}"; exit 0;;
     esac
 done
 
@@ -150,11 +150,11 @@ removePiholeFiles() {
 
     echo -e "\\n   We're sorry to see you go, but thanks for checking out Pi-hole!
        If you need help, reach out to us on GitHub, Discourse, Reddit or Twitter
-       Reinstall at any time: ${COL_WHITE}curl -sSL https://install.pi-hole.net | bash${COL_NC}
+       Reinstall at any time: ${COL_BOLD}curl -sSL https://install.pi-hole.net | bash${COL_NC}
 
-      ${COL_LIGHT_RED}Please reset the DNS on your router/clients to restore internet connectivity${COL_NC}
+      ${COL_RED}Please reset the DNS on your router/clients to restore internet connectivity${COL_NC}
       ${INFO} Pi-hole's meta package has been removed, use the 'autoremove' function from your package manager to remove unused dependencies${COL_NC}
-      ${COL_LIGHT_GREEN}Uninstallation Complete! ${COL_NC}"
+      ${COL_GREEN}Uninstallation Complete! ${COL_NC}"
 }
 
 ######### SCRIPT ###########

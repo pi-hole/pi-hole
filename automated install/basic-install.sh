@@ -173,13 +173,11 @@ if [[ -f "${coltable}" ]]; then
 else
     # Set these values so the installer can still run in color
     COL_NC='\e[0m' # No Color
-    COL_LIGHT_GREEN='\e[1;32m'
-    COL_LIGHT_RED='\e[1;31m'
-    TICK="[${COL_LIGHT_GREEN}✓${COL_NC}]"
-    CROSS="[${COL_LIGHT_RED}✗${COL_NC}]"
+    COL_GREEN='\e[1;32m'
+    COL_RED='\e[1;31m'
+    TICK="[${COL_GREEN}✓${COL_NC}]"
+    CROSS="[${COL_RED}✗${COL_NC}]"
     INFO="[i]"
-    # shellcheck disable=SC2034
-    DONE="${COL_LIGHT_GREEN} done!${COL_NC}"
     OVER="\\r\\033[K"
 fi
 
@@ -187,13 +185,13 @@ fi
 # This lets users know that it is a Pi-hole, LLC product
 show_ascii_berry() {
     echo -e "
-        ${COL_LIGHT_GREEN}.;;,.
+        ${COL_GREEN}.;;,.
         .ccccc:,.
          :cccclll:.      ..,,
           :ccccclll.   ;ooodc
            'ccll:;ll .oooodc
              .;cll.;;looo:.
-                 ${COL_LIGHT_RED}.. ','.
+                 ${COL_RED}.. ','.
                 .',,,,,,'.
               .',,,,,,,,,,.
             .',,,,,,,,,,,,....
@@ -215,7 +213,7 @@ abort() {
     # remove any leftover build directory that may exist
     rm -rf /tmp/pihole-meta_*
 
-    echo -e "\\n\\n  ${COL_LIGHT_RED}Installation was interrupted${COL_NC}\\n"
+    echo -e "\\n\\n  ${COL_RED}Installation was interrupted${COL_NC}\\n"
     echo -e "Pi-hole's dependencies might be already installed. If you want to remove them you can try to\\n"
     echo -e "a) run 'pihole uninstall' \\n"
     echo -e "b) Remove the meta-package 'pihole-meta' manually \\n"
@@ -308,7 +306,7 @@ build_dependency_package(){
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         else
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "%b Error: Building pihole-meta.deb failed. %b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "%b Error: Building pihole-meta.deb failed. %b\\n" "${COL_RED}" "${COL_NC}"
             return 1
         fi
 
@@ -341,7 +339,7 @@ build_dependency_package(){
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         else
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "%b Error: Building pihole-meta.rpm failed. %b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "%b Error: Building pihole-meta.rpm failed. %b\\n" "${COL_RED}" "${COL_NC}"
             return 1
         fi
 
@@ -483,7 +481,7 @@ getGitFiles() {
         printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
         # Update the repo, returning an error message on failure
         update_repo "${directory}" || {
-            printf "\\n  %b: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "\\n  %b: Could not update local repository. Contact support.%b\\n" "${COL_RED}" "${COL_NC}"
             exit 1
         }
     # If it's not a .git repo,
@@ -492,7 +490,7 @@ getGitFiles() {
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # Attempt to make the repository, showing an error on failure
         make_repo "${directory}" "${remoteRepo}" || {
-            printf "\\n  %bError: Could not update local repository. Contact support.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+            printf "\\n  %bError: Could not update local repository. Contact support.%b\\n" "${COL_RED}" "${COL_NC}"
             exit 1
         }
     fi
@@ -807,7 +805,7 @@ setDNS() {
     result=$?
     case ${result} in
     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-        printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_RED}" "${COL_NC}"
         exit 1
         ;;
     esac
@@ -844,7 +842,7 @@ If you want to specify a port other than 53, separate it with a hash.\
             result=$?
             case ${result} in
             "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-                printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                printf "  %b Cancel was selected, exiting installer%b\\n" "${COL_RED}" "${COL_NC}"
                 exit 1
                 ;;
             esac
@@ -898,7 +896,7 @@ If you want to specify a port other than 53, separate it with a hash.\
                     DNSSettingsCorrect=False
                     ;;
                 "${DIALOG_ESC}")
-                    printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+                    printf "  %b Escape pressed, exiting installer at DNS Settings%b\\n" "${COL_RED}" "${COL_NC}"
                     exit 1
                     ;;
                 esac
@@ -949,7 +947,7 @@ setLogging() {
         ;;
     "${DIALOG_ESC}")
         # User pressed <ESC>
-        printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %b Escape pressed, exiting installer at Query Logging choice.%b\\n" "${COL_RED}" "${COL_NC}"
         exit 1
         ;;
     esac
@@ -974,7 +972,7 @@ setPrivacyLevel() {
         printf "  %b Using privacy level: %s\\n" "${INFO}" "${PRIVACY_LEVEL}"
         ;;
     "${DIALOG_CANCEL}" | "${DIALOG_ESC}")
-        printf "  %b Cancelled privacy level selection.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %b Cancelled privacy level selection.%b\\n" "${COL_RED}" "${COL_NC}"
         exit 1
         ;;
     esac
@@ -1008,7 +1006,7 @@ chooseBlocklists() {
         ;;
     "${DIALOG_ESC}")
         # User pressed <ESC>
-        printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %b Escape pressed, exiting installer at blocklist choice.%b\\n" "${COL_RED}" "${COL_NC}"
         exit 1
         ;;
     esac
@@ -1134,7 +1132,7 @@ installScripts() {
     else
         # Otherwise, show an error and exit
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
         return 1
     fi
 }
@@ -1149,7 +1147,7 @@ installConfigs() {
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
         if ! install -D -T -o pihole -g pihole -m 660 /dev/null "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" &>/dev/null; then
-            printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_LIGHT_RED}" "${PI_HOLE_CONFIG_DIR}/hosts"
+            printf "  %b Error: Unable to initialize configuration file %s/custom.list\\n" "${COL_RED}" "${PI_HOLE_CONFIG_DIR}/hosts"
             return 1
         fi
     fi
@@ -1328,7 +1326,7 @@ update_package_cache() {
             UPDATE_PKG_CACHE="apt update"
         fi
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "  %b Error: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_LIGHT_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
+        printf "  %b Error: Unable to update package cache. Please try \"%s\"%b\\n" "${COL_RED}" "sudo ${UPDATE_PKG_CACHE}" "${COL_NC}"
         return 1
     fi
 }
@@ -1346,7 +1344,7 @@ notify_package_updates_available() {
         printf "%b  %b %s... up to date!\\n\\n" "${OVER}" "${TICK}" "${str}"
     else
         printf "%b  %b %s... %s updates available\\n" "${OVER}" "${TICK}" "${str}" "${updatesToInstall}"
-        printf "  %b %bIt is recommended to update your OS after installing the Pi-hole!%b\\n\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+        printf "  %b %bIt is recommended to update your OS after installing the Pi-hole!%b\\n\\n" "${INFO}" "${COL_GREEN}" "${COL_NC}"
     fi
 }
 
@@ -1363,11 +1361,11 @@ install_dependent_packages() {
                 rm /tmp/pihole-meta.deb
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_RED}"
                 return 1
             fi
         else
-            printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+            printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_RED}"
             return 1
         fi
     # Install Fedora/CentOS packages
@@ -1378,11 +1376,11 @@ install_dependent_packages() {
                 rm /tmp/pihole-meta.rpm
             else
                 printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+                printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_RED}"
                 return 1
             fi
         else
-            printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_LIGHT_RED}"
+            printf "  %b Error: Unable to find Pi-hole dependency package.\\n" "${COL_RED}"
             return 1
         fi
 
@@ -1611,13 +1609,13 @@ checkSelinux() {
     if [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -z "${PIHOLE_SELINUX}" ]]; then
         printf "  Pi-hole does not provide an SELinux policy as the required changes modify the security of your system.\\n"
         printf "  Please refer to https://wiki.centos.org/HowTos/SELinux if SELinux is required for your deployment.\\n"
-        printf "      This check can be skipped by setting the environment variable %bPIHOLE_SELINUX%b to %btrue%b\\n" "${COL_LIGHT_RED}" "${COL_NC}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "      This check can be skipped by setting the environment variable %bPIHOLE_SELINUX%b to %btrue%b\\n" "${COL_RED}" "${COL_NC}" "${COL_RED}" "${COL_NC}"
         printf "      e.g: export PIHOLE_SELINUX=true\\n"
         printf "      By setting this variable to true you acknowledge there may be issues with Pi-hole during or after the install\\n"
-        printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "\\n  %bSELinux Enforcing detected, exiting installer%b\\n" "${COL_RED}" "${COL_NC}"
         exit 1
     elif [[ "${SELINUX_ENFORCING}" -eq 1 ]] && [[ -n "${PIHOLE_SELINUX}" ]]; then
-        printf "  %b %bSELinux Enforcing detected%b. PIHOLE_SELINUX env variable set - installer will continue\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %b %bSELinux Enforcing detected%b. PIHOLE_SELINUX env variable set - installer will continue\\n" "${INFO}" "${COL_RED}" "${COL_NC}"
     fi
 }
 
@@ -1715,13 +1713,13 @@ clone_or_reset_repos() {
         # Reset the Core repo
         resetRepo ${PI_HOLE_LOCAL_REPO} ||
             {
-                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
                 exit 1
             }
         # Reset the Web repo
         resetRepo ${webInterfaceDir} ||
             {
-                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceDir}" "${COL_NC}"
+                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_RED}" "${webInterfaceDir}" "${COL_NC}"
                 exit 1
             }
     # Otherwise, a fresh installation is happening
@@ -1729,13 +1727,13 @@ clone_or_reset_repos() {
         # so get git files for Core
         getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} ||
             {
-                printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_LIGHT_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
                 exit 1
             }
         # get the Web git files
         getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} ||
             {
-                printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_LIGHT_RED}" "${webInterfaceGitUrl}" "${COL_NC}"
+                printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_RED}" "${webInterfaceGitUrl}" "${COL_NC}"
                 exit 1
             }
     fi
@@ -1811,7 +1809,7 @@ FTLinstall() {
                 return 1
             }
             printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %b Error: Download of %s/%s failed (checksum error)%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+            printf "  %b Error: Download of %s/%s failed (checksum error)%b\\n" "${COL_RED}" "${url}" "${binary}" "${COL_NC}"
 
             # Remove temp dir
             remove_dir "${tempdir}"
@@ -1825,7 +1823,7 @@ FTLinstall() {
         }
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
         # The URL could not be found
-        printf "  %b Error: URL %s/%s not found%b\\n" "${COL_LIGHT_RED}" "${url}" "${binary}" "${COL_NC}"
+        printf "  %b Error: URL %s/%s not found%b\\n" "${COL_RED}" "${url}" "${binary}" "${COL_NC}"
 
         # Remove temp dir
         remove_dir "${tempdir}"
@@ -1902,7 +1900,7 @@ get_binary_name() {
         # Something else - we try to use 32bit executable and warn the user
         if [[ ! "${machine}" == "i686" ]]; then
             printf "%b  %b %s...\\n" "${OVER}" "${CROSS}" "${str}"
-            printf "  %b %bNot able to detect architecture (unknown: %s), trying x86 (32bit) executable%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${machine}" "${COL_NC}"
+            printf "  %b %bNot able to detect architecture (unknown: %s), trying x86 (32bit) executable%b\\n" "${INFO}" "${COL_RED}" "${machine}" "${COL_NC}"
             printf "  %b Contact Pi-hole Support if you experience issues (e.g: FTL not running)\\n" "${INFO}"
         else
             printf "%b  %b Detected 32bit (i686) architecture\\n" "${OVER}" "${TICK}"
@@ -1945,7 +1943,7 @@ FTLcheckUpdate() {
             status=$?
             if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
-                printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${COL_NC}"
+                printf "  %b Use %bpihole checkout ftl [branchname]%b to switch to a valid branch.\\n" "${INFO}" "${COL_GREEN}" "${COL_NC}"
             elif [ "${status}" -eq 2 ]; then
                 printf "  %b Unable to download from ftl.pi-hole.net. Please check your Internet connection and try again later.\\n" "${CROSS}"
                 return 3
@@ -2158,7 +2156,7 @@ main() {
     else
         # Otherwise, they do not have enough privileges, so let the user know
         printf "  %b %s\\n" "${INFO}" "${str}"
-        printf "  %b %bScript called with non-root privileges%b\\n" "${INFO}" "${COL_LIGHT_RED}" "${COL_NC}"
+        printf "  %b %bScript called with non-root privileges%b\\n" "${INFO}" "${COL_RED}" "${COL_NC}"
         printf "      The Pi-hole requires elevated privileges to install and run\\n"
         printf "      Please check the installer for any concerns regarding this requirement\\n"
         printf "      Make sure to download this script from a trusted source\\n\\n"
@@ -2182,7 +2180,7 @@ main() {
             # Otherwise, tell the user they need to run the script as root, and bail
             printf "%b  %b Sudo utility check\\n" "${OVER}" "${CROSS}"
             printf "  %b Sudo is needed for the Web Interface to run pihole commands\\n\\n" "${INFO}"
-            printf "  %b %bPlease re-run this installer as root${COL_NC}\\n" "${INFO}" "${COL_LIGHT_RED}"
+            printf "  %b %bPlease re-run this installer as root${COL_NC}\\n" "${INFO}" "${COL_RED}"
             exit 1
         fi
     fi
@@ -2367,7 +2365,7 @@ main() {
         printf "  %b If you have not done so already, the above IP should be set to static.\\n" "${INFO}"
 
         printf "  %b View the web interface at http://pi.hole:${WEBPORT}/admin or http://%s/admin\\n\\n" "${INFO}" "${IPV4_ADDRESS%/*}:${WEBPORT}"
-        printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_LIGHT_GREEN}" "${pw}" "${COL_NC}"
+        printf "  %b Web Interface password: %b%s%b\\n" "${INFO}" "${COL_GREEN}" "${pw}" "${COL_NC}"
         printf "  %b This can be changed using 'pihole setpassword'\\n\\n" "${INFO}"
         printf "  %b To allow your user to use all CLI functions without authentication, refer to\\n" "${INFO}"
         printf "    our documentation at: https://docs.pi-hole.net/main/post-install/\\n\\n"
@@ -2392,7 +2390,7 @@ main() {
 
     # Display where the log file is
     printf "\\n  %b The install log is located at: %s\\n" "${INFO}" "${installLogLoc}"
-    printf "  %b %b%s complete! %b\\n" "${TICK}" "${COL_LIGHT_GREEN}" "${INSTALL_TYPE}" "${COL_NC}"
+    printf "  %b %b%s complete! %b\\n" "${TICK}" "${COL_GREEN}" "${INSTALL_TYPE}" "${COL_NC}"
 
     if [[ "${INSTALL_TYPE}" == "Update" ]]; then
         printf "\\n"
