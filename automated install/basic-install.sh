@@ -164,12 +164,14 @@ PIHOLE_META_DEPS_APK=(
     dialog
     git
     grep
-    iproute2-ss
+    iproute2-minimal # piholeARPTable.sh
+    iproute2-ss # piholeDebug.sh
     jq
     libcap
     logrotate
+    lscpu # piholeDebug.sh
+    lshw # piholeDebug.sh
     ncurses
-    nmap-ncat
     procps-ng
     psmisc
     shadow
