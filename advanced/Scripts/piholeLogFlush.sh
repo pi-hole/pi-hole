@@ -86,6 +86,7 @@ if [[ "$*" == *"once"* ]]; then
         if [[ "$*" != *"quiet"* ]]; then
             echo -ne "  ${INFO} Running logrotate ..."
         fi
+        mkdir -p "${STATEFILE%/*}"
         /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
     else
         # Handle rotation for each log file
@@ -115,4 +116,3 @@ else
         echo -e "${OVER}  ${TICK} Deleted ${deleted} queries from long-term query database"
     fi
 fi
-

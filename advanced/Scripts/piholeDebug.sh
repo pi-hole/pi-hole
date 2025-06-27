@@ -778,7 +778,7 @@ process_status(){
                 :
             else
             # non-Docker system
-                if service "${i}" status | grep -E 'is\srunning' &> /dev/null; then
+                if service "${i}" status | grep -q -E 'is\srunning|started'; then
                     status_of_process="active"
                 else
                     status_of_process="inactive"
