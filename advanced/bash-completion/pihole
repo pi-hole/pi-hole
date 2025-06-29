@@ -1,5 +1,5 @@
 _pihole() {
-    local cur prev opts opts_checkout opts_debug opts_logging opts_query opts_update opts_version
+    local cur prev opts opts_lists opts_checkout opts_debug opts_logging opts_query opts_update opts_networkflush
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -7,7 +7,7 @@ _pihole() {
 
     case "${prev}" in
         "pihole")
-            opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query repair regex reloaddns reloadlists status tail uninstall updateGravity updatePihole version wildcard arpflush api"
+            opts="allow allow-regex allow-wild deny checkout debug disable enable flush help logging query repair regex reloaddns reloadlists status tail uninstall updateGravity updatePihole version wildcard networkflush api"
             COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         ;;
         "allow"|"deny"|"wildcard"|"regex"|"allow-regex"|"allow-wild")
@@ -34,9 +34,13 @@ _pihole() {
             opts_update="--check-only"
             COMPREPLY=( $(compgen -W "${opts_update}" -- ${cur}) )
         ;;
-        "core"|"admin"|"ftl")
+        "networkflush")
+            opts_networkflush="--arp"
+            COMPREPLY=( $(compgen -W "${opts_networkflush}" -- ${cur}) )
+        ;;
+        "core"|"web"|"ftl")
             if [[ "$prev2" == "checkout" ]]; then
-                opts_checkout="master dev"
+                opts_checkout="master development"
                 COMPREPLY=( $(compgen -W "${opts_checkout}" -- ${cur}) )
             else
                 return 1
