@@ -396,7 +396,7 @@ tailFunc() {
   # Color blocklist/denylist/wildcard entries as red
   # Color A/AAAA/DHCP strings as white
   # Color everything else as gray
-  tail -f $LOGFILE | grep --line-buffered "${1}" | sed -E \
+  tail -f $LOGFILE | grep --line-buffered -- "${1}" | sed -E \
     -e "s,($(date +'%b %d ')| dnsmasq\[[0-9]*\]),,g" \
     -e "s,(.*(denied |gravity blocked ).*),${COL_RED}&${COL_NC}," \
     -e "s,.*(query\\[A|DHCP).*,${COL_NC}&${COL_NC}," \
