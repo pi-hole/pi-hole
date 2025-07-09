@@ -1453,8 +1453,25 @@ install_dependent_packages() {
         fi
     # Install Alpine packages
     elif is_command apk; then
-        ${PKG_INSTALL} -q -t "pihole-meta=${PIHOLE_META_VERSION_APK}" "${PIHOLE_META_DEPS_APK[@]}" &> /dev/null &&
+        local repo_str="Ensuring alpine 'community' repo is enabled."
+        printf "%b  %b %s" "${OVER}" "${INFO}" "${repo_str}"
+
+        local pattern='^\s*#(.*/community/?)\s*$'
+        sed -Ei "s:${pattern}:\1:" /etc/apk/repositories
+        if grep -Eq "${pattern}" /etc/apk/repositories; then
+            # Repo still commented out = Failure
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${repo_str}"
+        else
+            printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${repo_str}"
+        fi
+        printf "  %b %s..." "${INFO}" "${str}"
+        if { ${PKG_INSTALL} -q -t "pihole-meta=${PIHOLE_META_VERSION_APK}" "${PIHOLE_META_DEPS_APK[@]}" &>/dev/null; }; then
             printf "%b  %b %s\\n" "${OVER}" "${TICK}" "${str}"
+        else
+            printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
+            printf "  %b Error: Unable to install Pi-hole dependency package.\\n" "${COL_RED}"
+            return 1
+        fi
     else
         # we cannot install the dependency package
         printf "  %b No supported package manager found\\n" "${CROSS}"
