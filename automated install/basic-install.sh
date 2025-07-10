@@ -229,6 +229,13 @@ is_command() {
     command -v "${check_command}" >/dev/null 2>&1
 }
 
+check_fresh_install() {
+    # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
+        fresh_install=false
+    fi
+}
+
 # Compatibility
 package_manager_detect() {
 
@@ -245,8 +252,6 @@ package_manager_detect() {
         PKG_COUNT="${PKG_MANAGER} -s -o Debug::NoLocking=true upgrade | grep -c ^Inst || true"
         # The command we will use to remove packages (used in the uninstaller)
         PKG_REMOVE="${PKG_MANAGER} -y remove --purge"
-        # Update package cache
-        update_package_cache || exit 1
 
     # If apt-get is not found, check for rpm.
     elif is_command rpm; then
@@ -2196,8 +2201,16 @@ main() {
     # Check for availability of either the "service" or "systemctl" commands
     check_service_command
 
+    # Check if this is a fresh install or an update/repair
+    check_fresh_install
+
     # Check for supported package managers so that we may install dependencies
     package_manager_detect
+
+    # Update package cache only on apt based systems
+    if is_command apt-get; then
+            update_package_cache || exit 1
+    fi
 
     # Notify user of package availability
     notify_package_updates_available
@@ -2219,10 +2232,7 @@ main() {
         exit 1
     fi
 
-    # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
-    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
-        # retain settings
-        fresh_install=false
+    if [[ "${fresh_install}" == false ]]; then
         # if it's running unattended,
         if [[ "${runUnattended}" == true ]]; then
             printf "  %b Performing unattended setup, no dialogs will be displayed\\n" "${INFO}"
