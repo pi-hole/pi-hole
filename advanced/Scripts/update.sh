@@ -164,6 +164,7 @@ main() {
                 ;;
             2)
                 echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Branch is not available.${COL_NC}\\n\\t\\t\\tUse ${COL_GREEN}pihole checkout ftl [branchname]${COL_NC} to switch to a valid branch."
+                exit 1
                 ;;
             3)
                 echo -e "  ${INFO} FTL:\\t\\t${COL_RED}Something has gone wrong, cannot reach download server${COL_NC}"
