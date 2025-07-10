@@ -1938,8 +1938,8 @@ FTLcheckUpdate() {
         path="${ftlBranch}/${binary}"
 
         # Check whether or not the binary for this FTL branch actually exists. If not, then there is no update!
+        local status
         if ! check_download_exists "$path"; then
-            local status
             status=$?
             if [ "${status}" -eq 1 ]; then
                 printf "  %b Branch \"%s\" is not available.\\n" "${INFO}" "${ftlBranch}"
@@ -2029,6 +2029,11 @@ FTLdetect() {
 
     if FTLcheckUpdate "${1}"; then
         FTLinstall "${1}" || return 1
+    else
+        case $? in
+            1) :;; # FTL is up-to-date
+            *) exit 1;; # 404 (2), other HTTP or curl error (3), unknown (4)
+        esac
     fi
 }
 
