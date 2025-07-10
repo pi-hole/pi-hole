@@ -46,9 +46,7 @@ SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 
-# package_manager_detect() sourced from basic-install.sh
-package_manager_detect
-
+# check_for_dependencies() sourced from basic-install.sh
 
 removeMetaPackage() {
     # Purge Pi-hole meta package
@@ -158,5 +156,12 @@ removePiholeFiles() {
 }
 
 ######### SCRIPT ###########
-removeMetaPackage
+# DEPEND_CHECK used as a signal to exit check_for_dependencies() early when pihole-meta package is found
+DEPEND_CHECK=true
+# Check for pihole-meta package and set package management variables
+if check_for_dependencies; then
+    removeMetaPackage
+else
+    echo -ne "  ${INFO} Pi-hole meta package not found.";
+fi
 removePiholeFiles

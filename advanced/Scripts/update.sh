@@ -27,6 +27,7 @@ source "/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${PI_HOLE_INSTALL_DIR}/utils.sh"
 
+# check_for_dependencies() sourced from basic-install.sh
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
 # update_repo() source from basic-install.sh
@@ -112,11 +113,20 @@ main() {
     web_update=false
     FTL_update=false
 
+    # used as a signal to exit check_for_dependencies() early when
+    # the meta package is found when new data has NOT been downloaded yet
+    DEPEND_CHECK=true
 
-    # Install packages used by this installation script (necessary if users have removed e.g. git from their systems)
-    package_manager_detect
-    build_dependency_package
-    install_dependent_packages
+    # Check for supported package managers and dependencies
+    if ! check_for_dependencies; then
+        # Update package cache on debian based systems before installing OR exit if fail
+        if [[ "${PKG_MANAGER}" == "apt-get" ]]; then
+            update_package_cache || exit 1
+        fi
+        # install needed dependencies if missing
+        build_dependency_package
+        install_dependent_packages
+    fi
 
     # This is unlikely
     if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
