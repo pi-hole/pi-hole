@@ -2,6 +2,7 @@ changelog:
   exclude:
     labels:
       - internal
+      - dependencies
     authors:
       - dependabot
       - github-actions
