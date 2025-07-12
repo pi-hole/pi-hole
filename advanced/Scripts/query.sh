@@ -68,7 +68,7 @@ GenerateOutput() {
     fi
 
     # Results from gravity
-    printf "%s\n\n" "Found ${num_gravity} adlists ${search_type_str} matching '${COL_BLUE}${domain}${COL_NC}'."
+    printf "%s\n\n" "Found ${num_gravity} lists ${search_type_str} matching '${COL_BLUE}${domain}${COL_NC}'."
     if [ "${num_gravity}" -gt 0 ]; then
         # Convert the data to a csv, each line is a "URL,type,domain,domain,...." string
         # not using jq's @csv here as it quotes each value individually
