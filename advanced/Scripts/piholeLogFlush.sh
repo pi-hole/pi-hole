@@ -8,14 +8,12 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-colfile="/opt/pihole/COL_TABLE"
-# shellcheck source="./advanced/Scripts/COL_TABLE"
-source ${colfile}
-
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
-source "${utilsfile}"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
+
+# shellcheck source="./advanced/Scripts/COL_TABLE"
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # In case we're running at the same time as a system logrotate, use a
 # separate logrotate state file to prevent stepping on each other's
@@ -115,4 +113,3 @@ else
         echo -e "${OVER}  ${TICK} Deleted ${deleted} queries from long-term query database"
     fi
 fi
-

@@ -8,11 +8,6 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-# shellcheck source="./advanced/Scripts/COL_TABLE"
-source "/opt/pihole/COL_TABLE"
-# shellcheck source="./advanced/Scripts/utils.sh"
-source "/opt/pihole/utils.sh"
-
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 readonly ADMIN_INTERFACE_DIR
 
@@ -45,6 +40,8 @@ readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+# shellcheck source="./advanced/Scripts/utils.sh"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
 # package_manager_detect() sourced from basic-install.sh
 package_manager_detect
@@ -86,7 +83,7 @@ removePiholeFiles() {
     ${SUDO} rm -rf /var/log/pihole/*pihole* &> /dev/null
     ${SUDO} rm -rf "${PI_HOLE_CONFIG_DIR}" &> /dev/null
     ${SUDO} rm -rf "${PI_HOLE_FILES_DIR}" &> /dev/null
-    ${SUDO} rm -rf "${PI_HOLE_INSTALL_DIR}" &> /dev/null
+    ${SUDO} rm -rf "${PI_HOLE_SCRIPT_DIR}" &> /dev/null
     ${SUDO} rm -f "${PI_HOLE_BIN_DIR}"/pihole &> /dev/null
     ${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null
     ${SUDO} rm -f /etc/bash_completion.d/pihole-FTL &> /dev/null

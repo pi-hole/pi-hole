@@ -158,7 +158,7 @@ checkout() {
         fi
         checkout_pull_branch "${webInterfaceDir}" "${2}"
         # Update local and remote versions via updatechecker
-        /opt/pihole/updatecheck.sh
+        "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh
     elif [[ "${1}" == "ftl" ]] ; then
         local path
         local oldbranch
@@ -208,7 +208,7 @@ checkout() {
             echo -e "  ${OVER}  ${TICK} Restarted FTL service"
 
             # Update local and remote versions via updatechecker
-            /opt/pihole/updatecheck.sh
+            "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh
         else
             local status
             status=$?

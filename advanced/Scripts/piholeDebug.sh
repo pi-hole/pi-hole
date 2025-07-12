@@ -21,8 +21,8 @@ set -o pipefail
 ######## GLOBAL VARS ########
 # These variables would normally be next to the other files
 # but we need them to be first in order to get the colors needed for the script output
-PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
-PIHOLE_COLTABLE_FILE="${PIHOLE_SCRIPTS_DIRECTORY}/COL_TABLE"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PIHOLE_COLTABLE_FILE="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # These provide the colors we need for making the log more readable
 if [[ -f ${PIHOLE_COLTABLE_FILE} ]]; then
@@ -67,7 +67,6 @@ CORE_GIT_DIRECTORY="/etc/.pihole"
 CRON_D_DIRECTORY="/etc/cron.d"
 DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
 PIHOLE_DIRECTORY="/etc/pihole"
-PIHOLE_SCRIPTS_DIRECTORY="/opt/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 LOG_DIRECTORY="/var/log/pihole"
 HTML_DIRECTORY="$(get_ftl_conf_value "webserver.paths.webroot")"

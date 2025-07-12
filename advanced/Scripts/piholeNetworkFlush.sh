@@ -9,20 +9,15 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-coltable="/opt/pihole/COL_TABLE"
-if [[ -f ${coltable} ]]; then
-# shellcheck source="./advanced/Scripts/COL_TABLE"
-    source ${coltable}
-fi
-
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source=./advanced/Scripts/utils.sh
-source "${utilsfile}"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
+# shellcheck source=./advanced/Scripts/COL_TABLE
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # Source api functions
 # shellcheck source="./advanced/Scripts/api.sh"
-. "${PI_HOLE_SCRIPT_DIR}/api.sh"
+source "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
 flushNetwork(){
     local output
@@ -81,4 +76,3 @@ if [[ "${doARP}" == true ]]; then
         echo -e "${OVER}  ${TICK} Flushed ARP cache"
     fi
 fi
-

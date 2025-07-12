@@ -23,9 +23,9 @@ CHECK_ONLY=false
 # shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
 # shellcheck source=./advanced/Scripts/COL_TABLE
-source "/opt/pihole/COL_TABLE"
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 # shellcheck source="./advanced/Scripts/utils.sh"
-source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
 # is_repo() sourced from basic-install.sh
 # make_repo() sourced from basic-install.sh
@@ -228,7 +228,7 @@ main() {
 
     if [[ "${FTL_update}" == true || "${core_update}" == true || "${web_update}" == true ]]; then
         # Update local and remote versions via updatechecker
-        /opt/pihole/updatecheck.sh
+        "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh
         echo -e "  ${INFO} Local version file information updated."
     fi
 

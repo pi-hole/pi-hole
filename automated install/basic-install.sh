@@ -67,15 +67,26 @@ EOM
 )
 
 # This directory is where the Pi-hole scripts will be installed
-PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_LOCAL_REPO="/etc/.pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
+# shellcheck source="./advanced/Scripts/COL_TABLE"
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE" || {
+    # If the color table file doesn't exist,
+    # set these values so the installer can still run in color
+    COL_NC='\e[0m' # No Color
+    COL_GREEN='\e[1;32m'
+    COL_RED='\e[1;31m'
+    TICK="[${COL_GREEN}✓${COL_NC}]"
+    CROSS="[${COL_RED}✗${COL_NC}]"
+    INFO="[i]"
+    OVER="\\r\\033[K"
+}
+
 # Location for final installation log storage
 installLogLoc="${PI_HOLE_CONFIG_DIR}/install.log"
-# This is a file used for the colorized output
-coltable="/opt/pihole/COL_TABLE"
 
 # Root of the web server
 webroot="/var/www/html"
@@ -167,23 +178,6 @@ for var in "$@"; do
     "--unattended") runUnattended=true ;;
     esac
 done
-
-# If the color table file exists,
-if [[ -f "${coltable}" ]]; then
-    # source it
-    # shellcheck source="./advanced/Scripts/COL_TABLE"
-    source "${coltable}"
-# Otherwise,
-else
-    # Set these values so the installer can still run in color
-    COL_NC='\e[0m' # No Color
-    COL_GREEN='\e[1;32m'
-    COL_RED='\e[1;31m'
-    TICK="[${COL_GREEN}✓${COL_NC}]"
-    CROSS="[${COL_RED}✗${COL_NC}]"
-    INFO="[i]"
-    OVER="\\r\\033[K"
-fi
 
 # A simple function that just echoes out our logo in ASCII format
 # This lets users know that it is a Pi-hole, LLC product
@@ -1121,7 +1115,7 @@ installScripts() {
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Clear out script files from Pi-hole scripts directory.
-    clean_existing "${PI_HOLE_INSTALL_DIR}" "${PI_HOLE_FILES[@]}"
+    clean_existing "${PI_HOLE_SCRIPT_DIR}" "${PI_HOLE_FILES[@]}"
 
     # Install files from local core repository
     if is_repo "${PI_HOLE_LOCAL_REPO}"; then
@@ -1132,12 +1126,12 @@ installScripts() {
         #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
         #
         # This first one is the directory
-        install -o "${USER}" -Dm755 -d "${PI_HOLE_INSTALL_DIR}"
+        install -o "${USER}" -Dm755 -d "${PI_HOLE_SCRIPT_DIR}"
         # The rest are the scripts Pi-hole needs
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" gravity.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/*.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./automated\ install/uninstall.sh
-        install -o "${USER}" -Dm755 -t "${PI_HOLE_INSTALL_DIR}" ./advanced/Scripts/COL_TABLE
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" gravity.sh
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" ./advanced/Scripts/*.sh
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" ./automated\ install/uninstall.sh
+        install -o "${USER}" -Dm755 -t "${PI_HOLE_SCRIPT_DIR}" ./advanced/Scripts/COL_TABLE
         install -o "${USER}" -Dm755 -t "${PI_HOLE_BIN_DIR}" pihole
         install -Dm644 ./advanced/bash-completion/pihole.bash /etc/bash_completion.d/pihole
         install -Dm644 ./advanced/bash-completion/pihole-ftl.bash /etc/bash_completion.d/pihole-FTL
@@ -1181,8 +1175,8 @@ installConfigs() {
     else
         install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
     fi
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-prestart.sh"
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_INSTALL_DIR}/pihole-FTL-poststop.sh"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
+    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
 }
 
 install_manpage() {
@@ -1429,7 +1423,7 @@ installCron() {
 # which is what Pi-hole needs to begin blocking ads
 runGravity() {
     # Run gravity in the current shell as user pihole
-    { sudo -u pihole bash /opt/pihole/gravity.sh --force; }
+    { sudo -u pihole bash ${PI_HOLE_SCRIPT_DIR}/gravity.sh --force; }
 }
 
 # Check if the pihole user exists and create if it does not
@@ -2294,12 +2288,12 @@ main() {
     # Install and log everything to a file
     installPihole | tee -a /proc/$$/fd/3
 
-    # /opt/pihole/utils.sh should be installed by installScripts now, so we can use it
-    if [ -f "${PI_HOLE_INSTALL_DIR}/utils.sh" ]; then
+    # ${PI_HOLE_SCRIPT_DIR}/utils.sh should be installed by installScripts now, so we can use it
+    if [ -f "${PI_HOLE_SCRIPT_DIR}/utils.sh" ]; then
         # shellcheck source="./advanced/Scripts/utils.sh"
-        source "${PI_HOLE_INSTALL_DIR}/utils.sh"
+        source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
     else
-        printf "  %b Failure: /opt/pihole/utils.sh does not exist .\\n" "${CROSS}"
+        printf "  %b Failure: ${PI_HOLE_SCRIPT_DIR}/utils.sh does not exist .\\n" "${CROSS}"
         exit 1
     fi
 
@@ -2329,7 +2323,7 @@ main() {
         # gravity altogether. This may be a very long running task needlessly blocking
         # the update process.
         # Only do this on updates, not on fresh installs as the database does not exit yet
-        /opt/pihole/gravity.sh --upgrade
+        ${PI_HOLE_SCRIPT_DIR}/gravity.sh --upgrade
     fi
 
     printf "  %b Restarting services...\\n" "${INFO}"
@@ -2372,7 +2366,7 @@ main() {
     runGravity
 
     # Update local and remote versions via updatechecker
-    /opt/pihole/updatecheck.sh
+    ${PI_HOLE_SCRIPT_DIR}/updatecheck.sh
 
     if [[ "${fresh_install}" == true ]]; then
 

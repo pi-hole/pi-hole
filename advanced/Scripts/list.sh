@@ -10,13 +10,11 @@
 # Please see LICENSE file for your rights under this license.
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
-utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
-source "${utilsfile}"
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
-apifile="${PI_HOLE_SCRIPT_DIR}/api.sh"
 # shellcheck source="./advanced/Scripts/api.sh"
-source "${apifile}"
+source "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
@@ -39,9 +37,8 @@ domList=()
 typeId=""
 comment=""
 
-colfile="/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/COL_TABLE"
-source ${colfile}
+source "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 helpFunc() {
     echo "Usage: pihole ${abbrv} [options] <domain> <domain2 ...>

@@ -10,19 +10,18 @@
 # Please see LICENSE file for your rights under this license.
 
 # Globals
-PI_HOLE_INSTALL_DIR="/opt/pihole"
+PI_HOLE_SCRIPT_DIR="/opt/pihole"
 max_results="20"
 partial="false"
 domain=""
 
 # Source color table
-colfile="/opt/pihole/COL_TABLE"
 # shellcheck source="./advanced/Scripts/COL_TABLE"
-. "${colfile}"
+. "${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
 # Source api functions
 # shellcheck source="./advanced/Scripts/api.sh"
-. "${PI_HOLE_INSTALL_DIR}/api.sh"
+. "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
 Help() {
     echo "Usage: pihole -q [option] <domain>

@@ -38,9 +38,11 @@ function get_remote_hash() {
     git ls-remote "https://github.com/pi-hole/${1}" --tags "${2}" | awk '{print substr($0, 1,8);}' || return 1
 }
 
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+
 # Source the utils file for addOrEditKeyValPair()
 # shellcheck source="./advanced/Scripts/utils.sh"
-. /opt/pihole/utils.sh
+source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
 ADMIN_INTERFACE_DIR=$(getFTLConfigValue "webserver.paths.webroot")$(getFTLConfigValue "webserver.paths.webhome")
 readonly ADMIN_INTERFACE_DIR
