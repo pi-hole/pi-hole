@@ -23,9 +23,8 @@ TestAPIAvailability() {
 
     # as we are running locally, we can get the port value from FTL directly
     PI_HOLE_SCRIPT_DIR="/opt/pihole"
-    utilsfile="${PI_HOLE_SCRIPT_DIR}/utils.sh"
     # shellcheck source=./advanced/Scripts/utils.sh
-    . "${utilsfile}"
+    . "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
     DNSport=$(getFTLConfigValue dns.port)
 

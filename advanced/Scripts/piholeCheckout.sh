@@ -8,6 +8,7 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
+readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
 readonly PI_HOLE_FILES_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
@@ -158,7 +159,7 @@ checkout() {
         fi
         checkout_pull_branch "${webInterfaceDir}" "${2}"
         # Update local and remote versions via updatechecker
-        /opt/pihole/updatecheck.sh
+        "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh
     elif [[ "${1}" == "ftl" ]] ; then
         local path
         local oldbranch
@@ -208,7 +209,7 @@ checkout() {
             echo -e "  ${OVER}  ${TICK} Restarted FTL service"
 
             # Update local and remote versions via updatechecker
-            /opt/pihole/updatecheck.sh
+            "${PI_HOLE_SCRIPT_DIR}"/updatecheck.sh
         else
             local status
             status=$?

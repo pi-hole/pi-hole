@@ -86,7 +86,7 @@ removePiholeFiles() {
     ${SUDO} rm -rf /var/log/pihole/*pihole* &> /dev/null
     ${SUDO} rm -rf "${PI_HOLE_CONFIG_DIR}" &> /dev/null
     ${SUDO} rm -rf "${PI_HOLE_FILES_DIR}" &> /dev/null
-    ${SUDO} rm -rf "${PI_HOLE_INSTALL_DIR}" &> /dev/null
+    ${SUDO} rm -rf "${PI_HOLE_SCRIPT_DIR}" &> /dev/null
     ${SUDO} rm -f "${PI_HOLE_BIN_DIR}"/pihole &> /dev/null
     ${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null
     ${SUDO} rm -f /etc/sudoers.d/pihole &> /dev/null
