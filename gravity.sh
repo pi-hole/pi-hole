@@ -34,13 +34,13 @@ blacklistFile="${piholeDir}/blacklist.txt"
 regexFile="${piholeDir}/regex.list"
 adListFile="${piholeDir}/adlists.list"
 
-piholeGitDir="/etc/.pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
 GRAVITYDB=$(getFTLConfigValue files.gravity)
 GRAVITY_TMPDIR=$(getFTLConfigValue files.gravity_tmp)
-gravityDBschema="${piholeGitDir}/advanced/Templates/gravity.db.sql"
-gravityDBcopy="${piholeGitDir}/advanced/Templates/gravity_copy.sql"
+gravityDBschema="${PI_HOLE_GIT_DIR}/advanced/Templates/gravity.db.sql"
+gravityDBcopy="${PI_HOLE_GIT_DIR}/advanced/Templates/gravity_copy.sql"
 # shellcheck source=./advanced/Scripts/database_migration/gravity-db.sh
-source "${piholeGitDir}/advanced/Scripts/database_migration/gravity-db.sh"
+source "${PI_HOLE_GIT_DIR}/advanced/Scripts/database_migration/gravity-db.sh"
 
 domainsExtension="domains"
 curl_connect_timeout=10
