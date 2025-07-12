@@ -63,7 +63,7 @@ FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
 
 # Directories required by Pi-hole
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
-CORE_GIT_DIRECTORY="/etc/.pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
 CRON_D_DIRECTORY="/etc/cron.d"
 DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
 PIHOLE_DIRECTORY="/etc/pihole"
@@ -287,7 +287,7 @@ check_ftl_version() {
 # Checks the core version of the Pi-hole codebase
 check_component_versions() {
     # Check the Web version, branch, and commit
-    compare_local_version_to_git_version "${CORE_GIT_DIRECTORY}" "Core"
+    compare_local_version_to_git_version "${PI_HOLE_GIT_DIR}" "Core"
     # Check the Web version, branch, and commit
     compare_local_version_to_git_version "${WEB_GIT_DIRECTORY}" "Web"
     # Check the FTL version

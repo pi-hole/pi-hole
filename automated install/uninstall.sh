@@ -36,10 +36,11 @@ else
     fi
 fi
 
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# Other PI_HOLE_* vars sourced from basic-install.sh
+PI_HOLE_GIT_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+source "${PI_HOLE_GIT_DIR}/automated install/basic-install.sh"
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
@@ -82,7 +83,7 @@ removePiholeFiles() {
     ${SUDO} rm -rf /var/log/*pihole* &> /dev/null
     ${SUDO} rm -rf /var/log/pihole/*pihole* &> /dev/null
     ${SUDO} rm -rf "${PI_HOLE_CONFIG_DIR}" &> /dev/null
-    ${SUDO} rm -rf "${PI_HOLE_FILES_DIR}" &> /dev/null
+    ${SUDO} rm -rf "${PI_HOLE_GIT_DIR}" &> /dev/null
     ${SUDO} rm -rf "${PI_HOLE_SCRIPT_DIR}" &> /dev/null
     ${SUDO} rm -f "${PI_HOLE_BIN_DIR}"/pihole &> /dev/null
     ${SUDO} rm -f /etc/bash_completion.d/pihole &> /dev/null

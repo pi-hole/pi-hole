@@ -8,14 +8,13 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-readonly PI_HOLE_FILES_DIR="/etc/.pihole"
+# Other PI_HOLE_* vars sourced from basic-install.sh
+PI_HOLE_GIT_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
-source "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh"
+source "${PI_HOLE_GIT_DIR}/automated install/basic-install.sh"
 
-# webInterfaceGitUrl set in basic-install.sh
 # webInterfaceDir set in basic-install.sh
-# piholeGitURL set in basic-install.sh
 # is_repo() sourced from basic-install.sh
 # check_download_exists sourced from basic-install.sh
 # fully_fetch_repo sourced from basic-install.sh
@@ -54,7 +53,7 @@ checkout() {
     set -f
 
     # This is unlikely
-    if ! is_repo "${PI_HOLE_FILES_DIR}" ; then
+    if ! is_repo "${PI_HOLE_GIT_DIR}" ; then
         echo -e "  ${COL_RED}Error: Core Pi-hole repo is missing from system!"
         echo -e "  Please re-run install script from https://github.com/pi-hole/pi-hole${COL_NC}"
         exit 1;
@@ -81,7 +80,7 @@ checkout() {
         echo -e "  ${INFO} Shortcut \"${COL_YELLOW}dev${COL_NC}\" detected - checking out development branches..."
         echo ""
         echo -e "  ${INFO} Pi-hole Core"
-        fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
+        fetch_checkout_pull_branch "${PI_HOLE_GIT_DIR}" "development" || { echo "  ${CROSS} Unable to pull Core development branch"; exit 1; }
         echo ""
         echo -e "  ${INFO} Web interface"
         fetch_checkout_pull_branch "${webInterfaceDir}" "development" || { echo "  ${CROSS} Unable to pull Web development branch"; exit 1; }
@@ -95,7 +94,7 @@ checkout() {
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"${COL_YELLOW}master${COL_NC}\" detected - checking out master branches..."
         echo -e "  ${INFO} Pi-hole core"
-        fetch_checkout_pull_branch "${PI_HOLE_FILES_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
+        fetch_checkout_pull_branch "${PI_HOLE_GIT_DIR}" "master" || { echo "  ${CROSS} Unable to pull Core master branch"; exit 1; }
         echo -e "  ${INFO} Web interface"
         fetch_checkout_pull_branch "${webInterfaceDir}" "master" || { echo "  ${CROSS} Unable to pull Web master branch"; exit 1; }
         #echo -e "  ${TICK} Web Interface"
@@ -104,13 +103,13 @@ checkout() {
         echo "master" > /etc/pihole/ftlbranch
         chmod 644 /etc/pihole/ftlbranch
     elif [[ "${1}" == "core" ]] ; then
-        str="Fetching branches from ${piholeGitUrl}"
+        str="Fetching branches from ${PI_HOLE_GIT_URL}"
         echo -ne "  ${INFO} $str"
-        if ! fully_fetch_repo "${PI_HOLE_FILES_DIR}" ; then
+        if ! fully_fetch_repo "${PI_HOLE_GIT_DIR}" ; then
             echo -e "${OVER}  ${CROSS} $str"
             exit 1
         fi
-        mapfile -t corebranches < <(get_available_branches "${PI_HOLE_FILES_DIR}")
+        mapfile -t corebranches < <(get_available_branches "${PI_HOLE_GIT_DIR}")
 
         if [[ "${corebranches[*]}" == *"master"* ]]; then
             echo -e "${OVER}  ${TICK} $str"
@@ -129,9 +128,9 @@ checkout() {
             for e in "${corebranches[@]}"; do echo "      - $e"; done
             exit 1
         fi
-        checkout_pull_branch "${PI_HOLE_FILES_DIR}" "${2}"
+        checkout_pull_branch "${PI_HOLE_GIT_DIR}" "${2}"
     elif [[ "${1}" == "web" ]] ; then
-        str="Fetching branches from ${webInterfaceGitUrl}"
+        str="Fetching branches from ${PI_HOLE_GIT_ADMIN_URL}"
         echo -ne "  ${INFO} $str"
         if ! fully_fetch_repo "${webInterfaceDir}" ; then
             echo -e "${OVER}  ${CROSS} $str"
@@ -235,7 +234,7 @@ checkout() {
     # Force updating everything
     if [[  ! "${1}" == "web" && ! "${1}" == "ftl" ]]; then
         echo -e "  ${INFO} Running installer to upgrade your installation"
-        if "${PI_HOLE_FILES_DIR}/automated install/basic-install.sh" --unattended; then
+        if "${PI_HOLE_GIT_DIR}/automated install/basic-install.sh" --unattended; then
             exit 0
         else
             echo -e "  ${COL_RED} Error: Unable to complete update, please contact support${COL_NC}"

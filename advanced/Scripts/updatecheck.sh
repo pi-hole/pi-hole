@@ -39,6 +39,7 @@ function get_remote_hash() {
 }
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+readonly PI_HOLE_GIT_DIR="/etc/.pihole"
 
 # Source the utils file for addOrEditKeyValPair()
 # shellcheck source="./advanced/Scripts/utils.sh"
@@ -73,13 +74,13 @@ fi
 
 # get Core versions
 
-CORE_VERSION="$(get_local_version /etc/.pihole)"
+CORE_VERSION="$(get_local_version "$PI_HOLE_GIT_DIR")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_VERSION" "${CORE_VERSION}"
 
-CORE_BRANCH="$(get_local_branch /etc/.pihole)"
+CORE_BRANCH="$(get_local_branch "$PI_HOLE_GIT_DIR")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_BRANCH" "${CORE_BRANCH}"
 
-CORE_HASH="$(get_local_hash /etc/.pihole)"
+CORE_HASH="$(get_local_hash "$PI_HOLE_GIT_DIR")"
 addOrEditKeyValPair "${VERSION_FILE}" "CORE_HASH" "${CORE_HASH}"
 
 GITHUB_CORE_VERSION="$(get_remote_version pi-hole "${CORE_BRANCH}")"

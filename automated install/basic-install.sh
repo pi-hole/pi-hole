@@ -69,7 +69,7 @@ EOM
 # This directory is where the Pi-hole scripts will be installed
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_CONFIG_DIR="/etc/pihole"
-PI_HOLE_LOCAL_REPO="/etc/.pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 
 # shellcheck source="./advanced/Scripts/COL_TABLE"
@@ -94,11 +94,11 @@ webroot="/var/www/html"
 # We clone (or update) two git repositories during the install. This helps to make sure that we always have the latest versions of the relevant files.
 # web is used to set up the Web admin interface.
 # Pi-hole contains various setup scripts and files which are critical to the installation.
-# Search for "PI_HOLE_LOCAL_REPO" in this file to see all such scripts.
+# Search for "PI_HOLE_GIT_DIR" in this file to see all such scripts.
 # Two notable scripts are gravity.sh (used to generate the HOSTS file) and advanced/Scripts/webpage.sh (used to install the Web admin interface)
-webInterfaceGitUrl="https://github.com/pi-hole/web.git"
+PI_HOLE_GIT_ADMIN_URL="https://github.com/pi-hole/web.git"
 webInterfaceDir="${webroot}/admin"
-piholeGitUrl="https://github.com/pi-hole/pi-hole.git"
+PI_HOLE_GIT_URL="https://github.com/pi-hole/pi-hole.git"
 # List of pihole scripts, stored in an array
 PI_HOLE_FILES=(list piholeDebug piholeLogFlush setupLCD update version gravity uninstall webpage)
 PI_HOLE_V6_CONFIG="${PI_HOLE_CONFIG_DIR}/pihole.toml"
@@ -1111,16 +1111,16 @@ clean_existing() {
 # Install the scripts from repository to their various locations
 installScripts() {
     # Local, named variables
-    local str="Installing scripts from ${PI_HOLE_LOCAL_REPO}"
+    local str="Installing scripts from ${PI_HOLE_GIT_DIR}"
     printf "  %b %s..." "${INFO}" "${str}"
 
     # Clear out script files from Pi-hole scripts directory.
     clean_existing "${PI_HOLE_SCRIPT_DIR}" "${PI_HOLE_FILES[@]}"
 
     # Install files from local core repository
-    if is_repo "${PI_HOLE_LOCAL_REPO}"; then
+    if is_repo "${PI_HOLE_GIT_DIR}"; then
         # move into the directory
-        cd "${PI_HOLE_LOCAL_REPO}"
+        cd "${PI_HOLE_GIT_DIR}"
         # Install the scripts by:
         #  -o setting the owner to the user
         #  -Dm755 create all leading components of destination except the last, then copy the source to the destination and setting the permissions to 755
@@ -1140,14 +1140,14 @@ installScripts() {
     else
         # Otherwise, show an error and exit
         printf "%b  %b %s\\n" "${OVER}" "${CROSS}" "${str}"
-        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+        printf "\\t\\t%bError: Local repo %s not found, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_GIT_DIR}" "${COL_NC}"
         return 1
     fi
 }
 
-# Install the configs from PI_HOLE_LOCAL_REPO to their various locations
+# Install the configs from PI_HOLE_GIT_DIR to their various locations
 installConfigs() {
-    printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_LOCAL_REPO}"
+    printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_GIT_DIR}"
 
     # Ensure that permissions are correctly set
     chown -R pihole:pihole /etc/pihole
@@ -1162,7 +1162,7 @@ installConfigs() {
 
     # Install pihole-FTL systemd or init.d service, based on whether systemd is the init system or not
     if ps -p 1 -o comm= | grep -q systemd; then
-        install -T -m 0644 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
+        install -T -m 0644 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL.systemd" '/etc/systemd/system/pihole-FTL.service'
 
         # Remove init.d service if present
         if [[ -e '/etc/init.d/pihole-FTL' ]]; then
@@ -1173,10 +1173,10 @@ installConfigs() {
         # Load final service
         systemctl daemon-reload
     else
-        install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
+        install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL.service" '/etc/init.d/pihole-FTL'
     fi
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
-    install -T -m 0755 "${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
+    install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL-prestart.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-prestart.sh"
+    install -T -m 0755 "${PI_HOLE_GIT_DIR}/advanced/Templates/pihole-FTL-poststop.sh" "${PI_HOLE_SCRIPT_DIR}/pihole-FTL-poststop.sh"
 }
 
 install_manpage() {
@@ -1202,7 +1202,7 @@ install_manpage() {
         install -d -m 755 /usr/local/share/man/man5
     fi
     # Testing complete, copy the files & update the man db
-    install -D -m 644 -T ${PI_HOLE_LOCAL_REPO}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
+    install -D -m 644 -T ${PI_HOLE_GIT_DIR}/manpages/pihole.8 /usr/local/share/man/man8/pihole.8
 
     # remove previously installed man pages
     if [[ -f "/usr/local/share/man/man5/pihole-FTL.conf.5" ]]; then
@@ -1411,7 +1411,7 @@ installCron() {
     printf "\\n  %b %s..." "${INFO}" "${str}"
     # Copy the cron file over from the local repo
     # File must not be world or group writeable and must be owned by root
-    install -D -m 644 -T -o root -g root ${PI_HOLE_LOCAL_REPO}/advanced/Templates/pihole.cron /etc/cron.d/pihole
+    install -D -m 644 -T -o root -g root ${PI_HOLE_GIT_DIR}/advanced/Templates/pihole.cron /etc/cron.d/pihole
     # Randomize gravity update time
     sed -i "s/59 1 /$((1 + RANDOM % 58)) $((3 + RANDOM % 2))/" /etc/cron.d/pihole
     # Randomize update checker time
@@ -1535,7 +1535,7 @@ nomail
     else
         # Copy the file over from the local repo
         # Logrotate config file must be owned by root and not writable by group or other
-        install -o root -g root -D -m 644 -T "${PI_HOLE_LOCAL_REPO}"/advanced/Templates/logrotate ${target}
+        install -o root -g root -D -m 644 -T "${PI_HOLE_GIT_DIR}"/advanced/Templates/logrotate ${target}
     fi
 
     # Different operating systems have different user / group
@@ -1719,9 +1719,9 @@ clone_or_reset_repos() {
     if [[ "${repair}" == true ]]; then
         printf "  %b Resetting local repos\\n" "${INFO}"
         # Reset the Core repo
-        resetRepo ${PI_HOLE_LOCAL_REPO} ||
+        resetRepo ${PI_HOLE_GIT_DIR} ||
             {
-                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                printf "  %b Unable to reset %s, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_GIT_DIR}" "${COL_NC}"
                 exit 1
             }
         # Reset the Web repo
@@ -1733,15 +1733,15 @@ clone_or_reset_repos() {
     # Otherwise, a fresh installation is happening
     else
         # so get git files for Core
-        getGitFiles ${PI_HOLE_LOCAL_REPO} ${piholeGitUrl} ||
+        getGitFiles ${PI_HOLE_GIT_DIR} ${PI_HOLE_GIT_URL} ||
             {
-                printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_RED}" "${piholeGitUrl}" "${PI_HOLE_LOCAL_REPO}" "${COL_NC}"
+                printf "  %b Unable to clone %s into %s, unable to continue%b\\n" "${COL_RED}" "${PI_HOLE_GIT_URL}" "${PI_HOLE_GIT_DIR}" "${COL_NC}"
                 exit 1
             }
         # get the Web git files
-        getGitFiles ${webInterfaceDir} ${webInterfaceGitUrl} ||
+        getGitFiles ${webInterfaceDir} ${PI_HOLE_GIT_ADMIN_URL} ||
             {
-                printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_RED}" "${webInterfaceGitUrl}" "${COL_NC}"
+                printf "  %b Unable to clone %s into ${webInterfaceDir}, exiting installer%b\\n" "${COL_RED}" "${PI_HOLE_GIT_ADMIN_URL}" "${COL_NC}"
                 exit 1
             }
     fi

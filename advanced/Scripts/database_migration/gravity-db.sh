@@ -10,7 +10,8 @@
 # This file is copyright under the latest version of the EUPL.
 # Please see LICENSE file for your rights under this license.
 
-readonly scriptPath="/etc/.pihole/advanced/Scripts/database_migration/gravity"
+PI_HOLE_GIT_DIR="/etc/.pihole"
+readonly scriptPath="${PI_HOLE_GIT_DIR}/advanced/Scripts/database_migration/gravity"
 
 upgrade_gravityDB(){
     local database version

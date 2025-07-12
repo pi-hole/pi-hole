@@ -10,6 +10,7 @@
 # Please see LICENSE file for your rights under this license.
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
+PI_HOLE_GIT_DIR="/etc/.pihole"
 
 # PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
 # they might get set again when the installer is sourced. This causes an
@@ -122,7 +123,7 @@ repairPiholeFunc() {
   if [ -n "${DOCKER_VERSION}" ]; then
     unsupportedFunc
   else
-    /etc/.pihole/automated\ install/basic-install.sh --repair
+    "${PI_HOLE_GIT_DIR}/automated install"/basic-install.sh --repair
     exit 0;
   fi
 }
