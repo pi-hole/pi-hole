@@ -277,7 +277,7 @@ package_manager_detect() {
             PKG_MANAGER="dnf"
             # CentOS package manager returns 100 when there are packages to update so we need to || true to prevent the script from exiting.
             PKG_COUNT="${PKG_MANAGER} check-update | grep -E '(.i686|.x86|.noarch|.arm|.src|.riscv64)' | wc -l || true"
-            PKG_INSTALL_LOCAL="${PKG_MANAGER} --no-gpgchecks install -y"
+            PKG_INSTALL_LOCAL="${PKG_MANAGER} install -y"
         elif is_command zypper; then
             PKG_MANAGER="zypper"
             # Count lines beginning with "v", see above for explanation of OR TRUE
