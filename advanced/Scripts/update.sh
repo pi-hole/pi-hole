@@ -176,8 +176,8 @@ main() {
 
     # Determine FTL branch
     local ftlBranch
-    if [[ -f "/etc/pihole/ftlbranch" ]]; then
-        ftlBranch=$(</etc/pihole/ftlbranch)
+    if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
+        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
     else
         ftlBranch="master"
     fi

@@ -9,6 +9,8 @@
 # Please see LICENSE file for your rights under this license.
 
 readonly PI_HOLE_SCRIPT_DIR="/opt/pihole"
+readonly PI_HOLE_CONFIG_DIR="/etc/pihole"
+
 # shellcheck source="./advanced/Scripts/utils.sh"
 source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 
@@ -23,7 +25,7 @@ STATEFILE="/var/lib/logrotate/pihole"
 # Determine database location
 DBFILE=$(getFTLConfigValue "files.database")
 if [ -z "$DBFILE" ]; then
-    DBFILE="/etc/pihole/pihole-FTL.db"
+    DBFILE="${PI_HOLE_CONFIG_DIR}/pihole-FTL.db"
 fi
 
 # Determine log file location
@@ -84,7 +86,7 @@ if [[ "$*" == *"once"* ]]; then
         if [[ "$*" != *"quiet"* ]]; then
             echo -ne "  ${INFO} Running logrotate ..."
         fi
-        /usr/sbin/logrotate --force --state "${STATEFILE}" /etc/pihole/logrotate
+        /usr/sbin/logrotate --force --state "${STATEFILE}" "${PI_HOLE_CONFIG_DIR}/logrotate"
     else
         # Handle rotation for each log file
         rotate_log "${LOGFILE}"

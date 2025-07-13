@@ -11,6 +11,7 @@
 
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PI_HOLE_GIT_DIR="/etc/.pihole"
+PI_HOLE_CONFIG_DIR="/etc/pihole"
 
 # PI_HOLE_BIN_DIR is not readonly here because in some functions (checkout),
 # they might get set again when the installer is sourced. This causes an
@@ -27,7 +28,7 @@ source "${PI_HOLE_SCRIPT_DIR}/utils.sh"
 # shellcheck source=./advanced/Scripts/api.sh
 source "${PI_HOLE_SCRIPT_DIR}/api.sh"
 
-versionsfile="/etc/pihole/versions"
+versionsfile="${PI_HOLE_CONFIG_DIR}/versions"
 if [ -f "${versionsfile}" ]; then
     # Only source versionsfile if the file exits
     # fixes a warning during installation where versionsfile does not exist yet

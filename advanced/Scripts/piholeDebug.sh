@@ -21,6 +21,7 @@ set -o pipefail
 ######## GLOBAL VARS ########
 # These variables would normally be next to the other files
 # but we need them to be first in order to get the colors needed for the script output
+PI_HOLE_CONFIG_DIR="/etc/pihole"
 PI_HOLE_SCRIPT_DIR="/opt/pihole"
 PIHOLE_COLTABLE_FILE="${PI_HOLE_SCRIPT_DIR}/COL_TABLE"
 
@@ -42,7 +43,7 @@ else
 fi
 
 # shellcheck source=/dev/null
-. /etc/pihole/versions
+source "${PI_HOLE_CONFIG_DIR}/versions"
 
 # Read the value of an FTL config key. The value is printed to stdout.
 get_ftl_conf_value() {
@@ -66,7 +67,6 @@ FORUMS_URL="${COL_CYAN}https://discourse.pi-hole.net${COL_NC}"
 PI_HOLE_GIT_DIR="/etc/.pihole"
 CRON_D_DIRECTORY="/etc/cron.d"
 DNSMASQ_D_DIRECTORY="/etc/dnsmasq.d"
-PIHOLE_DIRECTORY="/etc/pihole"
 PI_HOLE_BIN_DIR="/usr/local/bin"
 LOG_DIRECTORY="/var/log/pihole"
 HTML_DIRECTORY="$(get_ftl_conf_value "webserver.paths.webroot")"
@@ -79,12 +79,12 @@ ETC="/etc"
 # https://discourse.pi-hole.net/t/what-files-does-pi-hole-use/1684
 PIHOLE_CRON_FILE="${CRON_D_DIRECTORY}/pihole"
 
-PIHOLE_INSTALL_LOG_FILE="${PIHOLE_DIRECTORY}/install.log"
-PIHOLE_RAW_BLOCKLIST_FILES="${PIHOLE_DIRECTORY}/list.*"
-PIHOLE_LOGROTATE_FILE="${PIHOLE_DIRECTORY}/logrotate"
-PIHOLE_FTL_CONF_FILE="${PIHOLE_DIRECTORY}/pihole.toml"
-PIHOLE_DNSMASQ_CONF_FILE="${PIHOLE_DIRECTORY}/dnsmasq.conf"
-PIHOLE_VERSIONS_FILE="${PIHOLE_DIRECTORY}/versions"
+PIHOLE_INSTALL_LOG_FILE="${PI_HOLE_CONFIG_DIR}/install.log"
+PIHOLE_RAW_BLOCKLIST_FILES="${PI_HOLE_CONFIG_DIR}/list.*"
+PIHOLE_LOGROTATE_FILE="${PI_HOLE_CONFIG_DIR}/logrotate"
+PIHOLE_FTL_CONF_FILE="${PI_HOLE_CONFIG_DIR}/pihole.toml"
+PIHOLE_DNSMASQ_CONF_FILE="${PI_HOLE_CONFIG_DIR}/dnsmasq.conf"
+PIHOLE_VERSIONS_FILE="${PI_HOLE_CONFIG_DIR}/versions"
 
 PIHOLE_GRAVITY_DB_FILE="$(get_ftl_conf_value "files.gravity")"
 
@@ -303,7 +303,7 @@ diagnose_operating_system() {
     # Display the current test that is running
     echo_current_diagnostic "Operating system"
 
-    # If DOCKER_VERSION is set (Sourced from /etc/pihole/versions at start of script), include this information in the debug output
+    # If DOCKER_VERSION is set (Sourced from $PI_HOLE_CONFIG_DIR/versions at start of script), include this information in the debug output
     [ -n "${DOCKER_VERSION}" ] && log_write "${INFO} Pi-hole Docker Container: ${DOCKER_VERSION}"
 
     # If there is a /etc/*release file, it's probably a supported operating system, so we can
@@ -976,7 +976,7 @@ show_content_of_files_in_dir() {
 
 show_content_of_pihole_files() {
     # Show the content of the files in each of Pi-hole's folders
-    show_content_of_files_in_dir "${PIHOLE_DIRECTORY}"
+    show_content_of_files_in_dir "${PI_HOLE_CONFIG_DIR}"
     show_content_of_files_in_dir "${DNSMASQ_D_DIRECTORY}"
     show_content_of_files_in_dir "${CRON_D_DIRECTORY}"
     show_content_of_files_in_dir "${LOG_DIRECTORY}"

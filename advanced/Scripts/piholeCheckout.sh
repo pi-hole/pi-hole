@@ -13,6 +13,7 @@ PI_HOLE_GIT_DIR="/etc/.pihole"
 SKIP_INSTALL="true"
 # shellcheck source="./automated install/basic-install.sh"
 source "${PI_HOLE_GIT_DIR}/automated install/basic-install.sh"
+readonly FTL_BRANCH_FILE="${PI_HOLE_CONFIG_DIR}/ftlbranch"
 
 # webInterfaceDir set in basic-install.sh
 # is_repo() sourced from basic-install.sh
@@ -88,8 +89,8 @@ checkout() {
 
         local path
         path="development/${binary}"
-        echo "development" > /etc/pihole/ftlbranch
-        chmod 644 /etc/pihole/ftlbranch
+        echo "development" > "${FTL_BRANCH_FILE}"
+        chmod 644 "${FTL_BRANCH_FILE}"
     elif [[ "${1}" == "master" ]] ; then
         # Shortcut to check out master branches
         echo -e "  ${INFO} Shortcut \"${COL_YELLOW}master${COL_NC}\" detected - checking out master branches..."
@@ -100,8 +101,8 @@ checkout() {
         #echo -e "  ${TICK} Web Interface"
         local path
         path="master/${binary}"
-        echo "master" > /etc/pihole/ftlbranch
-        chmod 644 /etc/pihole/ftlbranch
+        echo "master" > "${FTL_BRANCH_FILE}"
+        chmod 644 "${FTL_BRANCH_FILE}"
     elif [[ "${1}" == "core" ]] ; then
         str="Fetching branches from ${PI_HOLE_GIT_URL}"
         echo -ne "  ${INFO} $str"
@@ -187,8 +188,8 @@ checkout() {
 
         if check_download_exists "$path"; then
             echo "  ${TICK} Binary exists"
-            echo "${2}" > /etc/pihole/ftlbranch
-            chmod 644 /etc/pihole/ftlbranch
+            echo "${2}" > "${FTL_BRANCH_FILE}"
+            chmod 644 "${FTL_BRANCH_FILE}"
             echo -e "  ${INFO} Switching to branch: ${COL_CYAN}${2}${COL_NC} from ${COL_CYAN}${oldbranch}${COL_NC}"
             FTLinstall "${binary}"
             restart_service pihole-FTL

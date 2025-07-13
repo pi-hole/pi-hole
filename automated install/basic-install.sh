@@ -229,7 +229,7 @@ is_command() {
 
 check_fresh_install() {
     # in case of an update (can be a v5 -> v6 or v6 -> v6 update) or repair
-    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "/etc/pihole/setupVars.conf" ]]; then
+    if [[ -f "${PI_HOLE_V6_CONFIG}" ]] || [[ -f "${PI_HOLE_CONFIG_DIR}/setupVars.conf" ]]; then
         fresh_install=false
     fi
 }
@@ -1037,7 +1037,7 @@ installDefaultBlocklists() {
 }
 
 move_old_dnsmasq_ftl_configs() {
-    # Create migration directory /etc/pihole/migration_backup_v6
+    # Create migration directory ${PI_HOLE_CONFIG_DIR}/migration_backup_v6
     # and make it owned by pihole:pihole
     mkdir -p "${V6_CONF_MIGRATION_DIR}"
     chown pihole:pihole "${V6_CONF_MIGRATION_DIR}"
@@ -1150,7 +1150,7 @@ installConfigs() {
     printf "\\n  %b Installing configs from %s...\\n" "${INFO}" "${PI_HOLE_GIT_DIR}"
 
     # Ensure that permissions are correctly set
-    chown -R pihole:pihole /etc/pihole
+    chown -R pihole:pihole "$PI_HOLE_CONFIG_DIR"
 
     # Install empty custom.list file if it does not exist
     if [[ ! -r "${PI_HOLE_CONFIG_DIR}/hosts/custom.list" ]]; then
@@ -1497,7 +1497,7 @@ create_pihole_user() {
 # Install the logrotate script
 installLogrotate() {
     local str="Installing latest logrotate script"
-    local target=${PI_HOLE_CONFIG_DIR}/logrotate
+    local target="${PI_HOLE_CONFIG_DIR}/logrotate"
     local logfileUpdate=false
 
     printf "\\n  %b %s..." "${INFO}" "${str}"
@@ -1764,7 +1764,7 @@ FTLinstall() {
     local ftlBranch
 
     if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
-        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
+        ftlBranch=$(<"${PI_HOLE_CONFIG_DIR}/ftlbranch")
     else
         ftlBranch="master"
     fi
@@ -1931,7 +1931,7 @@ FTLcheckUpdate() {
     local ftlBranch
 
     if [[ -f "${PI_HOLE_CONFIG_DIR}/ftlbranch" ]]; then
-        ftlBranch=$(<${PI_HOLE_CONFIG_DIR}/ftlbranch)
+        ftlBranch=$(<"${PI_HOLE_CONFIG_DIR}/ftlbranch")
     else
         ftlBranch="master"
     fi
@@ -2108,11 +2108,11 @@ disableLighttpd() {
 migrate_dnsmasq_configs() {
     # Previously, Pi-hole created a number of files in /etc/dnsmasq.d
     # During migration, their content is copied into the new single source of
-    # truth file /etc/pihole/pihole.toml and the old files are moved away to
+    # truth file ${PI_HOLE_CONFIG_DIR}/pihole.toml and the old files are moved away to
     # avoid conflicts with other services on this system
 
     # Exit early if this is already Pi-hole v6.0
-    # We decide this on the non-existence of the file /etc/pihole/setupVars.conf (either moved by previous migration or fresh install)
+    # We decide this on the non-existence of the file ${PI_HOLE_CONFIG_DIR}/setupVars.conf (either moved by previous migration or fresh install)
     if [[ ! -f "${PI_HOLE_CONFIG_DIR}/setupVars.conf" ]]; then
         return 0
     fi
@@ -2121,10 +2121,10 @@ migrate_dnsmasq_configs() {
     disableLighttpd
 
     # move_old_dnsmasq_ftl_configs() moved everything is in place,
-    # so we can create the new config file /etc/pihole/pihole.toml
+    # so we can create the new config file ${PI_HOLE_CONFIG_DIR}/pihole.toml
     # This file will be created with the default settings unless the user has
     # changed settings via setupVars.conf or the other dnsmasq files moved before
-    # During migration, setupVars.conf is moved to /etc/pihole/migration_backup_v6
+    # During migration, setupVars.conf is moved to ${PI_HOLE_CONFIG_DIR}/migration_backup_v6
     str="Migrating Pi-hole configuration to version 6"
     printf "  %b %s..." "${INFO}" "${str}"
     local FTLoutput FTLstatus
@@ -2249,7 +2249,7 @@ main() {
     if [[ "${fresh_install}" == true ]]; then
         # Display welcome dialogs
         welcomeDialogs
-        # Create directory for Pi-hole storage (/etc/pihole/)
+        # Create directory for Pi-hole storage
         install -d -m 755 "${PI_HOLE_CONFIG_DIR}"
         # Determine available interfaces
         get_available_interfaces
